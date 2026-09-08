@@ -4,3 +4,11 @@
 
 html, body { background: #080B14; color: #E9EDF5; }
 body { -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+
+/* Start der Rakete beim eigenen Blockfund. Laeuft nur im neuesten Fenster,
+   damit sie beim Weiterschieben des Streifens nicht erneut abhebt. */
+@keyframes liftoff {
+  0%   { transform: translateY(7px) scale(0.6); opacity: 0; }
+  55%  { transform: translateY(-2px) scale(1.12); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}

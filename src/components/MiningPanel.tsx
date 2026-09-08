@@ -87,6 +87,7 @@ export default function MiningPanel() {
       <PerformanceStrip
         samples={miner.samples}
         shares={miner.shareMarks}
+        blocks={miner.blockMarks}
         active={miner.mining}
       />
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BUCKET_MS, MAX_BARS } from '@/lib/strip';
+import { BUCKET_MS, MAX_BARS, type BlockMark } from '@/lib/strip';
 
 /**
  * Steuert Worker, Job-Nachschub und Share-Einreichung.
@@ -41,8 +41,11 @@ export function useMiner(token: string | null, platform: string) {
   // Messung -- die belohnungsrelevanten Zahlen kommen weiterhin vom Server.
   const bucketHashes = useRef(0);
   const bucketShares = useRef(0);
+  const bucketBlock = useRef<BlockMark>(null);
+  const lastHeight = useRef<number | null>(null);
   const [samples, setSamples] = useState<number[]>([]);
   const [shareMarks, setShareMarks] = useState<number[]>([]);
+  const [blockMarks, setBlockMarks] = useState<BlockMark[]>([]);
   const [mining, setMining] = useState(false);
   const [duty, setDuty] = useState(50);
   const [status, setStatus] = useState<MinerStatus | null>(null);
@@ -98,6 +101,8 @@ export function useMiner(token: string | null, platform: string) {
     setShareMarks([]);
     bucketHashes.current = 0;
     bucketShares.current = 0;
+    bucketBlock.current = null;
+    setBlockMarks([]);
     try {
       const session = await api('/mining/session', {
         method: 'POST',
@@ -122,7 +127,10 @@ export function useMiner(token: string | null, platform: string) {
                 nonce: e.data.nonce,
               }),
             }).then(r => {
-              if (r.block) setLastBlock({ height: r.height, reward: r.reward });
+              if (r.block) {
+                setLastBlock({ height: r.height, reward: r.reward });
+                bucketBlock.current = 'own';   // verdraengt einen fremden Fund
+              }
               if (r.refetchJob) { fetchJob(); return; }
 
               if (r.accepted) {
@@ -169,10 +177,13 @@ export function useMiner(token: string | null, platform: string) {
     const id = setInterval(() => {
       const hashes = bucketHashes.current;
       const shares = bucketShares.current;
+      const block = bucketBlock.current;
       bucketHashes.current = 0;
       bucketShares.current = 0;
+      bucketBlock.current = null;
       setSamples(prev => [...prev, hashes].slice(-MAX_BARS));
       setShareMarks(prev => [...prev, shares].slice(-MAX_BARS));
+      setBlockMarks(prev => [...prev, block].slice(-MAX_BARS));
     }, BUCKET_MS);
     return () => clearInterval(id);
   }, [mining]);
@@ -187,7 +198,18 @@ export function useMiner(token: string | null, platform: string) {
   // Status pollen
   useEffect(() => {
     if (!token) return;
-    const tick = () => api('/mining/status').then(setStatus).catch(() => {});
+    const tick = () => api('/mining/status').then(next => {
+      setStatus(next);
+      // Steigt die Hoehe, hat irgendwer im Netz einen Block gefunden. War es
+      // der eigene, steht 'own' bereits im laufenden Fenster und bleibt.
+      if (typeof next?.height === 'number') {
+        if (lastHeight.current !== null && next.height > lastHeight.current
+            && bucketBlock.current !== 'own') {
+          bucketBlock.current = 'other';
+        }
+        lastHeight.current = next.height;
+      }
+    }).catch(() => {});
     tick();
     const id = setInterval(tick, 5000);
     return () => clearInterval(id);
@@ -210,5 +232,5 @@ export function useMiner(token: string | null, platform: string) {
   }, []);
 
   return { mining, start, stop, status, duty, setDuty: changeDuty, lastBlock, error,
-           samples, shareMarks };
+           samples, shareMarks, blockMarks };
 }

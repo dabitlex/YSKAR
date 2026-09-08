@@ -7,3 +7,6 @@
  */
 export const BUCKET_MS = 30_000;   // ein Balken je 30 Sekunden
 export const MAX_BARS = 20;        // 10 Minuten Verlauf
+
+/** Was in einem 30-Sekunden-Fenster an Blockfunden passiert ist. */
+export type BlockMark = 'own' | 'other' | null;
