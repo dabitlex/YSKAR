@@ -15,6 +15,13 @@ geleistet wurde.
 abgeleiteten Schluessel signiert. Eine untergeschobene User-ID faellt beim
 HMAC-Vergleich auf (`tests/chain.test.ts`).
 
+Zum data-check-string: Fuer das HMAC-Verfahren ist nur `hash` ausgenommen,
+`signature` gehoert hinein. Der Ausschluss von `signature` gilt allein fuer
+das Ed25519-Verfahren zur Pruefung durch Dritte. Diese Verwechslung war die
+Ursache des ersten `bad_signature` im Betrieb. Die Pruefung akzeptiert jetzt
+beide Varianten -- ohne Abschwaechung, da fuer beide Zeichenketten weiterhin
+der Bot-Token noetig ist.
+
 **Kettenverkettung.** Ein Datenbank-Trigger erzwingt lueckenlose Hoehen und
 passende `prev_hash`. Bloecke sind unveraenderlich, auch fuer die Service
 Role — `UPDATE` und `DELETE` auf `blocks` loesen eine Exception aus.
