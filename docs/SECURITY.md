@@ -117,6 +117,25 @@ direkt. Darueber braucht es einen dedizierten Coordinator mit persistenter
 WebSocket-Verbindung und Batch-Insert. Der Share-Transport liegt deshalb
 hinter einer Schnittstelle, damit der Wechsel kein Umbau der Validierung ist.
 
+## Share-Target und Block-Target nicht verwechseln
+
+Der Client mint gegen sein **Share**-Target, das aus der VarDiff-Difficulty
+seiner Session stammt. Das Block-Target steht zwar im Header (Feld
+`difficulty`, weil es dort bitgenau stimmen muss), aber der Worker vergleicht
+nicht dagegen.
+
+Ob ein Share zufaellig auch das Block-Target erfuellt, entscheidet allein der
+Server beim Nachrechnen. Der Client erfaehrt davon erst aus der Antwort.
+
+Beim ersten Testlauf im Betrieb lieferte die Job-Route faelschlich das
+Block-Target aus. Der Miner rechnete korrekt, suchte aber nach einem ganzen
+Block: 1,6 Mrd statt 8,4 Mio Hashes, bei einer Job-Laufzeit von 90 Sekunden.
+Von aussen sah das aus, als starte das Mining nicht.
+
+Zwei Lehren daraus stecken jetzt im Code: `tests/chain.test.ts` prueft den
+Abstand beider Targets, und abgelehnte Shares werden in der Oberflaeche
+angezeigt statt stillschweigend verworfen.
+
 ## Merkle-Root
 
 `blocks.merkle_root` verpflichtet auf die Beitraege und die Auszahlung der

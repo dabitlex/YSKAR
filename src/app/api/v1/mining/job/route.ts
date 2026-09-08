@@ -24,6 +24,15 @@ export async function GET(req: Request) {
   const p = await chainParams();
   const sb = db();
 
+  // Der Client mint gegen sein SHARE-Target, nicht gegen das Block-Target.
+  // Sonst sucht er nach einem ganzen Block und liefert praktisch nie einen
+  // Share ab -- genau das war der Fehler beim ersten Testlauf.
+  const { data: session } = await sb.from('mining_sessions')
+    .select('share_difficulty')
+    .eq('user_id', auth.claims.sub)
+    .eq('status', 'active')
+    .maybeSingle();
+
   const { data: round } = await sb.from('rounds')
     .select('id, height, difficulty, prev_hash, merkle_root, opened_at')
     .eq('status', 'open')
@@ -39,7 +48,7 @@ export async function GET(req: Request) {
     .limit(1)
     .maybeSingle();
 
-  if (existing) return ok(serialize(existing));
+  if (existing) return ok(serialize(existing, session?.share_difficulty));
 
   // Notfallregel: Wenn seit dem letzten Block zu viel Zeit vergangen ist,
   // lockert das Target. Ohne das steht die Kette morgens, wenn nachts
@@ -75,7 +84,7 @@ export async function GET(req: Request) {
     .single();
 
   if (error || !job) return fail('job_create_failed', 500);
-  return ok(serialize(job));
+  return ok(serialize(job, session?.share_difficulty));
 }
 
 function hex(v: string): string {
@@ -88,8 +97,17 @@ function hex(v: string): string {
  * src/lib/chain/header.ts und src/workers/miner.worker.ts identisch und wird
  * von tests/header.test.ts gegeneinander geprueft.
  */
-function serialize(job: Record<string, unknown>) {
-  const difficulty = Number(job.difficulty);
+function serialize(job: Record<string, unknown>, shareDifficulty?: number | null) {
+  const blockDifficulty = Number(job.difficulty);
+
+  // `difficulty` bleibt die Block-Difficulty -- sie steht so im Header und
+  // muss dort bitgenau stimmen. `target` ist dagegen das SHARE-Target, gegen
+  // das der Worker vergleicht. Ohne aktive Session fällt es auf das
+  // Block-Target zurück.
+  const shareTarget = shareDifficulty && shareDifficulty > 0
+    ? BigInt(shareDifficulty)
+    : BigInt(blockDifficulty);
+
   return {
     jobId: job.id,
     height: Number(job.height),
@@ -97,8 +115,10 @@ function serialize(job: Record<string, unknown>) {
     merkleRoot: hex(job.merkle_root as string),
     jobSeed: hex(job.job_seed as string),
     timestamp: String(job.block_time),
-    difficulty,
-    target: targetToBytes(targetFromDifficulty(BigInt(difficulty))).toString('hex'),
+    difficulty: blockDifficulty,
+    blockDifficulty,
+    shareDifficulty: Number(shareTarget),
+    target: targetToBytes(targetFromDifficulty(shareTarget)).toString('hex'),
     expiresAt: job.expires_at,
   };
 }
