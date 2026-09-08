@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useMiner } from '@/hooks/useMiner';
+import PerformanceStrip from '@/components/PerformanceStrip';
 
 /**
  * Oberflaeche fuer Meilenstein 1. Bewusst nuechtern: Erst muss die Kette
@@ -82,6 +83,12 @@ export default function MiningPanel() {
           ? `${s?.session?.validShares ?? 0} gueltige Shares, ${(s?.session?.roundSharePct ?? 0).toFixed(1)} % dieser Runde`
           : 'nicht aktiv'}
       </p>
+
+      <PerformanceStrip
+        samples={miner.samples}
+        shares={miner.shareMarks}
+        active={miner.mining}
+      />
 
       <dl className="mt-8 space-y-2 border-t border-line pt-5 text-sm">
         <Row label="Block" value={s?.height != null ? `#${s.height}` : '—'} />
