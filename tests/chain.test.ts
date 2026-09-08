@@ -116,13 +116,31 @@ test('Notfallregel lockert das Target erst nach dem Schwellwert', () => {
 
 // ---------------------------------------------------------------- initData
 
-function fakeInitData(botToken: string, user: object, authDate = Math.floor(Date.now() / 1000)) {
+/**
+ * Baut initData so, wie Telegram sie liefert.
+ *
+ * `signature` bildet nach, was Telegram seit Bot API 7.10 mitschickt. Es
+ * gehoert in den data-check-string des HMAC-Verfahrens -- nur beim
+ * Ed25519-Verfahren fuer Dritte bleibt es draussen. Genau diese Verwechslung
+ * hatte beim ersten Deployment `bad_signature` verursacht.
+ */
+function fakeInitData(
+  botToken: string,
+  user: object,
+  authDate = Math.floor(Date.now() / 1000),
+  opts: { signature?: string; hashOverSignature?: boolean } = {},
+) {
   const fields: Record<string, string> = {
     auth_date: String(authDate),
     query_id: 'AAF_test',
     user: JSON.stringify(user),
   };
-  const dcs = Object.keys(fields).sort().map(k => `${k}=${fields[k]}`).join('\n');
+  if (opts.signature) fields.signature = opts.signature;
+
+  const hashed = { ...fields };
+  if (opts.signature && opts.hashOverSignature === false) delete hashed.signature;
+
+  const dcs = Object.keys(hashed).sort().map(k => `${k}=${hashed[k]}`).join('\n');
   const secret = createHmac('sha256', 'WebAppData').update(botToken).digest();
   const hash = createHmac('sha256', secret).update(dcs).digest('hex');
   const p = new URLSearchParams(fields);
@@ -156,6 +174,53 @@ test('Manipulierte initData wird abgewiesen', () => {
   assert.equal(verifyInitData(p2.toString(), bot).reason, 'missing_hash');
 
   assert.equal(verifyInitData('', bot).reason, 'malformed');
+});
+
+
+test('initData mit signature-Feld wird akzeptiert (Regression zu bad_signature)', () => {
+  const bot = '123456:AAterrificTestTokenValue';
+  const user = { id: 1900315719, first_name: 'Kevin' };
+
+  // So liefert Telegram es heute: signature ist Teil des data-check-string
+  const mit = fakeInitData(bot, user, undefined,
+    { signature: 'abc_signature_value', hashOverSignature: true });
+  const r1 = verifyInitData(mit, bot);
+  assert.equal(r1.ok, true, 'signature muss in den data-check-string');
+  assert.equal(r1.variant, 'with_signature');
+
+  // Aeltere Clients ohne signature bleiben gueltig
+  const ohne = fakeInitData(bot, user);
+  assert.equal(verifyInitData(ohne, bot).ok, true);
+
+  // Ein Client, der den Hash ohne signature bildet, wird ebenfalls akzeptiert
+  const gemischt = fakeInitData(bot, user, undefined,
+    { signature: 'abc_signature_value', hashOverSignature: false });
+  const r3 = verifyInitData(gemischt, bot);
+  assert.equal(r3.ok, true);
+  assert.equal(r3.variant, 'without_signature');
+});
+
+test('Bot-Token mit Zeilenumbruch beim Einfuegen wird verkraftet', () => {
+  const bot = '123456:AAterrificTestTokenValue';
+  const data = fakeInitData(bot, { id: 1, first_name: 'A' });
+  assert.equal(verifyInitData(data, bot + '\n').ok, true);
+  assert.equal(verifyInitData(data, '  ' + bot + '  ').ok, true);
+});
+
+test('Manipulierte initData bleibt trotz zweier Varianten abgewiesen', () => {
+  const bot = '123456:AAterrificTestTokenValue';
+  const data = fakeInitData(bot, { id: 1, first_name: 'A' },
+    undefined, { signature: 'sig', hashOverSignature: true });
+
+  // signature veraendert -> keine der beiden Varianten passt
+  const p = new URLSearchParams(data);
+  p.set('signature', 'gefaelscht');
+  assert.equal(verifyInitData(p.toString(), bot).reason, 'bad_signature');
+
+  // User untergeschoben
+  const p2 = new URLSearchParams(data);
+  p2.set('user', JSON.stringify({ id: 999, first_name: 'Angreifer' }));
+  assert.equal(verifyInitData(p2.toString(), bot).reason, 'bad_signature');
 });
 
 test('Abgelaufene initData wird abgewiesen', () => {
