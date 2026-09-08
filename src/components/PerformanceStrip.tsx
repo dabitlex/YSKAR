@@ -16,15 +16,33 @@
  * angenommen wurde -- so sieht man, ob geleistete Arbeit auch ankommt.
  */
 
-import { BUCKET_MS, MAX_BARS } from '@/lib/strip';
+import { BUCKET_MS, MAX_BARS, type BlockMark } from '@/lib/strip';
 
 interface Props {
   /** Hashes je 30-Sekunden-Fenster, aeltestes zuerst. */
   samples: number[];
   /** Angenommene Shares je Fenster, gleiche Laenge wie samples. */
   shares: number[];
+  /** Blockfunde je Fenster. Eigene Funde verdraengen fremde. */
+  blocks: BlockMark[];
   /** Laeuft gerade eine Messung? Der letzte Balken ist dann unvollstaendig. */
   active: boolean;
+}
+
+/**
+ * Rakete fuer den eigenen Blockfund. Bewusst als SVG und nicht als Emoji:
+ * Emojis werden auf Android und iOS voellig unterschiedlich gezeichnet, und
+ * bei 13 Pixeln faellt das sofort auf.
+ */
+function Rocket() {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" role="img" aria-label="Block gefunden">
+      <path d="M8 0.8c2.3 2 3.5 4.6 3.5 7.4l-1.7 1.7H6.2L4.5 8.2C4.5 5.4 5.7 2.8 8 0.8z"
+            fill="currentColor" />
+      <path d="M6.4 10.6 8 15.2l1.6-4.6z" fill="currentColor" opacity="0.55" />
+      <circle cx="8" cy="6" r="1.15" fill="#080B14" />
+    </svg>
+  );
 }
 
 function formatRate(hps: number): string {
@@ -39,7 +57,7 @@ function median(values: number[]): number {
   return clean[Math.floor(clean.length / 2)];
 }
 
-export default function PerformanceStrip({ samples, shares, active }: Props) {
+export default function PerformanceStrip({ samples, shares, blocks, active }: Props) {
   const peak = Math.max(...samples, 1);
   const mid = median(samples);
   const bars = Array.from({ length: MAX_BARS }, (_, i) => {
@@ -54,6 +72,33 @@ export default function PerformanceStrip({ samples, shares, active }: Props) {
         <span className="tabular-nums">
           {mid > 0 ? `Median ${formatRate(mid / (BUCKET_MS / 1000))}` : '—'}
         </span>
+      </div>
+
+      {/* Blockfunde ueber den Balken */}
+      <div className="flex h-[18px] items-end gap-[3px]" aria-hidden="true">
+        {bars.map((_, i) => {
+          const offset = i - (MAX_BARS - blocks.length);
+          const mark = offset >= 0 ? blocks[offset] : null;
+          const isNewest = i === MAX_BARS - 1;
+          return (
+            <span key={i} className="flex flex-1 items-end justify-center">
+              {mark === 'own' ? (
+                <span
+                  className={`text-accent ${
+                    isNewest ? 'motion-safe:animate-[liftoff_600ms_ease-out]' : ''
+                  }`}
+                >
+                  <Rocket />
+                </span>
+              ) : mark === 'other' ? (
+                // Fremder Fund: nur ein feiner Strich. Bei 10-Minuten-Bloecken
+                // liegt sonst auf jedem zweiten Streifen eine Rakete und der
+                // eigene Treffer geht darin unter.
+                <span className="block h-2 w-px bg-muted/60" />
+              ) : null}
+            </span>
+          );
+        })}
       </div>
 
       <div className="flex h-16 items-end gap-[3px]" aria-hidden="true">
@@ -100,7 +145,7 @@ export default function PerformanceStrip({ samples, shares, active }: Props) {
       <p className="mt-2 text-xs text-muted">
         {samples.length === 0
           ? 'Noch keine Messwerte.'
-          : `Spitze ${formatRate(peak / (BUCKET_MS / 1000))} · Punkte markieren angenommene Shares`}
+          : `Spitze ${formatRate(peak / (BUCKET_MS / 1000))} · Punkte = angenommene Shares · Rakete = dein Block`}
       </p>
     </section>
   );
