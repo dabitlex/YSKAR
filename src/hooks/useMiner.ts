@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { BUCKET_MS, MAX_BARS } from '@/lib/strip';
 
 /**
  * Steuert Worker, Job-Nachschub und Share-Einreichung.
@@ -34,6 +35,14 @@ export function useMiner(token: string | null, platform: string) {
   const workers = useRef<Worker[]>([]);
   const sessionId = useRef<string | null>(null);
   const jobId = useRef<string | null>(null);
+
+  // Leistungsstreifen: Der Worker meldet jede Sekunde seinen tatsaechlichen
+  // Nonce-Fortschritt. Wir sammeln das in 30-Sekunden-Fenster. Lokale
+  // Messung -- die belohnungsrelevanten Zahlen kommen weiterhin vom Server.
+  const bucketHashes = useRef(0);
+  const bucketShares = useRef(0);
+  const [samples, setSamples] = useState<number[]>([]);
+  const [shareMarks, setShareMarks] = useState<number[]>([]);
   const [mining, setMining] = useState(false);
   const [duty, setDuty] = useState(50);
   const [status, setStatus] = useState<MinerStatus | null>(null);
@@ -85,6 +94,10 @@ export function useMiner(token: string | null, platform: string) {
 
   const start = useCallback(async (workerCount = 2) => {
     setError(null);
+    setSamples([]);
+    setShareMarks([]);
+    bucketHashes.current = 0;
+    bucketShares.current = 0;
     try {
       const session = await api('/mining/session', {
         method: 'POST',
@@ -99,6 +112,7 @@ export function useMiner(token: string | null, platform: string) {
       await Promise.all(created.map((w, i) => new Promise<void>(resolve => {
         w.onmessage = (e) => {
           if (e.data.t === 'ready') return resolve();
+          if (e.data.t === 'progress') { bucketHashes.current += e.data.hashes; return; }
           if (e.data.t === 'share') {
             api('/mining/share', {
               method: 'POST',
@@ -113,6 +127,7 @@ export function useMiner(token: string | null, platform: string) {
 
               if (r.accepted) {
                 setError(null);
+                bucketShares.current += 1;
                 // VarDiff: Der Server kann das Share-Target nach jedem Share
                 // anpassen. Ohne Nachfuehrung minte der Client weiter gegen
                 // den alten Wert.
@@ -148,6 +163,20 @@ export function useMiner(token: string | null, platform: string) {
     }
   }, [api, duty, platform, fetchJob, stop]);
 
+  // Fenster des Leistungsstreifens weiterschieben
+  useEffect(() => {
+    if (!mining) return;
+    const id = setInterval(() => {
+      const hashes = bucketHashes.current;
+      const shares = bucketShares.current;
+      bucketHashes.current = 0;
+      bucketShares.current = 0;
+      setSamples(prev => [...prev, hashes].slice(-MAX_BARS));
+      setShareMarks(prev => [...prev, shares].slice(-MAX_BARS));
+    }, BUCKET_MS);
+    return () => clearInterval(id);
+  }, [mining]);
+
   // Job erneuern, bevor er ablaeuft
   useEffect(() => {
     if (!mining) return;
@@ -180,5 +209,6 @@ export function useMiner(token: string | null, platform: string) {
     workers.current.forEach(w => w.postMessage({ t: 'duty', value }));
   }, []);
 
-  return { mining, start, stop, status, duty, setDuty: changeDuty, lastBlock, error };
+  return { mining, start, stop, status, duty, setDuty: changeDuty, lastBlock, error,
+           samples, shareMarks };
 }
