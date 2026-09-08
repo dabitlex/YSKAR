@@ -38,6 +38,11 @@ let nonceHigh = 0;
 let nonceLow = 0;
 let duty = 50;
 let chunk = 8000;
+// Jeder Worker startet in einem eigenen Abschnitt des Nonce-Raums. Ohne das
+// durchsuchen zwei Worker exakt dieselben Nonces -- doppelte Arbeit, und der
+// zweite Share wird als Duplikat abgewiesen.
+let slot = 0;
+const SLOT_STRIDE = 4096;
 
 function unhex(s: string): Uint8Array {
   const out = new Uint8Array(s.length / 2);
@@ -63,7 +68,7 @@ function buildHeader(j: Job, high: number): Uint8Array {
 
 function loadJob(j: Job) {
   job = j;
-  nonceHigh = 0;
+  nonceHigh = slot * SLOT_STRIDE;
   nonceLow = 0;
   mem.set(buildHeader(j, 0), MEM.HEADER);
   mem.set(unhex(j.target), MEM.TARGET);
@@ -141,6 +146,7 @@ self.onmessage = async (e: MessageEvent) => {
     initJob = ex.init_job as () => void;
     mine = ex.mine as (s: number, i: number) => number;
     extranonce = BigInt(m.extranonce);
+    slot = m.slot ?? 0;
     self.postMessage({ t: 'ready' });
     return;
   }
@@ -153,6 +159,10 @@ self.onmessage = async (e: MessageEvent) => {
     return;
   }
 
+  // VarDiff: Nach jedem Share kann der Server das Share-Target anpassen.
+  // Der Header bleibt dabei unveraendert, nur der Vergleichswert wechselt --
+  // deshalb kein init_job() noetig.
+  if (m.t === 'target') { mem.set(unhex(m.target), MEM.TARGET); return; }
   if (m.t === 'duty') { duty = m.value; return; }
   if (m.t === 'stop') { running = false; return; }
 };

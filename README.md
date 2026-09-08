@@ -13,7 +13,7 @@ gefundenen Block. Oberflaeche bewusst minimal.
 ```bash
 npm install
 cp .env.example .env.local     # Werte eintragen, siehe unten
-npm test                       # 24 Tests, laufen ohne Datenbank
+npm test                       # 29 Tests, laufen ohne Datenbank
 npm run dev
 ```
 

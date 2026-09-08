@@ -21,6 +21,15 @@ export interface MinerStatus {
   token: { name: string; symbol: string; decimals: number };
 }
 
+/**
+ * target = 2^240 / difficulty, als 32-Byte-Hex.
+ * Muss mit targetFromDifficulty() in src/lib/chain/target.ts uebereinstimmen.
+ */
+function targetHexFromDifficulty(difficulty: number): string {
+  const target = (1n << 240n) / BigInt(difficulty);
+  return target.toString(16).padStart(64, '0');
+}
+
 export function useMiner(token: string | null, platform: string) {
   const workers = useRef<Worker[]>([]);
   const sessionId = useRef<string | null>(null);
@@ -44,12 +53,25 @@ export function useMiner(token: string | null, platform: string) {
     return res.json();
   }, [token]);
 
+  const shareDifficulty = useRef<number | null>(null);
+
   const fetchJob = useCallback(async () => {
     const job = await api('/mining/job');
     jobId.current = job.jobId;
+    shareDifficulty.current = job.shareDifficulty ?? null;
+    // job.target ist das SHARE-Target, nicht das Block-Target. Der Server
+    // erkennt einen Block selbst, wenn ein Share zufaellig gut genug ist.
     workers.current.forEach(w => w.postMessage({ t: 'job', job }));
     return job;
   }, [api]);
+
+  /** Neues Share-Target an die Worker geben, ohne den Job neu zu laden. */
+  const applyShareDifficulty = useCallback((difficulty: number) => {
+    if (difficulty === shareDifficulty.current) return;
+    shareDifficulty.current = difficulty;
+    const target = targetHexFromDifficulty(difficulty);
+    workers.current.forEach(w => w.postMessage({ t: 'target', target }));
+  }, []);
 
   const stop = useCallback(async () => {
     workers.current.forEach(w => { w.postMessage({ t: 'stop' }); w.terminate(); });
@@ -87,12 +109,28 @@ export function useMiner(token: string | null, platform: string) {
               }),
             }).then(r => {
               if (r.block) setLastBlock({ height: r.height, reward: r.reward });
-              if (r.refetchJob) fetchJob();
+              if (r.refetchJob) { fetchJob(); return; }
+
+              if (r.accepted) {
+                setError(null);
+                // VarDiff: Der Server kann das Share-Target nach jedem Share
+                // anpassen. Ohne Nachfuehrung minte der Client weiter gegen
+                // den alten Wert.
+                if (r.share_difficulty) applyShareDifficulty(Number(r.share_difficulty));
+              } else if (r.reason === 'job_expired' || r.reason === 'round_closed') {
+                fetchJob();
+              } else {
+                // Waehrend M1 sichtbar machen statt verschlucken -- ein still
+                // abgelehnter Share sieht von aussen aus wie "Mining laeuft
+                // nicht", und genau daran haben wir schon einmal gesucht.
+                setError(`Share abgelehnt: ${r.reason}`);
+              }
             }).catch(err => setError(String(err.message ?? err)));
           }
         };
         // Jeder Worker bekommt einen eigenen Nonce-Bereich innerhalb derselben
         // Extranonce, damit sie sich nicht gegenseitig doppelt durchsuchen.
+        // slot trennt die Nonce-Bereiche der Worker voneinander
         w.postMessage({
           t: 'init',
           wasmUrl: '/miner.wasm',
@@ -113,7 +151,7 @@ export function useMiner(token: string | null, platform: string) {
   // Job erneuern, bevor er ablaeuft
   useEffect(() => {
     if (!mining) return;
-    const id = setInterval(() => { fetchJob().catch(() => {}); }, 60_000);
+    const id = setInterval(() => { fetchJob().catch(() => {}); }, 45_000);
     return () => clearInterval(id);
   }, [mining, fetchJob]);
 

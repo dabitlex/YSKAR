@@ -264,3 +264,49 @@ test('JWT mit falschem Schlüssel oder abgelaufen wird abgewiesen', () => {
   })).toString('base64url');
   assert.equal(verify(`${h}.${boese}.${s}`, 'geheim').reason, 'bad_signature');
 });
+
+// -------------------------------------- Share-Target vs. Block-Target
+// Regression zum ersten Testlauf im Betrieb: Die Job-Route lieferte das
+// Block-Target statt des Share-Targets. Der Client suchte dadurch nach einem
+// ganzen Block und lieferte praktisch nie einen Share ab -- von aussen sah
+// das aus, als wuerde das Mining gar nicht starten.
+
+test('Share-Target ist um Groessenordnungen leichter als das Block-Target', async () => {
+  const { targetFromDifficulty, targetToBytes } = await import('../src/lib/chain/target.ts');
+
+  const blockDifficulty = 24576n;
+  const shareDifficulty = 128n;
+
+  const blockTarget = targetFromDifficulty(blockDifficulty);
+  const shareTarget = targetFromDifficulty(shareDifficulty);
+
+  assert.ok(shareTarget > blockTarget,
+    'Share-Target muss groesser (= leichter erreichbar) sein als das Block-Target');
+
+  // Erwarteter Aufwand: 128 * 65536 = 8,4 Mio gegen 24576 * 65536 = 1,6 Mrd
+  const shareHashes = shareDifficulty * 65536n;
+  const blockHashes = blockDifficulty * 65536n;
+  assert.equal(shareHashes, 8_388_608n);
+  assert.equal(blockHashes, 1_610_612_736n);
+  assert.ok(blockHashes / shareHashes === 192n,
+    'Der Unterschied betraegt Faktor 192 -- 3 Sekunden gegen 10 Minuten');
+
+  // 32 Byte, fuehrende Nullen erhalten
+  assert.equal(targetToBytes(shareTarget).length, 32);
+  assert.equal(targetToBytes(shareTarget).toString('hex').length, 64);
+});
+
+test('Die Hex-Umrechnung im Client stimmt mit der des Servers ueberein', async () => {
+  const { targetFromDifficulty, targetToBytes } = await import('../src/lib/chain/target.ts');
+
+  // Nachbau von targetHexFromDifficulty() aus src/hooks/useMiner.ts
+  const clientHex = (d: number) => ((1n << 240n) / BigInt(d)).toString(16).padStart(64, '0');
+
+  for (const d of [32, 128, 512, 4096, 24576, 1_000_000]) {
+    assert.equal(
+      clientHex(d),
+      targetToBytes(targetFromDifficulty(BigInt(d))).toString('hex'),
+      `Abweichung bei Difficulty ${d} -- der Worker wuerde gegen ein anderes Target pruefen`,
+    );
+  }
+});
