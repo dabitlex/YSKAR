@@ -87,17 +87,21 @@ test('withNonce ist identisch zum Neuaufbau des Headers', () => {
 test('Die Engine findet selbständig einen Share und der Server rechnet ihn nach', async () => {
   const eng = await loadEngine();
   const h = sampleHeader();
-  const shareDifficulty = 256n;
+  // Difficulty bewusst niedrig: Die Suchdauer ist exponentialverteilt, ein
+  // knapp bemessenes Budget laesst den Test zufaellig fehlschlagen. Erwartet
+  // werden 32 * 65536 = 2,1 Mio Hashes, gesucht wird bis 60 Mio -- die
+  // Ausfallwahrscheinlichkeit liegt damit bei e^-28, also praktisch null.
+  const shareDifficulty = 32n;
 
   eng.mem.set(serializeHeader(h), M.HEADER);
   eng.mem.set(targetToBytes(targetFromDifficulty(shareDifficulty)), M.TARGET);
   eng.initJob();
 
   let nonce: bigint | null = null;
-  for (let base = 0; base < 40_000_000 && nonce === null; base += 1_000_000) {
-    if (eng.mine(base, 1_000_000) === 1) nonce = BigInt(eng.view.getUint32(M.FOUND, true));
+  for (let base = 0; base < 60_000_000 && nonce === null; base += 2_000_000) {
+    if (eng.mine(base, 2_000_000) === 1) nonce = BigInt(eng.view.getUint32(M.FOUND, true));
   }
-  assert.notEqual(nonce, null, 'kein Share innerhalb von 40 Mio Nonces gefunden');
+  assert.notEqual(nonce, null, 'kein Share innerhalb von 60 Mio Nonces gefunden');
 
   // Genau das macht die Share-Route: Header selbst neu aufbauen, selbst hashen.
   const hash = hashHeader({ ...h, nonce: nonce! });
