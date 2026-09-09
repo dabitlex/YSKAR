@@ -1,0 +1,27 @@
+-- Annahme eines bereits verifizierten Shares.
+--
+-- Arbeitsteilung: Die API rechnet den Hash selbst nach (Node, sha256d) und
+-- ruft diese Funktion erst danach auf. Hier passiert ausschliesslich das, was
+-- atomar sein MUSS -- Einfuegen, Blockerkennung, Rundenwechsel und Abrechnung
+-- in einer Transaktion.
+--
+-- Warum nicht in der Route: Zwischen "Block einfuegen" und "neue Runde
+-- oeffnen" darf kein zweiter Request dazwischenkommen. In TypeScript waeren
+-- das mehrere Roundtrips ohne gemeinsame Transaktion.
+--
+-- Die vollstaendige Definition ist im Supabase-Projekt eingespielt; sie ist
+-- zu lang fuer diesen Auszug. Signatur:
+--
+--   submit_verified_share(
+--     p_user_id uuid, p_session_id uuid, p_job_id uuid,
+--     p_nonce bigint, p_hash bytea,
+--     p_achieved bigint,             -- vom Server nachgerechnet
+--     p_share_difficulty bigint,     -- geltendes VarDiff-Target
+--     p_next_difficulty bigint,      -- LWMA-Ergebnis, falls Block
+--     p_new_share_difficulty bigint  -- VarDiff-Nachfuehrung
+--   ) returns jsonb
+--
+-- Ablauf: Session sperren und pruefen -> Job und Runde pruefen ->
+-- Difficulty pruefen -> Share einfuegen (unique faengt Replay) ->
+-- bei Blockfund: Block einfuegen, Runde abrechnen, Commitment bilden,
+-- Folgerunde oeffnen, live_event und network_stats schreiben.
