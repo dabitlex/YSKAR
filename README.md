@@ -63,11 +63,30 @@ Es laufen zwei Ketten nebeneinander:
 
 - **`chain2`** ist die echte Kette. Genesis steht, `/api/v2/job` liefert
   Jobs. Es fehlt nur die Bedienung.
-- **`public`** war das Testnet, 20 Bloecke, Reward direkt in der Datenbank.
-  Die API-Routen bleiben lesend bestehen, `public/explorer.html` zeigt sie
-  weiterhin an. Die zugehoerige Oberflaeche wurde entfernt (siehe
-  `src/components/ENTFERNT.md`) -- gemint wird dort nicht mehr, weil die
-  WASM-Engine seit der Umstellung 136-Byte-Header erwartet.
+- **`public`** war das Testnet, 35 Bloecke, Reward direkt in der Datenbank.
+  Es ist abgeschlossen. Die API-Routen bleiben lesend bestehen, aber es gibt
+  keinen Betrachter mehr dafuer -- `public/explorer.html` zeigt seit der
+  Umstellung die neue Kette. Die zugehoerige Oberflaeche wurde entfernt,
+  siehe `src/components/ENTFERNT.md`.
+
+## Explorer
+
+`public/explorer.html` unter `/explorer.html`, ohne Anmeldung und ohne
+Telegram. Er glaubt dem Server nichts:
+
+```
+Header rekonstruiert     ergeben die Einzelfelder exakt die 136 Byte?
+Hash nachgerechnet       ergibt der Header den gespeicherten Hash?
+erfuellt Difficulty      liegt der Hash unter dem Target?
+mit Vorgaenger verkettet zeigt prev_hash auf den Block davor?
+```
+
+Vier getrennte Aussagen statt einer Sammelnote. Die erste ist die neue: Sie
+faengt einen Serialisierungsfehler ab, bevor er sich im Hash versteckt.
+
+Fuer Umgebungen ohne `crypto.subtle` -- unsichere Kontexte, `file://` --
+liegt SHA-256 zusaetzlich in reinem JavaScript bei, gegen Node crypto
+geprueft. Ohne das koennte die Seite genau das nicht, wofuer sie da ist.
 
 ## Schnellstart
 
