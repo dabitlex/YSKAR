@@ -1,136 +1,115 @@
 # YSKAR
 
-Telegram Mini App mit echtem Proof-of-Work-Mining. Das Geraet des Nutzers
-rechnet tatsaechlich SHA-256d-Hashes; der Server rechnet jeden eingereichten
-Share selbst nach. Es gibt keine simulierte Hashrate und keine vom Client
-behaupteten Werte.
+Eigenstaendige Proof-of-Work-Kette mit Wallet, Transaktionen im Block und
+einem Miner, der auf Smartphones laeuft. Die Bedienung laeuft ueber eine
+Telegram Mini App, das Eigentum haengt aber an Schluesseln, nicht an
+Telegram.
 
-Stand: **Meilenstein 1** — die Kette von der Telegram-Anmeldung bis zum
-gefundenen Block. Oberflaeche bewusst minimal.
+**Kein Wert wird simuliert.** Das Geraet rechnet echte SHA-256d-Hashes, der
+Server rechnet jeden Share selbst nach, und der Kontostand ist allein aus
+den Bloecken wiederherstellbar.
+
+## Stand
+
+| | |
+|---|---|
+| Kette | `yskar-main-1`, Genesis gemint am 09.09.2026 |
+| Bibliothek | vollstaendig, 62 Tests |
+| Knoten und API | `/api/v2/*` steht |
+| Oberflaeche | **fehlt noch** -- Wallet und Miner werden gerade gebaut |
+
+Es laufen zwei Ketten nebeneinander:
+
+- **`chain2`** ist die echte Kette. Genesis steht, `/api/v2/job` liefert
+  Jobs. Es fehlt nur die Bedienung.
+- **`public`** war das Testnet, 20 Bloecke, Reward direkt in der Datenbank.
+  Es bleibt als Nachschlagewerk stehen, Mining ist dort abgeschaltet.
+
+Warum abgeschaltet und nicht entfernt: Der Miner-Worker baut seit der
+Umstellung 136-Byte-Header, die alte Job-Route liefert 116. Diese
+Kombination wuerde Muell hashen und jeden Share verwerfen -- sichtbar als
+"laeuft, aber nichts passiert". Ein abgeschalteter Knopf sagt die Wahrheit,
+ein kaputter nicht.
 
 ## Schnellstart
 
 ```bash
 npm install
-cp .env.example .env.local     # Werte eintragen, siehe unten
-npm test                       # 29 Tests, laufen ohne Datenbank
+cp .env.example .env.local     # fuenf Werte eintragen
+npm test                       # 62 Tests, laufen ohne Datenbank
 npm run dev
 ```
 
-Die Migrationen unter `supabase/migrations/` sind im Projekt
-`ldpfnphwrotmyfejfjpu` bereits eingespielt.
+Alle Migrationen sind im Supabase-Projekt eingespielt.
 
-### Umgebungsvariablen
-
-| Variable | Woher |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ebenda |
-| `SUPABASE_SERVICE_ROLE_KEY` | ebenda. Umgeht RLS, gehoert nie in den Browser |
-| `TELEGRAM_BOT_TOKEN` | BotFather, @YSKAR_bot |
-| `JWT_SECRET` | `openssl rand -base64 48` |
-
-## Wie das Mining funktioniert
+## Wie es funktioniert
 
 ```
-Mini App → Session (Extranonge) → Job → Web Worker → WASM
-    → echte Hashes → Share → Server rechnet nach → akzeptiert
-    → Block? → Kette + Auszahlung → Realtime an alle
+12 Merkwoerter -> Seed -> SLIP-0010 -> Ed25519 -> Adresse ysr1...
+                                                        |
+Mini App -> Session -> Job (fertiger Block) -> Worker -> WASM
+   -> echte Hashes -> Nonce -> Server prueft -> Block -> Kette
 ```
 
-Der Client sendet ausschliesslich eine **Nonce**. Den Header baut der Server
-aus seinen eigenen Daten neu auf: Job-Felder aus der Datenbank, Extranonce
-aus der Session. Er hasht selbst und leitet daraus ab, wie viel Arbeit
-geleistet wurde. Hashrate, Difficulty und Share-Anzahl werden nie vom Client
-uebernommen.
+Der Client sendet ausschliesslich eine **Nonce**. Der Server nimmt den im Job
+hinterlegten Blockkoerper, setzt sie ein und hasht selbst. Hashrate,
+Difficulty und Share-Anzahl werden nie vom Client uebernommen.
 
-### Header, 116 Byte, Little-Endian
-
-```
-  0  u32   version        72  16B   jobSeed
-  4  u32   height          88  u64   timestamp
-  8  32B   prevHash        96  u32   difficulty
- 40  32B   merkleRoot     100  u64   extranonce
-                          108  u64   nonce   ← einziges Client-Feld
-```
-
-`src/lib/chain/header.ts` (Server) und `src/workers/miner.worker.ts` (Client)
-muessen bitgenau dasselbe erzeugen. `tests/header.test.ts` prueft genau das
-gegen die echte WASM-Engine — weicht der Server um ein Byte ab, ist jeder
-Share ungueltig, und die Fehlermeldung sagt nur "Hash stimmt nicht".
-
-### Extranonce
-
-Jede Session bekommt einen eigenen Wert. Damit sind die Suchraeume aller
-Miner disjunkt: doppelte Arbeit ist ausgeschlossen, zwei Nutzer koennen nie
-denselben gueltigen Share finden, und ein abgefangener fremder Share ist
-wertlos.
-
-### VarDiff
-
-Jede Session hat ein eigenes Share-Target, das auf etwa einen Share alle
-30 Sekunden eingeregelt wird — unabhaengig von der Geraeteleistung. Folge:
-Die **Serverlast haengt an der Anzahl der Miner, nicht an ihrer Hardware**
-(`Shares/s = Miner / 30`). Ein schnelles Geraet bekommt nicht mehr Shares,
-sondern schwerere, und die zaehlen entsprechend mehr.
-
-Die Summe aller Share-Difficulties einer Runde ergibt exakt die
-Block-Difficulty. Deshalb geht die anteilige Auszahlung ohne Korrekturfaktor
-auf.
-
-## Tokenomics
-
-```
-YSKAR (YSR), 8 Nachkommastellen, max. 21.000.000
-875 YSR je Block, Halving alle 12.000 Bloecke (= 2 Seasons)
-Blockzeit 10 min, Season 6.000 Bloecke (ca. 6 Wochen)
-```
-
-Reward rein anteilig nach validierten Shares, kein Finder-Bonus. Deckel je
-Konto und Runde: `max(5 %, min(1, 3/N))` — hoechstens das Dreifache des
-Durchschnittsanteils, Untergrenze 5 %.
-
-## Was gemessen wurde
-
-Android-Referenzgeraet, WASM mit Midstate:
-
-| Konfiguration | Ergebnis |
-|---|---|
-| 1 Worker, 100 %, 20 s | 1,42 MH/s |
-| 2 Worker, 100 %, 20 s | 2,96 MH/s |
-| 2 Worker, 100 %, 5 min | **2,64 MH/s, 0 % Abfall** |
-
-Der 20-Sekunden-Wert misst den Boost-Takt, nicht den Dauerbetrieb. Alle
-Chain-Parameter sind auf 2,64 MH/s ausgelegt.
+Details in [docs/CHAIN.md](docs/CHAIN.md), Grenzen in
+[docs/SECURITY.md](docs/SECURITY.md).
 
 ## Struktur
 
 ```
-src/lib/chain/     header, target, difficulty (LWMA), vardiff, params
-src/lib/telegram/  initData-Pruefung per HMAC
-src/lib/auth/      HS256-JWT ohne Fremdbibliothek
-src/app/api/v1/    auth/telegram, mining/{session,job,share,status}
-src/workers/       miner.worker.ts — Nonce-Schleife in WASM
-wasm/              gen_wat.py erzeugt sha256d_miner.wat, build.js kompiliert
+src/lib/core/      Kette: Wallet, Adressen, Transaktionen, Bloecke,
+                   Zustand, Konsens, Blockbau, Blockpruefung
+src/lib/node/      Knoten: Datenbankzugriff, Job, Share, Mempool
+src/app/api/v2/    Routen der Kette
+src/lib/chain/     ERSETZT, siehe DEPRECATED.md -- nur vardiff.ts gilt noch
+src/app/api/v1/    Testnet, laeuft nur noch lesend
+src/workers/       miner.worker.ts, 136-Byte-Header
+wasm/              gen_wat.py erzeugt die Engine, build.js kompiliert
 supabase/          Migrationen
-docs/              SECURITY.md, MINING.md
+scripts/genesis.ts Genesis bauen und minen
 ```
 
 Die WAT-Datei ist **generiert, nicht handgeschrieben**. Aenderungen laufen
 ueber `wasm/gen_wat.py`, danach `npm run wasm:gen`.
 
+## Tokenomics
+
+```
+YSKAR (YSR), 8 Nachkommastellen, max. 21.000.000
+875 YSR je Block, Halving alle 12.000 Bloecke (2 Seasons)
+Blockzeit 10 min, Mindestgebuehr 0,001 YSR
+```
+
+Der Reward geht per Coinbase direkt an die Adresse des Finders. Kein Pool,
+keine Verteilung -- echtes Solo-Mining.
+
+## Gemessen
+
+Android-Referenzgeraet, WASM mit Midstate:
+
+| | |
+|---|---|
+| 2 Worker, 100 %, 20 s | 2,96 MH/s |
+| 2 Worker, 100 %, 5 min | **2,64 MH/s, 0 % Abfall** |
+
+Der kurze Lauf misst den Boost-Takt. Alle Chain-Parameter sind auf den
+Dauerwert ausgelegt.
+
 ## Grenzen
 
-Vollstaendig in `docs/SECURITY.md`. Die wichtigsten:
+Vollstaendig in [docs/SECURITY.md](docs/SECURITY.md). Die wichtigsten:
 
-- **Kein Hintergrund-Mining.** Geht die App in den Hintergrund oder sperrt
-  das Display, haelt die Plattform den Worker an. Wir stoppen deshalb sauber,
-  statt das zu verschleiern.
-- **Der Smartphone-Gate ist eine Regel, keine Sicherheitsgrenze.**
-  `Telegram.WebApp.platform` steht nicht in den signierten initData und ist
-  serverseitig nicht pruefbar.
+- **Wer die zwoelf Woerter verliert, verliert das Guthaben endgueltig.**
+  Es gibt niemanden, der sie zuruecksetzen kann.
+- **Kein Hintergrund-Mining.** Geht die App in den Hintergrund, haelt die
+  Plattform den Worker an.
 - **Ein modifizierter Client ist nicht erkennbar.** Wer den Header selbst
-  baut und nativ hasht, leistet echte Arbeit — nur schneller. Dagegen wirkt
-  nur der Konto-Deckel, keine Heuristik.
-- **Das ist keine dezentrale Blockchain.** Die PoW ist echt und nachpruefbar,
-  die Kette echt verkettet, aber es gibt genau einen Validator: diesen Server.
+  baut und nativ hasht, leistet echte Arbeit -- nur schneller. Seit dem
+  Wegfall der Telegram-Identitaet gibt es dagegen keine kontogebundene
+  Begrenzung mehr; Missbrauchsschutz muss ueber Ratenbegrenzung laufen.
+- **Ein Validator.** Die PoW ist echt und nachpruefbar, aber es gibt genau
+  einen Knoten. Reorgs und P2P sind Phase 2.

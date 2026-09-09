@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Erzeugt sha256d_miner.wat -- die PoW-Engine fuer das Mining-Projekt.
+Erzeugt sha256d_miner.wat -- die PoW-Engine fuer YSKAR.
+
+STAND: Blockheader mit 136 Byte (Phase 1, Kette mit Transaktionen).
 
 Aufbau:
   - SHA-256 Kompressionsfunktion, 64 Runden vollstaendig entrollt,
@@ -10,21 +12,28 @@ Aufbau:
     Kompressionen.
   - mine() laeuft vollstaendig in WASM, ein Aufruf deckt viele Nonces ab.
 
-Header: 116 Byte, Nonce als u64 LE an Offset 108.
-        -> Block 1 = Byte 0..64 (konstant), Block 2 = Byte 64..116 + Padding
-        -> Nonce liegt in Block 2 an Offset 44
+Header: 136 Byte, Nonce als u64 LE an Offset 128.
+
+Mit Padding ergeben 136 Byte genau drei SHA-256-Bloecke:
+  Block 1 = Byte   0..64    konstant je Job
+  Block 2 = Byte  64..128   konstant je Job
+  Block 3 = Byte 128..192   Nonce (128..136), 0x80, Nullen, Laenge 1088 Bit
+
+Der Midstate deckt jetzt ZWEI Bloecke ab statt einem. Pro Nonce bleiben
+trotzdem zwei Kompressionsschritte: einer fuer Block 3, einer fuer den
+zweiten SHA-256 ueber den 32-Byte-Digest.
 
 Hash-Konvention: der finale Digest wird als Big-Endian-Zahl gelesen und
 byteweise gegen das Target verglichen. Gueltig ist hash <= target.
 
 Speicherlayout:
-    0   Header (116 B)                 von JS geschrieben
-  128   Midstate (32 B, BE)            von init_job berechnet
-  160   Block 2 (64 B)                 Nonce an 204
-  256   Block 3 (64 B)                 hash1 an 256..288 + Padding
-  320   Finaler Hash (32 B, BE)
-  352   Target (32 B, BE)              von JS geschrieben
-  384   Gefundene Nonce (i32)
+    0   Header (136 B)                 von JS geschrieben
+  144   Midstate (32 B, BE)            von init_job aus Byte 0..128
+  176   Block 3 (64 B)                 Nonce an 176, Padding ab 184
+  240   Block 4 (64 B)                 hash1 an 240..272 + Padding
+  304   Finaler Hash (32 B, BE)
+  336   Target (32 B, BE)              von JS geschrieben
+  368   Gefundene Nonce (i32, untere Haelfte)
 """
 
 K = [
@@ -153,32 +162,32 @@ def gen_compress():
 def gen_init_job():
     L = []
     a = L.append
-    a("  ;; Bereitet einen Job vor: Midstate aus Block 1, Block 2 mit Padding,")
-    a("  ;; Block 3 mit Padding fuer den zweiten Hash.")
+    a("  ;; Bereitet einen Job vor: Midstate aus den ersten beiden Bloecken,")
+    a("  ;; Block 3 mit Nonce-Platz und Padding, Block 4 fuer den zweiten Hash.")
     a("  (func $init_job (export \"init_job\")")
-    a("    (local $i i32)")
-    a("    ;; IV nach 128 schreiben, dann Block 1 des Headers komprimieren")
+    a("    ;; IV nach 144 schreiben")
     for i in range(8):
-        a(f"    (i32.store offset={128+i*4} (i32.const 0) "
+        a(f"    (i32.store offset={144+i*4} (i32.const 0) "
           f"(i32.const {s32(bswap(IV[i]))}))")
-    a("    (call $compress (i32.const 128) (i32.const 0))")
-    a("    ;; Header-Byte 64..116 nach Block 2 (160..212)")
-    for off in range(0, 48, 8):
-        a(f"    (i64.store offset={160+off} (i32.const 0) "
-          f"(i64.load offset={64+off} (i32.const 0)))")
-    a("    (i32.store offset=208 (i32.const 0) "
-      "(i32.load offset=112 (i32.const 0)))")
-    a("    ;; Padding Block 2: 0x80, Nullen, Laenge 928 Bit")
-    a("    (i64.store offset=212 (i32.const 0) (i64.const 0))")
-    a(f"    (i32.store offset=220 (i32.const 0) "
-      f"(i32.const {s32(bswap(116*8))}))")
-    a("    (i32.store8 offset=212 (i32.const 0) (i32.const 128))")
-    a("    ;; Padding Block 3: 0x80, Nullen, Laenge 256 Bit")
-    for off in (288, 296, 304, 312):
+    a("    ;; Block 1 und Block 2 des Headers -- beide konstant je Job")
+    a("    (call $compress (i32.const 144) (i32.const 0))")
+    a("    (call $compress (i32.const 144) (i32.const 64))")
+    a("    ;; Block 3: Header-Byte 128..136 (die Nonce) nach 176")
+    a("    (i64.store offset=176 (i32.const 0) "
+      "(i64.load offset=128 (i32.const 0)))")
+    a("    ;; Padding: 0x80 direkt hinter der Nonce, dann Nullen")
+    for off in (184, 192, 200, 208, 216, 224, 232):
         a(f"    (i64.store offset={off} (i32.const 0) (i64.const 0))")
-    a(f"    (i32.store offset=316 (i32.const 0) "
+    a("    (i32.store8 offset=184 (i32.const 0) (i32.const 128))")
+    a(f"    ;; Laenge 136*8 = 1088 Bit, Big-Endian an Block-Offset 56")
+    a(f"    (i32.store offset=236 (i32.const 0) "
+      f"(i32.const {s32(bswap(136*8))}))")
+    a("    ;; Block 4: hash1 kommt spaeter nach 240, hier nur das Padding")
+    for off in (272, 280, 288, 296):
+        a(f"    (i64.store offset={off} (i32.const 0) (i64.const 0))")
+    a("    (i32.store8 offset=272 (i32.const 0) (i32.const 128))")
+    a(f"    (i32.store offset={300} (i32.const 0) "
       f"(i32.const {s32(bswap(256))}))")
-    a("    (i32.store8 offset=288 (i32.const 0) (i32.const 128))")
     a("  )")
     return L
 
@@ -186,8 +195,8 @@ def gen_init_job():
 def gen_mine():
     L = []
     a = L.append
-    a("  ;; Durchlaeuft $iters Nonces ab $start. Liefert 1, wenn ein Hash")
-    a("  ;; das Target erfuellt (Nonce steht dann an Adresse 384), sonst 0.")
+    a("  ;; Durchlaeuft $iters Nonces ab $start. Liefert 1, wenn ein Hash das")
+    a("  ;; Target erfuellt (untere Haelfte der Nonce dann an Adresse 368).")
     a("  (func $mine (export \"mine\") (param $start i32) (param $iters i32) "
       "(result i32)")
     a("    (local $n i32) (local $i i32) (local $t1 i32) (local $t2 i32)")
@@ -195,25 +204,26 @@ def gen_mine():
     a("    (block $done")
     a("      (loop $next")
     a("        (br_if $done (i32.ge_u (local.get $i) (local.get $iters)))")
-    a("        (i32.store offset=204 (i32.const 0) (local.get $n))")
-    a("        ;; Midstate als Startzustand des zweiten Blocks")
+    a("        ;; untere 32 Bit der Nonce; die oberen stehen fest im Block")
+    a("        (i32.store offset=176 (i32.const 0) (local.get $n))")
+    a("        ;; Midstate als Startzustand fuer Block 3")
     for off in range(0, 32, 8):
-        a(f"        (i64.store offset={256+off} (i32.const 0) "
-          f"(i64.load offset={128+off} (i32.const 0)))")
-    a("        (call $compress (i32.const 256) (i32.const 160))")
+        a(f"        (i64.store offset={240+off} (i32.const 0) "
+          f"(i64.load offset={144+off} (i32.const 0)))")
+    a("        (call $compress (i32.const 240) (i32.const 176))")
     a("        ;; zweiter SHA-256 ueber den ersten Digest")
     for i in range(8):
-        a(f"        (i32.store offset={320+i*4} (i32.const 0) "
+        a(f"        (i32.store offset={304+i*4} (i32.const 0) "
           f"(i32.const {s32(bswap(IV[i]))}))")
-    a("        (call $compress (i32.const 320) (i32.const 256))")
+    a("        (call $compress (i32.const 304) (i32.const 240))")
     a("        ;; hash <= target ? (byteweise Big-Endian)")
     a("        (block $nf")
     a("          (block $fd")
     for i in range(8):
-        a(f"            (local.set $t1 (i32.load offset={320+i*4} "
+        a(f"            (local.set $t1 (i32.load offset={304+i*4} "
           f"(i32.const 0)))")
         a(f"            (local.set $t1 {swap_local('$t1')})")
-        a(f"            (local.set $t2 (i32.load offset={352+i*4} "
+        a(f"            (local.set $t2 (i32.load offset={336+i*4} "
           f"(i32.const 0)))")
         a(f"            (local.set $t2 {swap_local('$t2')})")
         a("            (br_if $fd (i32.lt_u (local.get $t1) "
@@ -222,7 +232,7 @@ def gen_mine():
           "(local.get $t2)))")
     a("            (br $fd)")
     a("          )")
-    a("          (i32.store offset=384 (i32.const 0) (local.get $n))")
+    a("          (i32.store offset=368 (i32.const 0) (local.get $n))")
     a("          (return (i32.const 1))")
     a("        )")
     a("        (local.set $n (i32.add (local.get $n) (i32.const 1)))")

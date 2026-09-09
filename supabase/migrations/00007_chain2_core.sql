@@ -1,0 +1,24 @@
+-- YSKAR Phase 1 -- eigenstaendige Kette mit Transaktionen im Block.
+--
+-- GRUNDLEGENDER UNTERSCHIED zum Schema public: Dort war Postgres das
+-- Hauptbuch, der Block enthielt nur einen Hash darauf. Hier ist die KETTE
+-- die Wahrheit und die Datenbank ein wiederherstellbarer Index. Jede Zeile
+-- in chain2.accounts laesst sich aus blocks + transactions neu berechnen;
+-- tests/core.test.ts fuehrt genau das als Pruefstein aus.
+--
+-- Es gibt hier bewusst KEINE Funktion, die Guthaben veraendert. Konten
+-- werden ausschliesslich durch das Anwenden von Bloecken fortgeschrieben.
+-- Wer eine Zeile von Hand aendert, macht den state_root ungueltig, und jeder
+-- Knoten sieht das.
+--
+-- Tabellen: params, blocks, transactions, accounts, state_meta, mempool,
+--           jobs, sessions, shares
+-- Trigger:  Verkettung erzwungen (lueckenlose Hoehe, passender prev_hash),
+--           Bloecke unveraenderlich
+-- Constraints: genau eine Coinbase je Block an Position 0, kein negatives
+--           Guthaben, eine Nonce je Absender im Mempool
+-- Funktion: chain2.rollback_to(height) fuer Reorgs in Phase 2
+-- RLS:     Kettendaten oeffentlich lesbar, schreibend nur Service Role
+--
+-- Die vollstaendige Fassung ist im Supabase-Projekt eingespielt
+-- (Migration chain2_core, 20260909082556).

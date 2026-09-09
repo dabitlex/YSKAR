@@ -1,4 +1,11 @@
 import { createHash } from 'node:crypto';
+import {
+  serializeHeaderBytes, HEADER_SIZE, NONCE_OFFSET,
+  type HeaderFields,
+} from './serialize.ts';
+
+export { HEADER_SIZE, NONCE_OFFSET };
+export type BlockHeader = HeaderFields;
 
 /**
  * Block-Header, 116 Byte, Little-Endian für alle Zahlenfelder.
@@ -21,46 +28,8 @@ import { createHash } from 'node:crypto';
  * tests/header.test.ts prüft genau das gegen die echte WASM-Engine.
  */
 
-export const HEADER_SIZE = 116;
-export const NONCE_OFFSET = 108;
-
-export interface BlockHeader {
-  version: number;
-  height: number;
-  prevHash: Uint8Array;    // 32
-  merkleRoot: Uint8Array;  // 32
-  jobSeed: Uint8Array;     // 16
-  timestamp: bigint;       // Unix-Sekunden
-  difficulty: number;
-  extranonce: bigint;
-  nonce: bigint;
-}
-
-function expect(buf: Uint8Array, len: number, name: string): void {
-  if (buf.length !== len) {
-    throw new Error(`${name} muss ${len} Byte sein, ist ${buf.length}`);
-  }
-}
-
 export function serializeHeader(h: BlockHeader): Buffer {
-  expect(h.prevHash, 32, 'prevHash');
-  expect(h.merkleRoot, 32, 'merkleRoot');
-  expect(h.jobSeed, 16, 'jobSeed');
-  if (!Number.isInteger(h.difficulty) || h.difficulty <= 0 || h.difficulty > 0xffffffff) {
-    throw new Error(`difficulty muss ein u32 > 0 sein, ist ${h.difficulty}`);
-  }
-
-  const b = Buffer.alloc(HEADER_SIZE);
-  b.writeUInt32LE(h.version >>> 0, 0);
-  b.writeUInt32LE(h.height >>> 0, 4);
-  Buffer.from(h.prevHash).copy(b, 8);
-  Buffer.from(h.merkleRoot).copy(b, 40);
-  Buffer.from(h.jobSeed).copy(b, 72);
-  b.writeBigUInt64LE(BigInt(h.timestamp), 88);
-  b.writeUInt32LE(h.difficulty >>> 0, 96);
-  b.writeBigUInt64LE(BigInt(h.extranonce), 100);
-  b.writeBigUInt64LE(BigInt(h.nonce), 108);
-  return b;
+  return Buffer.from(serializeHeaderBytes(h));
 }
 
 export function sha256d(data: Uint8Array): Buffer {

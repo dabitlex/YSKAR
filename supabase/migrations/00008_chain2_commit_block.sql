@@ -1,0 +1,19 @@
+-- Einen geprueften Block atomar festschreiben.
+--
+-- Arbeitsteilung: Der Knoten in TypeScript prueft den Block vollstaendig
+-- (Struktur, PoW, Signaturen, Guthaben, state_root) und rechnet den
+-- Folgezustand aus. Hier passiert ausschliesslich das, was ATOMAR sein muss:
+-- Block, Transaktionen, Kontostaende und der Fortschrittszeiger in einer
+-- Transaktion. Zwischen "Block einfuegen" und "Konten fortschreiben" darf
+-- kein zweiter Aufruf dazwischen.
+--
+--   chain2.commit_block(p_block jsonb, p_txs jsonb, p_accounts jsonb,
+--                       p_supply numeric) returns jsonb
+--   chain2.mempool_add(...)      -- Ersetzen nur mit hoeherer Gebuehr
+--   chain2.expire_sessions(sec)
+--
+-- Es werden nur die GEAENDERTEN Konten uebergeben. Ein Konto ohne Guthaben
+-- und ohne Nonce wird geloescht, nicht auf null gesetzt -- sonst haenge der
+-- state_root davon ab, wer irgendwann einmal eine Zeile hatte.
+--
+-- Vollstaendige Fassung im Supabase-Projekt (chain2_commit_block).
