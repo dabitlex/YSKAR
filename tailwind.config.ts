@@ -5,12 +5,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#080B14',
-        line: '#1B2334',
-        fg: '#E9EDF5',
-        muted: '#77839A',
-        accent: '#3B82F6',
-        warn: '#E0A030',
+        ink: 'var(--ink)',
+        surface: 'var(--surface)',
+        raised: 'var(--raised)',
+        line: 'var(--line)',
+        text: 'var(--text)',
+        dim: 'var(--dim)',
+        work: 'var(--work)',
+        proof: 'var(--proof)',
+        risk: 'var(--risk)',
+      },
+      fontFamily: {
+        sans: ['var(--font-plex-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-plex-mono)', 'ui-monospace', 'monospace'],
       },
     },
   },

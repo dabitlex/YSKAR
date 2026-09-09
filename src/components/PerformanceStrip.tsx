@@ -40,7 +40,7 @@ function Rocket() {
       <path d="M8 0.8c2.3 2 3.5 4.6 3.5 7.4l-1.7 1.7H6.2L4.5 8.2C4.5 5.4 5.7 2.8 8 0.8z"
             fill="currentColor" />
       <path d="M6.4 10.6 8 15.2l1.6-4.6z" fill="currentColor" opacity="0.55" />
-      <circle cx="8" cy="6" r="1.15" fill="#080B14" />
+      <circle cx="8" cy="6" r="1.15" fill="var(--ink)" />
     </svg>
   );
 }
@@ -67,8 +67,8 @@ export default function PerformanceStrip({ samples, shares, blocks, active }: Pr
 
   return (
     <section className="mt-7" aria-label="Leistungsverlauf">
-      <div className="mb-2 flex items-baseline justify-between text-xs text-muted">
-        <span>Geräteleistung, je Balken 30 s</span>
+      <div className="mb-2 flex items-baseline justify-between text-xs text-dim">
+        <span>Rechenleistung, je Balken 30 s</span>
         <span className="tabular-nums">
           {mid > 0 ? `Median ${formatRate(mid / (BUCKET_MS / 1000))}` : '—'}
         </span>
@@ -84,7 +84,7 @@ export default function PerformanceStrip({ samples, shares, blocks, active }: Pr
             <span key={i} className="flex flex-1 items-end justify-center">
               {mark === 'own' ? (
                 <span
-                  className={`text-accent ${
+                  className={`text-proof ${
                     isNewest ? 'motion-safe:animate-[liftoff_600ms_ease-out]' : ''
                   }`}
                 >
@@ -94,7 +94,7 @@ export default function PerformanceStrip({ samples, shares, blocks, active }: Pr
                 // Fremder Fund: nur ein feiner Strich. Bei 10-Minuten-Bloecken
                 // liegt sonst auf jedem zweiten Streifen eine Rakete und der
                 // eigene Treffer geht darin unter.
-                <span className="block h-2 w-px bg-muted/60" />
+                <span className="block h-2 w-px bg-dim/50" />
               ) : null}
             </span>
           );
@@ -114,10 +114,10 @@ export default function PerformanceStrip({ samples, shares, blocks, active }: Pr
               key={i}
               className={[
                 'flex-1 rounded-sm transition-[height,background-color] duration-200 motion-reduce:transition-none',
-                value === null ? 'bg-[#141B29]'
-                  : isCurrent ? 'bg-accent/50'
-                  : weak ? 'bg-warn'
-                  : 'bg-accent',
+                value === null ? 'bg-line/60'
+                  : isCurrent ? 'bg-work/40'
+                  : weak ? 'bg-risk'
+                  : 'bg-work',
               ].join(' ')}
               style={{ height: `${height}px` }}
             />
@@ -134,7 +134,7 @@ export default function PerformanceStrip({ samples, shares, blocks, active }: Pr
             <span key={i} className="flex flex-1 justify-center">
               <span
                 className={`block h-1 w-1 rounded-full ${
-                  count > 0 ? 'bg-accent' : 'bg-transparent'
+                  count > 0 ? 'bg-work' : 'bg-transparent'
                 }`}
               />
             </span>
@@ -142,10 +142,10 @@ export default function PerformanceStrip({ samples, shares, blocks, active }: Pr
         })}
       </div>
 
-      <p className="mt-2 text-xs text-muted">
+      <p className="mt-2 text-xs text-dim">
         {samples.length === 0
           ? 'Noch keine Messwerte.'
-          : `Spitze ${formatRate(peak / (BUCKET_MS / 1000))} · Punkte = angenommene Shares · Rakete = dein Block`}
+          : `Spitze ${formatRate(peak / (BUCKET_MS / 1000))}. Punkte zeigen angenommene Shares, die Rakete deinen Block.`}
       </p>
     </section>
   );
