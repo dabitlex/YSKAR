@@ -50,7 +50,13 @@ export default function MiningPanel() {
   if (noTelegram || authError === 'outside_telegram') {
     return (
       <main className="mx-auto max-w-md p-6">
-        <p className="text-muted">Diese App laeuft nur in Telegram.</p>
+        <p className="text-muted">Mining läuft nur in Telegram.</p>
+        <p className="mt-3 text-sm">
+          <a href="/explorer" className="text-accent underline">
+            Zum Block Explorer
+          </a>{' '}
+          <span className="text-muted">— dort kannst du die Kette ohne Anmeldung prüfen.</span>
+        </p>
       </main>
     );
   }
@@ -113,13 +119,26 @@ export default function MiningPanel() {
           </div>
         </div>
 
+        {/*
+          Bewusst abgeschaltet statt still kaputt: Der Worker baut seit der
+          Umstellung 136-Byte-Header fuer die neue Kette, die Route
+          /api/v1/mining/job liefert aber noch das alte 116-Byte-Format.
+          Diese Kombination wuerde Muell hashen und jeden Share verwerfen --
+          von aussen sichtbar als "Mining laeuft, aber nichts passiert".
+        */}
         <button
-          onClick={() => (miner.mining ? miner.stop() : miner.start(2))}
-          disabled={!token || !canMine}
-          className="w-full rounded-xl bg-accent py-4 font-medium text-white disabled:bg-line disabled:text-muted"
+          disabled
+          className="w-full rounded-xl bg-line py-4 font-medium text-muted"
         >
-          {miner.mining ? 'Mining stoppen' : 'Mining starten'}
+          Mining wird auf die neue Kette umgestellt
         </button>
+
+        <p className="mt-3 text-sm text-muted">
+          Die Testnet-Kette ist abgeschlossen. YSKAR laeuft jetzt auf einer
+          eigenen Kette mit Wallet und Transaktionen im Block. Die Oberflaeche
+          dafuer wird gerade gebaut.{' '}
+          <a href="/explorer" className="text-accent underline">Block Explorer</a>
+        </p>
 
         {!canMine && token && (
           <p className="mt-3 text-sm text-warn">

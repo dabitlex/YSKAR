@@ -1,28 +1,36 @@
 /// <reference lib="webworker" />
 
 /**
- * Mining-Worker.
+ * Mining-Worker fuer die YSKAR-Kette.
  *
- * Baut denselben 116-Byte-Header wie src/lib/chain/header.ts und uebergibt
- * ihn an die WASM-Engine. Die Nonce-Schleife laeuft vollstaendig in WASM --
- * ein mine()-Aufruf deckt Zehntausende Nonces ab, damit nicht pro Hash die
- * Grenze zwischen JS und WASM ueberquert wird.
+ * Baut denselben 136-Byte-Header wie src/lib/core/block.ts und uebergibt ihn
+ * an die WASM-Engine. Die Nonce-Schleife laeuft vollstaendig in WASM -- ein
+ * mine()-Aufruf deckt Zehntausende Nonces ab, damit nicht pro Hash die Grenze
+ * zwischen JS und WASM ueberquert wird.
  *
- * Der Worker meldet ausschliesslich gefundene Nonces und seinen tatsaech-
- * lichen Fortschritt. Er behauptet keine Hashrate: was zaehlt, entscheidet
- * der Server anhand der validierten Shares.
+ * Der Worker meldet gefundene Nonces und seinen tatsaechlichen Fortschritt.
+ * Er behauptet keine Hashrate: was zaehlt, entscheidet der Server anhand der
+ * validierten Shares.
+ *
+ * ACHTUNG: Diese Serialisierung muss byteweise mit serializeHeader() in
+ * src/lib/core/block.ts uebereinstimmen. tests/core.test.ts prueft beide
+ * gegen die echte WASM-Engine -- bei einer Abweichung waere JEDER Share
+ * ungueltig, und die Fehlermeldung sagt nur "Hash stimmt nicht".
  */
 
-const MEM = { HEADER: 0, BLOCK2_NONCE: 204, HASH: 320, TARGET: 352, FOUND: 384 };
+// Speicherlayout aus wasm/gen_wat.py
+const MEM = { HEADER: 0, MIDSTATE: 144, NONCE: 176, HASH: 304, TARGET: 336, FOUND: 368 };
+const HEADER_SIZE = 136;
 
 interface Job {
   jobId: string;
   height: number;
   prevHash: string;
   merkleRoot: string;
-  jobSeed: string;
+  stateRoot: string;
   timestamp: string;
   difficulty: number;
+  txCount: number;
   target: string;
 }
 
@@ -38,9 +46,10 @@ let nonceHigh = 0;
 let nonceLow = 0;
 let duty = 50;
 let chunk = 8000;
-// Jeder Worker startet in einem eigenen Abschnitt des Nonce-Raums. Ohne das
-// durchsuchen zwei Worker exakt dieselben Nonces -- doppelte Arbeit, und der
-// zweite Share wird als Duplikat abgewiesen.
+
+// Jeder Worker durchsucht einen eigenen Abschnitt des Nonce-Raums. Ohne das
+// rechnen zwei Worker exakt dieselben Nonces -- doppelte Arbeit, und der
+// zweite Share faellt als Duplikat durch.
 let slot = 0;
 const SLOT_STRIDE = 4096;
 
@@ -50,31 +59,28 @@ function unhex(s: string): Uint8Array {
   return out;
 }
 
-/** Muss byteweise identisch zu serializeHeader() in src/lib/chain/header.ts sein. */
+/** Muss byteweise identisch zu serializeHeader() in src/lib/core/block.ts sein. */
 function buildHeader(j: Job, high: number): Uint8Array {
-  const b = new Uint8Array(116);
+  const b = new Uint8Array(HEADER_SIZE);
   const dv = new DataView(b.buffer);
-  dv.setUint32(0, 1, true);                       // version
-  dv.setUint32(4, j.height, true);                // height
+  dv.setUint32(0, 1, true);                        // version
+  dv.setUint32(4, j.height, true);
   b.set(unhex(j.prevHash), 8);
   b.set(unhex(j.merkleRoot), 40);
-  b.set(unhex(j.jobSeed), 72);
-  dv.setBigUint64(88, BigInt(j.timestamp), true);
-  dv.setUint32(96, j.difficulty, true);
-  dv.setBigUint64(100, extranonce, true);
-  dv.setBigUint64(108, BigInt(high) << 32n, true); // Nonce, obere Haelfte
+  b.set(unhex(j.stateRoot), 72);
+  dv.setBigUint64(104, BigInt(j.timestamp), true);
+  dv.setUint32(112, j.difficulty, true);
+  dv.setUint32(116, j.txCount, true);
+  dv.setBigUint64(120, extranonce, true);
+  dv.setBigUint64(128, BigInt(high) << 32n, true); // Nonce, obere Haelfte
   return b;
 }
 
 function loadJob(j: Job) {
-  // Nur bei einem WIRKLICH neuen Job von vorn suchen.
-  //
-  // Der Client holt den Job alle 45 s, die TTL betraegt 90 s -- es kommt also
-  // regelmaessig derselbe Job zurueck. Wurde dabei die Nonce zurueckgesetzt,
-  // durchsuchte der Worker die zweite Haelfte jedes Zeitfensters denselben
-  // Bereich noch einmal. Alles, was er dort fand, war ein Duplikat und fiel
-  // am Replay-Schutz durch: rund die Haelfte der Rechenzeit, und unsichtbar,
-  // weil Duplikate den Fehlerzaehler nicht erhoehen.
+  // Nur bei einem WIRKLICH neuen Job von vorn suchen. Der Client holt den Job
+  // regelmaessig neu und bekommt dabei oft denselben zurueck; ein Ruecksetzen
+  // der Nonce liesse den Worker denselben Bereich erneut durchsuchen, und
+  // alles Gefundene waere ein Duplikat.
   const sameJob = job !== null && job.jobId === j.jobId;
   job = j;
   if (!sameJob) {
@@ -83,6 +89,12 @@ function loadJob(j: Job) {
   }
   mem.set(buildHeader(j, nonceHigh), MEM.HEADER);
   mem.set(unhex(j.target), MEM.TARGET);
+  initJob();
+}
+
+function reloadHigh() {
+  if (!job) return;
+  mem.set(buildHeader(job, nonceHigh), MEM.HEADER);
   initJob();
 }
 
@@ -108,9 +120,8 @@ async function loop() {
         hash: [...mem.slice(MEM.HASH, MEM.HASH + 32)]
           .map(x => x.toString(16).padStart(2, '0')).join(''),
       });
-      // Direkt hinter dem Treffer weitersuchen
       nonceLow = (low + 1) >>> 0;
-      if (nonceLow === 0) { nonceHigh++; loadHigh(); }
+      if (nonceLow === 0) { nonceHigh++; reloadHigh(); }
       done += 1;
       continue;
     }
@@ -118,7 +129,7 @@ async function loop() {
     done += chunk;
     const before = nonceLow;
     nonceLow = (nonceLow + chunk) >>> 0;
-    if (nonceLow < before) { nonceHigh++; loadHigh(); }
+    if (nonceLow < before) { nonceHigh++; reloadHigh(); }
 
     // Chunkgroesse auf etwa 35 ms einregeln
     if (dt > 0) chunk = Math.max(1000, Math.min(8_000_000, Math.round(chunk * 35 / dt)));
@@ -129,17 +140,11 @@ async function loop() {
       lastReport = t1;
     }
 
-    // Duty-Cycle: die ehrliche Umsetzung des Leistungsreglers. Weniger
-    // Prozent heisst weniger gerechnete Hashes, nicht eine kleinere Anzeige.
+    // Duty-Cycle: die ehrliche Umsetzung des Leistungsreglers. Weniger Prozent
+    // heisst weniger gerechnete Hashes, nicht eine kleinere Anzeige.
     if (duty < 100) await sleep((dt * (100 - duty)) / duty);
     else await sleep(0);
   }
-}
-
-function loadHigh() {
-  if (!job) return;
-  mem.set(buildHeader(job, nonceHigh), MEM.HEADER);
-  initJob();
 }
 
 self.onmessage = async (e: MessageEvent) => {
@@ -170,9 +175,8 @@ self.onmessage = async (e: MessageEvent) => {
     return;
   }
 
-  // VarDiff: Nach jedem Share kann der Server das Share-Target anpassen.
-  // Der Header bleibt dabei unveraendert, nur der Vergleichswert wechselt --
-  // deshalb kein init_job() noetig.
+  // VarDiff: Nach jedem Share kann der Server das Share-Target anpassen. Der
+  // Header bleibt dabei unveraendert, nur der Vergleichswert wechselt.
   if (m.t === 'target') { mem.set(unhex(m.target), MEM.TARGET); return; }
   if (m.t === 'duty') { duty = m.value; return; }
   if (m.t === 'stop') { running = false; return; }
