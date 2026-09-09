@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/service';
+import { unprefix } from '@/lib/node/hex';
 import { rewardAt, MAX_SUPPLY, TARGET_BLOCK_TIME, DIFFICULTY_UNIT } from '@/lib/core/params';
 
 export const runtime = 'nodejs';
@@ -12,7 +13,7 @@ export async function OPTIONS() { return new Response(null, { status: 204, heade
 export async function GET() {
   const sb = db().schema('chain2');
 
-  const [{ data: recent }, { data: meta }, { data: params }, { count: pending }, { data: active }] =
+  const [rBlocks, rMeta, rParams, rPending, rActive] =
     await Promise.all([
       sb.from('blocks').select('height, difficulty, block_time, hash')
         .order('height', { ascending: false }).limit(13),
@@ -21,6 +22,24 @@ export async function GET() {
       sb.from('mempool').select('txid', { count: 'exact', head: true }),
       sb.from('sessions').select('address').eq('status', 'active'),
     ]);
+
+  // Fehler NICHT verschlucken. Ein Rechte- oder Schemaproblem liefert
+  // data = null, und ohne diese Pruefung sieht das exakt aus wie eine leere
+  // Datenbank -- inklusive plausibler Nullen im JSON. Genau daran haben wir
+  // beim ersten Aufruf gesucht.
+  const failed = [rBlocks, rMeta, rParams, rActive].find(r => r.error);
+  if (failed?.error) {
+    return NextResponse.json(
+      { error: 'chain_unreachable', detail: failed.error.message },
+      { status: 503, headers: CORS },
+    );
+  }
+
+  const recent = rBlocks.data;
+  const meta = rMeta.data;
+  const params = rParams.data;
+  const pending = rPending.count;
+  const active = rActive.data;
 
   const blocks = recent ?? [];
   // Hashrate aus der Kette selbst. Unter drei Bloecken ist die Streuung
@@ -42,9 +61,9 @@ export async function GET() {
     difficulty: tip?.difficulty ?? null,
     hashrate,
     targetBlockTime: Number(TARGET_BLOCK_TIME),
-    tipHash: tip ? (tip.hash as string).replace(/^\\\\x/, '') : null,
+    tipHash: unprefix(tip?.hash as string | undefined),
     stateHeight: meta?.height ?? -1,
-    stateRoot: meta?.state_root ? (meta.state_root as string).replace(/^\\\\x/, '') : null,
+    stateRoot: unprefix(meta?.state_root as string | undefined),
     totalSupply: meta?.total_supply ?? '0',
     maxSupply: MAX_SUPPLY.toString(),
     nextReward: rewardAt(nextHeight).toString(),

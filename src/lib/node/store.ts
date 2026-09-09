@@ -7,6 +7,7 @@ import {
 import { deserializeTx, serializeTx, txid, type Transfer, TX_COINBASE } from '../core/tx.ts';
 import { type BlockTiming } from '../core/difficulty.ts';
 import { toHex, fromHex } from '../core/codec.ts';
+import { unprefix } from './hex.ts';
 
 /**
  * Zugriff auf das Schema chain2.
@@ -17,7 +18,7 @@ import { toHex, fromHex } from '../core/codec.ts';
  */
 
 const hx = (b: Uint8Array) => toHex(b);
-const un = (s: string) => fromHex(s.startsWith('\\x') ? s.slice(2) : s);
+const un = (s: string) => fromHex(unprefix(s));
 
 export interface Tip {
   header: BlockHeader;
@@ -26,9 +27,12 @@ export interface Tip {
 }
 
 export async function loadTip(): Promise<Tip | null> {
-  const { data } = await db().schema('chain2').from('blocks')
+  const { data, error } = await db().schema('chain2').from('blocks')
     .select('height, hash, header').order('height', { ascending: false })
     .limit(1).maybeSingle();
+  // Ein Rechte- oder Verbindungsfehler darf NICHT als "Kette ist leer"
+  // durchgehen -- sonst wuerde der Knoten einen zweiten Genesis bauen.
+  if (error) throw new Error(`loadTip: ${error.message}`);
   if (!data) return null;
   const header = deserializeHeader(un(data.header));
   return { header, hash: un(data.hash), height: data.height };
@@ -43,10 +47,17 @@ export async function loadTip(): Promise<Tip | null> {
  * Aktualisierungen.
  */
 export async function loadState(): Promise<{ state: State; height: number }> {
-  const [{ data: rows }, { data: meta }] = await Promise.all([
+  const [rAccounts, rMeta] = await Promise.all([
     db().schema('chain2').from('accounts').select('address, balance, nonce'),
     db().schema('chain2').from('state_meta').select('height, state_root').eq('id', 1).single(),
   ]);
+  // Ein leerer Zustand und ein nicht lesbarer Zustand sehen gleich aus, haben
+  // aber gegensaetzliche Folgen: Beim ersten darf gemint werden, beim zweiten
+  // waeren alle Guthaben scheinbar null.
+  if (rAccounts.error) throw new Error(`loadState: ${rAccounts.error.message}`);
+  if (rMeta.error) throw new Error(`loadState/meta: ${rMeta.error.message}`);
+  const rows = rAccounts.data;
+  const meta = rMeta.data;
 
   const state = emptyState();
   for (const r of rows ?? []) {

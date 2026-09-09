@@ -345,3 +345,25 @@ test('Die Hex-Umrechnung im Client stimmt mit der des Servers ueberein', async (
     );
   }
 });
+
+// ------------------------------------------------------------ bytea-Praefix
+
+test('unprefix entfernt genau einen Backslash-x, nicht zwei', async () => {
+  const { unprefix, prefix } = await import('../src/lib/node/hex.ts');
+
+  // So liefert Postgres es wirklich: EIN Backslash.
+  const ausDerDb = '\\x000000090a14a03f';
+  assert.equal(unprefix(ausDerDb), '000000090a14a03f');
+
+  // Der Fehler, der im Betrieb sichtbar wurde: eine Regex, die zwei
+  // Backslashes suchte, traf nie und liess das Praefix stehen.
+  assert.notEqual(unprefix(ausDerDb), ausDerDb);
+
+  assert.equal(unprefix('deadbeef'), 'deadbeef', 'ohne Praefix unveraendert');
+  assert.equal(unprefix(null), null);
+  assert.equal(unprefix(undefined), null);
+
+  assert.equal(prefix('deadbeef'), '\\xdeadbeef');
+  assert.equal(prefix('\\xdeadbeef'), '\\xdeadbeef', 'nicht doppelt voranstellen');
+  assert.equal(unprefix(prefix('abc123')), 'abc123');
+});
