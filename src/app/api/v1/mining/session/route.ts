@@ -69,5 +69,5 @@ export async function POST(req: Request) {
     extranonce: String(session.extranonce),
     shareDifficulty: String(session.share_difficulty),
     dutyCycle: session.duty_cycle,
-  });
+  }, 200, auth.renewedToken);
 }

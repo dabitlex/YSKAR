@@ -69,5 +69,5 @@ export async function GET(req: Request) {
       blocksFound: user?.blocks_found ?? 0,
       lifetimeWeight: user?.lifetime_weight ?? 0,
     },
-  });
+  }, 200, auth.renewedToken);
 }

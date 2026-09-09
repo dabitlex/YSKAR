@@ -13,5 +13,5 @@ export async function POST(req: Request) {
     .eq('user_id', auth.claims.sub)
     .eq('status', 'active');
 
-  return error ? fail('stop_failed', 500) : ok({ stopped: true });
+  return error ? fail('stop_failed', 500) : ok({ stopped: true }, 200, auth.renewedToken);
 }

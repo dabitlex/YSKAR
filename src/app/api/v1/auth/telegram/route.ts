@@ -30,7 +30,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'bad_json' }, { status: 400 });
   }
 
-  const result = verifyInitData(body.initData ?? '', botToken);
+  // Fenster fuer die initData. Telegram liefert waehrend einer Sitzung
+  // dieselbe initData; wird die App nach laengerer Pause fortgesetzt, muss
+  // sich der Client damit erneut anmelden koennen. 24 Stunden ist der Wert,
+  // den auch die gaengigen Bibliotheken als Vorgabe nutzen.
+  //
+  // Abwaegung: Ein abgefangener initData-String bleibt so 24 Stunden lang
+  // gueltig. Wer ihn hat, kann sich als dieser Nutzer ausgeben. Kuerzer ist
+  // sicherer, kostet aber Anmeldungen mitten in der Sitzung.
+  const maxAge = Number(process.env.TELEGRAM_INITDATA_MAX_AGE ?? 86400);
+  const result = verifyInitData(body.initData ?? '', botToken, maxAge);
   if (!result.ok || !result.user) {
     return NextResponse.json({ error: result.reason ?? 'unauthorized' }, { status: 401 });
   }
