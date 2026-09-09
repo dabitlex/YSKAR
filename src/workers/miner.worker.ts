@@ -67,10 +67,21 @@ function buildHeader(j: Job, high: number): Uint8Array {
 }
 
 function loadJob(j: Job) {
+  // Nur bei einem WIRKLICH neuen Job von vorn suchen.
+  //
+  // Der Client holt den Job alle 45 s, die TTL betraegt 90 s -- es kommt also
+  // regelmaessig derselbe Job zurueck. Wurde dabei die Nonce zurueckgesetzt,
+  // durchsuchte der Worker die zweite Haelfte jedes Zeitfensters denselben
+  // Bereich noch einmal. Alles, was er dort fand, war ein Duplikat und fiel
+  // am Replay-Schutz durch: rund die Haelfte der Rechenzeit, und unsichtbar,
+  // weil Duplikate den Fehlerzaehler nicht erhoehen.
+  const sameJob = job !== null && job.jobId === j.jobId;
   job = j;
-  nonceHigh = slot * SLOT_STRIDE;
-  nonceLow = 0;
-  mem.set(buildHeader(j, 0), MEM.HEADER);
+  if (!sameJob) {
+    nonceHigh = slot * SLOT_STRIDE;
+    nonceLow = 0;
+  }
+  mem.set(buildHeader(j, nonceHigh), MEM.HEADER);
   mem.set(unhex(j.target), MEM.TARGET);
   initJob();
 }
