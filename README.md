@@ -16,20 +16,58 @@ den Bloecken wiederherstellbar.
 | Kette | `yskar-main-1`, Genesis gemint am 09.09.2026 |
 | Bibliothek | vollstaendig, 62 Tests |
 | Knoten und API | `/api/v2/*` steht |
-| Oberflaeche | **fehlt noch** -- Wallet und Miner werden gerade gebaut |
+| Oberflaeche | Wallet, Entsperren und Mining stehen; Senden fehlt noch |
+
+## Oberflaeche
+
+Messgeraet, nicht Spielautomat. Der Markt, in dem diese App sitzt, besteht
+aus Neonverlaeufen und hochzaehlenden Fantasiezahlen -- saehe YSKAR so aus,
+wuerde die Oberflaeche das Versprechen der Kette widerlegen.
+
+Der Held des Mining-Bildschirms ist der zuletzt angenommene **Hash**, nicht
+eine grosse Zahl mit Label. Fuehrende Nullen sind gedimmt: Sie SIND die
+geleistete Arbeit, und gedimmt kann man sie zaehlen statt lesen.
+
+Zwei Signalfarben mit Bedeutung, keine Dekoration: Bernstein `#E8B33C` fuer
+"dein Geraet rechnet gerade", Gruen `#4ADE9B` fuer "die Kette hat es
+angenommen". Rot ausschliesslich dort, wo Geld unwiderruflich weg sein kann.
+
+Schrift: IBM Plex Sans und Mono, ueber `next/font` selbst gehostet.
+Monospace ist hier kein Stilmittel -- Hex, Adressen und Merkwoerter brauchen
+feste Zeichenbreite, sonst kann man sie nicht abschreiben.
+
+### Wallet einrichten
+
+Der wichtigste Ablauf der App. Drei Entscheidungen, die ihn ernst nehmen:
+
+1. Die Woerter werden erst gespeichert, **nachdem** der Nutzer drei davon
+   korrekt zurueckgegeben hat. Wer wegtippt, hat keine Wallet -- und
+   verliert nichts, weil noch nichts drin ist.
+2. Kein "Ueberspringen". Die einzige Abkuerzung ist abbrechen.
+3. Die Warnung steht VOR der Anzeige der Woerter. Danach liest sie niemand.
+
+Die Merkwoerter liegen mit einer sechsstelligen PIN verschluesselt im
+Geraet: PBKDF2-SHA256 mit 400.000 Runden, dann AES-256-GCM. Der private
+Schluessel lebt nur im Arbeitsspeicher der Sitzung; nach dem Neuladen wird
+die PIN erneut gebraucht.
+
+Ehrlich dazu: Sechs Ziffern sind eine Million Moeglichkeiten, ein
+vollstaendiger Durchlauf kostet auf einem schnellen Rechner rund sechs
+Stunden. Die PIN schuetzt vor Gelegenheitszugriff, nicht vor einem
+entschlossenen Angreifer mit Zugriff auf das Geraet. Der eigentliche Schutz
+sind die aufgeschriebenen Woerter.
+
+## Zwei Ketten
 
 Es laufen zwei Ketten nebeneinander:
 
 - **`chain2`** ist die echte Kette. Genesis steht, `/api/v2/job` liefert
   Jobs. Es fehlt nur die Bedienung.
 - **`public`** war das Testnet, 20 Bloecke, Reward direkt in der Datenbank.
-  Es bleibt als Nachschlagewerk stehen, Mining ist dort abgeschaltet.
-
-Warum abgeschaltet und nicht entfernt: Der Miner-Worker baut seit der
-Umstellung 136-Byte-Header, die alte Job-Route liefert 116. Diese
-Kombination wuerde Muell hashen und jeden Share verwerfen -- sichtbar als
-"laeuft, aber nichts passiert". Ein abgeschalteter Knopf sagt die Wahrheit,
-ein kaputter nicht.
+  Die API-Routen bleiben lesend bestehen, `public/explorer.html` zeigt sie
+  weiterhin an. Die zugehoerige Oberflaeche wurde entfernt (siehe
+  `src/components/ENTFERNT.md`) -- gemint wird dort nicht mehr, weil die
+  WASM-Engine seit der Umstellung 136-Byte-Header erwartet.
 
 ## Schnellstart
 
