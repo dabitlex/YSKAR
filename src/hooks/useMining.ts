@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BUCKET_MS, MAX_BARS, type BlockMark } from '@/lib/strip';
+import { MINER_WASM_URL } from '@/lib/minerWasm';
 
 /**
  * Mining gegen die eigene Kette.
@@ -181,7 +182,7 @@ export function useMining(address: string | null, platform: string) {
           resolve();
         };
         w.postMessage({
-          t: 'init', wasmUrl: '/miner.wasm',
+          t: 'init', wasmUrl: MINER_WASM_URL,
           extranonce: session.extranonce, slot: i,
         });
       })));

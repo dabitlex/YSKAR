@@ -420,7 +420,11 @@ test('Struktur eines Blocks wird vollständig geprüft', () => {
  */
 async function engine() {
   const { readFileSync } = await import('node:fs');
-  const bin = readFileSync(new URL('../public/miner.wasm', import.meta.url));
+  // Die Engine heisst nach ihrem Inhalt. Der Pfad kommt aus derselben
+  // Quelle, die auch der Worker benutzt -- sonst testet man am Ende eine
+  // andere Datei als die ausgelieferte, und genau das war der Fehler.
+  const { MINER_WASM_URL } = await import('../src/lib/minerWasm.ts');
+  const bin = readFileSync(new URL(`../public${MINER_WASM_URL}`, import.meta.url));
   const { instance } = await WebAssembly.instantiate(bin, {});
   const memory = instance.exports.memory as WebAssembly.Memory;
   return {
@@ -772,4 +776,31 @@ test('Der Genesis-Block ist reproduzierbar', async () => {
   assert.equal(S.applyBlock(state, block).ok, true);
   assert.equal(S.totalSupply(state), 875n * P.UNIT);
   assert.equal(toHex(S.stateRoot(state)), toHex(block.header.stateRoot));
+});
+
+test('Der Selbsttest des Workers erkennt eine falsche Engine', async () => {
+  // Gegenprobe zu dem Fehler, der im Betrieb auftrat: Auf Geraeten mit
+  // altem Zwischenspeicher lief die Engine fuer 116-Byte-Header weiter. Sie
+  // las das Target an einer anderen Stelle, fand nie einen Share -- und
+  // meldete nichts. Der Selbsttest im Worker prueft deshalb beim Start mit
+  // dem Genesis-Block als bekannter Antwort.
+  const e = await engine();
+  e.mem.fill(0xff, MEM.TARGET, MEM.TARGET + 32);
+
+  const genesis: B.BlockHeader = {
+    version: 1, height: 0,
+    prevHash: new Uint8Array(32), merkleRoot: fromHex(
+      '1007612ea5c27b0b7c6ae79c745da364cfd64224eb6f5519bf559dc3b09fe840'),
+    stateRoot: fromHex(
+      'e2860175f61cefa97ff34e88d35402a7ee373a8764adbdda0b97ef200bbeca57'),
+    timestamp: 1_788_912_000n, difficulty: 4096n, txCount: 1,
+    extranonce: 0n, nonce: 50_773_796n,
+  };
+
+  e.mem.set(B.serializeHeader(genesis), MEM.HEADER);
+  e.initJob();
+  assert.equal(e.mine(50_773_796, 1), 1);
+  assert.equal(toHex(e.mem.slice(MEM.HASH, MEM.HASH + 32)),
+    '000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66',
+    'Der Selbsttest muss genau diesen Hash liefern -- sonst ist es eine andere Engine');
 });
