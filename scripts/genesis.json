@@ -1,0 +1,50 @@
+{
+  "network": "yskar-main-1",
+  "chain_id": "952ee402c8e77c34e006d7019780c93e2297795a02abb26c4decd627278af2e8",
+  "block": {
+    "height": 0,
+    "hash": "000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66",
+    "version": 1,
+    "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "merkle_root": "1007612ea5c27b0b7c6ae79c745da364cfd64224eb6f5519bf559dc3b09fe840",
+    "state_root": "e2860175f61cefa97ff34e88d35402a7ee373a8764adbdda0b97ef200bbeca57",
+    "block_time": "1788912000",
+    "difficulty": "4096",
+    "tx_count": 1,
+    "extranonce": "0",
+    "nonce": "50773796",
+    "header": "010000000000000000000000000000000000000000000000000000000000000000000000000000001007612ea5c27b0b7c6ae79c745da364cfd64224eb6f5519bf559dc3b09fe840e2860175f61cefa97ff34e88d35402a7ee373a8764adbdda0b97ef200bbeca5780a1a06a000000000010000001000000000000000000000024bf060300000000",
+    "size_bytes": 198
+  },
+  "txs": [
+    {
+      "txid": "d6a742de01ac71ef6243d28402afe5f05e8f2c60b5daa68c7631ea36c9bf2c4f",
+      "idx": 0,
+      "type": 0,
+      "version": 1,
+      "from": null,
+      "to": "0000000000000000000000000000000000000000",
+      "amount": "87500000000",
+      "fee": "0",
+      "nonce": null,
+      "valid_until": null,
+      "memo": "70726f6f662c206e6f742070726f6d697365",
+      "public_key": null,
+      "signature": null,
+      "raw": "010000000000000000000000000000000000000000000000000000000b685f140000001270726f6f662c206e6f742070726f6d697365"
+    }
+  ],
+  "accounts": [
+    {
+      "address": "0000000000000000000000000000000000000000",
+      "balance": "87500000000",
+      "nonce": "0"
+    }
+  ],
+  "supply": "87500000000",
+  "stats": {
+    "hashes": 50000000,
+    "seconds": 28.105,
+    "inscription": "proof, not promise"
+  }
+}
