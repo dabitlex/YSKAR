@@ -49,11 +49,15 @@ export function useMining(address: string | null, platform: string) {
   const shareDifficulty = useRef<number | null>(null);
 
   const bucketHashes = useRef(0);
+  const liveRate = useRef(0);
+  const lastProgress = useRef(0);
   const bucketShares = useRef(0);
   const bucketBlock = useRef<BlockMark>(null);
   const lastHeight = useRef<number | null>(null);
 
   const [mining, setMining] = useState(false);
+  const [hashrate, setHashrate] = useState(0);
+  const [stumm, setStumm] = useState(false);
   const [duty, setDuty] = useState(50);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
@@ -122,7 +126,16 @@ export function useMining(address: string | null, platform: string) {
       await Promise.all(created.map((w, i) => new Promise<void>(resolve => {
         w.onmessage = (e) => {
           if (e.data.t === 'ready') return resolve();
-          if (e.data.t === 'progress') { bucketHashes.current += e.data.hashes; return; }
+          if (e.data.t === 'error') {
+            setFehler(`Miner (${e.data.where}): ${e.data.message}`);
+            return;
+          }
+          if (e.data.t === 'progress') {
+            bucketHashes.current += e.data.hashes;
+            lastProgress.current = Date.now();
+            liveRate.current = e.data.hashes;   // Hashes in der letzten Sekunde
+            return;
+          }
           if (e.data.t !== 'share') return;
 
           api('/share', {
@@ -148,6 +161,11 @@ export function useMining(address: string | null, platform: string) {
             }
           }).catch(err => setFehler(String(err.message ?? err)));
         };
+        // Ein Worker, der beim Laden scheitert, meldet sich sonst nie wieder.
+        w.onerror = ev => {
+          setFehler(`Miner konnte nicht starten: ${ev.message || 'unbekannt'}`);
+          resolve();
+        };
         w.postMessage({
           t: 'init', wasmUrl: '/miner.wasm',
           extranonce: session.extranonce, slot: i,
@@ -162,6 +180,28 @@ export function useMining(address: string | null, platform: string) {
       await stop();
     }
   }, [address, api, duty, platform, fetchJob, applyShareDifficulty, stop]);
+
+  /*
+    Live-Anzeige und Wachhund in einem Takt.
+
+    Die Hashrate wird geglaettet, damit die Zahl nicht zappelt -- aber sie
+    kommt aus echtem Nonce-Fortschritt, nicht aus einer Animation.
+
+    Der Wachhund ist die Lehre aus dem stillen Ausfall: Meldet der Worker
+    zehn Sekunden lang keinen Fortschritt, obwohl Mining laeuft, stimmt
+    etwas nicht -- und das gehoert auf den Schirm, nicht in ein Logfile.
+  */
+  useEffect(() => {
+    if (!mining) { setHashrate(0); setStumm(false); return; }
+    lastProgress.current = Date.now();
+    const id = setInterval(() => {
+      setHashrate(prev => prev === 0 ? liveRate.current
+        : prev * 0.7 + liveRate.current * 0.3);
+      liveRate.current = 0;
+      setStumm(Date.now() - lastProgress.current > 10_000);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [mining]);
 
   // Streifen weiterschieben
   useEffect(() => {
@@ -225,6 +265,7 @@ export function useMining(address: string | null, platform: string) {
 
   return {
     mining, start, stop, duty, setDuty: changeDuty,
+    hashrate, stumm,
     summary, account, lastShare, fund, fehler,
     samples, shareMarks, blockMarks,
     dismissFund: () => setFund(null),

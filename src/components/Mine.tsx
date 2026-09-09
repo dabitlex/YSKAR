@@ -9,14 +9,20 @@ import { Screen, Row, Button, Hash, Dot, Notice } from '@/components/ui/Primitiv
 /**
  * Mining-Bildschirm.
  *
- * Der Held ist der zuletzt angenommene Hash, nicht eine grosse Zahl mit
- * Label. Die fuehrenden Nullen sind die geleistete Arbeit -- gedimmt kann
- * man sie zaehlen statt lesen. Das ist echtes Material aus dieser Kette und
- * laesst sich nirgends sonst so zeigen.
+ * Zwei Ebenen, die verschiedene Fragen beantworten:
  *
- * Wenn noch nichts gefunden wurde, steht dort der aktuelle Kettenkopf. Kein
- * Platzhalter, kein Skelett: eine leere Anzeige waere hier eine Luege ueber
- * den Zustand der Kette.
+ *   Die Hashrate oben ist der PULS -- sie bewegt sich jede Sekunde und
+ *   beantwortet "arbeitet mein Geraet gerade?". Sie kommt aus echtem
+ *   Nonce-Fortschritt der Worker, nicht aus einer Animation.
+ *
+ *   Der Hash darunter ist die QUITTUNG -- er erscheint erst, wenn der Server
+ *   einen Share angenommen hat, und beantwortet "kommt die Arbeit an?". Die
+ *   fuehrenden Nullen sind gedimmt: Sie SIND die geleistete Arbeit, und
+ *   gedimmt kann man sie zaehlen statt lesen.
+ *
+ * Gezeigt wird ausschliesslich der eigene Share. Den Kettenkopf hier
+ * anzuzeigen, solange man selbst nichts gefunden hat, wuerde fremde Arbeit
+ * wie eigene aussehen lassen.
  */
 export default function Mine({ platform }: { platform: string }) {
   const wallet = useWallet();
@@ -27,14 +33,14 @@ export default function Mine({ platform }: { platform: string }) {
   const sym = m.summary?.token?.token_symbol ?? 'YSR';
   const guthaben = m.account ? Number(m.account.balance) / 10 ** dec : 0;
 
-  const angezeigterHash = m.lastShare?.hash ?? m.summary?.tipHash ?? null;
-  const hashHerkunft = m.lastShare
-    ? `Dein letzter Share · Difficulty ${Number(m.lastShare.difficulty).toLocaleString('de-DE')}`
-    : 'Kopf der Kette';
+  // Nur der EIGENE letzte Share. Den Kettenkopf hier zu zeigen, wenn man
+  // selbst noch nichts gefunden hat, wuerde fremde Arbeit wie eigene aussehen
+  // lassen.
+  const eigenerHash = m.lastShare?.hash ?? null;
 
   return (
     <Screen>
-      <header className="mb-7 flex items-baseline justify-between">
+      <header className="mb-6 flex items-baseline justify-between">
         <span className="text-sm text-dim">YSKAR</span>
         <span className="flex items-center gap-2 text-sm text-dim">
           <Dot tone={m.mining ? 'work' : 'off'} />
@@ -42,15 +48,34 @@ export default function Mine({ platform }: { platform: string }) {
         </span>
       </header>
 
-      {/* Held: der Hash. */}
+      {/*
+        Die Leistung ist der Beweis, dass gearbeitet wird -- sie gehoert nach
+        oben und muss sich jede Sekunde bewegen. Der Hash darunter ist der
+        Beleg, dass die Arbeit angekommen ist. Beides zusammen: Puls und
+        Quittung.
+      */}
       <section className="mb-8">
-        {angezeigterHash ? (
-          <>
-            <Hash value={angezeigterHash} className="text-[13px] leading-[1.7]" />
-            <p className="mt-2.5 text-sm text-dim">{hashHerkunft}</p>
-          </>
-        ) : (
-          <p className="text-sm text-dim">Noch kein Block. Die Kette wartet auf den ersten.</p>
+        <div className="tnum flex items-baseline gap-2 leading-none">
+          <span className={`text-5xl font-medium tracking-tight ${
+            m.mining ? 'text-work' : 'text-dim'}`}>
+            {formatRate(m.hashrate).wert}
+          </span>
+          <span className="text-xl text-dim">{formatRate(m.hashrate).einheit}</span>
+        </div>
+        <p className="mt-2 text-sm text-dim">
+          {m.mining
+            ? `${m.account?.blocksFound ?? 0} Blöcke · Anteil ${m.duty}%`
+            : 'Tippe auf Mining starten'}
+        </p>
+
+        {eigenerHash && (
+          <div className="mt-6 border-t border-line pt-5">
+            <Hash value={eigenerHash} className="text-[13px] leading-[1.7]" />
+            <p className="mt-2.5 text-sm text-dim">
+              Dein letzter angenommener Share · Difficulty{' '}
+              {Number(m.lastShare!.difficulty).toLocaleString('de-DE')}
+            </p>
+          </div>
         )}
       </section>
 
@@ -94,6 +119,14 @@ export default function Mine({ platform }: { platform: string }) {
           {m.mining ? 'Mining stoppen' : 'Mining starten'}
         </Button>
 
+        {m.stumm && !m.fehler && (
+          <div className="mt-4">
+            <Notice tone="risk">
+              Der Miner meldet seit zehn Sekunden keinen Fortschritt. Stoppen
+              und neu starten hilft meistens.
+            </Notice>
+          </div>
+        )}
         {m.fehler && <div className="mt-4"><Notice tone="risk">{m.fehler}</Notice></div>}
       </section>
 
@@ -140,4 +173,11 @@ export default function Mine({ platform }: { platform: string }) {
       )}
     </Screen>
   );
+}
+
+/** Teilt Wert und Einheit, damit beide verschieden gesetzt werden koennen. */
+function formatRate(h: number): { wert: string; einheit: string } {
+  if (h >= 1e6) return { wert: (h / 1e6).toFixed(2), einheit: 'MH/s' };
+  if (h >= 1e3) return { wert: (h / 1e3).toFixed(1), einheit: 'kH/s' };
+  return { wert: String(Math.round(h)), einheit: 'H/s' };
 }
