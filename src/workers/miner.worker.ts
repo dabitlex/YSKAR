@@ -101,6 +101,11 @@ function reloadHigh() {
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 async function loop() {
+  try { await hashLoop(); }
+  catch (err) { running = false; melde('loop', err); }
+}
+
+async function hashLoop() {
   let done = 0;
   let lastReport = performance.now();
 
@@ -147,9 +152,30 @@ async function loop() {
   }
 }
 
-self.onmessage = async (e: MessageEvent) => {
-  const m = e.data;
+/**
+ * Ein Worker, der stillschweigend stirbt, sieht von aussen aus wie ein
+ * Worker, der arbeitet und nichts findet. Genau das hat uns schon Stunden
+ * gekostet -- deshalb meldet er jeden Fehler nach oben, und zusaetzlich
+ * einmal je Sekunde seinen Fortschritt, damit der Hauptthread merkt, wenn
+ * er verstummt.
+ */
+function melde(kontext: string, err: unknown) {
+  self.postMessage({
+    t: 'error',
+    where: kontext,
+    message: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+  });
+}
 
+self.onmessage = async (e: MessageEvent) => {
+  try {
+    await handle(e.data);
+  } catch (err) {
+    melde(`onmessage:${e.data?.t ?? '?'}`, err);
+  }
+};
+
+async function handle(m: any) {
   if (m.t === 'init') {
     const res = await WebAssembly.instantiateStreaming(fetch(m.wasmUrl), {})
       .catch(async () => {
@@ -180,4 +206,4 @@ self.onmessage = async (e: MessageEvent) => {
   if (m.t === 'target') { mem.set(unhex(m.target), MEM.TARGET); return; }
   if (m.t === 'duty') { duty = m.value; return; }
   if (m.t === 'stop') { running = false; return; }
-};
+}
