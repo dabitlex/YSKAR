@@ -24,39 +24,30 @@ function formatHashrate(h: number): string {
 }
 
 export default function MiningPanel() {
-  const [token, setToken] = useState<string | null>(null);
-  const [platform, setPlatform] = useState('');
-  const [canMine, setCanMine] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  const miner = useMiner(token, platform);
+  // Telegram-Daten einmal einlesen. Die Anmeldung selbst macht der Hook --
+  // es darf nur einen Fetch-Pfad geben, und der muss 401 behandeln koennen.
+  const [tg, setTg] = useState<{ initData: string; platform: string } | null>(null);
+  const [noTelegram, setNoTelegram] = useState(false);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (!tg) { setAuthError('outside_telegram'); return; }
-    tg.ready();
-    tg.expand?.();
-    setPlatform(tg.platform);
-
-    fetch('/api/v1/auth/telegram', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ initData: tg.initData, platform: tg.platform }),
-    })
-      .then(async r => {
-        const body = await r.json();
-        if (!r.ok) throw new Error(body.error);
-        setToken(body.token);
-        setCanMine(body.canMine);
-      })
-      .catch(e => setAuthError(String(e.message ?? e)));
+    const w = window.Telegram?.WebApp;
+    // Das Telegram-Skript laedt auch ausserhalb von Telegram, liefert dann
+    // aber eine leere initData. Genau daran erkennen wir den Browser.
+    if (!w || !w.initData) { setNoTelegram(true); return; }
+    w.ready();
+    w.expand?.();
+    setTg({ initData: w.initData, platform: w.platform });
   }, []);
+
+  const miner = useMiner(tg?.initData ?? null, tg?.platform ?? '');
+  const { canMine, authError } = miner;
+  const token = miner.ready;
 
   const s = miner.status;
   const decimals = s?.token.decimals ?? 8;
   const symbol = s?.token.symbol ?? 'YSR';
 
-  if (authError === 'outside_telegram') {
+  if (noTelegram || authError === 'outside_telegram') {
     return (
       <main className="mx-auto max-w-md p-6">
         <p className="text-muted">Diese App laeuft nur in Telegram.</p>

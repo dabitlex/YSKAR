@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     .single();
   if (!job) return fail('job_unknown', 404);
   if (new Date(job.expires_at).getTime() < Date.now()) {
-    return ok({ accepted: false, reason: 'job_expired', refetchJob: true });
+    return ok({ accepted: false, reason: 'job_expired', refetchJob: true }, 200, auth.renewedToken);
   }
 
   // --- Header serverseitig rekonstruieren und selbst hashen ---
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
   });
 
   if (error) return fail('submit_failed', 500);
-  return ok(data);
+  return ok(data, 200, auth.renewedToken);
 }
 
 /** LWMA ueber die letzten Bloecke. */

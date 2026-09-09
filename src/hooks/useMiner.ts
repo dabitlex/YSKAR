@@ -4,68 +4,126 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BUCKET_MS, MAX_BARS, type BlockMark } from '@/lib/strip';
 
 /**
- * Steuert Worker, Job-Nachschub und Share-Einreichung.
+ * Steuert Anmeldung, Worker, Job-Nachschub und Share-Einreichung.
  *
- * Bewusst kein Hintergrund-Mining: Sobald die Mini App in den Hintergrund
- * geht oder das Display sperrt, haelt die Plattform den Worker ohnehin an
- * oder drosselt ihn hart. Statt das zu verschleiern, stoppen wir sauber und
- * lassen die Session serverseitig auslaufen.
+ * Die Anmeldung liegt bewusst HIER und nicht in der Komponente: Es darf nur
+ * einen einzigen Fetch-Pfad geben, und der muss den 401-Fall behandeln. Zwei
+ * Pfade, von denen einer den Ablauf nicht kennt, sind der Fehler, der in
+ * VEXALGO wochenlang den Quest-Abschluss gekostet hat.
+ *
+ * Token-Lebenszyklus, zweistufig:
+ *   1. Der Server haengt bei knapper Restlaufzeit einen frischen Token in den
+ *      Header x-renewed-token. Solange die App offen ist und alle 5 Sekunden
+ *      den Status abfragt, laeuft der Token damit nie ab.
+ *   2. Kommt trotzdem ein 401 -- App war lange im Hintergrund --, meldet sich
+ *      der Hook mit der initData neu an und wiederholt die Anfrage genau
+ *      einmal.
  */
 
 export interface MinerStatus {
+  token: { name: string; symbol: string; decimals: number };
   height: number | null;
   difficulty: number | null;
   networkHashrate: number;
-  session: { hashrate: number; validShares: number; shareDifficulty: string;
-             roundSharePct: number } | null;
-  account: { balance: number; blocksFound: number };
-  token: { name: string; symbol: string; decimals: number };
+  lastBlockAt: string | null;
+  session: {
+    id: string; shareDifficulty: string; validShares: number;
+    invalidShares: number; hashrate: number; roundSharePct: number;
+  } | null;
+  account: { balance: number; blocksFound: number; lifetimeWeight: number };
 }
 
-/**
- * target = 2^240 / difficulty, als 32-Byte-Hex.
- * Muss mit targetFromDifficulty() in src/lib/chain/target.ts uebereinstimmen.
- */
-function targetHexFromDifficulty(difficulty: number): string {
-  const target = (1n << 240n) / BigInt(difficulty);
-  return target.toString(16).padStart(64, '0');
-}
-
-export function useMiner(token: string | null, platform: string) {
+export function useMiner(initData: string | null, platform: string) {
+  const jwt = useRef<string | null>(null);
   const workers = useRef<Worker[]>([]);
   const sessionId = useRef<string | null>(null);
   const jobId = useRef<string | null>(null);
+  const shareDifficulty = useRef<number | null>(null);
 
-  // Leistungsstreifen: Der Worker meldet jede Sekunde seinen tatsaechlichen
-  // Nonce-Fortschritt. Wir sammeln das in 30-Sekunden-Fenster. Lokale
-  // Messung -- die belohnungsrelevanten Zahlen kommen weiterhin vom Server.
   const bucketHashes = useRef(0);
   const bucketShares = useRef(0);
   const bucketBlock = useRef<BlockMark>(null);
   const lastHeight = useRef<number | null>(null);
-  const [samples, setSamples] = useState<number[]>([]);
-  const [shareMarks, setShareMarks] = useState<number[]>([]);
-  const [blockMarks, setBlockMarks] = useState<BlockMark[]>([]);
+
+  const [ready, setReady] = useState(false);
+  const [canMine, setCanMine] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [mining, setMining] = useState(false);
   const [duty, setDuty] = useState(50);
   const [status, setStatus] = useState<MinerStatus | null>(null);
   const [lastBlock, setLastBlock] = useState<{ height: number; reward: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [samples, setSamples] = useState<number[]>([]);
+  const [shareMarks, setShareMarks] = useState<number[]>([]);
+  const [blockMarks, setBlockMarks] = useState<BlockMark[]>([]);
 
-  const api = useCallback(async (path: string, init?: RequestInit) => {
+  /** Anmeldung gegen Telegram. Liefert true, wenn danach ein Token vorliegt. */
+  const authenticate = useCallback(async (): Promise<boolean> => {
+    if (!initData) {
+      setAuthError('outside_telegram');
+      setReady(false);
+      return false;
+    }
+    try {
+      const res = await fetch('/api/v1/auth/telegram', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ initData, platform }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        jwt.current = null;
+        setReady(false);
+        setAuthError(body.error ?? String(res.status));
+        return false;
+      }
+      jwt.current = body.token;
+      setCanMine(!!body.canMine);
+      setAuthError(null);
+      setReady(true);
+      return true;
+    } catch (e) {
+      setAuthError(String((e as Error).message ?? e));
+      return false;
+    }
+  }, [initData, platform]);
+
+  useEffect(() => { authenticate(); }, [authenticate]);
+
+  /**
+   * Einziger Fetch-Pfad. Uebernimmt erneuerte Token und meldet sich bei 401
+   * genau einmal neu an, bevor er aufgibt.
+   */
+  const api = useCallback(async (
+    path: string,
+    init?: RequestInit,
+    allowRetry = true,
+  ): Promise<any> => {
+    if (!jwt.current && !(await authenticate())) throw new Error('unauthenticated');
+
     const res = await fetch(`/api/v1${path}`, {
       ...init,
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${token}`,
+        authorization: `Bearer ${jwt.current}`,
         ...(init?.headers ?? {}),
       },
     });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
-    return res.json();
-  }, [token]);
 
-  const shareDifficulty = useRef<number | null>(null);
+    const renewed = res.headers.get('x-renewed-token');
+    if (renewed) jwt.current = renewed;
+
+    if (res.status === 401 && allowRetry) {
+      jwt.current = null;
+      if (await authenticate()) return api(path, init, false);
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error ?? res.statusText);
+    }
+    return res.json();
+  }, [authenticate]);
 
   const fetchJob = useCallback(async () => {
     const job = await api('/mining/job');
@@ -97,12 +155,9 @@ export function useMiner(token: string | null, platform: string) {
 
   const start = useCallback(async (workerCount = 2) => {
     setError(null);
-    setSamples([]);
-    setShareMarks([]);
-    bucketHashes.current = 0;
-    bucketShares.current = 0;
-    bucketBlock.current = null;
-    setBlockMarks([]);
+    setSamples([]); setShareMarks([]); setBlockMarks([]);
+    bucketHashes.current = 0; bucketShares.current = 0; bucketBlock.current = null;
+
     try {
       const session = await api('/mining/session', {
         method: 'POST',
@@ -136,9 +191,6 @@ export function useMiner(token: string | null, platform: string) {
               if (r.accepted) {
                 setError(null);
                 bucketShares.current += 1;
-                // VarDiff: Der Server kann das Share-Target nach jedem Share
-                // anpassen. Ohne Nachfuehrung minte der Client weiter gegen
-                // den alten Wert.
                 if (r.share_difficulty) applyShareDifficulty(Number(r.share_difficulty));
               } else if (r.reason === 'job_expired' || r.reason === 'round_closed') {
                 fetchJob();
@@ -151,8 +203,6 @@ export function useMiner(token: string | null, platform: string) {
             }).catch(err => setError(String(err.message ?? err)));
           }
         };
-        // Jeder Worker bekommt einen eigenen Nonce-Bereich innerhalb derselben
-        // Extranonce, damit sie sich nicht gegenseitig doppelt durchsuchen.
         // slot trennt die Nonce-Bereiche der Worker voneinander
         w.postMessage({
           t: 'init',
@@ -169,7 +219,7 @@ export function useMiner(token: string | null, platform: string) {
       setError(String((e as Error).message ?? e));
       await stop();
     }
-  }, [api, duty, platform, fetchJob, stop]);
+  }, [api, duty, platform, fetchJob, applyShareDifficulty, stop]);
 
   // Fenster des Leistungsstreifens weiterschieben
   useEffect(() => {
@@ -178,9 +228,7 @@ export function useMiner(token: string | null, platform: string) {
       const hashes = bucketHashes.current;
       const shares = bucketShares.current;
       const block = bucketBlock.current;
-      bucketHashes.current = 0;
-      bucketShares.current = 0;
-      bucketBlock.current = null;
+      bucketHashes.current = 0; bucketShares.current = 0; bucketBlock.current = null;
       setSamples(prev => [...prev, hashes].slice(-MAX_BARS));
       setShareMarks(prev => [...prev, shares].slice(-MAX_BARS));
       setBlockMarks(prev => [...prev, block].slice(-MAX_BARS));
@@ -188,16 +236,17 @@ export function useMiner(token: string | null, platform: string) {
     return () => clearInterval(id);
   }, [mining]);
 
-  // Job erneuern, bevor er ablaeuft
+  // Job erneuern, bevor er nach 90 s ablaeuft
   useEffect(() => {
     if (!mining) return;
     const id = setInterval(() => { fetchJob().catch(() => {}); }, 45_000);
     return () => clearInterval(id);
   }, [mining, fetchJob]);
 
-  // Status pollen
+  // Status pollen. Haelt nebenbei den Token frisch, weil jede Antwort einen
+  // erneuerten Token tragen kann.
   useEffect(() => {
-    if (!token) return;
+    if (!ready) return;
     const tick = () => api('/mining/status').then(next => {
       setStatus(next);
       // Steigt die Hoehe, hat irgendwer im Netz einen Block gefunden. War es
@@ -209,11 +258,16 @@ export function useMiner(token: string | null, platform: string) {
         }
         lastHeight.current = next.height;
       }
-    }).catch(() => {});
+    }).catch(err => {
+      // Nicht mehr verschlucken: Wenn die Anmeldung endgueltig scheitert, muss
+      // das sichtbar sein statt als "0 H/s" zu erscheinen.
+      const msg = String(err.message ?? err);
+      if (msg === 'unauthenticated' || msg === 'expired') setAuthError(msg);
+    });
     tick();
     const id = setInterval(tick, 5000);
     return () => clearInterval(id);
-  }, [token, api]);
+  }, [ready, api]);
 
   // Sauber stoppen, wenn die App in den Hintergrund geht
   useEffect(() => {
@@ -231,6 +285,19 @@ export function useMiner(token: string | null, platform: string) {
     workers.current.forEach(w => w.postMessage({ t: 'duty', value }));
   }, []);
 
-  return { mining, start, stop, status, duty, setDuty: changeDuty, lastBlock, error,
-           samples, shareMarks, blockMarks };
+  return {
+    ready, canMine, authError,
+    mining, start, stop, status, duty, setDuty: changeDuty,
+    lastBlock, error, samples, shareMarks, blockMarks,
+  };
+}
+
+/**
+ * target = 2^240 / difficulty, als 32-Byte-Hex.
+ * Muss mit targetFromDifficulty() in src/lib/chain/target.ts uebereinstimmen;
+ * tests/chain.test.ts prueft beide gegeneinander.
+ */
+function targetHexFromDifficulty(difficulty: number): string {
+  const target = (1n << 240n) / BigInt(difficulty);
+  return target.toString(16).padStart(64, '0');
 }

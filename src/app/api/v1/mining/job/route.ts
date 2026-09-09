@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     .limit(1)
     .maybeSingle();
 
-  if (existing) return ok(serialize(existing, session?.share_difficulty));
+  if (existing) return ok(serialize(existing, session?.share_difficulty), 200, auth.renewedToken);
 
   // Notfallregel: Wenn seit dem letzten Block zu viel Zeit vergangen ist,
   // lockert das Target. Ohne das steht die Kette morgens, wenn nachts
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
     .single();
 
   if (error || !job) return fail('job_create_failed', 500);
-  return ok(serialize(job, session?.share_difficulty));
+  return ok(serialize(job, session?.share_difficulty), 200, auth.renewedToken);
 }
 
 function hex(v: string): string {
