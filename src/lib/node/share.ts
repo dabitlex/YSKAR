@@ -10,6 +10,7 @@ import { achievedDifficulty } from '../core/params.ts';
 import { LWMA_WINDOW } from '../core/params.ts';
 import * as vardiff from '../chain/vardiff.ts';
 import { toHex, fromHex } from '../core/codec.ts';
+import { unprefix } from './hex.ts';
 
 /**
  * Share-Annahme.
@@ -24,7 +25,7 @@ import { toHex, fromHex } from '../core/codec.ts';
  * seinem eigenen Job nicht.
  */
 
-const un = (s: string) => fromHex(s.startsWith('\\x') ? s.slice(2) : s);
+const un = (s: string) => fromHex(unprefix(s));
 const hx = (b: Uint8Array) => '\\x' + toHex(b);
 
 const GRACE_MS = 15_000;

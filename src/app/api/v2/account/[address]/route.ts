@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/service';
+import { unprefix } from '@/lib/node/hex';
 import { decodeAddress } from '@/lib/core/address';
 import { toHex } from '@/lib/core/codec';
 
@@ -39,7 +40,7 @@ export async function GET(
     firstHeight: acc?.first_height ?? null,
     lastHeight: acc?.last_height ?? null,
     pending: (pending ?? []).map(p => ({
-      txid: (p.txid as string).replace(/^\\\\x/, ''),
+      txid: unprefix(p.txid as string),
       amount: p.amount, fee: p.fee, nonce: p.nonce,
     })),
     blocksFound: mined ?? 0,

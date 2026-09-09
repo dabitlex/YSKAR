@@ -158,6 +158,22 @@ Geprueft in `tests/core.test.ts`:
   ihn nach
 - die Serialisierung im Worker stimmt Byte fuer Byte mit der des Servers
 
+## Betrieb
+
+Zwei Einstellungen, die der Build nicht prueft und die trotzdem alles lahmlegen:
+
+1. **Supabase -> Integrations -> Data API -> Exposed schemas** muss `chain2`
+   enthalten. Sonst gibt PostgREST das Schema gar nicht heraus.
+2. **Die Service-Rolle braucht Rechte auf `chain2`** (Migration 00010). Sie
+   umgeht RLS, aber nicht die Schema- und Tabellenrechte.
+
+Fehlt eines von beiden, antworten die Routen mit lauter Nullen statt mit
+einem Fehler -- das sah beim ersten Aufruf exakt aus wie eine leere
+Datenbank. `loadTip()` und `loadState()` werfen deshalb jetzt eine Ausnahme,
+statt einen Lesefehler als "Kette ist leer" durchgehen zu lassen. Der
+Unterschied ist folgenreich: Bei einer leeren Kette wuerde der Knoten einen
+zweiten Genesis bauen.
+
 ## Was Phase 1 noch nicht hat
 
 - P2P, Forks, Reorgs (Phase 2). `chain2.rollback_to` ist vorbereitet.
