@@ -69,11 +69,11 @@
 <ul id="list"></ul>
 
 <p class="note">
-  Jeder Block wird <strong>in diesem Browser</strong> aus seinen Header-Feldern neu
-  serialisiert und doppelt SHA-256-gehasht. Geprüft wird, ob daraus der gespeicherte
-  Hash entsteht, ob er die eingetragene Difficulty erfüllt und ob <code>prev_hash</code>
-  auf den Vorgänger zeigt. Eine nachträgliche Änderung an einem Block würde hier
-  auffallen — die Seite übernimmt keine Angabe des Servers ungeprüft.
+  Jeder Block wird <strong>in diesem Browser</strong> geprüft: Die 136 Header-Bytes
+  werden aus den Einzelfeldern neu zusammengesetzt, mit dem gespeicherten Header
+  verglichen, doppelt SHA-256-gehasht und gegen das Target gehalten. Zusätzlich muss
+  <code>prev_hash</code> auf den Vorgänger zeigen. Keine dieser Aussagen wird vom
+  Server übernommen.
   <span id="engine"></span>
 </p>
 
@@ -88,7 +88,7 @@ const PARAM = new URLSearchParams(location.search).get('api');
 // Datei -- muss die absolute Adresse benutzen.
 const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 const ORIGIN = 'https://yskar.vercel.app';
-const API = PARAM || (HOSTED ? '' : ORIGIN) + '/api/v1/chain';
+const API = PARAM || (HOSTED ? '' : ORIGIN) + '/api/v2';
 
 // ---------------------------------------------------------------- SHA-256
 // crypto.subtle gibt es nur in sicheren Kontexten. Damit die Datei auch von
@@ -159,36 +159,47 @@ function fromHex(s){
 const toHex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
 
 function serializeHeader(b){
-  const out=new Uint8Array(116),dv=new DataView(out.buffer);
-  dv.setUint32(0,1,true);
+  // 136 Byte, Little-Endian. Identisch zu src/lib/core/block.ts.
+  //   0 u32 version | 4 u32 height | 8 prev_hash | 40 merkle_root
+  //  72 state_root | 104 u64 timestamp | 112 u32 difficulty
+  // 116 u32 tx_count | 120 u64 extranonce | 128 u64 nonce
+  const out=new Uint8Array(136),dv=new DataView(out.buffer);
+  dv.setUint32(0,b.version??1,true);
   dv.setUint32(4,b.height,true);
   out.set(fromHex(b.prevHash),8);
   out.set(fromHex(b.merkleRoot),40);
-  out.set(fromHex(b.jobSeed),72);
-  dv.setBigUint64(88,BigInt(b.timestamp),true);
-  dv.setUint32(96,b.difficulty,true);
-  dv.setBigUint64(100,BigInt(b.extranonce),true);
-  dv.setBigUint64(108,BigInt(b.nonce),true);
+  out.set(fromHex(b.stateRoot),72);
+  dv.setBigUint64(104,BigInt(b.timestamp),true);
+  dv.setUint32(112,b.difficulty,true);
+  dv.setUint32(116,b.txCount,true);
+  dv.setBigUint64(120,BigInt(b.extranonce),true);
+  dv.setBigUint64(128,BigInt(b.nonce),true);
   return out;
 }
+
 const SHIFT=(1n<<240n);                     // 2^256 / 65536
 const targetOf=d=>SHIFT/BigInt(d);
 const toBig=h=>{let v=0n;for(const x of h)v=(v<<8n)|BigInt(x);return v;};
 const achieved=h=>{const v=toBig(h);return v===0n?SHIFT:SHIFT/v;};
 
-async function verify(b,prev){
+async function verify(b,vorgaenger){
   try{
-    const digest=await sha256d(serializeHeader(b));
-    const computed=toHex(digest);
+    const gebaut=serializeHeader(b);
+    const digest=await sha256d(gebaut);
+    const errechnet=toHex(digest);
     return {
-      computed,
-      hash: computed===b.hash?'ok':'fail',
+      errechnet,
+      // Vier getrennte Aussagen statt einer Sammelnote. Die erste ist neu:
+      // Sie prueft, ob sich aus den Einzelfeldern exakt der gespeicherte
+      // Header ergibt -- ein Fehler in der Serialisierung faellt damit auf,
+      // bevor er sich im Hash versteckt.
+      serialisierung: b.header ? (toHex(gebaut)===b.header?'ok':'fail') : 'offen',
+      hash: errechnet===b.hash?'ok':'fail',
       difficulty: toBig(digest)<=targetOf(b.difficulty)?'ok':'fail',
-      // Ohne Vorgänger in der Liste bleibt der Punkt offen statt fälschlich grün
-      chain: !prev?'pending':(b.prevHash===prev.hash?'ok':'fail'),
-      achieved: achieved(digest),
+      kette: !vorgaenger?'offen':(b.prevHash===vorgaenger.hash?'ok':'fail'),
+      erreicht: achieved(digest),
     };
-  }catch(e){ return {hash:'fail',difficulty:'fail',chain:'fail'}; }
+  }catch(e){ return {serialisierung:'fail',hash:'fail',difficulty:'fail',kette:'fail'}; }
 }
 
 // ---------------------------------------------------------------- Anzeige
@@ -201,8 +212,10 @@ function hashrate(h){
   if(h>=1e3)return (h/1e3).toFixed(1)+' kH/s';
   return Math.round(h)+' H/s';
 }
-function ago(iso){
-  const s=Math.max(0,(Date.now()-new Date(iso).getTime())/1000);
+function ago(ts){
+  // Der Zeitstempel steht im Header und ist Teil des Konsenses -- nicht der
+  // Empfangszeitpunkt des Servers.
+  const s=Math.max(0,Date.now()/1000-Number(ts));
   if(s<60)return 'vor '+Math.round(s)+' s';
   if(s<3600)return 'vor '+Math.round(s/60)+' min';
   if(s<86400)return 'vor '+Math.round(s/3600)+' h';
@@ -212,66 +225,74 @@ const badge=(state,label)=>
   `<span class="badge ${state==='ok'?'ok':state==='fail'?'fail':''}">`+
   `<span aria-hidden="true">${state==='ok'?'✓':state==='fail'?'✕':'·'}</span>${label}</span>`;
 
-let sum=null, blocks=[], checks={}, open=null, details={};
+let sum=null, blocks=[], checks={}, open=null, details={}, dec=8, sym='YSR';
 
 function renderStats(){
   if(!sum)return;
-  const dec=sum.token.decimals, sym=sum.token.symbol;
+  dec=sum.token?.decimals??8; sym=sum.token?.token_symbol??'YSR';
   const rows=[
     ['Höhe', sum.height!=null?'#'+sum.height:'—'],
     ['Difficulty', sum.difficulty!=null?nf(sum.difficulty):'—'],
     ['Netz-Hashrate', hashrate(sum.hashrate)],
     ['Aktive Miner', String(sum.activeMiners??0)],
-    ['Blockreward', sum.reward!=null?(sum.reward/10**dec).toFixed(0)+' '+sym:'—'],
-    ['Zielblockzeit', (sum.targetBlockTime/60)+' min'],
-    ['Blöcke gemint', String(sum.blockCount??0)],
-    ['Ausgeschüttet', ((sum.emitted/sum.maxSupply)*100).toFixed(4)+' %'],
+    ['Nächster Reward', (Number(sum.nextReward)/10**dec).toFixed(0)+' '+sym],
+    ['Im Umlauf', (Number(sum.totalSupply)/10**dec).toLocaleString('de-DE')+' '+sym],
+    ['Wartende Zahlungen', String(sum.mempool??0)],
+    ['Zustandshöhe', String(sum.stateHeight)],
   ];
   $('stats').innerHTML=rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
 }
 
 function renderList(){
-  const dec=sum?.token.decimals??8, sym=sum?.token.symbol??'YSR';
   $('list').innerHTML=blocks.map(b=>{
     const c=checks[b.height];
-    const bad=c&&(c.hash==='fail'||c.difficulty==='fail'||c.chain==='fail');
+    const bad=c&&(c.hash==='fail'||c.difficulty==='fail'
+      ||c.kette==='fail'||c.serialisierung==='fail');
     const d=details[b.height];
     let detail='';
     if(open===b.height){
-      const pay=d&&d.rewards&&d.rewards.length?
-        `<div class="pay"><h3>Auszahlung</h3>`+d.rewards.map(r=>
-          `<div><span>${r.name}`+
-          (r.kind==='solo'?' <span style="color:var(--muted)">solo</span>':'')+
-          (r.feeAmount>0?' <span style="color:var(--muted)">inkl. Gebühr</span>':'')+
-          (r.capped?' <span style="color:var(--warn)">gedeckelt</span>':'')+
-          `</span><span>${(r.amount/10**dec).toFixed(4)} ${sym} `+
-          `<span style="color:var(--muted)">${r.payoutPct} %</span></span></div>`).join('')+`</div>`:'';
+      const txs=(d&&d.txs)?`<div class="tx"><h3>${d.txs.length} Transaktion${
+        d.txs.length===1?'':'en'}</h3>`+d.txs.map(t=>`<div class="txrow">
+          <div class="mono" style="color:var(--dim);font-size:11px">${t.txid}</div>
+          <div style="margin-top:5px">${t.type==='coinbase'
+            ? `<span style="color:var(--proof)">Blockreward</span> an <span class="mono">${t.to}</span>`
+            : `<span class="mono">${t.from}</span><br>→ <span class="mono">${t.to}</span>`}</div>
+          <div class="tnum" style="margin-top:4px;color:var(--dim)">
+            ${(Number(t.amount)/10**dec).toFixed(4)} ${sym}${
+              Number(t.fee)>0?` · Gebühr ${(Number(t.fee)/10**dec).toFixed(4)}`:''}</div>
+        </div>`).join('')+'</div>':'';
+
       detail=`<div class="detail">
         <div class="badges">
+          ${badge(c?.serialisierung??'pending','Header rekonstruiert')}
           ${badge(c?.hash??'pending','Hash nachgerechnet')}
           ${badge(c?.difficulty??'pending','erfüllt Difficulty')}
-          ${badge(c?.chain??'pending','mit Vorgänger verkettet')}
+          ${badge(c?.kette??'pending','mit Vorgänger verkettet')}
         </div>
         <dl style="margin:0">
-          <div class="f"><dt>block_hash</dt><dd class="mono">${b.hash}</dd></div>
-          ${c&&c.computed&&c.computed!==b.hash?
-            `<div class="f"><dt>hier berechnet</dt><dd class="mono warn">${c.computed}</dd></div>`:''}
+          <div class="f"><dt>hash</dt><dd class="mono">${b.hash}</dd></div>
+          ${c&&c.errechnet&&c.errechnet!==b.hash?
+            `<div class="f"><dt>hier berechnet</dt><dd class="mono warn">${c.errechnet}</dd></div>`:''}
           <div class="f"><dt>prev_hash</dt><dd class="mono">${b.prevHash}</dd></div>
           <div class="f"><dt>merkle_root</dt><dd class="mono">${b.merkleRoot}</dd></div>
-          <div class="f"><dt>job_seed</dt><dd class="mono">${b.jobSeed}</dd></div>
-          <div class="f"><dt>timestamp</dt><dd>${b.timestamp} · ${new Date(Number(b.timestamp)*1000).toISOString()}</dd></div>
+          <div class="f"><dt>state_root</dt><dd class="mono">${b.stateRoot}</dd></div>
+          <div class="f"><dt>timestamp</dt><dd>${b.timestamp} · ${
+            new Date(Number(b.timestamp)*1000).toISOString()}</dd></div>
           <div class="f"><dt>difficulty</dt><dd>${nf(b.difficulty)}</dd></div>
-          <div class="f"><dt>erreicht</dt><dd>${c&&c.achieved!==undefined?nf(c.achieved.toString()):'—'}</dd></div>
+          <div class="f"><dt>erreicht</dt><dd>${
+            c&&c.erreicht!==undefined?nf(c.erreicht.toString()):'—'}</dd></div>
           <div class="f"><dt>extranonce</dt><dd>${b.extranonce}</dd></div>
           <div class="f"><dt>nonce</dt><dd>${b.nonce}</dd></div>
-        </dl>${pay}</div>`;
+          <div class="f"><dt>Größe</dt><dd>${b.sizeBytes} Byte</dd></div>
+        </dl>${txs}</div>`;
     }
     return `<li>
       <button class="row" data-h="${b.height}">
         <span class="h ${bad?'bad':''}">#${b.height}</span>
         <span class="mid">
           <span class="hash">${b.hash}</span>
-          <span class="sub">${(b.miner&&b.miner.name)||'Genesis'} · ${(b.reward/10**dec).toFixed(0)} ${sym} · ${ago(b.foundAt)}</span>
+          <span class="sub">${b.reward!=null?(Number(b.reward)/10**dec).toFixed(0)+' '+sym:'—'
+            } · ${b.txCount} Tx · ${ago(b.timestamp)}</span>
         </span>
         <span class="diff">${nf(b.difficulty)}</span>
       </button>${detail}</li>`;
@@ -284,7 +305,8 @@ function renderList(){
       renderList();
       if(open!==null && !details[open]){
         fetch(`${API}/blocks/${open}`).then(r=>r.json())
-          .then(d=>{details[d.height]=d; renderList();}).catch(()=>{});
+          .then(d=>{ if(d.height!==undefined){details[d.height]=d; renderList();} })
+          .catch(()=>{});
       }
     };
   });
@@ -293,7 +315,8 @@ function renderList(){
 function renderVerdict(){
   const vals=Object.values(checks);
   if(!vals.length){ $('verdict').textContent='wird geprüft…'; return; }
-  const allOk=vals.every(c=>c.hash==='ok'&&c.difficulty==='ok'&&c.chain!=='fail');
+  const allOk=vals.every(c=>c.hash==='ok'&&c.difficulty==='ok'
+    &&c.kette!=='fail'&&c.serialisierung!=='fail');
   $('verdict').className='verdict '+(allOk?'ok':'bad');
   $('verdict').textContent=allOk
     ? vals.length+' Blöcke hier nachgerechnet'
@@ -306,6 +329,10 @@ async function load(){
       fetch(API+'/summary').then(r=>r.json()),
       fetch(API+'/blocks?limit=25').then(r=>r.json()),
     ]);
+    // Ein Rechte- oder Verbindungsfehler darf nicht als leere Kette
+    // erscheinen -- genau das hat uns schon einmal in die Irre gefuehrt.
+    if(s.error) throw new Error(s.detail||s.error);
+    if(b.error) throw new Error(b.detail||b.error);
     sum=s; blocks=b.blocks||[]; $('err').textContent='';
     renderStats();
     const next={};
