@@ -25,38 +25,69 @@ const DP: DifficultyParams = {
 };
 
 test('VarDiff regelt nach oben, wenn Shares zu schnell kommen', () => {
-  const next = vardiff.adjust(256n, 5, VP);   // 5 s statt 30 s
-  assert.ok(next > 256n, `erwartet Erhöhung, bekam ${next}`);
+  // 5 s statt 30 s bei Difficulty 256 -> Zielwert liegt sechsfach hoeher
+  const hist = Array.from({ length: 8 }, () => 5 / 256);
+  assert.ok(vardiff.adjustFromHistory(256n, hist, VP) > 256n);
 });
 
 test('VarDiff regelt nach unten, wenn Shares zu langsam kommen', () => {
-  const next = vardiff.adjust(1024n, 200, VP);
-  assert.ok(next < 1024n, `erwartet Senkung, bekam ${next}`);
+  const hist = Array.from({ length: 8 }, () => 200 / 1024);
+  assert.ok(vardiff.adjustFromHistory(1024n, hist, VP) < 1024n);
 });
 
-test('VarDiff hat eine Totzone -- Rauschen loest keine Anpassung aus', () => {
-  // Der Abstand zwischen Shares ist exponentialverteilt. Ein einzelner Wert
-  // nahe am Ziel ist kein Signal.
-  for (const s of [24, 28, 30, 33, 38]) {
-    assert.equal(vardiff.adjust(512n, s, VP), 512n, `bei ${s}s hätte nichts passieren dürfen`);
+test('Ein einzelner Messwert loest nichts aus', () => {
+  // Der Fehler, der im Betrieb 60 % Ausschuss erzeugt hat: Anpassung je
+  // Einzelwert. Bei exponentialverteilten Abstaenden ist ein Einzelwert
+  // reines Rauschen.
+  const eine = vardiff.pushSample([], 3, 512n);
+  assert.equal(vardiff.adjustFromHistory(512n, eine, VP), 512n);
+});
+
+test('Messwerte werden auf die Difficulty normiert, bei der sie entstanden', () => {
+  // Gleicher Geraetedurchsatz, verschiedene Targets -> gleicher Messwert.
+  const bei128 = vardiff.pushSample([], 3.2, 128n)[0];
+  const bei1024 = vardiff.pushSample([], 25.6, 1024n)[0];
+  assert.ok(Math.abs(bei128 - bei1024) < 1e-9,
+    `normierte Werte muessen uebereinstimmen: ${bei128} vs ${bei1024}`);
+});
+
+test('Bei korrekt eingestellter Difficulty bleibt der Regler ruhig', () => {
+  // 300 exponentialverteilte Abstaende um den Zielwert. Frueher haetten rund
+  // 79 % davon eine Anpassung ausgeloest.
+  let seed = 12345;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  const hashrate = 2.64e6;
+
+  let d = 1208n, hist: number[] = [], changes = 0;
+  for (let i = 0; i < 300; i++) {
+    const mean = Number(d) * 65536 / hashrate;
+    const dt = -Math.log(1 - rnd()) * mean;
+    hist = vardiff.pushSample(hist, dt, d);
+    const next = vardiff.adjustFromHistory(d, hist, VP);
+    if (next !== d) changes++;
+    d = next;
   }
+  assert.ok(changes < 60, `zu viele Anpassungen: ${changes} von 300`);
+  // und der Wert bleibt in der Naehe des Idealwerts von rund 1208
+  assert.ok(d > 400n && d < 3500n, `abgedriftet auf ${d}`);
 });
 
 test('Share-Difficulty kann nie in die Nähe der Block-Difficulty kommen', () => {
-  const hoch = vardiff.adjust(4096n, 0.001, VP);           // absurd schnell
+  const hist = Array.from({ length: 8 }, () => 0.0001 / 4096);
+  const hoch = vardiff.adjustFromHistory(4096n, hist, VP);
   assert.ok(hoch <= VP.blockDifficulty / 8n,
     `Obergrenze verletzt: ${hoch} > ${VP.blockDifficulty / 8n}`);
 
-  // Auch bei winziger Block-Difficulty bleibt die Untergrenze erhalten
   const eng = { ...VP, blockDifficulty: 100n };
-  assert.ok(vardiff.adjust(512n, 0.001, eng) >= eng.min);
+  assert.ok(vardiff.adjustFromHistory(512n, hist, eng) >= eng.min);
 });
 
 test('VarDiff verkraftet kaputte Zeitangaben', () => {
   for (const bad of [0, -5, NaN, Infinity]) {
-    const r = vardiff.adjust(512n, bad, VP);
-    assert.equal(r, 512n, `bei ${bad} hätte der Wert stehen bleiben müssen`);
+    assert.deepEqual(vardiff.pushSample([1, 2], bad, 512n), [1, 2],
+      `${bad} haette verworfen werden muessen`);
   }
+  assert.equal(vardiff.adjustFromHistory(512n, [], VP), 512n);
 });
 
 test('LWMA erhöht die Difficulty, wenn Blöcke zu schnell kommen', () => {

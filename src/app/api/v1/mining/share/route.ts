@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const sb = db();
 
   const { data: session } = await sb.from('mining_sessions')
-    .select('id, user_id, extranonce, share_difficulty, status, last_share_at, started_at')
+    .select('id, user_id, extranonce, share_difficulty, status, last_share_at, started_at, vardiff_samples')
     .eq('id', body.sessionId)
     .single();
   if (!session) return fail('session_unknown', 404);
@@ -84,11 +84,20 @@ export async function POST(req: Request) {
     blockDifficulty: BigInt(job.difficulty),
     shareDiffBlockRatio: p.share_diff_block_ratio,
   };
+  // Messwert normiert ablegen: Sekunden je Difficulty-Einheit. Roh gemittelt
+  // wuerden Abstaende vermischt, die bei verschiedenen Targets entstanden
+  // sind -- daran hatte sich der Regler aufgeschwungen.
   const since = session.last_share_at
     ? (Date.now() - new Date(session.last_share_at).getTime()) / 1000
-    : p.vardiff_target_seconds;
-  const nextShareDifficulty = vardiff.adjust(
-    BigInt(session.share_difficulty), since, vp);
+    : null;
+  const samples = since === null
+    ? (session.vardiff_samples ?? []).map(Number)
+    : vardiff.pushSample(
+        (session.vardiff_samples ?? []).map(Number),
+        since,
+        BigInt(session.share_difficulty));
+  const nextShareDifficulty = vardiff.adjustFromHistory(
+    BigInt(session.share_difficulty), samples, vp);
 
   // --- Naechste Block-Difficulty vorbereiten, falls das hier ein Block ist ---
   let nextBlockDifficulty = BigInt(job.difficulty);
@@ -103,9 +112,9 @@ export async function POST(req: Request) {
     p_nonce: Number(nonce),
     p_hash: '\\x' + hash.toString('hex'),
     p_achieved: Number(achieved > 2n ** 62n ? 2n ** 62n : achieved),
-    p_share_difficulty: Number(session.share_difficulty),
     p_next_difficulty: Number(nextBlockDifficulty),
     p_new_share_difficulty: Number(nextShareDifficulty),
+    p_samples: samples,
   });
 
   if (error) return fail('submit_failed', 500);
