@@ -7,7 +7,9 @@ const config: NextConfig = {
   // Nonce-Bereichen -- gleiche Wirkung, keine Header-Nebenwirkungen.
   async headers() {
     return [{
-      source: '/miner.wasm',
+      // Muster statt fester Name: Die Engine heisst jetzt nach ihrem Inhalt,
+      // damit ein Jahres-Cache nie eine veraltete Fassung ausliefern kann.
+      source: '/:file(miner\\..*\\.wasm)',
       headers: [
         { key: 'Content-Type', value: 'application/wasm' },
         { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },

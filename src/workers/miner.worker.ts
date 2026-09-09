@@ -165,6 +165,46 @@ async function hashLoop() {
  */
 let slotId = 0;
 
+/**
+ * Selbsttest beim Start.
+ *
+ * Der Genesis-Block dieser Kette als bekannte Antwort: Header rein, Hash
+ * raus, vergleichen. Passt er nicht, ist die geladene Engine nicht die,
+ * fuer die dieser Worker geschrieben wurde.
+ *
+ * Warum das noetig ist: Genau dieser Fall ist eingetreten. miner.wasm wurde
+ * ein Jahr lang unveraenderlich zwischengespeichert, aber der Dateiname
+ * blieb gleich. Nach der Umstellung von 116 auf 136 Byte Headerlaenge lief
+ * auf Geraeten mit altem Cache die alte Engine weiter -- mit anderem
+ * Speicherlayout. Sie las das Target an einer Stelle, an der Nullen standen,
+ * rechnete mit voller Geschwindigkeit und fand nie einen Share. Ohne jede
+ * Fehlermeldung, ueber Stunden.
+ *
+ * Ein Hash kostet Mikrosekunden. Diese Pruefung haette den Fehler in der
+ * ersten Sekunde sichtbar gemacht.
+ */
+const SELFTEST_HEADER = '010000000000000000000000000000000000000000000000000000000000000000000000000000001007612ea5c27b0b7c6ae79c745da364cfd64224eb6f5519bf559dc3b09fe840e2860175f61cefa97ff34e88d35402a7ee373a8764adbdda0b97ef200bbeca5780a1a06a000000000010000001000000000000000000000024bf060300000000';
+const SELFTEST_NONCE = 50773796;
+const SELFTEST_HASH =
+  '000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66';
+
+function selfTest() {
+  mem.fill(0xff, MEM.TARGET, MEM.TARGET + 32);   // alles gilt als Treffer
+  mem.set(unhex(SELFTEST_HEADER), MEM.HEADER);
+  initJob();
+
+  const hit = mine(SELFTEST_NONCE | 0, 1);
+  const got = Array.from(mem.slice(MEM.HASH, MEM.HASH + 32),
+    x => x.toString(16).padStart(2, '0')).join('');
+
+  if (hit !== 1 || got !== SELFTEST_HASH) {
+    throw new Error(
+      'Die geladene Mining-Engine passt nicht zu dieser App. ' +
+      'Meist ein alter Zwischenspeicher -- App schliessen und neu oeffnen. ' +
+      `(erwartet ${SELFTEST_HASH.slice(0, 12)}…, erhalten ${got.slice(0, 12)}…)`);
+  }
+}
+
 /** Etappe melden. Damit ist sichtbar, WIE WEIT der Worker gekommen ist. */
 function etappe(name: string, detail?: string) {
   self.postMessage({ t: 'stage', slot: slotId, stage: name, detail });
@@ -213,6 +253,8 @@ async function handle(m: any) {
     mine = ex.mine as (s: number, i: number) => number;
     extranonce = BigInt(m.extranonce);
     slot = m.slot ?? 0;
+    selfTest();
+    etappe('selbsttest', 'bestanden');
     self.postMessage({ t: 'ready', slot });
     return;
   }

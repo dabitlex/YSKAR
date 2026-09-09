@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "wasm": "node wasm/build.js && cp wasm/sha256d_miner.wasm public/miner.wasm",
+    "wasm": "node wasm/build.js && node wasm/publish.js",
     "wasm:gen": "python3 wasm/gen_wat.py && npm run wasm"
   },
   "dependencies": {
