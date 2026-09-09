@@ -49,7 +49,10 @@ export function useMining(address: string | null, platform: string) {
   const shareDifficulty = useRef<number | null>(null);
 
   const bucketHashes = useRef(0);
-  const liveRate = useRef(0);
+  // Rate je Worker, berechnet beim Eintreffen der Meldung. Zwei unabhaengige
+  // Takte gegeneinander laufen zu lassen war der Fehler: Fiel eine Meldung
+  // nicht ins Abfragefenster, las ich null und die Anzeige brach ein.
+  const rates = useRef<Map<number, { rate: number; at: number }>>(new Map());
   const lastProgress = useRef(0);
   const bucketShares = useRef(0);
   const bucketBlock = useRef<BlockMark>(null);
@@ -58,6 +61,8 @@ export function useMining(address: string | null, platform: string) {
   const [mining, setMining] = useState(false);
   const [hashrate, setHashrate] = useState(0);
   const [stumm, setStumm] = useState(false);
+  // Letzte Etappe je Worker. Nur zur Fehlersuche sichtbar, wenn nichts kommt.
+  const [etappen, setEtappen] = useState<Record<number, string>>({});
   const [duty, setDuty] = useState(50);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
@@ -126,14 +131,23 @@ export function useMining(address: string | null, platform: string) {
       await Promise.all(created.map((w, i) => new Promise<void>(resolve => {
         w.onmessage = (e) => {
           if (e.data.t === 'ready') return resolve();
+          if (e.data.t === 'stage') {
+            setEtappen(v => ({ ...v, [e.data.slot]:
+              e.data.detail ? `${e.data.stage} (${e.data.detail})` : e.data.stage }));
+            return;
+          }
           if (e.data.t === 'error') {
             setFehler(`Miner (${e.data.where}): ${e.data.message}`);
             return;
           }
           if (e.data.t === 'progress') {
+            const jetzt = Date.now();
             bucketHashes.current += e.data.hashes;
-            lastProgress.current = Date.now();
-            liveRate.current = e.data.hashes;   // Hashes in der letzten Sekunde
+            lastProgress.current = jetzt;
+            // Der Worker liefert Hashes UND das Zeitfenster mit -- daraus
+            // ergibt sich die Rate ohne jede Annahme ueber den Takt.
+            const spanne = Math.max(1, e.data.ms ?? 1000);
+            rates.current.set(i, { rate: (e.data.hashes * 1000) / spanne, at: jetzt });
             return;
           }
           if (e.data.t !== 'share') return;
@@ -192,13 +206,20 @@ export function useMining(address: string | null, platform: string) {
     etwas nicht -- und das gehoert auf den Schirm, nicht in ein Logfile.
   */
   useEffect(() => {
-    if (!mining) { setHashrate(0); setStumm(false); return; }
+    if (!mining) { setHashrate(0); setStumm(false); rates.current.clear(); return; }
     lastProgress.current = Date.now();
     const id = setInterval(() => {
-      setHashrate(prev => prev === 0 ? liveRate.current
-        : prev * 0.7 + liveRate.current * 0.3);
-      liveRate.current = 0;
-      setStumm(Date.now() - lastProgress.current > 10_000);
+      const jetzt = Date.now();
+      // Summe ueber alle Worker. Wer laenger als drei Sekunden nichts
+      // gemeldet hat, zaehlt nicht mehr mit -- ein toter Worker soll die
+      // Anzeige nicht kuenstlich hochhalten.
+      let summe = 0;
+      for (const [slot, r] of rates.current) {
+        if (jetzt - r.at > 3000) rates.current.delete(slot);
+        else summe += r.rate;
+      }
+      setHashrate(summe);
+      setStumm(jetzt - lastProgress.current > 10_000);
     }, 1000);
     return () => clearInterval(id);
   }, [mining]);
@@ -265,7 +286,7 @@ export function useMining(address: string | null, platform: string) {
 
   return {
     mining, start, stop, duty, setDuty: changeDuty,
-    hashrate, stumm,
+    hashrate, stumm, etappen,
     summary, account, lastShare, fund, fehler,
     samples, shareMarks, blockMarks,
     dismissFund: () => setFund(null),
