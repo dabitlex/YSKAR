@@ -101,7 +101,7 @@ function reloadHigh() {
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 async function loop() {
-  try { await hashLoop(); }
+  try { await hashLoop(); etappe('loop-ende'); }
   catch (err) { running = false; melde('loop', err); }
 }
 
@@ -120,6 +120,7 @@ async function hashLoop() {
       const nonce = (BigInt(nonceHigh) << 32n) | BigInt(low);
       self.postMessage({
         t: 'share',
+        slot: slotId,
         jobId: job.jobId,
         nonce: nonce.toString(),
         hash: [...mem.slice(MEM.HASH, MEM.HASH + 32)]
@@ -140,7 +141,10 @@ async function hashLoop() {
     if (dt > 0) chunk = Math.max(1000, Math.min(8_000_000, Math.round(chunk * 35 / dt)));
 
     if (t1 - lastReport >= 1000) {
-      self.postMessage({ t: 'progress', hashes: done });
+      // Das Zeitfenster gehoert dazu: Ohne es muesste der Hauptthread den
+      // Melderhythmus erraten, und jede Abweichung wuerde als Einbruch der
+      // Leistung erscheinen.
+      self.postMessage({ t: 'progress', slot: slotId, hashes: done, ms: t1 - lastReport });
       done = 0;
       lastReport = t1;
     }
@@ -159,9 +163,17 @@ async function hashLoop() {
  * einmal je Sekunde seinen Fortschritt, damit der Hauptthread merkt, wenn
  * er verstummt.
  */
+let slotId = 0;
+
+/** Etappe melden. Damit ist sichtbar, WIE WEIT der Worker gekommen ist. */
+function etappe(name: string, detail?: string) {
+  self.postMessage({ t: 'stage', slot: slotId, stage: name, detail });
+}
+
 function melde(kontext: string, err: unknown) {
   self.postMessage({
     t: 'error',
+    slot: slotId,
     where: kontext,
     message: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
   });
@@ -177,11 +189,23 @@ self.onmessage = async (e: MessageEvent) => {
 
 async function handle(m: any) {
   if (m.t === 'init') {
-    const res = await WebAssembly.instantiateStreaming(fetch(m.wasmUrl), {})
-      .catch(async () => {
-        const bytes = await fetch(m.wasmUrl).then(r => r.arrayBuffer());
-        return WebAssembly.instantiate(bytes, {});
-      });
+    slotId = m.slot ?? 0;
+    etappe('init');
+
+    // Zwei Wege, und es soll nachvollziehbar sein, welcher genommen wurde.
+    // instantiateStreaming verlangt Content-Type application/wasm; liefert
+    // ein Zwischenspeicher etwas anderes, faellt es auf den Puffer zurueck.
+    let res;
+    try {
+      res = await WebAssembly.instantiateStreaming(fetch(m.wasmUrl), {});
+      etappe('wasm', 'streaming');
+    } catch {
+      const antwort = await fetch(m.wasmUrl);
+      if (!antwort.ok) throw new Error(`miner.wasm HTTP ${antwort.status}`);
+      const bytes = await antwort.arrayBuffer();
+      res = await WebAssembly.instantiate(bytes, {});
+      etappe('wasm', `puffer ${bytes.byteLength} B`);
+    }
     const ex = (res as WebAssembly.WebAssemblyInstantiatedSource).instance.exports;
     mem = new Uint8Array((ex.memory as WebAssembly.Memory).buffer);
     view = new DataView((ex.memory as WebAssembly.Memory).buffer);
@@ -189,14 +213,17 @@ async function handle(m: any) {
     mine = ex.mine as (s: number, i: number) => number;
     extranonce = BigInt(m.extranonce);
     slot = m.slot ?? 0;
-    self.postMessage({ t: 'ready' });
+    self.postMessage({ t: 'ready', slot });
     return;
   }
 
   if (m.t === 'job') {
+    if (!mine) throw new Error('Job erhalten, aber WASM ist nicht geladen');
     loadJob(m.job);
+    etappe('job', `${m.job.jobId?.slice(0, 8)} diff ${m.job.difficulty}`);
     if (running) return;
     running = true;
+    etappe('loop');
     loop();
     return;
   }

@@ -120,11 +120,22 @@ export default function Mine({ platform }: { platform: string }) {
         </Button>
 
         {m.stumm && !m.fehler && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <Notice tone="risk">
-              Der Miner meldet seit zehn Sekunden keinen Fortschritt. Stoppen
-              und neu starten hilft meistens.
+              Der Miner meldet seit zehn Sekunden keinen Fortschritt.
             </Notice>
+            {/* Letzte erreichte Etappe je Worker -- damit sichtbar ist, WO er
+                stehen bleibt, statt nur DASS er steht. */}
+            <div className="rounded-lg border border-line px-4 py-3">
+              {Object.entries(m.etappen).map(([slot, e]) => (
+                <p key={slot} className="font-mono text-xs text-dim">
+                  Worker {slot}: {e}
+                </p>
+              ))}
+              {Object.keys(m.etappen).length === 0 && (
+                <p className="font-mono text-xs text-dim">keine Meldung erhalten</p>
+              )}
+            </div>
           </div>
         )}
         {m.fehler && <div className="mt-4"><Notice tone="risk">{m.fehler}</Notice></div>}
