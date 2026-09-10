@@ -72,7 +72,14 @@ export default function AppShell({ platform }: { platform: string }) {
       {m.fund && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center
                         bg-ink px-8 text-center">
-          <div className="glow-proof absolute inset-0" />
+          {/*
+            pointer-events-none ist hier zwingend: Das Element liegt
+            absolut ueber der ganzen Flaeche, und absolut positionierte
+            Elemente werden ueber nicht positionierten gezeichnet. Ohne
+            das schluckt der unsichtbare Schein jeden Tipp auf den Knopf
+            darunter -- die Ueberlagerung liesse sich nicht schliessen.
+          */}
+          <div className="glow-proof pointer-events-none absolute inset-0" />
           <p className="rise relative text-[13px] tracking-[0.14em] text-proof">
             BLOCK GEFUNDEN
           </p>
@@ -83,7 +90,7 @@ export default function AppShell({ platform }: { platform: string }) {
           </p>
           <Hash value={m.fund.hash}
                 className="rise rise-3 relative mb-10 mt-8 text-[11px] leading-[1.8] opacity-60" />
-          <div className="w-full max-w-xs">
+          <div className="relative z-10 w-full max-w-xs">
             <Button variant="quiet" onClick={m.dismissFund}>Weiter</Button>
           </div>
         </div>
