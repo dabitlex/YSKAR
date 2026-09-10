@@ -4,16 +4,22 @@ export default {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      /*
+        rgb(var(--x) / <alpha-value>) statt var(--x): Nur so kann Tailwind
+        Deckkraft anwenden. Mit fertigen Farbwerten werden Klassen wie
+        bg-dim/70 lautlos verworfen -- die Elemente sind dann unsichtbar,
+        ohne dass irgendwo ein Fehler auftaucht.
+      */
       colors: {
-        ink: 'var(--ink)',
-        surface: 'var(--surface)',
-        raised: 'var(--raised)',
-        line: 'var(--line)',
-        text: 'var(--text)',
-        dim: 'var(--dim)',
-        work: 'var(--work)',
-        proof: 'var(--proof)',
-        risk: 'var(--risk)',
+        ink: 'rgb(var(--ink) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        raised: 'rgb(var(--raised) / <alpha-value>)',
+        line: 'rgb(var(--line) / <alpha-value>)',
+        text: 'rgb(var(--text) / <alpha-value>)',
+        dim: 'rgb(var(--dim) / <alpha-value>)',
+        work: 'rgb(var(--work) / <alpha-value>)',
+        proof: 'rgb(var(--proof) / <alpha-value>)',
+        risk: 'rgb(var(--risk) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['var(--font-plex-sans)', 'system-ui', 'sans-serif'],

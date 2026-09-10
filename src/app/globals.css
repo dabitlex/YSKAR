@@ -11,21 +11,30 @@
   zwei Signalfarben mit Bedeutung, sonst nichts.
 */
 :root {
-  --ink:     #0C0F14;   /* Basis, kuehler Graphit -- kein getoentes Schwarz */
-  --surface: #141922;
-  --raised:  #1A2130;
-  --line:    #232B38;
-  --text:    #E4E9F0;
-  --dim:     #7C8798;
+  /*
+    Als RGB-KANAELE, nicht als fertige Farbwerte.
 
-  --work:  #E8B33C;   /* das Geraet rechnet gerade */
-  --proof: #4ADE9B;   /* die Kette hat es angenommen */
-  --risk:  #E4574C;   /* nur dort, wo Geld unwiderruflich weg sein kann */
+    Tailwind kann Deckkraft (bg-dim/70) nur anwenden, wenn es die Kanaele
+    kennt. Steht in der Konfiguration ein fertiges var(--dim), wird die
+    Klasse stillschweigend verworfen -- kein Fehler, keine Warnung, nur
+    unsichtbare Elemente. Genau daran sind die Balken des Diagramms
+    gescheitert, und in der Legende fehlten die grauen Felder.
+  */
+  --ink:     12 15 20;      /* #0C0F14 kuehler Graphit, kein getoentes Schwarz */
+  --surface: 20 25 34;      /* #141922 */
+  --raised:  26 33 48;      /* #1A2130 */
+  --line:    35 43 56;      /* #232B38 */
+  --text:    228 233 240;   /* #E4E9F0 */
+  --dim:     124 135 152;   /* #7C8798 */
+
+  --work:  232 179 60;      /* #E8B33C das Geraet rechnet gerade */
+  --proof: 74 222 155;      /* #4ADE9B die Kette hat es angenommen */
+  --risk:  228 87 76;       /* #E4574C nur wo Geld unwiderruflich weg sein kann */
 }
 
 html, body {
-  background: var(--ink);
-  color: var(--text);
+  background: rgb(var(--ink));
+  color: rgb(var(--text));
   margin: 0;
 }
 
@@ -44,11 +53,11 @@ body {
   geleistete Arbeit -- sie werden gedimmt, damit man sie ZAEHLEN kann,
   statt sie zu lesen. Je mehr dunkle Nullen, desto schwerer der Fund.
 */
-.hash-lead { color: var(--dim); }
-.hash-sig  { color: var(--text); }
+.hash-lead { color: rgb(var(--dim)); }
+.hash-sig  { color: rgb(var(--text)); }
 
 button:focus-visible, a:focus-visible, input:focus-visible {
-  outline: 2px solid var(--work);
+  outline: 2px solid rgb(var(--work));
   outline-offset: 2px;
 }
 
