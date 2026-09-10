@@ -36,9 +36,8 @@ export default function Unlock() {
           inputMode="numeric" maxLength={6} value={pin} autoFocus
           onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
           onKeyDown={e => { if (e.key === 'Enter' && pin.length === 6) oeffnen(); }}
-          className="tnum w-full rounded-lg border border-line bg-surface px-4 py-4
-                     text-center font-mono text-2xl tracking-[0.5em] outline-none
-                     focus:border-work"
+          className="tnum sunk w-full border border-transparent px-4 py-5 text-center font-mono text-[26px]
+                     tracking-[0.5em] outline-none transition-colors focus:border-work/60"
         />
 
         {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}

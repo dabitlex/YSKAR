@@ -37,9 +37,9 @@ export default function Settings({ onZurueck, anteil, workers }: {
             <input
               inputMode="numeric" maxLength={6} value={pin} autoFocus
               onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-              className="tnum mt-4 w-full rounded-lg border border-line bg-surface px-4
-                         py-3 text-center font-mono text-lg tracking-[0.4em] outline-none
-                         focus:border-work"
+              className="sunk tnum mt-4 w-full border border-transparent px-4 py-4
+                         text-center font-mono text-xl tracking-[0.45em] outline-none
+                         transition-colors focus:border-work/60"
             />
             {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
             <div className="mt-5">

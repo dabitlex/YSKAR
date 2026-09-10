@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
-import { BottomNav, type Tab } from '@/components/ui/Chrome';
-import { Button, Hash, Dot, Notice } from '@/components/ui/Primitives';
+import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
+import { Panel, GroupTitle, Button, Hash, Status, Notice, Row }
+  from '@/components/ui/Primitives';
 import ShareChart from '@/components/ShareChart';
 import WalletTab from '@/components/tabs/WalletTab';
 import NetzTab from '@/components/tabs/NetzTab';
@@ -38,7 +39,7 @@ export default function AppShell({ platform }: { platform: string }) {
 
   return (
     <>
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-6">
+      <main className="mx-auto min-h-dvh max-w-md px-4 pb-32 pt-5">
         {ansicht === 'senden' ? (
           <Send account={m.account} decimals={dec} symbol={sym}
                 onFertig={() => setAnsicht(null)} onAbbruch={() => setAnsicht(null)} />
@@ -71,12 +72,17 @@ export default function AppShell({ platform }: { platform: string }) {
       {m.fund && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center
                         bg-ink px-8 text-center">
-          <p className="mb-5 text-sm text-proof">Block gefunden</p>
-          <p className="tnum mb-1.5 text-5xl font-medium">#{m.fund.height}</p>
-          <p className="mb-8 text-lg text-proof">
-            {(Number(m.fund.reward) / 10 ** dec).toFixed(0)} {sym}
+          <div className="glow-proof absolute inset-0" />
+          <p className="rise relative text-[13px] tracking-[0.14em] text-proof">
+            BLOCK GEFUNDEN
           </p>
-          <Hash value={m.fund.hash} className="mb-10 text-[11px] leading-[1.8] opacity-70" />
+          <p className="zoom tnum relative mt-4 text-[64px] font-medium leading-none
+                        tracking-[-0.04em]">#{m.fund.height}</p>
+          <p className="rise rise-2 relative mt-3 text-[22px] text-proof">
+            +{(Number(m.fund.reward) / 10 ** dec).toFixed(0)} {sym}
+          </p>
+          <Hash value={m.fund.hash}
+                className="rise rise-3 relative mb-10 mt-8 text-[11px] leading-[1.8] opacity-60" />
           <div className="w-full max-w-xs">
             <Button variant="quiet" onClick={m.dismissFund}>Weiter</Button>
           </div>
@@ -93,60 +99,69 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym }: { m: ReturnType<typeof useMining>; dec: number; sym: string }) {
+function MiningTab({ m, dec, sym }: {
+  m: ReturnType<typeof useMining>; dec: number; sym: string;
+}) {
+  const r = rate(m.hashrate);
   return (
     <>
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm text-dim">YSKAR</span>
-        <span className="flex items-center gap-2 text-sm text-dim">
-          <Dot tone={m.mining ? 'work' : 'off'} />
+      <TopBar rechts={
+        <Status tone={m.mining ? 'work' : 'off'}>
           {m.mining ? 'rechnet' : 'gestoppt'}
-        </span>
-      </div>
+        </Status>
+      } />
 
-      <div className="tnum mt-4 flex items-baseline gap-2 leading-none">
-        <span className={`text-5xl font-medium tracking-tight ${
-          m.mining ? 'text-work' : 'text-dim'}`}>
-          {rate(m.hashrate).wert}
-        </span>
-        <span className="text-xl text-dim">{rate(m.hashrate).einheit}</span>
-      </div>
-      <p className="mt-2 text-sm text-dim">
-        {m.mining
-          ? `${m.account?.blocksFound ?? 0} Blöcke · Anteil ${m.duty}%`
-          : 'Tippe auf Mining starten'}
-      </p>
+      {/* Hauptflaeche: die Leistung. Sie bewegt sich jede Sekunde und
+          beantwortet die einzige Frage, die beim Mining zaehlt. */}
+      <Panel tone="work" className="rise">
+        <p className="text-[13px] text-dim">Rechenleistung</p>
+        <div className="mt-1 flex items-baseline gap-2 leading-none">
+          <span className={`tnum text-[46px] font-medium tracking-[-0.03em] ${
+            m.mining ? 'text-work' : 'text-faint'}`}>{r.wert}</span>
+          <span className="text-[17px] text-dim">{r.einheit}</span>
+        </div>
+        <p className="mt-2 text-[13px] text-dim">
+          {m.mining
+            ? `${m.account?.blocksFound ?? 0} Blöcke gefunden · Anteil ${m.duty} %`
+            : 'Gestoppt — dein Gerät rechnet gerade nicht'}
+        </p>
+
+        <div className="mt-5">
+          <ShareChart shares={m.shares} active={m.mining} />
+        </div>
+      </Panel>
 
       {m.lastShare && (
-        <div className="mt-6 border-t border-line pt-5">
-          <Hash value={m.lastShare.hash} className="text-[13px] leading-[1.7]" />
-          <p className="mt-2.5 text-sm text-dim">
-            Dein letzter angenommener Share · Difficulty{' '}
-            {Number(m.lastShare.difficulty).toLocaleString('de-DE')}
-          </p>
-        </div>
+        <>
+          <GroupTitle aside={`Difficulty ${Number(m.lastShare.difficulty)
+            .toLocaleString('de-DE')}`}>Letzter angenommener Share</GroupTitle>
+          <Panel className="rise rise-1">
+            <Hash value={m.lastShare.hash} className="text-[12.5px] leading-[1.75]" />
+          </Panel>
+        </>
       )}
 
-      <ShareChart shares={m.shares} active={m.mining} />
+      <GroupTitle>Kette</GroupTitle>
+      <Panel className="rise rise-2 !py-1">
+        <dl>
+          <Row label="Guthaben" tone={Number(m.account?.balance ?? 0) > 0 ? 'proof' : undefined}
+               value={`${(Number(m.account?.balance ?? 0) / 10 ** dec).toFixed(4)} ${sym}`} />
+          <Row label="Block" value={m.summary?.height != null ? `#${m.summary.height}` : '—'} />
+          <Row label="Difficulty"
+               value={m.summary?.difficulty?.toLocaleString('de-DE') ?? '—'} />
+        </dl>
+      </Panel>
 
-      <dl className="mt-7 border-t border-line">
-        <Zeile label="Guthaben" wert={
-          <span className={Number(m.account?.balance ?? 0) > 0 ? 'text-proof' : ''}>
-            {(Number(m.account?.balance ?? 0) / 10 ** dec).toFixed(4)} {sym}
-          </span>} />
-        <Zeile label="Block" wert={m.summary?.height != null ? `#${m.summary.height}` : '—'} />
-        <Zeile label="Difficulty"
-               wert={m.summary?.difficulty?.toLocaleString('de-DE') ?? '—'} />
-      </dl>
-
-      <div className="mt-7">
+      <GroupTitle>Steuerung</GroupTitle>
+      <Panel className="rise rise-3">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-sm text-dim">Rechenanteil</span>
-          <div className="flex overflow-hidden rounded-lg border border-line">
+          <span className="text-[13px] text-dim">Rechenanteil</span>
+          <div className="sunk flex overflow-hidden !rounded-full p-0.5">
             {[25, 50, 75, 100].map(v => (
               <button key={v} onClick={() => m.setDuty(v)} aria-pressed={m.duty === v}
-                      className={`min-w-[52px] px-3 py-2 text-sm transition-colors ${
-                        m.duty === v ? 'bg-work text-ink' : 'text-dim'}`}>
+                      className={`min-w-[48px] rounded-full py-1.5 text-[12.5px]
+                                  transition-colors ${
+                        m.duty === v ? 'bg-work text-ink' : 'text-faint'}`}>
                 {v}%
               </button>
             ))}
@@ -160,29 +175,24 @@ function MiningTab({ m, dec, sym }: { m: ReturnType<typeof useMining>; dec: numb
 
         {m.stumm && !m.fehler && (
           <div className="mt-4 space-y-2">
-            <Notice tone="risk">Der Miner meldet seit zehn Sekunden keinen Fortschritt.</Notice>
-            <div className="rounded-lg border border-line px-4 py-3">
+            <Notice tone="risk">
+              Der Miner meldet seit zehn Sekunden keinen Fortschritt.
+            </Notice>
+            <div className="sunk px-4 py-3">
               {Object.entries(m.etappen).map(([slot, e]) => (
-                <p key={slot} className="font-mono text-xs text-dim">Worker {slot}: {e}</p>
+                <p key={slot} className="font-mono text-[11px] text-faint">
+                  Worker {slot}: {e}
+                </p>
               ))}
               {Object.keys(m.etappen).length === 0 && (
-                <p className="font-mono text-xs text-dim">keine Meldung erhalten</p>
+                <p className="font-mono text-[11px] text-faint">keine Meldung erhalten</p>
               )}
             </div>
           </div>
         )}
         {m.fehler && <div className="mt-4"><Notice tone="risk">{m.fehler}</Notice></div>}
-      </div>
+      </Panel>
     </>
-  );
-}
-
-function Zeile({ label, wert }: { label: string; wert: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-line py-3">
-      <dt className="text-sm text-dim">{label}</dt>
-      <dd className="tnum text-[15px]">{wert}</dd>
-    </div>
   );
 }
 

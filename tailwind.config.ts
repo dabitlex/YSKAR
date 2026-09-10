@@ -12,6 +12,8 @@ export default {
       */
       colors: {
         ink: 'rgb(var(--ink) / <alpha-value>)',
+        sunk: 'rgb(var(--sunk) / <alpha-value>)',
+        faint: 'rgb(var(--faint) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         raised: 'rgb(var(--raised) / <alpha-value>)',
         line: 'rgb(var(--line) / <alpha-value>)',
@@ -21,6 +23,7 @@ export default {
         proof: 'rgb(var(--proof) / <alpha-value>)',
         risk: 'rgb(var(--risk) / <alpha-value>)',
       },
+      borderRadius: { sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)' },
       fontFamily: {
         sans: ['var(--font-plex-sans)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-plex-mono)', 'ui-monospace', 'monospace'],

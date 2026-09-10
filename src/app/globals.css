@@ -3,33 +3,33 @@
 @tailwind utilities;
 
 /*
-  YSKAR -- Messgeraet, nicht Spielautomat.
+  YSKAR — Gestaltungssystem.
 
-  Der Markt, in dem diese App sitzt, besteht aus Neonverlaeufen und
-  hochzaehlenden Fantasiezahlen. Wenn YSKAR so aussieht, widerlegt die
-  Oberflaeche das Versprechen der Kette. Deshalb: Graphit, Haarlinien,
-  zwei Signalfarben mit Bedeutung, sonst nichts.
+  Leitlinie bleibt: ein Werkzeug, kein Spielautomat. Aber Zurueckhaltung ist
+  nicht dasselbe wie Kargheit. Was diese Oberflaeche traegt, sind Ebenen,
+  Rhythmus und Hierarchie -- nicht Verlaeufe und Glanz.
+
+  Farben als RGB-Kanaele: Nur so kann Tailwind Deckkraft anwenden. Mit
+  fertigen Farbwerten werden Klassen wie bg-dim/70 lautlos verworfen.
 */
 :root {
-  /*
-    Als RGB-KANAELE, nicht als fertige Farbwerte.
+  --ink:     10 13 18;      /* #0A0D12  Basis */
+  --sunk:    8 10 15;       /* #080A0F  tiefer als Basis, fuer Vertiefungen */
+  --surface: 18 23 32;      /* #121720  erste Ebene */
+  --raised:  24 30 42;      /* #181E2A  zweite Ebene */
+  --line:    38 46 60;      /* #262E3C */
+  --edge:    255 255 255;   /* Lichtkante, nur mit sehr wenig Deckkraft */
+  --text:    233 238 245;
+  --dim:     130 141 158;
+  --faint:   94 104 120;
 
-    Tailwind kann Deckkraft (bg-dim/70) nur anwenden, wenn es die Kanaele
-    kennt. Steht in der Konfiguration ein fertiges var(--dim), wird die
-    Klasse stillschweigend verworfen -- kein Fehler, keine Warnung, nur
-    unsichtbare Elemente. Genau daran sind die Balken des Diagramms
-    gescheitert, und in der Legende fehlten die grauen Felder.
-  */
-  --ink:     12 15 20;      /* #0C0F14 kuehler Graphit, kein getoentes Schwarz */
-  --surface: 20 25 34;      /* #141922 */
-  --raised:  26 33 48;      /* #1A2130 */
-  --line:    35 43 56;      /* #232B38 */
-  --text:    228 233 240;   /* #E4E9F0 */
-  --dim:     124 135 152;   /* #7C8798 */
+  --work:  240 185 60;      /* rechnet gerade */
+  --proof: 62 214 148;      /* von der Kette angenommen */
+  --risk:  232 92 80;       /* unwiderruflich */
 
-  --work:  232 179 60;      /* #E8B33C das Geraet rechnet gerade */
-  --proof: 74 222 155;      /* #4ADE9B die Kette hat es angenommen */
-  --risk:  228 87 76;       /* #E4574C nur wo Geld unwiderruflich weg sein kann */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
 }
 
 html, body {
@@ -44,26 +44,98 @@ body {
   font-feature-settings: 'ss01', 'cv05';
 }
 
-/* Ziffern muessen in Tabellen und Zaehlern uebereinanderstehen, sonst
-   zappelt jede Anzeige, die sich aktualisiert. */
 .tnum { font-variant-numeric: tabular-nums; }
 
 /*
-  Der Hash ist der Held dieser Oberflaeche. Fuehrende Nullen sind die
-  geleistete Arbeit -- sie werden gedimmt, damit man sie ZAEHLEN kann,
-  statt sie zu lesen. Je mehr dunkle Nullen, desto schwerer der Fund.
+  Erhoehte Flaeche mit Lichtkante.
+
+  Der 1px-Streifen oben ist der ganze Trick: Er laesst die Flaeche wie ein
+  physisches Blatt wirken, das Licht von oben faengt. Ein Schatten allein
+  wuerde auf dunklem Grund nichts ausrichten.
 */
-.hash-lead { color: rgb(var(--dim)); }
+.panel {
+  background: rgb(var(--surface));
+  border-radius: var(--r-md);
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgb(var(--edge) / 0.055),
+    0 1px 2px rgb(0 0 0 / 0.4);
+}
+.panel-raised { background: rgb(var(--raised)); }
+
+/* Vertiefung -- fuer Eingabefelder und den Diagrammgrund. */
+.sunk {
+  background: rgb(var(--sunk));
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+/*
+  Signaturflaeche: ein sehr weiter, sehr schwacher Schein hinter dem
+  Guthaben. Kein Farbverlauf ueber die ganze Karte -- nur so viel, dass die
+  Zahl Gewicht bekommt.
+*/
+.glow-work::before,
+.glow-proof::before {
+  content: '';
+  position: absolute;
+  inset: -30% -10% auto -10%;
+  height: 150%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.glow-work::before  { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--work)  / .10), transparent 70%); }
+.glow-proof::before { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--proof) / .09), transparent 70%); }
+
+/* Wasserzeichen der Marke. Sehr leise -- Praesenz, kein Muster. */
+.watermark {
+  position: absolute;
+  right: -14px;
+  top: -18px;
+  width: 132px;
+  opacity: .045;
+  pointer-events: none;
+  filter: grayscale(1) brightness(3);
+}
+
+/*
+  Der Hash ist das Material dieser Kette. Fuehrende Nullen gedimmt: Sie SIND
+  die geleistete Arbeit, und gedimmt kann man sie zaehlen statt lesen.
+*/
+.hash-lead { color: rgb(var(--faint)); }
 .hash-sig  { color: rgb(var(--text)); }
 
-button:focus-visible, a:focus-visible, input:focus-visible {
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 2px solid rgb(var(--work));
   outline-offset: 2px;
 }
 
+/* --- Bewegung. Sparsam, kurz, nie dekorativ. --- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise { animation: rise .28s cubic-bezier(.2,.7,.3,1) both; }
+.rise-1 { animation-delay: .04s }
+.rise-2 { animation-delay: .08s }
+.rise-3 { animation-delay: .12s }
+
+@keyframes puls {
+  0%, 100% { opacity: 1 }
+  50%      { opacity: .35 }
+}
+.puls { animation: puls 1.8s ease-in-out infinite; }
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(.94) }
+  to   { opacity: 1; transform: none }
+}
+.zoom { animation: zoomIn .5s cubic-bezier(.2,.7,.3,1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
   }
 }
