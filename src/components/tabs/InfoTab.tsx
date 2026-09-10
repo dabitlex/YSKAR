@@ -1,6 +1,6 @@
 'use client';
 
-import { Notice } from '@/components/ui/Primitives';
+import { Panel, GroupTitle, Notice } from '@/components/ui/Primitives';
 import type { Summary } from '@/hooks/useMining';
 
 /**
@@ -40,50 +40,55 @@ export default function InfoTab({ summary, decimals, symbol, onEinstellungen }: 
 
   return (
     <>
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm text-dim">Info</span>
-        <span className="text-sm text-dim">
-          Season {Math.floor(hoehe / 6000) + 1}
-        </span>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-work/30 p-4">
-        <p className="text-xs text-work">Halving</p>
-        <p className="mt-1 text-[15px]">
-          Noch <b>{rest.toLocaleString('de-DE')} Blöcke</b> bis zur Halbierung
-          auf {(jetzt / 2).toFixed(1)} {symbol}.
-        </p>
-        <div className="mt-3 h-[3px] overflow-hidden rounded-sm bg-line">
-          <div className="h-full bg-work" style={{ width: `${Math.max(0.3, anteil)}%` }} />
+      <Panel tone="work" className="rise">
+        <div className="flex items-baseline justify-between">
+          <p className="text-[13px] text-work">Halving</p>
+          <span className="text-[11.5px] text-faint">
+            Season {Math.floor(hoehe / 6000) + 1}
+          </span>
         </div>
-        <p className="mt-1.5 text-xs text-dim tnum">
-          Block {inEpoche.toLocaleString('de-DE')} von {EPOCHE.toLocaleString('de-DE')}
+        <p className="mt-2 text-[17px] leading-snug">
+          Noch <b className="tnum font-medium">{rest.toLocaleString('de-DE')}</b> Blöcke
+          bis zur Halbierung auf {(jetzt / 2).toFixed(1)} {symbol}.
         </p>
-      </div>
+        <div className="sunk mt-4 h-2 overflow-hidden !rounded-full">
+          <div className="h-full rounded-full bg-work transition-[width] duration-700"
+               style={{ width: `${Math.max(1.5, anteil)}%` }} />
+        </div>
+        <p className="tnum mt-2 text-[11.5px] text-faint">
+          Block {inEpoche.toLocaleString('de-DE')} von {EPOCHE.toLocaleString('de-DE')}
+          {' · '}{anteil.toFixed(1)} %
+        </p>
+      </Panel>
 
-      <p className="mt-7 text-sm text-dim">Neuigkeiten</p>
-      <ul className="mt-2">
-        {NEUIGKEITEN.map((n, i) => (
-          <li key={i} className="border-b border-line py-3">
-            <span className="block text-[10.5px] text-dim">{n.datum}</span>
-            <span className="mt-0.5 block text-[13.5px] font-medium">{n.titel}</span>
-            <p className="mt-1 text-xs leading-relaxed text-dim">{n.text}</p>
+      <GroupTitle>Neuigkeiten</GroupTitle>
+      <Panel className="rise rise-1 !p-0">
+        <ul className="divide-y divide-line/70">
+          {NEUIGKEITEN.map((n, k) => (
+            <li key={k} className="px-4 py-3.5">
+              <span className="block text-[10.5px] text-faint">{n.datum}</span>
+              <span className="mt-1 block text-[14px] font-medium">{n.titel}</span>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-dim">{n.text}</p>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+
+      <GroupTitle>Mehr</GroupTitle>
+      <Panel className="rise rise-2 !p-0">
+        <ul className="divide-y divide-line/70">
+          <Verweis href="/explorer.html">Block Explorer öffnen</Verweis>
+          <li>
+            <button onClick={onEinstellungen}
+                    className="flex w-full items-center justify-between px-4 py-3.5
+                               text-left text-[14px]">
+              Einstellungen <span className="text-faint">›</span>
+            </button>
           </li>
-        ))}
-      </ul>
+        </ul>
+      </Panel>
 
-      <ul className="mt-6 border-t border-line">
-        <Verweis href="/explorer.html">Block Explorer öffnen</Verweis>
-        <li>
-          <button onClick={onEinstellungen}
-                  className="flex w-full items-center justify-between border-b
-                             border-line py-3 text-left text-[13.5px]">
-            Einstellungen <span className="text-dim">›</span>
-          </button>
-        </li>
-      </ul>
-
-      <div className="mt-6">
+      <div className="mt-5">
         <Notice>
           YSKAR ist ein Projekt, kein Zahlungsmittel. Die Kette hat einen
           Validator — die Arbeit ist echt und nachrechenbar, vertrauensfrei
@@ -97,9 +102,8 @@ export default function InfoTab({ summary, decimals, symbol, onEinstellungen }: 
 function Verweis({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <li>
-      <a href={href} className="flex items-center justify-between border-b border-line
-                                py-3 text-[13.5px]">
-        {children} <span className="text-dim">›</span>
+      <a href={href} className="flex items-center justify-between px-4 py-3.5 text-[14px]">
+        {children} <span className="text-faint">›</span>
       </a>
     </li>
   );

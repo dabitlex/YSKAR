@@ -125,7 +125,7 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         <Title>Prüfen und senden</Title>
         <Body>Eine gesendete Zahlung lässt sich nicht zurückholen.</Body>
 
-        <div className="mt-5 rounded-xl border border-line p-4">
+        <div className="panel mt-5 p-5">
           <p className="text-xs text-dim">Betrag</p>
           <p className="tnum mt-0.5 text-2xl font-medium">{fmt(einheiten)} {symbol}</p>
           <div className="my-4 h-px bg-line" />
@@ -152,9 +152,8 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         <input
           id="spin" inputMode="numeric" maxLength={6} value={pin} autoFocus
           onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-          className="tnum w-full rounded-lg border border-line bg-surface px-4 py-3
-                     text-center font-mono text-lg tracking-[0.4em] outline-none
-                     focus:border-work"
+          className="tnum sunk w-full border border-transparent px-4 py-4 text-center font-mono text-xl
+                     tracking-[0.45em] outline-none transition-colors focus:border-work/60"
         />
 
         {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
@@ -183,8 +182,8 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         id="ziel" value={ziel} onChange={e => setZiel(e.target.value)}
         autoCapitalize="none" autoCorrect="off" spellCheck={false}
         placeholder="ysr1…"
-        className="w-full rounded-lg border border-line bg-surface px-4 py-3
-                   font-mono text-[13px] outline-none focus:border-work"
+        className="sunk w-full border border-transparent px-4 py-3.5 font-mono text-[13px]
+                   outline-none transition-colors focus:border-work/60"
       />
       {ziel.trim().length > 0 && (
         <p className={`mt-1.5 text-sm ${
@@ -196,8 +195,8 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
       )}
 
       <label htmlFor="betrag" className="mb-1.5 mt-5 block text-sm text-dim">Betrag</label>
-      <div className="flex items-center rounded-lg border border-line bg-surface px-4
-                      focus-within:border-work">
+      <div className="sunk flex items-center border border-transparent px-4
+                      transition-colors focus-within:border-work/60">
         <input
           id="betrag" inputMode="decimal" value={betrag}
           onChange={e => setBetrag(e.target.value.replace(/[^\d.,]/g, ''))}
@@ -209,7 +208,7 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
       <div className="mt-2 flex gap-2">
         {[[0.25, '25%'], [0.5, '50%'], [1, 'Alles']].map(([t, l]) => (
           <button key={String(l)} onClick={() => setzeAnteil(t as number)}
-                  className="rounded-md border border-line px-2.5 py-1 text-xs text-dim">
+                  className="rounded-full bg-raised px-3 py-1.5 text-[12px] text-dim">
             {l as string}
           </button>
         ))}
@@ -226,8 +225,8 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
       <input
         id="notiz" value={notiz} maxLength={32}
         onChange={e => setNotiz(e.target.value)}
-        className="w-full rounded-lg border border-line bg-surface px-4 py-3
-                   text-[13px] outline-none focus:border-work"
+        className="sunk w-full border border-transparent px-4 py-3.5 text-[13px]
+                   outline-none transition-colors focus:border-work/60"
       />
 
       <dl className="mt-6 space-y-1.5 border-t border-line pt-4 text-[13px]">

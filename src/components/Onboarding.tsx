@@ -189,8 +189,8 @@ function Pruefen({ mnemonic, onBestanden, onNochmal }: {
               value={antworten[i] ?? ''}
               onChange={e => { setAntworten(a => ({ ...a, [i]: e.target.value })); setFehler(false); }}
               autoCapitalize="none" autoCorrect="off" spellCheck={false}
-              className="w-full rounded-lg border border-line bg-surface px-4 py-3
-                         font-mono text-[15px] outline-none focus:border-work"
+              className="sunk w-full border border-transparent px-4 py-3.5 font-mono text-[15px]
+                         outline-none transition-colors focus:border-work/60"
             />
           </div>
         ))}
@@ -243,8 +243,8 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
           <input
             id="pin" inputMode="numeric" maxLength={6} value={pin}
             onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-            className="tnum w-full rounded-lg border border-line bg-surface px-4 py-3
-                       font-mono text-lg tracking-[0.4em] outline-none focus:border-work"
+            className="tnum sunk w-full border border-transparent px-4 py-4 text-center font-mono text-xl
+                       tracking-[0.45em] outline-none transition-colors focus:border-work/60"
           />
         </div>
         <div>
@@ -252,8 +252,8 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
           <input
             id="pin2" inputMode="numeric" maxLength={6} value={wdh}
             onChange={e => setWdh(e.target.value.replace(/\D/g, ''))}
-            className="tnum w-full rounded-lg border border-line bg-surface px-4 py-3
-                       font-mono text-lg tracking-[0.4em] outline-none focus:border-work"
+            className="tnum sunk w-full border border-transparent px-4 py-4 text-center font-mono text-xl
+                       tracking-[0.45em] outline-none transition-colors focus:border-work/60"
           />
         </div>
       </div>
@@ -324,8 +324,8 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
         onChange={e => { setText(e.target.value); setFehler(null); }}
         rows={4} autoCapitalize="none" autoCorrect="off" spellCheck={false}
         placeholder="wort eins wort zwei …"
-        className="w-full rounded-lg border border-line bg-surface px-4 py-3
-                   font-mono text-[15px] leading-relaxed outline-none focus:border-work"
+        className="sunk w-full border border-transparent px-4 py-3.5 font-mono text-[15px]
+                   leading-relaxed outline-none transition-colors focus:border-work/60"
       />
       <p className="mt-2 text-sm text-dim tnum">{anzahl} von 12 Wörtern</p>
 
@@ -348,8 +348,9 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
         <input
           id="rpin" inputMode="numeric" maxLength={6} value={pin}
           onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-          className="tnum w-full rounded-lg border border-line bg-surface px-4 py-3
-                     font-mono text-lg tracking-[0.4em] outline-none focus:border-work"
+          className="sunk tnum w-full border border-transparent px-4 py-4 text-center
+                       font-mono text-xl tracking-[0.45em] outline-none
+                       transition-colors focus:border-work/60"
         />
       </div>
 
