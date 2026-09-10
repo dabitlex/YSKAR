@@ -72,6 +72,21 @@ Reward-Freigabe erst nach N abgeschlossenen Runden.
 Hinweis: Telegram liefert **kein Registrierungsdatum des Kontos**.
 `users.first_seen_at` ist der erste Aufruf dieser App, nicht mehr.
 
+### Bildschirmsperre
+
+Sperrt das Display, haelt die Plattform den Worker an und das Mining endet
+mitten im Job. Dagegen fordert die App eine Wake-Lock-Sperre an, solange
+gemint wird.
+
+Zwei Eigenheiten, die dabei zaehlen: Die Sperre wird automatisch
+freigegeben, sobald die Seite unsichtbar wird, und muss danach neu
+angefordert werden -- sonst ist sie stillschweigend weg. Und sie braucht
+einen sicheren Kontext; ueber http gibt es sie nicht.
+
+Was sie NICHT kann: manuelles Sperren durch den Nutzer verhindern oder das
+Mining im Hintergrund weiterlaufen lassen. Auf Geraeten ohne die
+Schnittstelle sagt die App das ausdruecklich, statt es zu verschweigen.
+
 ### Kein Hintergrund-Mining
 
 Geht die Mini App in den Hintergrund oder sperrt das Display, haelt die
