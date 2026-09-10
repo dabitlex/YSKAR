@@ -31,11 +31,24 @@ const hx = (b: Uint8Array) => '\\x' + toHex(b);
 const GRACE_MS = 15_000;
 const VARDIFF = { targetSeconds: 30, min: 32n, max: 4096n, shareDiffBlockRatio: 8 };
 
+/**
+ * `achieved` ist die Difficulty, die der Hash TATSAECHLICH erfuellt --
+ * unabhaengig davon, was verlangt war. Sie beantwortet "wie nah war dieser
+ * Versuch an einem Block" und ist die Groesse, die das Diagramm zeichnet.
+ * `blockDifficulty` gehoert dazu, weil ohne Bezugsgroesse keine Aussage
+ * moeglich ist.
+ */
+type ShareBasis = {
+  achieved: string;
+  required: string;
+  blockDifficulty: string;
+};
+
 export type ShareResult =
-  | { accepted: false; reason: string; required?: string; achieved?: string }
-  | { accepted: true; block: false; credited: string; shareDifficulty: string }
-  | { accepted: true; block: true; height: number; reward: string; hash: string;
-      credited: string; shareDifficulty: string };
+  | ({ accepted: false; reason: string } & Partial<ShareBasis>)
+  | ({ accepted: true; block: false; credited: string; shareDifficulty: string } & ShareBasis)
+  | ({ accepted: true; block: true; height: number; reward: string; hash: string;
+      credited: string; shareDifficulty: string } & ShareBasis);
 
 export async function submitShare(
   sessionId: string, jobId: string, nonce: bigint,
@@ -80,7 +93,8 @@ export async function submitShare(
     await sb.from('sessions')
       .update({ invalid_shares: session.invalid_shares + 1 }).eq('id', sessionId);
     return { accepted: false, reason: 'low_difficulty',
-             required: current.toString(), achieved: achieved.toString() };
+             achieved: achieved.toString(), required: current.toString(),
+             blockDifficulty: block.header.difficulty.toString() };
   }
 
   const isBlock = achieved >= block.header.difficulty;
@@ -117,8 +131,14 @@ export async function submitShare(
     last_share_at: new Date().toISOString(),
   }).eq('id', sessionId);
 
+  const basis = {
+    achieved: achieved.toString(),
+    required: current.toString(),
+    blockDifficulty: block.header.difficulty.toString(),
+  };
+
   if (!isBlock) {
-    return { accepted: true, block: false,
+    return { accepted: true, block: false, ...basis,
              credited: credited.toString(), shareDifficulty: nextShare.toString() };
   }
 
@@ -126,8 +146,8 @@ export async function submitShare(
   if (!committed.ok) return { accepted: false, reason: committed.reason };
 
   return {
-    accepted: true, block: true, height: block.header.height,
-    reward: committed.reward, hash: toHex(hash),
+    accepted: true, block: true, ...basis,
+    height: block.header.height, reward: committed.reward, hash: toHex(hash),
     credited: credited.toString(), shareDifficulty: nextShare.toString(),
   };
 }
