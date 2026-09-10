@@ -36,6 +36,8 @@ interface WalletState {
   discardFresh: () => void;
   recover: (mnemonic: string, pin: string) => Promise<{ ok: boolean; reason?: string }>;
   unlock: (pin: string) => Promise<{ ok: boolean; reason?: string }>;
+  /** Woerter erneut anzeigen -- nur gegen PIN, nie aus dem Speicher. */
+  revealMnemonic: (pin: string) => Promise<{ ok: boolean; mnemonic?: string; reason?: string }>;
   lock: () => void;
   forget: () => void;
 }
@@ -100,6 +102,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }, []);
 
+  /*
+    Die Woerter liegen nur verschluesselt im Geraet. Sie erneut zu zeigen
+    heisst, sie erneut zu entschluesseln -- deshalb wird die PIN verlangt,
+    auch wenn die Wallet gerade offen ist. Sie im Arbeitsspeicher
+    mitzufuehren waere bequemer und genau die Abkuerzung, die man bei
+    Schluesselmaterial nicht nimmt.
+  */
+  const revealMnemonic = useCallback(async (pin: string) => {
+    const v = vault.load();
+    if (!v) return { ok: false, reason: 'Kein Tresor auf diesem Gerät.' };
+    const opened = await vault.unseal(v, pin);
+    if (!opened.ok) return { ok: false, reason: 'PIN stimmt nicht.' };
+    return { ok: true, mnemonic: opened.mnemonic };
+  }, []);
+
   const lock = useCallback(() => {
     setKeypair(null);
     setPhase(vault.hasWallet() ? 'gesperrt' : 'kein_tresor');
@@ -116,7 +133,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={{
       phase, address, keypair, freshMnemonic,
-      create, confirmAndSeal, discardFresh, recover, unlock, lock, forget,
+      create, confirmAndSeal, discardFresh, recover, unlock, revealMnemonic,
+      lock, forget,
     }}>
       {children}
     </Ctx.Provider>

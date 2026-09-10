@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { WalletProvider, useWallet } from '@/lib/wallet/useWallet';
 import Onboarding from '@/components/Onboarding';
 import Unlock from '@/components/Unlock';
-import Mine from '@/components/Mine';
+import AppShell from '@/components/AppShell';
 import { Screen, Title, Body } from '@/components/ui/Primitives';
+import { Splash } from '@/components/ui/Chrome';
 
 declare global {
   interface Window { Telegram?: { WebApp: any } }
@@ -49,10 +50,10 @@ function Router() {
     );
   }
 
-  if (wallet.phase === 'laden' || platform === null) {
-    return <Screen><p className="mt-16 text-dim">Einen Moment…</p></Screen>;
-  }
+  // Startbild statt Ladetext: Der erste Eindruck der App ist die Marke,
+  // nicht ein Platzhalter.
+  if (wallet.phase === 'laden' || platform === null) return <Splash />;
   if (wallet.phase === 'kein_tresor') return <Onboarding />;
   if (wallet.phase === 'gesperrt') return <Unlock />;
-  return <Mine platform={platform} />;
+  return <AppShell platform={platform} />;
 }
