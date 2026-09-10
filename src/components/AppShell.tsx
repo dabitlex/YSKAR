@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
+import { useWakeLock } from '@/hooks/useWakeLock';
 import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
 import { Panel, GroupTitle, Button, Hash, Status, Notice, Row }
   from '@/components/ui/Primitives';
@@ -31,6 +32,10 @@ type Ansicht = null | 'senden' | 'empfangen' | 'einstellungen';
 export default function AppShell({ platform }: { platform: string }) {
   const wallet = useWallet();
   const m = useMining(wallet.address, platform);
+  // Ohne das schaltet das Display ab, die Plattform haelt den Worker an,
+  // und das Mining endet mitten im Job -- ohne dass jemand etwas gedrueckt
+  // haette.
+  const wach = useWakeLock(m.mining);
   const [tab, setTab] = useState<Tab>('mining');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
 
@@ -48,7 +53,7 @@ export default function AppShell({ platform }: { platform: string }) {
         ) : ansicht === 'einstellungen' ? (
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={2} />
         ) : tab === 'mining' ? (
-          <MiningTab m={m} dec={dec} sym={sym} />
+          <MiningTab m={m} dec={dec} sym={sym} wach={wach} />
         ) : tab === 'wallet' ? (
           <WalletTab account={m.account as any} decimals={dec} symbol={sym}
                      onSenden={() => setAnsicht('senden')}
@@ -106,8 +111,9 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym }: {
+function MiningTab({ m, dec, sym, wach }: {
   m: ReturnType<typeof useMining>; dec: number; sym: string;
+  wach: 'aus' | 'aktiv' | 'nicht_moeglich';
 }) {
   const r = rate(m.hashrate);
   return (
@@ -179,6 +185,16 @@ function MiningTab({ m, dec, sym }: {
                 variant={m.mining ? 'quiet' : 'primary'}>
           {m.mining ? 'Mining stoppen' : 'Mining starten'}
         </Button>
+
+        {m.mining && (
+          <p className="mt-3 text-center text-[12px] text-faint">
+            {wach === 'aktiv'
+              ? 'Der Bildschirm bleibt an, solange gemint wird.'
+              : wach === 'nicht_moeglich'
+              ? 'Dieses Gerät lässt den Bildschirm nicht offenhalten — sperrt er, pausiert das Mining.'
+              : 'Sperrt der Bildschirm, pausiert das Mining.'}
+          </p>
+        )}
 
         {m.stumm && !m.fehler && (
           <div className="mt-4 space-y-2">
