@@ -22,14 +22,27 @@ export async function GET(
   const key = '\\x' + toHex(raw);
   const sb = db().schema('chain2');
 
-  const [{ data: acc }, { data: pending }, { data: mined }] = await Promise.all([
-    sb.from('accounts').select('balance, nonce, first_height, last_height')
-      .eq('address', key).maybeSingle(),
-    sb.from('mempool').select('txid, to_addr, amount, fee, nonce')
-      .eq('from_addr', key).order('nonce'),
-    sb.from('transactions').select('block_height', { count: 'exact', head: true })
-      .eq('to_addr', key).eq('type', 0),
-  ]);
+  const [{ data: acc }, { data: pending }, { count: mined }, { data: verlauf }] =
+    await Promise.all([
+      sb.from('accounts').select('balance, nonce, first_height, last_height')
+        .eq('address', key).maybeSingle(),
+      sb.from('mempool').select('txid, to_addr, amount, fee, nonce')
+        .eq('from_addr', key).order('nonce'),
+      sb.from('transactions').select('block_height', { count: 'exact', head: true })
+        .eq('to_addr', key).eq('type', 0),
+      // Verlauf: alles, was diese Adresse beruehrt, egal in welche Richtung.
+      sb.from('transactions')
+        .select('txid, block_height, type, from_addr, to_addr, amount, fee')
+        .or(`from_addr.eq.${key},to_addr.eq.${key}`)
+        .order('block_height', { ascending: false }).limit(40),
+    ]);
+
+  // Blockzeiten dazu -- ohne sie waere der Verlauf ohne Zeitbezug.
+  const hoehen = [...new Set((verlauf ?? []).map(t => t.block_height))];
+  const { data: bloecke } = hoehen.length
+    ? await sb.from('blocks').select('height, block_time').in('height', hoehen)
+    : { data: [] };
+  const zeit = new Map((bloecke ?? []).map(b => [b.height, String(b.block_time)]));
 
   return NextResponse.json({
     address,
@@ -44,5 +57,17 @@ export async function GET(
       amount: p.amount, fee: p.fee, nonce: p.nonce,
     })),
     blocksFound: mined ?? 0,
+    history: (verlauf ?? []).map(t => {
+      const eingang = unprefix(t.to_addr) === toHex(raw);
+      return {
+        txid: unprefix(t.txid),
+        height: t.block_height,
+        timestamp: zeit.get(t.block_height) ?? null,
+        kind: t.type === 0 ? 'reward' : (eingang ? 'in' : 'out'),
+        counterparty: unprefix(eingang ? t.from_addr : t.to_addr),
+        amount: String(t.amount),
+        fee: String(t.fee),
+      };
+    }),
   }, { headers: CORS });
 }

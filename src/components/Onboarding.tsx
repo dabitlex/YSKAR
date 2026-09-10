@@ -100,7 +100,7 @@ function Warnung({ onWeiter, onZurueck }: { onWeiter: () => void; onZurueck: () 
         <input
           type="checkbox" checked={verstanden}
           onChange={e => setVerstanden(e.target.checked)}
-          className="mt-1 h-4 w-4 shrink-0 accent-[var(--work)]"
+          className="mt-1 h-4 w-4 shrink-0 accent-[rgb(var(--work))]"
         />
         <span>Ich habe Stift und Papier bereit.</span>
       </label>
