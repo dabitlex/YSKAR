@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
-import PerformanceStrip from '@/components/PerformanceStrip';
+import ShareChart from '@/components/ShareChart';
 import { Screen, Row, Button, Hash, Dot, Notice } from '@/components/ui/Primitives';
 
 /**
@@ -79,10 +79,7 @@ export default function Mine({ platform }: { platform: string }) {
         )}
       </section>
 
-      <PerformanceStrip
-        samples={m.samples} shares={m.shareMarks}
-        blocks={m.blockMarks} active={m.mining}
-      />
+      <ShareChart shares={m.shares} active={m.mining} />
 
       <dl className="mt-8 border-t border-line">
         <Row label={`Guthaben`} value={

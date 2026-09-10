@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BUCKET_MS, MAX_BARS, type BlockMark } from '@/lib/strip';
+import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
 
 /**
@@ -49,14 +49,11 @@ export function useMining(address: string | null, platform: string) {
   const jobId = useRef<string | null>(null);
   const shareDifficulty = useRef<number | null>(null);
 
-  const bucketHashes = useRef(0);
   // Rate je Worker, berechnet beim Eintreffen der Meldung. Zwei unabhaengige
   // Takte gegeneinander laufen zu lassen war der Fehler: Fiel eine Meldung
   // nicht ins Abfragefenster, las ich null und die Anzeige brach ein.
   const rates = useRef<Map<number, { rate: number; at: number }>>(new Map());
   const lastProgress = useRef(0);
-  const bucketShares = useRef(0);
-  const bucketBlock = useRef<BlockMark>(null);
   const lastHeight = useRef<number | null>(null);
 
   const [mining, setMining] = useState(false);
@@ -64,15 +61,16 @@ export function useMining(address: string | null, platform: string) {
   const [stumm, setStumm] = useState(false);
   // Letzte Etappe je Worker. Nur zur Fehlersuche sichtbar, wenn nichts kommt.
   const [etappen, setEtappen] = useState<Record<number, string>>({});
+  // Ein Eintrag je Versuch, nicht je Zeitfenster. Die erreichte Difficulty
+  // ist die Aussage "wie nah war ich" -- sie kommt vom Server, weil nur er
+  // den Hash nachgerechnet hat.
+  const [shares, setShares] = useState<ShareEntry[]>([]);
   const [duty, setDuty] = useState(50);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [lastShare, setLastShare] = useState<{ hash: string; difficulty: string; at: number } | null>(null);
   const [fund, setFund] = useState<Fund | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [samples, setSamples] = useState<number[]>([]);
-  const [shareMarks, setShareMarks] = useState<number[]>([]);
-  const [blockMarks, setBlockMarks] = useState<BlockMark[]>([]);
 
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const res = await fetch(`/api/v2${path}`, {
@@ -115,8 +113,7 @@ export function useMining(address: string | null, platform: string) {
   const start = useCallback(async (workerCount = 2) => {
     if (!address) return;
     setFehler(null);
-    setSamples([]); setShareMarks([]); setBlockMarks([]);
-    bucketHashes.current = 0; bucketShares.current = 0; bucketBlock.current = null;
+    setShares([]);
 
     try {
       const session = await api('/session', {
@@ -143,7 +140,6 @@ export function useMining(address: string | null, platform: string) {
           }
           if (e.data.t === 'progress') {
             const jetzt = Date.now();
-            bucketHashes.current += e.data.hashes;
             lastProgress.current = jetzt;
             // Der Worker liefert Hashes UND das Zeitfenster mit -- daraus
             // ergibt sich die Rate ohne jede Annahme ueber den Takt.
@@ -159,18 +155,29 @@ export function useMining(address: string | null, platform: string) {
               sessionId: sessionId.current, jobId: e.data.jobId, nonce: e.data.nonce,
             }),
           }).then(r => {
+            // Auch abgelehnte Versuche gehoeren ins Bild: Sie zeigen, dass
+            // gearbeitet wurde, und wo die Schwelle liegt.
+            if (r.achieved) {
+              setShares(prev => [...prev, {
+                achieved: Number(r.achieved),
+                required: Number(r.required ?? 0),
+                blockDifficulty: Number(r.blockDifficulty ?? 0),
+                accepted: !!r.accepted,
+                isBlock: !!r.block,
+                at: Date.now(),
+              }].slice(-MAX_SHARES));
+            }
+
             if (!r.accepted) {
               if (r.reason === 'job_expired' || r.reason === 'stale_job') { fetchJob(); return; }
               setFehler(`Share abgelehnt: ${r.reason}`);
               return;
             }
             setFehler(null);
-            bucketShares.current += 1;
             setLastShare({ hash: e.data.hash, difficulty: r.credited, at: Date.now() });
             if (r.shareDifficulty) applyShareDifficulty(Number(r.shareDifficulty));
 
             if (r.block) {
-              bucketBlock.current = 'own';
               setFund({ height: r.height, reward: r.reward, hash: r.hash });
               fetchJob();
             }
@@ -225,19 +232,6 @@ export function useMining(address: string | null, platform: string) {
     return () => clearInterval(id);
   }, [mining]);
 
-  // Streifen weiterschieben
-  useEffect(() => {
-    if (!mining) return;
-    const id = setInterval(() => {
-      const h = bucketHashes.current, s = bucketShares.current, b = bucketBlock.current;
-      bucketHashes.current = 0; bucketShares.current = 0; bucketBlock.current = null;
-      setSamples(p => [...p, h].slice(-MAX_BARS));
-      setShareMarks(p => [...p, s].slice(-MAX_BARS));
-      setBlockMarks(p => [...p, b].slice(-MAX_BARS));
-    }, BUCKET_MS);
-    return () => clearInterval(id);
-  }, [mining]);
-
   // Job vor Ablauf der TTL erneuern
   useEffect(() => {
     if (!mining) return;
@@ -251,13 +245,7 @@ export function useMining(address: string | null, platform: string) {
       try {
         const s: Summary = await api('/summary');
         setSummary(s);
-        if (typeof s.height === 'number') {
-          if (lastHeight.current !== null && s.height > lastHeight.current
-              && bucketBlock.current !== 'own') {
-            bucketBlock.current = 'other';
-          }
-          lastHeight.current = s.height;
-        }
+        if (typeof s.height === 'number') lastHeight.current = s.height;
       } catch { /* Anzeige darf still bleiben, Mining laeuft weiter */ }
       if (address) {
         try { setAccount(await api(`/account/${address}`)); } catch { /* s.o. */ }
@@ -288,8 +276,7 @@ export function useMining(address: string | null, platform: string) {
   return {
     mining, start, stop, duty, setDuty: changeDuty,
     hashrate, stumm, etappen,
-    summary, account, lastShare, fund, fehler,
-    samples, shareMarks, blockMarks,
+    summary, account, lastShare, fund, fehler, shares,
     dismissFund: () => setFund(null),
   };
 }
