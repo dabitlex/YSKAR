@@ -400,7 +400,7 @@ async function springeZuBlock(){
 
   if(!blocks.some(b=>b.height===ziel)){
     try{
-      const b = await fetch(`${API}/blocks?limit=100&before=${ziel+1}`).then(r=>r.json());
+      const b = await fetch(`${API}/blocks?limit=25&before=${ziel+1}`).then(r=>r.json());
       if(b.blocks && b.blocks.length){ blocks = b.blocks; await pruefeAlle(); }
     }catch(e){ /* dann bleibt die Liste, wie sie ist */ }
   }
