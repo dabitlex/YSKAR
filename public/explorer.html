@@ -58,9 +58,25 @@
   .note{margin-top:26px;font-size:12px;line-height:1.6;color:var(--muted)}
   .err{color:var(--warn);font-size:13px;margin-top:16px}
   a{color:var(--accent)}
+  .back{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;
+        padding:9px 14px;border:1px solid var(--line);border-radius:9px;
+        font-size:13px;color:var(--muted);text-decoration:none}
+  .back:active{background:var(--soft)}
 </style>
 </head>
 <body>
+
+<!--
+  Rueckweg in die App.
+
+  Der Explorer ist eine eigene Seite und verlaesst damit die Mini App. Ohne
+  diesen Verweis ist er eine Sackgasse: In Telegram gibt es keinen sichtbaren
+  Zurueck-Knopf, und die Geste funktioniert je nach Plattform nicht.
+
+  Nur zeigen, wenn es ueberhaupt eine App gibt, zu der man zurueck kann --
+  von der Festplatte oder einer fremden Adresse aus waere der Verweis falsch.
+-->
+<a class="back" id="back" href="/" hidden>← Zurück zur App</a>
 
 <div class="head">
   <h1>YSKAR Explorer</h1>
@@ -352,11 +368,60 @@ async function load(){
   }
 }
 
+// Rueckweg nur anbieten, wenn die App unter derselben Adresse liegt.
+if (HOSTED && !PARAM) {
+  const b = $('back');
+  b.hidden = false;
+  b.onclick = e => {
+    // history.back() bringt den Nutzer dorthin zurueck, wo er war --
+    // einschliesslich des Reiters, in dem er stand. Ein Sprung auf "/"
+    // wuerde die App neu laden und im Mining-Reiter landen.
+    if (document.referrer && new URL(document.referrer).origin === location.origin) {
+      e.preventDefault();
+      history.back();
+    }
+  };
+}
+
 $('engine').textContent = useSubtle
   ? 'Gerechnet wird mit WebCrypto.'
   : 'crypto.subtle steht hier nicht zur Verfügung, gerechnet wird mit der eingebauten SHA-256-Umsetzung.';
-load();
-setInterval(load,10000);
+/*
+  Sprung zu einem bestimmten Block, etwa aus der Wallet heraus (#block-52).
+
+  Der Explorer zeigt sonst nur die letzten 25 Bloecke. Liegt der gesuchte
+  weiter zurueck, wird ab dort nachgeladen -- sonst fuehrte der Verweis ins
+  Leere, und das waere schlimmer als gar kein Verweis.
+*/
+async function springeZuBlock(){
+  const treffer = /^#block-(\d+)$/.exec(location.hash);
+  if(!treffer) return;
+  const ziel = Number(treffer[1]);
+
+  if(!blocks.some(b=>b.height===ziel)){
+    try{
+      const b = await fetch(`${API}/blocks?limit=25&before=${ziel+1}`).then(r=>r.json());
+      if(b.blocks && b.blocks.length){ blocks = b.blocks; await pruefeAlle(); }
+    }catch(e){ /* dann bleibt die Liste, wie sie ist */ }
+  }
+
+  open = ziel;
+  renderList();
+  if(!details[ziel]){
+    fetch(`${API}/blocks/${ziel}`).then(r=>r.json())
+      .then(d=>{ if(d.height!==undefined){ details[d.height]=d; renderList(); } })
+      .catch(()=>{});
+  }
+  const zeile = document.querySelector('.row[data-h="'+ziel+'"]');
+  if(zeile) zeile.scrollIntoView({ block:'center' });
+}
+
+load().then(springeZuBlock);
+window.addEventListener('hashchange', springeZuBlock);
+
+// Nicht neu laden, solange ein Block geoeffnet ist -- sonst klappt er zu,
+// waehrend man liest.
+setInterval(()=>{ if(open===null) load(); },10000);
 </script>
 </body>
 </html>
