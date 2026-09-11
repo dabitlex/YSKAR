@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
-import { decodeAddress } from '@/lib/core/address';
-import { toHex } from '@/lib/core/codec';
+import { encodeAddress, decodeAddress } from '@/lib/core/address';
+import { toHex, fromHex } from '@/lib/core/codec';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ export async function GET(
         .eq('to_addr', key).eq('type', 0),
       // Verlauf: alles, was diese Adresse beruehrt, egal in welche Richtung.
       sb.from('transactions')
-        .select('txid, block_height, type, from_addr, to_addr, amount, fee')
+        .select('txid, block_height, type, from_addr, to_addr, amount, fee, memo')
         .or(`from_addr.eq.${key},to_addr.eq.${key}`)
         .order('block_height', { ascending: false }).limit(40),
     ]);
@@ -59,14 +59,18 @@ export async function GET(
     blocksFound: mined ?? 0,
     history: (verlauf ?? []).map(t => {
       const eingang = unprefix(t.to_addr) === toHex(raw);
+      // Als bech32m, nicht als Rohbytes: Der Nutzer soll dieselbe
+      // Zeichenkette sehen wie in seiner Wallet und sie vergleichen koennen.
+      const gegenHex = unprefix(eingang ? t.from_addr : t.to_addr);
       return {
         txid: unprefix(t.txid),
         height: t.block_height,
         timestamp: zeit.get(t.block_height) ?? null,
         kind: t.type === 0 ? 'reward' : (eingang ? 'in' : 'out'),
-        counterparty: unprefix(eingang ? t.from_addr : t.to_addr),
+        counterparty: gegenHex ? encodeAddress(fromHex(gegenHex)) : null,
         amount: String(t.amount),
         fee: String(t.fee),
+        memo: unprefix(t.memo),
       };
     }),
   }, { headers: CORS });

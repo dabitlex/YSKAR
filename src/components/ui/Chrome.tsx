@@ -55,12 +55,20 @@ export function BottomNav({ aktiv, onWechsel }: {
   );
 }
 
-/** Kopfzeile mit Zeichen links und freiem Platz rechts. */
+/**
+ * Kopfzeile.
+ *
+ * Wortmarke als Text statt als Bild: Sie ist bei jeder Pixeldichte scharf,
+ * laedt nichts nach und verschiebt das Layout nicht, waehrend ein Bild noch
+ * unterwegs ist. Das Logo gehoert auf den Startbildschirm, nicht in jede
+ * Kopfzeile.
+ */
 export function TopBar({ rechts }: { rechts?: React.ReactNode }) {
   return (
     <header className="mb-5 flex items-center justify-between px-1">
-      <Image src="/marke/zeichen.png" alt="YSKAR" width={62} height={38}
-             priority style={{ height: 'auto' }} />
+      <span className="text-[15px] font-medium tracking-[0.14em] text-dim">
+        YSKAR
+      </span>
       {rechts}
     </header>
   );
@@ -85,14 +93,26 @@ export function useSplash(mindestensMs = 1100) {
 
 export function Splash() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-ink">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-ink px-10">
       <div className="zoom relative">
-        <div className="absolute inset-0 -z-10 blur-3xl"
-             style={{ background: 'radial-gradient(circle, rgb(var(--work)/.16), transparent 65%)' }} />
-        <Image src="/marke/logo.png" alt="YSKAR" width={168} height={168} priority />
+        {/*
+          Der Schein liegt HINTER dem Logo (-z-10) und laesst keine Tipps
+          durch. Ein absolut positioniertes Element ueber dem Inhalt wuerde
+          sonst Klicks schlucken -- genau das ist uns beim Blockfund passiert.
+        */}
+        <div className="pointer-events-none absolute inset-0 -z-10 blur-3xl"
+             style={{ background:
+               'radial-gradient(circle, rgb(var(--work)/.18), transparent 62%)' }} />
+        {/*
+          Quelle ist 1024 px gross und wird bei 200 dargestellt. Auf Geraeten
+          mit dreifacher Pixeldichte bleibt das Zeichen dadurch scharf --
+          vorher waren 520 px die Grundlage, und die Kanten wurden weich.
+        */}
+        <Image src="/marke/logo.png" alt="YSKAR" width={200} height={200}
+               priority sizes="200px" />
       </div>
-      <p className="rise rise-2 text-[11.5px] tracking-[0.16em] text-faint">
-        proof, not promise
+      <p className="rise rise-2 mt-7 text-[11px] tracking-[0.22em] text-faint">
+        PROOF, NOT PROMISE
       </p>
     </main>
   );

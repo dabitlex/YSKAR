@@ -88,17 +88,6 @@ body {
 .glow-work::before  { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--work)  / .10), transparent 70%); }
 .glow-proof::before { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--proof) / .09), transparent 70%); }
 
-/* Wasserzeichen der Marke. Sehr leise -- Praesenz, kein Muster. */
-.watermark {
-  position: absolute;
-  right: -14px;
-  top: -18px;
-  width: 132px;
-  opacity: .045;
-  pointer-events: none;
-  filter: grayscale(1) brightness(3);
-}
-
 /*
   Der Hash ist das Material dieser Kette. Fuehrende Nullen gedimmt: Sie SIND
   die geleistete Arbeit, und gedimmt kann man sie zaehlen statt lesen.
