@@ -4,23 +4,30 @@
  * Share-Diagramm.
  *
  * Jeder Balken ist EIN Versuch, kein Zeitfenster. Seine Hoehe ist die
- * tatsaechlich erreichte Difficulty. Die Linie ist die Network Difficulty
- * zum Zeitpunkt des jeweiligen Versuchs -- sie ist gestuft, weil sie sich
- * mit jedem Block neu einstellt.
- *
- * Ein Balken, der die Linie erreicht, IST ein Block. Das ist keine Metapher,
+ * tatsaechlich erreichte Difficulty im Verhaeltnis zur Network Difficulty.
+ * Ein Balken, der die Linie reisst, IST ein Block -- das ist keine Metapher,
  * sondern genau die Bedingung.
  *
- * Gemeinsame, absolute Skala fuer Balken UND Linie. Jeden Balken an seiner
- * eigenen Difficulty zu messen waere bequemer, wuerde die Linie aber flach
- * machen und damit die Aussage zerstoeren: Man saehe nicht mehr, dass das
- * Ziel selbst wandert.
+ * FESTE SKALA. Frueher wuchs die Obergrenze mit dem hoechsten Treffer, damit
+ * man sah, wie weit er das Ziel ueberragte. Das war ein Denkfehler: Ein
+ * Block mit 522 % drueckte alle gewoehnlichen Balken auf ein bis zwei Pixel,
+ * und der haeufige Fall wurde unlesbar -- gerade der, den man staendig
+ * anschaut. Die genaue Zahl steht ohnehin am Balken; dafuer muss die Skala
+ * nicht herhalten.
+ *
+ * Balken jenseits der Obergrenze werden gekappt und oben mit einer Kerbe
+ * gekennzeichnet. Sie sind dann alle gleich hoch, und der Prozentwert sagt,
+ * wie hoch wirklich.
+ *
+ * FESTE BREITE. Alle Plaetze werden immer gezeichnet, auch die leeren. Sonst
+ * begaennen die Balken breit und wuerden mit jedem Share schmaler -- eine
+ * Bewegung, die nichts bedeutet und trotzdem auffaellt.
  *
  * Warum linear und nicht logarithmisch: Die erreichte Difficulty ist
  * pareto-verteilt -- der halbe Wert kommt doppelt so oft vor. Linear liegen
- * die meisten Balken deshalb unten, einzelne ragen weit hinauf, und ganz
- * selten reisst einer die Linie. Eine logarithmische Achse wuerde jeden
- * Versuch schmeichelhaft nah aussehen lassen.
+ * die meisten Balken unten, einzelne ragen hinauf, und ganz selten reisst
+ * einer die Linie. Eine logarithmische Achse wuerde jeden Versuch
+ * schmeichelhaft nah aussehen lassen.
  */
 
 export interface ShareEntry {
@@ -35,10 +42,13 @@ export interface ShareEntry {
   at: number;
 }
 
+/** So viele Balken passen nebeneinander. */
 export const MAX_SHARES = 44;
 
-const HOEHE = 104;      // Zeichenflaeche in Pixeln
-const KOPF = 18;        // Platz oben fuer Rakete und Prozentwert
+const HOEHE = 112;      // gesamte Zeichenflaeche
+const KOPF = 26;        // oben frei fuer Rakete und Prozentwert
+const NUTZ = HOEHE - KOPF;
+const LUFT = 1.15;      // Obergrenze = Network Difficulty mal diesem Wert
 
 export default function ShareChart({ shares, active }: {
   shares: ShareEntry[]; active: boolean;
@@ -46,29 +56,40 @@ export default function ShareChart({ shares, active }: {
   const sichtbar = shares.slice(-MAX_SHARES);
   const leer = sichtbar.length === 0;
 
-  // Gemeinsame Obergrenze. Etwas Luft ueber der Difficulty, damit die Linie
-  // nicht am Rand klebt -- und wenn ein Balken sie reisst, waechst die Skala
-  // mit, statt den Treffer abzuschneiden.
-  const maxDiff = Math.max(1, ...sichtbar.map(s => s.blockDifficulty));
-  const maxErreicht = Math.max(0, ...sichtbar.map(s => s.achieved));
-  const obergrenze = Math.max(maxDiff * 1.18, maxErreicht * 1.05);
+  /*
+    Bezugsgroesse ist die AKTUELLE Network Difficulty -- die des letzten
+    Versuchs, nicht das Maximum der sichtbaren.
 
-  const y = (wert: number) => (wert / obergrenze) * (HOEHE - KOPF);
+    Am Maximum verankert hatte dieselbe Krankheit wie die alte, mitwachsende
+    Skala: Faellt die Difficulty stark, bleibt die Obergrenze am alten
+    Hoechstwert haengen, bis er aus dem Fenster gewandert ist. Die Linie
+    rutschte dabei auf ein Achtel der Hoehe und die gewoehnlichen Balken auf
+    ein bis zwei Pixel -- fuer bis zu 44 Versuche lang.
 
-  // Gestufte Linie als Polylinie: je Versuch ein waagerechtes Stueck auf
-  // Hoehe seiner Difficulty, dazwischen der senkrechte Sprung.
+    Am aktuellen Wert verankert liegt die juengste Stufe der Linie IMMER bei
+    rund 87 % der Hoehe. Das ist der feste Bezugspunkt, den das Auge braucht.
+    Aeltere Stufen liegen darueber oder darunter und zeigen damit genau das,
+    was passiert ist: dass sich das Ziel bewegt hat.
+  */
+  const ziel = Math.max(1, sichtbar[sichtbar.length - 1]?.blockDifficulty ?? 1);
+  const obergrenze = ziel * LUFT;
+  const y = (wert: number) => Math.min(NUTZ, (wert / obergrenze) * NUTZ);
+
+  // Gestufte Linie: je Versuch ein waagerechtes Stueck auf Hoehe seiner
+  // Difficulty, dazwischen der Sprung. Sie liegt ueber den Balken, damit der
+  // Bezug sichtbar bleibt, auch wenn ein Balken sie durchbricht.
   const punkte: string[] = [];
   sichtbar.forEach((s, i) => {
-    const yPos = HOEHE - y(s.blockDifficulty);
+    const yPos = HOEHE - y(s.blockDifficulty || ziel);
     punkte.push(`${i},${yPos}`, `${i + 1},${yPos}`);
   });
 
   return (
-    <section className="mt-7" aria-label="Erreichte Difficulty je Versuch">
+    <section className="mt-1" aria-label="Erreichte Difficulty je Versuch">
       <div className="mb-2 flex items-baseline justify-between text-xs text-dim">
         <span>Erreichte Difficulty je Share</span>
         <span className="tnum">
-          {leer ? '—' : `${sichtbar.length} Versuche · Ziel ${maxDiff.toLocaleString('de-DE')}`}
+          {leer ? '—' : `${sichtbar.length} Versuche · Ziel ${ziel.toLocaleString('de-DE')}`}
         </span>
       </div>
 
@@ -79,62 +100,81 @@ export default function ShareChart({ shares, active }: {
           </p>
         ) : (
           <>
-            {/* Balken */}
             <div className="absolute inset-0 flex items-end gap-[2px]">
-              {sichtbar.map((s, i) => {
-                const hoehe = Math.max(2, y(s.achieved));
+              {/*
+                Immer MAX_SHARES Plaetze. Belegte zuerst, danach leere -- so
+                fuellt sich das Bild von links, ohne dass sich die Breite je
+                aendert.
+              */}
+              {Array.from({ length: MAX_SHARES }, (_, i) => {
+                const s = sichtbar[i];
+                if (!s) {
+                  return <div key={`leer-${i}`} className="flex-1"
+                              style={{ height: HOEHE }} />;
+                }
+
                 const anteil = s.blockDifficulty > 0
-                  ? Math.round((s.achieved / s.blockDifficulty) * 100) : 0;
+                  ? s.achieved / s.blockDifficulty : 0;
+                const prozent = Math.round(anteil * 100);
+                const roh = y(s.achieved);
+                const hoehe = Math.max(2, roh);
+                const gekappt = s.achieved > obergrenze;
+
+                const farbe = s.isBlock ? 'bg-work'
+                  : s.accepted ? 'bg-dim/75' : 'bg-dim/25';
 
                 return (
-                  <div key={`${s.at}-${i}`} className="relative flex-1" style={{ height: HOEHE }}>
+                  <div key={`${s.at}-${i}`} className="relative flex-1"
+                       style={{ height: HOEHE }}>
                     {s.isBlock && (
                       <>
                         <span className="absolute left-1/2 -translate-x-1/2 text-work"
-                              style={{ bottom: hoehe + 16 }}>
+                              style={{ bottom: Math.min(hoehe + 15, NUTZ + 12) }}>
                           <Rakete />
                         </span>
-                        <span className="tnum absolute left-1/2 -translate-x-1/2 whitespace-nowrap
-                                         text-[10px] font-medium text-work"
-                              style={{ bottom: hoehe + 2 }}>
-                          {anteil}%
+                        <span className="tnum absolute left-1/2 -translate-x-1/2
+                                         whitespace-nowrap text-[10px] font-medium text-work"
+                              style={{ bottom: Math.min(hoehe + 2, NUTZ) }}>
+                          {prozent}%
                         </span>
                       </>
                     )}
                     <div
-                      className={`absolute bottom-0 w-full rounded-[1px] ${
-                        s.isBlock ? 'bg-work' : s.accepted ? 'bg-dim/75' : 'bg-dim/25'}`}
-                      style={{ height: hoehe }}
+                      className={`absolute bottom-0 w-full rounded-[1px] ${farbe}`}
+                      style={{
+                        height: hoehe,
+                        // Kerbe oben: Der Balken ist abgeschnitten, sein
+                        // wahrer Wert steht daneben.
+                        clipPath: gekappt
+                          ? 'polygon(0 0, 35% 6px, 65% 0, 100% 6px, 100% 100%, 0 100%)'
+                          : undefined,
+                      }}
                     />
                   </div>
                 );
               })}
             </div>
 
-            {/* Network Difficulty. Ueber den Balken, damit der Bezug sichtbar
-                bleibt, auch wenn ein Balken sie durchbricht. */}
             <svg
               className="pointer-events-none absolute inset-0 h-full w-full"
-              viewBox={`0 0 ${sichtbar.length} ${HOEHE}`}
+              viewBox={`0 0 ${MAX_SHARES} ${HOEHE}`}
               preserveAspectRatio="none"
             >
               <polyline
                 points={punkte.join(' ')}
-                fill="none"
-                stroke="rgb(var(--text))"
-                strokeWidth="1"
-                vectorEffect="non-scaling-stroke"
-                opacity="0.85"
+                fill="none" stroke="rgb(var(--text))" strokeWidth="1"
+                vectorEffect="non-scaling-stroke" opacity="0.85"
               />
             </svg>
-            <span className="absolute right-0 text-[10px] text-dim"
-                  style={{ bottom: y(sichtbar[sichtbar.length - 1].blockDifficulty) + 4 }}>
-              Network Difficulty
-            </span>
           </>
         )}
       </div>
 
+      {/*
+        Die Linie wird in der Legende benannt statt im Bild. Beschriftet man
+        sie dort, ueberdeckt sie genau die Prozentwerte der Bloecke -- und die
+        stehen immer in ihrer Naehe.
+      */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-dim">
         <Legende farbe="bg-dim/75">angenommen</Legende>
         <Legende farbe="bg-dim/25">ungültig</Legende>
@@ -142,6 +182,10 @@ export default function ShareChart({ shares, active }: {
         <span className="flex items-center gap-1.5">
           <span className="text-work"><Rakete /></span>
           Reward
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-px w-3 bg-text" />
+          Network Difficulty
         </span>
       </div>
     </section>
