@@ -91,11 +91,20 @@ geprueft. Ohne das koennte die Seite genau das nicht, wofuer sie da ist.
 ## Schnellstart
 
 ```bash
+./AUFRAEUMEN.sh    # entfernt Dateien frueherer Staende, siehe unten
 npm install
 cp .env.example .env.local     # fuenf Werte eintragen
 npm test                       # 62 Tests, laufen ohne Datenbank
 npm run dev
 ```
+
+### Nach dem Auspacken eines Pakets
+
+Ein Zip fuegt nur hinzu -- es entfernt nichts. Abgeloeste Dateien bleiben
+sonst liegen, verweisen auf Bausteine, die es nicht mehr gibt, und lassen
+den Build an einer Stelle scheitern, die mit der Aenderung nichts zu tun
+hat. `./AUFRAEUMEN.sh` raeumt sie weg; die Liste steht in
+`src/components/ENTFERNT.md`.
 
 Alle Migrationen sind im Supabase-Projekt eingespielt.
 
@@ -128,6 +137,51 @@ Difficulty und Share-Anzahl werden nie vom Client uebernommen.
 Details in [docs/CHAIN.md](docs/CHAIN.md), Grenzen in
 [docs/SECURITY.md](docs/SECURITY.md).
 
+## Eigenständiger Miner
+
+`miner/` enthält einen Desktop-Miner ohne Wallet. Er braucht nur eine
+Adresse — keinen privaten Schlüssel, keine Anmeldung, keine
+Abhängigkeiten:
+
+```bash
+cd miner
+node src/selbsttest.mjs                    # Engine prüfen und Leistung messen
+node src/cli.mjs --address ysr1… -w 4      # loslegen
+```
+
+Daraus lässt sich eine eigenständige Datei bauen, die ohne Node läuft:
+
+```bash
+cd miner && npm install && npm run build:exe
+```
+
+Gebaut wird immer für das System, auf dem gebaut wird — eine `.exe` also nur
+unter Windows. Anleitung in `miner/README.md`.
+
+Die Header-Serialisierung liegt dort noch einmal, damit der Miner ohne den
+Rest des Projekts läuft. Diese Verdopplung ist die Fehlerquelle, die uns
+schon zweimal getroffen hat — deshalb ist sie doppelt abgesichert:
+`tests/core.test.ts` vergleicht beide Fassungen Byte für Byte, und der
+Miner prüft sich beim Start am Genesis-Block.
+
+## Beobachter-Knoten
+
+`observer/` holt die Kette und rechnet jeden Block selbst nach — Header,
+PoW, Merkle-Wurzel, Signaturen, Guthaben, Zustandswurzel, Difficulty-Regel.
+Er glaubt dem Server kein Feld.
+
+```bash
+cd observer && npm install && npm run build
+node dist/yskar-observer.cjs --data ./daten --once
+```
+
+Er nimmt keine Blöcke an und entscheidet keine Gabelungen — das ist Stufe 3.
+Aber er merkt, wenn ein ungültiger Block ausgeliefert oder Geschichte
+nachträglich verändert wird. Damit wandert die Garantie von „dem Server
+vertrauen" zu „jeder Beobachter würde es bemerken".
+
+Läuft auf einem Raspberry Pi 4. Anleitung in `observer/README.md`.
+
 ## Struktur
 
 ```
@@ -141,6 +195,8 @@ src/workers/       miner.worker.ts, 136-Byte-Header
 wasm/              gen_wat.py erzeugt die Engine, build.js kompiliert
 supabase/          Migrationen
 scripts/genesis.ts Genesis bauen und minen
+miner/             eigenstaendiger Desktop-Miner, ohne Wallet
+observer/          Beobachter-Knoten, prueft die Kette unabhaengig nach
 ```
 
 Die WAT-Datei ist **generiert, nicht handgeschrieben**. Aenderungen laufen
