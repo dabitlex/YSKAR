@@ -92,6 +92,11 @@ export async function createJob(sessionId: string): Promise<JobView> {
     difficulty: h.difficulty.toString(),
     tx_count: h.txCount,
     miner_address: session.address,
+    // Ohne diese Bindung koennten zwei Sessions derselben Adresse dieselbe
+    // Nonce auf denselben Job einreichen und beide gutgeschrieben bekommen:
+    // Der Hash kaeme aus demselben Koerper, aber der Wiedereinreichungsschutz
+    // greift ueber die Extranonce der SESSION, und die ist verschieden.
+    session_id: session.id,
     // Der fertige Block, Nonce noch 0. Beim Fund wird nur sie ersetzt --
     // eine Rekonstruktion aus Metadaten wuerde am veraenderten Mempool
     // scheitern, und merkle_root wie state_root verpflichten auf GENAU

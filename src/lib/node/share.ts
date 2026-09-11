@@ -63,6 +63,25 @@ export async function submitShare(
     return { accepted: false, reason: 'session_inactive' };
   }
   if (!job) return { accepted: false, reason: 'job_unknown' };
+
+  /*
+    Der Job muss zu DIESER Session gehoeren.
+
+    Seit mehrere Sessions je Adresse erlaubt sind, ist das keine Formalie
+    mehr: Zwei Sessions derselben Adresse koennten sonst dieselbe Nonce auf
+    denselben Job einreichen. Der Hash kaeme aus demselben Job-Koerper, waere
+    also identisch -- aber der Wiedereinreichungsschutz greift ueber
+    (job_id, extranonce, nonce), und die Extranonce der Session ist
+    verschieden. Dieselbe Arbeit wuerde zweimal gutgeschrieben.
+
+    job.session_id ist NULL bei Jobs aus der Zeit vor dieser Pruefung. Die
+    laufen nach 90 Sekunden ab; sie hier durchzulassen kostet nichts und
+    wirft keine laufenden Miner ab.
+  */
+  if (job.session_id && job.session_id !== sessionId) {
+    return { accepted: false, reason: 'job_foreign' };
+  }
+
   if (new Date(job.expires_at).getTime() < Date.now()) {
     return { accepted: false, reason: 'job_expired' };
   }

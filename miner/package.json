@@ -1,0 +1,30 @@
+{
+  "name": "yskar-miner",
+  "version": "0.1.0",
+  "description": "Eigenständiger YSKAR-Miner für den Desktop. Braucht nur eine Adresse.",
+  "type": "module",
+  "bin": {
+    "yskar-miner": "./src/cli.mjs"
+  },
+  "main": "./src/cli.mjs",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "src",
+    "miner.*.wasm",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node src/cli.mjs",
+    "selftest": "node src/selbsttest.mjs",
+    "bundle": "node build/bundle.mjs",
+    "build:exe": "node build/bundle.mjs && node build/exe.mjs"
+  },
+  "license": "SEE LICENSE IN ../README.md",
+  "private": false,
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
+  }
+}
