@@ -78,7 +78,11 @@ export function useMining(address: string | null, platform: string) {
       headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
     });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error ?? res.statusText);
+    if (!res.ok) {
+      // Der Server schickt bei manchen Ablehnungen einen erklaerenden Text
+      // mit. Den wegzuwerfen und nur den Code zu zeigen, hilft niemandem.
+      throw new Error(body.detail ?? body.error ?? res.statusText);
+    }
     return body;
   }, []);
 
