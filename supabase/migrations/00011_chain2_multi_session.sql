@@ -1,0 +1,17 @@
+-- Mehrere Miner auf eine Adresse.
+--
+-- Bisher beendete eine neue Session alle anderen derselben Adresse. Das war
+-- als Missbrauchsbremse gedacht und ist die falsche Bremse: Sie haelt
+-- niemanden auf, der es darauf anlegt (Adressen kostet die Wallet nichts),
+-- bricht aber genau den Fall, fuer den der eigenstaendige Miner gebaut wurde
+-- -- Handy und Rechner gleichzeitig, Reward an dieselbe Adresse.
+--
+-- Unbedenklich ist das, weil extranonce UNIQUE ueber alle Sessions ist:
+-- Jede Session durchsucht dadurch einen eigenen Nonce-Raum. Zwei Miner
+-- koennen denselben Treffer gar nicht finden.
+--
+--   chain2.reap_sessions(idle_seconds)  -- tote Sessions schliessen
+--   chain2.live_sessions(address)       -- aufraeumen und zaehlen
+--
+-- Die Deckelung auf acht gleichzeitige Sessions steht in der Route.
+-- Vollstaendige Fassung im Supabase-Projekt (chain2_multi_session).

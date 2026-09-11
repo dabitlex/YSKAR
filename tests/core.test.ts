@@ -804,3 +804,65 @@ test('Der Selbsttest des Workers erkennt eine falsche Engine', async () => {
     '000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66',
     'Der Selbsttest muss genau diesen Hash liefern -- sonst ist es eine andere Engine');
 });
+
+// -------------------------------------- Miner gegen Projekt-Serialisierung
+
+/**
+ * Der eigenstaendige Miner hat eine eigene Kopie der Header-Serialisierung
+ * (miner/src/header.mjs), damit er ohne den Rest des Projekts laeuft.
+ *
+ * Verdopplung ist genau die Fehlerquelle, die uns schon zweimal getroffen
+ * hat. Dieser Test schliesst sie: Weicht die Kopie auch nur um ein Byte ab,
+ * faellt es hier auf -- und nicht erst, wenn ein Miner stundenlang Shares
+ * einreicht, die niemand annimmt.
+ */
+test('Die Header-Serialisierung des Miners stimmt mit dem Projekt überein', async () => {
+  const miner = await import('../miner/src/header.mjs');
+
+  assert.equal(miner.HEADER_SIZE, B.HEADER_SIZE);
+  assert.equal(miner.NONCE_OFFSET, B.NONCE_OFFSET);
+  assert.equal(miner.DIFFICULTY_UNIT, P.DIFFICULTY_UNIT);
+
+  for (const nonce of [0n, 1n, 4096n, 0xffffffffn, (7n << 32n) | 42n]) {
+    const h = testHeader(nonce);
+    const job = {
+      version: h.version, height: h.height,
+      prevHash: toHex(h.prevHash), merkleRoot: toHex(h.merkleRoot),
+      stateRoot: toHex(h.stateRoot), timestamp: h.timestamp.toString(),
+      difficulty: Number(h.difficulty), txCount: h.txCount,
+      extranonce: h.extranonce.toString(),
+    };
+    assert.equal(
+      toHex(miner.serializeHeader(job, nonce)),
+      toHex(B.serializeHeader(h)),
+      `Abweichung bei nonce=${nonce} — jeder Share des Miners wäre ungültig`,
+    );
+  }
+});
+
+test('Die Target-Berechnung des Miners stimmt mit dem Projekt überein', async () => {
+  const miner = await import('../miner/src/header.mjs');
+  for (const d of [32n, 128n, 4096n, 24576n, 1_000_000n]) {
+    const projekt = new Uint8Array(32);
+    let x = P.targetFromDifficulty(d);
+    for (let i = 31; i >= 0; i--) { projekt[i] = Number(x & 0xffn); x >>= 8n; }
+    assert.equal(toHex(miner.targetBytes(Number(d))), toHex(projekt),
+      `Abweichung bei Difficulty ${d} — der Miner prüfte gegen ein anderes Ziel`);
+  }
+});
+
+test('Der Genesis-Block im Miner stimmt mit der Kette überein', async () => {
+  const miner = await import('../miner/src/header.mjs');
+  const g = miner.GENESIS;
+  assert.equal(g.hash,
+    '000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66');
+  // Der Selbsttest des Miners rechnet genau diesen Header nach.
+  assert.equal(toHex(miner.serializeHeader(g, g.nonce)),
+    toHex(B.serializeHeader({
+      version: 1, height: 0,
+      prevHash: new Uint8Array(32),
+      merkleRoot: fromHex(g.merkleRoot), stateRoot: fromHex(g.stateRoot),
+      timestamp: BigInt(g.timestamp), difficulty: BigInt(g.difficulty),
+      txCount: g.txCount, extranonce: BigInt(g.extranonce), nonce: g.nonce,
+    })));
+});

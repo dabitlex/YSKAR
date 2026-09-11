@@ -25,6 +25,19 @@ for (const alt of fs.readdirSync(publicDir)) {
 }
 fs.writeFileSync(path.join(publicDir, name), buf);
 
+// Auch neben den eigenstaendigen Miner legen. Ohne das liefe er nach einem
+// Neubau mit einer veralteten Engine -- und faende nie einen Share.
+const minerDir = path.join(__dirname, '..', 'miner');
+if (fs.existsSync(minerDir)) {
+  for (const alt of fs.readdirSync(minerDir)) {
+    if (/^miner\.[0-9a-f]{10}\.wasm$/.test(alt) && alt !== name) {
+      fs.unlinkSync(path.join(minerDir, alt));
+    }
+  }
+  fs.writeFileSync(path.join(minerDir, name), buf);
+  console.log(`miner/${name}`);
+}
+
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'lib', 'minerWasm.ts'),
 `// Von wasm/publish.js erzeugt. Nicht von Hand aendern.
 export const MINER_WASM_URL = '/${name}';
