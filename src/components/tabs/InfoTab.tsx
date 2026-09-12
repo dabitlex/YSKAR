@@ -77,6 +77,7 @@ export default function InfoTab({ summary, decimals, symbol, onEinstellungen }: 
       <GroupTitle>Mehr</GroupTitle>
       <Panel className="rise rise-2 !p-0">
         <ul className="divide-y divide-line/70">
+          <Verweis href="/start.html">Über YSKAR</Verweis>
           <Verweis href="/explorer.html">Block Explorer öffnen</Verweis>
           <li>
             <button onClick={onEinstellungen}

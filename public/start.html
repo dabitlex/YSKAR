@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YSKAR — eine Kette, die du nachrechnen kannst</title>
+<meta name="description" content="YSKAR ist eine Proof-of-Work-Kryptowährung, die auf Telefonen gemint wird. Echte Hashes, offener Quelltext, jeder Block im Browser nachprüfbar.">
+<meta name="theme-color" content="#0A0D12">
+<meta property="og:title" content="YSKAR">
+<meta property="og:description" content="Eine Kette, die du nachrechnen kannst. Proof of Work auf dem Telefon.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:10 13 18;
+  --sunk:7 9 14;
+  --surface:18 23 32;
+  --raised:24 30 42;
+  --line:38 46 60;
+  --edge:255 255 255;
+  --text:233 238 245;
+  --dim:130 141 158;
+  --faint:94 104 120;
+  --work:240 185 60;
+  --proof:62 214 148;
+  --risk:232 92 80;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:rgb(var(--ink));color:rgb(var(--text));
+  font:400 17px/1.65 'IBM Plex Sans',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------------------------------------------------------------- Raster */
+.wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 24px}
+.prose{max-width:66ch}
+section{padding:88px 0}
+section + section{border-top:1px solid rgb(var(--line)/.55)}
+@media(max-width:640px){ section{padding:60px 0} body{font-size:16px} }
+
+h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.02em;line-height:1.15}
+h1{font-size:clamp(34px,6vw,56px)}
+h2{font-size:clamp(26px,3.6vw,36px);margin-bottom:20px}
+h3{font-size:19px;letter-spacing:-.01em;margin-bottom:8px}
+p{margin:0 0 20px}
+p:last-child{margin-bottom:0}
+.lead{font-size:clamp(18px,2.2vw,21px);line-height:1.6;color:rgb(var(--dim))}
+.dim{color:rgb(var(--dim))}
+.faint{color:rgb(var(--faint))}
+.small{font-size:15px;line-height:1.6}
+a{color:rgb(var(--work));text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:rgb(var(--text))}
+
+/* ------------------------------------------------------------- Kopfzeile */
+header.bar{
+  position:sticky;top:0;z-index:40;
+  background:rgb(var(--ink)/.86);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgb(var(--line)/.55);
+}
+header.bar .wrap{display:flex;align-items:center;justify-content:space-between;
+  height:62px;gap:20px}
+.brand{font-weight:600;letter-spacing:.18em;font-size:15px}
+.barnav{display:flex;gap:26px;font-size:15px}
+.barnav a{color:rgb(var(--dim));text-decoration:none}
+.barnav a:hover{color:rgb(var(--text))}
+@media(max-width:720px){ .barnav{display:none} }
+
+/* ------------------------------------------------------------------ Held */
+.hero{padding:80px 0 76px}
+.hero h1{max-width:15ch}
+.tipcard{margin-top:44px}
+.tiplabel{font-size:14px;color:rgb(var(--faint));margin-bottom:12px}
+.tiphash{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:clamp(15px,3.1vw,27px);
+  line-height:1.55;word-break:break-all;font-weight:400;
+}
+.zeros{color:rgb(var(--faint))}
+.tipmeta{margin-top:16px;font-size:15px;color:rgb(var(--dim))}
+.tipmeta b{font-weight:500;color:rgb(var(--text));font-variant-numeric:tabular-nums}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:40px}
+.btn{
+  display:inline-block;padding:14px 26px;border-radius:10px;
+  font-size:16px;font-weight:500;text-decoration:none;
+  transition:transform .12s ease, background-color .15s ease;
+}
+.btn:active{transform:scale(.985)}
+.btn.main{background:rgb(var(--work));color:rgb(var(--ink));
+  box-shadow:0 2px 16px rgb(var(--work)/.2)}
+.btn.main:hover{background:rgb(var(--work)/.9);color:rgb(var(--ink))}
+.btn.side{background:rgb(var(--raised));color:rgb(var(--text));
+  box-shadow:inset 0 1px 0 rgb(var(--edge)/.055)}
+.btn.side:hover{background:rgb(var(--surface));color:rgb(var(--text))}
+
+/* --------------------------------------------------------- Kennzahlband */
+.stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+  gap:1px;background:rgb(var(--line)/.55);
+  border-top:1px solid rgb(var(--line)/.55);
+  border-bottom:1px solid rgb(var(--line)/.55);
+}
+.stat{background:rgb(var(--ink));padding:22px 20px}
+.stat dt{font-size:13px;color:rgb(var(--faint));margin-bottom:6px}
+.stat dd{margin:0;font-size:25px;font-weight:500;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.stat .unit{font-size:15px;color:rgb(var(--dim));font-weight:400;margin-left:3px}
+
+/* ----------------------------------------------------------- Bausteine */
+.cols{display:grid;gap:40px;grid-template-columns:1fr}
+@media(min-width:860px){ .cols.two{grid-template-columns:1fr 1fr;gap:56px} }
+
+.steps{counter-reset:s;margin:36px 0 0;padding:0;list-style:none}
+.steps li{
+  counter-increment:s;position:relative;
+  padding:0 0 30px 54px;
+}
+.steps li::before{
+  content:counter(s);position:absolute;left:0;top:-2px;
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgb(var(--raised));color:rgb(var(--work));
+  font-size:14px;font-variant-numeric:tabular-nums;
+  box-shadow:inset 0 1px 0 rgb(var(--edge)/.06);
+}
+.steps li::after{
+  content:'';position:absolute;left:17px;top:36px;bottom:4px;width:1px;
+  background:rgb(var(--line)/.8);
+}
+.steps li:last-child{padding-bottom:0}
+.steps li:last-child::after{display:none}
+.steps p{margin:0;color:rgb(var(--dim));font-size:16px}
+
+.panel{
+  background:rgb(var(--surface));border-radius:16px;padding:28px;
+  box-shadow:inset 0 1px 0 rgb(var(--edge)/.05), 0 1px 3px rgb(0 0 0/.35);
+}
+.panel + .panel{margin-top:16px}
+
+.facts{margin:0;display:grid;gap:0}
+.facts > div{display:flex;justify-content:space-between;align-items:baseline;
+  gap:24px;padding:13px 0;border-bottom:1px solid rgb(var(--line)/.55)}
+.facts > div:last-child{border-bottom:0}
+.facts dt{color:rgb(var(--dim));font-size:16px;margin:0}
+.facts dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+
+.bar{height:6px;border-radius:99px;background:rgb(var(--sunk));overflow:hidden;
+  box-shadow:inset 0 1px 2px rgb(0 0 0/.5)}
+.bar i{display:block;height:100%;border-radius:99px;background:rgb(var(--work))}
+
+.paths{display:grid;gap:16px;grid-template-columns:1fr;margin-top:36px}
+@media(min-width:800px){ .paths{grid-template-columns:repeat(3,1fr)} }
+.path{display:flex;flex-direction:column;background:rgb(var(--surface));
+  border-radius:16px;padding:26px;
+  box-shadow:inset 0 1px 0 rgb(var(--edge)/.05)}
+.path p{font-size:16px;color:rgb(var(--dim));flex:1}
+.path .go{margin-top:20px;font-size:15px;font-weight:500}
+
+.warn{border-left:2px solid rgb(var(--risk)/.65);padding:2px 0 2px 22px;
+  margin:0 0 26px}
+.warn h3{color:rgb(var(--risk))}
+.warn p{color:rgb(var(--dim));font-size:16px;margin:0}
+
+footer{border-top:1px solid rgb(var(--line)/.55);padding:44px 0 60px;
+  color:rgb(var(--faint));font-size:15px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:20px 34px;justify-content:space-between}
+footer a{color:rgb(var(--dim));text-decoration:none}
+footer a:hover{color:rgb(var(--text))}
+.flinks{display:flex;flex-wrap:wrap;gap:22px}
+
+/* Ein einziger orchestrierter Auftritt beim Laden, nichts weiter. */
+@keyframes auf{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.hero > .wrap > *{animation:auf .55s cubic-bezier(.2,.7,.3,1) both}
+.hero > .wrap > *:nth-child(2){animation-delay:.08s}
+.hero > .wrap > *:nth-child(3){animation-delay:.16s}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  html{scroll-behavior:auto}
+}
+:focus-visible{outline:2px solid rgb(var(--work));outline-offset:3px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <span class="brand">YSKAR</span>
+    <nav class="barnav">
+      <a href="#was">Was das ist</a>
+      <a href="#mining">Mining</a>
+      <a href="#pruefen">Nachrechnen</a>
+      <a href="#ausgabe">Ausgabe</a>
+      <a href="#grenzen">Grenzen</a>
+    </nav>
+    <a class="btn side" href="https://t.me/YSKAR_bot" style="padding:9px 18px;font-size:15px">App öffnen</a>
+  </div>
+</header>
+
+<!-- ================================================================ HELD -->
+<section class="hero">
+  <div class="wrap">
+    <h1>Eine Kette, die du nachrechnen kannst</h1>
+
+    <div class="tipcard">
+      <p class="tiplabel">Zuletzt gefundener Block</p>
+      <p class="tiphash" id="tiphash"><span class="zeros">0000000</span>…</p>
+      <p class="tipmeta" id="tipmeta">Verbindung zur Kette wird aufgebaut</p>
+    </div>
+
+    <div class="actions">
+      <a class="btn main" href="https://t.me/YSKAR_bot">Mit dem Telefon minen</a>
+      <a class="btn side" href="/explorer.html">Block Explorer</a>
+    </div>
+  </div>
+</section>
+
+<dl class="stats" id="stats">
+  <div class="stat"><dt>Höhe</dt><dd id="s-hoehe">—</dd></div>
+  <div class="stat"><dt>Difficulty</dt><dd id="s-diff">—</dd></div>
+  <div class="stat"><dt>Rechenleistung</dt><dd id="s-rate">—</dd></div>
+  <div class="stat"><dt>Aktive Miner</dt><dd id="s-miner">—</dd></div>
+  <div class="stat"><dt>Im Umlauf</dt><dd id="s-umlauf">—</dd></div>
+</dl>
+
+<!-- ============================================================ WAS DAS IST -->
+<section id="was">
+  <div class="wrap prose">
+    <h2>Kein Spiel, das so tut als ob</h2>
+    <p>Es gibt viele Apps, in denen man auf einen Knopf tippt und eine Zahl
+      hochzählt. YSKAR ist etwas anderes: Dein Telefon rechnet echte
+      SHA-256-Hashes, so wie es ein Bitcoin-Miner tut. Der Server prüft jeden
+      einzelnen davon nach, und jeder gefundene Block liegt offen im
+      Explorer.</p>
+    <p>Dahinter steht eine eigene Blockchain, nicht ein Punktestand in einer
+      Datenbank. Sie hat einen Genesis-Block, Transaktionen, Signaturen und
+      eine Difficulty, die sich an die Rechenleistung des Netzes anpasst. Wer
+      einen Block findet, bekommt den Reward per Coinbase-Transaktion direkt
+      auf seine Adresse.</p>
+    <p>Der Genesis-Block trägt eine Inschrift, und sie ist der Anspruch an
+      alles Weitere:</p>
+    <p class="mono" style="color:rgb(var(--work));font-size:19px">proof, not promise</p>
+  </div>
+</section>
+
+<!-- ================================================================ MINING -->
+<section id="mining">
+  <div class="wrap">
+    <div class="prose">
+      <h2>Was beim Minen passiert</h2>
+      <p class="lead">Mining heißt: so lange Zahlen durchprobieren, bis ein
+        Hash herauskommt, der klein genug ist. Es gibt keine Abkürzung, nur
+        Rechenarbeit.</p>
+    </div>
+
+    <ol class="steps prose">
+      <li>
+        <h3>Dein Gerät bekommt eine Aufgabe</h3>
+        <p>Der Knoten stellt einen Blockentwurf zusammen und schickt ihn an
+          dein Telefon, zusammen mit dem Ziel, das der Hash unterbieten
+          muss.</p>
+      </li>
+      <li>
+        <h3>Es probiert Zahlen durch</h3>
+        <p>Millionen pro Sekunde. Für jede wird der Block zweimal mit SHA-256
+          gehasht. Gerechnet wird in WebAssembly, damit ein Telefon
+          mithalten kann.</p>
+      </li>
+      <li>
+        <h3>Treffer werden eingereicht</h3>
+        <p>Findet dein Gerät einen Hash unter dem Ziel, schickt es nur die
+          gefundene Zahl. Der Server rechnet den Hash selbst nach — er glaubt
+          keiner Angabe deines Geräts.</p>
+      </li>
+      <li>
+        <h3>Ein guter Treffer ist ein Block</h3>
+        <p>Unterbietet der Hash nicht nur dein persönliches Ziel, sondern das
+          der ganzen Kette, ist es ein Block. Der Reward geht direkt an deine
+          Adresse, und die Kette wächst um einen Eintrag.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================ NACHRECHNEN -->
+<section id="pruefen">
+  <div class="wrap">
+    <div class="cols two">
+      <div class="prose">
+        <h2>Glaub uns nichts</h2>
+        <p>Der Name der Kette ist ein Versprechen, das man einlösen können
+          muss. Deshalb ist alles so gebaut, dass du es selbst prüfen
+          kannst.</p>
+        <p>Der <a href="/explorer.html">Block Explorer</a> lädt die Blöcke und
+          rechnet sie <b>in deinem Browser</b> nach: Er setzt die 136
+          Header-Bytes aus den Einzelfeldern neu zusammen, hasht sie doppelt
+          mit SHA-256, prüft das Ergebnis gegen die eingetragene Difficulty
+          und ob jeder Block auf seinen Vorgänger zeigt. Keine dieser
+          Aussagen stammt vom Server.</p>
+        <p>Der Quelltext liegt offen. Wer möchte, kann einen eigenen
+          Beobachter-Knoten betreiben, der die ganze Kette von Block 0 an
+          nachrechnet — auf einem Raspberry Pi genügt das.</p>
+      </div>
+
+      <div>
+        <div class="panel">
+          <p class="tiplabel">Genesis, gemint am 9. September 2026</p>
+          <p class="mono" style="font-size:14px;line-height:1.7;word-break:break-all;margin:0">
+            <span class="zeros">00000009</span>0a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66
+          </p>
+          <dl class="facts" style="margin-top:20px">
+            <div><dt>Nonce</dt><dd class="mono">50 773 796</dd></div>
+            <div><dt>Hashes dafür</dt><dd>50 Millionen</dd></div>
+            <div><dt>Inschrift</dt><dd class="mono">proof, not promise</dd></div>
+            <div><dt>Reward</dt><dd>875 YSR, unausgebbar</dd></div>
+          </dl>
+          <p class="small dim" style="margin-top:18px">Die 875 YSR des ersten
+            Blocks gingen an eine Adresse aus lauter Nullbytes. Es gibt keinen
+            Schlüssel dafür — niemand hat vorab etwas bekommen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== AUSGABE -->
+<section id="ausgabe">
+  <div class="wrap">
+    <div class="cols two">
+      <div class="prose">
+        <h2>Wie viel es gibt</h2>
+        <p>21 Millionen YSR, nicht mehr. Diese Zahl ist keine Einstellung,
+          sondern ergibt sich aus dem Blockreward und dem Abstand der
+          Halbierungen — sie lässt sich nicht nachträglich erhöhen, ohne die
+          Regeln der Kette zu ändern.</p>
+        <p>Alle 12 000 Blöcke halbiert sich der Reward. Das wiederholt sich
+          37-mal, bis bei Block 444 000 die kleinste mögliche Einheit
+          ausgeschüttet wird und die Ausgabe endet.</p>
+        <p class="small">Es gab keinen Vorverkauf, keine Zuteilung an
+          Gründer und keine reservierten Anteile. Jedes YSR, das existiert,
+          wurde durch Rechenarbeit gefunden.</p>
+      </div>
+
+      <div>
+        <div class="panel">
+          <dl class="facts">
+            <div><dt>Maximalmenge</dt><dd>21 000 000 YSR</dd></div>
+            <div><dt>Im Umlauf</dt><dd id="a-umlauf">—</dd></div>
+            <div><dt>Reward je Block</dt><dd id="a-reward">—</dd></div>
+            <div><dt>Halbierung alle</dt><dd>12 000 Blöcke</dd></div>
+            <div><dt>Nachkommastellen</dt><dd>8</dd></div>
+          </dl>
+        </div>
+        <div class="panel">
+          <p class="tiplabel" id="a-epochlabel">Aktuelle Epoche</p>
+          <div class="bar"><i id="a-bar" style="width:0%"></i></div>
+          <p class="small dim" style="margin-top:12px" id="a-epoch">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================= MITMACHEN -->
+<section id="mitmachen">
+  <div class="wrap">
+    <div class="prose">
+      <h2>Drei Wege mitzumachen</h2>
+      <p class="lead">Alles davon ist freiwillig und kostet nichts außer
+        Strom.</p>
+    </div>
+
+    <div class="paths">
+      <div class="path">
+        <h3>Telefon</h3>
+        <p>Die Mini App in Telegram öffnen, Wallet anlegen, Mining starten.
+          Läuft, solange der Bildschirm an ist.</p>
+        <a class="go" href="https://t.me/YSKAR_bot">App öffnen</a>
+      </div>
+      <div class="path">
+        <h3>Rechner</h3>
+        <p>Ein eigenständiges Programm für Windows, macOS und Linux. Es
+          braucht nur eine Adresse und fasst keine Schlüssel an.</p>
+        <a class="go" href="https://github.com/dabitlex/YSKAR/tree/main/miner">Zum Miner</a>
+      </div>
+      <div class="path">
+        <h3>Knoten</h3>
+        <p>Ein Beobachter holt die Kette und rechnet jeden Block selbst nach.
+          Er merkt, wenn etwas nicht stimmt.</p>
+        <a class="go" href="https://github.com/dabitlex/YSKAR/tree/main/observer">Zum Knoten</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== GRENZEN -->
+<section id="grenzen">
+  <div class="wrap prose">
+    <h2>Was YSKAR nicht ist</h2>
+    <p class="lead">Diese Liste steht hier, weil sie sonst niemand schreiben
+      würde. Sie ist der ehrlichere Teil der Seite.</p>
+
+    <div class="warn">
+      <h3>Keine Geldanlage</h3>
+      <p>YSKAR hat keinen Preis, keinen Markt und keinen Gegenwert. Niemand
+        kauft es dir ab. Es gibt kein Versprechen, dass sich das jemals
+        ändert, und niemand sollte in der Erwartung minen, dass es das
+        tut.</p>
+    </div>
+
+    <div class="warn">
+      <h3>Noch nicht dezentral</h3>
+      <p>Es gibt genau einen Knoten, der Blöcke annimmt. Die Rechenarbeit ist
+        echt und nachprüfbar, aber wer diesen Knoten kontrolliert,
+        kontrolliert die Kette. Unabhängige Knoten, die untereinander
+        abstimmen, sind der nächste Schritt und noch nicht gebaut.</p>
+    </div>
+
+    <div class="warn">
+      <h3>Ein Projekt, kein Produkt</h3>
+      <p>YSKAR wird von einer Person entwickelt. Regeln können sich noch
+        ändern, solange die Kette jung ist. Es gibt keine Garantie, dass sie
+        in einem Jahr noch läuft.</p>
+    </div>
+
+    <div class="warn">
+      <h3>Zwölf Wörter, keine Wiederherstellung</h3>
+      <p>Deine Wallet hängt an zwölf Wörtern. Wer sie verliert, verliert sein
+        Guthaben endgültig — es gibt keine Stelle, die sie zurücksetzen kann.
+        Schreib sie auf Papier, bevor du anfängst.</p>
+    </div>
+
+    <p class="small" style="margin-top:30px">Mining lastet den Prozessor aus.
+      Das kostet Akku und Strom und erwärmt das Gerät. Wie viel, hängt vom
+      Gerät ab — probier es kurz aus, bevor du es stundenlang laufen
+      lässt.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>YSKAR — eine Kette, die du nachrechnen kannst</span>
+    <nav class="flinks">
+      <a href="/explorer.html">Explorer</a>
+      <a href="https://github.com/dabitlex/YSKAR">Quelltext</a>
+      <a href="https://t.me/YSKAR_bot">Mini App</a>
+      <a href="#grenzen">Grenzen</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+const API = '/api/v2';
+const $ = id => document.getElementById(id);
+
+const nf = (n, k = 0) =>
+  Number(n).toLocaleString('de-DE', { maximumFractionDigits: k });
+
+function rate(h){
+  if (h == null) return '—';
+  if (h >= 1e9) return [(h/1e9).toFixed(2), 'GH/s'];
+  if (h >= 1e6) return [(h/1e6).toFixed(2), 'MH/s'];
+  if (h >= 1e3) return [(h/1e3).toFixed(1), 'kH/s'];
+  return [Math.round(h), 'H/s'];
+}
+
+function vorZeit(sek){
+  const s = Math.max(0, Date.now()/1000 - Number(sek));
+  if (s < 90) return 'vor ' + Math.round(s) + ' Sekunden';
+  if (s < 5400) return 'vor ' + Math.round(s/60) + ' Minuten';
+  if (s < 86400) return 'vor ' + Math.round(s/3600) + ' Stunden';
+  return 'vor ' + Math.round(s/86400) + ' Tagen';
+}
+
+/* Fuehrende Nullen gedimmt: Sie SIND die geleistete Arbeit. Gedimmt kann man
+   sie zaehlen statt lesen -- ein Blick genuegt, um zu sehen, wie schwer ein
+   Fund war. Das ist das Material dieser Kette, und deshalb steht es oben. */
+function hashHtml(h){
+  const rest = h.replace(/^0+/, '');
+  const n = h.length - rest.length;
+  return '<span class="zeros">' + h.slice(0, n) + '</span>' + h.slice(n);
+}
+
+function setzeEinheit(el, wert, einheit){
+  el.innerHTML = einheit
+    ? wert + '<span class="unit">' + einheit + '</span>'
+    : wert;
+}
+
+async function laden(){
+  try{
+    const [s, b] = await Promise.all([
+      fetch(API + '/summary').then(r => r.json()),
+      fetch(API + '/blocks?limit=1').then(r => r.json()),
+    ]);
+    if (s.error) throw new Error(s.detail || s.error);
+
+    const dec = s.token?.decimals ?? 8;
+    const sym = s.token?.token_symbol ?? 'YSR';
+    const block = (b.blocks || [])[0];
+
+    if (block){
+      $('tiphash').innerHTML = hashHtml(block.hash);
+      const wer = block.txCount > 1
+        ? block.txCount + ' Transaktionen'
+        : 'eine Transaktion';
+      $('tipmeta').innerHTML =
+        'Block <b>' + nf(block.height) + '</b>, ' + vorZeit(block.timestamp) +
+        ' gefunden. Enthält ' + wer + ' und ' +
+        '<b>' + nf(Number(block.reward)/10**dec) + '</b> ' + sym + ' Reward.';
+    }
+
+    setzeEinheit($('s-hoehe'), s.height != null ? nf(s.height) : '—');
+    setzeEinheit($('s-diff'), s.difficulty != null ? nf(s.difficulty) : '—');
+    const [w, e] = Array.isArray(rate(s.hashrate)) ? rate(s.hashrate) : ['—', ''];
+    setzeEinheit($('s-rate'), w, e);
+    setzeEinheit($('s-miner'), nf(s.activeMiners ?? 0));
+    const umlauf = Number(s.totalSupply) / 10**dec;
+    setzeEinheit($('s-umlauf'), nf(umlauf), ' ' + sym);
+
+    $('a-umlauf').textContent = nf(umlauf) + ' ' + sym +
+      '  (' + (umlauf/21e6*100).toFixed(2) + ' %)';
+    $('a-reward').textContent = nf(Number(s.nextReward)/10**dec, 8) + ' ' + sym;
+
+    const EPOCHE = 12000;
+    const hoehe = s.height ?? 0;
+    const nr = Math.floor(hoehe / EPOCHE) + 1;
+    const drin = hoehe % EPOCHE;
+    $('a-epochlabel').textContent = 'Epoche ' + nr + ' von 37';
+    $('a-bar').style.width = Math.max(0.6, drin / EPOCHE * 100) + '%';
+    $('a-epoch').textContent =
+      'Block ' + nf(drin) + ' von ' + nf(EPOCHE) + '. Noch ' +
+      nf(EPOCHE - drin) + ' Blöcke, dann halbiert sich der Reward auf ' +
+      nf(Number(s.nextReward)/10**dec/2, 8) + ' ' + sym + '.';
+
+  }catch(err){
+    $('tipmeta').textContent =
+      'Die Kette ist gerade nicht erreichbar. Der Explorer zeigt den letzten ' +
+      'bekannten Stand.';
+  }
+}
+
+laden();
+setInterval(laden, 20000);
+</script>
+</body>
+</html>
