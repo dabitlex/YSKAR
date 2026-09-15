@@ -155,6 +155,36 @@ Zustandswurzel, Ablehnung manipulierter Blöcke.
 Chain-ID stellt sicher, dass seine Blöcke im echten Netz nicht einmal
 gelesen werden können.
 
+## Knoten starten
+
+```bash
+cd node
+npm install
+npm run build
+node dist/yskar-node.cjs sync --data ./knoten
+```
+
+Befehle: `sync` holt die Kette und prüft jeden Block selbst, `status` zeigt
+den Stand, `chain` die letzten Blöcke, `tips` alle bekannten Zweigenden.
+
+Bis P2P steht, kommen die Blöcke über die öffentliche Leseschnittstelle.
+**Geprüft werden sie trotzdem vollständig** — Header, Proof of Work,
+Merkle-Wurzel, Signaturen, Guthaben, Zustandswurzel, Difficulty-Regel. Der
+Knoten glaubt dem Server kein Feld.
+
+Liefert der Server etwas Falsches, hält er an:
+
+```
+BLOCK ABGELEHNT
+  Höhe 5: struktur
+  merkle_mismatch
+
+  Der Server liefert etwas, das der Kette widerspricht.
+  Lokal geprüft bis Höhe 4.
+```
+
+Rückgabewert 2. Das ist der Zweck des Programms.
+
 ## Messwerte
 
 Auf der Entwicklungsmaschine, 15 echte Blöcke:
