@@ -21,7 +21,7 @@ import { validateBlock, type ValidationError } from '../../core/validate.ts';
 import { emptyState, applyBlock, stateRoot, cloneState, type State }
   from '../../core/state.ts';
 import { toHex } from '../../core/codec.ts';
-import { LWMA_WINDOW } from '../../core/params.ts';
+import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 
 import { ChainStore, alsTip, type StoredBlock } from './ChainStore.ts';
 import { blockWork, compareTips } from './ChainWork.ts';
@@ -42,13 +42,19 @@ export interface ChainState {
 
 export class ChainManager {
   private store: ChainStore;
+  private params: ConsensusParams;
   /** Zustand am Kopf der AKTIVEN Kette. Wird bei jedem Reorg neu gebaut. */
   private zustand: State = emptyState();
   private zustandHoehe = -1;
   private zustandHash: Uint8Array | null = null;
 
-  constructor(store: ChainStore) {
+  /**
+   * Ohne Angabe gilt das Mainnet. Die Parameter gibt es nur, damit Fork-
+   * und Reorg-Tests im Testnetz durch die volle Validierung laufen koennen.
+   */
+  constructor(store: ChainStore, params: ConsensusParams = MAINNET) {
     this.store = store;
+    this.params = params;
     this.zustandHerstellen();
   }
 
@@ -114,8 +120,9 @@ export class ChainManager {
       previous: vorgaenger ? deserializeBlock(vorgaenger.body).header : null,
       state: ausgangszustand,
       recentTimestamps: zeitstempel.slice(-11),
-      recentTimings: timings.slice(-LWMA_WINDOW - 1),
+      recentTimings: timings.slice(-this.params.lwmaWindow - 1),
       now: BigInt(Math.floor(Date.now() / 1000)),
+      params: this.params,
     });
     if (fehler) return { ok: false, grund: fehler.code, detail: fehler.detail };
 
