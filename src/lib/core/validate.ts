@@ -1,4 +1,5 @@
 import { type Block, type BlockHeader, checkBlockStructure, headerHash, meetsTarget } from './block.ts';
+import { MAINNET, type ConsensusParams } from './networks.ts';
 import { type State, cloneState, applyBlock, stateRoot } from './state.ts';
 import { txMerkleRoot } from './block.ts';
 import { nextDifficulty, effectiveDifficulty, checkTimestamp, type BlockTiming } from './difficulty.ts';
@@ -28,6 +29,15 @@ export interface Context {
   recentTimings: BlockTiming[];
   /** Aktuelle Zeit in Sekunden -- fuer die Zukunftsgrenze. */
   now: bigint;
+  /**
+   * Netzparameter. Ohne Angabe gilt das Mainnet, wie bisher.
+   *
+   * Gebraucht wird das nur vom Testnetz: Dort ist die Difficulty so
+   * niedrig, dass sich Gabelungen in Millisekunden erzeugen lassen. Der
+   * Rest der Regel bleibt identisch -- die Tests pruefen also dieselbe
+   * Logik, die im echten Netz laeuft.
+   */
+  params?: ConsensusParams;
 }
 
 export type ValidationError =
@@ -48,9 +58,12 @@ export type ValidationError =
  * Difficulty geprueft, die in seinem eigenen Header steht -- und die muss
  * zwischen der regulaeren und der gelockerten Vorgabe liegen.
  */
-export function expectedDifficulty(timings: BlockTiming[]): bigint {
-  if (timings.length === 0) return GENESIS_DIFFICULTY;
-  return nextDifficulty(timings);
+export function expectedDifficulty(
+  timings: BlockTiming[],
+  params: ConsensusParams = MAINNET,
+): bigint {
+  if (timings.length === 0) return params.genesisDifficulty;
+  return nextDifficulty(timings, params);
 }
 
 export function validateBlock(block: Block, ctx: Context): ValidationError | null {
@@ -84,10 +97,10 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
 
   // --- Difficulty ---
   if (ctx.previous !== null) {
-    const regular = expectedDifficulty(ctx.recentTimings);
+    const regular = expectedDifficulty(ctx.recentTimings, ctx.params ?? MAINNET);
     const elapsed = h.timestamp > ctx.previous.timestamp
       ? h.timestamp - ctx.previous.timestamp : 0n;
-    const eased = effectiveDifficulty(regular, elapsed);
+    const eased = effectiveDifficulty(regular, elapsed, ctx.params ?? MAINNET);
     // Zulaessig ist alles zwischen der gelockerten Untergrenze und dem
     // regulaeren Wert. Schwerer als noetig darf ein Miner gern arbeiten.
     if (h.difficulty > regular || h.difficulty < eased) {
@@ -96,8 +109,9 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
         detail: `${h.difficulty} liegt nicht zwischen ${eased} und ${regular}`,
       };
     }
-    if (h.difficulty < MIN_DIFFICULTY) {
-      return { code: 'difficulty', detail: `unter der Untergrenze ${MIN_DIFFICULTY}` };
+    const untergrenze = (ctx.params ?? MAINNET).minDifficulty;
+    if (h.difficulty < untergrenze) {
+      return { code: 'difficulty', detail: `unter der Untergrenze ${untergrenze}` };
     }
   }
 

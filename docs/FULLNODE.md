@@ -103,33 +103,57 @@ Ein Block auf einem Nebenzweig wird gegen den Zustand **dieses Zweigs**
 geprüft, nicht gegen den aktiven Tip. Genau daran scheitern Gabelungen
 sonst.
 
-## Testlücke, offen benannt
+## Testnetz
 
-**Ein Reorg durch die volle Validierung hindurch ist nicht getestet.**
+Die Lücke von gestern ist geschlossen. Forks und Reorgs laufen jetzt durch
+die **volle Validierung**.
 
-Der Grund ist unangenehm konkret: Bei Difficulty 24.576 kostet ein Block
-rund 1,6 Milliarden Hashes, also etwa eine Viertelstunde Rechenzeit. Eine
-Testkette mit einer Gabelung zu minen ist damit ausgeschlossen.
+Der Grund für die Lücke war konkret: Bei Difficulty 24.576 kostet ein Block
+rund 1,6 Milliarden Hashes, also eine Viertelstunde Rechenzeit. Eine
+Testkette mit Gabelung war damit nicht minbar.
 
-Geprüft ist stattdessen:
+`src/lib/core/networks.ts` führt Netzparameter ein:
 
-- **Konsens und Zustand** gegen echte Blöcke der laufenden Kette
-  (`tests/fixtures/kette-0-14.json`): Validierung, Zustandsaufbau,
-  Zustandswurzel, Ablehnung manipulierter Blöcke
-- **Gabelung, Arbeitsvergleich, Umschalten** auf Speicherebene mit
-  synthetischen Einträgen: die Mechanik, nicht die Validierung
+```ts
+MAINNET   Difficulty 24.576, chain_id 952ee402…   (exakt params.ts)
+REGTEST   Difficulty 1,      chain_id bbb27f1b…   (nur für Tests)
+```
 
-Was fehlt, ist die Verbindung beider: ein echter Fork, der durch
-`accept()` läuft.
+Bei Difficulty 1 ist das Target 2^240, es trifft also etwa jeder
+65.536-ste Hash. Ein Testblock kostet rund 500 ms statt einer
+Viertelstunde.
 
-**Der Weg dorthin ist ein Testnetz** mit eigener Chain-ID und niedriger
-Difficulty, wie Bitcoin es mit regtest hat. Dafür müssten `NETWORK`,
-`CHAIN_ID` und `GENESIS_DIFFICULTY` aus Konstanten zu Parametern werden —
-ein Eingriff in `params.ts`, der die Mainnet-Werte nicht verändert, aber
-sorgfältig gemacht werden muss.
+**Am Mainnet ändert sich nichts.** `MAINNET` enthält exakt die Werte aus
+`params.ts`, und jede Funktion ohne übergebene Parameter rechnet weiterhin
+damit — die Änderungen an `difficulty.ts` und `validate.ts` sind rein
+additiv. Ein Test prüft Feld für Feld, dass `MAINNET` und `params.ts`
+übereinstimmen.
 
-Das ist der nächste Schritt, den ich vorschlage, bevor P2P gebaut wird. Ein
-Reorg, der nie unter voller Validierung gelaufen ist, darf nicht ins Netz.
+Gemint wird im Testnetz **echt**: derselbe Header, dieselbe Hashfunktion,
+derselbe `ChainManager`, dieselbe `validateBlock`. Nur das Ziel ist
+niedriger. Die Tests prüfen damit genau die Regel, die im echten Netz
+läuft.
+
+### Was geprüft ist
+
+| Test | |
+|---|---|
+| gerade Kette | vollständig angenommen, Zustandswurzel stimmt |
+| zweiter Block auf derselben Höhe | gespeichert, Gleichstand über den Hash entschieden |
+| längerer Zweig mit mehr Arbeit | Reorg wird gemeldet und ausgeführt |
+| Zustand nach dem Reorg | passt zum neuen Zweig, Guthaben je Miner stimmt |
+| kürzerer Zweig | übernimmt **nicht**, wird aber gespeichert |
+| Reorg zurück | der alte Zweig gewinnt wieder, alle drei Zweige bleiben erhalten |
+| ungültiger Block auf Nebenzweig | abgelehnt, nichts gespeichert |
+| Zustand nach Reorg neu berechnen | identische Wurzel |
+
+Dazu die Prüfung gegen **echte Blöcke** der laufenden Kette
+(`tests/fixtures/kette-0-14.json`) — Validierung, Zustandsaufbau,
+Zustandswurzel, Ablehnung manipulierter Blöcke.
+
+`REGTEST` darf in keinem ausgelieferten Pfad vorkommen. Die eigene
+Chain-ID stellt sicher, dass seine Blöcke im echten Netz nicht einmal
+gelesen werden können.
 
 ## Messwerte
 
