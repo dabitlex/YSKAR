@@ -1,0 +1,25 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# Beim Bauen erzeugt -- public/miner.<hash>.wasm ist die verbindliche Fassung
+wasm/sha256d_miner.wasm
+
+# Fortsetzungspunkt des Genesis-Miners, kein Ergebnis
+scripts/genesis.state.json
+
+# Eigenstaendige Werkzeuge: eigene Installation, eigene Bauartefakte
+miner/node_modules/
+miner/dist/
+miner/yskar-miner.json
+observer/node_modules/
+observer/dist/
+observer/daten/
+node/node_modules/
+node/dist/
+node/knoten/
