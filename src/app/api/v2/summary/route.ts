@@ -20,7 +20,9 @@ export async function GET() {
       sb.from('state_meta').select('height, state_root, total_supply').eq('id', 1).single(),
       sb.from('params').select('token_name, token_symbol, decimals').eq('id', 1).single(),
       sb.from('mempool').select('txid', { count: 'exact', head: true }),
-      sb.from('sessions').select('address').eq('status', 'active'),
+      sb.from('sessions')
+        .select('address, vardiff_samples, accumulated_weight, started_at, last_share_at')
+        .eq('status', 'active'),
     ]);
 
   // Fehler NICHT verschlucken. Ein Rechte- oder Schemaproblem liefert
@@ -51,6 +53,57 @@ export async function GET() {
     if (span > 0) hashrate = (work * Number(DIFFICULTY_UNIT)) / span;
   }
 
+  /*
+    Gemessene Leistung der verbundenen Miner.
+
+    Die Hashrate aus der Kette (oben) ist die ehrlichere Groesse -- sie
+    kommt aus der geleisteten Arbeit selbst und laesst sich nicht
+    beschoenigen. Sie braucht aber neue Bloecke, um zu reagieren: Bei zehn
+    Minuten Blockzeit dauert eine sichtbare Aenderung entsprechend lange,
+    und ein zweiter Miner faellt erst nach mehreren Bloecken auf.
+
+    Diese zweite Zahl kommt aus den VALIDIERTEN SHARES. Ein
+    VarDiff-Messwert ist Sekunden je Difficulty-Einheit, also gilt
+    hashrate = 65536 / Messwert. Das ist gemessene Arbeit, keine
+    Selbstauskunft des Miners -- der Server hat jeden dieser Shares selbst
+    nachgerechnet. Sie aktualisiert sich alle rund 30 Sekunden und zaehlt
+    mehrere Sessions derselben Adresse korrekt zusammen.
+
+    Beide Zahlen nebeneinander sind aussagekraeftiger als eine: Weichen sie
+    dauerhaft ab, stimmt etwas nicht.
+  */
+  const jetzt = Date.now();
+  let minerHashrate = 0;
+  let messendeSessions = 0;
+
+  for (const s of (active ?? []) as Array<{
+    vardiff_samples: number[] | null;
+    accumulated_weight: string | number | null;
+    started_at: string; last_share_at: string | null;
+  }>) {
+    // Wer seit drei Minuten nichts eingereicht hat, rechnet vermutlich
+    // nicht mehr. Ihn mitzuzaehlen wuerde die Zahl schoenen.
+    const letzter = s.last_share_at ? new Date(s.last_share_at).getTime() : 0;
+    if (!letzter || jetzt - letzter > 180_000) continue;
+
+    const proben = (s.vardiff_samples ?? []).filter(x => Number.isFinite(x) && x > 0);
+    if (proben.length >= 2) {
+      const mittel = proben.reduce((a, b) => a + b, 0) / proben.length;
+      minerHashrate += Number(DIFFICULTY_UNIT) / mittel;
+      messendeSessions++;
+      continue;
+    }
+
+    // Noch zu wenige Messwerte: Durchschnitt ueber die ganze Sitzung.
+    const start = new Date(s.started_at).getTime();
+    const dauer = (letzter - start) / 1000;
+    const arbeit = Number(s.accumulated_weight ?? 0);
+    if (dauer > 0 && arbeit > 0) {
+      minerHashrate += (arbeit * Number(DIFFICULTY_UNIT)) / dauer;
+      messendeSessions++;
+    }
+  }
+
   const tip = blocks[0] ?? null;
   const nextHeight = tip ? tip.height + 1 : 0;
 
@@ -68,6 +121,10 @@ export async function GET() {
     maxSupply: MAX_SUPPLY.toString(),
     nextReward: rewardAt(nextHeight).toString(),
     mempool: pending ?? 0,
+    /** Aus validierten Shares, aktualisiert sich alle rund 30 Sekunden. */
+    minerHashrate: messendeSessions > 0 ? minerHashrate : null,
+    /** Sessions, die gerade messbar arbeiten -- nicht Adressen. */
+    miningSessions: messendeSessions,
     activeMiners: new Set((active ?? []).map(s => s.address)).size,
   }, { headers: CORS });
 }

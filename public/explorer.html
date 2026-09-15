@@ -253,7 +253,8 @@ function renderStats(){
   const rows=[
     ['Höhe', sum.height!=null?'#'+sum.height:'—'],
     ['Difficulty', sum.difficulty!=null?nf(sum.difficulty):'—'],
-    ['Netz-Hashrate', hashrate(sum.hashrate)],
+    ['Netz, aus der Kette', hashrate(sum.hashrate)],
+    ['Gemessen, live', hashrate(sum.minerHashrate)],
     ['Aktive Miner', String(sum.activeMiners??0)],
     ['Nächster Reward', (Number(sum.nextReward)/10**dec).toFixed(0)+' '+sym],
     ['Im Umlauf', (Number(sum.totalSupply)/10**dec).toLocaleString('de-DE')+' '+sym],

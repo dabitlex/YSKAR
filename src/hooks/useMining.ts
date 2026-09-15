@@ -21,6 +21,9 @@ export interface Summary {
   nextHeight: number;
   difficulty: number | null;
   hashrate: number | null;
+  /** Aus validierten Shares -- reagiert in Sekunden statt in Blöcken. */
+  minerHashrate?: number | null;
+  miningSessions?: number;
   tipHash: string | null;
   totalSupply: string | number;
   nextReward: string;
