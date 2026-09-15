@@ -517,7 +517,11 @@ async function laden(){
 
     setzeEinheit($('s-hoehe'), s.height != null ? nf(s.height) : '—');
     setzeEinheit($('s-diff'), s.difficulty != null ? nf(s.difficulty) : '—');
-    const [w, e] = Array.isArray(rate(s.hashrate)) ? rate(s.hashrate) : ['—', ''];
+    // Die gemessene Leistung reagiert in Sekunden, die aus der Kette
+    // hergeleitete erst nach mehreren Blöcken. Auf einer Seite, die man
+    // kurz aufruft, ist die schnellere die nützlichere.
+    const roh = s.minerHashrate ?? s.hashrate;
+    const [w, e] = Array.isArray(rate(roh)) ? rate(roh) : ['—', ''];
     setzeEinheit($('s-rate'), w, e);
     setzeEinheit($('s-miner'), nf(s.activeMiners ?? 0));
     const umlauf = Number(s.totalSupply) / 10**dec;

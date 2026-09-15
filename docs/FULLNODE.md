@@ -12,9 +12,152 @@ liegt, hat der Knoten selbst geprüft.
 | Block-Index | in `ChainStore` | fertig, getestet |
 | Kettenverwaltung | `src/lib/node/fullnode/ChainManager.ts` | fertig |
 | Fork-Erkennung | in `ChainManager` | Mechanik getestet |
-| Reorg | in `ChainManager` | Mechanik gebaut, siehe Testlücke |
+| Reorg | in `ChainManager` | fertig, durch volle Validierung getestet |
+| Mempool | `src/lib/node/fullnode/TxPool.ts` | fertig, getestet |
+| Blockbau und Job | `src/lib/node/fullnode/MiningCoordinator.ts` | fertig, getestet |
 
-Noch nicht gebaut: Mempool, P2P, Mining am lokalen Knoten, Pool.
+| Mining-Schnittstelle | `src/lib/node/fullnode/MiningServer.ts` | fertig, getestet |
+
+Noch nicht gebaut: P2P, Pool.
+
+## Gegen den eigenen Knoten minen
+
+```bash
+# Ein Fenster: Knoten mit eigenem Testnetz
+node dist/yskar-node.cjs mine --regtest --data ./testnetz
+
+# Zweites Fenster: der GANZ NORMALE Miner
+cd ../miner
+node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645
+```
+
+**Der bestehende Miner ändert sich um keine Zeile.** Der Knoten spricht
+dasselbe Protokoll wie der Server — `/session`, `/job`, `/share`,
+`/session/stop`, `/summary`. Nur die Adresse ist eine andere.
+
+Ein zweiter Miner wäre die Verdopplung gewesen, die in diesem Projekt schon
+zweimal zugeschlagen hat: einmal beim Blockheader, einmal beim
+WASM-Zwischenspeicher. Beide Male liefen die Kopien lautlos auseinander und
+es fiel erst nach Stunden auf.
+
+Der Knoten baut die Jobs selbst, prüft jeden Share nach und nimmt gefundene
+Blöcke über dieselbe vollständige Validierung an wie fremde. Ohne Server,
+ohne Supabase.
+
+### Was dabei beachtet ist
+
+| | |
+|---|---|
+| Extranonce | je Session eindeutig — getrennte Nonce-Räume |
+| Fremde Jobs | abgewiesen, sonst doppelte Gutschrift für dieselbe Arbeit |
+| Share-Ziel | nachgeführt über acht Messwerte, nicht je Einzelwert |
+| Bindung | nur `127.0.0.1`, solange nichts anderes angegeben wird |
+| Anfragegröße | auf 64 KB begrenzt |
+
+Die Nachführung über mehrere Messwerte ist kein Detail: Die Abstände
+zwischen Shares sind exponentialverteilt. Wer auf jeden einzelnen reagiert,
+bringt das Ziel zum Schwingen statt es einzuregeln — genau dieser Fehler
+steckte in der ersten Fassung der Kette.
+
+## Blöcke einreichen
+
+`POST /api/v2/block  { raw: "<hex>" }`
+
+Damit kann ein Full Node auf der echten Kette **mitproduzieren** statt nur
+zu prüfen. Vorher lag ein lokal gefundener Block auf dem Rechner seines
+Finders und wurde beim nächsten Block der anderen Seite verdrängt — echte
+Arbeit für nichts.
+
+**Dem Einreicher wird nichts geglaubt.** Kein Feld aus seiner Anfrage wird
+übernommen, nur die rohen Bytes. Höhe, Difficulty, Merkle-Wurzel,
+Signaturen, Guthaben und Zustandswurzel rechnet der Server selbst nach —
+mit derselben `validateBlock`, die auch eigene Blöcke prüft.
+
+Deshalb braucht die Route keine Anmeldung: Sie gewährt nichts, was nicht
+durch Arbeit gedeckt wäre. Wer einen gültigen Block einreicht, hat ihn
+gemint.
+
+Reihenfolge wieder billig vor teuer: Größe, Hex, Struktur und Proof of Work
+kosten Mikrosekunden, die Signaturen Millisekunden, die Datenbank noch
+mehr.
+
+| Antwort | Bedeutung |
+|---|---|
+| `accepted` | angenommen, mit Höhe und Hash |
+| `stale` | zu spät, die Kette ist weiter — kein Fehler des Einreichers |
+| `height_gap` | es fehlen Blöcke dazwischen |
+| `wrong_parent` | zeigt auf einen anderen Vorgänger |
+| `commit_failed` | zwischen Prüfung und Festschreiben hat ein anderer gewonnen |
+
+Der Knoten reicht gefundene Blöcke automatisch weiter (`--upstream`, per
+Vorgabe an `--api`). Die Weitergabe läuft nebenher — der Miner bekommt
+seine Antwort sofort und wartet nicht darauf. Eine Ablehnung wird gemeldet,
+nicht verschluckt; lokal bleibt der Block gültig, denn die Gegenstelle kann
+sich irren.
+
+```bash
+# Auf der echten Kette mitproduzieren
+node dist/yskar-node.cjs sync --data ./knoten --once     # erst aufholen
+node dist/yskar-node.cjs mine --data ./knoten            # dann minen
+```
+
+Ohne `--regtest` gilt das Mainnet, und gefundene Blöcke gehen an
+`https://yskar.vercel.app`. Mit `--no-upstream` bleiben sie lokal.
+
+**Das ist noch kein P2P.** Es bleibt ein sternförmiges Netz mit Supabase in
+der Mitte: Der Knoten holt Blöcke von dort und gibt seine dorthin. Echte
+Dezentralisierung wird es erst, wenn Knoten direkt miteinander reden.
+
+## Mempool
+
+Wartende Transaktionen, vollständig gegen den aktuellen Zustand geprüft.
+
+Der Mempool ist eine **Angriffsfläche**, und das prägt fast jede
+Entscheidung darin: Er nimmt Daten von Fremden entgegen, bevor sie in einem
+Block stehen, hält sie im Arbeitsspeicher und gibt sie weiter. Ohne
+Obergrenze lässt sich ein Knoten mit wertlosen Transaktionen aushungern;
+etwas Ungeprüftes weiterzureichen hieße, den Angriff für den Angreifer zu
+verteilen.
+
+Deshalb erst prüfen, dann aufnehmen, dann erst weitergeben.
+
+| Regel | |
+|---|---|
+| Reihenfolge | kostenlose Prüfungen zuerst, Signatur zuletzt |
+| Nonce | lückenlos an Kontostand und Wartende anschließend |
+| Ersetzung | nur mit höherer Gebühr |
+| Deckung | Summe **aller** wartenden Beträge plus Gebühren |
+| Obergrenzen | 5.000 gesamt, 32 je Absender |
+| Nach dem Block | Enthaltene raus, ungültig Gewordene auch |
+| Nach dem Reorg | Verdrängte Transaktionen kommen zurück — erneut geprüft |
+
+Die Reihenfolge ist keine Kosmetik: Eine Ed25519-Prüfung ist rund
+tausendmal teurer als ein Kartenzugriff. Wer sie vorn ansetzt, lädt jeden
+ein, den Knoten mit Müll zu beschäftigen.
+
+## Mining am lokalen Knoten
+
+Bis hierher kam jeder Mining-Job von Supabase. Das war der letzte Punkt, an
+dem der Knoten etwas glauben musste: Wer den Job baut, bestimmt, in welchem
+Block die Arbeit landet und wer die Coinbase bekommt.
+
+Jetzt erzeugt der Knoten den Job selbst — aus eigenem Kettenkopf, eigenem
+Zustand, eigenem Mempool. Ohne Verbindung nach außen.
+
+**Er glaubt auch sich selbst nicht.** Ein gefundener Block läuft durch
+dieselbe vollständige Prüfung wie ein fremder, über `ChainManager.accept()`.
+Das kostet Millisekunden und fängt jeden Fehler in der Blockerzeugung ab,
+bevor er in die Kette kommt.
+
+Der vollständige Blockkörper bleibt beim Job liegen. Ihn später aus dem
+Mempool zu rekonstruieren wäre ein Fehler: Zwischen Ausgabe und Fund ändert
+sich der Mempool, und `merkle_root` wie `state_root` im Header verpflichten
+auf **genau diese** Auswahl. Weicht sie um eine Transaktion ab, ist die
+geleistete Arbeit wertlos.
+
+Der Einreicher schickt nur die Nonce. Der Hash wird im Knoten selbst
+gerechnet; eine Angabe des Miners über die erreichte Difficulty wird nie
+übernommen.
 
 ## Chain Work
 
