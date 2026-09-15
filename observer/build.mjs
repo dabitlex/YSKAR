@@ -7,13 +7,29 @@
  *
  * Gebuendelt laeuft er mit schlichtem `node yskar-observer.cjs`.
  */
-import { build } from 'esbuild';
 import { mkdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 const { existsSync } = await import('node:fs');
+
+/*
+  esbuild wird DYNAMISCH geladen, nach der Pruefung.
+
+  Ein statischer Import scheitert, bevor eine einzige eigene Zeile laeuft.
+  Der Nutzer sieht dann ERR_MODULE_NOT_FOUND mit zehn Zeilen
+  Node-Interna -- und nicht den einen Satz, der ihm weiterhilft.
+*/
+if (!existsSync(join(HIER, 'node_modules', 'esbuild'))) {
+  console.error('\nesbuild fehlt in diesem Ordner.');
+  console.error(`Eine Installation im Projektwurzelverzeichnis genuegt nicht --`);
+  console.error(`dieser Ordner braucht seine eigene:\n`);
+  console.error(`  cd ${HIER.split(/[\\/]/).pop()}`);
+  console.error('  npm install\n');
+  process.exit(1);
+}
+const { build } = await import('esbuild');
 const noetig = ['@noble/hashes', '@noble/curves', '@scure/base', '@scure/bip39'];
 const fehlend = noetig.filter(m => !existsSync(join(HIER, 'node_modules', m)));
 if (fehlend.length > 0) {
