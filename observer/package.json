@@ -14,5 +14,11 @@
   "private": false,
   "devDependencies": {
     "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip39": "^2.4.0"
   }
 }

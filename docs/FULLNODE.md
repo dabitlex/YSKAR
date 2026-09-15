@@ -159,10 +159,18 @@ gelesen werden können.
 
 ```bash
 cd node
-npm install
+npm install          # esbuild und die Kryptobibliotheken
 npm run build
 node dist/yskar-node.cjs sync --data ./knoten
 ```
+
+Unter Windows `npm.cmd` statt `npm`.
+
+Der Ordner ist eigenständig: Ein `npm install` im Projektwurzelverzeichnis
+ist nicht nötig. Der Bau bündelt Quelltext aus `../src/lib/core`, und
+`nodePaths` in `build.mjs` sorgt dafür, dass die Bibliotheken dafür
+gefunden werden — esbuild sucht `node_modules` sonst ausgehend vom
+Verzeichnis der importierten Datei und würde hier nie nachsehen.
 
 Befehle: `sync` holt die Kette und prüft jeden Block selbst, `status` zeigt
 den Stand, `chain` die letzten Blöcke, `tips` alle bekannten Zweigenden.
