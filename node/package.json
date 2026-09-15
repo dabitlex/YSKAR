@@ -1,0 +1,20 @@
+{
+  "name": "yskar-node",
+  "version": "0.1.0",
+  "description": "YSKAR Full Node — prüft die Kette lokal und vollständig.",
+  "type": "module",
+  "bin": {
+    "yskar-node": "./dist/yskar-node.cjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node --experimental-strip-types ../src/lib/node/fullnode/cli.ts",
+    "build": "node build.mjs"
+  },
+  "private": false,
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
