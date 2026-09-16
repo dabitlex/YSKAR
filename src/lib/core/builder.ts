@@ -4,8 +4,10 @@ import {
 } from './tx.ts';
 import { type Block, type BlockHeader, serializeHeader, txMerkleRoot, BLOCK_VERSION } from './block.ts';
 import { type State, cloneState, getAccount, applyBlock, stateRoot } from './state.ts';
-import { rewardAt, MAX_TXS_PER_BLOCK } from './params.ts';
+import { rewardAt, MAX_TXS_PER_BLOCK, COINBASE_V2, MAX_COINBASE_OUTPUTS }
+  from './params.ts';
 import { toHex } from './codec.ts';
+import { MAINNET, type ConsensusParams } from './networks.ts';
 
 /**
  * Blockbau.
@@ -24,6 +26,8 @@ import { toHex } from './codec.ts';
  */
 
 export interface BuildParams {
+  /** Netzparameter. Ohne Angabe gilt das Mainnet. */
+  params?: ConsensusParams;
   height: number;
   prevHash: Uint8Array;
   /** Zustand NACH dem Vorgaengerblock. */
@@ -138,10 +142,54 @@ export function buildCoinbase(
     type: TX_COINBASE,
     version: TX_VERSION,
     height,
-    to,
-    amount: rewardAt(height) + fees,
+    outputs: [{ to, amount: rewardAt(height) + fees }],
     // Macht den txid eindeutig, auch wenn derselbe Miner zweimal denselben
     // Betrag auf derselben Hoehe bekaeme.
+    extra: extra ?? new Uint8Array(0),
+  };
+}
+
+/**
+ * Coinbase mit mehreren Empfaengern -- Fassung 2.
+ *
+ * Fuer Pool Mining: Der Block zahlt alle Beteiligten direkt aus, der
+ * Betreiber haelt nie fremdes Geld.
+ *
+ * Die Anteile muessen exakt aufgehen. Ein Rest von einer Einheit waere kein
+ * Rundungsfehler, sondern ein ungueltiger Block -- deshalb prueft diese
+ * Funktion die Summe, statt sie stillschweigend anzupassen.
+ */
+export function buildCoinbaseV2(
+  height: number,
+  anteile: { to: Uint8Array; amount: bigint }[],
+  fees: bigint,
+  extra?: Uint8Array,
+): Coinbase {
+  if (anteile.length < 1 || anteile.length > MAX_COINBASE_OUTPUTS) {
+    throw new Error(`Coinbase braucht 1 bis ${MAX_COINBASE_OUTPUTS} Empfaenger`);
+  }
+  // Aufsteigend sortieren und auf Wiederholungen pruefen: Die Kette nimmt
+  // nur diese eine Reihenfolge an.
+  const sortiert = [...anteile].sort((a, b) => toHex(a.to) < toHex(b.to) ? -1 : 1);
+  for (let i = 1; i < sortiert.length; i++) {
+    if (toHex(sortiert[i - 1].to) === toHex(sortiert[i].to)) {
+      throw new Error('derselbe Empfaenger zweimal -- Anteile vorher zusammenfassen');
+    }
+  }
+  let summe = 0n;
+  for (const a of sortiert) {
+    if (a.amount <= 0n) throw new Error('Empfaenger ohne Betrag');
+    summe += a.amount;
+  }
+  const erwartet = rewardAt(height) + fees;
+  if (summe !== erwartet) {
+    throw new Error(`Anteile ergeben ${summe}, erwartet ${erwartet}`);
+  }
+  return {
+    type: TX_COINBASE,
+    version: COINBASE_V2,
+    height,
+    outputs: sortiert,
     extra: extra ?? new Uint8Array(0),
   };
 }
@@ -168,7 +216,7 @@ export function buildBlock(p: BuildParams): BuildResult {
     nonce: 0n,
   };
   const probe: Block = { header, txs };
-  const applied = applyBlock(after, probe);
+  const applied = applyBlock(after, probe, p.params ?? MAINNET);
   if (!applied.ok) {
     throw new Error(`Blockbau fehlgeschlagen: ${applied.error?.reason} (tx ${applied.error?.tx})`);
   }

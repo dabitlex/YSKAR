@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { deserializeBlock, headerHash, checkBlockStructure } from '@/lib/core/block';
+import { coinbaseTotal, type Coinbase } from '@/lib/core/tx';
 import { validateBlock } from '@/lib/core/validate';
 import { applyBlock, cloneState, stateRoot } from '@/lib/core/state';
 import { toHex, fromHex } from '@/lib/core/codec';
@@ -144,15 +145,19 @@ export async function POST(req: Request) {
     }, { status: 409, headers: CORS });
   }
 
-  const coinbase = block.txs[0] as { to: Uint8Array; amount: bigint };
+  const coinbase = block.txs[0] as Coinbase;
 
   return NextResponse.json({
     accepted: true,
     height: committed.height,
     hash,
     txs: committed.txs,
-    reward: coinbase.amount.toString(),
-    minerAddress: toHex(coinbase.to),
+    reward: coinbaseTotal(coinbase).toString(),
+    // Bei mehreren Empfaengern alle nennen -- eine einzelne Adresse waere
+    // hier irrefuehrend.
+    recipients: coinbase.outputs.map(o => ({
+      address: toHex(o.to), amount: o.amount.toString(),
+    })),
   }, { headers: CORS });
 }
 

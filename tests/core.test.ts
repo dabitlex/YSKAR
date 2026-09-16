@@ -196,8 +196,8 @@ test('Merkle-Baum verdoppelt bei ungerader Anzahl nicht', () => {
 
 function coinbase(height: number, to: Uint8Array, fees = 0n): T.Coinbase {
   return {
-    type: T.TX_COINBASE, version: T.TX_VERSION, height, to,
-    amount: P.rewardAt(height) + fees,
+    type: T.TX_COINBASE, version: T.TX_VERSION, height,
+    outputs: [{ to, amount: P.rewardAt(height) + fees }],
     extra: new Uint8Array([height & 0xff]),
   };
 }
@@ -226,7 +226,10 @@ test('Coinbase schreibt dem Miner den Reward gut', () => {
 test('Falscher Coinbase-Betrag wird abgelehnt', () => {
   const { a } = wallets();
   const st = S.emptyState();
-  const cb = { ...coinbase(1, a.addressRaw), amount: 10_000n * P.UNIT };
+  const cb = {
+    ...coinbase(1, a.addressRaw),
+    outputs: [{ to: a.addressRaw, amount: 10_000n * P.UNIT }],
+  };
   const r = S.applyBlock(st, block(1, [cb]));
   assert.equal(r.ok, false);
   assert.match(r.error!.reason, /coinbase_amount/);
@@ -306,7 +309,10 @@ test('state_root hängt nicht von der Einfügereihenfolge ab', () => {
   const { a, b, c } = wallets();
   const s1 = S.emptyState(), s2 = S.emptyState();
   const setze = (s: S.State, w: W.Keypair, v: bigint) =>
-    S.applyBlock(s, block(1, [{ ...coinbase(1, w.addressRaw), amount: P.rewardAt(1) }]));
+    S.applyBlock(s, block(1, [{
+      ...coinbase(1, w.addressRaw),
+      outputs: [{ to: w.addressRaw, amount: P.rewardAt(1) }],
+    }]));
 
   setze(s1, a, 1n); setze(s1, b, 2n); setze(s1, c, 3n);
   setze(s2, c, 3n); setze(s2, b, 2n); setze(s2, a, 1n);
@@ -711,7 +717,11 @@ test('Coinbase an eine fremde Adresse macht den Block ungültig', async () => {
   // Empfaenger tauschen, ohne neu zu minen
   const geklaut: B.Block = {
     header: blk.header,
-    txs: [{ ...(blk.txs[0] as T.Coinbase), to: b.addressRaw }, ...blk.txs.slice(1)],
+    txs: [{
+      ...(blk.txs[0] as T.Coinbase),
+      outputs: [{ to: b.addressRaw,
+                  amount: (blk.txs[0] as T.Coinbase).outputs[0].amount }],
+    }, ...blk.txs.slice(1)],
   };
   assert.equal(B.checkBlockStructure(geklaut), 'merkle_mismatch',
     'ein anderer Empfaenger aendert den txid und damit die Merkle-Wurzel');
@@ -768,8 +778,9 @@ test('Der Genesis-Block ist reproduzierbar', async () => {
 
   // Der Reward geht an die Nulladresse und ist damit unausgebbar
   const cb = block.txs[0] as T.Coinbase;
-  assert.equal(toHex(cb.to), '00'.repeat(20));
-  assert.equal(cb.amount, P.rewardAt(0));
+  assert.equal(cb.outputs.length, 1);
+  assert.equal(toHex(cb.outputs[0].to), '00'.repeat(20));
+  assert.equal(cb.outputs[0].amount, P.rewardAt(0));
   assert.equal(encodeAddress(ZERO_ADDRESS), 'ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw');
 
   const state = S.emptyState();

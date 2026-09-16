@@ -127,7 +127,7 @@ export class ChainManager {
     if (fehler) return { ok: false, grund: fehler.code, detail: fehler.detail };
 
     const nachher = cloneState(ausgangszustand);
-    const angewandt = applyBlock(nachher, block);
+    const angewandt = applyBlock(nachher, block, this.params);
     if (!angewandt.ok) {
       return { ok: false, grund: 'anwenden', detail: angewandt.error?.reason };
     }
@@ -255,7 +255,7 @@ export class ChainManager {
       const b = this.store.mainAt(h);
       if (!b) throw new Error(`Aktive Kette hat eine Luecke bei Hoehe ${h}`);
       const block = deserializeBlock(b.body);
-      const r = applyBlock(zustand, block);
+      const r = applyBlock(zustand, block, this.params);
       if (!r.ok) {
         throw new Error(`Block ${h} laesst sich nicht anwenden: ${r.error?.reason}`);
       }
@@ -311,7 +311,7 @@ export class ChainManager {
     } else {
       state = emptyState();
       for (const b of kette) {
-        const r = applyBlock(state, deserializeBlock(b.body));
+        const r = applyBlock(state, deserializeBlock(b.body), this.params);
         if (!r.ok) throw new Error(`Zweig bei ${b.height}: ${r.error?.reason}`);
       }
     }
