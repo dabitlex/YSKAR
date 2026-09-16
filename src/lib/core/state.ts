@@ -1,8 +1,11 @@
 import { Writer, toHex } from './codec.ts';
 import { merkleRoot } from './hash.ts';
-import { txid, checkTransfer, TX_COINBASE, TX_TRANSFER, type Tx } from './tx.ts';
+import { txid, checkTransfer, coinbaseTotal, TX_COINBASE, TX_TRANSFER, type Tx }
+  from './tx.ts';
 import { type Block } from './block.ts';
-import { rewardAt, ADDRESS_BYTES, MAX_SUPPLY } from './params.ts';
+import { rewardAt, ADDRESS_BYTES, MAX_SUPPLY, COINBASE_V2, MAX_COINBASE_OUTPUTS }
+  from './params.ts';
+import { MAINNET, type ConsensusParams } from './networks.ts';
 
 /**
  * Kontozustand.
@@ -75,7 +78,11 @@ export interface ApplyResult {
  * bei einem Fehler bleibt der uebergebene Zustand unangetastet, damit ein
  * abgelehnter Block nichts halb angewendet zurueaesst.
  */
-export function applyBlock(state: State, block: Block): ApplyResult {
+export function applyBlock(
+  state: State,
+  block: Block,
+  params: ConsensusParams = MAINNET,
+): ApplyResult {
   const draft = cloneState(state);
   let fees = 0n;
 
@@ -102,12 +109,48 @@ export function applyBlock(state: State, block: Block): ApplyResult {
 
   const cb = block.txs[0];
   if (!cb || cb.type !== TX_COINBASE) return fail(0, 'no_coinbase');
-  const expected = rewardAt(block.header.height) + fees;
-  if (cb.amount !== expected) {
-    return fail(0, `coinbase_amount:${cb.amount}!=${expected}`);
+
+  /*
+    Coinbase-Regeln. Sie sind Konsens, also steht hier jede einzeln.
+
+    Fassung 2 mit mehreren Empfaengern ist erst ab der Aktivierungshoehe
+    zulaessig -- darunter bleibt die Geschichte unveraendert.
+  */
+  if (cb.version === COINBASE_V2) {
+    if (block.header.height < params.coinbaseV2Height) {
+      return fail(0, `coinbase_v2_zu_frueh:${block.header.height}` +
+        `<${params.coinbaseV2Height}`);
+    }
+    if (cb.outputs.length < 1 || cb.outputs.length > MAX_COINBASE_OUTPUTS) {
+      return fail(0, `coinbase_outputs:${cb.outputs.length}`);
+    }
+    // Aufsteigend sortiert, keine Wiederholung. Sonst gaebe es fuer
+    // dieselbe Auszahlung mehrere gueltige Kodierungen -- und damit
+    // verschiedene Merkle-Wurzeln fuer dieselbe Aussage. Duplikate liessen
+    // sich ausserdem zum Aufblaehen des Blocks nutzen.
+    for (let i = 1; i < cb.outputs.length; i++) {
+      if (toHex(cb.outputs[i - 1].to) >= toHex(cb.outputs[i].to)) {
+        return fail(0, 'coinbase_outputs_unsortiert');
+      }
+    }
+    // Kein Empfaenger mit null: sonst laesst sich der Block mit leeren
+    // Eintraegen fuellen, die nichts bewirken.
+    for (const o of cb.outputs) {
+      if (o.amount <= 0n) return fail(0, 'coinbase_output_null');
+    }
+  } else if (cb.outputs.length !== 1) {
+    return fail(0, 'coinbase_v1_mehrere_empfaenger');
   }
-  const miner = getAccount(draft, cb.to);
-  setAccount(draft, cb.to, { ...miner, balance: miner.balance + cb.amount });
+
+  const expected = rewardAt(block.header.height) + fees;
+  const gesamt = coinbaseTotal(cb);
+  if (gesamt !== expected) {
+    return fail(0, `coinbase_amount:${gesamt}!=${expected}`);
+  }
+  for (const o of cb.outputs) {
+    const konto = getAccount(draft, o.to);
+    setAccount(draft, o.to, { ...konto, balance: konto.balance + o.amount });
+  }
 
   if (totalSupply(draft) > MAX_SUPPLY) return fail(0, 'supply_exceeded');
 

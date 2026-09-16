@@ -2,7 +2,8 @@ import { Writer, Reader, toHex } from './codec.ts';
 import { sha256d } from './hash.ts';
 import { sign, verifySignature } from './wallet.ts';
 import { addressFromPublicKey } from './address.ts';
-import { CHAIN_ID, MAX_MEMO_BYTES, MIN_FEE, ADDRESS_BYTES } from './params.ts';
+import { CHAIN_ID, MAX_MEMO_BYTES, MIN_FEE, ADDRESS_BYTES,
+         COINBASE_V2, MAX_COINBASE_OUTPUTS } from './params.ts';
 
 /**
  * Transaktionen -- Kontomodell, nicht UTXO.
@@ -36,13 +37,41 @@ export interface Transfer {
   signature: Uint8Array;   // 64
 }
 
+/** Ein Empfaenger der Coinbase. */
+export interface CoinbaseOutput {
+  to: Uint8Array;          // 20
+  amount: bigint;
+}
+
+/**
+ * Coinbase -- der Block zahlt sich selbst aus.
+ *
+ * ZWEI FASSUNGEN, und das ist Konsens:
+ *
+ *   version 1  genau ein Empfaenger. Die urspruengliche Fassung, fuer immer
+ *              gueltig, byteweise unveraendert.
+ *   version 2  ein bis MAX_COINBASE_OUTPUTS Empfaenger. Erst ab der
+ *              Aktivierungshoehe zulaessig. Grundlage fuer Pool Mining, bei
+ *              dem der Block selbst alle Beteiligten auszahlt und der
+ *              Betreiber nie fremdes Geld haelt.
+ *
+ * Intern immer eine Liste. Fassung 1 ist der Sonderfall mit genau einem
+ * Eintrag -- so gibt es nur einen Pfad fuer Zustand und Pruefung, statt
+ * zweier, die auseinanderlaufen koennen.
+ */
 export interface Coinbase {
   type: typeof TX_COINBASE;
   version: number;
   height: number;
-  to: Uint8Array;          // 20
-  amount: bigint;          // Reward + Summe der Gebuehren
+  outputs: CoinbaseOutput[];
   extra: Uint8Array;       // 0..32, macht den txid eindeutig
+}
+
+/** Summe aller Empfaenger. Das ist der Betrag, der neu entsteht. */
+export function coinbaseTotal(cb: Coinbase): bigint {
+  let summe = 0n;
+  for (const o of cb.outputs) summe += o.amount;
+  return summe;
 }
 
 export type Tx = Transfer | Coinbase;
@@ -73,8 +102,20 @@ export function sighash(t: Omit<Transfer, 'signature' | 'publicKey'>): Uint8Arra
 export function serializeTx(t: Tx): Uint8Array {
   const w = new Writer().u16(t.version).u8(t.type);
   if (t.type === TX_COINBASE) {
-    return w.u32(t.height).bytes(t.to, ADDRESS_BYTES).u64(t.amount)
-            .u8(t.extra.length).bytes(t.extra).finish();
+    w.u32(t.height);
+    if (t.version === COINBASE_V2) {
+      // Anzahl voran, danach die Empfaenger. Fassung 1 hat kein Zaehlfeld --
+      // nur so bleiben alte Bloecke byteweise identisch.
+      w.u8(t.outputs.length);
+      for (const o of t.outputs) w.bytes(o.to, ADDRESS_BYTES).u64(o.amount);
+    } else {
+      const einziger = t.outputs[0];
+      if (!einziger || t.outputs.length !== 1) {
+        throw new Error('Coinbase der Fassung 1 hat genau einen Empfaenger');
+      }
+      w.bytes(einziger.to, ADDRESS_BYTES).u64(einziger.amount);
+    }
+    return w.u8(t.extra.length).bytes(t.extra).finish();
   }
   return w
     .bytes(t.from, ADDRESS_BYTES).bytes(t.to, ADDRESS_BYTES)
@@ -90,10 +131,20 @@ export function deserializeTx(bytes: Uint8Array): Tx {
   const type = r.u8();
   if (type === TX_COINBASE) {
     const height = r.u32();
-    const to = r.bytes(ADDRESS_BYTES);
-    const amount = r.u64();
+    const outputs: CoinbaseOutput[] = [];
+    if (version === COINBASE_V2) {
+      const anzahl = r.u8();
+      if (anzahl < 1 || anzahl > MAX_COINBASE_OUTPUTS) {
+        throw new Error(`Coinbase mit ${anzahl} Empfaengern ist unzulaessig`);
+      }
+      for (let i = 0; i < anzahl; i++) {
+        outputs.push({ to: r.bytes(ADDRESS_BYTES), amount: r.u64() });
+      }
+    } else {
+      outputs.push({ to: r.bytes(ADDRESS_BYTES), amount: r.u64() });
+    }
     const extra = r.bytes(r.u8());
-    return { type: TX_COINBASE, version, height, to, amount, extra };
+    return { type: TX_COINBASE, version, height, outputs, extra };
   }
   if (type !== TX_TRANSFER) throw new Error(`unbekannter Transaktionstyp ${type}`);
   const from = r.bytes(ADDRESS_BYTES);

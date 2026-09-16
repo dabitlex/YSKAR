@@ -4,7 +4,8 @@ import {
   type Block, type BlockHeader, deserializeHeader, serializeBlock,
   serializeHeader, headerHash,
 } from '../core/block.ts';
-import { deserializeTx, serializeTx, txid, type Transfer, TX_COINBASE } from '../core/tx.ts';
+import { deserializeTx, serializeTx, txid, coinbaseTotal, type Transfer, TX_COINBASE }
+  from '../core/tx.ts';
 import { type BlockTiming } from '../core/difficulty.ts';
 import { toHex, fromHex } from '../core/codec.ts';
 import { unprefix } from './hex.ts';
@@ -149,9 +150,27 @@ export async function commitBlock(
       raw: hx(serializeTx(t)),
     };
     if (t.type === TX_COINBASE) {
-      return { ...base, from: null, to: hx(t.to), amount: t.amount.toString(),
-               fee: '0', nonce: null, valid_until: null, memo: hx(t.extra),
-               public_key: null, signature: null };
+      const gesamt = coinbaseTotal(t);
+      const mehrere = t.outputs.length > 1;
+      /*
+        Bei mehreren Empfaengern bleibt to leer.
+
+        "to = erster Empfaenger, amount = Gesamtsumme" waere die
+        naheliegende Abkuerzung und genau die falsche: Sie liest sich, als
+        haette der erste alles bekommen. Die Aufteilung steht in
+        coinbase_outputs; verbindlich ist ohnehin raw.
+      */
+      return {
+        ...base,
+        from: null,
+        to: mehrere ? null : hx(t.outputs[0].to),
+        amount: gesamt.toString(),
+        fee: '0', nonce: null, valid_until: null, memo: hx(t.extra),
+        public_key: null, signature: null,
+        coinbase_outputs: mehrere
+          ? t.outputs.map(o => ({ to: hx(o.to), amount: o.amount.toString() }))
+          : null,
+      };
     }
     return { ...base, from: hx(t.from), to: hx(t.to),
              amount: t.amount.toString(), fee: t.fee.toString(),

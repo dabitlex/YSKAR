@@ -23,7 +23,7 @@ import { targetFromDifficulty, MAX_FUTURE_DRIFT } from '../../core/params.ts';
 import { medianTimePast, effectiveDifficulty } from '../../core/difficulty.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
-import { txidHex, type Transfer } from '../../core/tx.ts';
+import { txidHex, coinbaseTotal, type Transfer, type Coinbase } from '../../core/tx.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore } from './ChainStore.ts';
@@ -112,6 +112,7 @@ export class MiningCoordinator {
       difficulty,
       extranonce,
       coinbaseExtra: new Uint8Array(0),
+      params: this.params,
     });
 
     const h = gebaut.block.header;
@@ -178,7 +179,7 @@ export class MiningCoordinator {
     const r = this.chain.accept(roh);
     if (!r.ok) return { ok: false, grund: r.grund, detail: r.detail };
 
-    const coinbase = block.txs[0] as { amount: bigint };
+    const coinbase = block.txs[0] as Coinbase;
     this.offen.delete(jobId);
     this.pool.nachBlock(offen.enthalten, this.chain.state());
 
@@ -186,7 +187,7 @@ export class MiningCoordinator {
       ok: true, block: true,
       height: block.header.height,
       hash: toHex(hash),
-      reward: coinbase.amount.toString(),
+      reward: coinbaseTotal(coinbase).toString(),
     };
   }
 

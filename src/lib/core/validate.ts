@@ -117,7 +117,7 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
 
   // --- teuer: Zustand anwenden ---
   const draft = cloneState(ctx.state);
-  const applied = applyBlock(draft, block);
+  const applied = applyBlock(draft, block, ctx.params ?? MAINNET);
   if (!applied.ok) {
     return { code: 'state', detail: `tx ${applied.error?.tx}: ${applied.error?.reason}` };
   }

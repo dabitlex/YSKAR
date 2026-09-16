@@ -78,3 +78,27 @@ export function rewardAt(height: number): bigint {
 export function seasonAt(height: number): number {
   return Math.floor(height / SEASON_BLOCKS) + 1;
 }
+
+/**
+ * Coinbase mit mehreren Empfaengern -- Konsensfassung 2.
+ *
+ * Bis hierher hat die Coinbase genau einen Empfaenger. Fuer Pool Mining ohne
+ * Verwahrung braucht es mehrere: Der Block selbst zahlt alle Beteiligten
+ * aus, und der Pool haelt nie fremdes Geld.
+ *
+ * AKTIVIERUNGSHOEHE. Bloecke unterhalb dieser Hoehe duerfen KEINE
+ * Coinbase der Fassung 2 enthalten -- damit bleibt jeder bisherige Block
+ * byteweise gueltig und die Geschichte unveraendert. Ab dieser Hoehe sind
+ * beide Fassungen zulaessig; Solo-Mining aendert sich also nicht.
+ *
+ * Der Wert ist bewusst grosszuegig gewaehlt: Bei rund 500 Sekunden je Block
+ * liegen zwischen Hoehe 850 und 2000 etwa acht Tage. Wer einen Knoten oder
+ * Miner betreibt, hat damit Zeit zu aktualisieren, bevor die Regel greift.
+ */
+export const COINBASE_V2_HEIGHT = 2000;
+
+/** Hoechstzahl der Empfaenger in einer Coinbase der Fassung 2. */
+export const MAX_COINBASE_OUTPUTS = 64;
+
+/** Fassung einer Coinbase mit mehreren Empfaengern. */
+export const COINBASE_V2 = 2;

@@ -61,6 +61,7 @@ export function mineBlock(opts: {
     difficulty,
     extranonce: opts.extranonce ?? 0n,
     coinbaseExtra: new TextEncoder().encode(opts.extra ?? 'regtest'),
+    params: REGTEST,
   });
 
   const ziel = targetFromDifficulty(difficulty);
@@ -103,7 +104,7 @@ export function baueKette(n: number, opts: {
       timestamp: start + BigInt(h) * REGTEST.targetBlockTime,
       miner: opts.miner, extra: opts.extra,
     });
-    const r = applyBlock(state, g.block);
+    const r = applyBlock(state, g.block, REGTEST);
     if (!r.ok) throw new Error(`Testkette: Block ${h} nicht anwendbar: ${r.error?.reason}`);
     bloecke.push(g);
     prev = g.hash;
@@ -123,7 +124,7 @@ export function zweig(basis: Kette, abHoehe: number, n: number, opts: {
 } = {}): Gemint[] {
   const state = emptyState();
   for (let i = 0; i < abHoehe; i++) {
-    const r = applyBlock(state, basis.bloecke[i].block);
+    const r = applyBlock(state, basis.bloecke[i].block, REGTEST);
     if (!r.ok) throw new Error('Zweig: Basis nicht anwendbar');
   }
 
@@ -141,7 +142,7 @@ export function zweig(basis: Kette, abHoehe: number, n: number, opts: {
       miner: opts.miner ?? MINER_B,
       extra: opts.extra ?? 'zweig',
     });
-    const r = applyBlock(state, g.block);
+    const r = applyBlock(state, g.block, REGTEST);
     if (!r.ok) throw new Error(`Zweig: Block ${abHoehe + i} nicht anwendbar`);
     out.push(g);
     prev = g.hash;

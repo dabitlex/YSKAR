@@ -23,7 +23,7 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import {
   NETWORK, CHAIN_ID, TARGET_BLOCK_TIME, MIN_DIFFICULTY, GENESIS_DIFFICULTY,
-  LWMA_WINDOW, LWMA_CLAMP, SOLVETIME_CAP,
+  LWMA_WINDOW, LWMA_CLAMP, SOLVETIME_CAP, COINBASE_V2_HEIGHT,
 } from './params.ts';
 
 export interface ConsensusParams {
@@ -40,6 +40,13 @@ export interface ConsensusParams {
   lwmaClamp: bigint;
   /** Loesungszeiten werden auf dieses Vielfache der Zielzeit gedeckelt. */
   solvetimeCap: bigint;
+  /**
+   * Ab dieser Hoehe ist eine Coinbase mit mehreren Empfaengern zulaessig.
+   *
+   * Darunter gilt ausschliesslich die alte Fassung -- damit bleibt jeder
+   * bisherige Block byteweise gueltig.
+   */
+  coinbaseV2Height: number;
 }
 
 /** Das laufende Netz. Exakt die Werte aus params.ts. */
@@ -52,6 +59,7 @@ export const MAINNET: ConsensusParams = {
   lwmaWindow: LWMA_WINDOW,
   lwmaClamp: LWMA_CLAMP,
   solvetimeCap: SOLVETIME_CAP,
+  coinbaseV2Height: COINBASE_V2_HEIGHT,
 };
 
 /**
@@ -71,6 +79,9 @@ export const REGTEST: ConsensusParams = {
   lwmaWindow: LWMA_WINDOW,
   lwmaClamp: LWMA_CLAMP,
   solvetimeCap: SOLVETIME_CAP,
+  // Im Testnetz von Anfang an -- sonst liessen sich die Pool-Regeln nicht
+  // pruefen, ohne erst zweitausend Bloecke zu minen.
+  coinbaseV2Height: 0,
 };
 
 export function istMainnet(p: ConsensusParams): boolean {
