@@ -47,8 +47,17 @@ interface Session {
   addressHex: string;
   extranonce: bigint;
   shareDifficulty: bigint;
-  /** Zeitpunkte der letzten angenommenen Shares, fuer die Anpassung. */
-  letzteShares: number[];
+  /**
+   * Normierte Messwerte: Sekunden je Difficulty-Einheit.
+   *
+   * NICHT die Abstaende selbst. Ein Abstand haengt davon ab, welches Ziel
+   * gerade galt -- Werte aus verschiedenen Zielen zu mitteln ergibt Unsinn
+   * und bringt die Anpassung zum Schwingen. Normiert ist der Wert dagegen
+   * eine reine Geraeteeigenschaft: Sekunden je Difficulty-Einheit.
+   */
+  proben: number[];
+  /** Zeitpunkt des letzten angenommenen Shares. */
+  letzterShare: number | null;
   angenommen: number;
   abgelehnt: number;
   gestartet: number;
@@ -118,8 +127,8 @@ export class MiningServer {
     this.aufraeumen();
     let summe = 0;
     for (const s of this.sessions.values()) {
-      const abstand = this.mittlererAbstand(s);
-      if (abstand) summe += Number(s.shareDifficulty) * 65536 / abstand;
+      const r = this.sessionHashrate(s);
+      if (r) summe += r;
     }
     return summe;
   }
@@ -206,7 +215,8 @@ export class MiningServer {
       // koennen denselben Treffer dadurch gar nicht finden.
       extranonce: this.naechsteExtranonce++,
       shareDifficulty: SHARE_START,
-      letzteShares: [],
+      proben: [],
+      letzterShare: null,
       angenommen: 0, abgelehnt: 0,
       gestartet: Date.now(), zuletzt: Date.now(),
       platform: typeof b.platform === 'string' ? b.platform : null,
@@ -340,27 +350,53 @@ export class MiningServer {
    */
   private nachShare(s: Session): void {
     const jetzt = Date.now();
-    s.letzteShares.push(jetzt);
-    if (s.letzteShares.length > 9) s.letzteShares.shift();
+    const vorher = s.letzterShare;
+    s.letzterShare = jetzt;
+    if (vorher === null) return;
 
-    const abstand = this.mittlererAbstand(s);
-    if (abstand === null) return;
+    const sekunden = (jetzt - vorher) / 1000;
+    if (!(sekunden > 0)) return;
 
-    const faktor = SHARE_ZIEL_SEKUNDEN / abstand;
-    // Totzone: Kleine Abweichungen nicht nachregeln.
-    if (faktor > 0.6 && faktor < 1.6) return;
+    /*
+      Normieren, bevor gemittelt wird.
 
+      Der rohe Abstand haengt davon ab, welches Ziel gerade galt. Einen
+      Abstand bei Ziel 51 mit einem bei Ziel 588 zu mitteln ergibt Unsinn
+      -- und genau daran hat die Anpassung geschwungen: 51, 26, 49, 147,
+      588, 2352.
+
+      Sekunden je Difficulty-Einheit ist dagegen eine reine
+      Geraeteeigenschaft und vom Ziel unabhaengig:
+
+          probe    = sekunden / difficulty
+          hashrate = 2^16 / probe
+          neuesZiel = zielSekunden / mittelwert(proben)
+    */
+    s.proben.push(sekunden / Number(s.shareDifficulty));
+    if (s.proben.length > 8) s.proben.shift();
+    if (s.proben.length < 3) return;
+
+    const mittel = s.proben.reduce((a, b) => a + b, 0) / s.proben.length;
+    if (!(mittel > 0)) return;
+
+    const ziel = SHARE_ZIEL_SEKUNDEN / mittel;
+    const jetzigeZahl = Number(s.shareDifficulty);
+
+    // Totzone: kleine Abweichungen nicht nachregeln, sonst zappelt das Ziel
+    // bei jedem Share.
+    const faktor = ziel / jetzigeZahl;
+    if (faktor > 0.7 && faktor < 1.4) return;
+
+    // Deckelung, damit ein einzelner Ausreisser nicht durchschlaegt.
     const gedeckelt = Math.max(0.25, Math.min(4, faktor));
-    let neu = BigInt(Math.max(1, Math.round(Number(s.shareDifficulty) * gedeckelt)));
-    if (neu < 1n) neu = 1n;
-    s.shareDifficulty = neu;
+    s.shareDifficulty = BigInt(Math.max(1, Math.round(jetzigeZahl * gedeckelt)));
   }
 
-  private mittlererAbstand(s: Session): number | null {
-    if (s.letzteShares.length < 3) return null;
-    const erste = s.letzteShares[0];
-    const letzte = s.letzteShares[s.letzteShares.length - 1];
-    return (letzte - erste) / 1000 / (s.letzteShares.length - 1);
+  /** Hashrate dieser Session aus den normierten Messwerten. */
+  private sessionHashrate(s: Session): number | null {
+    if (s.proben.length < 2) return null;
+    const mittel = s.proben.reduce((a, b) => a + b, 0) / s.proben.length;
+    return mittel > 0 ? 65536 / mittel : null;
   }
 
   /**

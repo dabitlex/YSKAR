@@ -111,6 +111,19 @@ Mining gegen den eigenen Knoten
 
 // ----------------------------------------------------------------- Ausgabe
 
+/**
+ * Meldung ausgeben, ohne die laufende Statuszeile zu zerreissen.
+ *
+ * Die Statuszeile wird mit \r an Ort und Stelle erneuert. Wer daneben
+ * einfach console.log benutzt, haengt seinen Text an ihren Rest an -- so
+ * entstand "Mempool 0[06:20:58] 1 Bloecke geprueft". Erst loeschen, dann
+ * drucken.
+ */
+function melde(text: string): void {
+  if (process.stdout.isTTY) process.stdout.write('\r\x1b[2K');
+  console.log(text);
+}
+
 const FARBE = process.stdout.isTTY && !process.env.NO_COLOR;
 const f = (c: string, s: string) => FARBE ? `\x1b[${c}m${s}\x1b[0m` : s;
 const gruen = (s: string) => f('32', s), rot = (s: string) => f('31', s);
@@ -205,19 +218,19 @@ async function sync(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       const r = chain.accept(fromHex(b.body));
       if (!r.ok) {
         // Der Zweck dieses Programms. Ab hier ist jede weitere Aussage wertlos.
-        console.log('');
-        console.log(rot(fett('BLOCK ABGELEHNT')));
-        console.log(rot(`  Höhe ${b.height}: ${r.grund}`));
-        if (r.detail) console.log(rot(`  ${r.detail}`));
-        console.log('');
-        console.log(grau('  Der Server liefert etwas, das der Kette widerspricht.'));
-        console.log(grau(`  Lokal geprüft bis Höhe ${chain.height()}.`));
+        melde('');
+        melde(rot(fett('BLOCK ABGELEHNT')));
+        melde(rot(`  Höhe ${b.height}: ${r.grund}`));
+        if (r.detail) melde(rot(`  ${r.detail}`));
+        melde('');
+        melde(grau('  Der Server liefert etwas, das der Kette widerspricht.'));
+        melde(grau(`  Lokal geprüft bis Höhe ${chain.height()}.`));
         return false;
       }
       if (r.stored) {
         geprueft++;
         if (r.reorg) {
-          console.log(`${grau('[' + uhr() + ']')} ${gelb('Reorg')} ` +
+          melde(`${grau('[' + uhr() + ']')} ${gelb('Reorg')} ` +
             `auf Höhe ${r.height}, neuer Tip ${toHex(r.tip).slice(0, 16)}…`);
         }
       }
@@ -226,7 +239,7 @@ async function sync(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
   if (geprueft > 0) {
     const tip = chain.tip()!;
-    console.log(
+    melde(
       `${grau('[' + uhr() + ']')} ${gruen('✓')} ${geprueft} Blöcke geprüft ` +
       `${grau('·')} Höhe ${nf(tip.height)} ` +
       `${grau('·')} Arbeit ${nf(tip.chainWork)} ` +
@@ -262,17 +275,16 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   if (nachOben) server.upstream = nachOben;
 
   server.onUpstream = e => {
-    console.log(e.ok
+    melde(e.ok
       ? grau(`           weitergegeben, dort als Höhe ${nf(e.hoehe ?? 0)} angenommen`)
       : gelb(`           nicht weitergegeben: ${e.grund}`));
   };
 
   server.onBlock = (h, hash, adresse) => {
-    console.log('');
-    console.log(gruen(fett(`[${uhr()}] BLOCK GEFUNDEN  #${nf(h)}`)));
-    console.log(grau(`           ${hash}`));
-    console.log(grau(`           an ${adresse.slice(0, 16)}…`));
-    console.log('');
+    melde('');
+    melde(gruen(fett(`[${uhr()}] BLOCK GEFUNDEN  #${nf(h)}`)));
+    melde(grau(`           ${hash}`));
+    melde(grau(`           an ${adresse.slice(0, 16)}…`));
   };
 
   await server.listen(opt.bind, opt.port);
@@ -281,10 +293,33 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   console.log(grau('─'.repeat(56)));
   console.log(`  Netz     ${params.network}`);
   console.log(`  Ablage   ${opt.daten}/chain.db`);
-  console.log(`  Höhe     ${chain.height() < 0 ? '—' : nf(chain.height())}`);
+  console.log(`  Kette    ${chain.height() < 0 ? '—' : 'Höhe ' + nf(chain.height())}`);
   console.log(`  Lauscht  http://${opt.bind}:${opt.port}`);
   console.log(`  Blöcke   ${nachOben ? '→ ' + nachOben : 'bleiben lokal'}`);
+  console.log(`  Sync     ${nachOben ? 'alle 30 s von ' + opt.api : 'aus'}`);
   console.log(grau('─'.repeat(56)));
+
+  /*
+    Einmal aufholen, bevor der erste Miner einen Job bekommt.
+
+    Ohne das baut der Knoten die ersten Jobs auf dem Stand vom letzten
+    Beenden -- und jeder Fund waere "stale", bis der Takt nach 30 Sekunden
+    das erste Mal greift. Bei einer halben Stunde je Block waere das
+    verlorene Arbeit.
+  */
+  if (nachOben) {
+    melde(grau('  Hole auf…'));
+    try {
+      await sync({ ...opt, einmal: true }, store, chain);
+      const tip = chain.tip();
+      melde(grau(`  Stand: Höhe ${nf(chain.height())}`) +
+        (tip ? grau(`, Difficulty ${nf(tip.difficulty)}`) : ''));
+    } catch (e) {
+      melde(gelb(`  Nicht erreichbar: ${(e as Error).message}`));
+      melde(gelb('  Es wird auf dem lokalen Stand weitergebaut.'));
+    }
+  }
+
   console.log(grau('\n  Miner verbinden mit:'));
   console.log(`    yskar-miner --address ysr1… --api http://${opt.bind}:${opt.port}\n`);
   if (opt.bind !== '127.0.0.1') {
@@ -297,6 +332,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   const aufhoeren = async () => {
     if (!laeuft) return;
     laeuft = false;
+    clearInterval(syncTakt);
+    clearInterval(takt);
     await server.close();
     console.log('');
     status(store, chain);
@@ -306,12 +343,49 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   process.on('SIGINT', aufhoeren);
   process.on('SIGTERM', aufhoeren);
 
+  /*
+    Waehrend des Minens weiter synchronisieren.
+
+    Ohne das steht der Knoten auf der Hoehe, die er beim Start hatte, und
+    baut dort weiter -- waehrend die andere Seite laengst weiter ist. Jeder
+    gefundene Block kaeme als "stale" zurueck, und die ganze Rechenarbeit
+    waere verloren.
+
+    Nach jedem neuen Block muessen die offenen Jobs verworfen werden: Sie
+    zeigen auf einen Vorgaenger, den es als Kettenkopf nicht mehr gibt.
+  */
+  let syncLaeuft = false;
+  const syncTakt = setInterval(async () => {
+    if (syncLaeuft || !nachOben) return;
+    syncLaeuft = true;
+    const vorher = chain.height();
+    try {
+      await sync({ ...opt, einmal: true }, store, chain);
+      if (chain.height() !== vorher) {
+        koordinator.invalidate();
+        const tip = chain.tip();
+        melde(`${grau('[' + uhr() + ']')} ${grau('Kette weiter:')} ` +
+          `Höhe ${nf(chain.height())}${grau(', Jobs neu gebaut')}`);
+      }
+    } catch (e) {
+      melde(`${grau('[' + uhr() + ']')} ${gelb('!')} Sync: ${(e as Error).message}`);
+    } finally { syncLaeuft = false; }
+  }, 30_000);
+  syncTakt.unref();
+
   const takt = setInterval(() => {
     if (!process.stdout.isTTY) return;
     const tip = chain.tip();
+    // Gezeigt wird, WORAN GEARBEITET WIRD -- also der naechste Block, nicht
+    // der letzte fertige. Beide haben verschiedene Difficulties, und die
+    // Verwechslung ist naheliegend: Block 839 kann 63.980 haben, waehrend
+    // an 840 mit 65.736 gearbeitet wird.
+    const arbeit = koordinator.aktuelleArbeit();
+    const naechste = arbeit ? arbeit.height : (tip ? tip.height + 1 : 0);
     process.stdout.write(`\r\x1b[2K${grau('[' + uhr() + ']')} ` +
-      `Höhe ${tip ? nf(tip.height) : '—'} ` +
-      `${grau('·')} Diff ${tip ? nf(tip.difficulty) : '—'} ` +
+      `${grau('Kette')} ${tip ? nf(tip.height) : '—'} ` +
+      `${grau('· baut an')} ${nf(naechste)} ` +
+      `${grau('· Diff')} ${arbeit ? nf(arbeit.difficulty) : grau('—')} ` +
       `${grau('·')} ${server.aktiveSessions()} Miner ` +
       `${grau('·')} Mempool ${pool.size()}`);
   }, 1000);

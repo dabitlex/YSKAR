@@ -67,6 +67,14 @@ export class MiningCoordinator {
   private pool: TxPool;
   private params: ConsensusParams;
   private offen = new Map<string, OffenerJob>();
+  /**
+   * Hoehe und Difficulty des zuletzt gebauten Jobs.
+   *
+   * Fuer die Anzeige. Bei jedem Aufruf neu zu rechnen waere teuer -- die
+   * Difficulty-Regel liest dafuer knapp sechzig Bloecke aus der Ablage,
+   * und die Statuszeile erneuert sich jede Sekunde.
+   */
+  private letzteVorgaben: { height: number; difficulty: bigint } | null = null;
 
   constructor(chain: ChainManager, store: ChainStore, pool: TxPool,
               params: ConsensusParams = MAINNET) {
@@ -126,6 +134,7 @@ export class MiningCoordinator {
     };
 
     this.offen.set(jobId, { job, gebaut, enthalten: included });
+    this.letzteVorgaben = { height: hoehe, difficulty: h.difficulty };
     this.aufraeumen();
     return job;
   }
@@ -182,7 +191,23 @@ export class MiningCoordinator {
   }
 
   /** Alle Jobs verwerfen -- nach einem Reorg oder fremden Block noetig. */
-  invalidate(): void { this.offen.clear(); }
+  invalidate(): void {
+    this.offen.clear();
+    this.letzteVorgaben = null;
+  }
+
+  /**
+   * Woran gerade gearbeitet wird -- Hoehe und Difficulty des naechsten
+   * Blocks, nicht des letzten fertigen.
+   *
+   * Das sind zwei verschiedene Zahlen, und die Verwechslung ist naheliegend:
+   * Block 839 kann Difficulty 63.980 haben, waehrend an Block 840 mit
+   * 65.736 gearbeitet wird. Die Regel errechnet die Difficulty jedes Blocks
+   * neu aus den Loesungszeiten davor.
+   */
+  aktuelleArbeit(): { height: number; difficulty: bigint } | null {
+    return this.letzteVorgaben;
+  }
 
   offeneJobs(): number { return this.offen.size; }
 
