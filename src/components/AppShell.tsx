@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -13,6 +13,8 @@ import NetzTab from '@/components/tabs/NetzTab';
 import InfoTab from '@/components/tabs/InfoTab';
 import Send from '@/components/wallet/Send';
 import Receive from '@/components/wallet/Receive';
+import Benchmark from '@/components/Benchmark';
+import { gespeichert, type BenchErgebnis } from '@/hooks/useBenchmark';
 import Settings from '@/components/Settings';
 
 /**
@@ -27,7 +29,7 @@ import Settings from '@/components/Settings';
  * Beim Zurueckgehen soll der Reiter stehen, in dem man war.
  */
 
-type Ansicht = null | 'senden' | 'empfangen' | 'einstellungen';
+type Ansicht = null | 'senden' | 'empfangen' | 'einstellungen' | 'benchmark';
 
 export default function AppShell({ platform }: { platform: string }) {
   const wallet = useWallet();
@@ -38,6 +40,34 @@ export default function AppShell({ platform }: { platform: string }) {
   const wach = useWakeLock(m.mining);
   const [tab, setTab] = useState<Tab>('mining');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
+
+  /*
+    Modus, Workerzahl und Kalibrierung.
+
+    Bisher startete die App immer genau zwei Worker -- unabhaengig davon, wie
+    viele Kerne das Geraet hat. Ein Telefon mit acht Kernen nutzte ein
+    Viertel davon.
+  */
+  const [modus, setModus] = useState<'solo' | 'pool'>('solo');
+  const kerne = typeof navigator !== 'undefined'
+    ? (navigator.hardwareConcurrency || null) : null;
+  const workerStufen = useMemo(() => {
+    const n = Math.max(1, Math.min(16, kerne ?? 4));
+    return [...new Set([1, 2, Math.max(2, Math.round(n / 2)), n])]
+      .filter(x => x >= 1 && x <= n).sort((a, b) => a - b);
+  }, [kerne]);
+
+  const [bench, setBench] = useState<BenchErgebnis | null>(null);
+  const [worker, setWorker] = useState(2);
+
+  // Gespeicherte Kalibrierung uebernehmen -- erst im Browser, nicht beim
+  // Rendern auf dem Server.
+  useEffect(() => {
+    const g = gespeichert();
+    if (!g) return;
+    setBench(g);
+    setWorker(g.besteWorker);
+  }, []);
 
   const dec = m.summary?.token?.decimals ?? 8;
   const sym = m.summary?.token?.token_symbol ?? 'YSR';
@@ -51,9 +81,17 @@ export default function AppShell({ platform }: { platform: string }) {
         ) : ansicht === 'empfangen' && wallet.address ? (
           <Receive address={wallet.address} onZurueck={() => setAnsicht(null)} />
         ) : ansicht === 'einstellungen' ? (
-          <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={2} />
+          <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} />
+        ) : ansicht === 'benchmark' ? (
+          <Benchmark onZurueck={() => setAnsicht(null)}
+                     onUebernehmen={(w) => { setWorker(w); setAnsicht(null); }}
+                     onErgebnis={setBench} />
         ) : tab === 'mining' ? (
-          <MiningTab m={m} dec={dec} sym={sym} wach={wach} />
+          <MiningTab m={m} dec={dec} sym={sym} wach={wach}
+                     modus={modus} setModus={setModus}
+                     worker={worker} setWorker={setWorker}
+                     kerne={kerne} workerStufen={workerStufen}
+                     bench={bench} setAnsicht={setAnsicht} />
         ) : tab === 'wallet' ? (
           <WalletTab account={m.account as any} decimals={dec} symbol={sym}
                      onSenden={() => setAnsicht('senden')}
@@ -111,9 +149,18 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym, wach }: {
+function MiningTab({ m, dec, sym, wach, modus, setModus, worker, setWorker,
+                     kerne, workerStufen, bench, setAnsicht }: {
   m: ReturnType<typeof useMining>; dec: number; sym: string;
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
+  modus: 'solo' | 'pool';
+  setModus: (v: 'solo' | 'pool') => void;
+  worker: number;
+  setWorker: (v: number) => void;
+  kerne: number | null;
+  workerStufen: number[];
+  bench: BenchErgebnis | null;
+  setAnsicht: (v: 'benchmark') => void;
 }) {
   const r = rate(m.hashrate);
   return (
@@ -167,6 +214,36 @@ function MiningTab({ m, dec, sym, wach }: {
 
       <GroupTitle>Steuerung</GroupTitle>
       <Panel className="rise rise-3">
+        {/*
+          Solo oder Pool.
+
+          Pool ist noch nicht aktiv -- die Auszahlung braucht eine Coinbase
+          mit mehreren Empfaengern, und die gilt erst ab Hoehe 2000. Der
+          Knopf steht trotzdem schon da, damit klar ist, dass es kommt.
+          Ihn ohne Kennzeichnung anzubieten waere ein Versprechen, das die
+          App noch nicht halten kann.
+        */}
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-[13px] text-dim">Modus</span>
+          <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+            <button onClick={() => setModus('solo')} aria-pressed={modus === 'solo'}
+                    disabled={m.mining}
+                    className={`min-w-[64px] rounded-full py-1.5 text-[12.5px]
+                                transition-colors disabled:opacity-60 ${
+                      modus === 'solo' ? 'bg-work text-ink' : 'text-faint'}`}>
+              Solo
+            </button>
+            <button disabled aria-disabled="true"
+                    title="Pool-Mining kommt, sobald die Auszahlung über die Kette möglich ist"
+                    className="min-w-[64px] cursor-not-allowed rounded-full py-1.5
+                               text-[12.5px] text-faint/60">
+              Pool
+              <span className="ml-1 align-middle text-[9.5px] uppercase tracking-wider
+                               text-work/70">bald</span>
+            </button>
+          </div>
+        </div>
+
         <div className="mb-4 flex items-center justify-between">
           <span className="text-[13px] text-dim">Rechenanteil</span>
           <div className="sunk flex overflow-hidden !rounded-full p-0.5">
@@ -181,10 +258,46 @@ function MiningTab({ m, dec, sym, wach }: {
           </div>
         </div>
 
-        <Button onClick={() => (m.mining ? m.stop() : m.start(2))}
+        {/*
+          Workerzahl.
+
+          Bisher waren es immer zwei, unabhaengig vom Geraet -- ein Telefon
+          mit acht Kernen nutzte ein Viertel davon. Das erklaert
+          Leistungsunterschiede zwischen Geraeten besser als jede
+          Hardwarebesonderheit.
+        */}
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-[13px] text-dim">
+            Worker
+            {kerne ? <span className="ml-1.5 text-faint">von {kerne}</span> : null}
+          </span>
+          <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+            {workerStufen.map(v => (
+              <button key={v} onClick={() => setWorker(v)} aria-pressed={worker === v}
+                      disabled={m.mining}
+                      className={`min-w-[40px] rounded-full py-1.5 text-[12.5px]
+                                  transition-colors disabled:opacity-60 ${
+                        worker === v ? 'bg-work text-ink' : 'text-faint'}`}>
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Button onClick={() => (m.mining ? m.stop() : m.start(worker))}
                 variant={m.mining ? 'quiet' : 'primary'}>
           {m.mining ? 'Mining stoppen' : 'Mining starten'}
         </Button>
+
+        {!m.mining && (
+          <button onClick={() => setAnsicht('benchmark')}
+                  className="mt-3 w-full text-center text-[12.5px] text-work
+                             underline decoration-work/40 underline-offset-4">
+            {bench
+              ? `Kalibrierung: ${bench.besteWorker} Worker empfohlen`
+              : 'Gerät kalibrieren — beste Einstellung ermitteln'}
+          </button>
+        )}
 
         {m.mining && (
           <p className="mt-3 text-center text-[12px] text-faint">
