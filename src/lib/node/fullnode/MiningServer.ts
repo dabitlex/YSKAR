@@ -87,6 +87,9 @@ export class MiningServer {
   /** Wird bei jedem angenommenen Block gerufen -- fuer die Anzeige. */
   onBlock?: (h: number, hash: string, adresse: string) => void;
 
+  /** Wird bei einem internen Fehler gerufen -- damit er sichtbar wird. */
+  onFehler?: (wo: string, e: Error) => void;
+
   /**
    * Wohin ein gefundener Block weitergereicht wird.
    *
@@ -162,7 +165,20 @@ export class MiningServer {
       }
       this.json(res, { error: 'not_found' }, 404);
     } catch (e) {
-      this.json(res, { error: 'internal', detail: String((e as Error).message) }, 500);
+      /*
+        Stapelabzug auf die Konsole.
+
+        Bisher stand hier nur ein HTTP 500, und beim Miner erschien
+        "Einreichen fehlgeschlagen: HTTP 500" -- ohne jeden Hinweis worauf.
+        Genau so ein Fall kostete einen Abend Rätselraten.
+      */
+      const fehler = e as Error;
+      this.onFehler?.(`${req.method} ${pfad}`, fehler);
+      this.json(res, {
+        error: 'internal',
+        detail: fehler.message,
+        where: `${req.method} ${pfad}`,
+      }, 500);
     }
   }
 
@@ -295,14 +311,18 @@ export class MiningServer {
     }
 
     if (r.block) {
-      s.angenommen++;
-      this.nachShare(s);
-      this.mining.invalidate();
-      this.onBlock?.(r.height, r.hash, s.addressHex);
-      // Nicht abwarten: Der Miner soll seine Antwort sofort bekommen, die
-      // Weitergabe darf ihn nicht aufhalten.
-      void this.weitergeben(r.hash);
-      return {
+      /*
+        Ab hier ist der Block ANGENOMMEN und steht in der Kette.
+
+        Was jetzt noch schiefgeht -- Anzeige, Weitergabe, Zahlenformat --
+        darf dem Miner niemals als Fehlschlag gemeldet werden. Er hat den
+        Block gefunden, und das ist die Wahrheit. Bisher fuehrte ein Fehler
+        an dieser Stelle zu "Einreichen fehlgeschlagen: HTTP 500", waehrend
+        der Block laengst in der Kette stand.
+
+        Deshalb: Alles Weitere einzeln abgesichert, die Antwort steht fest.
+      */
+      const antwort = {
         accepted: true, block: true,
         height: r.height, reward: r.reward, hash: r.hash,
         credited: s.shareDifficulty.toString(),
@@ -311,6 +331,22 @@ export class MiningServer {
         required: s.shareDifficulty.toString(),
         blockDifficulty: netzDifficulty.toString(),
       };
+
+      try {
+        s.angenommen++;
+        this.nachShare(s);
+        this.mining.invalidate();
+        this.onBlock?.(r.height, r.hash, s.addressHex);
+      } catch (e) {
+        this.onFehler?.('nach Blockfund', e as Error);
+      }
+
+      // Nicht abwarten: Der Miner bekommt seine Antwort sofort, die
+      // Weitergabe darf ihn nicht aufhalten.
+      this.weitergeben(r.hash).catch(e =>
+        this.onFehler?.('Weitergabe', e as Error));
+
+      return antwort;
     }
 
     // Kein Block. Reicht es fuer einen Share?
