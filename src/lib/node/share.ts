@@ -1,3 +1,4 @@
+import { coinbaseTotal, type Coinbase } from '../core/tx.ts';
 import { db } from '../db/service.ts';
 import * as store from './store.ts';
 import { finalizeBlock } from '../core/builder.ts';
@@ -209,5 +210,17 @@ async function commitFound(built: Block, nonce: bigint): Promise<
     return { ok: false, reason: `commit:${(e as Error).message}` };
   }
 
-  return { ok: true, reward: (block.txs[0] as any).amount.toString() };
+  /*
+    Kein `as any` mehr.
+
+    Hier stand `(block.txs[0] as any).amount` -- und genau das hat beim
+    Umbau der Coinbase auf mehrere Empfaenger die Typpruefung umgangen. Das
+    Feld gibt es nicht mehr, `.toString()` auf undefined warf, und der
+    Miner bekam eine HTML-Fehlerseite statt JSON: "HTTP 500", waehrend der
+    Block laengst in der Kette stand.
+
+    Ein einziges `as any` an einer Stelle, die nie jemand ansieht.
+  */
+  const coinbase = block.txs[0] as Coinbase;
+  return { ok: true, reward: coinbaseTotal(coinbase).toString() };
 }

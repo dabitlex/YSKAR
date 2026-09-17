@@ -280,6 +280,11 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       : gelb(`           nicht weitergegeben: ${e.grund}`));
   };
 
+  server.onFehler = (wo, e) => {
+    melde(rot(`[${uhr()}] Fehler bei ${wo}: ${e.message}`));
+    if (e.stack) melde(grau(e.stack.split('\n').slice(1, 4).join('\n')));
+  };
+
   server.onBlock = (h, hash, adresse) => {
     melde('');
     melde(gruen(fett(`[${uhr()}] BLOCK GEFUNDEN  #${nf(h)}`)));
