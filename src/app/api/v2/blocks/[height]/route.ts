@@ -63,6 +63,19 @@ export async function GET(
       nonce: t.nonce === null ? null : String(t.nonce),
       memo: unprefix(t.memo),
       raw: unprefix(t.raw),
+      /*
+        Coinbase mit mehreren Empfaengern.
+
+        Bei Fassung 2 ist "to" leer und "amount" die Gesamtsumme. Nur das
+        zu zeigen waere irrefuehrend: Es saehe aus, als haette niemand
+        etwas bekommen. Die Aufteilung gehoert sichtbar in den Explorer --
+        genau das ist der Sinn einer Auszahlung ueber die Kette.
+      */
+      recipients: t.coinbase_outputs
+        ? (t.coinbase_outputs as { to: string; amount: string }[]).map(o => ({
+            address: adr(o.to), amount: String(o.amount),
+          }))
+        : null,
     })),
   }, { headers: CORS });
 }

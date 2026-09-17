@@ -275,9 +275,20 @@ function renderList(){
       const txs=(d&&d.txs)?`<div class="tx"><h3>${d.txs.length} Transaktion${
         d.txs.length===1?'':'en'}</h3>`+d.txs.map(t=>`<div class="txrow">
           <div class="mono" style="color:var(--dim);font-size:11px">${t.txid}</div>
-          <div style="margin-top:5px">${t.type==='coinbase'
-            ? `<span style="color:var(--proof)">Blockreward</span> an <span class="mono">${t.to}</span>`
-            : `<span class="mono">${t.from}</span><br>→ <span class="mono">${t.to}</span>`}</div>
+          <div style="margin-top:5px">${t.type!=='coinbase'
+            ? `<span class="mono">${t.from}</span><br>→ <span class="mono">${t.to}</span>`
+            : (t.recipients && t.recipients.length)
+            /* Coinbase mit mehreren Empfaengern: Die Aufteilung gehoert
+               sichtbar hierher. Nur die Gesamtsumme zu zeigen saehe aus,
+               als haette niemand etwas bekommen -- und genau das
+               Nachrechnen ist der Sinn einer Auszahlung ueber die Kette. */
+            ? `<span style="color:var(--proof)">Blockreward</span> an ${
+                t.recipients.length} Empfänger`
+              + t.recipients.map(r=>`<div style="margin-top:4px">
+                  <span class="mono" style="font-size:11px">${r.address}</span>
+                  <span class="tnum" style="color:var(--dim);margin-left:6px">${
+                    (Number(r.amount)/10**dec).toFixed(4)} ${sym}</span></div>`).join('')
+            : `<span style="color:var(--proof)">Blockreward</span> an <span class="mono">${t.to}</span>`}</div>
           <div class="tnum" style="margin-top:4px;color:var(--dim)">
             ${(Number(t.amount)/10**dec).toFixed(4)} ${sym}${
               Number(t.fee)>0?` · Gebühr ${(Number(t.fee)/10**dec).toFixed(4)}`:''}</div>
