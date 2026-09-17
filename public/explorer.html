@@ -62,6 +62,35 @@
         padding:9px 14px;border:1px solid var(--line);border-radius:9px;
         font-size:13px;color:var(--muted);text-decoration:none}
   .back:active{background:var(--soft)}
+.suche{display:flex;gap:8px;margin:0 0 14px}
+.suche input{
+  flex:1;min-width:0;padding:11px 13px;border:0;border-radius:9px;
+  background:var(--sunk);color:var(--text);font:inherit;font-size:14px;
+  box-shadow:inset 0 1px 2px rgb(0 0 0/.5);
+}
+.suche input::placeholder{color:var(--faint)}
+.suche button{
+  padding:11px 18px;border:0;border-radius:9px;background:var(--raised);
+  color:var(--text);font:inherit;font-size:14px;cursor:pointer;
+}
+.suche button:hover{background:var(--surface)}
+#treffer:not(:empty){
+  margin:0 0 18px;padding:16px;border-radius:12px;background:var(--surface);
+  box-shadow:inset 0 1px 0 rgb(255 255 255/.05);
+}
+#treffer h3{margin:0 0 10px;font-size:13px;font-weight:500;color:var(--dim)}
+#treffer .zeile{display:flex;justify-content:space-between;gap:16px;
+  padding:7px 0;border-bottom:1px solid rgb(38 46 60/.55);font-size:13.5px}
+#treffer .zeile:last-child{border-bottom:0}
+#treffer .zeile span:first-child{color:var(--dim)}
+#treffer .hinweis{color:var(--dim);font-size:13px}
+.mehr{
+  display:block;width:100%;margin:14px 0 0;padding:13px;border:0;
+  border-radius:10px;background:var(--raised);color:var(--text);
+  font:inherit;font-size:14px;cursor:pointer;
+}
+.mehr:hover{background:var(--surface)}
+.mehr:disabled{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
@@ -85,8 +114,18 @@
 </div>
 
 <dl class="stats" id="stats"></dl>
+
+<div class="suche">
+  <input id="q" type="search" autocomplete="off" spellcheck="false"
+         placeholder="Adresse, Transaktion, Blockhöhe oder Blockhash"
+         aria-label="Suche">
+  <button id="qgo" type="button">Suchen</button>
+</div>
+<div id="treffer"></div>
+
 <div class="err" id="err"></div>
 <ul id="list"></ul>
+<button id="mehr" class="mehr" type="button" hidden>Ältere Blöcke laden</button>
 
 <p class="note">
   Jeder Block wird <strong>in diesem Browser</strong> geprüft: Die 136 Header-Bytes
@@ -370,7 +409,7 @@ async function load(){
     const next={};
     for(let i=0;i<blocks.length;i++) next[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
     checks=next;
-    renderVerdict(); renderList();
+    renderVerdict(); renderList(); zeigeMehr();
   }catch(e){
     $('err').innerHTML='Laden fehlgeschlagen: '+e.message+'<br>'+
       (HOSTED
@@ -406,6 +445,135 @@ $('engine').textContent = useSubtle
   weiter zurueck, wird ab dort nachgeladen -- sonst fuehrte der Verweis ins
   Leere, und das waere schlimmer als gar kein Verweis.
 */
+/*
+  Aeltere Bloecke nachladen.
+
+  Der letzte geladene Block dient als Grenze. Er wird beim Nachladen
+  nochmals geprueft, sobald sein Vorgaenger da ist -- ohne den Vorgaenger
+  laesst sich die Verkettung nicht pruefen, und ohne diese zweite Pruefung
+  bliebe genau an jeder Nachladegrenze eine Luecke in der Kontrolle.
+*/
+let laedt=false;
+async function mehrLaden(){
+  if(laedt||blocks.length===0) return;
+  laedt=true;
+  const knopf=$('mehr');
+  knopf.disabled=true; knopf.textContent='lädt…';
+  try{
+    const aeltester=blocks[blocks.length-1].height;
+    const r=await fetch(`${API}/blocks?limit=25&before=${aeltester}`).then(r=>r.json());
+    if(r.error) throw new Error(r.detail||r.error);
+    const neu=r.blocks||[];
+    if(neu.length===0){ knopf.hidden=true; return; }
+
+    const vorher=blocks.length;
+    blocks=blocks.concat(neu);
+    // Den bisher aeltesten mitpruefen -- jetzt ist sein Vorgaenger bekannt.
+    for(let i=vorher-1;i<blocks.length;i++){
+      checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+    }
+    renderVerdict(); renderList(); zeigeMehr();
+  }catch(e){
+    $('err').textContent='Nachladen fehlgeschlagen: '+e.message;
+  }finally{
+    laedt=false;
+    knopf.disabled=false; knopf.textContent='Ältere Blöcke laden';
+  }
+}
+
+function zeigeMehr(){
+  const aeltester=blocks.length?blocks[blocks.length-1].height:0;
+  $('mehr').hidden = aeltester<=0;
+}
+
+/*
+  Suche.
+
+  Die Route sagt nur, WAS gefunden wurde. Die Einzelheiten holt der
+  Explorer bei der zustaendigen Route -- so gibt es die Aufbereitung nur
+  einmal, und die Suche laeuft nicht mit ihr auseinander.
+*/
+async function suchen(){
+  const q=$('q').value.trim();
+  const ziel=$('treffer');
+  if(!q){ ziel.innerHTML=''; return; }
+  ziel.innerHTML='<p class="hinweis">wird gesucht…</p>';
+  try{
+    const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
+
+    if(r.kind==='nichts'||r.kind==='leer'){
+      ziel.innerHTML=`<p class="hinweis">${r.hinweis||'Nichts gefunden.'}</p>`;
+      return;
+    }
+
+    if(r.kind==='block'){
+      ziel.innerHTML=`<p class="hinweis">Block ${r.height} gefunden.</p>`;
+      $('q').value='';
+      location.hash='#block-'+r.height;
+      await springeZuBlock();
+      ziel.innerHTML='';
+      return;
+    }
+
+    if(r.kind==='address'){
+      const a=await fetch(`${API}/account/${r.address}`).then(r=>r.json());
+      const ysr=v=>(Number(v)/10**dec).toFixed(4)+' '+sym;
+      ziel.innerHTML=`<h3>Adresse</h3>
+        <div class="zeile"><span>Adresse</span><span class="mono"
+          style="word-break:break-all">${r.address}</span></div>
+        <div class="zeile"><span>Guthaben</span><span class="tnum">${
+          ysr(a.balance||'0')}</span></div>
+        <div class="zeile"><span>Gefundene Blöcke</span><span class="tnum">${
+          a.blocksFound??0}</span></div>`
+        + (a.poolRewards ? `<div class="zeile"><span>Pool-Anteile</span>
+             <span class="tnum">${a.poolRewards}</span></div>` : '')
+        + (!r.bekannt
+            ? `<p class="hinweis" style="margin-top:10px">Diese Adresse ist gültig,
+               hatte aber noch nie Guthaben.</p>` : '')
+        + ((a.history&&a.history.length)
+            ? `<h3 style="margin-top:14px">Letzte Bewegungen</h3>`
+              + a.history.slice(0,10).map(h=>`<div class="zeile">
+                  <span>${h.kind==='reward'?'Blockreward':h.kind==='pool'?'Pool-Anteil':
+                          h.kind==='in'?'Eingang':'Ausgang'}
+                    ${h.height!=null?`· Block ${h.height}`:''}</span>
+                  <span class="tnum">${ysr(h.amount)}</span></div>`).join('')
+            : '');
+      return;
+    }
+
+    if(r.kind==='tx'){
+      const t=await fetch(`${API}/tx/${r.txid}`).then(r=>r.json());
+      if(t.error){ ziel.innerHTML='<p class="hinweis">Transaktion nicht lesbar.</p>'; return; }
+      const ysr=v=>(Number(v)/10**dec).toFixed(4)+' '+sym;
+      ziel.innerHTML=`<h3>Transaktion</h3>
+        <div class="zeile"><span>Kennung</span><span class="mono"
+          style="word-break:break-all;font-size:11.5px">${t.txid}</span></div>
+        <div class="zeile"><span>Status</span><span>${
+          t.status==='pending'?'wartet auf einen Block':'in Block '+t.height}</span></div>
+        <div class="zeile"><span>Art</span><span>${
+          t.type==='coinbase'?'Blockreward':'Überweisung'}</span></div>`
+        + (t.from?`<div class="zeile"><span>Von</span><span class="mono"
+             style="word-break:break-all;font-size:11.5px">${t.from}</span></div>`:'')
+        + (t.to?`<div class="zeile"><span>An</span><span class="mono"
+             style="word-break:break-all;font-size:11.5px">${t.to}</span></div>`:'')
+        + (t.recipients?`<div class="zeile"><span>Empfänger</span><span>${
+             t.recipients.length}</span></div>`
+           + t.recipients.map(e=>`<div class="zeile"><span class="mono"
+               style="font-size:11.5px">${e.address}</span>
+               <span class="tnum">${ysr(e.amount)}</span></div>`).join(''):'')
+        + `<div class="zeile"><span>Betrag</span><span class="tnum">${
+             ysr(t.amount)}</span></div>`
+        + (Number(t.fee)>0?`<div class="zeile"><span>Gebühr</span><span class="tnum">${
+             ysr(t.fee)}</span></div>`:'')
+        + (t.height!=null?`<p class="hinweis" style="margin-top:10px">
+             <a href="#block-${t.height}">Zu Block ${t.height}</a></p>`:'');
+      return;
+    }
+  }catch(e){
+    ziel.innerHTML='<p class="hinweis">Suche fehlgeschlagen: '+e.message+'</p>';
+  }
+}
+
 async function springeZuBlock(){
   const treffer = /^#block-(\d+)$/.exec(location.hash);
   if(!treffer) return;
@@ -429,12 +597,32 @@ async function springeZuBlock(){
   if(zeile) zeile.scrollIntoView({ block:'center' });
 }
 
+$('qgo').addEventListener('click', suchen);
+$('q').addEventListener('keydown', e=>{ if(e.key==='Enter') suchen(); });
+$('mehr').addEventListener('click', mehrLaden);
+
 load().then(springeZuBlock);
 window.addEventListener('hashchange', springeZuBlock);
 
-// Nicht neu laden, solange ein Block geoeffnet ist -- sonst klappt er zu,
-// waehrend man liest.
-setInterval(()=>{ if(open===null) load(); },10000);
+/*
+  Nicht neu laden, solange ein Block geoeffnet ist -- sonst klappt er zu,
+  waehrend man liest.
+
+  Und nicht, solange mehr als 25 Bloecke geladen sind: Ein load() setzt die
+  Liste auf die neuesten 25 zurueck, und alles Nachgeladene waere weg.
+  Stattdessen wird nur der Kopf aufgefrischt.
+*/
+setInterval(async ()=>{
+  if(open!==null) return;
+  if(blocks.length>25){
+    try{
+      const s2=await fetch(API+'/summary').then(r=>r.json());
+      if(!s2.error){ sum=s2; renderStats(); }
+    }catch{ /* beim naechsten Mal wieder */ }
+    return;
+  }
+  load();
+},10000);
 </script>
 </body>
 </html>
