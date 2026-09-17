@@ -1,86 +1,90 @@
 # Was in dieses Repo gehört
 
-Stand vom 11.09.2026. Alle Prüfungen grün: 67 Tests, 0 Typfehler,
+Stand 17.09.2026. Alle Prüfungen grün: **155 Tests, 0 Typfehler**,
 Next.js-Build läuft durch.
 
-## Zuerst
+## Vor jedem Push
 
 ```bash
-./AUFRAEUMEN.sh          # entfernt abgelöste Dateien (ein Zip löscht nichts)
 npm install
-npx tsc --noEmit         # muss 0 Fehler zeigen
-npm test                 # 67 Tests
-git add -A && git commit && git push
+npx tsc --noEmit         # muss 0 zeigen
+npm test                 # 155 Tests
+git status --short       # kein node_modules, kein *.db, kein .next
 ```
 
-Unter Windows: `npm.cmd` statt `npm`.
+Unter Windows `npm.cmd` statt `npm`.
 
-## Was seit dem letzten Deployment neu ist
+Eigenständige Ordner brauchen ihre **eigene** Installation — eine im
+Wurzelverzeichnis genügt nicht:
 
-Die Datenbank ist bereits umgestellt — die Migrationen 00011 und 00012 sind
-in Supabase eingespielt. **Der Code ist es nicht.** Genau deshalb beendet
-der laufende Server noch immer die erste Session, wenn eine zweite mit
-derselben Adresse startet.
+```bash
+cd node && npm install && npm run build
+cd miner && npm install && npm run build:exe
+cd observer && npm install && npm run build
+```
 
-### Mehrere Miner auf eine Adresse
+## Was nicht ins Repo gehört
 
-| Datei | |
-|---|---|
-| `src/app/api/v2/session/route.ts` | beendet andere Sessions nicht mehr, Deckel bei 8 |
-| `src/hooks/useMining.ts` | zeigt die Begründung des Servers statt nur den Code |
-| `supabase/migrations/00011_chain2_multi_session.sql` | `reap_sessions`, `live_sessions` |
+```
+node_modules/            überall
+.next/  out/
+*.db  *.db-wal  *.db-shm  Kettendaten des Knotens
+node/knoten/  node/testnetz/  observer/daten/
+miner/dist/  node/dist/  observer/dist/
+.env  .env.local
+wasm/sha256d_miner.wasm  Bauartefakt, verbindlich ist public/miner.<hash>.wasm
+scripts/genesis.state.json
+```
 
-### Job an Session binden
+Die `.gitignore` im Wurzelverzeichnis und in `node/`, `miner/`, `observer/`
+decken das ab. `*.db` fängt Kettendaten unabhängig vom Ordnernamen.
 
-| Datei | |
-|---|---|
-| `src/lib/node/node.ts` | trägt `session_id` in den Job ein |
-| `src/lib/node/share.ts` | weist fremde Jobs mit `job_foreign` ab |
-| `supabase/migrations/00012_chain2_job_session_binding.sql` | Spalte + Index |
+## Abgelöste Dateien
 
-Ohne das könnten zwei Sessions derselben Adresse dieselbe Nonce auf
-denselben Job einreichen und beide gutgeschrieben bekommen.
+Falls noch vorhanden, gehören sie raus — sie werden von nichts mehr
+importiert:
 
-### Oberfläche
+```
+public/miner.wasm                     alte 116-Byte-Engine
+src/app/explorer/                     ersetzt durch public/explorer.html
+src/components/Explorer.tsx
+src/components/MiningPanel.tsx
+src/components/PerformanceStrip.tsx
+src/hooks/useMiner.ts
+src/lib/strip.ts
+```
 
-| Datei | |
-|---|---|
-| `src/components/ShareChart.tsx` | feste Skala, feste Balkenbreite, Verankerung an der aktuellen Difficulty |
-| `src/components/ui/Chrome.tsx` | Wortmarke als Text, Startbild mit Mindestdauer |
-| `src/components/tabs/WalletTab.tsx` | Transaktionsdetails |
-| `src/components/AppShell.tsx` | Wake Lock, Blockfund-Überlagerung schließbar |
-| `src/app/globals.css` | Farben als RGB-Kanäle, Wasserzeichen-Regel entfernt |
-| `src/app/api/v2/account/[address]/route.ts` | Verlauf, Adressen als bech32m |
-| `src/hooks/useWakeLock.ts` | hält den Bildschirm wach beim Mining |
-| `public/explorer.html` | Rückweg in die App, Sprung zu `#block-N`, neue Palette |
-| `public/marke/logo.png` | aus 1024 statt 520 Pixeln |
+`AUFRAEUMEN.sh` erledigt das, braucht aber eine Bash-Umgebung.
 
-**`public/marke/zeichen.png` muss weg** — `AUFRAEUMEN.sh` erledigt das.
+## Migrationen
 
-### Miner
+In Supabase eingespielt, die SQL-Dateien sind die Dokumentation:
 
-| Datei | |
-|---|---|
-| `miner/src/anzeige.mjs` | **neu** — Kennzahlen, Aufwand, Zeitfenster |
-| `miner/src/cli.mjs` | Zeile je Share, Tastenbefehle, Adressabfrage |
-| `miner/src/konfig.mjs`, `miner/src/frage.mjs` | **neu** — Einstellungen, Eingaben |
-| `miner/build/bundle.mjs`, `miner/build/exe.mjs` | **neu** — eigenständige Binärdatei |
-| `miner/miner.57f237a2a4.wasm` | Engine nach Inhalt benannt |
+```
+00007–00011  chain2: Kern, Jobs, Rechte, Mehrfach-Sessions
+00012        jobs.session_id
+00013        transactions.coinbase_outputs
+```
 
-### Beobachter-Knoten
-
-| Datei | |
-|---|---|
-| `observer/src/main.ts` | **neu** — holt die Kette und rechnet jeden Block nach |
-| `observer/build.mjs`, `observer/package.json` | **neu** |
-| `src/app/api/v2/sync/route.ts` | **neu** — rohe Blockkörper, stapelweise |
+`chain2` muss unter **Settings → API → Exposed schemas** eingetragen sein,
+sonst scheitert jeder Aufruf von `/api/v2/*` zur Laufzeit.
 
 ## Nach dem Push prüfen
 
 ```
-/api/v2/summary            zeigt die aktuelle Höhe
+/api/v2/summary                  aktuelle Höhe
+/api/v2/block   (POST, leer)     {"accepted":false,"reason":"missing_raw"}
 ```
 
-Dann zweiter Miner mit derselben Adresse: In der `c`-Ansicht müssen beide
-**verschiedene Extranonces** zeigen, und keiner darf `session_inactive`
-melden.
+Antwortet die zweite mit einer 404-Seite statt JSON, ist der Deploy nicht
+durch.
+
+Dann der Full Node:
+
+```bash
+node dist/yskar-node.cjs status --data ./knoten
+```
+
+Die **Zustandswurzel** muss mit der aus `/api/v2/summary` übereinstimmen.
+Das ist der eigentliche Beleg: zwei unabhängige Implementierungen, dieselbe
+Rechnung.

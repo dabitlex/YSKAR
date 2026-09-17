@@ -22,7 +22,8 @@ export async function GET(
   const key = '\\x' + toHex(raw);
   const sb = db().schema('chain2');
 
-  const [{ data: acc }, { data: pending }, { count: mined }, { data: verlauf }] =
+  const [{ data: acc }, { data: pending }, { count: mined }, { data: verlauf },
+         { data: poolAnteile }] =
     await Promise.all([
       sb.from('accounts').select('balance, nonce, first_height, last_height')
         .eq('address', key).maybeSingle(),
@@ -32,13 +33,52 @@ export async function GET(
         .eq('to_addr', key).eq('type', 0),
       // Verlauf: alles, was diese Adresse beruehrt, egal in welche Richtung.
       sb.from('transactions')
-        .select('txid, block_height, type, from_addr, to_addr, amount, fee, memo')
+        .select('txid, block_height, type, from_addr, to_addr, amount, fee, memo, coinbase_outputs')
         .or(`from_addr.eq.${key},to_addr.eq.${key}`)
+        .order('block_height', { ascending: false }).limit(40),
+      /*
+        Coinbase mit mehreren Empfaengern.
+
+        Bei Fassung 2 steht in to_addr NICHTS -- die Aufteilung liegt in
+        coinbase_outputs. Wer ueber einen Pool bezahlt wird, faende seinen
+        Eingang sonst nirgends: nicht im Verlauf, nicht in der Zahl der
+        gefundenen Bloecke. Das Guthaben stimmte, die Herkunft waere
+        unsichtbar.
+      */
+      sb.from('transactions')
+        .select('txid, block_height, type, amount, memo, coinbase_outputs')
+        .contains('coinbase_outputs', JSON.stringify([{ to: key.replace(/^\\x/, '') }]))
         .order('block_height', { ascending: false }).limit(40),
     ]);
 
+  /*
+    Pool-Anteile in den Verlauf einreihen.
+
+    Sie kommen aus einer eigenen Abfrage, weil sie in to_addr nicht zu
+    finden sind. Zusammengefuehrt und nach Hoehe sortiert, damit der Nutzer
+    eine Liste sieht und nicht zwei.
+  */
+  const key_hex = toHex(raw);
+  const ausPool = (poolAnteile ?? []).flatMap(t => {
+    const outs = (t.coinbase_outputs ?? []) as { to: string; amount: string }[];
+    const meiner = outs.find(o => unprefix(o.to) === key_hex);
+    if (!meiner) return [];
+    return [{
+      txid: t.txid, block_height: t.block_height, type: t.type,
+      from_addr: null, to_addr: null,
+      amount: meiner.amount, fee: '0', memo: t.memo,
+      poolAnteil: true,
+      empfaenger: outs.length,
+    }];
+  });
+
+  const zusammen = [...(verlauf ?? []).map(t => ({ ...t, poolAnteil: false, empfaenger: 1 })),
+                    ...ausPool]
+    .sort((a, b) => b.block_height - a.block_height)
+    .slice(0, 40);
+
   // Blockzeiten dazu -- ohne sie waere der Verlauf ohne Zeitbezug.
-  const hoehen = [...new Set((verlauf ?? []).map(t => t.block_height))];
+  const hoehen = [...new Set(zusammen.map(t => t.block_height))];
   const { data: bloecke } = hoehen.length
     ? await sb.from('blocks').select('height, block_time').in('height', hoehen)
     : { data: [] };
@@ -57,7 +97,9 @@ export async function GET(
       amount: p.amount, fee: p.fee, nonce: p.nonce,
     })),
     blocksFound: mined ?? 0,
-    history: (verlauf ?? []).map(t => {
+    /** Bloecke, an deren Coinbase diese Adresse beteiligt war. */
+    poolRewards: ausPool.length,
+    history: zusammen.map(t => {
       const eingang = unprefix(t.to_addr) === toHex(raw);
       // Als bech32m, nicht als Rohbytes: Der Nutzer soll dieselbe
       // Zeichenkette sehen wie in seiner Wallet und sie vergleichen koennen.
@@ -66,8 +108,12 @@ export async function GET(
         txid: unprefix(t.txid),
         height: t.block_height,
         timestamp: zeit.get(t.block_height) ?? null,
-        kind: t.type === 0 ? 'reward' : (eingang ? 'in' : 'out'),
+        kind: t.type === 0
+          ? (t.poolAnteil ? 'pool' : 'reward')
+          : (eingang ? 'in' : 'out'),
         counterparty: gegenHex ? encodeAddress(fromHex(gegenHex)) : null,
+        // Bei einem Pool-Anteil: wie viele sich den Block geteilt haben.
+        shares: t.poolAnteil ? t.empfaenger : undefined,
         amount: String(t.amount),
         fee: String(t.fee),
         memo: unprefix(t.memo),

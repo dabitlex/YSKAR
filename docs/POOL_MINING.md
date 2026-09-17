@@ -90,6 +90,10 @@ Modi laufen am selben Knoten nebeneinander.
 ## Was noch fehlt
 
 - Anbindung an `MiningServer`: Modus je Sitzung, Shares in den Pool leiten
-- Auswahl in der Mini App
 - Tabellen für Pools, Verlauf und Auszahlungen
-- Kontoauskunft und Explorer müssen Empfänger einer Fassung-2-Coinbase finden
+- ein öffentlich erreichbarer Knoten, damit Telefone den Pool erreichen
+
+Erledigt: Kontoauskunft und Explorer finden Empfänger einer
+Fassung-2-Coinbase. Die Umschaltung Solo/Pool steht in der Mini App und ist
+bis zur Aktivierung mit „bald" gekennzeichnet.
+

@@ -86,13 +86,24 @@ bekommen.
 
 Verbindlich ist ohnehin das `raw`-Feld.
 
-## Was noch fehlt
+## Kontoauskunft und Explorer
 
-Die Kontoauskunft (`/api/v2/account/[address]`) findet Empfänger einer
-Coinbase der Fassung 2 noch nicht — sie sucht nur im `to`-Feld. Das wird
-gebraucht, sobald der erste Pool auszahlt, also deutlich vor Höhe 2000.
+Beides war eine Lücke und ist geschlossen.
 
-Ebenso zeigt der Explorer bei Fassung 2 bisher nur die Gesamtsumme.
+Die Kontoauskunft (`/api/v2/account/[address]`) suchte nur in `to_addr` —
+bei Fassung 2 steht dort nichts. Wer über einen Pool bezahlt wird, hätte
+seinen Eingang nirgends gefunden: nicht im Verlauf, nicht in der Zahl der
+gefundenen Blöcke. Das Guthaben hätte gestimmt, die Herkunft wäre unsichtbar
+gewesen.
+
+Jetzt läuft eine zweite Abfrage über `coinbase_outputs`, und die Ergebnisse
+werden nach Höhe in denselben Verlauf eingereiht. Ein Pool-Anteil erscheint
+als `kind: 'pool'` mit der Zahl der Beteiligten.
+
+Der Explorer zeigt bei Fassung 2 alle Empfänger mit ihrem Anteil, nicht nur
+die Gesamtsumme. Nur die Summe zu zeigen sähe aus, als hätte niemand etwas
+bekommen — und das Nachrechnen ist der Sinn einer Auszahlung über die
+Kette.
 
 ## Noch nicht geändert
 
