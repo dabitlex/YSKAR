@@ -9,7 +9,7 @@ bewährt hat und jeder, der Bitcoin kennt, ihn sofort liest.
 |---|---|---|
 | Rahmung | `src/lib/node/p2p/wire.ts` | fertig, 17 Tests |
 | Nachrichten | `src/lib/node/p2p/messages.ts` | fertig, 18 Tests |
-| Verbindung | — | noch nicht |
+| Verbindung | `src/lib/node/p2p/PeerConnection.ts` | fertig, 11 Tests |
 | Peer-Verwaltung | — | noch nicht |
 | Abgleich | — | noch nicht |
 
@@ -99,6 +99,62 @@ Kennung      64 Zeichen
 
 Die Rahmung allein reicht nicht: Zwei Megabyte sind sehr viele kleine
 Einträge.
+
+## Die Verbindung
+
+Zuständig für Handschlag, Lebenszeichen, Rahmung und Grenzen. Sie weiß
+nichts über Blöcke und prüft keine Kette — das ist die Ebene darüber.
+
+### Handschlag
+
+```
+aus  →  version
+     ←  version
+     ←  verack
+aus  →  verack
+        bereit
+```
+
+Beide Seiten nennen Netz, Chain-ID, Höhe und kumulierte Arbeit. Drei
+Prüfungen trennen sofort:
+
+**Netz und Chain-ID.** Die Magic-Bytes decken nur vier Byte ab — die
+vollständige Chain-ID schließt aus, dass zwei Netze mit zufällig gleichem
+Anfang zusammenfinden.
+
+**Die eigene Nonce.** Kommt sie zurück, reden wir mit uns selbst. Das
+passiert leicht, wenn die eigene Adresse über `addr` zurückkommt, und wäre
+sonst eine Verbindung, die ewig hält und nichts bringt.
+
+**Die Protokollfassung.** Solange es nur eine gibt, wäre Nachsicht geraten.
+
+### Reihenfolge ist Teil des Schutzes
+
+Vor dem Handschlag wird **nur `version`** angenommen, zwischen `version` und
+`verack` nichts anderes. Sonst könnte ein Peer sofort Blöcke schicken —
+ungeprüft, ohne dass feststeht, ob er überhaupt zum selben Netz gehört.
+
+### Drei Fristen
+
+| | |
+|---|---|
+| Handschlag | 10 s |
+| Lebenszeichen | alle 60 s |
+| Stille | 150 s |
+
+Die Handschlagfrist ist die wichtigste: Ohne sie könnte jemand
+Verbindungen öffnen und nie etwas senden — die Plätze wären belegt, ohne
+dass ein einziges Byte kommt. Das kostet den Angreifer nichts.
+
+Ein offenes `ping` und schon kommt das nächste: Die Gegenseite antwortet
+nicht mehr, die Verbindung wird getrennt. Ein `pong` ohne `ping` gilt als
+auffällig — sonst ließe sich eine tote Verbindung lebendig aussehen lassen.
+
+### Getestet über echtes TCP
+
+Auf Loopback, nicht mit Attrappen. Eine nachgebaute Verbindung würde genau
+die Fehler verschweigen, um die es geht: Bytes in Stücken, halbe
+Handschläge, Gegenseiten die nicht antworten.
 
 ## Was von Bitcoin nicht übernommen wird
 
