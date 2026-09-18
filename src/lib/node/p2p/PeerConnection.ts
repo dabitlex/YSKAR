@@ -39,6 +39,23 @@ export const IDLE_TIMEOUT_MS = 150_000;
 
 export type PeerRichtung = 'aus' | 'ein';
 
+/**
+ * Verzeichnis der eigenen Nonces.
+ *
+ * Jede Verbindung wuerfelt ihre eigene -- eine feste waere ein
+ * Wiedererkennungsmerkmal ueber alle Verbindungen hinweg. Damit eine
+ * Selbstverbindung trotzdem auffaellt, merkt sich der Knoten, welche
+ * Nonces er versendet hat, und prueft eingehende dagegen.
+ *
+ * Bitcoin macht es genauso, und der Grund ist wichtig: Eine Nonce je
+ * Knoten waere einfacher, gaebe aber jedem Peer einen Wert, an dem er den
+ * Knoten ueber wechselnde Adressen hinweg wiedererkennt.
+ */
+export interface NonceBuch {
+  merke(n: bigint): void;
+  kennt(n: bigint): boolean;
+}
+
 export interface PeerInfo {
   id: number;
   richtung: PeerRichtung;
@@ -85,8 +102,10 @@ export class PeerConnection {
   private leser: FrameReader;
   private cb: PeerCallbacks;
 
-  /** Eigener Zufallswert -- erkennt die Verbindung zu sich selbst. */
+  /** Zufallswert dieser Verbindung. */
   private eigeneNonce: bigint;
+  /** Alle Nonces dieses Knotens -- ohne sie faellt keine Selbstverbindung auf. */
+  private nonces: NonceBuch | null;
   private eigeneHoehe: () => { height: number; chainWork: bigint };
   private eigenerPort: number;
   private agent: string;
@@ -116,6 +135,8 @@ export class PeerConnection {
     /** Wird bei jedem Handschlag frisch gelesen -- die Kette bewegt sich. */
     eigeneKette: () => { height: number; chainWork: bigint };
     nonce?: bigint;
+    /** Ohne Angabe wird nur gegen die eigene Nonce dieser Verbindung geprueft. */
+    nonces?: NonceBuch;
     callbacks?: PeerCallbacks;
   }) {
     this.sock = opt.socket;
@@ -128,6 +149,8 @@ export class PeerConnection {
     this.eigenerPort = opt.listenPort;
     this.eigeneHoehe = opt.eigeneKette;
     this.eigeneNonce = opt.nonce ?? zufallsNonce();
+    this.nonces = opt.nonces ?? null;
+    this.nonces?.merke(this.eigeneNonce);
 
     this.host = opt.socket.remoteAddress ?? '?';
     this.port = opt.socket.remotePort ?? 0;
@@ -264,7 +287,27 @@ export class PeerConnection {
     if (toHex(v.chainId) !== toHex(this.params.chainId)) {
       return this.schliessen('fremde_chain_id');
     }
-    if (v.nonce === this.eigeneNonce) {
+    /*
+      Die eigene Nonce kommt zurueck -- wir reden mit uns selbst.
+
+      Geprueft wird gegen ALLE Nonces dieses Knotens, nicht nur gegen die
+      dieser Verbindung. Bei einer Selbstverbindung sind es zwei
+      verschiedene Verbindungen mit zwei verschiedenen Nonces; wer nur die
+      eigene prueft, merkt nie etwas.
+    */
+    if (v.nonce === this.eigeneNonce || this.nonces?.kennt(v.nonce)) {
+      /*
+        Vor dem Trennen noch antworten -- aber nur in diesem einen Fall.
+
+        Sonst erfaehrt die andere Seite nichts: Sie hat die Verbindung
+        aufgebaut und kennt als Einzige den Zielport, also die Adresse, die
+        aus dem Buch gehoert. Sie sieht ohne Antwort nur einen geschlossenen
+        Socket und weiss nicht, warum.
+
+        Bei einem fremden Netz wird NICHT geantwortet -- dort waere jede
+        Antwort eine Auskunft an jemanden, der hier nichts verloren hat.
+      */
+      if (this.richtung === 'ein') this.sendeVersion();
       return this.schliessen('selbstverbindung');
     }
     if (v.protocol !== PROTOCOL_VERSION) {

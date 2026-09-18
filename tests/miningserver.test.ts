@@ -28,7 +28,14 @@ async function knoten(port: number) {
   store.setMeta('chain_id', toHex(REGTEST.chainId));
   const chain = new ChainManager(store, REGTEST);
   const pool = new TxPool();
-  const mining = new MiningCoordinator(chain, store, pool, REGTEST);
+  // Gesetzte Uhr, wie in mining.test.ts: Sonst klettert die Difficulty mit
+  // jedem Block, und der Test hinge an der Maschinenlast.
+  let uhr = 1_788_912_000n;
+  const mining = new MiningCoordinator(chain, store, pool, REGTEST, () => {
+    const t = uhr;
+    uhr += REGTEST.targetBlockTime;
+    return t;
+  });
   const server = new MiningServer({ chain, store, pool, mining }, { params: REGTEST });
   await server.listen('127.0.0.1', port);
   const url = `http://127.0.0.1:${port}/api/v2`;

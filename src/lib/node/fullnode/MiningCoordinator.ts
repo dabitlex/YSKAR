@@ -75,13 +75,25 @@ export class MiningCoordinator {
    * und die Statuszeile erneuert sich jede Sekunde.
    */
   private letzteVorgaben: { height: number; difficulty: bigint } | null = null;
+  private jetzt: () => bigint;
 
+  /**
+   * @param jetzt  Aktuelle Zeit in Sekunden. Ohne Angabe die Systemuhr.
+   *
+   * Von aussen setzbar, damit Tests eine Kette mit gleichmaessigen
+   * Abstaenden erzeugen koennen. Mit der Systemuhr entstehen Testbloecke in
+   * Millisekunden, die Difficulty-Regel sieht Loesungszeiten nahe null und
+   * hebt die Difficulty je Block um den Deckelungsfaktor an -- das ist
+   * richtig, macht Tests aber von der Maschinenlast abhaengig.
+   */
   constructor(chain: ChainManager, store: ChainStore, pool: TxPool,
-              params: ConsensusParams = MAINNET) {
+              params: ConsensusParams = MAINNET,
+              jetzt?: () => bigint) {
     this.chain = chain;
     this.store = store;
     this.pool = pool;
     this.params = params;
+    this.jetzt = jetzt ?? (() => BigInt(Math.floor(Date.now() / 1000)));
   }
 
   /**
@@ -221,7 +233,7 @@ export class MiningCoordinator {
   private naechsteVorgaben(tip: { height: number; blockTime: bigint } | null): {
     difficulty: bigint; zeitstempel: bigint;
   } {
-    const jetzt = BigInt(Math.floor(Date.now() / 1000));
+    const jetzt = this.jetzt();
 
     if (!tip) {
       return { difficulty: this.params.genesisDifficulty, zeitstempel: jetzt };

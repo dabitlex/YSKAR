@@ -10,7 +10,7 @@ bewährt hat und jeder, der Bitcoin kennt, ihn sofort liest.
 | Rahmung | `src/lib/node/p2p/wire.ts` | fertig, 17 Tests |
 | Nachrichten | `src/lib/node/p2p/messages.ts` | fertig, 18 Tests |
 | Verbindung | `src/lib/node/p2p/PeerConnection.ts` | fertig, 11 Tests |
-| Peer-Verwaltung | — | noch nicht |
+| Peer-Verwaltung | `src/lib/node/p2p/PeerManager.ts` | fertig, 12 Tests |
 | Abgleich | — | noch nicht |
 
 Beides sind reine Funktionen ohne Netzwerkzugriff — prüfbar, ohne dass
@@ -155,6 +155,79 @@ auffällig — sonst ließe sich eine tote Verbindung lebendig aussehen lassen.
 Auf Loopback, nicht mit Attrappen. Eine nachgebaute Verbindung würde genau
 die Fehler verschweigen, um die es geht: Bytes in Stücken, halbe
 Handschläge, Gegenseiten die nicht antworten.
+
+## Peer-Verwaltung
+
+Hält die Verbindungen, sucht neue, nimmt eingehende an und entscheidet, wer
+gehen muss, wenn es eng wird.
+
+### Plätze sind der Schutz, nicht Sperren
+
+```
+ausgehend    8
+eingehend   32
+```
+
+**Getrennt gezählt, und das ist der Punkt.** Wer nur eingehende
+Verbindungen hätte, könnte von einem Angreifer vollständig umstellt werden
+— alle Plätze belegt, kein Kontakt zum echten Netz. Ausgehende Verbindungen
+sucht der Knoten selbst aus.
+
+Sind die eingehenden voll, wird **ein** Platz frei gemacht: zuerst bei
+einem vermerkten Peer, sonst bei dem, der am längsten ohne abgeschlossenen
+Handschlag herumsteht. Gäbe es keine Verdrängung, könnte ein Angreifer alle
+Plätze belegen und danach niemanden mehr hereinlassen.
+
+### Vermerken statt sperren
+
+Ein auffälliger Peer wird getrennt und für eine Stunde vermerkt — er wird
+beim nächsten Gedränge zuerst verdrängt. **Ausgesperrt wird er nicht**, und
+der Vermerk überlebt keinen Neustart.
+
+Ein eigener Test hält das fest: Nach dem Fehlverhalten darf sich derselbe
+Peer sofort wieder verbinden. Wäre die Tür zu, wäre es eine Sperre.
+
+### Adressbuch
+
+Bis zu 1.000 Einträge. Weitergegeben wird nur, was in den letzten drei
+Stunden gesehen wurde und keine Fehlversuche hat — alte Adressen zu
+verbreiten schickt andere in dieselbe Sackgasse.
+
+Drei Filter beim Annehmen fremder Adressen:
+
+**Aus der Zukunft** wird verworfen. Der Zeitstempel kommt von einem
+Fremden; weit in der Zukunft stünde er in jeder Sortierung ganz oben und
+könnte echte Peers aus dem Buch drängen.
+
+**Älter als eine Woche** ebenfalls.
+
+**Unplausible Hosts** kommen nicht hinein — ein grober Filter, keine
+Namensauflösung.
+
+Ist das Buch voll, weicht der älteste Eintrag — aber nur, wenn der neue
+jünger ist. Ohne diese Bedingung könnte ein Peer mit einem Schwall alter
+Adressen das ganze Buch austauschen.
+
+### Die eigene Adresse
+
+Ein Knoten bekommt seine eigene Adresse regelmäßig über `addr` zurück — ein
+Peer gibt weiter, wen er kennt, und das sind wir.
+
+Sie wird **gelernt, nicht geraten**: Die eigene äußere Adresse lässt sich
+nicht zuverlässig feststellen. Fällt bei einem Verbindungsversuch die
+eigene Nonce zurück, wird die Adresse als eigene vermerkt und aus dem Buch
+genommen.
+
+Dafür führt der Knoten ein **Verzeichnis seiner versandten Nonces**. Jede
+Verbindung würfelt eine eigene — eine feste wäre ein
+Wiedererkennungsmerkmal über wechselnde Adressen hinweg. Bitcoin macht es
+genauso.
+
+Im Fall der Selbstverbindung antwortet die empfangende Seite noch einmal,
+bevor sie trennt: Nur die aufbauende Seite kennt den Zielport, also die
+Adresse, die aus dem Buch gehört. Bei einem **fremden Netz** wird
+ausdrücklich nicht geantwortet — dort wäre jede Antwort eine Auskunft an
+jemanden, der hier nichts verloren hat.
 
 ## Was von Bitcoin nicht übernommen wird
 

@@ -7,16 +7,18 @@
  * Gemint wird im Testnetz, damit ein Block Millisekunden statt einer
  * Viertelstunde kostet. Die Pruefung ist dieselbe wie im echten Netz.
  *
- * WICHTIG FUER DIE TESTLAENGE: Der Knoten setzt den Zeitstempel auf die
- * echte Uhrzeit. Werden mehrere Bloecke in Sekunden gemint, sieht die
- * Difficulty-Regel Loesungszeiten nahe null und hebt die Difficulty je
- * Block um den Deckelungsfaktor 4 an: 1, 4, 16, 64, 256, 1024.
+ * ZEIT WIRD VORGEGEBEN, nicht von der Uhr gelesen.
  *
- * Das ist RICHTIG -- genau so soll sie auf einen Anstieg der Rechenleistung
- * reagieren. Fuer die Tests heisst es aber: kurze Ketten. Ab etwa vier
- * Bloecken wird das Minen in JavaScript spuerbar langsam, ab sechs
- * unzumutbar. Wo mehr Bloecke noetig waeren, gehoert der Fall in
- * tests/reorg.test.ts -- dort werden Zeitstempel vorgegeben.
+ * Mit der Systemuhr entstehen Testbloecke in Millisekunden. Die
+ * Difficulty-Regel sieht dann Loesungszeiten nahe null und hebt die
+ * Difficulty je Block um den Deckelungsfaktor 4 an: 1, 4, 16, 64, 256.
+ * Das ist RICHTIG -- genau so soll sie auf einen Anstieg der
+ * Rechenleistung reagieren.
+ *
+ * Fuer Tests macht es sie aber von der Maschinenlast abhaengig: Unter
+ * voller Last laufen sie anders als einzeln, und ein Test, der mal
+ * besteht und mal nicht, ist schlimmer als keiner. Die Uhr wird deshalb
+ * gesetzt und ruecht je Block um die Zielblockzeit vor.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,7 +43,16 @@ function knoten() {
   store.setMeta('chain_id', toHex(REGTEST.chainId));
   const chain = new ChainManager(store, REGTEST);
   const pool = new TxPool();
-  const mining = new MiningCoordinator(chain, store, pool, REGTEST);
+
+  // Gesetzte Uhr: rückt je Job um die Zielblockzeit vor. Damit sieht die
+  // Difficulty-Regel genau 600 Sekunden und bleibt bei 1 stehen --
+  // unabhängig davon, wie schnell die Maschine gerade ist.
+  let uhr = 1_788_912_000n;
+  const mining = new MiningCoordinator(chain, store, pool, REGTEST, () => {
+    const t = uhr;
+    uhr += REGTEST.targetBlockTime;
+    return t;
+  });
   return { store, chain, pool, mining };
 }
 
@@ -181,8 +192,7 @@ test('Der Mempool nimmt nur an, was gedeckt und richtig signiert ist', () => {
 test('Der Mempool verhindert dieselbe Nonce zweimal ohne höhere Gebühr', () => {
   const { store, chain, pool, mining } = knoten();
 
-  // Nur drei Blöcke: Jeder weitere vervierfacht die Difficulty, weil sie
-  // alle binnen Sekunden entstehen. Drei reichen, um ein Konto zu füllen.
+  // Drei Blöcke reichen, um ein Konto zu füllen.
   const geber = wallet();
   for (let i = 0; i < 3; i++) {
     mine(mining, mining.createJob(geber.addressRaw, BigInt(i)));
