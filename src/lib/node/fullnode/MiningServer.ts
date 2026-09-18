@@ -33,6 +33,7 @@ import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore } from './ChainStore.ts';
 import type { TxPool } from './TxPool.ts';
 import type { MiningCoordinator, MiningJob } from './MiningCoordinator.ts';
+import { ReadApi } from './ReadApi.ts';
 
 /** Angestrebter Abstand zwischen zwei Shares, in Sekunden. */
 const SHARE_ZIEL_SEKUNDEN = 30;
@@ -80,6 +81,7 @@ export class MiningServer {
   private mining: MiningCoordinator;
   private params: ConsensusParams;
 
+  private lesen: ReadApi;
   private sessions = new Map<string, Session>();
   private naechsteExtranonce = 1n;
   private server = createServer((req, res) => this.behandle(req, res));
@@ -108,6 +110,22 @@ export class MiningServer {
     this.pool = teile.pool;
     this.mining = teile.mining;
     this.params = opt.params ?? MAINNET;
+
+    /*
+      Die Leseschnittstelle.
+
+      Erst damit laesst sich die Mini App vom Server auf einen Knoten
+      umstellen: Sie braucht Bloecke, Konten und Suche, nicht nur Jobs und
+      Shares. Die Antworten haben genau die Form der Vercel-Routen -- die
+      App soll eine andere Adresse bekommen, keinen anderen Code.
+    */
+    this.lesen = new ReadApi({
+      chain: teile.chain, store: teile.store, pool: teile.pool,
+      hashrate: () => this.gesamtHashrate() || null,
+      aktiveMiner: () =>
+        new Set([...this.sessions.values()].map(s => s.addressHex)).size,
+      miningSessions: () => this.aktiveSessions(),
+    });
   }
 
   listen(host = '127.0.0.1', port = 8645): Promise<void> {
@@ -157,11 +175,30 @@ export class MiningServer {
       if (req.method === 'POST' && pfad === '/share') {
         return this.json(res, this.share(await this.body(req)));
       }
-      if (req.method === 'GET' && pfad === '/summary') {
-        return this.json(res, this.summary());
-      }
+      /*
+        Erst die eigenen Routen, dann die Leseschnittstelle.
+
+        Reihenfolge ist wichtig: /summary beantwortet die Leseschnittstelle
+        vollstaendiger als die alte Fassung hier -- sie kennt Chain Work
+        und die Zustandswurzel.
+      */
+      const gelesen = this.lesen.behandle(
+        req.method ?? 'GET', pfad, url.searchParams);
+      if (gelesen) return this.json(res, gelesen.body, gelesen.status);
       if (req.method === 'GET' && pfad === '/status') {
         return this.json(res, this.status());
+      }
+
+      /*
+        Eine Transaktion einreichen.
+
+        Sie geht in den lokalen Mempool und wird dort vollstaendig geprueft.
+        Weitergegeben wird sie noch nicht -- dafuer fehlt die Verbreitung
+        ueber P2P, und etwas Ungeprueftes weiterzureichen waere ohnehin
+        falsch herum.
+      */
+      if (req.method === 'POST' && pfad === '/tx') {
+        return this.json(res, await this.tx(req));
       }
       this.json(res, { error: 'not_found' }, 404);
     } catch (e) {
@@ -472,6 +509,25 @@ export class MiningServer {
   }
 
   // ---------------------------------------------------------------- Auskunft
+
+  /** Eine Transaktion in den lokalen Mempool. */
+  private async tx(req: IncomingMessage): Promise<Record<string, unknown>> {
+    const b = await this.body(req);
+    if (typeof b.raw !== 'string' || !/^[0-9a-fA-F]+$/.test(b.raw)) {
+      return { accepted: false, reason: 'missing_raw' };
+    }
+    try {
+      const { deserializeTx } = await import('../../core/tx.ts');
+      const tx = deserializeTx(fromHex(b.raw));
+      if (tx.type !== 1) return { accepted: false, reason: 'not_a_transfer' };
+      const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
+      return r.ok
+        ? { accepted: true, txid: r.txid, replaced: r.ersetzt ?? null }
+        : { accepted: false, reason: r.reason, detail: r.detail };
+    } catch (e) {
+      return { accepted: false, reason: 'malformed', detail: (e as Error).message };
+    }
+  }
 
   private summary(): Record<string, unknown> {
     const tip = this.chain.tip();
