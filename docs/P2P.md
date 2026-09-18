@@ -11,7 +11,8 @@ bewährt hat und jeder, der Bitcoin kennt, ihn sofort liest.
 | Nachrichten | `src/lib/node/p2p/messages.ts` | fertig, 18 Tests |
 | Verbindung | `src/lib/node/p2p/PeerConnection.ts` | fertig, 11 Tests |
 | Peer-Verwaltung | `src/lib/node/p2p/PeerManager.ts` | fertig, 12 Tests |
-| Abgleich | — | noch nicht |
+| Abgleich | `src/lib/node/p2p/SyncManager.ts` | fertig, 8 Tests |
+| Knoten-CLI | `src/lib/node/fullnode/cli.ts` | `--seed`, `--p2p-port` |
 
 Beides sind reine Funktionen ohne Netzwerkzugriff — prüfbar, ohne dass
 etwas läuft. Das war bei `ChainWork` und der Pool-Abrechnung schon so und
@@ -228,6 +229,71 @@ bevor sie trennt: Nur die aufbauende Seite kennt den Zielport, also die
 Adresse, die aus dem Buch gehört. Bei einem **fremden Netz** wird
 ausdrücklich nicht geantwortet — dort wäre jede Antwort eine Auskunft an
 jemanden, der hier nichts verloren hat.
+
+## Kettenabgleich
+
+Verbindet die Peers mit der eigenen Kette: holt fehlende Blöcke,
+beantwortet Anfragen, verbreitet Neues.
+
+**Die Regel, die alles trägt:** Ein Peer liefert Daten, nichts weiter. Jeder
+Block läuft durch dieselbe vollständige Prüfung wie ein selbst gebauter,
+über `ChainManager.accept()`. Es gibt keine Abkürzung für
+„vertrauenswürdige" Peers, weil es keine gibt.
+
+### Aufgeholt wird nach Arbeit, nicht nach Höhe
+
+Eine längere Kette aus leichten Blöcken ist nicht die bessere. Verglichen
+wird die kumulierte Arbeit aus dem Handschlag.
+
+### Proof of Work am Header, sofort
+
+Der wichtigste Schutz beim Aufholen. Header sind billig zu erfinden, wenn
+man die Arbeit weglässt — ein Peer könnte zweitausend schicken und uns dazu
+bringen, zweitausend Blockkörper anzufragen.
+
+Der Hash kostet Mikrosekunden und macht genau das unmöglich: Wer einen
+Header mit gültigem PoW liefert, hat dafür gearbeitet. Die **volle** Prüfung
+kommt erst mit dem Körper — hier geht es nur darum, Arbeit von Behauptung
+zu trennen.
+
+### Begrenztes Fenster
+
+Höchstens 16 Blockkörper gleichzeitig. Alle auf einmal anzufragen würde bei
+einer langen Kette hunderte Megabyte gleichzeitig anfordern.
+
+Anfragen ohne Antwort werden nach 30 Sekunden freigegeben — sonst
+blockierte ein Peer, der nicht liefert, einen Platz, und der Block würde
+nie von jemand anderem geholt.
+
+### Getestet zwischen echten Knoten
+
+Zwei vollständige Knoten auf Loopback, echte Kette, echtes TCP:
+
+| | |
+|---|---|
+| Ein leerer Knoten holt die ganze Kette | und rechnet den Zustand **selbst** |
+| Ein neuer Block wandert weiter | Ankündigung, Anfrage, Prüfung |
+| Über einen Knoten hinweg bis zum dritten | A↔B↔C, A und C nie verbunden |
+| Der Zweig mit mehr Arbeit setzt sich durch | Reorg über das Netz |
+| Header ohne Arbeit | Verbindung getrennt |
+| Ungültiger Block | Verbindung getrennt, nichts übernommen |
+| Dreifache Ankündigung | nur eine Anfrage |
+
+Es gibt **keine Nachricht, die einen Zustand überträgt** — ein eigener Test
+hält fest, dass der aufholende Knoten dieselbe Zustandswurzel selbst
+errechnet.
+
+### Im Knoten
+
+```bash
+node dist/yskar-node.cjs mine --data ./knoten --seed 203.0.113.5:8646
+```
+
+Das Knotennetz läuft neben der Mining-Schnittstelle und unabhängig von ihr:
+Ein Knoten ohne Miner ist ein vollwertiger Teilnehmer, ein Miner ohne Peers
+arbeitet weiter. Fällt das Netz aus, prüft der Knoten seine Kette trotzdem.
+
+Selbst gefundene Blöcke gehen automatisch ins Netz.
 
 ## Was von Bitcoin nicht übernommen wird
 

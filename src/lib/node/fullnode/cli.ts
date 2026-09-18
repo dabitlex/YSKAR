@@ -23,6 +23,8 @@ import { TxPool } from './TxPool.ts';
 import { MiningCoordinator } from './MiningCoordinator.ts';
 import { MiningServer } from './MiningServer.ts';
 import { MAINNET, REGTEST, type ConsensusParams } from '../../core/networks.ts';
+import { PeerManager } from '../p2p/PeerManager.ts';
+import { SyncManager } from '../p2p/SyncManager.ts';
 
 const VERSION = '0.1.0';
 
@@ -47,6 +49,12 @@ interface Optionen {
   api: string; daten: string; befehl: string;
   einmal: boolean; intervall: number; help?: boolean;
   bind: string; port: number; regtest: boolean;
+  /** Lauschport fuer P2P. 0 = nur ausgehend. */
+  p2pPort: number;
+  /** Feste Startadressen, Form host:port. */
+  seeds: string[];
+  /** P2P ganz aus. */
+  keinP2P: boolean;
   /** Wohin gefundene Bloecke gehen. Leer heisst: nirgends. */
   upstream?: string;
 }
@@ -57,6 +65,7 @@ function argumente(argv: string[]): Optionen {
     befehl: argv[0] && !argv[0].startsWith('-') ? argv[0] : 'sync',
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
+    p2pPort: 8646, seeds: [], keinP2P: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -72,6 +81,9 @@ function argumente(argv: string[]): Optionen {
       case '--regtest': o.regtest = true; break;
       case '--upstream': o.upstream = nimm().replace(/\/+$/, ''); break;
       case '--no-upstream': o.upstream = ''; break;
+      case '--p2p-port': o.p2pPort = Number(nimm()); break;
+      case '--seed': o.seeds.push(nimm()); break;
+      case '--no-p2p': o.keinP2P = true; break;
       case '--help': case '-h': o.help = true; break;
     }
   }
@@ -100,6 +112,16 @@ Optionen
       --regtest         eigenes Testnetz statt der echten Kette
       --upstream <url>  wohin gefundene Blöcke gehen (Vorgabe: --api)
       --no-upstream     gefundene Blöcke nur lokal behalten
+      --p2p-port <nr>   Lauschport für andere Knoten (Vorgabe: 8646)
+      --seed host:port  ein bekannter Knoten, mehrfach angebbar
+      --no-p2p          ohne Knotennetz laufen
+
+Mit anderen Knoten verbinden
+  yskar-node mine --data ./knoten --seed 203.0.113.5:8646
+
+  Jeder Block, der über das Netz kommt, wird vollständig selbst geprüft --
+  Header, Proof of Work, Signaturen, Guthaben, Zustandswurzel. Ein Peer
+  liefert Daten, sonst nichts.
 
 Mining gegen den eigenen Knoten
   yskar-node mine --regtest --data ./testnetz
@@ -292,6 +314,74 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     melde(grau(`           an ${adresse.slice(0, 16)}…`));
   };
 
+  /*
+    Das Knotennetz.
+
+    Es laeuft neben der Mining-Schnittstelle und unabhaengig von ihr: Ein
+    Knoten ohne Miner ist ein vollwertiger Teilnehmer, und ein Miner ohne
+    Peers arbeitet weiter. Faellt das Netz aus, prueft der Knoten seine
+    Kette trotzdem.
+  */
+  let netz: PeerManager | null = null;
+  let abgleich: SyncManager | null = null;
+
+  if (!opt.keinP2P) {
+    const seeds = opt.seeds.map(s => {
+      const i = s.lastIndexOf(':');
+      if (i < 1) throw new Error(`Seed "${s}" muss host:port sein`);
+      return { host: s.slice(0, i), port: Number(s.slice(i + 1)) };
+    });
+
+    netz = new PeerManager({
+      params,
+      agent: `yskar-node/${VERSION}`,
+      listenPort: opt.p2pPort,
+      seeds,
+      kette: () => {
+        const t = chain.tip();
+        return { height: t?.height ?? -1, chainWork: t?.chainWork ?? 0n };
+      },
+      onReady: p => {
+        melde(`${grau('[' + uhr() + ']')} ${grau('Peer')} ${p.host} ` +
+          `${grau('· Höhe')} ${nf(p.fremdeHoehe())}`);
+        abgleich?.aufPeer(p);
+      },
+      onMessage: (p, f) => abgleich?.aufNachricht(p, f),
+      onClose: (p, g) => {
+        if (p.ready) melde(grau(`[${uhr()}] Peer ${p.host} weg: ${g}`));
+      },
+      onLog: t => melde(grau(`[${uhr()}] ${t}`)),
+    });
+
+    abgleich = new SyncManager({
+      chain, store, peers: netz, params,
+      onBlock: (h, hash, von) => {
+        koordinator.invalidate();
+        melde(`${grau('[' + uhr() + ']')} ${gruen('Block')} ${grau('#')}${nf(h)} ` +
+          `${grau('von')} ${von} ${grau(hash.slice(0, 16) + '…')}`);
+      },
+      onLog: t => melde(grau(`[${uhr()}] ${t}`)),
+    });
+
+    try {
+      await netz.start();
+      abgleich.start();
+    } catch (e) {
+      melde(gelb(`  Knotennetz konnte nicht starten: ${(e as Error).message}`));
+      netz = null; abgleich = null;
+    }
+  }
+
+  // Selbst gefundene Bloecke ins Netz geben.
+  const vorherOnBlock = server.onBlock;
+  server.onBlock = (h, hash, adresse) => {
+    vorherOnBlock?.(h, hash, adresse);
+    if (abgleich) {
+      const n = abgleich.kuendigeAn(fromHex(hash));
+      if (n > 0) melde(grau(`           an ${n} Peer${n > 1 ? 's' : ''} gemeldet`));
+    }
+  };
+
   await server.listen(opt.bind, opt.port);
 
   console.log(fett(`\nYSKAR Full Node ${VERSION}  ${grau('Mining')}`));
@@ -302,6 +392,10 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   console.log(`  Lauscht  http://${opt.bind}:${opt.port}`);
   console.log(`  Blöcke   ${nachOben ? '→ ' + nachOben : 'bleiben lokal'}`);
   console.log(`  Sync     ${nachOben ? 'alle 30 s von ' + opt.api : 'aus'}`);
+  console.log(`  Knoten   ${netz
+    ? (opt.p2pPort > 0 ? `lauscht auf ${opt.p2pPort}` : 'nur ausgehend') +
+      (opt.seeds.length ? `, ${opt.seeds.length} Seed${opt.seeds.length > 1 ? 's' : ''}` : '')
+    : 'aus'}`);
   console.log(grau('─'.repeat(56)));
 
   /*
@@ -339,6 +433,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     laeuft = false;
     clearInterval(syncTakt);
     clearInterval(takt);
+    abgleich?.stop();
+    await netz?.stop();
     await server.close();
     console.log('');
     status(store, chain);
@@ -392,7 +488,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       `${grau('· baut an')} ${nf(naechste)} ` +
       `${grau('· Diff')} ${arbeit ? nf(arbeit.difficulty) : grau('—')} ` +
       `${grau('·')} ${server.aktiveSessions()} Miner ` +
-      `${grau('·')} Mempool ${pool.size()}`);
+      `${grau('·')} Mempool ${pool.size()}` +
+      (netz ? `${grau(' · ')}${netz.bereite().length} Peers` : ''));
   }, 1000);
   takt.unref();
 
