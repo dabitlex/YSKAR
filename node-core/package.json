@@ -1,0 +1,14 @@
+{
+  "name": "yskar-node-core-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "YSKAR Node Core Test Application. Existing Full Node core is not modified.",
+  "engines": { "node": ">=25.5.0" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
