@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -12,6 +12,13 @@ if (!existsSync(join(here, 'node_modules', 'esbuild'))) {
   console.error('esbuild fehlt. Bitte zuerst: npm install');
   process.exit(1);
 }
+
+const wasmSource = resolve(repo, 'miner', 'miner.57f237a2a4.wasm');
+if (!existsSync(wasmSource)) {
+  console.error(`Miner-WASM fehlt: ${wasmSource}`);
+  process.exit(1);
+}
+copyFileSync(wasmSource, resolve(out, 'miner.wasm'));
 
 const { build } = await import('esbuild');
 const bundled = resolve(out, 'yskar-node-core.bundle.cjs');
@@ -49,3 +56,4 @@ try {
 
 console.log('\nYSKAR Node Core erstellt:');
 console.log(resolve(out, 'YSKAR-Node-Core.exe'));
+console.log(`Miner-WASM: ${resolve(out, 'miner.wasm')}`);
