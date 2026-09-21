@@ -1,0 +1,7 @@
+{
+  "main": "C:\\Users\\kpfae\\Desktop\\YSKAR-main\\node-core\\dist\\yskar-node-core.bundle.cjs",
+  "mainFormat": "commonjs",
+  "output": "C:\\Users\\kpfae\\Desktop\\YSKAR-main\\node-core\\dist\\YSKAR-Node-Core.exe",
+  "disableExperimentalSEAWarning": true,
+  "useCodeCache": true
+}
