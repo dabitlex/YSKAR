@@ -91,6 +91,40 @@
 }
 .mehr:hover{background:var(--surface)}
 .mehr:disabled{opacity:.5;cursor:default}
+.kette-kopf{display:flex;align-items:baseline;justify-content:space-between;
+  gap:12px;margin:0 0 10px}
+.kette-kopf h2{margin:0;font-size:13px;font-weight:500;color:var(--dim)}
+.kette{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:10px;
+  margin:0 0 20px;scrollbar-width:thin}
+.kette::-webkit-scrollbar{height:7px}
+.kette::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.spalte{flex:0 0 auto;width:124px;display:flex;flex-direction:column;align-items:center}
+.k-kopf{height:24px;display:flex;align-items:center}
+.k-kopf a{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;
+  color:var(--proof);text-decoration:none}
+.k-kopf a:hover{text-decoration:underline}
+.wuerfel{width:104px;height:104px;border-radius:7px;padding:8px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;border:0;font:inherit;color:inherit;position:relative}
+.wuerfel:hover{outline:2px solid var(--proof);outline-offset:2px}
+.w-bau{background:linear-gradient(160deg,#1d2634,#141b26);
+  border:1px dashed var(--line);color:var(--dim);cursor:default}
+.w-bau:hover{outline:0}
+.w-block{background:linear-gradient(160deg,#243044,#1a2331);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 2px 8px rgba(0,0,0,.4)}
+.w-block.offen{outline:2px solid var(--proof);outline-offset:2px}
+.w-zahl{font-family:Consolas,"SFMono-Regular",monospace;font-size:14.5px;font-weight:500}
+.w-klein{font-size:10px;color:var(--dim)}
+.w-zeit{font-size:10px;color:var(--faint);margin-top:1px}
+/* Der Prüfpunkt: gruen, wenn dieser Block im Browser nachgerechnet wurde. */
+.w-punkt{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:99px}
+.finder{height:20px;margin-top:7px;text-align:center;font-size:11.5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:118px}
+.trenner{flex:0 0 auto;width:40px;align-self:stretch;display:flex;
+  align-items:center;justify-content:center}
+.trenner div{width:1px;height:136px;background:var(--line)}
+.unbekannt{color:var(--faint)}
+.poolname{color:var(--proof)}
 </style>
 </head>
 <body>
@@ -122,6 +156,12 @@
   <button id="qgo" type="button">Suchen</button>
 </div>
 <div id="treffer"></div>
+
+<div class="kette-kopf">
+  <h2>Blöcke</h2>
+  <span class="muted" style="font-size:11.5px">links im Bau · rechts gefunden · Punkt = nachgerechnet</span>
+</div>
+<div class="kette" id="kette"></div>
 
 <div class="err" id="err"></div>
 <ul id="list"></ul>
@@ -303,6 +343,87 @@ function renderStats(){
   $('stats').innerHTML=rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
 }
 
+
+/*
+  Die Blockreihe.
+
+  Links der Block, an dem gerade gerechnet wird -- nur EINER. Ohne
+  Gebuehrenmarkt gibt es keine Prognose ueber mehrere: Gebuehren sind
+  absolute Betraege, kein Satz je Byte.
+
+  Rechts die gefundenen, neueste zuerst. Unter jedem Wuerfel steht, wer
+  ihn gefunden hat: der selbst gewaehlte Name aus dem extra-Feld der
+  Coinbase, sonst "Unbekannt". Die Adresse steht NICHT darunter -- sie
+  gehoert in die Einzelheiten, nicht in die Uebersicht.
+
+  Der Punkt oben rechts ist gruen, sobald dieser Block im Browser
+  nachgerechnet wurde. Das ist der eigentliche Zweck dieses Explorers.
+*/
+function alter(ts){
+  const d=Math.floor(Date.now()/1000)-Number(ts);
+  if(d<60) return 'gerade eben';
+  if(d<3600) return 'vor '+Math.round(d/60)+' Min';
+  if(d<86400) return 'vor '+Math.round(d/3600)+' Std';
+  return 'vor '+Math.round(d/86400)+' Tg';
+}
+
+function renderKette(){
+  const ziel=$('kette');
+  if(!ziel) return;
+  if(blocks.length===0){ ziel.innerHTML=''; return; }
+
+  const naechste=(sum&&sum.height!=null)?sum.height+1:blocks[0].height+1;
+  const wartend=(sum&&sum.mempool)||0;
+
+  let html=`
+    <div class="spalte">
+      <div class="k-kopf"><span class="muted" style="font-size:12px">im Bau</span></div>
+      <div class="wuerfel w-bau">
+        <div class="w-zahl" style="color:var(--work)">${nf(naechste)}</div>
+        <div class="w-klein">${wartend} Transaktion${wartend===1?'':'en'}</div>
+        <div class="w-zeit">wird gesucht</div>
+      </div>
+      <div class="finder muted">—</div>
+    </div>
+    <div class="trenner"><div></div></div>`;
+
+  for(const b of blocks.slice(0,12)){
+    const c=checks[b.height];
+    const geprueft=c&&c.hash==='ok'&&c.difficulty==='ok'&&c.serialisierung!=='fail';
+    const kaputt=c&&(c.hash==='fail'||c.difficulty==='fail'
+      ||c.kette==='fail'||c.serialisierung==='fail');
+    const punkt=kaputt?'var(--risk)':(geprueft?'var(--proof)':'var(--line)');
+
+    const name=b.finder
+      ? `<span class="poolname" title="Selbstauskunft des Finders">${esc(b.finder)}</span>`
+      : `<span class="unbekannt">Unbekannt</span>`;
+
+    const lohn=b.reward!=null?(Number(b.reward)/10**dec).toFixed(0):'—';
+
+    html+=`
+      <div class="spalte">
+        <div class="k-kopf"><a href="#block-${b.height}">${nf(b.height)}</a></div>
+        <button class="wuerfel w-block${open===b.height?' offen':''}" type="button"
+                onclick="location.hash='#block-${b.height}'">
+          <div class="w-punkt" style="background:${punkt}"></div>
+          <div class="w-zahl">${lohn}</div>
+          <div class="w-klein">${sym}</div>
+          <div class="w-klein">${b.txCount} Transaktion${b.txCount===1?'':'en'}</div>
+          <div class="w-zeit">${alter(b.timestamp)}</div>
+        </button>
+        <div class="finder">${name}</div>
+      </div>`;
+  }
+  ziel.innerHTML=html;
+}
+
+/* Fremder Text gehoert maskiert -- der Name kommt aus der Kette und
+   damit von irgendwem. */
+function esc(t){
+  return String(t).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function renderList(){
   $('list').innerHTML=blocks.map(b=>{
     const c=checks[b.height];
@@ -355,6 +476,11 @@ function renderList(){
           <div class="f"><dt>extranonce</dt><dd>${b.extranonce}</dd></div>
           <div class="f"><dt>nonce</dt><dd>${b.nonce}</dd></div>
           <div class="f"><dt>Größe</dt><dd>${b.sizeBytes} Byte</dd></div>
+          <div class="f"><dt>Gefunden von</dt><dd>${
+            b.finder ? `<span style="color:var(--proof)">${esc(b.finder)}</span>
+              <span class="muted" style="font-size:11px"> · Selbstauskunft</span>`
+                     : '<span style="color:var(--faint)">Unbekannt</span>'}</dd></div>
+          ${b.recipients>1?`<div class="f"><dt>Empfänger</dt><dd>${b.recipients}</dd></div>`:''}
         </dl>${txs}</div>`;
     }
     return `<li>
@@ -363,7 +489,9 @@ function renderList(){
         <span class="mid">
           <span class="hash">${b.hash}</span>
           <span class="sub">${b.reward!=null?(Number(b.reward)/10**dec).toFixed(0)+' '+sym:'—'
-            } · ${b.txCount} Tx · ${ago(b.timestamp)}</span>
+            } · ${b.txCount} Tx · ${ago(b.timestamp)} · ${
+            b.finder ? `<span style="color:var(--proof)">${esc(b.finder)}</span>`
+                     : '<span style="color:var(--faint)">Unbekannt</span>'}</span>
         </span>
         <span class="diff">${nf(b.difficulty)}</span>
       </button>${detail}</li>`;
@@ -409,7 +537,7 @@ async function load(){
     const next={};
     for(let i=0;i<blocks.length;i++) next[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
     checks=next;
-    renderVerdict(); renderList(); zeigeMehr();
+    renderVerdict(); renderList(); renderKette(); zeigeMehr();
   }catch(e){
     $('err').innerHTML='Laden fehlgeschlagen: '+e.message+'<br>'+
       (HOSTED
@@ -472,7 +600,7 @@ async function mehrLaden(){
     for(let i=vorher-1;i<blocks.length;i++){
       checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
     }
-    renderVerdict(); renderList(); zeigeMehr();
+    renderVerdict(); renderList(); renderKette(); zeigeMehr();
   }catch(e){
     $('err').textContent='Nachladen fehlgeschlagen: '+e.message;
   }finally{
@@ -587,7 +715,7 @@ async function springeZuBlock(){
   }
 
   open = ziel;
-  renderList();
+  renderList(); renderKette();
   if(!details[ziel]){
     fetch(`${API}/blocks/${ziel}`).then(r=>r.json())
       .then(d=>{ if(d.height!==undefined){ details[d.height]=d; renderList(); } })
