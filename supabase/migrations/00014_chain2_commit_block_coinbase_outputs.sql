@@ -1,0 +1,19 @@
+-- commit_block schreibt coinbase_outputs.
+--
+-- Migration 00013 hat die Spalte angelegt, und store.ts schickt sie
+-- seither mit -- aber commit_block hat sie nie in den INSERT aufgenommen.
+-- Bei einer Coinbase mit mehreren Empfaengern waere die Aufteilung damit
+-- lautlos verlorengegangen: to bleibt leer, amount traegt die Gesamtsumme,
+-- und die Empfaenger stuenden nirgends.
+--
+-- Aufgefallen beim Nachtragen der fehlenden Migrationen. Sichtbar geworden
+-- waere es erst ab Hoehe 2000, bei der ersten Pool-Auszahlung -- also
+-- genau dann, wenn es am meisten geschadet haette.
+--
+-- Die vollstaendige Funktion steht in 00008; hier nur der Hinweis auf die
+-- Aenderung. Wer das Schema neu aufbaut, bekommt ueber 00008 bereits die
+-- richtige Fassung.
+
+-- (Der Funktionsrumpf ist mit dem aus 00008 identisch. Diese Datei
+--  existiert, damit die Reihenfolge der eingespielten Migrationen im
+--  Supabase-Projekt und im Repository uebereinstimmt.)
