@@ -105,19 +105,7 @@ export class MiningCoordinator {
    * verpflichten auf GENAU diese Auswahl. Weicht sie um eine Transaktion
    * ab, ist die geleistete Arbeit wertlos.
    */
-  /**
-   * @param extra  Inhalt des extra-Felds der Coinbase. Dort traegt sich
-   *               ein_ Pool oder ein Miner mit seinem Namen ein; der
-   *               Explorer liest ihn wieder heraus.
-   *
-   *               Ohne Angabe bleibt das Feld leer. Der Aufrufer
-   *               entscheidet: Fuer die eigenen Miner des Knotens und fuer
-   *               Pool-Sitzungen der eingestellte Name, fuer fremde
-   *               Solo-Miner nichts -- ihre Bloecke gehoeren nicht diesem
-   *               Knoten, und sein Name stuende zu Unrecht darin.
-   */
-  createJob(minerAddress: Uint8Array, extranonce: bigint,
-            extra: Uint8Array = new Uint8Array(0)): MiningJob {
+  createJob(minerAddress: Uint8Array, extranonce: bigint): MiningJob {
     const tip = this.chain.tip();
     const hoehe = (tip?.height ?? -1) + 1;
     const state = this.chain.state();
@@ -135,7 +123,7 @@ export class MiningCoordinator {
       timestamp: zeitstempel,
       difficulty,
       extranonce,
-      coinbaseExtra: extra,
+      coinbaseExtra: new Uint8Array(0),
       params: this.params,
     });
 

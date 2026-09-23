@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/service';
-import { finderName } from '@/lib/chain/finderName';
 import { unprefix } from '@/lib/node/hex';
 
 export const runtime = 'nodejs';
@@ -40,7 +39,7 @@ export async function GET(req: Request) {
   const heights = (data ?? []).map(b => b.height);
   const { data: coinbases } = heights.length
     ? await db().schema('chain2').from('transactions')
-        .select('block_height, to_addr, amount, memo, coinbase_outputs').eq('type', 0).in('block_height', heights)
+        .select('block_height, to_addr, amount').eq('type', 0).in('block_height', heights)
     : { data: [] };
   const byHeight = new Map((coinbases ?? []).map(c => [c.block_height, c]));
 
@@ -63,18 +62,6 @@ export async function GET(req: Request) {
         sizeBytes: b.size_bytes,
         reward: cb ? String(cb.amount) : null,
         minerAddress: cb ? unprefix(cb.to_addr) : null,
-        /*
-          Selbst gewaehlter Name des Finders, aus dem extra-Feld der
-          Coinbase. Fast immer null: Das Feld enthaelt normalerweise
-          Zufallsbytes, die den txid eindeutig machen.
-
-          Eine Selbstauskunft, keine Zusicherung -- nachpruefbar ist nur,
-          dass dieser Finder Bloecke gefunden hat.
-        */
-        finder: cb ? finderName(cb.memo) : null,
-        /** Wie viele Empfaenger die Coinbase hat. 1 = solo, mehr = Pool. */
-        recipients: cb?.coinbase_outputs
-          ? (cb.coinbase_outputs as unknown[]).length : 1,
       };
     }),
   }, { headers: CORS });
