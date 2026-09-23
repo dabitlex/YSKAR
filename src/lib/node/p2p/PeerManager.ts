@@ -82,6 +82,25 @@ export class PeerManager {
   /** Laufende Verbindungsversuche -- verhindert doppelte. */
   private imAufbau = new Set<string>();
   /**
+   * Urspruengliches Ziel jeder ausgehenden Verbindung.
+   *
+   * Ein Seed kann ein Name sein, dessen Socket danach eine IP meldet:
+   *
+   *   Ziel beim connect():          yskar-main.dynv6.net:8646
+   *   Tatsaechliche Socket-Adresse: 203.0.113.7:8646   (Beispiel, RFC 5737)
+   *
+   * PeerConnection kennt nur die zweite Adresse. Ohne diese Zuordnung
+   * wuerde der PeerManager die DynDNS-Adresse nach erfolgreicher Verbindung
+   * weiterhin als "frei" betrachten und immer wieder dieselbe Verbindung
+   * aufbauen.
+   *
+   * peer.id -> urspruenglicher Zielschluessel
+   *
+   * (Aus dem gebauten Node Core in die Quelle uebernommen -- die Aenderung
+   * existierte vorher nur im Bauartefakt dist/node-core.cjs.)
+   */
+  private ausgehendZiele = new Map<number, string>();
+  /**
    * Als eigene Adresse erkannt.
    *
    * Ein Knoten bekommt seine eigene Adresse regelmaessig ueber addr
@@ -147,6 +166,7 @@ export class PeerManager {
     if (this.takt) { clearInterval(this.takt); this.takt = null; }
     for (const p of [...this.peers.values()]) p.close('herunterfahren');
     this.peers.clear();
+    this.ausgehendZiele.clear();
     if (this.server) {
       await new Promise<void>(auf => this.server!.close(() => auf()));
       this.server = null;
@@ -258,13 +278,20 @@ export class PeerManager {
 
   private naechstesZiel(): BuchEintrag | null {
     const jetzt = Date.now();
-    const verbunden = new Set(this.alle().map(p => peerKey({
-      host: p.host, port: p.info().listenPort || p.port,
-    })));
+    const verbunden = new Set<string>();
+    for (const p of this.alle()) {
+      verbunden.add(peerKey({
+        host: p.host, port: p.info().listenPort || p.port,
+      }));
+    }
+    // Die Socket-Adresse ist bei einem Namen die IP -- das urspruengliche
+    // Ziel zaehlt deshalb gesondert als verbunden.
+    for (const ziel of this.ausgehendZiele.values()) verbunden.add(ziel);
 
     const kandidaten = [...this.buch.values()].filter(e => {
       const k = peerKey(e);
-      if (verbunden.has(k) || this.imAufbau.has(k)) return false;
+      if (verbunden.has(k)) return false;
+      if (this.imAufbau.has(k)) return false;
       // Nach Fehlversuchen warten, und zwar laenger mit jedem weiteren.
       // Ohne das haemmert der Knoten gegen eine tote Adresse.
       const wartezeit = Math.min(2 ** e.fehlversuche, 64) * 30_000;
@@ -284,6 +311,7 @@ export class PeerManager {
   verbinde(host: string, port: number): void {
     const k = peerKey({ host, port });
     if (this.imAufbau.has(k)) return;
+    if ([...this.ausgehendZiele.values()].includes(k)) return;
     this.imAufbau.add(k);
 
     const eintrag = this.buch.get(k);
@@ -308,13 +336,15 @@ export class PeerManager {
       this.imAufbau.delete(k);
       const e = this.buch.get(k);
       if (e) { e.fehlversuche = 0; e.gesehen = Date.now(); }
-      this.nimmVerbindung(sock, 'aus', port);
+      this.nimmVerbindung(sock, 'aus', port, k);
     });
   }
 
   // ------------------------------------------------------------- Gemeinsam
 
-  private nimmVerbindung(sock: Socket, richtung: 'aus' | 'ein', zielPort = 0): void {
+  private nimmVerbindung(
+    sock: Socket, richtung: 'aus' | 'ein', zielPort = 0, urspruenglichesZiel?: string,
+  ): void {
     const p = new PeerConnection({
       socket: sock,
       richtung,
@@ -328,6 +358,7 @@ export class PeerManager {
         onMessage: (peer, f) => this.aufNachricht(peer, f),
         onClose: (peer, grund) => {
           this.peers.delete(peer.id);
+          this.ausgehendZiele.delete(peer.id);
           if (grund.includes('selbstverbindung') && zielPort > 0) {
             const k = peerKey({ host: peer.host, port: zielPort });
             this.selbst.add(k);
@@ -342,6 +373,9 @@ export class PeerManager {
         },
       },
     });
+    if (richtung === 'aus' && urspruenglichesZiel) {
+      this.ausgehendZiele.set(p.id, urspruenglichesZiel);
+    }
     this.peers.set(p.id, p);
   }
 
