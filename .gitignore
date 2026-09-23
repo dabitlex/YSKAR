@@ -23,3 +23,15 @@ observer/daten/
 node/node_modules/
 node/dist/
 node/knoten/
+
+# Bauartefakte an der Wurzel. Hier lag einmal dist/node-core.cjs im
+# Repository -- mit einer Aenderung (ausgehendZiele), deren Quelle nie
+# committet wurde. Ein Bauartefakt gehoert nie ins Repo: Es verschleiert, dass
+# die Quelle fehlt.
+/dist/
+/release/
+
+# Kettendaten, egal in welchem Ordner
+*.db
+*.db-wal
+*.db-shm
