@@ -27,7 +27,6 @@ import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
 import { cpus } from 'node:os';
 import { LocalMiner } from './LocalMiner.ts';
 import { GpuMiner, erkenneGpu, type GpuErkennung } from './GpuMiner.ts';
-import { nameToExtra, finderName, MAX_FINDER_BYTES } from '../../src/lib/chain/finderName.ts';
 
 /**
  * Mining-Einstellungen.
@@ -43,17 +42,6 @@ interface MiningEinstellung {
   cpuWorkers: number;
   cpuIntensity: number;
   gpuDevice: number;
-  /**
-   * Name, mit dem dieser Knoten in seinen Bloecken steht.
-   *
-   * Landet im extra-Feld der Coinbase und ist damit fuer immer Teil des
-   * Blocks. Leer heisst: kein Name, der Explorer zeigt "Unbekannt".
-   *
-   * Nur fuer Bloecke, die dieser Knoten fuer SEINE EIGENEN Miner baut.
-   * Fremde Solo-Miner ueber die Mining-Schnittstelle bekommen ihn nicht --
-   * ihre Bloecke gehoeren nicht diesem Knoten.
-   */
-  blockName: string;
 }
 
 const VERSION = '0.3.1';
@@ -128,7 +116,7 @@ export class NodeCoreApp {
   private mining_: MiningEinstellung = {
     address: '', mode: 'cpu',
     cpuWorkers: Math.max(1, cpus().length - 1),
-    cpuIntensity: 100, gpuDevice: 0, blockName: '',
+    cpuIntensity: 100, gpuDevice: 0,
   };
   private configPath: string;
   private config: {
@@ -191,12 +179,6 @@ export class NodeCoreApp {
       if (Number.isInteger(d.cpuWorkers)) this.mining_.cpuWorkers = Math.max(1, Math.min(kerne, Number(d.cpuWorkers)));
       if (Number.isFinite(d.cpuIntensity)) this.mining_.cpuIntensity = Math.max(10, Math.min(100, Number(d.cpuIntensity)));
       if (Number.isInteger(d.gpuDevice) && Number(d.gpuDevice) >= 0) this.mining_.gpuDevice = Number(d.gpuDevice);
-      if (typeof d.blockName === 'string') {
-        // Ueber denselben Weg wie beim Speichern -- eine Datei aus einer
-        // aelteren Fassung darf keinen unzulaessigen Namen einschleusen.
-        try { nameToExtra(d.blockName); this.mining_.blockName = d.blockName; }
-        catch { this.log('Name im Block war unzulaessig -- leer gelassen.'); }
-      }
     } catch {
       this.log('mining.json war unlesbar -- Vorgaben verwendet.');
     }
@@ -257,11 +239,6 @@ export class NodeCoreApp {
       gpuErkennung: this.gpuErkennung,
       gpuSucheLaeuft: this.gpuSucheLaeuft,
       totalHashrate: (cpu?.running ? cpu.hashrate : 0) + (gpu?.running ? gpu.hashrate : 0),
-      // Was der Explorer aus dem Block herauslesen wird -- zurueckgelesen,
-      // nicht nur wiederholt. So sieht man, ob der Name wirklich ankommt.
-      blockNameGelesen: finderName(
-        Buffer.from(this.mining_.blockName, 'utf8').toString('hex')),
-      maxBlockName: MAX_FINDER_BYTES,
       running: !!(cpu?.running || gpu?.running),
     };
   }
@@ -286,20 +263,8 @@ export class NodeCoreApp {
     const cpuIntensity = Math.max(10, Math.min(100, Math.round(Number(body.cpuIntensity ?? this.mining_.cpuIntensity)) || 100));
     const gpuDevice = Math.max(0, Math.floor(Number(body.gpuDevice ?? this.mining_.gpuDevice)) || 0);
 
-    /*
-      Name im Block. Wird hier geprueft, nicht erst beim Bauen: Was einmal
-      in einem Block steht, steht dort fuer immer.
-    */
-    const blockName = String(body.blockName ?? this.mining_.blockName ?? '').trim();
-    let extra: Uint8Array;
-    try { extra = nameToExtra(blockName); }
-    catch (e) { throw new Error(`Name im Block: ${(e as Error).message}`); }
-
-    this.mining_ = { address, mode, cpuWorkers, cpuIntensity, gpuDevice, blockName };
+    this.mining_ = { address, mode, cpuWorkers, cpuIntensity, gpuDevice };
     this.speichereMining();
-
-    this.cpuMiner.setExtra(extra);
-    this.gpuMiner.setExtra(extra);
 
     const hinweise: string[] = [];
 
@@ -612,7 +577,7 @@ const UI = `<!doctype html>
 <section id="view-overview" class="view active"><div class="toolbar"><div><h1>Netzwerkübersicht</h1><p>Lokaler YSKAR Full Node</p></div><div class="actions"><button class="btn" id="refreshButton">Aktualisieren</button><button class="btn" id="stopButton">Node stoppen</button><button class="btn danger" id="shutdownButton">Beenden</button></div></div><div class="card section" style="margin-bottom:10px"><div class="sectionhead"><h2>Synchronisation</h2><span id="syncText" class="small">Warte auf Status…</span></div><div class="progress"><i id="progressBar"></i></div><div class="syncrow"><span id="syncLeft">Warte auf Peer</span><span id="syncPct">—</span></div></div><div class="grid"><div class="card stat"><div class="label">Blockhöhe</div><div id="height" class="value">—</div></div><div class="card stat"><div class="label">Netzwerkziel</div><div id="target" class="value">—</div></div><div class="card stat"><div class="label">Peers</div><div id="peers" class="value">—</div></div><div class="card stat"><div class="label">Gespeicherte Blöcke</div><div id="blocks" class="value">—</div></div><div class="card stat"><div class="label">Chain Work</div><div id="work" class="value">—</div></div><div class="card stat"><div class="label">Difficulty</div><div id="difficulty" class="value">—</div></div><div class="card stat"><div class="label">P2P</div><div id="p2p" class="value">—</div></div><div class="card stat"><div class="label">Uptime</div><div id="uptime" class="value">—</div></div><div class="card section half"><div class="sectionhead"><h2>Verbindungen</h2><span id="peerMeta" class="small"></span></div><div id="peerList" class="muted">Keine verbundenen Peers.</div></div><div class="card section half"><div class="sectionhead"><h2>Lokaler Node</h2><span class="small">Konfiguration</span></div><div class="kv"><div class="k">Node API</div><div id="api" class="mono">—</div><div class="k">Datenordner</div><div id="dataPath" class="mono" style="word-break:break-all">—</div><div class="k">Seed</div><div id="seedView" class="mono">—</div></div></div></div></section>
 <section id="view-blocks" class="view"><div class="toolbar"><div><h1>Blockchain</h1><p>Die zuletzt gespeicherten Mainnet-Blöcke</p></div></div><div class="card section"><div class="tablewrap"><table class="table"><thead><tr><th>Höhe</th><th>Hash</th><th>Zeit</th><th>TX</th><th>Difficulty</th></tr></thead><tbody id="blockRows"><tr><td colspan="5" class="muted">Noch keine Daten.</td></tr></tbody></table></div></div></section>
 <section id="view-peers" class="view"><div class="toolbar"><div><h1>Peers</h1><p>Aktive P2P-Verbindungen und Synchronisationsstatus</p></div></div><div class="grid"><div class="card stat"><div class="label">Aktive Peers</div><div id="peerCountLarge" class="value">—</div></div><div class="card stat"><div class="label">Ausgehend</div><div id="outboundLarge" class="value">—</div></div><div class="card stat"><div class="label">Eingehend</div><div id="inboundLarge" class="value">—</div></div><div class="card stat"><div class="label">Peer-Buch</div><div id="peerBookLarge" class="value">—</div></div><div class="card section wide"><div id="peerTable" class="empty">Keine verbundenen Peers.</div></div></div></section>
-<section id="view-mining" class="view"><div class="toolbar"><div><h1>Mining</h1><p>CPU- und GPU-Mining auf diesem Knoten</p></div><div><button id="mStart" class="btn primary" onclick="startMining()">Mining starten</button> <button id="mStop" class="btn" onclick="stopMining()">Mining stoppen</button></div></div><div class="grid"><div class="card stat"><div class="label">Status</div><div id="mState" class="value">—</div></div><div class="card stat"><div class="label">Gesamt</div><div id="mTotal" class="value mono">—</div></div><div class="card stat"><div class="label">CPU</div><div id="mCpuRate" class="value mono">—</div></div><div class="card stat"><div class="label">GPU</div><div id="mGpuRate" class="value mono">—</div></div></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px"><div class="card" style="padding:16px"><div class="label">Einstellungen</div><div class="field"><div class="label">Mining-Adresse</div><input id="mAddress" class="mono" spellcheck="false" placeholder="ysr1…"></div><div class="field"><div class="label">Gerät</div><div class="seg" style="margin-top:6px"><button id="modeCpu" onclick="setMode('cpu')">CPU</button><button id="modeGpu" onclick="setMode('gpu')">GPU</button><button id="modeBoth" onclick="setMode('beide')">CPU + GPU</button></div><div id="mGpuHint" class="warn hidden"></div></div><div class="field"><div class="label">CPU-Worker <span id="mCores" class="muted"></span></div><input id="mWorkers" type="number" min="1"></div><div class="field"><div class="label">CPU-Intensität in Prozent</div><input id="mIntensity" type="number" min="10" max="100" step="5"></div><div class="field"><div class="label">Name im Block <span class="muted">(optional)</span></div><input id="mBlockName" maxlength="32" spellcheck="false" oninput="pruefeName()" placeholder="z.B. pool.yskar.net"><div id="mNameHint" class="hint">Steht für immer im Block und erscheint im Explorer. Leer lassen: "Unbekannt".</div></div><div class="hint">Im Modus CPU + GPU einen Kern frei lassen: Der GPU-Miner braucht einen Faden, um die Karte zu versorgen.</div><div id="mMsg" class="hint"></div></div><div class="card" style="padding:16px"><div class="label">GPU</div><div style="margin-top:10px"><div class="kv"><span>Gerät</span><span id="gName">—</span></div><div class="kv"><span>Compute Capability</span><span id="gCc" class="mono">—</span></div><div class="kv"><span>VRAM</span><span id="gVram" class="mono">—</span></div><div class="kv"><span>CUDA</span><span id="gCuda">—</span></div><div class="kv"><span>Mining</span><span id="gState">—</span></div></div><div id="gReason" class="hint"></div><button class="btn" style="margin-top:12px" onclick="detectGpu()">GPU erneut suchen</button></div></div><div class="card" style="padding:16px;margin-top:10px"><div class="label">Messwerte</div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:10px"><div><div class="kv"><span>CPU-Worker aktiv</span><span id="cWorkers" class="mono">—</span></div><div class="kv"><span>CPU Hashes</span><span id="cHashes" class="mono">—</span></div><div class="kv"><span>CPU Treffer / Blöcke</span><span id="cShares" class="mono">—</span></div><div class="kv"><span>CPU Fehler</span><span id="cErrors" class="mono">—</span></div></div><div><div class="kv"><span>GPU Hashes</span><span id="gHashes" class="mono">—</span></div><div class="kv"><span>GPU Treffer / Blöcke</span><span id="gShares" class="mono">—</span></div><div class="kv"><span>GPU Fehler</span><span id="gErrors" class="mono">—</span></div><div class="kv"><span>Arbeitet an Höhe</span><span id="mHeight" class="mono">—</span></div></div></div><div class="kv" style="margin-top:6px"><span>Job</span><span id="mJob" class="mono" style="overflow:hidden;text-overflow:ellipsis;max-width:70%">—</span></div></div></section><section id="view-settings" class="view"><div class="toolbar"><div><h1>Einstellungen</h1><p>Aktuelle Node-Konfiguration</p></div></div><div class="card section"><div class="settingsGrid"><div class="field"><label>Datenordner</label><input id="settingsDataDir"></div><div class="field"><label>Node-API-Port</label><input id="settingsNodePort" type="number"></div><div class="field"><label>P2P-Port</label><input id="settingsP2pPort" type="number"></div><div class="field"><label>Seed</label><input id="settingsSeed"></div></div><div style="margin-top:18px"><button class="btn primary" id="saveSettings">Konfiguration speichern</button></div><div id="settingsMsg" class="small" style="margin-top:9px"></div></div><div class="card section" style="margin-top:10px"><div class="sectionhead"><h2>Node-Log</h2><span class="small">Live</span></div><div id="logs" class="log"></div></div></section>
+<section id="view-mining" class="view"><div class="toolbar"><div><h1>Mining</h1><p>CPU- und GPU-Mining auf diesem Knoten</p></div><div><button id="mStart" class="btn primary" onclick="startMining()">Mining starten</button> <button id="mStop" class="btn" onclick="stopMining()">Mining stoppen</button></div></div><div class="grid"><div class="card stat"><div class="label">Status</div><div id="mState" class="value">—</div></div><div class="card stat"><div class="label">Gesamt</div><div id="mTotal" class="value mono">—</div></div><div class="card stat"><div class="label">CPU</div><div id="mCpuRate" class="value mono">—</div></div><div class="card stat"><div class="label">GPU</div><div id="mGpuRate" class="value mono">—</div></div></div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px"><div class="card" style="padding:16px"><div class="label">Einstellungen</div><div class="field"><div class="label">Mining-Adresse</div><input id="mAddress" class="mono" spellcheck="false" placeholder="ysr1…"></div><div class="field"><div class="label">Gerät</div><div class="seg" style="margin-top:6px"><button id="modeCpu" onclick="setMode('cpu')">CPU</button><button id="modeGpu" onclick="setMode('gpu')">GPU</button><button id="modeBoth" onclick="setMode('beide')">CPU + GPU</button></div><div id="mGpuHint" class="warn hidden"></div></div><div class="field"><div class="label">CPU-Worker <span id="mCores" class="muted"></span></div><input id="mWorkers" type="number" min="1"></div><div class="field"><div class="label">CPU-Intensität in Prozent</div><input id="mIntensity" type="number" min="10" max="100" step="5"></div><div class="hint">Im Modus CPU + GPU einen Kern frei lassen: Der GPU-Miner braucht einen Faden, um die Karte zu versorgen.</div><div id="mMsg" class="hint"></div></div><div class="card" style="padding:16px"><div class="label">GPU</div><div style="margin-top:10px"><div class="kv"><span>Gerät</span><span id="gName">—</span></div><div class="kv"><span>Compute Capability</span><span id="gCc" class="mono">—</span></div><div class="kv"><span>VRAM</span><span id="gVram" class="mono">—</span></div><div class="kv"><span>CUDA</span><span id="gCuda">—</span></div><div class="kv"><span>Mining</span><span id="gState">—</span></div></div><div id="gReason" class="hint"></div><button class="btn" style="margin-top:12px" onclick="detectGpu()">GPU erneut suchen</button></div></div><div class="card" style="padding:16px;margin-top:10px"><div class="label">Messwerte</div><div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:10px"><div><div class="kv"><span>CPU-Worker aktiv</span><span id="cWorkers" class="mono">—</span></div><div class="kv"><span>CPU Hashes</span><span id="cHashes" class="mono">—</span></div><div class="kv"><span>CPU Treffer / Blöcke</span><span id="cShares" class="mono">—</span></div><div class="kv"><span>CPU Fehler</span><span id="cErrors" class="mono">—</span></div></div><div><div class="kv"><span>GPU Hashes</span><span id="gHashes" class="mono">—</span></div><div class="kv"><span>GPU Treffer / Blöcke</span><span id="gShares" class="mono">—</span></div><div class="kv"><span>GPU Fehler</span><span id="gErrors" class="mono">—</span></div><div class="kv"><span>Arbeitet an Höhe</span><span id="mHeight" class="mono">—</span></div></div></div><div class="kv" style="margin-top:6px"><span>Job</span><span id="mJob" class="mono" style="overflow:hidden;text-overflow:ellipsis;max-width:70%">—</span></div></div></section><section id="view-settings" class="view"><div class="toolbar"><div><h1>Einstellungen</h1><p>Aktuelle Node-Konfiguration</p></div></div><div class="card section"><div class="settingsGrid"><div class="field"><label>Datenordner</label><input id="settingsDataDir"></div><div class="field"><label>Node-API-Port</label><input id="settingsNodePort" type="number"></div><div class="field"><label>P2P-Port</label><input id="settingsP2pPort" type="number"></div><div class="field"><label>Seed</label><input id="settingsSeed"></div></div><div style="margin-top:18px"><button class="btn primary" id="saveSettings">Konfiguration speichern</button></div><div id="settingsMsg" class="small" style="margin-top:9px"></div></div><div class="card section" style="margin-top:10px"><div class="sectionhead"><h2>Node-Log</h2><span class="small">Live</span></div><div id="logs" class="log"></div></div></section>
 </div></main></div>
 <script>
 const $=id=>document.getElementById(id);let timer=null,lastStatus=null;
@@ -634,7 +599,7 @@ let mMode='cpu',mFormGefuellt=false;
 function rate(h){if(!h)return '0 H/s';if(h>=1e9)return (h/1e9).toFixed(2)+' GH/s';if(h>=1e6)return (h/1e6).toFixed(2)+' MH/s';if(h>=1e3)return (h/1e3).toFixed(1)+' kH/s';return Math.round(h)+' H/s'}
 function setMode(m){mMode=m;$('modeCpu').classList.toggle('on',m==='cpu');$('modeGpu').classList.toggle('on',m==='gpu');$('modeBoth').classList.toggle('on',m==='beide')}
 function renderMining(m){if(!m)return;
- if(!mFormGefuellt){$('mAddress').value=m.config.address||'';$('mWorkers').value=m.config.cpuWorkers;$('mIntensity').value=m.config.cpuIntensity;$('mBlockName').value=m.config.blockName||'';setMode(m.config.mode);mFormGefuellt=true}
+ if(!mFormGefuellt){$('mAddress').value=m.config.address||'';$('mWorkers').value=m.config.cpuWorkers;$('mIntensity').value=m.config.cpuIntensity;setMode(m.config.mode);mFormGefuellt=true}
  $('mWorkers').max=m.cores;$('mCores').textContent='(von '+m.cores+' Kernen)';
  const c=m.cpu,g=m.gpu,e=m.gpuErkennung;
  $('mState').textContent=!m.nodeRunning?'Node gestoppt':(m.running?'Läuft':'Gestoppt');
@@ -656,29 +621,8 @@ function renderMining(m){if(!m)return;
  const gpuOk=!!(e&&e.verfuegbar);$('modeGpu').disabled=!gpuOk;$('modeBoth').disabled=!gpuOk;
  if(!gpuOk&&mMode!=='cpu')setMode('cpu');
  $('mGpuHint').classList.toggle('hidden',gpuOk||m.gpuSucheLaeuft);$('mGpuHint').textContent=gpuOk?'':'GPU nicht verfügbar -- nur CPU-Mining möglich.';
- $('mStart').disabled=!m.nodeRunning;$('mStop').disabled=!m.running;
- $('mBlockName').disabled=m.running;pruefeName()}
-/*
-  Was wird tatsächlich im Block stehen?
-
-  Dieselbe Regel wie beim Lesen im Explorer: druckbares ASCII, mindestens
-  drei Zeichen, mindestens ein Buchstabe oder eine Ziffer, höchstens 32.
-  Der Knoten prüft es noch einmal selbst -- diese Rückmeldung ist nur, damit
-  man es beim Tippen sieht und nicht erst beim Start.
-*/
-function pruefeName(){
-  const v=$('mBlockName').value.trim(), h=$('mNameHint');
-  if(v===''){h.className='hint';h.textContent='Leer lassen: Im Explorer steht "Unbekannt".';return}
-  const bytes=[...v].map(c=>c.codePointAt(0));
-  const schlecht=bytes.find(c=>c<0x20||c>0x7e);
-  if(schlecht!==undefined){h.className='warn';h.textContent='Nur einfache Zeichen -- keine Umlaute, keine Sonderzeichen.';return}
-  if(bytes.length>32){h.className='warn';h.textContent='Höchstens 32 Zeichen, aktuell '+bytes.length+'.';return}
-  if(bytes.length<3){h.className='warn';h.textContent='Mindestens drei Zeichen.';return}
-  if(!/[a-zA-Z0-9]/.test(v)){h.className='warn';h.textContent='Mindestens ein Buchstabe oder eine Ziffer.';return}
-  h.className='hint';h.textContent='Im Explorer erscheint: '+v+'  ('+bytes.length+' von 32 Zeichen)';
-}
-
-async function startMining(){try{$('mMsg').textContent='';const b=await api('/api/mining/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({address:$('mAddress').value.trim(),mode:mMode,cpuWorkers:Number($('mWorkers').value),cpuIntensity:Number($('mIntensity').value),blockName:$('mBlockName').value.trim()})});$('mMsg').textContent=b.hinweise&&b.hinweise.length?b.hinweise.join(' '):'Mining gestartet.';renderMining(b.status)}catch(e){$('mMsg').textContent=e.message}}
+ $('mStart').disabled=!m.nodeRunning;$('mStop').disabled=!m.running}
+async function startMining(){try{$('mMsg').textContent='';const b=await api('/api/mining/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({address:$('mAddress').value.trim(),mode:mMode,cpuWorkers:Number($('mWorkers').value),cpuIntensity:Number($('mIntensity').value)})});$('mMsg').textContent=b.hinweise&&b.hinweise.length?b.hinweise.join(' '):'Mining gestartet.';renderMining(b.status)}catch(e){$('mMsg').textContent=e.message}}
 async function stopMining(){try{const b=await api('/api/mining/stop',{method:'POST'});$('mMsg').textContent='Mining gestoppt.';renderMining(b.status)}catch(e){$('mMsg').textContent=e.message}}
 async function detectGpu(){try{$('gCuda').textContent='wird gesucht…';renderMining(await api('/api/mining/detect',{method:'POST'}))}catch(e){$('gReason').textContent=e.message}}
 async function shutdown(){if(confirm('YSKAR Node Core wirklich beenden?'))await api('/api/shutdown',{method:'POST'})}

@@ -230,8 +230,6 @@ export class GpuMiner {
   private geraet: GpuGeraet | null = null;
   private adresse: Uint8Array | null = null;
   private extranonce = zufall();
-  /** Inhalt des extra-Felds -- siehe LocalMiner. */
-  private extra: Uint8Array = new Uint8Array(0);
   private job: MiningJob | null = null;
   private erneuern: NodeJS.Timeout | null = null;
   private rateTakt: NodeJS.Timeout | null = null;
@@ -356,9 +354,6 @@ export class GpuMiner {
     this.log('GPU-Mining gestoppt.');
   }
 
-  /** Name, mit dem dieser Knoten in seinen Bloecken steht. */
-  setExtra(e: Uint8Array): void { this.extra = e; if (this.running) this.neuerJob(); }
-
   /** Neue Kette -- der alte Job ist wertlos. */
   notifyChainChanged(): void { if (this.running) this.neuerJob(); }
 
@@ -418,7 +413,7 @@ export class GpuMiner {
   private neuerJob(): void {
     if (!this.running || !this.bereit || !this.adresse || !this.kind?.stdin) return;
     try {
-      this.job = this.mining.createJob(this.adresse, this.extranonce, this.extra);
+      this.job = this.mining.createJob(this.adresse, this.extranonce);
       this.kind.stdin.write(JSON.stringify({
         t: 'job', jobId: this.job.jobId, header: this.job.header, target: this.job.target,
       }) + '\n');
