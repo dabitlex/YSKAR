@@ -295,3 +295,37 @@ test('Die eigene Adresse wird erkannt und aus dem Buch genommen', async () => {
 
   await a.stop();
 });
+
+test('Ein Seed mit Namen wird nicht immer wieder neu verbunden', async () => {
+  /*
+    Regressionstest für ausgehendZiele.
+
+    Ein Seed kann ein Name sein, dessen Socket danach eine IP meldet --
+    bei YSKAR yskar-main.dynv6.net, der sich als IP-Adresse meldet. Hier
+    nachgestellt mit "localhost", das sich als 127.0.0.1 meldet.
+
+    Ohne ausgehendZiele erkannte der PeerManager den Namen nach der
+    Verbindung nicht als verbunden und baute immer wieder dieselbe
+    Verbindung auf.
+  */
+  const pA = naechsterPort();
+  const a = knoten({ port: pA });
+  await a.start();
+
+  const b = knoten({ seeds: [{ host: 'localhost', port: pA }] });
+  await b.start();
+  await warte(600);
+  assert.equal(b.zahlAus(), 1, 'erste Verbindung kam nicht zustande');
+
+  // Mehrfach versuchen, denselben Namen erneut zu verbinden -- so wie es
+  // der Takt alle 15 Sekunden tun würde.
+  for (let i = 0; i < 5; i++) b.verbinde('localhost', pA);
+  await warte(600);
+
+  assert.equal(b.zahlAus(), 1,
+    `${b.zahlAus()} ausgehende Verbindungen zu demselben Seed -- ` +
+    'der Name wird nicht als verbunden erkannt');
+  assert.equal(a.zahlEin(), 1, 'A sieht mehr als eine Verbindung von B');
+
+  await a.stop(); await b.stop();
+});
