@@ -1,14 +1,72 @@
 {
   "name": "yskar-node-core-app",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
-  "description": "YSKAR Node Core Test Application. Existing Full Node core is not modified.",
-  "engines": { "node": ">=25.5.0" },
+  "description": "YSKAR Node Core native Windows desktop application",
+  "main": "src/electron-main.mjs",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "start": "electron .",
+    "dist": "npm run build && electron-builder --win nsis",
+    "build:gpu": "powershell -ExecutionPolicy Bypass -File gpu/build-gpu.ps1",
+    "build:gpu-emu": "g++ -std=c++17 -O2 -o gpu/bin/yskar-cuda-emu gpu/yskar_host.cpp gpu/yskar_cpu.cpp -pthread",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:sha": "gcc -O2 -o gpu/bin/test_sha gpu/test/test_sha.c && gpu/bin/test_sha"
+  },
+  "build": {
+    "appId": "app.yskar.nodecore",
+    "productName": "YSKAR Node Core",
+    "artifactName": "YSKAR-Node-Core-Setup-${version}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/electron-main.mjs",
+      "dist/node-core.cjs",
+      "dist/miner.wasm"
+    ],
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "YSKAR Node Core",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "extraResources": [
+      {
+        "from": "gpu/bin",
+        "to": ".",
+        "filter": [
+          "yskar-cuda.exe"
+        ]
+      }
+    ]
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip39": "^2.4.0"
   },
   "devDependencies": {
+    "electron": "^38.2.2",
+    "electron-builder": "^26.0.12",
     "esbuild": "^0.28.2"
+  },
+  "allowScripts": {
+    "electron": true,
+    "esbuild": true,
+    "electron-winstaller": true
   }
 }
