@@ -22,6 +22,8 @@ import { toHex, fromHex } from '../../core/codec.ts';
 import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
 import { finderName } from '../../chain/finderName.ts';
+import { marktlage, position } from '../../core/feemarket.ts';
+import { MIN_FEE } from '../../core/params.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore, StoredBlock } from './ChainStore.ts';
@@ -66,6 +68,7 @@ export class ReadApi {
     if (pfad === '/blocks')  return { status: 200, body: this.blocks(such) };
     if (pfad === '/sync')    return { status: 200, body: this.sync(such) };
     if (pfad === '/search')  return { status: 200, body: this.search(such) };
+    if (pfad === '/fees')    return { status: 200, body: this.fees(such) };
 
     const block = pfad.match(/^\/blocks\/(\d+)$/);
     if (block) return this.block(Number(block[1]));
@@ -229,6 +232,47 @@ export class ReadApi {
       nonce: String(t.nonce),
       memo: toHex(t.memo),
       recipients: null,
+    };
+  }
+
+  // ------------------------------------------------------------- Gebühren
+
+  /**
+   * Marktlage -- dieselbe Form wie auf dem Server.
+   *
+   * KEINE Konsensregel. Wer weniger zahlt als empfohlen, wartet länger;
+   * abgelehnt wird er nicht. Würde eine Empfehlung zur Regel, hätten
+   * verschiedene Knoten verschiedene Regeln.
+   */
+  fees(such: URLSearchParams) {
+    const mempool = this.t.pool.alle();
+    const m = marktlage(this.t.chain.state(), mempool, this.t.chain.height() + 1);
+
+    const roh = such.get('fee');
+    let eigene = null;
+    if (roh !== null && /^\d+$/.test(roh)) {
+      const p = position(mempool, BigInt(roh));
+      eigene = { fee: roh, rang: p.rang, von: p.von };
+    }
+
+    return {
+      minFee: MIN_FEE.toString(),
+      wartend: m.wartend,
+      plaetzeJeBlock: m.plaetzeJeBlock,
+      andrang: m.andrang,
+      kappung: m.kappung?.toString() ?? null,
+      stufen: {
+        langsam: { fee: m.langsam.fee.toString(), block: m.langsam.block },
+        normal: { fee: m.normal.fee.toString(), block: m.normal.block },
+        schnell: { fee: m.schnell.fee.toString(), block: m.schnell.block },
+      },
+      bloecke: m.bloecke.map(b => ({
+        block: b.block, anzahl: b.anzahl, minFee: b.minFee.toString(),
+      })),
+      eigene,
+      hinweis: m.andrang
+        ? 'Voraussichtlich, unter der Annahme dass nichts Neues dazukommt.'
+        : 'Kein Andrang -- die Mindestgebühr genügt für den nächsten Block.',
     };
   }
 

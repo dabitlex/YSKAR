@@ -1,10 +1,19 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
 import { MIN_FEE, UNIT } from '@/lib/core/params';
+
+/** Antwort von /api/v2/fees -- siehe src/lib/core/feemarket.ts. */
+interface Markt {
+  minFee: string;
+  wartend: number;
+  andrang: boolean;
+  stufen: Record<'langsam' | 'normal' | 'schnell', { fee: string; block: number }>;
+  hinweis: string;
+}
 import { toHex } from '@/lib/core/codec';
 import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import type { Account } from '@/hooks/useMining';
@@ -38,6 +47,30 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
   const [fehler, setFehler] = useState<string | null>(null);
   const [ergebnis, setErgebnis] = useState<{ txid: string } | null>(null);
 
+  /*
+    Gebührenwahl.
+
+    Die Stufen kommen vom Knoten und sind GEMESSEN -- aus dem tatsächlichen
+    Mempool und der Zahl freier Plätze je Block. Ohne Andrang sind alle drei
+    gleich der Mindestgebühr, und die Anzeige sagt das auch, statt drei
+    erfundene Preise anzubieten.
+  */
+  const [stufe, setStufe] = useState<'langsam' | 'normal' | 'schnell'>('normal');
+  const [markt, setMarkt] = useState<Markt | null>(null);
+
+  useEffect(() => {
+    let lebt = true;
+    fetch('/api/v2/fees')
+      .then(r => r.json())
+      .then(d => { if (lebt && !d.error) setMarkt(d); })
+      .catch(() => { /* ohne Auskunft bleibt es bei der Mindestgebühr */ });
+    return () => { lebt = false; };
+  }, []);
+
+  // Ohne Auskunft vom Knoten: Mindestgebühr. Nie raten.
+  const gebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
+  const zielBlock = markt ? markt.stufen[stufe].block : 1;
+
   const guthaben = BigInt(account?.balance ?? '0');
   const zielGueltig = isValidAddress(ziel.trim());
   const eigene = zielGueltig && wallet.address === ziel.trim();
@@ -48,14 +81,14 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
     return BigInt(Math.round(n * Number(UNIT)));
   }, [betrag]);
 
-  const summe = einheiten + MIN_FEE;
+  const summe = einheiten + gebuehr;
   const reicht = einheiten > 0n && summe <= guthaben;
   const bereit = zielGueltig && !eigene && reicht;
 
   const fmt = (v: bigint) => (Number(v) / 10 ** decimals).toFixed(4);
 
   const setzeAnteil = (teil: number) => {
-    const verfuegbar = guthaben > MIN_FEE ? guthaben - MIN_FEE : 0n;
+    const verfuegbar = guthaben > gebuehr ? guthaben - gebuehr : 0n;
     const wert = teil === 1 ? verfuegbar
       : (verfuegbar * BigInt(Math.round(teil * 100))) / 100n;
     setBetrag((Number(wert) / 10 ** decimals).toFixed(4).replace('.', ','));
@@ -75,7 +108,7 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         from: kp.addressRaw,
         to: decodeAddress(ziel.trim()),
         amount: einheiten,
-        fee: MIN_FEE,
+        fee: gebuehr,
         // Die naechste Nonce des Kontos. Ohne sie waere die Transaktion
         // entweder ungueltig oder eine Wiederholung.
         nonce: BigInt(account?.nonce ?? '0'),
@@ -140,7 +173,7 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
           )}
           <div className="my-4 h-px bg-line" />
           <dl className="space-y-1.5 text-[13px]">
-            <Zeile label="Gebühr" wert={`${fmt(MIN_FEE)} ${symbol}`} />
+            <Zeile label="Gebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
             <Zeile label="Belastung" wert={`${fmt(summe)} ${symbol}`} />
             <Zeile label="Rest" wert={`${fmt(guthaben - summe)} ${symbol}`} />
           </dl>
@@ -215,7 +248,7 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
       </div>
       {einheiten > 0n && !reicht && (
         <p className="mt-2 text-sm text-risk">
-          Mehr als verfügbar. Die Gebühr von {fmt(MIN_FEE)} kommt noch dazu.
+          Mehr als verfügbar. Die Gebühr von {fmt(gebuehr)} kommt noch dazu.
         </p>
       )}
 
@@ -230,7 +263,51 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
       />
 
       <dl className="mt-6 space-y-1.5 border-t border-line pt-4 text-[13px]">
-        <Zeile label="Netzgebühr" wert={`${fmt(MIN_FEE)} ${symbol}`} />
+        {/*
+          Gebührenwahl.
+
+          Ohne Andrang sind alle drei Stufen gleich -- dann wird gar keine
+          Auswahl gezeigt, sondern gesagt, warum es nichts zu wählen gibt.
+          Drei Knöpfe anzubieten, die dasselbe tun, wäre irreführend.
+        */}
+        {markt?.andrang ? (
+          <>
+            <div className="mb-1.5 mt-5 flex items-baseline justify-between">
+              <span className="text-sm text-dim">Gebühr</span>
+              <span className="text-[12px] text-faint">{markt.wartend} warten</span>
+            </div>
+            <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+              {(['langsam', 'normal', 'schnell'] as const).map(k => (
+                <button key={k} onClick={() => setStufe(k)} aria-pressed={stufe === k}
+                        className={`flex-1 rounded-full py-2 text-[12.5px] capitalize
+                                    transition-colors ${
+                          stufe === k ? 'bg-work text-ink' : 'text-faint'}`}>
+                  {k}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-baseline justify-between text-[12.5px]">
+              <span className="tnum font-mono">{fmt(gebuehr)} {symbol}</span>
+              <span className="text-dim">
+                {zielBlock === 1 ? 'voraussichtlich nächster Block'
+                                 : `voraussichtlich in ${zielBlock} Blöcken`}
+              </span>
+            </div>
+            <p className="mt-2 text-[12px] leading-relaxed text-faint">
+              Geschätzt, unter der Annahme dass nichts Neues dazukommt.
+              Kommt gleich jemand mit höherer Gebühr, dauert es länger.
+            </p>
+          </>
+        ) : (
+          <>
+            <Zeile label="Netzgebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
+            <p className="mt-2 text-[12px] leading-relaxed text-faint">
+              {markt
+                ? 'Kein Andrang — die Mindestgebühr genügt für den nächsten Block.'
+                : 'Mindestgebühr.'}
+            </p>
+          </>
+        )}
         <Zeile label="Summe" wert={`${fmt(summe)} ${symbol}`} />
       </dl>
 
