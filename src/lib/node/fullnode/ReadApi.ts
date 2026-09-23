@@ -21,6 +21,7 @@ import { encodeAddress, decodeAddress } from '../../core/address.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
+import { finderName } from '../../chain/finderName.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore, StoredBlock } from './ChainStore.ts';
@@ -168,6 +169,9 @@ export class ReadApi {
       reward: coinbaseTotal(cb).toString(),
       minerAddress: cb.outputs.length === 1
         ? encodeAddress(cb.outputs[0].to) : null,
+      // Wie auf dem Server: Selbstauskunft aus dem extra-Feld, meist null.
+      finder: finderName(toHex(cb.extra)),
+      recipients: cb.outputs.length,
       sizeBytes: b.body.length,
       extranonce: String(block.header.extranonce),
       nonce: String(block.header.nonce),
