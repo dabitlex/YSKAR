@@ -6,6 +6,10 @@ import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
 import { MIN_FEE, UNIT } from '@/lib/core/params';
 
+/** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
+const MINING_BASIS = (process.env.NEXT_PUBLIC_MINING_BASE ?? '').trim()
+  .replace(/\/+$/, '');
+
 /** Antwort von /api/v2/fees -- siehe src/lib/core/feemarket.ts. */
 interface Markt {
   minFee: string;
@@ -117,7 +121,14 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         memo: notiz ? new TextEncoder().encode(notiz.slice(0, 32)) : undefined,
       });
 
-      const res = await fetch('/api/v2/tx', {
+      /*
+        Transaktionen gehen dorthin, wo auch die Bloecke gebaut werden.
+
+        Ein Spiegel nimmt sie zwar an, aber sie kaemen nie in einen Block:
+        Wer die Jobs ausgibt, waehlt die Transaktionen aus -- und das ist
+        nach der Umstellung der Knoten.
+      */
+      const res = await fetch(`${MINING_BASIS}/api/v2/tx`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ raw: toHex(serializeTx(tx)) }),
