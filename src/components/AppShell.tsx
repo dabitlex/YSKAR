@@ -49,6 +49,13 @@ export default function AppShell({ platform }: { platform: string }) {
     Viertel davon.
   */
   const [modus, setModus] = useState<'solo' | 'pool'>('solo');
+  /*
+    Adresse des Pool-Knotens.
+
+    Bleibt in der App, nicht in der Kette: Ein Pool ist kein Eintrag
+    irgendwo, sondern ein Knoten, den man erreichen kann.
+  */
+  const [poolAdresse, setPoolAdresse] = useState('');
   const kerne = typeof navigator !== 'undefined'
     ? (navigator.hardwareConcurrency || null) : null;
   const workerStufen = useMemo(() => {
@@ -89,6 +96,7 @@ export default function AppShell({ platform }: { platform: string }) {
         ) : tab === 'mining' ? (
           <MiningTab m={m} dec={dec} sym={sym} wach={wach}
                      modus={modus} setModus={setModus}
+                     poolAdresse={poolAdresse} setPoolAdresse={setPoolAdresse}
                      worker={worker} setWorker={setWorker}
                      kerne={kerne} workerStufen={workerStufen}
                      bench={bench} setAnsicht={setAnsicht} />
@@ -149,12 +157,15 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym, wach, modus, setModus, worker, setWorker,
+function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdresse,
+                     worker, setWorker,
                      kerne, workerStufen, bench, setAnsicht }: {
   m: ReturnType<typeof useMining>; dec: number; sym: string;
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
   modus: 'solo' | 'pool';
   setModus: (v: 'solo' | 'pool') => void;
+  poolAdresse: string;
+  setPoolAdresse: (v: string) => void;
   worker: number;
   setWorker: (v: number) => void;
   kerne: number | null;
@@ -221,7 +232,8 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, worker, setWorker,
           mit mehreren Empfaengern, und die gilt erst ab Hoehe 2000. Der
           Knopf steht trotzdem schon da, damit klar ist, dass es kommt.
           Ihn ohne Kennzeichnung anzubieten waere ein Versprechen, das die
-          App noch nicht halten kann.
+          Beim Minen gesperrt: Ein Wechsel mitten im Lauf liesse Arbeit im
+          PPLNS-Fenster in der Schwebe. Wer wechseln will, stoppt zuerst.
         */}
         <div className="mb-4 flex items-center justify-between">
           <span className="text-[13px] text-dim">Modus</span>
@@ -233,13 +245,12 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, worker, setWorker,
                       modus === 'solo' ? 'bg-work text-ink' : 'text-faint'}`}>
               Solo
             </button>
-            <button disabled aria-disabled="true"
-                    title="Pool-Mining kommt, sobald die Auszahlung über die Kette möglich ist"
-                    className="min-w-[64px] cursor-not-allowed rounded-full py-1.5
-                               text-[12.5px] text-faint/60">
+            <button onClick={() => setModus('pool')} aria-pressed={modus === 'pool'}
+                    disabled={m.mining}
+                    className={`min-w-[64px] rounded-full py-1.5 text-[12.5px]
+                                transition-colors disabled:opacity-60 ${
+                      modus === 'pool' ? 'bg-work text-ink' : 'text-faint'}`}>
               Pool
-              <span className="ml-1 align-middle text-[9.5px] uppercase tracking-wider
-                               text-work/70">bald</span>
             </button>
           </div>
         </div>
@@ -284,7 +295,59 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, worker, setWorker,
           </div>
         </div>
 
-        <Button onClick={() => (m.mining ? m.stop() : m.start(worker))}
+        {/*
+          Pool-Adresse.
+
+          Ein Pool ist ein Full Node -- nur er kann Jobs mit der Aufteilung
+          bauen. Deshalb braucht es eine Adresse; der eigene Server betreibt
+          keinen Pool.
+        */}
+        {modus === 'pool' && !m.mining && (
+          <div className="mb-4">
+            <label htmlFor="pooladr" className="text-[13px] text-dim">Pool-Adresse</label>
+            <input id="pooladr" type="text" inputMode="url" spellCheck={false}
+                   value={poolAdresse} onChange={e => setPoolAdresse(e.target.value)}
+                   placeholder="pool.yskar.net"
+                   className="sunk mono mt-2 w-full rounded-[10px] px-3 py-3
+                              text-[13.5px] text-text outline-none placeholder:text-faint" />
+            <p className="mt-2 text-[12px] leading-relaxed text-faint">
+              Der Block selbst zahlt alle Beteiligten aus — niemand hält dein
+              Guthaben zwischenzeitlich. Im Explorer nachrechenbar.
+            </p>
+          </div>
+        )}
+
+        {/* Was der Pool über sich meldet, sobald die Sitzung steht. */}
+        {modus === 'pool' && m.poolInfo && (
+          <div className="sunk mb-4 rounded-[10px] px-3.5 py-3">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-proof" />
+              <span className="text-[12.5px] text-proof">{m.poolInfo.name}</span>
+            </div>
+            <div className="mt-2.5 flex flex-col gap-1.5">
+              <div className="flex justify-between text-[12.5px]">
+                <span className="text-dim">Leistung</span>
+                <span className="mono">{rate(m.poolInfo.hashrate).wert} {rate(m.poolInfo.hashrate).einheit}</span>
+              </div>
+              <div className="flex justify-between text-[12.5px]">
+                <span className="text-dim">Miner im Pool</span>
+                <span className="mono">{m.poolInfo.miner}</span>
+              </div>
+              <div className="flex justify-between text-[12.5px]">
+                <span className="text-dim">Gebühr</span>
+                <span className="mono">
+                  {(m.poolInfo.feeBps / 100).toLocaleString('de-DE',
+                    { minimumFractionDigits: 2 })} %
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Button onClick={() => (m.mining
+                  ? m.stop()
+                  : m.start(worker, modus, poolAdresse))}
+                disabled={modus === 'pool' && !m.mining && poolAdresse.trim() === ''}
                 variant={m.mining ? 'quiet' : 'primary'}>
           {m.mining ? 'Mining stoppen' : 'Mining starten'}
         </Button>

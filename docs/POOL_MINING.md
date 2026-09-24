@@ -87,11 +87,20 @@ Wer allein mint, bekommt weiterhin eine Coinbase der Fassung 1 mit genau
 einem Empfänger. Der Pool ist ein Angebot, keine Voraussetzung, und beide
 Modi laufen am selben Knoten nebeneinander.
 
+## Angeschlossen
+
+Seit dem Umbau läuft der Pool im Knoten: Modus je Sitzung, Shares in den
+Pool, Coinbase mit Aufteilung. Betrieb und Grenzen stehen in
+`docs/POOL_BETRIEB.md`.
+
 ## Was noch fehlt
 
-- Anbindung an `MiningServer`: Modus je Sitzung, Shares in den Pool leiten
-- Tabellen für Pools, Verlauf und Auszahlungen
-- ein öffentlich erreichbarer Knoten, damit Telefone den Pool erreichen
+- Auszahlungsverlauf als Tabelle (in der Kette steht alles, der Knoten führt
+  aber kein eigenes Buch)
+- Fenster über einen Neustart retten — `exportieren()`/`laden()` gibt es,
+  der Knoten nutzt sie noch nicht
+- ein öffentlich erreichbarer Knoten mit TLS, damit Telefone den Pool
+  erreichen
 
 Erledigt: Kontoauskunft und Explorer finden Empfänger einer
 Fassung-2-Coinbase. Die Umschaltung Solo/Pool steht in der Mini App und ist

@@ -4,6 +4,32 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
 
+/** Was der Knoten ueber seinen Pool meldet -- gemessen, nicht behauptet. */
+export interface PoolInfo {
+  name: string;
+  feeBps: number;
+  miner: number;
+  hashrate: number;
+  eintraege: number;
+}
+
+/**
+ * Eine Pool-Adresse in eine Basis-URL bringen.
+ *
+ * "pool.yskar.net" wird zu "https://pool.yskar.net". HTTPS ist nicht
+ * Bequemlichkeit: Telegram laedt Mini Apps nur ueber TLS, und ein Aufruf
+ * auf http scheitert im Browser ohnehin.
+ *
+ * Ein abschliessender Schraegstrich wird entfernt -- sonst entstuende
+ * "https://pool.net//api/v2".
+ */
+function normalisiere(roh: string): string {
+  const t = roh.trim().replace(/\/+$/, '');
+  if (t === '') return '';
+  if (/^https?:\/\//i.test(t)) return t;
+  return 'https://' + t;
+}
+
 /**
  * Mining gegen die eigene Kette.
  *
@@ -75,8 +101,22 @@ export function useMining(address: string | null, platform: string) {
   const [fund, setFund] = useState<Fund | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
 
+  /*
+    Wohin die Mining-Aufrufe gehen.
+
+    Solo laeuft gegen den eigenen Server (leerer Praefix, gleiche Herkunft).
+    Pool laeuft gegen den Knoten des Pools -- ein Pool ist ein Full Node,
+    und nur er kann Jobs mit der Aufteilung bauen.
+
+    Nur MINING wechselt die Adresse. Guthaben, Verlauf und Kennzahlen kommen
+    weiter vom eigenen Server; sonst haetten wir zwei Quellen fuer dieselbe
+    Kette.
+  */
+  const basis = useRef('');
+  const [poolInfo, setPoolInfo] = useState<PoolInfo | null>(null);
+
   const api = useCallback(async (path: string, init?: RequestInit) => {
-    const res = await fetch(`/api/v2${path}`, {
+    const res = await fetch(`${basis.current}/api/v2${path}`, {
       ...init,
       headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
     });
@@ -117,17 +157,35 @@ export function useMining(address: string | null, platform: string) {
     }
   }, [api]);
 
-  const start = useCallback(async (workerCount = 2) => {
+  const start = useCallback(async (
+    workerCount = 2,
+    modus: 'solo' | 'pool' = 'solo',
+    poolAdresse = '',
+  ) => {
     if (!address) return;
     setFehler(null);
     setShares([]);
+    setPoolInfo(null);
+
+    // Die Adresse fuer diesen Lauf festlegen, BEVOR der erste Aufruf geht.
+    basis.current = modus === 'pool' ? normalisiere(poolAdresse) : '';
 
     try {
       const session = await api('/session', {
         method: 'POST',
-        body: JSON.stringify({ address, platform }),
+        body: JSON.stringify({ address, platform, mode: modus }),
       });
       sessionId.current = session.sessionId;
+
+      /*
+        Der Knoten sagt, in welchem Modus die Sitzung laeuft. Wer Pool
+        angefragt hat und Solo bekommt, wuerde sonst im Glauben minen,
+        seine Arbeit werde geteilt.
+      */
+      if (modus === 'pool' && session.mode !== 'pool') {
+        throw new Error('Dieser Knoten betreibt keinen Pool.');
+      }
+      if (session.pool) setPoolInfo(session.pool);
 
       const created = Array.from({ length: workerCount }, () =>
         new Worker(new URL('../workers/miner.worker.ts', import.meta.url)));
@@ -284,6 +342,7 @@ export function useMining(address: string | null, platform: string) {
     mining, start, stop, duty, setDuty: changeDuty,
     hashrate, stumm, etappen,
     summary, account, lastShare, fund, fehler, shares,
+    poolInfo,
     dismissFund: () => setFund(null),
   };
 }

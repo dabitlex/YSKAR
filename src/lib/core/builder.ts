@@ -38,6 +38,19 @@ export interface BuildParams {
   difficulty: bigint;
   extranonce: bigint;
   coinbaseExtra?: Uint8Array;
+  /**
+   * Aufteilung der Belohnung auf mehrere Empfaenger -- fuer Pool-Mining.
+   *
+   * Ohne Angabe bekommt minerAddress alles (Coinbase Fassung 1, gilt fuer
+   * immer). Mit Angabe entsteht Fassung 2, die erst ab COINBASE_V2_HEIGHT
+   * gueltig ist -- davor lehnt applyBlock() sie ab.
+   *
+   * Die Anteile sind BRUTTO gemeint: Sie muessen zusammen genau
+   * reward(height) + fees ergeben. Das Nachrechnen macht buildCoinbaseV2
+   * selbst; wer sich verrechnet, bekommt hier einen Fehler und keinen
+   * ungueltigen Block.
+   */
+  anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[];
 }
 
 export interface BuildResult {
@@ -198,7 +211,19 @@ export function buildBlock(p: BuildParams): BuildResult {
   const { included, rejected, fees } =
     selectTransactions(p.state, p.mempool, p.height);
 
-  const coinbase = buildCoinbase(p.height, p.minerAddress, fees, p.coinbaseExtra);
+  /*
+    Aufteilung erst hier, weil erst jetzt feststeht, wie viel zu verteilen
+    ist: Belohnung PLUS die Gebuehren der ausgewaehlten Transaktionen.
+
+    Liefert die Aufteilung nichts -- etwa weil der Pool noch keine Shares
+    hat --, geht der Block wie bisher an minerAddress. Ein Pool ohne
+    Teilnehmer mint dann fuer sich selbst, statt gar nicht zu minen.
+  */
+  const brutto = rewardAt(p.height) + fees;
+  const verteilt = p.anteile ? p.anteile(brutto) : null;
+  const coinbase = verteilt && verteilt.length > 0
+    ? buildCoinbaseV2(p.height, verteilt, fees, p.coinbaseExtra)
+    : buildCoinbase(p.height, p.minerAddress, fees, p.coinbaseExtra);
   const txs: Tx[] = [coinbase, ...included];
 
   // Zustand nach diesem Block bestimmen -- daraus kommt state_root.
