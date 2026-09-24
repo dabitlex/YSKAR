@@ -26,7 +26,10 @@ export async function GET(req: Request) {
   const before = url.searchParams.get('before');
 
   let q = db().schema('chain2').from('blocks')
-    .select('height, hash, version, prev_hash, merkle_root, state_root, block_time, difficulty, tx_count, extranonce, nonce, header, size_bytes, received_at')
+    // extranonce und nonce als TEXT: Sie sind numeric(20,0), und PostgREST
+    // liefert numeric als JSON-Zahl -- ueber 2^53 rundet JavaScript sie,
+    // und der daraus gebaute Header ergibt einen anderen Hash.
+    .select('height, hash, version, prev_hash, merkle_root, state_root, block_time, difficulty, tx_count, extranonce::text, nonce::text, header, size_bytes, received_at')
     .order('height', { ascending: false }).limit(limit);
   if (before) q = q.lt('height', Number(before));
 
