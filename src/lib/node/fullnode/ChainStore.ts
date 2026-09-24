@@ -91,7 +91,22 @@ CREATE INDEX IF NOT EXISTS snapshots_height ON snapshots(height);
 export class ChainStore {
   private db: DatabaseSync;
 
-  constructor(pfad: string) {
+  /**
+   * @param erwartet  Netz, zu dem diese Ablage gehoeren soll. Ohne Angabe
+   *                  das Mainnet.
+   *
+   *                  WARUM DAS NOETIG IST: Die Pruefung verglich fest gegen
+   *                  die Mainnet-Kennung. Ein Testnetz-Ordner liess sich
+   *                  dadurch nur EINMAL oeffnen -- beim zweiten Start stand
+   *                  network=yskar-regtest darin, erwartet wurde
+   *                  yskar-main-1, und der Knoten brach ab.
+   *
+   *                  Die Pruefung selbst bleibt scharf: Sie verhindert, dass
+   *                  Testnetz- und Mainnet-Bloecke in derselben Ablage
+   *                  landen. Nur der Vergleichswert kommt jetzt von aussen.
+   */
+  constructor(pfad: string, erwartet?: { network: string; chainId: Uint8Array }) {
+    this.erwartet = erwartet ?? { network: NETWORK, chainId: CHAIN_ID };
     if (pfad !== ':memory:') mkdirSync(dirname(pfad), { recursive: true });
     this.db = new DatabaseSync(pfad);
 
@@ -114,10 +129,12 @@ export class ChainStore {
    * auf, wenn der State Root nicht mehr passt -- und dann ist unklar, ob der
    * Fehler im Code oder in den Daten steckt.
    */
+  private readonly erwartet: { network: string; chainId: Uint8Array };
+
   private pruefeIdentitaet(): void {
     const erwartet: Record<string, string> = {
-      network: NETWORK,
-      chain_id: toHex(CHAIN_ID),
+      network: this.erwartet.network,
+      chain_id: toHex(this.erwartet.chainId),
       store_version: String(STORE_VERSION),
     };
     for (const [key, wert] of Object.entries(erwartet)) {

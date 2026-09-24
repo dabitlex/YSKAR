@@ -110,6 +110,7 @@ YSKAR Full Node ${VERSION}
 
 Befehle
   sync      Kette holen und jeden Block selbst prüfen (Vorgabe)
+  spiegel   liegengebliebene Blöcke an die Gegenstelle nachschieben
   mine      Mining-Schnittstelle öffnen, damit Miner hier arbeiten können
   status    Stand des lokalen Knotens
   chain     die letzten Blöcke der aktiven Kette
@@ -128,6 +129,14 @@ Optionen
       --p2p-port <nr>   Lauschport für andere Knoten (Vorgabe: 8646)
       --seed host:port  ein bekannter Knoten, mehrfach angebbar
       --no-p2p          ohne Knotennetz laufen
+
+Spiegel nachziehen
+  yskar-node spiegel --data ./knoten
+
+  Vergleicht die Höhe der Gegenstelle mit der eigenen und schiebt jeden
+  fehlenden Block einzeln nach -- in der richtigen Reihenfolge, denn die
+  Gegenstelle nimmt immer nur den nächsten an. Bricht beim ersten Fehler ab
+  und sagt, welcher Block ihn ausgelöst hat.
       --pool <name>     Pool betreiben, Name steht im Block
       --pool-fee <bp>   Gebühr in Basispunkten (100 = 1,00 %, höchstens 500)
       --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
@@ -187,6 +196,100 @@ async function hole(api: string, pfad: string): Promise<Record<string, unknown>>
 }
 
 // ------------------------------------------------------------------ Befehle
+
+/**
+ * Liegengebliebene Bloecke an die Gegenstelle nachschieben.
+ *
+ * WOZU: Die Gegenstelle nimmt immer nur den NAECHSTEN Block an. Scheitert
+ * einer -- durch einen Ausfall, einen Netzfehler oder einen Fehler wie den
+ * mit den u64-Spalten --, blockiert er alle weiteren. Der Spiegel bleibt
+ * stehen, waehrend die Kette weiterlaeuft.
+ *
+ * Diese Funktion schliesst die Luecke, ohne dass die Kette angefasst wird:
+ * Sie liest die Bloecke aus der eigenen Ablage und schickt sie einzeln in
+ * der richtigen Reihenfolge.
+ *
+ * Beim ERSTEN Fehler wird abgebrochen. Weitermachen waere sinnlos -- der
+ * naechste Block braucht den vorigen -- und wuerde den eigentlichen Grund
+ * unter einer Fehlerlawine begraben.
+ */
+async function spiegel(
+  opt: Optionen, store: ChainStore, chain: ChainManager,
+): Promise<void> {
+  const ziel = opt.upstream || opt.api;
+  console.log(fett(`\nYSKAR Spiegel`));
+  console.log(grau('─'.repeat(56)));
+  console.log(`  Gegenstelle  ${ziel}`);
+
+  const eigene = chain.height();
+  if (eigene === null) {
+    console.error(rot('  Die eigene Kette ist leer -- erst "sync" laufen lassen.'));
+    process.exit(1);
+  }
+
+  let dort: number;
+  try {
+    const res = await fetch(`${ziel}/api/v2/summary`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    /*
+      Erst pruefen, DANN auswerten. Antwortet dort ein Vorschaltserver mit
+      einer Fehlerseite, kaeme aus json() ein Parserfehler -- und der
+      verdeckt, was wirklich los ist.
+    */
+    const text = await res.text();
+    let r: { height?: number };
+    try { r = JSON.parse(text); }
+    catch { throw new Error(`keine JSON-Antwort: ${text.slice(0, 60)}`); }
+    dort = Number(r.height ?? -1);
+    if (!Number.isFinite(dort)) throw new Error('Antwort ohne Höhe');
+  } catch (e) {
+    console.error(rot(`  Gegenstelle nicht erreichbar: ${(e as Error).message}`));
+    process.exit(1);
+  }
+
+  console.log(`  dort         ${nf(dort)}`);
+  console.log(`  hier         ${nf(eigene)}`);
+
+  if (dort >= eigene) {
+    console.log(gruen('\n  Nichts nachzuschieben -- der Spiegel ist aktuell.\n'));
+    return;
+  }
+  console.log(grau(`\n  ${nf(eigene - dort)} Blöcke nachzuschieben.\n`));
+
+  let geschafft = 0;
+  for (let h = dort + 1; h <= eigene; h++) {
+    const b = store.mainAt(h);
+    if (!b) {
+      console.error(rot(`  Block ${nf(h)} fehlt in der eigenen Ablage.`));
+      break;
+    }
+    try {
+      const res = await fetch(`${ziel}/api/v2/block`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ raw: toHex(b.body) }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!body.accepted) {
+        console.error(rot(`  Block ${nf(h)} abgelehnt: ${
+          body.detail ?? body.reason ?? `HTTP ${res.status}`}`));
+        console.error(grau('  Abgebrochen -- die folgenden brauchen diesen Block.\n'));
+        break;
+      }
+      geschafft++;
+      if (geschafft % 10 === 0 || h === eigene) {
+        console.log(grau(`  ${nf(h)} …`));
+      }
+    } catch (e) {
+      console.error(rot(`  Block ${nf(h)}: ${(e as Error).message}`));
+      break;
+    }
+  }
+
+  console.log(geschafft === eigene - dort
+    ? gruen(`\n  ${nf(geschafft)} Blöcke nachgeschoben. Spiegel ist aktuell.\n`)
+    : gelb(`\n  ${nf(geschafft)} von ${nf(eigene - dort)} nachgeschoben.\n`));
+}
 
 function status(store: ChainStore, chain: ChainManager): void {
   const tip = chain.tip();
@@ -573,13 +676,17 @@ async function main(): Promise<void> {
   if (opt.help) { console.log(HILFE); return; }
 
   const params: ConsensusParams = opt.regtest ? REGTEST : MAINNET;
-  const store = new ChainStore(`${opt.daten}/chain.db`);
-  if (opt.regtest) {
-    // Eigene Kennung: Bloecke des Testnetzes sind im echten Netz nicht
-    // einmal lesbar, und umgekehrt. Die Ablage haelt das fest.
-    store.setMeta('network', params.network);
-    store.setMeta('chain_id', toHex(params.chainId));
-  }
+  /*
+    Die erwartete Kennung kommt aus den Parametern, nicht aus einer
+    Konstante. Sonst liesse sich ein Testnetz-Ordner nur einmal oeffnen:
+    Beim zweiten Start stuende network=yskar-regtest darin, erwartet wuerde
+    yskar-main-1, und der Knoten braeche ab.
+
+    Die Pruefung bleibt scharf -- Testnetz- und Mainnet-Bloecke koennen nach
+    wie vor nicht in derselben Ablage landen.
+  */
+  const store = new ChainStore(`${opt.daten}/chain.db`,
+    { network: params.network, chainId: params.chainId });
   let chain: ChainManager;
   try {
     chain = new ChainManager(store, params);
@@ -594,6 +701,7 @@ async function main(): Promise<void> {
   if (opt.befehl === 'status') { status(store, chain); store.close(); return; }
   if (opt.befehl === 'chain') { chainListe(store); store.close(); return; }
   if (opt.befehl === 'tips') { tipsListe(store); store.close(); return; }
+  if (opt.befehl === 'spiegel') { await spiegel(opt, store, chain); store.close(); return; }
   if (opt.befehl !== 'sync') {
     console.error(rot(`Unbekannter Befehl: ${opt.befehl}`));
     console.log(HILFE); process.exit(1);

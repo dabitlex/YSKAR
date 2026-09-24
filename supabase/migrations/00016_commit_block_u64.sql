@@ -1,0 +1,20 @@
+-- ============================================================================
+-- 00016  commit_block: extranonce und nonce nicht mehr nach bigint casten
+-- ============================================================================
+--
+-- Die Spalten sind seit 00015 numeric(20,0). Der Cast IN DER FUNKTION war die
+-- eigentliche Fehlerquelle: Er scheiterte, bevor der Wert die Spalte
+-- ueberhaupt erreichte.
+--
+--   commit_block: value "13111268702705097209" is out of range for type bigint
+--
+-- Bereits eingespielt. Diese Datei haelt die Aenderung im Repository fest.
+-- Den vollstaendigen Funktionsrumpf findest du in der Datenbank:
+--
+--   select pg_get_functiondef(oid) from pg_proc
+--    where proname = 'commit_block';
+--
+-- Geaendert wurden genau zwei Zeilen:
+--
+--   (p_block->>'extranonce')::bigint   ->  ::numeric(20,0)
+--   (p_block->>'nonce')::bigint        ->  ::numeric(20,0)
