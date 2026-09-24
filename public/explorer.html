@@ -1,198 +1,195 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>YSKAR Explorer</title>
+<meta name="description" content="Blöcke der YSKAR-Kette — im Browser nachgerechnet.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-  /* Dieselbe Palette wie die App: Graphit, Bernstein fuer Arbeit, Gruen
-     fuer Bestaetigtes. Der Explorer soll sich wie ein Teil desselben
-     Werkzeugs lesen, nicht wie ein fremdes Werkzeug daneben. */
-  :root{ --bg:#0C0F14; --line:#232B38; --soft:#141922; --fg:#E4E9F0;
-         --muted:#7C8798; --accent:#E8B33C; --ok:#4ADE9B; --warn:#E4574C; }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--fg)}
-  body{font:400 15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-       -webkit-font-smoothing:antialiased;
-       padding:30px 18px calc(60px + env(safe-area-inset-bottom));
-       max-width:820px;margin:0 auto}
-  h1{font-size:17px;font-weight:500;margin:0}
-  .head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:22px}
-  .verdict{font-size:12px;color:var(--muted)}
-  .verdict.ok{color:var(--ok)} .verdict.bad{color:var(--warn)}
-
-  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 24px;
-         border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-         padding:18px 0;margin:0}
-  @media(min-width:560px){.stats{grid-template-columns:repeat(4,1fr)}}
-  .stats dt{font-size:12px;color:var(--muted)}
-  .stats dd{margin:2px 0 0;font-variant-numeric:tabular-nums}
-
-  ul{list-style:none;margin:26px 0 0;padding:0}
-  li{border-bottom:1px solid var(--line)}
-  .row{display:flex;align-items:center;gap:14px;width:100%;padding:12px 2px;
-       background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
-  .row:hover{background:rgba(255,255,255,.02)}
-  .h{width:62px;flex:0 0 auto;font-variant-numeric:tabular-nums;color:var(--accent);font-size:14px}
-  .h.bad{color:var(--warn)}
-  .mid{flex:1;min-width:0}
-  .hash{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted)}
-  .sub{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
-  .diff{flex:0 0 auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-
-  .detail{padding:18px 2px 22px;background:rgba(255,255,255,.015)}
-  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-  .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
-         border-radius:6px;padding:5px 9px;font-size:12px;color:var(--muted)}
-  .badge.ok{color:var(--ok);border-color:rgba(52,211,153,.4)}
-  .badge.fail{color:var(--warn);border-color:rgba(224,160,48,.5)}
-  .f{display:flex;flex-direction:column;gap:2px;padding:3px 0;font-size:12px}
-  @media(min-width:560px){.f{flex-direction:row;justify-content:space-between;gap:24px}}
-  .f dt{color:var(--muted)} .f dd{margin:0;word-break:break-all;font-variant-numeric:tabular-nums}
-  .f dd.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-  .f dd.warn{color:var(--warn)}
-  .pay{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
-  .pay h3{font-size:12px;font-weight:400;color:var(--muted);margin:0 0 8px}
-  .pay div{display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:2px 0}
-  .note{margin-top:26px;font-size:12px;line-height:1.6;color:var(--muted)}
-  .err{color:var(--warn);font-size:13px;margin-top:16px}
-  a{color:var(--accent)}
-  .back{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;
-        padding:9px 14px;border:1px solid var(--line);border-radius:9px;
-        font-size:13px;color:var(--muted);text-decoration:none}
-  .back:active{background:var(--soft)}
-.suche{display:flex;gap:8px;margin:0 0 14px}
-.suche input{
-  flex:1;min-width:0;padding:11px 13px;border:0;border-radius:9px;
-  background:var(--sunk);color:var(--text);font:inherit;font-size:14px;
-  box-shadow:inset 0 1px 2px rgb(0 0 0/.5);
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --ink:#0A0D12; --sunk:#080A0F; --surface:#121720; --raised:#181E2A;
+  --line:#262E3C; --text:#E9EEF5; --dim:#828D9E; --faint:#5E6878;
+  --work:#F0B93C; --proof:#3ED694; --risk:#E85C50;
 }
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--ink);color:var(--text);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5}
+.mono{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.tnum{font-variant-numeric:tabular-nums}
+.muted{color:var(--dim)}
+.faint{color:var(--faint)}
+a{color:var(--work);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ------------------------------------------------------------- Kopfzeile */
+header{border-bottom:1px solid var(--line);padding:14px 20px;display:flex;
+  align-items:center;gap:20px;flex-wrap:wrap}
+.marke{font-weight:600;letter-spacing:.14em;font-size:15px;white-space:nowrap}
+.suche{flex:1;min-width:220px;max-width:520px;display:flex;gap:8px}
+.suche input{flex:1;min-width:0;padding:9px 12px;border:0;border-radius:9px;
+  background:var(--sunk);color:var(--text);font:inherit;font-size:13.5px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
 .suche input::placeholder{color:var(--faint)}
-.suche button{
-  padding:11px 18px;border:0;border-radius:9px;background:var(--raised);
-  color:var(--text);font:inherit;font-size:14px;cursor:pointer;
-}
+.suche button{padding:9px 16px;border:0;border-radius:9px;background:var(--raised);
+  color:var(--text);font:inherit;font-size:13.5px;cursor:pointer}
 .suche button:hover{background:var(--surface)}
-#treffer:not(:empty){
-  margin:0 0 18px;padding:16px;border-radius:12px;background:var(--surface);
-  box-shadow:inset 0 1px 0 rgb(255 255 255/.05);
-}
-#treffer h3{margin:0 0 10px;font-size:13px;font-weight:500;color:var(--dim)}
-#treffer .zeile{display:flex;justify-content:space-between;gap:16px;
-  padding:7px 0;border-bottom:1px solid rgb(38 46 60/.55);font-size:13.5px}
-#treffer .zeile:last-child{border-bottom:0}
-#treffer .zeile span:first-child{color:var(--dim)}
-#treffer .hinweis{color:var(--dim);font-size:13px}
-.mehr{
-  display:block;width:100%;margin:14px 0 0;padding:13px;border:0;
-  border-radius:10px;background:var(--raised);color:var(--text);
-  font:inherit;font-size:14px;cursor:pointer;
-}
-.mehr:hover{background:var(--surface)}
-.mehr:disabled{opacity:.5;cursor:default}
-.karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
-  gap:12px;margin:26px 0 22px}
-.karte{background:var(--surface);border-radius:12px;padding:15px 16px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-.karte .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;
-  color:var(--muted)}
-.karte .wert{font-size:21px;font-weight:600;margin-top:8px;letter-spacing:-.01em;
-  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
-  text-overflow:ellipsis}
-.karte .unter{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.5}
-.karte .balken{height:5px;border-radius:99px;background:var(--sunk);overflow:hidden;
-  margin-top:10px;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
-.karte .balken i{display:block;height:100%;border-radius:99px;background:var(--proof)}
-.kette-kopf{display:flex;align-items:baseline;justify-content:space-between;
+.kopfrechts{display:flex;align-items:baseline;gap:16px;font-size:12.5px;
+  color:var(--dim);white-space:nowrap}
+.kopfrechts b{color:var(--text);font-weight:500}
+
+.wrap{padding:22px 20px 40px;max-width:1500px;margin:0 auto}
+.hinweis{background:rgba(240,185,60,.07);border-radius:10px;padding:12px 14px;
+  font-size:12.5px;color:var(--dim);line-height:1.6;margin-bottom:20px}
+.hinweis b{color:var(--text);font-weight:500}
+.err{background:rgba(232,92,80,.1);color:var(--risk);border-radius:10px;
+  padding:11px 14px;font-size:13px;margin-bottom:16px}
+.err:empty{display:none}
+
+/* ----------------------------------------------------------- Blockreihe */
+.reihenkopf{display:flex;align-items:baseline;justify-content:space-between;
   gap:12px;margin:0 0 10px}
-.kette-kopf h2{margin:0;font-size:13px;font-weight:500;color:var(--dim)}
-.kette{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:10px;
-  margin:0 0 20px;scrollbar-width:thin}
-.kette::-webkit-scrollbar{height:7px}
+.reihenkopf h2{margin:0;font-size:13px;font-weight:500;color:var(--dim)}
+.kette{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:12px;
+  scrollbar-width:thin}
+.kette::-webkit-scrollbar{height:8px}
 .kette::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
-.spalte{flex:0 0 auto;width:124px;display:flex;flex-direction:column;align-items:center}
-.k-kopf{height:24px;display:flex;align-items:center}
-.k-kopf a{font-family:Consolas,"SFMono-Regular",monospace;font-size:12.5px;
-  color:var(--proof);text-decoration:none}
-.k-kopf a:hover{text-decoration:underline}
-.wuerfel{width:104px;height:104px;border-radius:7px;padding:8px;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;gap:2px;
+.spalte{flex:0 0 auto;width:132px;display:flex;flex-direction:column;align-items:center}
+.k-kopf{height:26px;display:flex;align-items:center;font-size:12.5px}
+.k-kopf a{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--proof)}
+.wuerfel{width:112px;height:112px;border-radius:7px;padding:10px 8px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:3px;
   cursor:pointer;border:0;font:inherit;color:inherit;position:relative}
 .wuerfel:hover{outline:2px solid var(--proof);outline-offset:2px}
 .w-bau{background:linear-gradient(160deg,#1d2634,#141b26);
-  border:1px dashed var(--line);color:var(--dim);cursor:default}
-.w-bau:hover{outline:0}
+  border:1px dashed var(--line);color:var(--dim);cursor:pointer}
 .w-block{background:linear-gradient(160deg,#243044,#1a2331);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 2px 8px rgba(0,0,0,.4)}
 .w-block.offen{outline:2px solid var(--proof);outline-offset:2px}
-.w-zahl{font-family:Consolas,"SFMono-Regular",monospace;font-size:14.5px;font-weight:500}
-.w-klein{font-size:10px;color:var(--dim)}
-.w-zeit{font-size:10px;color:var(--faint);margin-top:1px}
-/* Der Prüfpunkt: gruen, wenn dieser Block im Browser nachgerechnet wurde. */
-.w-punkt{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:99px}
-.finder{height:20px;margin-top:7px;text-align:center;font-size:11.5px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:118px}
-.trenner{flex:0 0 auto;width:40px;align-self:stretch;display:flex;
-  align-items:center;justify-content:center}
-.trenner div{width:1px;height:136px;background:var(--line)}
+.w-zahl{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500}
+.w-klein{font-size:10.5px;color:var(--dim)}
+.w-zeit{font-size:10.5px;color:var(--faint);margin-top:2px}
+.w-punkt{position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:99px}
+.finder{height:20px;margin-top:8px;text-align:center;font-size:11.5px;width:126px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .unbekannt{color:var(--faint)}
 .poolname{color:var(--proof)}
+.trenner{flex:0 0 auto;width:44px;align-self:stretch;display:flex;
+  align-items:center;justify-content:center}
+.trenner div{width:1px;height:150px;background:var(--line)}
+.mehr{flex:0 0 auto;align-self:center;margin-left:8px;padding:10px 14px;border:0;
+  border-radius:9px;background:var(--raised);color:var(--dim);font:inherit;
+  font-size:12.5px;cursor:pointer;white-space:nowrap}
+.mehr:hover{background:var(--surface);color:var(--text)}
+.mehr:disabled{opacity:.5;cursor:default}
+
+/* -------------------------------------------------------------- Detail */
+.detail{margin-top:22px;background:var(--surface);border-radius:12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
+.detail-kopf{padding:16px;border-bottom:1px solid var(--line);display:flex;
+  align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.detail-kopf h2{margin:0;font-size:18px;font-weight:600}
+.zu{border:0;background:var(--raised);color:var(--dim);font:inherit;font-size:12.5px;
+  padding:7px 13px;border-radius:8px;cursor:pointer}
+.zu:hover{color:var(--text)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:0 28px;padding:6px 16px 14px}
+.kv .z{display:flex;justify-content:space-between;gap:14px;padding:9px 0;
+  border-bottom:1px solid rgba(38,46,60,.55);font-size:13px}
+.kv .z span:first-child{color:var(--dim)}
+.kv .z .v{font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+  word-break:break-all;text-align:right}
+.ok{color:var(--proof)} .bad{color:var(--risk)} .offen{color:var(--faint)}
+.txkopf{padding:12px 16px 4px;font-size:10px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--dim)}
+.tx{margin:0 16px 12px;background:var(--sunk);border-radius:10px;padding:13px 14px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.tx-kopf{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
+  flex-wrap:wrap}
+.marke-cb{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--proof);border:1px solid rgba(62,214,148,.35);border-radius:5px;
+  padding:2px 6px}
+.marke-tx{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+.empf{margin-top:11px;display:flex;flex-direction:column;gap:7px}
+.empf .e{display:flex;justify-content:space-between;gap:12px;font-size:12.5px}
+.leer{padding:30px 16px;text-align:center;color:var(--faint);font-size:13px}
+
+/* -------------------------------------------------------------- Karten */
+.karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;margin-top:24px}
+.karte{background:var(--surface);border-radius:12px;padding:15px 16px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.karte .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--dim)}
+.karte .wert{font-size:22px;font-weight:600;margin-top:8px;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.karte .unter{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.5}
+.balken{height:5px;border-radius:99px;background:var(--sunk);overflow:hidden;
+  margin-top:10px;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.balken i{display:block;height:100%;border-radius:99px;background:var(--proof)}
+
+.fuss{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--faint)}
+@media(max-width:640px){
+  .wrap{padding:18px 14px 34px}
+  header{padding:12px 14px;gap:12px}
+  .kopfrechts{font-size:12px}
+}
 </style>
 </head>
 <body>
 
-<!--
-  Rueckweg in die App.
+<header>
+  <div class="marke">YSKAR</div>
+  <div class="suche">
+    <input id="q" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Adresse, Transaktion, Blockhöhe oder Blockhash"
+           aria-label="Suche">
+    <button id="qgo" type="button">Suchen</button>
+  </div>
+  <div class="kopfrechts">
+    <span>Höhe <b id="kopfHoehe" class="mono">—</b></span>
+    <span id="verdict" class="faint">wird geladen…</span>
+  </div>
+</header>
 
-  Der Explorer ist eine eigene Seite und verlaesst damit die Mini App. Ohne
-  diesen Verweis ist er eine Sackgasse: In Telegram gibt es keinen sichtbaren
-  Zurueck-Knopf, und die Geste funktioniert je nach Plattform nicht.
+<div class="wrap">
 
-  Nur zeigen, wenn es ueberhaupt eine App gibt, zu der man zurueck kann --
-  von der Festplatte oder einer fremden Adresse aus waere der Verweis falsch.
--->
-<a class="back" id="back" href="/" hidden>← Zurück zur App</a>
-<a class="back" href="/start.html" style="margin-left:8px">Über YSKAR</a>
+  <div class="hinweis">
+    <b>Jeder Block wird hier im Browser nachgerechnet.</b>
+    Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die
+    eingetragene Difficulty geprüft, Verkettung verfolgt. Keine dieser Aussagen
+    stammt vom Server. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.
+  </div>
 
-<div class="head">
-  <h1>YSKAR Explorer</h1>
-  <span class="verdict" id="verdict">wird geladen…</span>
+  <div class="err" id="err"></div>
+  <div id="treffer"></div>
+
+  <div class="reihenkopf">
+    <h2>Blöcke</h2>
+    <span class="faint" style="font-size:11.5px">links im Bau · rechts gefunden</span>
+  </div>
+  <div class="kette" id="kette"></div>
+
+  <div class="detail" id="detail">
+    <div class="leer">Auf einen Block klicken, um seine Transaktionen zu sehen.</div>
+  </div>
+
+  <div class="karten" id="stats"></div>
+
+  <div class="fuss">
+    <a href="/">← Zurück zur App</a>
+    <a href="/start.html">Über YSKAR</a>
+    <span id="engine"></span>
+  </div>
 </div>
-
-<div class="suche">
-  <input id="q" type="search" autocomplete="off" spellcheck="false"
-         placeholder="Adresse, Transaktion, Blockhöhe oder Blockhash"
-         aria-label="Suche">
-  <button id="qgo" type="button">Suchen</button>
-</div>
-<div id="treffer"></div>
-
-<div class="kette-kopf">
-  <h2>Blöcke</h2>
-  <span class="muted" style="font-size:11.5px">links im Bau · rechts gefunden · Punkt = nachgerechnet</span>
-</div>
-<div class="kette" id="kette"></div>
-
-<!--
-  Kennzahlen als Karten, UNTER der Blockreihe -- so wie im Entwurf.
-  Vorher standen sie als nackte Liste ganz oben und haben die Bloecke nach
-  unten gedrueckt, obwohl die Bloecke das sind, weswegen man herkommt.
--->
-<div class="karten" id="stats"></div>
-
-<div class="err" id="err"></div>
-<ul id="list"></ul>
-<button id="mehr" class="mehr" type="button" hidden>Ältere Blöcke laden</button>
-
-<p class="note">
-  Jeder Block wird <strong>in diesem Browser</strong> geprüft: Die 136 Header-Bytes
-  werden aus den Einzelfeldern neu zusammengesetzt, mit dem gespeicherten Header
-  verglichen, doppelt SHA-256-gehasht und gegen das Target gehalten. Zusätzlich muss
-  <code>prev_hash</code> auf den Vorgänger zeigen. Keine dieser Aussagen wird vom
-  Server übernommen.
-  <span id="engine"></span>
-</p>
 
 <script>
 // ---------------------------------------------------------------- Konfiguration
@@ -322,6 +319,9 @@ async function verify(b,vorgaenger){
 // ---------------------------------------------------------------- Anzeige
 const $=id=>document.getElementById(id);
 const nf=n=>Number(n).toLocaleString('de-DE');
+const esc=t=>String(t).replace(/[&<>"']/g,c=>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
 function hashrate(h){
   if(h===null||h===undefined)return '—';
   if(h>=1e9)return (h/1e9).toFixed(2)+' GH/s';
@@ -329,128 +329,34 @@ function hashrate(h){
   if(h>=1e3)return (h/1e3).toFixed(1)+' kH/s';
   return Math.round(h)+' H/s';
 }
-function ago(ts){
-  // Der Zeitstempel steht im Header und ist Teil des Konsenses -- nicht der
-  // Empfangszeitpunkt des Servers.
-  const s=Math.max(0,Date.now()/1000-Number(ts));
-  if(s<60)return 'vor '+Math.round(s)+' s';
-  if(s<3600)return 'vor '+Math.round(s/60)+' min';
-  if(s<86400)return 'vor '+Math.round(s/3600)+' h';
-  return 'vor '+Math.round(s/86400)+' d';
-}
-const badge=(state,label)=>
-  `<span class="badge ${state==='ok'?'ok':state==='fail'?'fail':''}">`+
-  `<span aria-hidden="true">${state==='ok'?'✓':state==='fail'?'✕':'·'}</span>${label}</span>`;
-
-let sum=null, blocks=[], checks={}, open=null, details={}, dec=8, sym='YSR';
-
-function renderStats(){
-  if(!sum)return;
-  dec=sum.token?.decimals??8; sym=sum.token?.token_symbol??'YSR';
-
-  /*
-    Kennzahlen als Karten -- mit der Erklaerung darunter, die aus einer
-    Zahl erst eine Aussage macht.
-
-    "Difficulty 452.148" sagt niemandem etwas. "Wird bei jedem Block neu
-    gerechnet" schon: Dann weiss man, warum sie sich staendig aendert und
-    warum es hier keine Anpassung alle 2016 Bloecke gibt wie bei Bitcoin.
-  */
-  const zahl=n=>Number(n).toLocaleString('de-DE');
-  const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
-    {minimumFractionDigits:0,maximumFractionDigits:0});
-  // Deutsche Schreibweise ueberall -- ein Punkt als Dezimaltrenner liest
-  // sich hier wie ein Tausenderpunkt und ist damit irrefuehrend.
-  const prozent=n=>n.toLocaleString('de-DE',
-    {minimumFractionDigits:2,maximumFractionDigits:2});
-  // Halbe YSR gehoeren angezeigt: 437,5 ist nicht 438.
-  const ysrGenau=n=>(Number(n)/10**dec).toLocaleString('de-DE',
-    {minimumFractionDigits:0,maximumFractionDigits:2});
-
-  const umlauf=Number(sum.totalSupply)/10**dec;
-  const max=Number(sum.maxSupply)/10**dec;
-  const anteil=max>0?umlauf/max*100:0;
-
-  const hoehe=sum.height??0;
-  const bisHalbierung=12000-(hoehe%12000);
-  const naechsteHalbierung=hoehe+bisHalbierung;
-
-  // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
-  let blockzeit=null;
-  if(blocks.length>=3){
-    const spanne=Number(blocks[0].timestamp)-Number(blocks[blocks.length-1].timestamp);
-    if(spanne>0) blockzeit=spanne/(blocks.length-1);
-  }
-  const zeitText=blockzeit!=null
-    ? Math.floor(blockzeit/60)+' min '+Math.round(blockzeit%60)+' s'
-    : '—';
-
-  const karten=[
-    {label:'Höhe', wert:'#'+zahl(hoehe),
-     unter:'Zustand bis '+zahl(sum.stateHeight)+' nachgerechnet'},
-
-    {label:'Difficulty', wert:zahl(sum.difficulty??0),
-     unter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).'},
-
-    {label:'Netz-Hashrate', wert:hashrate(sum.hashrate),
-     unter:'Aus Difficulty und Zielblockzeit.'},
-
-    {label:'Gemessen, live', wert:hashrate(sum.minerHashrate),
-     unter:(sum.activeMiners??0)+' aktive Miner'},
-
-    {label:'Blockzeit', wert:zeitText,
-     unter:'Ziel 10 min · letzte '+Math.max(0,blocks.length-1)+' Blöcke',
-     balken:blockzeit!=null?Math.min(100,blockzeit/600*100):null},
-
-    {label:'Mempool', wert:zahl(sum.mempool??0),
-     unter:(sum.mempool??0)===0
-       ? 'Keine wartenden Zahlungen — die Mindestgebühr genügt.'
-       : 'Wartende Zahlungen.'},
-
-    {label:'Im Umlauf', wert:ysr(sum.totalSupply),
-     unter:'von '+ysr(sum.maxSupply)+' '+sym+' · '+prozent(anteil)+' %',
-     balken:anteil},
-
-    {label:'Nächste Halbierung', wert:'Block '+zahl(naechsteHalbierung),
-     unter:'Noch '+zahl(bisHalbierung)+' Blöcke · Belohnung dann '
-       +ysrGenau(Number(sum.nextReward)/2)+' '+sym},
-  ];
-
-  $('stats').innerHTML=karten.map(k=>`
-    <div class="karte">
-      <div class="label">${k.label}</div>
-      <div class="wert">${k.wert}</div>
-      <div class="unter">${k.unter}</div>
-      ${k.balken!=null?`<div class="balken"><i style="width:${k.balken.toFixed(2)}%"></i></div>`:''}
-    </div>`).join('');
-}
-
-/*
-  Die Blockreihe.
-
-  Links der Block, an dem gerade gerechnet wird -- nur EINER. Ohne
-  Gebuehrenmarkt gibt es keine Prognose ueber mehrere: Gebuehren sind
-  absolute Betraege, kein Satz je Byte.
-
-  Rechts die gefundenen, neueste zuerst. Unter jedem Wuerfel steht, wer
-  ihn gefunden hat: der selbst gewaehlte Name aus dem extra-Feld der
-  Coinbase, sonst "Unbekannt". Die Adresse steht NICHT darunter -- sie
-  gehoert in die Einzelheiten, nicht in die Uebersicht.
-
-  Der Punkt oben rechts ist gruen, sobald dieser Block im Browser
-  nachgerechnet wurde. Das ist der eigentliche Zweck dieses Explorers.
-*/
 function alter(ts){
   const d=Math.floor(Date.now()/1000)-Number(ts);
-  if(d<60) return 'gerade eben';
-  if(d<3600) return 'vor '+Math.round(d/60)+' Min';
-  if(d<86400) return 'vor '+Math.round(d/3600)+' Std';
+  if(d<60)return 'gerade eben';
+  if(d<3600)return 'vor '+Math.round(d/60)+' Min';
+  if(d<86400)return 'vor '+Math.round(d/3600)+' Std';
   return 'vor '+Math.round(d/86400)+' Tg';
 }
+function uhr(ts){
+  return new Date(Number(ts)*1000).toLocaleString('de-DE',
+    {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
 
+let sum=null, blocks=[], checks={}, details={}, open=null, dec=8, sym='YSR';
+
+// ------------------------------------------------------------- Blockreihe
+/*
+  Links EIN Block im Bau, rechts die gefundenen.
+
+  Nur einer links: YSKAR hat keinen Gebuehrenmarkt mit Bytepreisen, aus dem
+  sich mehrere Bloecke im Voraus schaetzen liessen. Acht Kaestchen
+  anzuzeigen, wie es Bitcoin-Explorer tun, waere hier erfunden.
+
+  Unter jedem Wuerfel steht, WER ihn gefunden hat -- der selbst gewaehlte
+  Name aus der Coinbase, sonst "Unbekannt". Die Adresse steht bewusst nicht
+  darunter; sie gehoert in die Einzelheiten.
+*/
 function renderKette(){
   const ziel=$('kette');
-  if(!ziel) return;
   if(blocks.length===0){ ziel.innerHTML=''; return; }
 
   const naechste=(sum&&sum.height!=null)?sum.height+1:blocks[0].height+1;
@@ -458,27 +364,26 @@ function renderKette(){
 
   let html=`
     <div class="spalte">
-      <div class="k-kopf"><span class="muted" style="font-size:12px">im Bau</span></div>
-      <div class="wuerfel w-bau">
+      <div class="k-kopf"><span class="faint" style="font-size:12px">im Bau</span></div>
+      <button class="wuerfel w-bau${open==='bau'?' offen':''}" type="button"
+              onclick="zeigeBau()">
         <div class="w-zahl" style="color:var(--work)">${nf(naechste)}</div>
         <div class="w-klein">${wartend} Transaktion${wartend===1?'':'en'}</div>
         <div class="w-zeit">wird gesucht</div>
-      </div>
-      <div class="finder muted">—</div>
+      </button>
+      <div class="finder faint">—</div>
     </div>
     <div class="trenner"><div></div></div>`;
 
-  for(const b of blocks.slice(0,12)){
+  for(const b of blocks){
     const c=checks[b.height];
-    const geprueft=c&&c.hash==='ok'&&c.difficulty==='ok'&&c.serialisierung!=='fail';
-    const kaputt=c&&(c.hash==='fail'||c.difficulty==='fail'
+    const gut=c&&c.hash==='ok'&&c.difficulty==='ok'&&c.serialisierung!=='fail';
+    const schlecht=c&&(c.hash==='fail'||c.difficulty==='fail'
       ||c.kette==='fail'||c.serialisierung==='fail');
-    const punkt=kaputt?'var(--risk)':(geprueft?'var(--proof)':'var(--line)');
-
+    const punkt=schlecht?'var(--risk)':(gut?'var(--proof)':'var(--line)');
     const name=b.finder
       ? `<span class="poolname" title="Selbstauskunft des Finders">${esc(b.finder)}</span>`
       : `<span class="unbekannt">Unbekannt</span>`;
-
     const lohn=b.reward!=null?(Number(b.reward)/10**dec).toFixed(0):'—';
 
     html+=`
@@ -495,338 +400,404 @@ function renderKette(){
         <div class="finder">${name}</div>
       </div>`;
   }
+
+  const aeltester=blocks[blocks.length-1].height;
+  if(aeltester>0){
+    html+=`<button class="mehr" id="mehr" type="button" onclick="mehrLaden()">Ältere laden</button>`;
+  }
   ziel.innerHTML=html;
 }
 
-/* Fremder Text gehoert maskiert -- der Name kommt aus der Kette und
-   damit von irgendwem. */
-function esc(t){
-  return String(t).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// ---------------------------------------------------------------- Detail
+/*
+  Einzelheiten eines Blocks -- samt Pruefergebnis.
+
+  Die vier Aussagen stehen getrennt, nicht als Sammelnote: Serialisierung,
+  Hash, Difficulty, Verkettung. Eine Gesamtnote verstecke, WAS geprueft
+  wurde -- und genau darum geht es hier.
+*/
+function urteil(w){
+  if(w==='ok')return '<span class="ok">stimmt</span>';
+  if(w==='fail')return '<span class="bad">stimmt NICHT</span>';
+  return '<span class="offen">offen</span>';
 }
 
-function renderList(){
-  $('list').innerHTML=blocks.map(b=>{
-    const c=checks[b.height];
-    const bad=c&&(c.hash==='fail'||c.difficulty==='fail'
-      ||c.kette==='fail'||c.serialisierung==='fail');
-    const d=details[b.height];
-    let detail='';
-    if(open===b.height){
-      const txs=(d&&d.txs)?`<div class="tx"><h3>${d.txs.length} Transaktion${
-        d.txs.length===1?'':'en'}</h3>`+d.txs.map(t=>`<div class="txrow">
-          <div class="mono" style="color:var(--dim);font-size:11px">${t.txid}</div>
-          <div style="margin-top:5px">${t.type!=='coinbase'
-            ? `<span class="mono">${t.from}</span><br>→ <span class="mono">${t.to}</span>`
-            : (t.recipients && t.recipients.length)
-            /* Coinbase mit mehreren Empfaengern: Die Aufteilung gehoert
-               sichtbar hierher. Nur die Gesamtsumme zu zeigen saehe aus,
-               als haette niemand etwas bekommen -- und genau das
-               Nachrechnen ist der Sinn einer Auszahlung ueber die Kette. */
-            ? `<span style="color:var(--proof)">Blockreward</span> an ${
-                t.recipients.length} Empfänger`
-              + t.recipients.map(r=>`<div style="margin-top:4px">
-                  <span class="mono" style="font-size:11px">${r.address}</span>
-                  <span class="tnum" style="color:var(--dim);margin-left:6px">${
-                    (Number(r.amount)/10**dec).toFixed(4)} ${sym}</span></div>`).join('')
-            : `<span style="color:var(--proof)">Blockreward</span> an <span class="mono">${t.to}</span>`}</div>
-          <div class="tnum" style="margin-top:4px;color:var(--dim)">
-            ${(Number(t.amount)/10**dec).toFixed(4)} ${sym}${
-              Number(t.fee)>0?` · Gebühr ${(Number(t.fee)/10**dec).toFixed(4)}`:''}</div>
-        </div>`).join('')+'</div>':'';
+function zeigeBlock(h){
+  const b=blocks.find(x=>x.height===h);
+  if(!b){ return; }
+  const c=checks[h]||{};
+  const d=details[h];
+  const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+    {minimumFractionDigits:2,maximumFractionDigits:8});
 
-      detail=`<div class="detail">
-        <div class="badges">
-          ${badge(c?.serialisierung??'pending','Header rekonstruiert')}
-          ${badge(c?.hash??'pending','Hash nachgerechnet')}
-          ${badge(c?.difficulty??'pending','erfüllt Difficulty')}
-          ${badge(c?.kette??'pending','mit Vorgänger verkettet')}
-        </div>
-        <dl style="margin:0">
-          <div class="f"><dt>hash</dt><dd class="mono">${b.hash}</dd></div>
-          ${c&&c.errechnet&&c.errechnet!==b.hash?
-            `<div class="f"><dt>hier berechnet</dt><dd class="mono warn">${c.errechnet}</dd></div>`:''}
-          <div class="f"><dt>prev_hash</dt><dd class="mono">${b.prevHash}</dd></div>
-          <div class="f"><dt>merkle_root</dt><dd class="mono">${b.merkleRoot}</dd></div>
-          <div class="f"><dt>state_root</dt><dd class="mono">${b.stateRoot}</dd></div>
-          <div class="f"><dt>timestamp</dt><dd>${b.timestamp} · ${
-            new Date(Number(b.timestamp)*1000).toISOString()}</dd></div>
-          <div class="f"><dt>difficulty</dt><dd>${nf(b.difficulty)}</dd></div>
-          <div class="f"><dt>erreicht</dt><dd>${
-            c&&c.erreicht!==undefined?nf(c.erreicht.toString()):'—'}</dd></div>
-          <div class="f"><dt>extranonce</dt><dd>${b.extranonce}</dd></div>
-          <div class="f"><dt>nonce</dt><dd>${b.nonce}</dd></div>
-          <div class="f"><dt>Größe</dt><dd>${b.sizeBytes} Byte</dd></div>
-          <div class="f"><dt>Gefunden von</dt><dd>${
-            b.finder ? `<span style="color:var(--proof)">${esc(b.finder)}</span>
-              <span class="muted" style="font-size:11px"> · Selbstauskunft</span>`
-                     : '<span style="color:var(--faint)">Unbekannt</span>'}</dd></div>
-          ${b.recipients>1?`<div class="f"><dt>Empfänger</dt><dd>${b.recipients}</dd></div>`:''}
-        </dl>${txs}</div>`;
-    }
-    return `<li>
-      <button class="row" data-h="${b.height}">
-        <span class="h ${bad?'bad':''}">#${b.height}</span>
-        <span class="mid">
-          <span class="hash">${b.hash}</span>
-          <span class="sub">${b.reward!=null?(Number(b.reward)/10**dec).toFixed(0)+' '+sym:'—'
-            } · ${b.txCount} Tx · ${ago(b.timestamp)} · ${
-            b.finder ? `<span style="color:var(--proof)">${esc(b.finder)}</span>`
-                     : '<span style="color:var(--faint)">Unbekannt</span>'}</span>
-        </span>
-        <span class="diff">${nf(b.difficulty)}</span>
-      </button>${detail}</li>`;
-  }).join('');
+  const finder=b.finder
+    ? `<span class="poolname">${esc(b.finder)}</span>
+       <span class="faint" style="font-size:11px"> · Selbstauskunft</span>`
+    : '<span class="unbekannt">Unbekannt</span>';
 
-  document.querySelectorAll('.row').forEach(el=>{
-    el.onclick=()=>{
-      const h=Number(el.dataset.h);
-      open = open===h ? null : h;
-      renderList();
-      if(open!==null && !details[open]){
-        fetch(`${API}/blocks/${open}`).then(r=>r.json())
-          .then(d=>{ if(d.height!==undefined){details[d.height]=d; renderList();} })
-          .catch(()=>{});
+  let txs='<div class="leer">Transaktionen werden geladen…</div>';
+  if(d&&d.txs){
+    txs=d.txs.map(t=>{
+      const cb=t.type==='coinbase';
+      let inhalt;
+      if(cb&&t.recipients&&t.recipients.length){
+        inhalt=`<div class="faint" style="margin-top:9px;font-size:12px">${
+          t.recipients.length} Empfänger</div><div class="empf">`
+          +t.recipients.map(e=>`<div class="e">
+              <span class="mono faint" style="font-size:11.5px">${esc(e.address)}</span>
+              <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')
+          +`</div>`;
+      }else if(cb){
+        inhalt=`<div class="empf"><div class="e">
+          <span class="mono faint" style="font-size:11.5px">${esc(t.to||'—')}</span>
+          <span class="mono tnum">${ysr(t.amount)} ${sym}</span></div></div>`;
+      }else{
+        inhalt=`<div class="empf">
+          <div class="e"><span class="faint">Von</span>
+            <span class="mono" style="font-size:11.5px">${esc(t.from||'—')}</span></div>
+          <div class="e"><span class="faint">An</span>
+            <span class="mono" style="font-size:11.5px">${esc(t.to||'—')}</span></div>
+          <div class="e"><span class="faint">Gebühr</span>
+            <span class="mono tnum">${ysr(t.fee)} ${sym}</span></div></div>`;
       }
-    };
-  });
+      return `<div class="tx">
+        <div class="tx-kopf">
+          <span class="${cb?'marke-cb':'marke-tx'}">${cb?'Coinbase':'Überweisung'}</span>
+          <span class="mono tnum" style="color:var(--proof)">${ysr(t.amount)} ${sym}</span>
+        </div>
+        <div class="mono faint" style="margin-top:7px;font-size:11px;word-break:break-all">${
+          esc(t.txid)}</div>
+        ${inhalt}
+      </div>`;
+    }).join('');
+  }
+
+  $('detail').innerHTML=`
+    <div class="detail-kopf">
+      <div>
+        <h2>Block ${nf(b.height)}</h2>
+        <div class="muted" style="font-size:12.5px;margin-top:3px">
+          Gefunden von ${finder} · ${uhr(b.timestamp)}</div>
+      </div>
+      <button class="zu" type="button" onclick="location.hash=''">Schließen</button>
+    </div>
+    <div class="kv">
+      <div class="z"><span>Hash</span><span class="v">${esc(b.hash)}</span></div>
+      <div class="z"><span>Vorgänger</span><span class="v">${esc(b.prevHash||'—')}</span></div>
+      <div class="z"><span>Difficulty</span><span class="v tnum">${nf(b.difficulty)}</span></div>
+      <div class="z"><span>Erreicht</span><span class="v tnum">${
+        c.erreicht!==undefined?nf(c.erreicht):'—'}</span></div>
+      <div class="z"><span>Größe</span><span class="v tnum">${b.sizeBytes} Byte</span></div>
+      <div class="z"><span>Transaktionen</span><span class="v tnum">${b.txCount}</span></div>
+      <div class="z"><span>Nonce</span><span class="v tnum">${esc(b.nonce||'—')}</span></div>
+      <div class="z"><span>Extranonce</span><span class="v tnum">${esc(b.extranonce||'—')}</span></div>
+      <div class="z"><span>Belohnung</span><span class="v tnum">${ysr(b.reward)} ${sym}</span></div>
+      <div class="z"><span>Serialisierung</span><span class="v">${urteil(c.serialisierung)}</span></div>
+      <div class="z"><span>Hash nachgerechnet</span><span class="v">${urteil(c.hash)}</span></div>
+      <div class="z"><span>Proof of Work</span><span class="v">${urteil(c.difficulty)}</span></div>
+      <div class="z"><span>Verkettung</span><span class="v">${urteil(c.kette)}</span></div>
+    </div>
+    <div class="txkopf">Transaktionen</div>
+    ${txs}`;
+
+  if(!d){
+    fetch(`${API}/blocks/${h}`).then(r=>r.json())
+      .then(x=>{ if(x.height!==undefined){ details[x.height]=x;
+        if(open===h) zeigeBlock(h); } })
+      .catch(()=>{});
+  }
+}
+
+function zeigeBau(){
+  open='bau'; renderKette();
+  const naechste=(sum&&sum.height!=null)?sum.height+1:'—';
+  $('detail').innerHTML=`
+    <div class="detail-kopf">
+      <div>
+        <h2>Block ${nf(naechste)}</h2>
+        <div class="muted" style="font-size:12.5px;margin-top:3px">Wird gerade gesucht</div>
+      </div>
+      <button class="zu" type="button" onclick="location.hash=''">Schließen</button>
+    </div>
+    <div class="kv">
+      <div class="z"><span>Vorgänger</span><span class="v tnum">${nf(sum?.height??0)}</span></div>
+      <div class="z"><span>Difficulty</span><span class="v tnum">${nf(sum?.difficulty??0)}</span></div>
+      <div class="z"><span>Wartende Transaktionen</span><span class="v tnum">${
+        sum?.mempool??0}</span></div>
+      <div class="z"><span>Belohnung</span><span class="v tnum">${
+        ((Number(sum?.nextReward??0))/10**dec).toFixed(2)} ${sym}</span></div>
+    </div>
+    <div style="padding:4px 16px 18px;font-size:12.5px;color:var(--dim);line-height:1.6">
+      ${(sum?.mempool??0)===0
+        ? 'Der Mempool ist leer, also enthält dieser Block bisher nur die Coinbase.'
+        : 'Die wartenden Zahlungen kommen in diesen Block, soweit sie hineinpassen.'}
+      Wer ihn findet, steht noch nicht fest.
+    </div>`;
+}
+
+function schliesse(){
+  open=null; renderKette();
+  $('detail').innerHTML='<div class="leer">Auf einen Block klicken, '
+    +'um seine Transaktionen zu sehen.</div>';
+}
+
+// --------------------------------------------------------------- Karten
+function renderStats(){
+  if(!sum)return;
+  dec=sum.token?.decimals??8; sym=sum.token?.token_symbol??'YSR';
+  $('kopfHoehe').textContent='#'+nf(sum.height??0);
+
+  const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+    {minimumFractionDigits:0,maximumFractionDigits:0});
+  const ysrGenau=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+    {minimumFractionDigits:0,maximumFractionDigits:2});
+  const prozent=n=>n.toLocaleString('de-DE',
+    {minimumFractionDigits:2,maximumFractionDigits:2});
+
+  const umlauf=Number(sum.totalSupply)/10**dec, max=Number(sum.maxSupply)/10**dec;
+  const anteil=max>0?umlauf/max*100:0;
+  const hoehe=sum.height??0;
+  const bis=12000-(hoehe%12000);
+
+  // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
+  let bz=null;
+  if(blocks.length>=3){
+    const spanne=Number(blocks[0].timestamp)-Number(blocks[blocks.length-1].timestamp);
+    if(spanne>0) bz=spanne/(blocks.length-1);
+  }
+
+  const karten=[
+    {label:'Höhe',wert:'#'+nf(hoehe),
+     unter:'Zustand bis '+nf(sum.stateHeight)+' nachgerechnet'},
+    {label:'Difficulty',wert:nf(sum.difficulty??0),
+     unter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).'},
+    {label:'Netz-Hashrate',wert:hashrate(sum.hashrate),
+     unter:'Aus Difficulty und Zielblockzeit.'},
+    {label:'Gemessen, live',wert:hashrate(sum.minerHashrate),
+     unter:(sum.activeMiners??0)+' aktive Miner'},
+    {label:'Blockzeit',
+     wert:bz!=null?(Math.floor(bz/60)+' min '+Math.round(bz%60)+' s'):'—',
+     unter:'Ziel 10 min · letzte '+Math.max(0,blocks.length-1)+' Blöcke',
+     balken:bz!=null?Math.min(100,bz/600*100):null},
+    {label:'Mempool',wert:nf(sum.mempool??0),
+     unter:(sum.mempool??0)===0
+       ? 'Keine wartenden Zahlungen — die Mindestgebühr genügt.'
+       : 'Wartende Zahlungen.'},
+    {label:'Im Umlauf',wert:ysr(sum.totalSupply),
+     unter:'von '+ysr(sum.maxSupply)+' '+sym+' · '+prozent(anteil)+' %',
+     balken:anteil},
+    {label:'Nächste Halbierung',wert:'Block '+nf(hoehe+bis),
+     unter:'Noch '+nf(bis)+' Blöcke · Belohnung dann '
+       +ysrGenau(Number(sum.nextReward)/2)+' '+sym},
+  ];
+
+  $('stats').innerHTML=karten.map(k=>`
+    <div class="karte">
+      <div class="label">${k.label}</div>
+      <div class="wert">${k.wert}</div>
+      <div class="unter">${k.unter}</div>
+      ${k.balken!=null?`<div class="balken"><i style="width:${
+        k.balken.toFixed(2)}%"></i></div>`:''}
+    </div>`).join('');
 }
 
 function renderVerdict(){
-  const vals=Object.values(checks);
-  if(!vals.length){ $('verdict').textContent='wird geprüft…'; return; }
-  const allOk=vals.every(c=>c.hash==='ok'&&c.difficulty==='ok'
-    &&c.kette!=='fail'&&c.serialisierung!=='fail');
-  $('verdict').className='verdict '+(allOk?'ok':'bad');
-  $('verdict').textContent=allOk
-    ? vals.length+' Blöcke hier nachgerechnet'
-    : 'Prüfung fehlgeschlagen';
+  const n=Object.keys(checks).length;
+  const kaputt=Object.values(checks).some(c=>
+    c.hash==='fail'||c.difficulty==='fail'||c.kette==='fail'||c.serialisierung==='fail');
+  const e=$('verdict');
+  if(kaputt){ e.className='bad'; e.textContent='Eine Prüfung ist fehlgeschlagen'; }
+  else{ e.className='ok'; e.textContent=n+' Blöcke hier nachgerechnet'; }
+}
+// ---------------------------------------------------------------- Laden
+async function pruefeAlle(){
+  const neu={};
+  for(let i=0;i<blocks.length;i++){
+    neu[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+  }
+  checks=neu;
 }
 
 async function load(){
   try{
     const [s,b]=await Promise.all([
-      fetch(API+'/summary').then(r=>r.json()),
-      fetch(API+'/blocks?limit=25').then(r=>r.json()),
+      fetch(`${API}/summary`).then(r=>r.json()),
+      fetch(`${API}/blocks?limit=12`).then(r=>r.json()),
     ]);
-    // Ein Rechte- oder Verbindungsfehler darf nicht als leere Kette
-    // erscheinen -- genau das hat uns schon einmal in die Irre gefuehrt.
-    if(s.error) throw new Error(s.detail||s.error);
-    if(b.error) throw new Error(b.detail||b.error);
+    if(s.error||b.error) throw new Error(s.detail||b.detail||s.error||b.error);
     sum=s; blocks=b.blocks||[]; $('err').textContent='';
-    renderStats();
-    const next={};
-    for(let i=0;i<blocks.length;i++) next[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
-    checks=next;
-    renderVerdict(); renderList(); renderKette(); zeigeMehr();
+    await pruefeAlle();
+    renderStats(); renderVerdict(); renderKette();
+    if(open!==null&&open!=='bau') zeigeBlock(open);
   }catch(e){
-    $('err').innerHTML='Laden fehlgeschlagen: '+e.message+'<br>'+
-      (HOSTED
-        ? 'API unter <code>'+API+'</code> nicht erreichbar.'
-        : 'Lokal geöffnet (<code>'+location.protocol+'</code>), Abruf an <code>'+ORIGIN+
-          '</code>. Das braucht die CORS-Freigabe auf den Chain-Routen. Zuverlässiger: '+
-          '<a href="'+ORIGIN+'/explorer.html">'+ORIGIN+'/explorer.html</a>');
+    $('err').textContent='Laden fehlgeschlagen: '+e.message;
   }
 }
 
-// Rueckweg nur anbieten, wenn die App unter derselben Adresse liegt.
-if (HOSTED && !PARAM) {
-  const b = $('back');
-  b.hidden = false;
-  b.onclick = e => {
-    // history.back() bringt den Nutzer dorthin zurueck, wo er war --
-    // einschliesslich des Reiters, in dem er stand. Ein Sprung auf "/"
-    // wuerde die App neu laden und im Mining-Reiter landen.
-    if (document.referrer && new URL(document.referrer).origin === location.origin) {
-      e.preventDefault();
-      history.back();
-    }
-  };
-}
-
-$('engine').textContent = useSubtle
-  ? 'Gerechnet wird mit WebCrypto.'
-  : 'crypto.subtle steht hier nicht zur Verfügung, gerechnet wird mit der eingebauten SHA-256-Umsetzung.';
-/*
-  Sprung zu einem bestimmten Block, etwa aus der Wallet heraus (#block-52).
-
-  Der Explorer zeigt sonst nur die letzten 25 Bloecke. Liegt der gesuchte
-  weiter zurueck, wird ab dort nachgeladen -- sonst fuehrte der Verweis ins
-  Leere, und das waere schlimmer als gar kein Verweis.
-*/
 /*
   Aeltere Bloecke nachladen.
 
-  Der letzte geladene Block dient als Grenze. Er wird beim Nachladen
-  nochmals geprueft, sobald sein Vorgaenger da ist -- ohne den Vorgaenger
-  laesst sich die Verkettung nicht pruefen, und ohne diese zweite Pruefung
-  bliebe genau an jeder Nachladegrenze eine Luecke in der Kontrolle.
+  Der bisher aelteste wird dabei NOCHMALS geprueft -- erst mit seinem
+  Vorgaenger laesst sich seine Verkettung pruefen. Ohne das bliebe an jeder
+  Nachladegrenze eine Luecke in der Kontrolle.
 */
 let laedt=false;
 async function mehrLaden(){
-  if(laedt||blocks.length===0) return;
+  if(laedt||blocks.length===0)return;
   laedt=true;
   const knopf=$('mehr');
-  knopf.disabled=true; knopf.textContent='lädt…';
+  if(knopf){ knopf.disabled=true; knopf.textContent='lädt…'; }
   try{
     const aeltester=blocks[blocks.length-1].height;
-    const r=await fetch(`${API}/blocks?limit=25&before=${aeltester}`).then(r=>r.json());
+    const r=await fetch(`${API}/blocks?limit=12&before=${aeltester}`).then(r=>r.json());
     if(r.error) throw new Error(r.detail||r.error);
     const neu=r.blocks||[];
-    if(neu.length===0){ knopf.hidden=true; return; }
-
+    if(neu.length===0){ if(knopf) knopf.remove(); return; }
     const vorher=blocks.length;
     blocks=blocks.concat(neu);
-    // Den bisher aeltesten mitpruefen -- jetzt ist sein Vorgaenger bekannt.
     for(let i=vorher-1;i<blocks.length;i++){
       checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
     }
-    renderVerdict(); renderList(); renderKette(); zeigeMehr();
+    renderVerdict(); renderKette();
   }catch(e){
     $('err').textContent='Nachladen fehlgeschlagen: '+e.message;
   }finally{
     laedt=false;
-    knopf.disabled=false; knopf.textContent='Ältere Blöcke laden';
   }
 }
 
-function zeigeMehr(){
-  const aeltester=blocks.length?blocks[blocks.length-1].height:0;
-  $('mehr').hidden = aeltester<=0;
-}
-
+// ---------------------------------------------------------------- Suche
 /*
-  Suche.
-
-  Die Route sagt nur, WAS gefunden wurde. Die Einzelheiten holt der
-  Explorer bei der zustaendigen Route -- so gibt es die Aufbereitung nur
-  einmal, und die Suche laeuft nicht mit ihr auseinander.
+  Die Route sagt nur, WAS gefunden wurde. Die Einzelheiten holt der Explorer
+  bei der zustaendigen Route -- so gibt es die Aufbereitung nur einmal, und
+  die Suche laeuft nicht mit ihr auseinander.
 */
 async function suchen(){
   const q=$('q').value.trim();
   const ziel=$('treffer');
   if(!q){ ziel.innerHTML=''; return; }
-  ziel.innerHTML='<p class="hinweis">wird gesucht…</p>';
+  ziel.innerHTML='<div class="detail"><div class="leer">wird gesucht…</div></div>';
   try{
     const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
 
     if(r.kind==='nichts'||r.kind==='leer'){
-      ziel.innerHTML=`<p class="hinweis">${r.hinweis||'Nichts gefunden.'}</p>`;
+      ziel.innerHTML=`<div class="detail"><div class="leer">${
+        esc(r.hinweis||'Nichts gefunden.')}</div></div>`;
+      return;
+    }
+    if(r.kind==='block'){
+      ziel.innerHTML=''; $('q').value='';
+      location.hash='#block-'+r.height;
       return;
     }
 
-    if(r.kind==='block'){
-      ziel.innerHTML=`<p class="hinweis">Block ${r.height} gefunden.</p>`;
-      $('q').value='';
-      location.hash='#block-'+r.height;
-      await springeZuBlock();
-      ziel.innerHTML='';
-      return;
-    }
+    const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+      {minimumFractionDigits:2,maximumFractionDigits:8});
 
     if(r.kind==='address'){
-      const a=await fetch(`${API}/account/${r.address}`).then(r=>r.json());
-      const ysr=v=>(Number(v)/10**dec).toFixed(4)+' '+sym;
-      ziel.innerHTML=`<h3>Adresse</h3>
-        <div class="zeile"><span>Adresse</span><span class="mono"
-          style="word-break:break-all">${r.address}</span></div>
-        <div class="zeile"><span>Guthaben</span><span class="tnum">${
-          ysr(a.balance||'0')}</span></div>
-        <div class="zeile"><span>Gefundene Blöcke</span><span class="tnum">${
-          a.blocksFound??0}</span></div>`
-        + (a.poolRewards ? `<div class="zeile"><span>Pool-Anteile</span>
-             <span class="tnum">${a.poolRewards}</span></div>` : '')
-        + (!r.bekannt
-            ? `<p class="hinweis" style="margin-top:10px">Diese Adresse ist gültig,
-               hatte aber noch nie Guthaben.</p>` : '')
-        + ((a.history&&a.history.length)
-            ? `<h3 style="margin-top:14px">Letzte Bewegungen</h3>`
-              + a.history.slice(0,10).map(h=>`<div class="zeile">
-                  <span>${h.kind==='reward'?'Blockreward':h.kind==='pool'?'Pool-Anteil':
-                          h.kind==='in'?'Eingang':'Ausgang'}
-                    ${h.height!=null?`· Block ${h.height}`:''}</span>
-                  <span class="tnum">${ysr(h.amount)}</span></div>`).join('')
-            : '');
+      const a=await fetch(`${API}/account/${r.address}`).then(x=>x.json());
+      ziel.innerHTML=`<div class="detail">
+        <div class="detail-kopf"><div><h2>Adresse</h2>
+          <div class="mono muted" style="font-size:12px;margin-top:3px;word-break:break-all">${
+            esc(r.address)}</div></div>
+          <button class="zu" type="button" onclick="leereSuche()">Schließen</button></div>
+        <div class="kv">
+          <div class="z"><span>Guthaben</span><span class="v tnum">${ysr(a.balance||'0')} ${sym}</span></div>
+          <div class="z"><span>Gefundene Blöcke</span><span class="v tnum">${a.blocksFound??0}</span></div>
+          ${a.poolRewards?`<div class="z"><span>Pool-Anteile</span><span class="v tnum">${a.poolRewards}</span></div>`:''}
+          <div class="z"><span>Nonce</span><span class="v tnum">${a.nonce??'0'}</span></div>
+        </div>
+        ${(a.history&&a.history.length)?`<div class="txkopf">Letzte Bewegungen</div>`
+          +a.history.slice(0,12).map(h=>`<div class="tx"><div class="tx-kopf">
+              <span class="marke-tx">${h.kind==='reward'?'Blockreward':
+                h.kind==='pool'?'Pool-Anteil':h.kind==='in'?'Eingang':'Ausgang'}${
+                h.height!=null?' · Block '+nf(h.height):''}</span>
+              <span class="mono tnum" style="color:var(--proof)">${ysr(h.amount)} ${sym}</span>
+            </div></div>`).join('')
+          :'<div class="leer">Noch keine Bewegungen.</div>'}
+      </div>`;
       return;
     }
 
     if(r.kind==='tx'){
-      const t=await fetch(`${API}/tx/${r.txid}`).then(r=>r.json());
-      if(t.error){ ziel.innerHTML='<p class="hinweis">Transaktion nicht lesbar.</p>'; return; }
-      const ysr=v=>(Number(v)/10**dec).toFixed(4)+' '+sym;
-      ziel.innerHTML=`<h3>Transaktion</h3>
-        <div class="zeile"><span>Kennung</span><span class="mono"
-          style="word-break:break-all;font-size:11.5px">${t.txid}</span></div>
-        <div class="zeile"><span>Status</span><span>${
-          t.status==='pending'?'wartet auf einen Block':'in Block '+t.height}</span></div>
-        <div class="zeile"><span>Art</span><span>${
-          t.type==='coinbase'?'Blockreward':'Überweisung'}</span></div>`
-        + (t.from?`<div class="zeile"><span>Von</span><span class="mono"
-             style="word-break:break-all;font-size:11.5px">${t.from}</span></div>`:'')
-        + (t.to?`<div class="zeile"><span>An</span><span class="mono"
-             style="word-break:break-all;font-size:11.5px">${t.to}</span></div>`:'')
-        + (t.recipients?`<div class="zeile"><span>Empfänger</span><span>${
-             t.recipients.length}</span></div>`
-           + t.recipients.map(e=>`<div class="zeile"><span class="mono"
-               style="font-size:11.5px">${e.address}</span>
-               <span class="tnum">${ysr(e.amount)}</span></div>`).join(''):'')
-        + `<div class="zeile"><span>Betrag</span><span class="tnum">${
-             ysr(t.amount)}</span></div>`
-        + (Number(t.fee)>0?`<div class="zeile"><span>Gebühr</span><span class="tnum">${
-             ysr(t.fee)}</span></div>`:'')
-        + (t.height!=null?`<p class="hinweis" style="margin-top:10px">
-             <a href="#block-${t.height}">Zu Block ${t.height}</a></p>`:'');
-      return;
+      const t=await fetch(`${API}/tx/${r.txid}`).then(x=>x.json());
+      if(t.error){ ziel.innerHTML='<div class="detail"><div class="leer">'
+        +'Transaktion nicht lesbar.</div></div>'; return; }
+      ziel.innerHTML=`<div class="detail">
+        <div class="detail-kopf"><div><h2>Transaktion</h2>
+          <div class="mono muted" style="font-size:11.5px;margin-top:3px;word-break:break-all">${
+            esc(t.txid)}</div></div>
+          <button class="zu" type="button" onclick="leereSuche()">Schließen</button></div>
+        <div class="kv">
+          <div class="z"><span>Status</span><span class="v">${
+            t.status==='pending'?'wartet auf einen Block':'in Block '+nf(t.height)}</span></div>
+          <div class="z"><span>Art</span><span class="v">${
+            t.type==='coinbase'?'Blockreward':'Überweisung'}</span></div>
+          ${t.from?`<div class="z"><span>Von</span><span class="v">${esc(t.from)}</span></div>`:''}
+          ${t.to?`<div class="z"><span>An</span><span class="v">${esc(t.to)}</span></div>`:''}
+          <div class="z"><span>Betrag</span><span class="v tnum">${ysr(t.amount)} ${sym}</span></div>
+          ${Number(t.fee)>0?`<div class="z"><span>Gebühr</span><span class="v tnum">${
+            ysr(t.fee)} ${sym}</span></div>`:''}
+        </div>
+        ${t.recipients?`<div class="txkopf">${t.recipients.length} Empfänger</div>
+          <div class="tx"><div class="empf">`+t.recipients.map(e=>`<div class="e">
+            <span class="mono faint" style="font-size:11.5px">${esc(e.address)}</span>
+            <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')
+          +`</div></div>`:''}
+        ${t.height!=null?`<div style="padding:4px 16px 16px">
+          <a href="#block-${t.height}">Zu Block ${nf(t.height)}</a></div>`:''}
+      </div>`;
     }
   }catch(e){
-    ziel.innerHTML='<p class="hinweis">Suche fehlgeschlagen: '+e.message+'</p>';
+    ziel.innerHTML=`<div class="detail"><div class="leer">Suche fehlgeschlagen: ${
+      esc(e.message)}</div></div>`;
   }
 }
+function leereSuche(){ $('treffer').innerHTML=''; $('q').value=''; }
 
-async function springeZuBlock(){
-  const treffer = /^#block-(\d+)$/.exec(location.hash);
-  if(!treffer) return;
-  const ziel = Number(treffer[1]);
+// ----------------------------------------------------------- Navigation
+/*
+  Die Adresszeile fuehrt. So laesst sich ein Block verlinken, und der
+  Zurueck-Knopf des Browsers tut, was man erwartet.
+*/
+async function ausHash(){
+  const m=location.hash.match(/^#block-(\d+)$/);
+  if(!m){ if(open!==null) schliesse(); return; }
+  const ziel=Number(m[1]);
 
+  // Noch nicht geladen? Dann den Ausschnitt um diesen Block holen.
   if(!blocks.some(b=>b.height===ziel)){
     try{
-      const b = await fetch(`${API}/blocks?limit=25&before=${ziel+1}`).then(r=>r.json());
-      if(b.blocks && b.blocks.length){ blocks = b.blocks; await pruefeAlle(); }
-    }catch(e){ /* dann bleibt die Liste, wie sie ist */ }
+      const b=await fetch(`${API}/blocks?limit=12&before=${ziel+1}`).then(r=>r.json());
+      if(b.blocks&&b.blocks.length){ blocks=b.blocks; await pruefeAlle(); renderVerdict(); }
+    }catch{ /* dann bleibt die Reihe, wie sie ist */ }
   }
-
-  open = ziel;
-  renderList(); renderKette();
-  if(!details[ziel]){
-    fetch(`${API}/blocks/${ziel}`).then(r=>r.json())
-      .then(d=>{ if(d.height!==undefined){ details[d.height]=d; renderList(); } })
-      .catch(()=>{});
-  }
-  const zeile = document.querySelector('.row[data-h="'+ziel+'"]');
-  if(zeile) zeile.scrollIntoView({ block:'center' });
+  open=ziel;
+  renderKette();
+  zeigeBlock(ziel);
+  $('detail').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 
-$('qgo').addEventListener('click', suchen);
-$('q').addEventListener('keydown', e=>{ if(e.key==='Enter') suchen(); });
-$('mehr').addEventListener('click', mehrLaden);
+$('qgo').addEventListener('click',suchen);
+$('q').addEventListener('keydown',e=>{ if(e.key==='Enter') suchen(); });
+window.addEventListener('hashchange',ausHash);
 
-load().then(springeZuBlock);
-window.addEventListener('hashchange', springeZuBlock);
+$('engine').textContent=useSubtle?'crypto.subtle':'SHA-256 in JavaScript';
+
+load().then(ausHash);
 
 /*
-  Nicht neu laden, solange ein Block geoeffnet ist -- sonst klappt er zu,
-  waehrend man liest.
-
-  Und nicht, solange mehr als 25 Bloecke geladen sind: Ein load() setzt die
-  Liste auf die neuesten 25 zurueck, und alles Nachgeladene waere weg.
-  Stattdessen wird nur der Kopf aufgefrischt.
+  Auffrischen alle zehn Sekunden -- aber nicht, solange ein Block geoeffnet
+  ist. Sonst klappt er zu, waehrend man liest. Und nicht, solange mehr als
+  zwoelf Bloecke geladen sind: load() setzt die Reihe auf die neuesten
+  zwoelf zurueck, und alles Nachgeladene waere weg.
 */
 setInterval(async ()=>{
   if(open!==null) return;
-  if(blocks.length>25){
+  if(blocks.length>12){
     try{
-      const s2=await fetch(API+'/summary').then(r=>r.json());
-      if(!s2.error){ sum=s2; renderStats(); }
+      const s=await fetch(`${API}/summary`).then(r=>r.json());
+      if(!s.error){ sum=s; renderStats(); }
     }catch{ /* beim naechsten Mal wieder */ }
     return;
   }
