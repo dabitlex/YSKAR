@@ -34,6 +34,7 @@ import type { ChainStore } from './ChainStore.ts';
 import type { TxPool } from './TxPool.ts';
 import type { MiningCoordinator, MiningJob } from './MiningCoordinator.ts';
 import { ReadApi } from './ReadApi.ts';
+import type { PoolCoordinator, MiningModus } from '../../pool/PoolCoordinator.ts';
 
 /** Angestrebter Abstand zwischen zwei Shares, in Sekunden. */
 const SHARE_ZIEL_SEKUNDEN = 30;
@@ -47,6 +48,8 @@ interface Session {
   address: Uint8Array;
   addressHex: string;
   extranonce: bigint;
+  /** solo = eigene Coinbase, pool = Anteil an der Aufteilung. */
+  modus: MiningModus;
   shareDifficulty: bigint;
   /**
    * Normierte Messwerte: Sekunden je Difficulty-Einheit.
@@ -82,6 +85,43 @@ export class MiningServer {
   private params: ConsensusParams;
 
   private lesen: ReadApi;
+  /**
+   * Der Pool. Ohne ihn laeuft der Knoten wie bisher -- reines Solo-Mining.
+   *
+   * Ein Knoten OHNE Pool lehnt Pool-Sitzungen ab, statt sie stillschweigend
+   * als Solo zu behandeln. Sonst minte jemand im Glauben, seine Arbeit
+   * werde geteilt, und bekaeme nichts.
+   *
+   * Heisst absichtlich nicht "pool" -- so heisst schon der Mempool.
+   */
+  poolKoordinator: PoolCoordinator | null = null;
+
+  /**
+   * Name, der in die Coinbase der Pool-Bloecke dieses Knotens kommt.
+   * Der Explorer liest ihn heraus; ohne Namen steht dort "Unbekannt".
+   */
+  blockName: Uint8Array = new Uint8Array(0);
+
+  /** Was die App ueber diesen Pool wissen muss -- gemessen, nicht gemeldet. */
+  private poolInfo(): Record<string, unknown> | null {
+    const pk = this.poolKoordinator;
+    if (!pk) return null;
+    const e = pk.einstellungen();
+    let hashrate = 0;
+    const adressen = new Set<string>();
+    for (const x of this.sessions.values()) {
+      if (x.modus !== 'pool') continue;
+      adressen.add(x.addressHex);
+      const r = this.sessionHashrate(x);
+      if (r) hashrate += r;
+    }
+    return {
+      name: e.name, feeBps: e.feeBps,
+      miner: adressen.size, hashrate,
+      eintraege: pk.eintraege(),
+      arbeitGesamt: pk.arbeitGesamt().toString(),
+    };
+  }
   private sessions = new Map<string, Session>();
   private naechsteExtranonce = 1n;
   private server = createServer((req, res) => this.behandle(req, res));
@@ -259,6 +299,21 @@ export class MiningServer {
     try { roh = decodeAddress(b.address); }
     catch { return { error: 'bad_address' }; }
 
+    /*
+      Solo oder Pool -- die Sitzung legt das beim Anmelden fest und behaelt
+      es. Ein Wechsel mitten im Lauf wuerde Arbeit im PPLNS-Fenster in der
+      Schwebe lassen; wer wechseln will, meldet sich neu an.
+
+      Ein Knoten ohne Pool LEHNT eine Pool-Sitzung ab. Sie stillschweigend
+      als Solo zu fuehren waere schlimmer: Der Miner glaubte, seine Arbeit
+      werde geteilt, und bekaeme nichts.
+    */
+    const modus: MiningModus = b.mode === 'pool' ? 'pool' : 'solo';
+    if (modus === 'pool' && !this.poolKoordinator) {
+      return { error: 'pool_unavailable',
+               detail: 'Dieser Knoten betreibt keinen Pool.' };
+    }
+
     this.aufraeumen();
     const s: Session = {
       id: randomUUID(),
@@ -267,6 +322,7 @@ export class MiningServer {
       // Eindeutig je Session: Sie trennt die Nonce-Raeume. Zwei Miner
       // koennen denselben Treffer dadurch gar nicht finden.
       extranonce: this.naechsteExtranonce++,
+      modus,
       shareDifficulty: SHARE_START,
       proben: [],
       letzterShare: null,
@@ -283,6 +339,8 @@ export class MiningServer {
     return {
       sessionId: s.id,
       extranonce: s.extranonce.toString(),
+      mode: s.modus,
+      pool: s.modus === 'pool' && this.poolKoordinator ? this.poolInfo() : null,
       shareDifficulty: s.shareDifficulty.toString(),
       address: b.address,
       concurrentSessions: gleiche,
@@ -299,7 +357,46 @@ export class MiningServer {
     // Jede Session bekommt einen eigenen Job: Die Extranonce steht im
     // Header, und state_root haengt am Kettenkopf. Ein geteilter Job waere
     // fuer beide falsch.
-    const job: MiningJob = this.mining.createJob(s.address, s.extranonce);
+    /*
+      Pool-Sitzungen bekommen eine Coinbase mit der aktuellen Aufteilung,
+      Solo-Sitzungen eine an ihre eigene Adresse.
+
+      Die Aufteilung wird als FUNKTION uebergeben, nicht als fertige Liste:
+      Sie muss die tatsaechliche Bruttosumme kennen, und die steht erst
+      fest, wenn der Blockbau die Transaktionen ausgewaehlt hat.
+    */
+    const pk = this.poolKoordinator;
+    const istPool = s.modus === 'pool' && !!pk;
+    const anteile = istPool
+      ? (brutto: bigint) => {
+          const netz = this.chain.tip()?.difficulty ?? 1n;
+          const a = pk!.coinbase(this.chain.height() + 1, 0n, netz);
+          if (!a) return [];
+          /*
+            pk.coinbase() rechnet ohne Gebuehren. Der Blockbau kennt die
+            echten und reicht die Summe als `brutto` herein. Die Differenz
+            kommt auf den groessten Anteil -- so bleibt die Summe exakt,
+            und niemand verliert einen Bruchteil.
+          */
+          const summe = a.outputs.reduce((m, o) => m + o.amount, 0n);
+          const rest = brutto - summe;
+          if (rest === 0n) return a.outputs;
+          const out = a.outputs.map(o => ({ ...o }));
+          let groesster = 0;
+          for (let i = 1; i < out.length; i++) {
+            if (out[i].amount > out[groesster].amount) groesster = i;
+          }
+          out[groesster].amount += rest;
+          return out;
+        }
+      : undefined;
+
+    const job: MiningJob = this.mining.createJob(
+      s.address, s.extranonce,
+      // Der Name des Knotens gehoert nur in Pool-Bloecke. Ein fremder
+      // Solo-Miner baut seinen eigenen Block.
+      istPool ? this.blockName : new Uint8Array(0),
+      anteile);
     s.jobId = job.jobId;
 
     return {
@@ -373,6 +470,20 @@ export class MiningServer {
         s.angenommen++;
         this.nachShare(s);
         this.mining.invalidate();
+
+        /*
+          Nach einem Pool-Block das Fenster weiterschieben.
+
+          Es wird NICHT geleert -- genau das ist der Unterschied zur
+          proportionalen Verteilung. Wer kurz vor einem Fund einsteigt,
+          bekommt deshalb nicht dasselbe wie einer, der lange mitgerechnet
+          hat. Aufgeraeumt wird nur, was das Fenster ohnehin nicht mehr
+          erreichen kann.
+        */
+        if (s.modus === 'pool' && this.poolKoordinator) {
+          this.poolKoordinator.nachBlock(this.chain.tip()?.difficulty ?? 1n);
+        }
+
         this.onBlock?.(r.height, r.hash, s.addressHex);
       } catch (e) {
         this.onFehler?.('nach Blockfund', e as Error);

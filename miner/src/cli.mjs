@@ -48,6 +48,9 @@ function argumente(argv) {
       case '--workers': case '-w': a.workers = Number(nimm()); a.workersGesetzt = true; break;
       case '--intensity': case '-i': a.intensity = Number(nimm()); break;
       case '--api': a.api = nimm().replace(/\/+$/, ''); break;
+      // solo oder pool. Ein Knoten ohne Pool lehnt "pool" ab, statt die
+      // Sitzung stillschweigend als solo zu fuehren.
+      case '--mode': a.mode = nimm() === 'pool' ? 'pool' : 'solo'; break;
       case '--forget': a.forget = true; break;
       case '--help': case '-h': a.help = true; break;
       case '--version': case '-v': a.version = true; break;
@@ -68,6 +71,7 @@ Optionen
   -w, --workers <n>      Rechen-Threads (Vorgabe: Kerne minus 1)
   -i, --intensity <1-100>  Anteil der Rechenzeit (Vorgabe: 100)
       --api <url>        Server (Vorgabe: https://yskar.vercel.app)
+      --mode <solo|pool> Solo oder Pool (Vorgabe: solo)
       --forget           Gespeicherte Adresse löschen
   -h, --help             Diese Hilfe
   -v, --version          Fassung
@@ -205,6 +209,7 @@ async function main() {
   console.log(grau('─'.repeat(52)));
   console.log(`  Adresse     ${arg.address}`);
   console.log(`  Server      ${arg.api}`);
+  if ((arg.mode ?? 'solo') === 'pool') console.log('  Modus       Pool');
   console.log(`  Threads     ${threads} von ${os.cpus().length} Kernen`);
   console.log(`  Intensität  ${arg.intensity} %`);
   console.log(grau('─'.repeat(52)));
@@ -224,7 +229,10 @@ async function main() {
   try {
     session = await api(arg.api, '/session', {
       method: 'POST',
-      body: JSON.stringify({ address: arg.address, platform: `desktop/${process.platform}` }),
+      body: JSON.stringify({
+        address: arg.address, platform: `desktop/${process.platform}`,
+        mode: arg.mode ?? 'solo',
+      }),
     });
   } catch (e) {
     if (e.code === 'too_many_sessions') {
@@ -240,6 +248,17 @@ async function main() {
     }
     await warteAufTaste();
     process.exit(1);
+  }
+
+  /*
+    Erst HIER, nicht im Startbanner: Vorher gibt es keine Sitzung, und der
+    Knoten hat noch nicht gesagt, ob er den Pool ueberhaupt betreibt.
+  */
+  if (session.pool) {
+    console.log(grau(`  Pool: ${session.pool.name} · Gebühr ${
+      (session.pool.feeBps / 100).toFixed(2)} % · ${session.pool.miner} Miner\n`));
+  } else if ((arg.mode ?? 'solo') === 'pool') {
+    console.log(gelb('  Dieser Knoten betreibt keinen Pool — es wird solo gemint.\n'));
   }
 
   // Erst hier bekannt: Laeuft anderswo noch ein Miner auf derselben Adresse?

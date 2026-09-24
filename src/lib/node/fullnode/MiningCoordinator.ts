@@ -116,8 +116,20 @@ export class MiningCoordinator {
    *               Solo-Miner nichts -- ihre Bloecke gehoeren nicht diesem
    *               Knoten, und sein Name stuende zu Unrecht darin.
    */
+  /**
+   * @param anteile  Aufteilung der Belohnung fuer Pool-Mining. Ohne Angabe
+   *                 bekommt minerAddress alles.
+   *
+   *                 WICHTIG: Die Anteile sind BRUTTO. Sie muessen zusammen
+   *                 genau reward(height) + fees ergeben -- und die fees
+   *                 kennt erst der Blockbau, weil er die Transaktionen
+   *                 auswaehlt. Deshalb nimmt createJob eine FUNKTION
+   *                 entgegen, nicht eine fertige Liste: Sie bekommt die
+   *                 tatsaechliche Summe und teilt sie auf.
+   */
   createJob(minerAddress: Uint8Array, extranonce: bigint,
-            extra: Uint8Array = new Uint8Array(0)): MiningJob {
+            extra: Uint8Array = new Uint8Array(0),
+            anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[]): MiningJob {
     const tip = this.chain.tip();
     const hoehe = (tip?.height ?? -1) + 1;
     const state = this.chain.state();
@@ -136,6 +148,7 @@ export class MiningCoordinator {
       difficulty,
       extranonce,
       coinbaseExtra: extra,
+      anteile,
       params: this.params,
     });
 

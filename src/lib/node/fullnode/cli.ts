@@ -24,6 +24,9 @@ import { MiningCoordinator } from './MiningCoordinator.ts';
 import { MiningServer } from './MiningServer.ts';
 import { MAINNET, REGTEST, type ConsensusParams } from '../../core/networks.ts';
 import { PeerManager } from '../p2p/PeerManager.ts';
+import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
+import { nameToExtra } from '../../chain/finderName.ts';
+import { decodeAddress } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 
 const VERSION = '0.1.0';
@@ -55,6 +58,12 @@ interface Optionen {
   seeds: string[];
   /** P2P ganz aus. */
   keinP2P: boolean;
+  /** Name des Pools. Leer = kein Pool, nur Solo-Mining. */
+  poolName: string;
+  /** Gebuehr in Basispunkten, 0 bis 500. */
+  poolFee: number;
+  /** Wohin die Gebuehr geht. Pflicht, sobald poolFee > 0. */
+  poolAuszahlung: string;
   /** Wohin gefundene Bloecke gehen. Leer heisst: nirgends. */
   upstream?: string;
 }
@@ -66,6 +75,7 @@ function argumente(argv: string[]): Optionen {
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false,
+    poolName: '', poolFee: 0, poolAuszahlung: '',
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -84,6 +94,9 @@ function argumente(argv: string[]): Optionen {
       case '--p2p-port': o.p2pPort = Number(nimm()); break;
       case '--seed': o.seeds.push(nimm()); break;
       case '--no-p2p': o.keinP2P = true; break;
+      case '--pool': o.poolName = nimm(); break;
+      case '--pool-fee': o.poolFee = Number(nimm()); break;
+      case '--pool-payout': o.poolAuszahlung = nimm(); break;
       case '--help': case '-h': o.help = true; break;
     }
   }
@@ -115,6 +128,16 @@ Optionen
       --p2p-port <nr>   Lauschport für andere Knoten (Vorgabe: 8646)
       --seed host:port  ein bekannter Knoten, mehrfach angebbar
       --no-p2p          ohne Knotennetz laufen
+      --pool <name>     Pool betreiben, Name steht im Block
+      --pool-fee <bp>   Gebühr in Basispunkten (100 = 1,00 %, höchstens 500)
+      --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
+
+Pool betreiben
+  yskar-node mine --data ./knoten --pool pool.yskar.net --pool-fee 100 \
+                  --pool-payout ysr1…
+
+  Miner melden sich dann mit mode=pool an. Der Block selbst zahlt alle
+  Beteiligten aus — der Betreiber hält zu keinem Zeitpunkt fremdes Guthaben.
 
 Mit anderen Knoten verbinden
   yskar-node mine --data ./knoten --seed 203.0.113.5:8646
@@ -382,6 +405,35 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     }
   };
 
+  /*
+    Pool einschalten, wenn ein Name angegeben ist.
+
+    Die Pruefung passiert HIER und nicht erst beim ersten Block: Ein Pool,
+    der Gebuehr nimmt, muss sagen wohin -- sonst startet er nicht. Und der
+    Name wandert in die Coinbase jedes Pool-Blocks, also gelten dieselben
+    Regeln wie ueberall: druckbares ASCII, hoechstens 32 Zeichen.
+  */
+  if (opt.poolName) {
+    let auszahlung: Uint8Array | null = null;
+    if (opt.poolFee > 0) {
+      if (!opt.poolAuszahlung) {
+        console.error('  --pool-fee ohne --pool-payout: Wohin soll die Gebühr gehen?');
+        process.exit(1);
+      }
+      try { auszahlung = decodeAddress(opt.poolAuszahlung); }
+      catch { console.error('  --pool-payout ist keine gültige YSKAR-Adresse.'); process.exit(1); }
+    }
+    try {
+      server.poolKoordinator = new PoolCoordinator({
+        name: opt.poolName, feeBps: opt.poolFee, payoutAddress: auszahlung,
+      });
+      server.blockName = nameToExtra(opt.poolName);
+    } catch (e) {
+      console.error(`  Pool konnte nicht starten: ${(e as Error).message}`);
+      process.exit(1);
+    }
+  }
+
   await server.listen(opt.bind, opt.port);
 
   console.log(fett(`\nYSKAR Full Node ${VERSION}  ${grau('Mining')}`));
@@ -392,6 +444,9 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   console.log(`  Lauscht  http://${opt.bind}:${opt.port}`);
   console.log(`  Blöcke   ${nachOben ? '→ ' + nachOben : 'bleiben lokal'}`);
   console.log(`  Sync     ${nachOben ? 'alle 30 s von ' + opt.api : 'aus'}`);
+  console.log(`  Pool     ${opt.poolName
+    ? `${opt.poolName} · Gebühr ${(opt.poolFee / 100).toFixed(2)} %`
+    : 'aus (nur Solo-Mining)'}`);
   console.log(`  Knoten   ${netz
     ? (opt.p2pPort > 0 ? `lauscht auf ${opt.p2pPort}` : 'nur ausgehend') +
       (opt.seeds.length ? `, ${opt.seeds.length} Seed${opt.seeds.length > 1 ? 's' : ''}` : '')
