@@ -91,6 +91,19 @@
 }
 .mehr:hover{background:var(--surface)}
 .mehr:disabled{opacity:.5;cursor:default}
+.karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:12px;margin:26px 0 22px}
+.karte{background:var(--surface);border-radius:12px;padding:15px 16px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.karte .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted)}
+.karte .wert{font-size:21px;font-weight:600;margin-top:8px;letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.karte .unter{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.5}
+.karte .balken{height:5px;border-radius:99px;background:var(--sunk);overflow:hidden;
+  margin-top:10px;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.karte .balken i{display:block;height:100%;border-radius:99px;background:var(--proof)}
 .kette-kopf{display:flex;align-items:baseline;justify-content:space-between;
   gap:12px;margin:0 0 10px}
 .kette-kopf h2{margin:0;font-size:13px;font-weight:500;color:var(--dim)}
@@ -147,8 +160,6 @@
   <span class="verdict" id="verdict">wird geladen…</span>
 </div>
 
-<dl class="stats" id="stats"></dl>
-
 <div class="suche">
   <input id="q" type="search" autocomplete="off" spellcheck="false"
          placeholder="Adresse, Transaktion, Blockhöhe oder Blockhash"
@@ -162,6 +173,13 @@
   <span class="muted" style="font-size:11.5px">links im Bau · rechts gefunden · Punkt = nachgerechnet</span>
 </div>
 <div class="kette" id="kette"></div>
+
+<!--
+  Kennzahlen als Karten, UNTER der Blockreihe -- so wie im Entwurf.
+  Vorher standen sie als nackte Liste ganz oben und haben die Bloecke nach
+  unten gedrueckt, obwohl die Bloecke das sind, weswegen man herkommt.
+-->
+<div class="karten" id="stats"></div>
 
 <div class="err" id="err"></div>
 <ul id="list"></ul>
@@ -329,20 +347,83 @@ let sum=null, blocks=[], checks={}, open=null, details={}, dec=8, sym='YSR';
 function renderStats(){
   if(!sum)return;
   dec=sum.token?.decimals??8; sym=sum.token?.token_symbol??'YSR';
-  const rows=[
-    ['Höhe', sum.height!=null?'#'+sum.height:'—'],
-    ['Difficulty', sum.difficulty!=null?nf(sum.difficulty):'—'],
-    ['Netz, aus der Kette', hashrate(sum.hashrate)],
-    ['Gemessen, live', hashrate(sum.minerHashrate)],
-    ['Aktive Miner', String(sum.activeMiners??0)],
-    ['Nächster Reward', (Number(sum.nextReward)/10**dec).toFixed(0)+' '+sym],
-    ['Im Umlauf', (Number(sum.totalSupply)/10**dec).toLocaleString('de-DE')+' '+sym],
-    ['Wartende Zahlungen', String(sum.mempool??0)],
-    ['Zustandshöhe', String(sum.stateHeight)],
-  ];
-  $('stats').innerHTML=rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
-}
 
+  /*
+    Kennzahlen als Karten -- mit der Erklaerung darunter, die aus einer
+    Zahl erst eine Aussage macht.
+
+    "Difficulty 452.148" sagt niemandem etwas. "Wird bei jedem Block neu
+    gerechnet" schon: Dann weiss man, warum sie sich staendig aendert und
+    warum es hier keine Anpassung alle 2016 Bloecke gibt wie bei Bitcoin.
+  */
+  const zahl=n=>Number(n).toLocaleString('de-DE');
+  const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+    {minimumFractionDigits:0,maximumFractionDigits:0});
+  // Deutsche Schreibweise ueberall -- ein Punkt als Dezimaltrenner liest
+  // sich hier wie ein Tausenderpunkt und ist damit irrefuehrend.
+  const prozent=n=>n.toLocaleString('de-DE',
+    {minimumFractionDigits:2,maximumFractionDigits:2});
+  // Halbe YSR gehoeren angezeigt: 437,5 ist nicht 438.
+  const ysrGenau=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+    {minimumFractionDigits:0,maximumFractionDigits:2});
+
+  const umlauf=Number(sum.totalSupply)/10**dec;
+  const max=Number(sum.maxSupply)/10**dec;
+  const anteil=max>0?umlauf/max*100:0;
+
+  const hoehe=sum.height??0;
+  const bisHalbierung=12000-(hoehe%12000);
+  const naechsteHalbierung=hoehe+bisHalbierung;
+
+  // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
+  let blockzeit=null;
+  if(blocks.length>=3){
+    const spanne=Number(blocks[0].timestamp)-Number(blocks[blocks.length-1].timestamp);
+    if(spanne>0) blockzeit=spanne/(blocks.length-1);
+  }
+  const zeitText=blockzeit!=null
+    ? Math.floor(blockzeit/60)+' min '+Math.round(blockzeit%60)+' s'
+    : '—';
+
+  const karten=[
+    {label:'Höhe', wert:'#'+zahl(hoehe),
+     unter:'Zustand bis '+zahl(sum.stateHeight)+' nachgerechnet'},
+
+    {label:'Difficulty', wert:zahl(sum.difficulty??0),
+     unter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).'},
+
+    {label:'Netz-Hashrate', wert:hashrate(sum.hashrate),
+     unter:'Aus Difficulty und Zielblockzeit.'},
+
+    {label:'Gemessen, live', wert:hashrate(sum.minerHashrate),
+     unter:(sum.activeMiners??0)+' aktive Miner'},
+
+    {label:'Blockzeit', wert:zeitText,
+     unter:'Ziel 10 min · letzte '+Math.max(0,blocks.length-1)+' Blöcke',
+     balken:blockzeit!=null?Math.min(100,blockzeit/600*100):null},
+
+    {label:'Mempool', wert:zahl(sum.mempool??0),
+     unter:(sum.mempool??0)===0
+       ? 'Keine wartenden Zahlungen — die Mindestgebühr genügt.'
+       : 'Wartende Zahlungen.'},
+
+    {label:'Im Umlauf', wert:ysr(sum.totalSupply),
+     unter:'von '+ysr(sum.maxSupply)+' '+sym+' · '+prozent(anteil)+' %',
+     balken:anteil},
+
+    {label:'Nächste Halbierung', wert:'Block '+zahl(naechsteHalbierung),
+     unter:'Noch '+zahl(bisHalbierung)+' Blöcke · Belohnung dann '
+       +ysrGenau(Number(sum.nextReward)/2)+' '+sym},
+  ];
+
+  $('stats').innerHTML=karten.map(k=>`
+    <div class="karte">
+      <div class="label">${k.label}</div>
+      <div class="wert">${k.wert}</div>
+      <div class="unter">${k.unter}</div>
+      ${k.balken!=null?`<div class="balken"><i style="width:${k.balken.toFixed(2)}%"></i></div>`:''}
+    </div>`).join('');
+}
 
 /*
   Die Blockreihe.
