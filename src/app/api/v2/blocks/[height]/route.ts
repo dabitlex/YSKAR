@@ -21,10 +21,43 @@ export async function GET(
   }
 
   const sb = db().schema('chain2');
-  const [{ data: block, error }, { data: txs }] = await Promise.all([
-    sb.from('blocks').select('*').eq('height', height).maybeSingle(),
+  /*
+    Eigener Typ fuer die Zeile.
+
+    supabase-js leitet den Typ aus der select-Zeichenkette ab und kennt die
+    ::text-Schreibweise nicht -- es faellt dann auf einen Fehlertyp zurueck.
+    Die Abfrage laeuft korrekt, nur die Typableitung nicht.
+  */
+  type BlockZeile = {
+    height: number; hash: string; version: number;
+    prev_hash: string; merkle_root: string; state_root: string;
+    block_time: string; difficulty: number; tx_count: number;
+    extranonce: string; nonce: string;
+    header: string; size_bytes: number; received_at: string;
+  };
+
+  const [{ data: rohBlock, error }, { data: txs }] = await Promise.all([
+    /*
+      extranonce und nonce ausdruecklich als TEXT holen.
+
+      Die Spalten sind numeric(20,0), und PostgREST liefert numeric als
+      JSON-ZAHL. JavaScript kann Zahlen ueber 2^53 nicht exakt darstellen --
+      aus 13111268702705097209 wurde 13111268702705097000, und der daraus
+      gebaute Header ergab einen anderen Hash. Der Explorer meldete dann
+      "Hash stimmt NICHT" fuer einen voellig gueltigen Block.
+
+      Mit ::text kommt die Zahl unveraendert an. Ein "*" waere hier also
+      falsch, obwohl es alle Spalten holt.
+    */
+    sb.from('blocks')
+      .select('height, hash, version, prev_hash, merkle_root, state_root, '
+        + 'block_time, difficulty, tx_count, extranonce::text, nonce::text, '
+        + 'header, size_bytes, received_at')
+      .eq('height', height).maybeSingle(),
     sb.from('transactions').select('*').eq('block_height', height).order('idx'),
   ]);
+
+  const block = rohBlock as unknown as BlockZeile | null;
 
   if (error) {
     return NextResponse.json({ error: 'chain_unreachable', detail: error.message },
