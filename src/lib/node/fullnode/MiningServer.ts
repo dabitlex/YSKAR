@@ -590,7 +590,15 @@ export class MiningServer {
    * Arbeitsspeicher -- so geht genau das hinaus, was lokal geprueft und
    * festgeschrieben wurde.
    */
-  private async weitergeben(hashHex: string): Promise<void> {
+  /**
+   * Einen Block an die Gegenstelle weitergeben -- den Spiegel.
+   *
+   * Oeffentlich, weil nicht nur selbst gefundene Bloecke dorthin gehoeren:
+   * Sobald der Knoten die Wahrheit ist, muss AUCH ein Block, der ueber
+   * P2P hereinkam, im Spiegel landen. Sonst bliebe Supabase stehen,
+   * waehrend die Kette weiterlaeuft.
+   */
+  async weitergeben(hashHex: string): Promise<void> {
     if (!this.upstream) return;
     const gespeichert = this.store.get(fromHex(hashHex));
     if (!gespeichert) {

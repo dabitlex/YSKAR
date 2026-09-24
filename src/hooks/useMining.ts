@@ -23,6 +23,21 @@ export interface PoolInfo {
  * Ein abschliessender Schraegstrich wird entfernt -- sonst entstuende
  * "https://pool.net//api/v2".
  */
+/**
+ * Wohin das Mining geht, wenn kein Pool gewaehlt ist.
+ *
+ * Leer = derselbe Server wie die App (heute Vercel/Supabase). Gesetzt =
+ * ein Full Node. DAS ist der Schalter fuer die Umstellung: Variable
+ * setzen, neu bauen -- und das Mining laeuft ueber den Knoten. Variable
+ * loeschen, neu bauen -- und es ist zurueck.
+ *
+ * Nur MINING wechselt. Guthaben, Verlauf, Kennzahlen und der Explorer
+ * kommen weiter vom eigenen Server. Ein Spiegel darf Jobs nicht ausgeben:
+ * Ein Job lebt 90 Sekunden und muss auf dem AKTUELLEN Kopf stehen, ein
+ * Spiegel ist definitionsgemaess hinterher.
+ */
+const MINING_BASIS = (process.env.NEXT_PUBLIC_MINING_BASE ?? '').trim();
+
 function normalisiere(roh: string): string {
   const t = roh.trim().replace(/\/+$/, '');
   if (t === '') return '';
@@ -168,7 +183,9 @@ export function useMining(address: string | null, platform: string) {
     setPoolInfo(null);
 
     // Die Adresse fuer diesen Lauf festlegen, BEVOR der erste Aufruf geht.
-    basis.current = modus === 'pool' ? normalisiere(poolAdresse) : '';
+    basis.current = modus === 'pool'
+      ? normalisiere(poolAdresse)
+      : normalisiere(MINING_BASIS);
 
     try {
       const session = await api('/session', {

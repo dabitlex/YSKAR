@@ -382,6 +382,21 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
         koordinator.invalidate();
         melde(`${grau('[' + uhr() + ']')} ${gruen('Block')} ${grau('#')}${nf(h)} ` +
           `${grau('von')} ${von} ${grau(hash.slice(0, 16) + '…')}`);
+
+        /*
+          Auch Bloecke aus dem Netz in den Spiegel geben.
+
+          Bisher ging nur der SELBST gefundene Block nach oben -- das
+          genuegte, solange Supabase die Wahrheit war und die Bloecke
+          ohnehin dort entstanden. Sobald der Knoten die Wahrheit ist, muss
+          jeder angenommene Block dorthin, sonst bleibt der Spiegel stehen,
+          waehrend die Kette weiterlaeuft.
+
+          Fehler werden nur gemeldet, nicht behandelt: Der Spiegel darf die
+          Kette nicht aufhalten. Faellt er aus, holt ihn der naechste Block
+          nicht ein -- dafuer gibt es "sync" von der anderen Seite.
+        */
+        void server.weitergeben(hash);
       },
       onLog: t => melde(grau(`[${uhr()}] ${t}`)),
     });
