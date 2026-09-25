@@ -418,8 +418,15 @@ async function main() {
       k.hoehe = job.height;
       k.netzDifficulty = job.difficulty;
       arbeiter.forEach(w => w.postMessage({ t: 'job', job }));
-      // Die Karte rechnet gegen dasselbe Share-Ziel wie die Threads.
-      gpu?.job(job, job.target);
+      /*
+        Die Karte rechnet gegen dasselbe Share-Ziel wie die Threads -- und
+        braucht dieselbe Extranonce.
+
+        Sie steht in der SITZUNG, nicht im Job: Sie trennt die Nonce-Raeume
+        der Miner und aendert sich waehrend einer Sitzung nicht. Die Worker
+        bekommen sie ueber workerData; die Karte bekommt sie hier.
+      */
+      gpu?.job({ ...job, extranonce: session.extranonce }, job.target);
 
       // Neue Arbeit melden -- so sieht man, dass die Kette weiterlaeuft,
       // auch wenn gerade kein eigener Share faellt.
