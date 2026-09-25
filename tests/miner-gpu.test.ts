@@ -91,3 +91,61 @@ test('Ein Job ohne Extranonce wird abgelehnt, nicht stillschweigend gefüllt', (
 test('Ohne Programm wird nichts vorgegaukelt', () => {
   assert.equal(findeGpuProgramm('/gibt/es/wirklich/nicht'), null);
 });
+
+// ------------------------------------------------- Ziel nachführen
+
+test('Ein geändertes Ziel wird erneut geschickt, ein gleiches nicht', async () => {
+  /*
+    Der Server zieht das Share-Ziel per VarDiff nach. Das CUDA-Programm
+    kennt aber kein eigenes Ziel-Kommando — es nimmt Header und Ziel nur
+    zusammen entgegen. Also muss der Job erneut geschickt werden, auch wenn
+    sich nur das Ziel geändert hat.
+
+    Ohne das rechnet die Karte weiter gegen das alte, LEICHTERE Ziel, und
+    der Server weist jeden Treffer als "low_difficulty" ab. In der Praxis
+    waren das 269 Ablehnungen gegen 14 Annahmen.
+
+    Umgekehrt darf ein unveränderter Job nicht bei jedem Aufruf neu
+    geschickt werden — das unterbräche die Karte mitten im Stapel.
+  */
+  const { writeFileSync, readFileSync, existsSync, unlinkSync, chmodSync } =
+    await import('node:fs');
+  const { starteGpu } = await import('../miner/src/gpu.mjs');
+
+  const mitschrift = '/tmp/yskar-test-empfangen.txt';
+  const attrappe = '/tmp/yskar-test-lauscher.sh';
+  if (existsSync(mitschrift)) unlinkSync(mitschrift);
+
+  // Ein Programm, das sich wie yskar-cuda meldet und alles mitschreibt.
+  writeFileSync(attrappe,
+    '#!/bin/bash\n'
+    + 'echo \'{"t":"device","id":0,"name":"Attrappe","cc":"0.0","vram":0,"sm":0}\'\n'
+    + `while IFS= read -r line; do [ -n "$line" ] && echo "$line" >> ${mitschrift}; done\n`);
+  chmodSync(attrappe, 0o755);
+
+  const g = starteGpu({ programm: attrappe, geraet: 0,
+    onLog() {}, onShare() {}, onRate() {}, onAus() {} });
+
+  const job = { jobId: 'job-1', version: 1, height: 100,
+    prevHash: '00'.repeat(32), merkleRoot: '11'.repeat(32),
+    stateRoot: '22'.repeat(32), timestamp: '1790000000',
+    difficulty: 1_000_000, txCount: 1, extranonce: '7' };
+
+  await new Promise(r => setTimeout(r, 300));
+  g.job(job, 'aa'.repeat(32));                      // erstes Ziel
+  g.job(job, 'aa'.repeat(32));                      // gleich -> nichts
+  g.job(job, 'bb'.repeat(32));                      // neues Ziel -> erneut
+  g.job({ ...job, jobId: 'job-2' }, 'bb'.repeat(32));  // neuer Job
+  await new Promise(r => setTimeout(r, 500));
+
+  const zeilen = (existsSync(mitschrift)
+    ? readFileSync(mitschrift, 'utf8').trim().split('\n').filter(Boolean) : [])
+    .map(l => JSON.parse(l) as { t: string; jobId: string; target: string });
+
+  g.stop();
+  assert.equal(zeilen.length, 3, 'erwartet: erstes Ziel, neues Ziel, neuer Job');
+  assert.equal(zeilen[0].target, 'aa'.repeat(32));
+  assert.equal(zeilen[1].target, 'bb'.repeat(32), 'das geänderte Ziel fehlt');
+  assert.equal(zeilen[1].jobId, 'job-1', 'derselbe Job, nur anderes Ziel');
+  assert.equal(zeilen[2].jobId, 'job-2');
+});

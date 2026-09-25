@@ -358,6 +358,12 @@ async function main() {
         zustand.shareDifficulty = Number(r.shareDifficulty);
         const t = toHex(targetBytes(zustand.shareDifficulty));
         arbeiter.forEach(w => w.postMessage({ t: 'target', target: t }));
+        /*
+          Und die Karte. Ohne das rechnet sie weiter gegen das alte,
+          LEICHTERE Ziel -- der Server weist ihre Treffer dann als
+          "low_difficulty" ab, und zwar jeden einzelnen.
+        */
+        if (zustand.job) gpu?.job(zustand.job, t);
         ereignis(`${grau('[' + uhr() + ']')} ${grau('Ziel angepasst')} ` +
           `${zahl2(vorher)} ${grau('→')} ${zahl2(zustand.shareDifficulty)}`);
       }
@@ -426,7 +432,10 @@ async function main() {
         der Miner und aendert sich waehrend einer Sitzung nicht. Die Worker
         bekommen sie ueber workerData; die Karte bekommt sie hier.
       */
-      gpu?.job({ ...job, extranonce: session.extranonce }, job.target);
+      // Den Job merken: Bei einer Ziel-Anpassung muss er der Karte erneut
+      // geschickt werden -- sie kennt kein eigenes Ziel-Kommando.
+      zustand.job = { ...job, extranonce: session.extranonce };
+      gpu?.job(zustand.job, job.target);
 
       // Neue Arbeit melden -- so sieht man, dass die Kette weiterlaeuft,
       // auch wenn gerade kein eigener Share faellt.
@@ -468,7 +477,19 @@ async function main() {
         ereignis(gruen(`  GPU bereit: ${p.name ?? 'Gerät ' + arg.device}`));
         gpu = starteGpu({
           programm, geraet: arg.device,
-          onShare: (m) => sendeShare(m),
+          onShare: (m) => {
+            /*
+              Treffer zu einem alten Job verwerfen, statt sie einzureichen.
+
+              Die Karte arbeitet in Stapeln von 100 bis 250 ms. Wechselt der
+              Job, laeuft der angefangene Stapel zu Ende -- seine Treffer
+              tragen noch die alte jobId. Der Server wiese sie als
+              "job_foreign" ab; das ist richtig, aber es ist eine Anfrage
+              ueber das Netz fuer ein Ergebnis, das hier schon feststeht.
+            */
+            if (m.jobId !== zustand.jobId) { k.verworfen = (k.verworfen ?? 0) + 1; return; }
+            sendeShare(m);
+          },
           onRate: (r) => { zustand.gpuRate = { rate: r, at: Date.now() }; },
           onLog: (t) => ereignis(grau(`[${uhr()}] ${t}`)),
           onAus: (grund) => {
