@@ -65,6 +65,29 @@ test('Das Nonce-Feld bleibt leer', () => {
   assert.equal(headerHex(JOB).slice(256, 272), '0'.repeat(16));
 });
 
+test('Ein Job ohne Version wird wie Version 1 behandelt', () => {
+  /*
+    Der Server auf Vercel liefert kein `version`-Feld -- der Knoten schon.
+    Beides muss denselben Header ergeben, sonst rechnet die Karte gegen
+    Vercel an einem anderen Block als gegen den Knoten.
+  */
+  const { version, ...ohne } = JOB;
+  assert.equal(headerHex(ohne as typeof JOB), headerHex(JOB));
+});
+
+test('Ein Job ohne Extranonce wird abgelehnt, nicht stillschweigend gefüllt', () => {
+  /*
+    Die Extranonce gehört zur SITZUNG, nicht zum Job -- Vercel liefert sie
+    nicht mit. Würde hier eine 0 eingesetzt, rechnete die Karte in einem
+    Bereich, der einem anderen Miner gehört: dieselben Nonces, dieselben
+    Treffer, und der Server lehnt sie als Duplikat ab.
+
+    Ein Fehler ist besser als stilles Falschrechnen.
+  */
+  const { extranonce, ...ohne } = JOB;
+  assert.throws(() => headerHex(ohne as typeof JOB), /Extranonce/);
+});
+
 test('Ohne Programm wird nichts vorgegaukelt', () => {
   assert.equal(findeGpuProgramm('/gibt/es/wirklich/nicht'), null);
 });

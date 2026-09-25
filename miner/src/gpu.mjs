@@ -34,6 +34,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeHeader } from './header.mjs';
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 
@@ -82,29 +83,23 @@ export function pruefeGpu(programm, geraet) {
 /**
  * Einen Job in die 136 Byte umwandeln, die der Kernel erwartet.
  *
- * Der Server liefert Einzelfelder, das Programm will den fertigen Header.
- * Das Format ist dasselbe wie ueberall -- sonst ergaebe der Hash der Karte
- * etwas anderes als der des Knotens.
+ * Benutzt DIESELBE Serialisierung wie die CPU-Threads (header.mjs). Eine
+ * zweite Umsetzung hier waere ein Fehler mit Ansage: Sie muesste bitgenau
+ * mit der ersten uebereinstimmen, und wenn nicht, rechnet die Karte
+ * fleissig und jeder Treffer wird abgelehnt.
+ *
+ * WAS IM JOB FEHLEN KANN: Der Server auf Vercel liefert weder `version`
+ * noch `extranonce`. Die Version ist immer 1, und die Extranonce gehoert
+ * zur SITZUNG, nicht zum Job -- der Aufrufer muss sie hineinlegen, genau
+ * wie es die Worker tun.
  */
 export function headerHex(job) {
-  const kopf = new Uint8Array(136);
-  const dv = new DataView(kopf.buffer);
-  const hex = (s) => {
-    const b = new Uint8Array(s.length / 2);
-    for (let i = 0; i < b.length; i++) b[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);
-    return b;
-  };
-  dv.setUint32(0, job.version, true);
-  dv.setUint32(4, job.height, true);
-  kopf.set(hex(job.prevHash), 8);
-  kopf.set(hex(job.merkleRoot), 40);
-  kopf.set(hex(job.stateRoot), 72);
-  dv.setBigUint64(104, BigInt(job.timestamp), true);
-  dv.setUint32(112, job.difficulty, true);
-  dv.setUint32(116, job.txCount, true);
-  dv.setBigUint64(120, BigInt(job.extranonce), true);
-  // Byte 128..135 bleibt 0 -- dort setzt die Karte ihre Nonce ein.
-  return Array.from(kopf, (b) => b.toString(16).padStart(2, '0')).join('');
+  if (job.extranonce === undefined || job.extranonce === null) {
+    throw new Error('Job ohne Extranonce -- sie gehört zur Sitzung, '
+      + 'nicht zum Job, und muss vom Aufrufer ergänzt werden.');
+  }
+  return Array.from(serializeHeader(job, 0n),
+    (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
