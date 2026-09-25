@@ -467,6 +467,20 @@ export class MiningServer {
       };
 
       try {
+        /*
+          Die Arbeit dieses Shares GEHOERT DEM MINER -- auch wenn sie
+          zufaellig einen ganzen Block getroffen hat.
+
+          Zuerst eintragen, dann das Fenster weiterschieben: Sonst faellt
+          genau der Share heraus, der den Block gefunden hat. Auf dem
+          Mainnet ist das einer von rund tausend; im Testnetz ist JEDER
+          Share zugleich ein Block, weil die Blockdifficulty 1 ist -- dort
+          bliebe das Fenster sonst immer leer.
+        */
+        if (s.modus === 'pool' && this.poolKoordinator) {
+          this.poolKoordinator.share(s.address, s.shareDifficulty);
+        }
+
         s.angenommen++;
         this.nachShare(s);
         this.mining.invalidate();
@@ -512,6 +526,27 @@ export class MiningServer {
     s.angenommen++;
     const vorher = s.shareDifficulty;
     this.nachShare(s);
+
+    /*
+      Die Arbeit in den Pool eintragen.
+
+      OHNE DIESE ZEILEN baut der Knoten zwar Pool-Jobs und schreibt seinen
+      Namen in die Bloecke -- aber das PPLNS-Fenster bleibt leer, coinbase()
+      liefert null, und buildBlock faellt auf eine Coinbase der Fassung 1 mit
+      EINEM Empfaenger zurueck. Von aussen sieht das aus wie ein Pool, zahlt
+      aber wie Solo.
+
+      Mit der Adresse, die beim ANMELDEN galt -- nicht einer jetzt
+      gemeldeten. Sonst koennte jemand die Auszahlungsadresse nachtraeglich
+      umbiegen und sich fremde Arbeit gutschreiben.
+
+      Gezaehlt wird die Share-Difficulty, die zum Zeitpunkt des Funds galt
+      (`vorher`), nicht die ERREICHTE. Sonst zaehlte ein Glueckstreffer wie
+      tausend Shares, und wer Glueck hat, bekaeme mehr als wer arbeitet.
+    */
+    if (s.modus === 'pool' && this.poolKoordinator) {
+      this.poolKoordinator.share(s.address, vorher);
+    }
 
     return {
       accepted: true, block: false,
