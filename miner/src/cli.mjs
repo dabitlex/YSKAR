@@ -11,6 +11,7 @@
  * dass du ihm etwas anvertraust.
  */
 import { Worker } from 'node:worker_threads';
+import { findeGpuProgramm, pruefeGpu, starteGpu } from './gpu.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -38,7 +39,8 @@ const STRIDE = 4096;   // Nonce-Abstand zwischen den Threads
 // --------------------------------------------------------------- Argumente
 
 function argumente(argv) {
-  const a = { workers: 0, intensity: 100, api: 'https://yskar.vercel.app' };
+  const a = { workers: 0, intensity: 100, api: 'https://yskar.vercel.app',
+              rechner: 'cpu', device: 0 };
   for (let i = 0; i < argv.length; i++) {
     const [schluessel, direkt] = argv[i].split('=');
     const wert = direkt ?? argv[i + 1];
@@ -51,6 +53,12 @@ function argumente(argv) {
       // solo oder pool. Ein Knoten ohne Pool lehnt "pool" ab, statt die
       // Sitzung stillschweigend als solo zu fuehren.
       case '--mode': a.mode = nimm() === 'pool' ? 'pool' : 'solo'; break;
+      // Rechenwerk: cpu, gpu oder beides. Vorgabe bleibt cpu -- wer keine
+      // Karte hat, soll nicht ueber eine Fehlermeldung stolpern.
+      case '--gpu': a.rechner = 'gpu'; break;
+      case '--cpu-gpu': a.rechner = 'beides'; break;
+      case '--device': a.device = Math.max(0, Number(nimm()) || 0); break;
+      case '--gpu-bin': a.gpuBin = nimm(); break;
       case '--forget': a.forget = true; break;
       case '--help': case '-h': a.help = true; break;
       case '--version': case '-v': a.version = true; break;
@@ -72,6 +80,13 @@ Optionen
   -i, --intensity <1-100>  Anteil der Rechenzeit (Vorgabe: 100)
       --api <url>        Server (Vorgabe: https://yskar.vercel.app)
       --mode <solo|pool> Solo oder Pool (Vorgabe: solo)
+      --gpu              mit der Grafikkarte rechnen statt mit der CPU
+      --cpu-gpu          mit beidem gleichzeitig
+      --device <n>       welche Karte (Vorgabe: 0)
+      --gpu-bin <pfad>   Pfad zu yskar-cuda, falls er nicht gefunden wird
+
+  GPU-Mining braucht das Programm yskar-cuda. Es wird im Repository unter
+  node-core/gpu gebaut -- siehe node-core/gpu/README.md. Nur NVIDIA.
       --forget           Gespeicherte Adresse löschen
   -h, --help             Diese Hilfe
   -v, --version          Fassung
@@ -199,7 +214,9 @@ async function main() {
     console.error(rot('--intensity muss zwischen 1 und 100 liegen.')); process.exit(1);
   }
 
-  const threads = arg.workers > 0
+  // Bei reinem GPU-Betrieb laufen keine CPU-Threads. Sonst raubten sie der
+  // Karte die Kerne, die sie zum Nachfuellen braucht.
+  const threads = arg.rechner === 'gpu' ? 0 : arg.workers > 0
     ? arg.workers
     : Math.max(1, os.cpus().length - 1);   // einen Kern fuer das System lassen
 
@@ -273,6 +290,9 @@ async function main() {
   const zustand = {
     raten: new Map(), jobId: null,
     shareDifficulty: Number(session.shareDifficulty), laeuft: true,
+    // Leistung der Karte, zuletzt gemeldet. null = keine Karte oder
+    // laenger nichts gehoert.
+    gpuRate: null,
   };
 
   // ---- Threads ----
@@ -398,6 +418,8 @@ async function main() {
       k.hoehe = job.height;
       k.netzDifficulty = job.difficulty;
       arbeiter.forEach(w => w.postMessage({ t: 'job', job }));
+      // Die Karte rechnet gegen dasselbe Share-Ziel wie die Threads.
+      gpu?.job(job, job.target);
 
       // Neue Arbeit melden -- so sieht man, dass die Kette weiterlaeuft,
       // auch wenn gerade kein eigener Share faellt.
@@ -410,10 +432,71 @@ async function main() {
     }
   }
 
+  /*
+    Grafikkarte.
+
+    Erst hier, nach der Anmeldung: Vorher gibt es kein Share-Ziel, und ohne
+    Ziel kann die Karte nicht rechnen.
+  */
+  let gpu = null;
+  if (arg.rechner !== 'cpu') {
+    const programm = findeGpuProgramm(arg.gpuBin);
+    if (!programm) {
+      ereignis(gelb('  yskar-cuda nicht gefunden.'));
+      ereignis(grau('  Bauen: siehe node-core/gpu/README.md, oder --gpu-bin <pfad>'));
+      if (arg.rechner === 'gpu') { await warteAufTaste(); process.exit(1); }
+    } else {
+      /*
+        Selbsttest VOR dem ersten Job.
+
+        Eine falsch rechnende Karte liefert Nonces, die der Server ablehnt.
+        Das sieht aus wie ein Netzproblem und kostet Stunden Suche.
+      */
+      ereignis(grau('  GPU wird geprüft …'));
+      const p = pruefeGpu(programm, arg.device);
+      if (!p.ok) {
+        ereignis(rot(`  GPU nicht verwendbar: ${p.grund}`));
+        if (arg.rechner === 'gpu') { await warteAufTaste(); process.exit(1); }
+      } else {
+        ereignis(gruen(`  GPU bereit: ${p.name ?? 'Gerät ' + arg.device}`));
+        gpu = starteGpu({
+          programm, geraet: arg.device,
+          onShare: (m) => sendeShare(m),
+          onRate: (r) => { zustand.gpuRate = { rate: r, at: Date.now() }; },
+          onLog: (t) => ereignis(grau(`[${uhr()}] ${t}`)),
+          onAus: (grund) => {
+            gpu = null;
+            zustand.gpuRate = null;
+            ereignis(rot(`[${uhr()}] GPU ausgefallen: ${grund}`));
+            if (threads === 0) {
+              ereignis(rot('  Ohne CPU-Threads bleibt nichts zu rechnen — Miner beendet.'));
+              process.exit(1);
+            }
+            ereignis(grau('  Es wird mit der CPU weitergerechnet.'));
+          },
+        });
+      }
+    }
+  }
+
   arbeiter.forEach(w => w.postMessage({ t: 'duty', value: arg.intensity }));
 
   // Job erneuern, bevor er nach 90 s ablaeuft
+  /*
+    Ohne CPU-Threads den ersten Job selbst holen.
+
+    Sonst haengt der Start am Zaehler "alle Threads bereit" -- und der
+    erreicht null nie. Der Miner liefe dann bis zum ersten Takt (45 s)
+    ohne Arbeit, und die Karte stuende still.
+  */
+  if (threads === 0) await holeJob();
+
   const jobTakt = setInterval(holeJob, 45_000);
+  // Die Karte mit herunterfahren -- ein zurueckgelassener Kindprozess
+  // rechnet sonst weiter und haelt das Geraet belegt.
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => { gpu?.stop(); process.exit(0); });
+  }
 
   /*
     Statuszeile, die sich an Ort und Stelle erneuert.
@@ -428,6 +511,16 @@ async function main() {
     for (const [slot, r] of zustand.raten) {
       if (jetzt - r.at > 3000) zustand.raten.delete(slot);
       else summe += r.rate;
+    }
+    /*
+      Die Karte meldet ihre Leistung seltener als die Threads -- ein Stapel
+      dauert 100 bis 250 ms, gemeldet wird danach. Deshalb hier ein
+      groesseres Fenster: Mit 3 Sekunden fiele sie zwischendurch heraus und
+      die Anzeige sprunge.
+    */
+    if (zustand.gpuRate) {
+      if (jetzt - zustand.gpuRate.at > 10_000) zustand.gpuRate = null;
+      else summe += zustand.gpuRate.rate;
     }
     k.probe(summe);
 
@@ -481,6 +574,9 @@ async function main() {
         ereignis(`    60 s    ${fmtRate2(k.rate(60))}`);
         ereignis(`    15 min  ${fmtRate2(k.rate(900))}`);
         ereignis(grau('    je Thread'));
+        if (zustand.gpuRate) {
+          console.log(`  ${grau('GPU')}        ${fmtRate2(zustand.gpuRate.rate)}`);
+        }
         for (const [slot, r] of [...zustand.raten].sort((x, y) => x[0] - y[0])) {
           ereignis(grau(`      ${String(slot).padStart(2)}    `) + fmtRate2(r.rate));
         }
