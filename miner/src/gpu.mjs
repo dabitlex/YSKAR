@@ -118,6 +118,7 @@ export function starteGpu(opt) {
 
   let rest = '';
   let letzterJob = null;
+  let letztesZiel = null;
   let lebt = true;
 
   kind.stdout.on('data', (d) => {
@@ -161,11 +162,25 @@ export function starteGpu(opt) {
   return {
     get lebt() { return lebt; },
 
-    /** Einen Job uebergeben. Derselbe Job wird nicht zweimal geschickt. */
+    /** Was die Karte gerade rechnet -- fuer den Abgleich eintreffender Treffer. */
+    get jobId() { return letzterJob; },
+
+    /**
+     * Einen Job uebergeben.
+     *
+     * Auch wenn sich NUR DAS ZIEL geaendert hat. Der Server zieht es per
+     * VarDiff nach, und das Programm kennt kein eigenes Ziel-Kommando --
+     * es nimmt Header und Ziel nur zusammen entgegen.
+     *
+     * Ohne das rechnet die Karte weiter gegen das alte, LEICHTERE Ziel und
+     * liefert Treffer, die der Server als "low_difficulty" abweist. Genau
+     * das war der Grund fuer 269 Ablehnungen gegen 14 Annahmen.
+     */
     job(job, zielHex) {
       if (!lebt) return;
-      if (job.jobId === letzterJob) return;
+      if (job.jobId === letzterJob && zielHex === letztesZiel) return;
       letzterJob = job.jobId;
+      letztesZiel = zielHex;
       try {
         kind.stdin.write(JSON.stringify({
           t: 'job', jobId: job.jobId, header: headerHex(job), target: zielHex,
