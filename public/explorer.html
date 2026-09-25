@@ -77,6 +77,41 @@ header{border-bottom:1px solid var(--line);padding:14px 20px;display:flex;
 .w-punkt{position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:99px}
 .finder{height:20px;margin-top:8px;text-align:center;font-size:11.5px;width:126px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/*
+  Ein neuer Block schiebt sich von links herein und leuchtet kurz auf.
+
+  Von links, weil dort der Block "im Bau" steht -- genau der ist gerade
+  gefunden worden und wandert auf die rechte Seite der Trennlinie.
+
+  Die Breite wird mitanimiert, sonst springen die uebrigen Spalten
+  schlagartig zur Seite statt Platz zu machen.
+*/
+@keyframes einschieben{
+  from{width:0;opacity:0;transform:translateX(-26px)}
+  to  {width:132px;opacity:1;transform:translateX(0)}
+}
+@keyframes aufleuchten{
+  0%  {box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 0 rgba(62,214,148,.75)}
+  35% {box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 7px rgba(62,214,148,0)}
+  100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 2px 8px rgba(0,0,0,.4)}
+}
+.spalte.frisch{animation:einschieben .55s cubic-bezier(.22,.9,.3,1)}
+.spalte.frisch .w-block{animation:aufleuchten 1.5s ease-out}
+
+/* Der Block im Bau pulst leise -- er wird gerade gesucht. */
+@keyframes suchen{
+  0%,100%{border-color:var(--line)}
+  50%    {border-color:rgba(240,185,60,.5)}
+}
+.w-bau{animation:suchen 2.6s ease-in-out infinite}
+
+/*
+  Wer Bewegung abgestellt hat, bekommt keine. Das ist keine Nettigkeit --
+  fuer manche Menschen loesen bewegte Oberflaechen Uebelkeit aus.
+*/
+@media(prefers-reduced-motion:reduce){
+  .spalte.frisch,.spalte.frisch .w-block,.w-bau{animation:none}
+}
 .unbekannt{color:var(--faint)}
 .poolname{color:var(--proof)}
 .trenner{flex:0 0 auto;width:44px;align-self:stretch;display:flex;
@@ -343,6 +378,15 @@ function uhr(ts){
 
 let sum=null, blocks=[], checks={}, details={}, open=null, dec=8, sym='YSR';
 
+/*
+  Hoehen, die gerade neu dazugekommen sind.
+
+  Nur diese bekommen die Animation. Waere es ein Kennzeichen am Block
+  selbst, liefe sie bei jedem Neuzeichnen wieder -- und die ganze Reihe
+  zappelte.
+*/
+let frisch=new Set();
+
 // ------------------------------------------------------------- Blockreihe
 /*
   Links EIN Block im Bau, rechts die gefundenen.
@@ -387,7 +431,7 @@ function renderKette(){
     const lohn=b.reward!=null?(Number(b.reward)/10**dec).toFixed(0):'—';
 
     html+=`
-      <div class="spalte">
+      <div class="spalte${frisch.has(b.height)?' frisch':''}">
         <div class="k-kopf"><a href="#block-${b.height}">${nf(b.height)}</a></div>
         <button class="wuerfel w-block${open===b.height?' offen':''}" type="button"
                 onclick="location.hash='#block-${b.height}'">
@@ -792,17 +836,108 @@ load().then(ausHash);
   zwoelf Bloecke geladen sind: load() setzt die Reihe auf die neuesten
   zwoelf zurueck, und alles Nachgeladene waere weg.
 */
-setInterval(async ()=>{
-  if(open!==null) return;
-  if(blocks.length>12){
-    try{
-      const s=await fetch(`${API}/summary`).then(r=>r.json());
-      if(!s.error){ sum=s; renderStats(); }
-    }catch{ /* beim naechsten Mal wieder */ }
-    return;
+/*
+  Live nachfuehren.
+
+  Nicht neu laden, sondern NACHTRAGEN: Nur die Bloecke, die seit dem letzten
+  Blick dazugekommen sind, werden geholt und vorn angehaengt.
+
+  Der Unterschied ist wesentlich. Ein vollstaendiges Neuladen wuerde alles
+  wegwerfen, was ueber "Aeltere laden" dazugekommen ist, ein geoeffnetes
+  Detail schliessen -- und die Animation haette nichts, woran sie ansetzen
+  koennte, weil jeder Block als neu erschiene.
+
+  Faellt der Server aus, passiert nichts: Der naechste Takt versucht es
+  wieder, und die Seite bleibt stehen statt zu leeren.
+*/
+let laeuftAuffrischen=false;
+
+async function auffrischen(){
+  if(laeuftAuffrischen) return;
+  // Ein Tab, den niemand ansieht, fragt nicht nach. Der Takt laeuft im
+  // Hintergrund weiter (gedrosselt), die Arbeit soll er sich sparen.
+  if(document.hidden) return;
+  laeuftAuffrischen=true;
+  try{
+    const s=await fetch(`${API}/summary`).then(r=>r.json());
+    if(s.error) return;
+    const alteHoehe=sum?.height ?? null;
+    sum=s;
+    renderStats();
+
+    if(blocks.length===0){ await load(); return; }
+    if(s.height==null || alteHoehe===null || s.height<=alteHoehe){
+      // Nichts Neues -- aber die Altersangaben ("vor 3 Min") stimmen sonst
+      // nicht mehr.
+      renderKette();
+      return;
+    }
+
+    /*
+      Wie viele fehlen? Bei einem langen Aussetzer koennen es mehrere sein.
+      Mehr als zwoelf auf einmal waeren eine Nachladeschleife wert -- dann
+      ist aber ohnehin etwas anderes im Argen, und ein vollstaendiges Laden
+      ist ehrlicher als eine halbe Reihe.
+    */
+    const fehlend=s.height-alteHoehe;
+    if(fehlend>12){ await load(); return; }
+
+    const r=await fetch(`${API}/blocks?limit=${fehlend}`).then(r=>r.json());
+    if(r.error || !r.blocks || r.blocks.length===0) return;
+
+    // Nur wirklich neue, und in der richtigen Reihenfolge (neueste zuerst).
+    const bekannt=new Set(blocks.map(b=>b.height));
+    const neue=r.blocks.filter(b=>!bekannt.has(b.height))
+                       .sort((a,b)=>b.height-a.height);
+    if(neue.length===0) return;
+
+    blocks=neue.concat(blocks);
+
+    /*
+      Die neuen pruefen -- und den bisher juengsten NOCHMALS: Erst mit
+      seinem Nachfolger laesst sich pruefen, ob die Kette an dieser Stelle
+      schliesst. Ohne das bliebe an jeder Naht eine Luecke in der Kontrolle.
+    */
+    for(let i=0;i<=neue.length;i++){
+      if(blocks[i]) checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+    }
+
+    frisch=new Set(neue.map(b=>b.height));
+    renderVerdict();
+    renderKette();
+    // Nach der Animation das Kennzeichen wieder loeschen, sonst liefe sie
+    // beim naechsten Zeichnen erneut.
+    setTimeout(()=>{ frisch=new Set(); },1600);
+
+    // Ein geoeffnetes Detail bleibt offen -- nur die Reihe hat sich
+    // geaendert, der Block darin nicht.
+  }catch{
+    /* Netzaussetzer: beim naechsten Takt wieder. Die Seite bleibt stehen. */
+  }finally{
+    laeuftAuffrischen=false;
   }
-  load();
-},10000);
+}
+
+/*
+  Alle fuenf Sekunden. Bei einer Zielblockzeit von zehn Minuten ist das
+  reichlich -- aber ein Nutzer, der gerade zusieht, soll den Block sehen,
+  wenn er faellt, nicht eine halbe Minute spaeter.
+
+  /summary ist eine einzelne Zeile aus der Datenbank; Bloecke werden nur
+  geholt, wenn die Hoehe gestiegen ist.
+*/
+setInterval(auffrischen,5000);
+
+/*
+  Im Hintergrund nicht pollen.
+
+  Ein Browser-Tab, den niemand ansieht, muss den Server nicht fragen. Beim
+  Zurueckkommen sofort einmal nachziehen -- sonst staende dort ein veralteter
+  Stand, bis der naechste Takt kommt.
+*/
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') auffrischen();
+});
 </script>
 </body>
 </html>
