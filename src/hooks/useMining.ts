@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
-import { fullnodeFetch } from '@/lib/fullnodeApi';
 
 /** Was der Knoten ueber seinen Pool meldet -- gemessen, nicht behauptet. */
 export interface PoolInfo {
@@ -134,7 +133,7 @@ export function useMining(address: string | null, platform: string) {
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const res = await fetch(`${basis.current}/api/v2${path}`, {
       ...init,
-      headers: { ...(init?.body ? { 'content-type': 'application/json' } : {}), ...(init?.headers ?? {}) },
+      headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -143,13 +142,6 @@ export function useMining(address: string | null, platform: string) {
       throw new Error(body.detail ?? body.error ?? res.statusText);
     }
     return body;
-  }, []);
-
-  // Oeffentliche Kettendaten kommen immer von der eigenen Fullnode.
-  // Das bleibt auch im Pool-Modus so: Ein Pool darf Mining-Jobs liefern,
-  // aber die Wallet- und Netzansicht soll weiterhin die eigene Kette zeigen.
-  const readApi = useCallback(async (path: string) => {
-    return fullnodeFetch(path);
   }, []);
 
   const fetchJob = useCallback(async () => {
@@ -333,18 +325,18 @@ export function useMining(address: string | null, platform: string) {
   useEffect(() => {
     const tick = async () => {
       try {
-        const s: Summary = await readApi('/summary');
+        const s: Summary = await api('/summary');
         setSummary(s);
         if (typeof s.height === 'number') lastHeight.current = s.height;
       } catch { /* Anzeige darf still bleiben, Mining laeuft weiter */ }
       if (address) {
-        try { setAccount(await readApi(`/account/${address}`)); } catch { /* s.o. */ }
+        try { setAccount(await api(`/account/${address}`)); } catch { /* s.o. */ }
       }
     };
     tick();
     const id = setInterval(tick, 6000);
     return () => clearInterval(id);
-  }, [readApi, address]);
+  }, [api, address]);
 
   // Sauber stoppen, wenn die App in den Hintergrund geht. Die Plattform
   // haelt den Worker ohnehin an -- ohne das bliebe die Session offen.

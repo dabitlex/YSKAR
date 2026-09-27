@@ -43,13 +43,6 @@ const SHARE_START = 128n;
 /** Eine Session gilt als tot, wenn so lange nichts kam. */
 const SESSION_TIMEOUT_MS = 300_000;
 
-const CORS_HEADERS = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'content-type',
-  'access-control-max-age': '86400',
-};
-
 interface Session {
   id: string;
   address: Uint8Array;
@@ -208,14 +201,6 @@ export class MiningServer {
     const pfad = url.pathname.replace(/^\/api\/v2/, '');
 
     try {
-      // Die Telegram MiniApp laeuft auf Vercel und die Fullnode auf einer
-      // anderen Origin. Oeffentliche Lese- und Mining-Endpunkte duerfen
-      // deshalb per CORS direkt vom Browser angesprochen werden.
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204, CORS_HEADERS);
-        return res.end();
-      }
-
       if (req.method === 'POST' && pfad === '/session') {
         return this.json(res, await this.session(req));
       }
@@ -277,7 +262,6 @@ export class MiningServer {
   private json(res: ServerResponse, daten: unknown, status = 200): void {
     const text = JSON.stringify(daten);
     res.writeHead(status, {
-      ...CORS_HEADERS,
       'content-type': 'application/json',
       'content-length': Buffer.byteLength(text),
     });

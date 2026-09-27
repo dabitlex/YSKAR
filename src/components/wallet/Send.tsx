@@ -5,9 +5,10 @@ import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
 import { MIN_FEE, UNIT } from '@/lib/core/params';
-import { fullnodeFetch } from '@/lib/fullnodeApi';
 
 /** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
+const MINING_BASIS = (process.env.NEXT_PUBLIC_MINING_BASE ?? '').trim()
+  .replace(/\/+$/, '');
 
 /** Antwort von /api/v2/fees -- siehe src/lib/core/feemarket.ts. */
 interface Markt {
@@ -63,7 +64,8 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
 
   useEffect(() => {
     let lebt = true;
-    fullnodeFetch('/fees')
+    fetch('/api/v2/fees')
+      .then(r => r.json())
       .then(d => { if (lebt && !d.error) setMarkt(d); })
       .catch(() => { /* ohne Auskunft bleibt es bei der Mindestgebühr */ });
     return () => { lebt = false; };
@@ -126,10 +128,12 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         Wer die Jobs ausgibt, waehlt die Transaktionen aus -- und das ist
         nach der Umstellung der Knoten.
       */
-      const body = await fullnodeFetch('/tx', {
+      const res = await fetch(`${MINING_BASIS}/api/v2/tx`, {
         method: 'POST',
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ raw: toHex(serializeTx(tx)) }),
       });
+      const body = await res.json();
       if (!body.accepted) throw new Error(uebersetze(body.reason));
 
       setErgebnis({ txid: body.txid ?? toHex(txid(tx)) });
