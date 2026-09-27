@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
-import { rewardAt, MAX_SUPPLY, TARGET_BLOCK_TIME, DIFFICULTY_UNIT } from '@/lib/core/params';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,120 +9,56 @@ export async function OPTIONS() { return new Response(null, { status: 204, heade
 
 /** GET /api/v2/summary -- Kennzahlen der Kette, oeffentlich. */
 export async function GET() {
-  const sb = db().schema('chain2');
+  const fullnodeUrl = process.env.YSKAR_FULLNODE_URL;
 
-  const [rBlocks, rMeta, rParams, rPending, rActive] =
-    await Promise.all([
-      sb.from('blocks').select('height, difficulty, block_time, hash')
-        .order('height', { ascending: false }).limit(13),
-      sb.from('state_meta').select('height, state_root, total_supply').eq('id', 1).single(),
-      sb.from('params').select('token_name, token_symbol, decimals').eq('id', 1).single(),
-      sb.from('mempool').select('txid', { count: 'exact', head: true }),
-      sb.from('sessions')
-        .select('address, vardiff_samples, accumulated_weight, started_at, last_share_at')
-        .eq('status', 'active'),
-    ]);
-
-  // Fehler NICHT verschlucken. Ein Rechte- oder Schemaproblem liefert
-  // data = null, und ohne diese Pruefung sieht das exakt aus wie eine leere
-  // Datenbank -- inklusive plausibler Nullen im JSON. Genau daran haben wir
-  // beim ersten Aufruf gesucht.
-  const failed = [rBlocks, rMeta, rParams, rActive].find(r => r.error);
-  if (failed?.error) {
+  if (!fullnodeUrl) {
     return NextResponse.json(
-      { error: 'chain_unreachable', detail: failed.error.message },
+      { error: 'fullnode_not_configured', detail: 'YSKAR_FULLNODE_URL is not configured' },
       { status: 503, headers: CORS },
     );
   }
 
-  const recent = rBlocks.data;
-  const meta = rMeta.data;
-  const params = rParams.data;
-  const pending = rPending.count;
-  const active = rActive.data;
+  try {
+    const response = await fetch(`${fullnodeUrl}/api/v2/summary`, {
+      cache: 'no-store',
+    });
 
-  const blocks = recent ?? [];
-  // Hashrate aus der Kette selbst. Unter drei Bloecken ist die Streuung
-  // groesser als der Wert -- dann lieber nichts anzeigen.
-  let hashrate: number | null = null;
-  if (blocks.length >= 3) {
-    const span = Number(BigInt(blocks[0].block_time) - BigInt(blocks[blocks.length - 1].block_time));
-    const work = blocks.slice(0, -1).reduce((s, b) => s + Number(b.difficulty), 0);
-    if (span > 0) hashrate = (work * Number(DIFFICULTY_UNIT)) / span;
-  }
-
-  /*
-    Gemessene Leistung der verbundenen Miner.
-
-    Die Hashrate aus der Kette (oben) ist die ehrlichere Groesse -- sie
-    kommt aus der geleisteten Arbeit selbst und laesst sich nicht
-    beschoenigen. Sie braucht aber neue Bloecke, um zu reagieren: Bei zehn
-    Minuten Blockzeit dauert eine sichtbare Aenderung entsprechend lange,
-    und ein zweiter Miner faellt erst nach mehreren Bloecken auf.
-
-    Diese zweite Zahl kommt aus den VALIDIERTEN SHARES. Ein
-    VarDiff-Messwert ist Sekunden je Difficulty-Einheit, also gilt
-    hashrate = 65536 / Messwert. Das ist gemessene Arbeit, keine
-    Selbstauskunft des Miners -- der Server hat jeden dieser Shares selbst
-    nachgerechnet. Sie aktualisiert sich alle rund 30 Sekunden und zaehlt
-    mehrere Sessions derselben Adresse korrekt zusammen.
-
-    Beide Zahlen nebeneinander sind aussagekraeftiger als eine: Weichen sie
-    dauerhaft ab, stimmt etwas nicht.
-  */
-  const jetzt = Date.now();
-  let minerHashrate = 0;
-  let messendeSessions = 0;
-
-  for (const s of (active ?? []) as Array<{
-    vardiff_samples: number[] | null;
-    accumulated_weight: string | number | null;
-    started_at: string; last_share_at: string | null;
-  }>) {
-    // Wer seit drei Minuten nichts eingereicht hat, rechnet vermutlich
-    // nicht mehr. Ihn mitzuzaehlen wuerde die Zahl schoenen.
-    const letzter = s.last_share_at ? new Date(s.last_share_at).getTime() : 0;
-    if (!letzter || jetzt - letzter > 180_000) continue;
-
-    const proben = (s.vardiff_samples ?? []).filter(x => Number.isFinite(x) && x > 0);
-    if (proben.length >= 2) {
-      const mittel = proben.reduce((a, b) => a + b, 0) / proben.length;
-      minerHashrate += Number(DIFFICULTY_UNIT) / mittel;
-      messendeSessions++;
-      continue;
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'chain_unreachable', detail: `Fullnode returned HTTP ${response.status}` },
+        { status: 503, headers: CORS },
+      );
     }
 
-    // Noch zu wenige Messwerte: Durchschnitt ueber die ganze Sitzung.
-    const start = new Date(s.started_at).getTime();
-    const dauer = (letzter - start) / 1000;
-    const arbeit = Number(s.accumulated_weight ?? 0);
-    if (dauer > 0 && arbeit > 0) {
-      minerHashrate += (arbeit * Number(DIFFICULTY_UNIT)) / dauer;
-      messendeSessions++;
-    }
+    const summary = await response.json();
+
+    return NextResponse.json({
+      token: summary.token ?? null,
+      height: summary.height ?? null,
+      nextHeight: summary.nextHeight ?? 0,
+      difficulty: summary.difficulty ?? null,
+      hashrate: summary.hashrate ?? null,
+      targetBlockTime: summary.targetBlockTime ?? null,
+      tipHash: unprefix(summary.tipHash as string | undefined),
+      stateHeight: summary.stateHeight ?? -1,
+      stateRoot: unprefix(summary.stateRoot as string | undefined),
+      totalSupply: summary.totalSupply ?? '0',
+      maxSupply: summary.maxSupply ?? '0',
+      nextReward: summary.nextReward ?? '0',
+      mempool: summary.mempool ?? 0,
+      /** Aus der Fullnode -- basiert auf den dort validierten Mining-Daten. */
+      minerHashrate: summary.minerHashrate ?? null,
+      /** Sessions, die laut Fullnode aktuell aktiv sind. */
+      miningSessions: summary.miningSessions ?? 0,
+      activeMiners: summary.activeMiners ?? 0,
+    }, { headers: CORS });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: 'chain_unreachable',
+        detail: error instanceof Error ? error.message : 'Unable to reach Fullnode',
+      },
+      { status: 503, headers: CORS },
+    );
   }
-
-  const tip = blocks[0] ?? null;
-  const nextHeight = tip ? tip.height + 1 : 0;
-
-  return NextResponse.json({
-    token: params ?? null,
-    height: tip?.height ?? null,
-    nextHeight,
-    difficulty: tip?.difficulty ?? null,
-    hashrate,
-    targetBlockTime: Number(TARGET_BLOCK_TIME),
-    tipHash: unprefix(tip?.hash as string | undefined),
-    stateHeight: meta?.height ?? -1,
-    stateRoot: unprefix(meta?.state_root as string | undefined),
-    totalSupply: meta?.total_supply ?? '0',
-    maxSupply: MAX_SUPPLY.toString(),
-    nextReward: rewardAt(nextHeight).toString(),
-    mempool: pending ?? 0,
-    /** Aus validierten Shares, aktualisiert sich alle rund 30 Sekunden. */
-    minerHashrate: messendeSessions > 0 ? minerHashrate : null,
-    /** Sessions, die gerade messbar arbeiten -- nicht Adressen. */
-    miningSessions: messendeSessions,
-    activeMiners: new Set((active ?? []).map(s => s.address)).size,
-  }, { headers: CORS });
 }
