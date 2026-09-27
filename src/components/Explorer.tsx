@@ -5,6 +5,7 @@ import {
   serializeHeaderBytes, sha256dWeb, targetFromDifficulty,
   hashToBigInt, achievedDifficulty, toHex, fromHex,
 } from '@/lib/chain/serialize';
+import { fullnodeFetch } from '@/lib/fullnodeApi';
 
 /**
  * Block Explorer.
@@ -23,17 +24,31 @@ import {
  */
 
 interface Block {
-  height: number; hash: string; prevHash: string; merkleRoot: string;
-  jobSeed: string; timestamp: string; difficulty: number;
-  extranonce: string; nonce: string; reward: number; foundAt: string;
-  miner: { name: string | null; username: string | null } | null;
+  height: number;
+  hash: string;
+  prevHash: string;
+  merkleRoot: string;
+  stateRoot: string;
+  header: string;
+  timestamp: string;
+  difficulty: number;
+  extranonce: string;
+  nonce: string;
+  reward: string | null;
+  minerAddress: string | null;
+  txCount: number;
 }
 
 interface Summary {
-  token: { name: string; symbol: string; decimals: number };
-  height: number | null; difficulty: number | null; hashrate: number | null;
-  targetBlockTime: number; blockCount: number; activeMiners: number;
-  emitted: number; maxSupply: number; reward: number | null;
+  token: { token_name?: string; token_symbol?: string; name?: string; symbol?: string; decimals: number };
+  height: number | null;
+  difficulty: number | null;
+  hashrate: number | null;
+  targetBlockTime: number;
+  activeMiners: number;
+  totalSupply: string | number;
+  maxSupply: string | number;
+  nextReward: string | number;
 }
 
 type Check = 'pending' | 'ok' | 'fail';
@@ -41,26 +56,16 @@ interface Verified { hash: Check; difficulty: Check; chain: Check; computed?: st
 
 async function verify(b: Block, prev: Block | undefined): Promise<Verified> {
   try {
-    const bytes = serializeHeaderBytes({
-      version: 1,
-      height: b.height,
-      prevHash: fromHex(b.prevHash),
-      merkleRoot: fromHex(b.merkleRoot),
-      jobSeed: fromHex(b.jobSeed),
-      timestamp: BigInt(b.timestamp),
-      difficulty: b.difficulty,
-      extranonce: BigInt(b.extranonce),
-      nonce: BigInt(b.nonce),
-    });
-    const digest = await sha256dWeb(bytes);
+    // Die Fullnode liefert den bereits serialisierten 116-Byte-Header.
+    // Dadurch muss der Browser keine Felder mehr aus einer alten Datenbank-
+    // Struktur zusammensetzen und kann exakt denselben Header hashen.
+    const digest = await sha256dWeb(fromHex(b.header));
     const computed = toHex(digest);
 
     return {
       computed,
       hash: computed === b.hash ? 'ok' : 'fail',
       difficulty: hashToBigInt(digest) <= targetFromDifficulty(b.difficulty) ? 'ok' : 'fail',
-      // Ohne Vorgaengerblock in der Liste laesst sich die Verkettung hier
-      // nicht pruefen. Dann bleibt der Punkt offen statt faelschlich gruen.
       chain: !prev ? 'pending' : (b.prevHash === prev.hash ? 'ok' : 'fail'),
     };
   } catch {
@@ -76,8 +81,10 @@ function fmtHashrate(h: number | null): string {
   return `${Math.round(h)} H/s`;
 }
 
-function ago(iso: string): string {
-  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+function ago(timestamp: string): string {
+  const n = Number(timestamp);
+  const ms = Number.isFinite(n) ? n * 1000 : new Date(timestamp).getTime();
+  const s = Math.max(0, (Date.now() - ms) / 1000);
   if (s < 60) return `vor ${Math.round(s)} s`;
   if (s < 3600) return `vor ${Math.round(s / 60)} min`;
   if (s < 86400) return `vor ${Math.round(s / 3600)} h`;
@@ -107,8 +114,8 @@ export default function Explorer() {
   const load = useCallback(async () => {
     try {
       const [s, b] = await Promise.all([
-        fetch('/api/v1/chain/summary').then(r => r.json()),
-        fetch('/api/v1/chain/blocks?limit=25').then(r => r.json()),
+        fullnodeFetch<Summary>('/summary'),
+        fullnodeFetch<{ blocks: Block[] }>('/blocks?limit=25'),
       ]);
       setSummary(s);
       setBlocks(b.blocks ?? []);
@@ -137,18 +144,18 @@ export default function Explorer() {
 
   useEffect(() => {
     if (open === null) { setDetail(null); return; }
-    fetch(`/api/v1/chain/blocks/${open}`).then(r => r.json()).then(setDetail).catch(() => {});
+    fullnodeFetch(`/blocks/${open}`).then(setDetail).catch(() => {});
   }, [open]);
 
   const dec = summary?.token.decimals ?? 8;
-  const sym = summary?.token.symbol ?? 'YSR';
+  const sym = summary?.token.symbol ?? summary?.token.token_symbol ?? 'YSR';
   const allOk = Object.values(checks).length > 0
     && Object.values(checks).every(c => c.hash === 'ok' && c.difficulty === 'ok' && c.chain !== 'fail');
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-8">
       <header className="mb-8 flex items-baseline justify-between gap-4">
-        <h1 className="text-lg font-medium">{summary?.token.name ?? 'YSKAR'} Explorer</h1>
+        <h1 className="text-lg font-medium">{summary?.token.name ?? summary?.token.token_name ?? 'YSKAR'} Explorer</h1>
         {Object.keys(checks).length > 0 && (
           <span className={`text-xs ${allOk ? 'text-emerald-400' : 'text-warn'}`}>
             {allOk
@@ -163,16 +170,11 @@ export default function Explorer() {
         <Stat label="Difficulty" value={summary?.difficulty?.toLocaleString('de-DE') ?? '—'} />
         <Stat label="Netz-Hashrate" value={fmtHashrate(summary?.hashrate ?? null)} />
         <Stat label="Aktive Miner" value={String(summary?.activeMiners ?? 0)} />
-        <Stat label="Blockreward"
-              value={summary?.reward != null ? `${(summary.reward / 10 ** dec).toFixed(0)} ${sym}` : '—'} />
+        <Stat label="Nächster Reward"
+              value={summary?.nextReward != null ? `${(Number(summary.nextReward) / 10 ** dec).toFixed(0)} ${sym}` : '—'} />
         <Stat label="Zielblockzeit" value={`${(summary?.targetBlockTime ?? 600) / 60} min`} />
-        <Stat label="Blöcke gemint" value={String(summary?.blockCount ?? 0)} />
-        <Stat
-          label="Ausgeschüttet"
-          value={summary
-            ? `${((summary.emitted / summary.maxSupply) * 100).toFixed(4)} %`
-            : '—'}
-        />
+        <Stat label="Im Umlauf" value={summary ? `${(Number(summary.totalSupply) / 10 ** dec).toLocaleString('de-DE', { maximumFractionDigits: 0 })} ${sym}` : '—'} />
+        <Stat label="Max Supply" value={summary ? `${(Number(summary.maxSupply) / 10 ** dec).toLocaleString('de-DE', { maximumFractionDigits: 0 })} ${sym}` : '—'} />
       </dl>
 
       {error && <p className="mt-5 text-sm text-warn">Laden fehlgeschlagen: {error}</p>}
@@ -193,7 +195,7 @@ export default function Explorer() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-mono text-xs text-muted">{b.hash}</span>
                   <span className="mt-0.5 block text-xs text-muted">
-                    {b.miner?.name ?? 'Genesis'} · {(b.reward / 10 ** dec).toFixed(0)} {sym} · {ago(b.foundAt)}
+                    {b.minerAddress ? b.minerAddress : 'Genesis'} · {b.reward ? (Number(b.reward) / 10 ** dec).toFixed(0) : '—'} {sym} · {ago(b.timestamp)}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs tabular-nums text-muted">
@@ -216,7 +218,8 @@ export default function Explorer() {
                     )}
                     <Field k="prev_hash" v={b.prevHash} mono />
                     <Field k="merkle_root" v={b.merkleRoot} mono />
-                    <Field k="job_seed" v={b.jobSeed} mono />
+                    <Field k="state_root" v={b.stateRoot} mono />
+                    <Field k="header" v={b.header} mono />
                     <Field k="timestamp" v={`${b.timestamp} (${new Date(Number(b.timestamp) * 1000).toISOString()})`} />
                     <Field k="difficulty" v={b.difficulty.toLocaleString('de-DE')} />
                     <Field k="erreicht" v={c?.computed
@@ -226,25 +229,16 @@ export default function Explorer() {
                     <Field k="nonce" v={b.nonce} />
                   </dl>
 
-                  {detail?.height === b.height && detail.rewards?.length > 0 && (
+                  {detail?.height === b.height && detail.txs?.length > 0 && (
                     <div className="mt-5 border-t border-line pt-4">
-                      <p className="mb-2 text-xs text-muted">Auszahlung</p>
-                      <ul className="space-y-1 text-xs">
-                        {detail.rewards.map((r: any, i: number) => (
-                          <li key={i} className="flex justify-between gap-4">
-                            <span>
-                              {r.name}
-                              {r.kind === 'solo' && <span className="ml-2 text-muted">solo</span>}
-                              {r.feeAmount > 0 && <span className="ml-2 text-muted">inkl. Gebühr</span>}
-                              {r.capped && <span className="ml-2 text-warn">gedeckelt</span>}
-                            </span>
-                            <span className="tabular-nums">
-                              {(r.amount / 10 ** dec).toFixed(4)} {sym}
-                              <span className="ml-2 text-muted">{r.payoutPct} %</span>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="mb-2 text-xs text-muted">Transaktionen im Block</p>
+                      <p className="text-xs text-muted">{detail.txs.length} Transaktionen</p>
+                      {detail.txs[0]?.recipients?.map((r: any, i: number) => (
+                        <div key={i} className="mt-1 flex justify-between gap-4 text-xs">
+                          <span className="break-all font-mono">{r.address}</span>
+                          <span className="tabular-nums">{(Number(r.amount) / 10 ** dec).toFixed(4)} {sym}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -255,10 +249,9 @@ export default function Explorer() {
       </ul>
 
       <p className="mt-8 text-xs leading-relaxed text-muted">
-        Jeder Block wird in deinem Browser aus seinen Header-Feldern neu
-        serialisiert und mit WebCrypto gehasht. Die Serialisierung stammt aus
-        demselben Modul wie auf dem Server. Eine nachträgliche Änderung an
-        einem Block würde hier als fehlgeschlagene Prüfung erscheinen.
+        Jeder Block wird in deinem Browser aus dem von der Fullnode gelieferten
+        Roh-Header mit WebCrypto gehasht. Eine nachträgliche Änderung an einem
+        Block würde hier als fehlgeschlagene Prüfung erscheinen.
       </p>
     </main>
   );

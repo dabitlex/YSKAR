@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Panel, GroupTitle, Empty } from '@/components/ui/Primitives';
 import type { Summary } from '@/hooks/useMining';
+import { fullnodeFetch, fullnodeUrl } from '@/lib/fullnodeApi';
 
 /**
  * Netz.
@@ -41,8 +42,8 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
   const [meinHex, setMeinHex] = useState<string | null>(null);
 
   useEffect(() => {
-    const hole = () => fetch('/api/v2/blocks?limit=12')
-      .then(r => r.json()).then(d => setBlocks(d.blocks ?? [])).catch(() => {});
+    const hole = () => fullnodeFetch('/blocks?limit=12')
+      .then(d => setBlocks(d.blocks ?? [])).catch(() => {});
     hole();
     const id = setInterval(hole, 15_000);
     return () => clearInterval(id);
@@ -117,7 +118,7 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
         </Panel>
       )}
 
-      <a href="/explorer.html"
+      <a href={`/explorer.html?api=${encodeURIComponent(fullnodeUrl(''))}`}
          className="mt-4 block rounded-sm bg-raised px-4 py-3.5 text-center text-[14px]
                     text-dim shadow-[inset_0_1px_0_rgb(var(--edge)/.055)]">
         Vollständigen Explorer öffnen
