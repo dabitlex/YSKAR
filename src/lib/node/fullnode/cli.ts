@@ -230,7 +230,21 @@ async function spiegel(
 
   let dort: number;
   try {
-    const res = await fetch(`${ziel}/api/v2/summary`);
+    /*
+      WARUM NICHT /api/v2/summary
+
+      Seit der Umstellung reicht die Gegenstelle ihr summary an DIESEN
+      Knoten durch. Gefragt, wie hoch sie stehe, antwortete sie also mit
+      unserer eigenen Hoehe -- und der Vergleich unten saehe immer
+      "gleichauf". Bei einem vollstaendig geleerten Spiegel hiesse das:
+      "Nichts nachzuschieben", waehrend in Wahrheit alles fehlt. Ein
+      Fehler, der sich als Erfolg meldet, ist schlimmer als ein Abbruch.
+
+      /api/v2/blocks liest dagegen aus dem Spiegel selbst. Eine leere
+      Liste ist die ehrliche Antwort "ich habe nichts" und wird zu -1,
+      damit die Schleife unten bei Hoehe 0 anfaengt.
+    */
+    const res = await fetch(`${ziel}/api/v2/blocks?limit=1`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     /*
       Erst pruefen, DANN auswerten. Antwortet dort ein Vorschaltserver mit
@@ -238,10 +252,12 @@ async function spiegel(
       verdeckt, was wirklich los ist.
     */
     const text = await res.text();
-    let r: { height?: number };
+    let r: { blocks?: { height?: number }[] };
     try { r = JSON.parse(text); }
     catch { throw new Error(`keine JSON-Antwort: ${text.slice(0, 60)}`); }
-    dort = Number(r.height ?? -1);
+    if (!Array.isArray(r.blocks)) throw new Error('Antwort ohne Blockliste');
+    // Leerer Spiegel -> -1, damit unten bei Hoehe 0 begonnen wird.
+    dort = r.blocks.length === 0 ? -1 : Number(r.blocks[0].height ?? -1);
     if (!Number.isFinite(dort)) throw new Error('Antwort ohne Höhe');
   } catch (e) {
     console.error(rot(`  Gegenstelle nicht erreichbar: ${(e as Error).message}`));
