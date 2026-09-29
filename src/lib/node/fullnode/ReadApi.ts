@@ -291,10 +291,38 @@ export class ReadApi {
     let gefunden = 0;
     let poolAnteile = 0;
 
-    // Rueckwaerts durch die Kette. Es gibt keinen Index nach Adresse -- der
-    // Knoten haelt die Kette, nicht eine Auswertung davon.
+    /*
+      Rueckwaerts durch die Kette. Es gibt keinen Index nach Adresse -- der
+      Knoten haelt die Kette, nicht eine Auswertung davon.
+
+      ZWEI GRENZEN, DIE FRUEHER EINE WAREN
+
+      Der Verlauf zeigt 40 Eintraege -- das ist eine Anzeigegrenze. Die
+      Zaehler "gefunden" und "poolAnteile" sind etwas anderes: eine Auskunft
+      ueber die ganze durchsuchte Tiefe.
+
+      Vorher brach die Schleife ab, sobald 40 Verlaufseintraege beisammen
+      waren, und nahm die Zaehler mit. blocksFound war damit nie groesser
+      als 40 -- bei einer Wallet mit 1158 gefundenen Bloecken stand dort 40,
+      und das sah aus wie eine Zahl und war eine Abbruchbedingung.
+
+      Jetzt laeuft die Schleife bis zur vollen Tiefe durch; nur das Anhaengen
+      an den Verlauf hoert bei 40 auf.
+
+      WAS DAS KOSTET: Jeder Aufruf liest und deserialisiert bis zu
+      VERLAUF_TIEFE Bloecke statt abzubrechen. Bei einigen tausend Bloecken
+      sind das Millisekunden. Waechst die Kette deutlich darueber hinaus,
+      braucht es einen Zaehler, der beim Annehmen eines Blocks fortgeschrieben
+      wird -- und der muss dann auch Reorgs zurueckrechnen. Diese Stelle ist
+      der Ort dafuer.
+
+      UND DIE EHRLICHKEIT DAZU: Auch so ist blocksFound nicht "alle Bloecke
+      seit Genesis", sondern "alle innerhalb der letzten VERLAUF_TIEFE".
+      Solange die Kette kuerzer ist, ist das dasselbe. Danach nicht mehr --
+      deshalb steht historyDepth in der Antwort.
+    */
     const bis = tip ? Math.max(0, tip.height - VERLAUF_TIEFE) : 0;
-    for (let h = tip?.height ?? -1; h >= bis && verlauf.length < 40; h--) {
+    for (let h = tip?.height ?? -1; h >= bis; h--) {
       const b = this.t.store.mainAt(h);
       if (!b) continue;
       const block = deserializeBlock(b.body);
@@ -304,6 +332,7 @@ export class ReadApi {
           const meiner = t.outputs.find(o => toHex(o.to) === key);
           if (!meiner) continue;
           if (t.outputs.length === 1) gefunden++; else poolAnteile++;
+          if (verlauf.length >= 40) continue;
           verlauf.push({
             txid: toHex(txid(t)), height: h, timestamp: String(b.blockTime),
             kind: t.outputs.length === 1 ? 'reward' : 'pool',
@@ -316,6 +345,7 @@ export class ReadApi {
         const ein = toHex(t.to) === key;
         const aus = toHex(t.from) === key;
         if (!ein && !aus) continue;
+        if (verlauf.length >= 40) continue;
         verlauf.push({
           txid: toHex(txid(t)), height: h, timestamp: String(b.blockTime),
           kind: ein ? 'in' : 'out',
