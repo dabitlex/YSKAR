@@ -7,6 +7,7 @@ import { istNativ } from '@/lib/native/plattform';
 import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type BiometrieStand }
   from '@/lib/native/biometrie';
 import { appVersion, updatePruefen, updateOeffnen, type Update } from '@/lib/native/update';
+import { pushAktiv, pushEinschalten, pushAusschalten, type PushStand } from '@/lib/native/push';
 
 /**
  * Einstellungen der Android-App: Biometrie, Version, Update-Suche.
@@ -24,13 +25,22 @@ export default function AppSettings() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [version, setVersion] = useState<{ version: string; build: string } | null>(null);
   const [update, setUpdate] = useState<Update | null | 'keins' | 'sucht'>(null);
+  const [push, setPush] = useState<PushStand | 'arbeitet'>('aus');
 
   useEffect(() => {
     if (!istNativ()) return;
     setNativ(true);
     biometrieStand().then(setBio);
     appVersion().then(setVersion);
+    setPush(pushAktiv() ? 'an' : 'aus');
   }, []);
+
+  const pushUmschalten = async () => {
+    if (!wallet.address) return;
+    setPush('arbeitet');
+    if (pushAktiv()) { await pushAusschalten(); setPush('aus'); return; }
+    setPush(await pushEinschalten(wallet.address));
+  };
 
   if (!nativ) return null;
 
@@ -97,6 +107,25 @@ export default function AppSettings() {
         </div>
       )}
       {!pinFrage && fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
+
+      <p className="label mb-2 mt-6">Benachrichtigungen</p>
+      <ul className="mt-2 border-t border-line">
+        <li className="flex items-center justify-between gap-3 border-b border-line py-3">
+          <span className="flex flex-col">
+            <span className="text-[13.5px] font-bold">Wallet-Eingänge und Neuigkeiten</span>
+            <span className="text-[12px] font-semibold text-faint">
+              {push === 'an' ? 'An — auch wenn die App geschlossen ist.'
+                : push === 'verweigert' ? 'Android hat die Erlaubnis verweigert. In den System-Einstellungen freigeben.'
+                : push === 'arbeitet' ? '…'
+                : 'Aus. Beim Einschalten wird deine Adresse mit diesem Gerät beim Server angemeldet.'}
+            </span>
+          </span>
+          <button onClick={pushUmschalten} disabled={push === 'arbeitet'}
+                  className={`text-[13px] font-bold ${push === 'an' ? 'text-risk' : 'text-work'}`}>
+            {push === 'an' ? 'Ausschalten' : 'Einschalten'}
+          </button>
+        </li>
+      </ul>
 
       <p className="label mb-2 mt-6">App</p>
       <ul className="mt-2 border-t border-line">
