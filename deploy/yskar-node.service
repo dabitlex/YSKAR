@@ -1,0 +1,74 @@
+[Unit]
+Description=YSKAR Full Node — prüft die Kette und betreibt den Pool
+Documentation=https://github.com/dabitlex/YSKAR
+
+# network-online, nicht nur network: Der Knoten spricht beim Start mit der
+# Gegenstelle und mit seinen Peers. "network.target" ist erreicht, sobald
+# das Netzwerk KONFIGURIERT wird -- nicht, sobald es benutzbar ist.
+After=network-online.target
+Wants=network-online.target
+
+# Wenn er beim Start dauerhaft scheitert (falscher node-Pfad, kaputte
+# Ablage), soll systemd nicht ewig im Sekundentakt neu starten. Nach fünf
+# Fehlversuchen in zwei Minuten bleibt er liegen -- dann ist etwas kaputt,
+# das ein Neustart nicht heilt, und "systemctl status" sagt es dir.
+# (Gehört in [Unit], nicht in [Service] -- dort wird es ignoriert.)
+StartLimitBurst=5
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+User=yskar
+Group=yskar
+WorkingDirectory=/home/yskar/YSKAR/node
+
+# Der Token für den Spiegel steht in einer eigenen Datei, nicht hier.
+# Unit-Dateien sind für alle lesbar; /etc/yskar/node.env gehört root und
+# ist auf 600 gesetzt. Das führende "-" heißt: Fehlt die Datei, startet
+# der Dienst trotzdem -- dann eben ohne Token, wie vor dem Abschluss der
+# Umstellung.
+EnvironmentFile=-/etc/yskar/node.env
+
+# ACHTUNG: Absoluter Pfad zu node. systemd hat kein PATH wie deine Shell
+# und kein nvm. Prüfe vor dem Aktivieren:  which node
+# Liegt node woanders (z.B. unter ~/.nvm/versions/node/v22.x/bin/node),
+# trage den Pfad hier ein. Node 22 oder neuer ist Pflicht -- der Knoten
+# nutzt node:sqlite, das es vorher nicht gibt.
+ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
+    --data ./knoten \
+    --bind 127.0.0.1 \
+    --port 8645 \
+    --p2p-port 8646 \
+    --pool yskar-main.dynv6.net \
+    --pool-fee 0
+
+# Immer neu starten, nicht nur bei Fehlern: Ein Knoten, der sich sauber
+# beendet, ist für die Kette genauso weg wie einer, der abstürzt.
+Restart=always
+RestartSec=10
+
+# Sauber stoppen: SIGINT statt SIGTERM, damit der Knoten seine SQLite-
+# Ablage ordentlich schliesst.
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+# Ausgabe ins Journal:  journalctl -u yskar-node -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=yskar-node
+
+# --- Absicherung ---
+# Der Knoten braucht: sein eigenes Verzeichnis (Ablage) und das Netz.
+# Sonst nichts.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/yskar/YSKAR/node/knoten
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
