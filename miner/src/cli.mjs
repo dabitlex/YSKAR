@@ -304,6 +304,28 @@ async function main() {
     farben: FARBEN,
   });
 
+  /*
+    Abbrechen, NACHDEM die Sitzung schon offen ist.
+
+    Zwischen Anmeldung und erstem Job kann es noch scheitern -- keine
+    Karte gefunden, Selbsttest nicht bestanden. Wer dann einfach
+    aussteigt, laesst die Sitzung beim Knoten offen stehen, bis sie nach
+    Minuten von selbst verfaellt.
+
+    Das ist keine Kleinigkeit: Der Knoten begrenzt die Sitzungen je
+    Adresse. Wer zweimal hintereinander so abbricht, laeuft beim dritten
+    Versuch in "Zu viele Miner auf dieser Adresse" -- und sucht den Fehler
+    dann an der falschen Stelle.
+  */
+  async function abbrechen(code = 1) {
+    await api(arg.api, '/session/stop', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: session.sessionId }),
+    }).catch(() => { /* Schon weg oder nicht erreichbar -- egal, wir gehen ohnehin. */ });
+    await warteAufTaste();
+    process.exit(code);
+  }
+
   const k = new Kennzahlen();
 
   /*
@@ -490,7 +512,7 @@ async function main() {
     if (!programm) {
       ereignis(gelb('  yskar-cuda nicht gefunden.'));
       ereignis(grau('  Bauen: siehe node-core/gpu/README.md, oder --gpu-bin <pfad>'));
-      if (arg.rechner === 'gpu') { await warteAufTaste(); process.exit(1); }
+      if (arg.rechner === 'gpu') await abbrechen();
     } else {
       /*
         Selbsttest VOR dem ersten Job.
@@ -502,7 +524,7 @@ async function main() {
       const p = pruefeGpu(programm, arg.device);
       if (!p.ok) {
         ereignis(rot(`  GPU nicht verwendbar: ${p.grund}`));
-        if (arg.rechner === 'gpu') { await warteAufTaste(); process.exit(1); }
+        if (arg.rechner === 'gpu') await abbrechen();
       } else {
         ereignis(gruen(`  GPU bereit: ${p.name ?? 'Gerät ' + arg.device}`));
         gpu = starteGpu({
@@ -528,7 +550,8 @@ async function main() {
             ereignis(rot(`[${uhr()}] GPU ausgefallen: ${grund}`));
             if (threads === 0) {
               ereignis(rot('  Ohne CPU-Threads bleibt nichts zu rechnen — Miner beendet.'));
-              process.exit(1);
+              void abbrechen();
+              return;
             }
             ereignis(grau('  Es wird mit der CPU weitergerechnet.'));
           },
