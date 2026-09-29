@@ -1,6 +1,6 @@
 'use client';
 
-import { istNativ } from './plattform';
+import { istNativ, letzteFehler } from './plattform';
 
 /**
  * Diagnose der nativen Bruecke -- fuer die Einstellungen der Android-App.
@@ -17,6 +17,7 @@ export interface Diagnose {
   biometrie: string;
   speicher: string;
   miningDienst: string;
+  fehler: string[];
 }
 
 async function probe(fn: () => Promise<unknown>): Promise<string> {
@@ -31,6 +32,7 @@ export async function diagnose(): Promise<Diagnose> {
     bruecke: !!cap?.isNativePlatform?.(),
     plugins: Object.keys(cap?.Plugins ?? {}),
     appInfo: '', biometrie: '', speicher: '', miningDienst: '',
+    fehler: letzteFehler(),
   };
   if (!istNativ()) return d;
   d.appInfo = await probe(async () => (await import('@capacitor/app')).App.getInfo());

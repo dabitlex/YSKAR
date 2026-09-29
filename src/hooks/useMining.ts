@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
-import { istNativ } from '@/lib/native/plattform';
+import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import { miningDienstStart, miningDienstStop, miningDienstText, miningDienstBeiStopp }
   from '@/lib/native/mining';
 
@@ -335,7 +335,9 @@ export function useMining(address: string | null, platform: string) {
       await fetchJob();
       setMining(true);
       // Android-App: Dienst starten, damit es im Hintergrund weitergeht.
-      miningDienstStart('Mining läuft').then(r => setDienst(r));
+      miningDienstStart('Mining läuft')
+        .then(r => setDienst(r))
+        .catch(e => { fehlerMerken('miningDienstStart', e); setDienst({ ok: false, fehler: String(e) }); });
     } catch (e) {
       setFehler(String((e as Error).message ?? e));
       await stop();

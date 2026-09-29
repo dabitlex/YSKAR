@@ -8,7 +8,7 @@ import AppShell from '@/components/AppShell';
 import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
 import { telegramFarben } from '@/lib/telegram/webapp';
-import { plattform } from '@/lib/native/plattform';
+import { plattform, fehlerspeicherInstallieren } from '@/lib/native/plattform';
 
 declare global {
   interface Window { Telegram?: { WebApp: any } }
@@ -35,7 +35,7 @@ function Router() {
     // Drei Orte: die Android-App (YSKAR Wallet), der Telegram-Client, ein
     // gewoehnlicher Browser. Nur der letzte bekommt die Hinweisseite.
     const wo = plattform();
-    if (wo === 'nativ') { setPlatform('android-app'); return; }
+    if (wo === 'nativ') { fehlerspeicherInstallieren(); setPlatform('android-app'); return; }
     const tg = window.Telegram?.WebApp;
     // Das Telegram-Skript laedt auch ausserhalb von Telegram, liefert dann
     // aber keine initData. Genau daran erkennt man den normalen Browser.
