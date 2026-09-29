@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Panel, GroupTitle, ActionButton, Icon, Empty, Button }
   from '@/components/ui/Primitives';
 import { TopBar } from '@/components/ui/Chrome';
-import type { Account } from '@/hooks/useMining';
+import type { Account, Wartend } from '@/hooks/useMining';
 
 /**
  * Wallet.
@@ -36,7 +36,7 @@ const kurz = (a: string | null) => a ? `${a.slice(0, 10)}…${a.slice(-4)}` : 'u
 
 export default function WalletTab({ account, symbol, decimals, address,
                                     onSenden, onScannen, onEmpfangen, onEinstellungen, onExplorer }: {
-  account: (Account & { history?: HistoryEintrag[]; pending?: any[] }) | null;
+  account: (Account & { history?: HistoryEintrag[]; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
   onSenden: () => void; onScannen: () => void; onEmpfangen: () => void;
   onEinstellungen: () => void; onExplorer: () => void;
@@ -49,6 +49,8 @@ export default function WalletTab({ account, symbol, decimals, address,
   const [ganz, bruch] = guthaben.toFixed(4).split('.');
   const verlauf = account?.history ?? [];
   const wartend = account?.pending ?? [];
+  const unterwegs = wartend.filter(p => p.kind === 'out')
+    .reduce((s, p) => s + Number(p.amount) + Number(p.fee), 0) / 10 ** decimals;
 
   return (
     <>
@@ -71,6 +73,11 @@ export default function WalletTab({ account, symbol, decimals, address,
           {address && (
             <p className="mt-2 font-mono text-[12px] text-faint">{kurz(address)}</p>
           )}
+          {unterwegs > 0 && (
+            <p className="tnum mt-1.5 text-[12px] font-bold text-[#B26A00]">
+              {unterwegs.toFixed(4)} {symbol} unterwegs, noch nicht bestätigt
+            </p>
+          )}
         </div>
 
         <div className="mt-5 flex gap-1.5">
@@ -81,7 +88,9 @@ export default function WalletTab({ account, symbol, decimals, address,
         </div>
       </Panel>
 
-      <GroupTitle aside={verlauf.length ? `${verlauf.length} Einträge` : undefined}>
+      <GroupTitle aside={wartend.length
+        ? `${wartend.length} ${wartend.length === 1 ? 'wartet' : 'warten'}`
+        : verlauf.length ? `${verlauf.length} Einträge` : undefined}>
         Verlauf
       </GroupTitle>
 
@@ -92,10 +101,13 @@ export default function WalletTab({ account, symbol, decimals, address,
       ) : (
         <Panel className="rise rise-1 !p-0">
           <ul className="divide-y divide-line">
-            {wartend.map((p: any) => (
+            {wartend.map(p => (
               <Eintrag key={p.txid} art="wait"
-                titel={`An ${kurz(null)}`} unten="wartet auf Bestätigung"
-                betrag={`−${(Number(p.amount) / 10 ** decimals).toFixed(4)}`} />
+                titel={p.kind === 'out' ? `An ${kurz(p.to)}` : `Von ${kurz(p.from)}`}
+                unten={p.kind === 'out'
+                  ? `wartet auf Bestätigung · Gebühr ${(Number(p.fee) / 10 ** decimals).toFixed(4)}`
+                  : 'wartet auf Bestätigung · kommt mit dem nächsten Block'}
+                betrag={`${p.kind === 'out' ? '−' : '+'}${(Number(p.amount) / 10 ** decimals).toFixed(4)}`} />
             ))}
             {verlauf.map(e => (
               <Eintrag key={e.txid}
@@ -242,7 +254,11 @@ function Eintrag({ art, titel, unten, betrag, gut, onClick }: {
         onClick ? 'active:bg-raised/60' : ''}`}>
       <span className={`flex h-9 w-9 shrink-0 items-center justify-center
                         rounded-full text-[15px] ${look}`}>
-        {art === 'in' ? '↓' : art === 'out' ? '↑' : '·'}
+        {art === 'in' ? '↓' : art === 'out' ? '↑' : (
+          <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7.5" /><path d="M11 7.5v4l2.5 1.5" />
+          </svg>)}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px] font-bold">{titel}</span>

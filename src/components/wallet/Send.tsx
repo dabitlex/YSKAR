@@ -38,10 +38,13 @@ import type { Account } from '@/hooks/useMining';
 
 type Schritt = 'formular' | 'pruefen' | 'fertig';
 
-export default function Send({ account, decimals, symbol, scanSofort, onFertig, onAbbruch }: {
+export default function Send({ account, decimals, symbol, scanSofort, onGesendet,
+                               onFertig, onAbbruch }: {
   account: Account | null; decimals: number; symbol: string;
   /** Aus der Wallet mit „Scannen" geoeffnet: Kamera zuerst, Formular danach. */
   scanSofort?: boolean;
+  /** Der Knoten hat die Zahlung angenommen -- Konto neu lesen. */
+  onGesendet?: () => void;
   onFertig: () => void; onAbbruch: () => void;
 }) {
   const wallet = useWallet();
@@ -86,7 +89,14 @@ export default function Send({ account, decimals, symbol, scanSofort, onFertig, 
   const gebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
   const zielBlock = markt ? markt.stufen[stufe].block : 1;
 
-  const guthaben = BigInt(account?.balance ?? '0');
+  // Verfuegbar ist, was nach den schon wartenden Zahlungen uebrig bleibt.
+  // Die Kette zieht sie erst mit dem Block ab -- die App muss es vorher tun,
+  // sonst laesst sie eine zweite Zahlung zu, die der Knoten ablehnt.
+  const wartendAus = (account?.pending ?? [])
+    .filter(p => p.kind === 'out')
+    .reduce((s, p) => s + BigInt(p.amount) + BigInt(p.fee), 0n);
+  const kontostand = BigInt(account?.balance ?? '0');
+  const guthaben = kontostand > wartendAus ? kontostand - wartendAus : 0n;
   const zielGueltig = isValidAddress(ziel.trim());
   const eigene = zielGueltig && wallet.address === ziel.trim();
 
@@ -124,9 +134,13 @@ export default function Send({ account, decimals, symbol, scanSofort, onFertig, 
         to: decodeAddress(ziel.trim()),
         amount: einheiten,
         fee: gebuehr,
-        // Die naechste Nonce des Kontos. Ohne sie waere die Transaktion
-        // entweder ungueltig oder eine Wiederholung.
-        nonce: BigInt(account?.nonce ?? '0'),
+        // Die naechste Nonce des Kontos: Zustand PLUS eigene wartende
+        // Zahlungen. Mit der reinen Zustands-Nonce gaelte eine zweite
+        // Zahlung vor der Bestaetigung als Ersatz der ersten -- und der
+        // Knoten lehnte sie ab, weil die Gebuehr nicht hoeher ist.
+        nonce: BigInt(account?.nextNonce
+          ?? String(BigInt(account?.nonce ?? '0')
+                    + BigInt((account?.pending ?? []).filter(p => p.kind === 'out').length))),
         publicKey: kp.publicKey,
         privateKey: kp.privateKey,
         memo: notiz ? new TextEncoder().encode(notiz.slice(0, 32)) : undefined,
@@ -149,6 +163,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onFertig, 
 
       setErgebnis({ txid: body.txid ?? toHex(txid(tx)) });
       setSchritt('fertig');
+      onGesendet?.();
     } catch (e) {
       setFehler(String((e as Error).message));
     } finally {

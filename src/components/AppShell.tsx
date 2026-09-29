@@ -88,8 +88,9 @@ export default function AppShell({ platform }: { platform: string }) {
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-32 pt-5">
         {ansicht === 'senden' || ansicht === 'scannen' ? (
           <Send account={m.account} decimals={dec} symbol={sym}
-                scanSofort={ansicht === 'scannen'}
-                onFertig={() => setAnsicht(null)} onAbbruch={() => setAnsicht(null)} />
+                scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}
+                onFertig={() => { m.refreshAccount(); setAnsicht(null); }}
+                onAbbruch={() => setAnsicht(null)} />
         ) : ansicht === 'empfangen' && wallet.address ? (
           <Receive address={wallet.address} onZurueck={() => setAnsicht(null)} />
         ) : ansicht === 'einstellungen' ? (

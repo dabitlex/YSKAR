@@ -17,7 +17,7 @@ Weitere: **proof, not promise**.
 | | |
 |---|---|
 | Kette | `yskar-main-1`, Genesis gemint am 09.09.2026 |
-| Tests | 289, keine Typfehler |
+| Tests | 291, keine Typfehler |
 | Knoten | Server unter `/api/v2/*` **und** eigenstaendiger Full Node |
 | Oberflaeche | Wallet, Senden, Empfangen, Mining, Kalibrierung |
 | Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000 |
@@ -27,8 +27,9 @@ Weitere: **proof, not promise**.
 
 ```
 src/lib/core/            Konsens: Header, Difficulty, Zustand, Signaturen
-src/lib/node/            Server-Knoten (Supabase), Jobs, Shares
-src/lib/node/fullnode/   eigenstaendiger Full Node
+src/lib/node/            Spiegel (Supabase) und gemeinsame Bausteine
+src/lib/node/fullnode/   Full Node: Kette, Mempool, Mining, Pool
+src/lib/node/p2p/        Verbindung zwischen Full Nodes
 src/lib/pool/            PPLNS und Abrechnung
 src/app/                 Mini App und API
 miner/                   eigenstaendiger Miner, baut zu einer .exe
@@ -39,24 +40,28 @@ wasm/                    Mining-Engine, handgeschriebenes WAT
 
 ## Was wo laeuft
 
-**Mini App** auf Vercel, Kette in Supabase. Das ist der Betrieb, an dem alle
-Telegram-Nutzer haengen.
+**Full Nodes** auf beliebigen Rechnern. Sie holen die Kette voneinander
+(Header zuerst, alles mit Grenzen), pruefen jeden Block selbst, halten den
+Mempool, geben Jobs an Miner aus und bauen eigene Bloecke. Mehrere laufen
+gleichzeitig; die Kette haengt an keinem einzelnen Server mehr. Ablage ist
+eine SQLite-Datei; `node:sqlite` ist seit Node 22 eingebaut, es gibt kein
+natives Modul zu kompilieren.
 
-**Full Node** auf beliebigen Rechnern. Er holt die Kette, prueft jeden Block
-selbst und kann eigene Bloecke bauen und einreichen. Seine Ablage ist eine
-SQLite-Datei; `node:sqlite` ist seit Node 22 eingebaut, es gibt kein natives
-Modul zu kompilieren.
+**Pool** ist ein Full Node mit Aufteilung: Die PPLNS-Abrechnung wird zur
+Coinbase des Blocks, die Kette zahlt jeden Beteiligten direkt aus. Der
+erste Pool ist in Betrieb (`docs/POOL_BETRIEB.md`).
 
-Der Full Node ist **noch kein P2P-Netz**: Bloecke kommen ueber die
-oeffentliche Leseschnittstelle und gehen ueber `POST /api/v2/block` zurueck.
-Supabase ist damit weiterhin der Mittelpunkt. Geprueft wird trotzdem alles
-lokal -- der Unterschied liegt in der Quelle, nicht in der Pruefung.
+**Mini App** auf Vercel. Mining und Transaktionen gehen an den Full Node
+(`NEXT_PUBLIC_MINING_BASE`); Guthaben, Verlauf und Kennzahlen liest die App
+ueber den eigenen Server, der dafuer den Knoten fragt (`YSKAR_FULLNODE_URL`)
+und einen Lesespiegel der festgeschriebenen Kette in Supabase haelt. Der
+Spiegel ist Bequemlichkeit fuer Explorer und Verlauf, nicht Wahrheit.
 
 ## Loslegen
 
 ```bash
 npm install
-npm test                 # 289 Tests
+npm test                 # 291 Tests
 npx tsc --noEmit         # 0 Fehler
 npm run dev
 ```
@@ -101,10 +106,9 @@ Kein Vorverkauf, keine Zuteilung an Gruender, keine reservierten Anteile.
 Der Reward des Genesis-Blocks ging an eine Adresse aus lauter Nullbytes --
 es gibt keinen Schluessel dafuer.
 
-Ab Hoehe 2000 darf eine Coinbase mehrere Empfaenger haben. Das ist die
-Voraussetzung fuer Pool Mining, bei dem der Block selbst alle Beteiligten
-auszahlt und kein Betreiber fremdes Geld haelt. Solo-Mining aendert sich
-dadurch nicht.
+Seit Hoehe 2000 darf eine Coinbase mehrere Empfaenger haben. Darauf baut
+das Pool Mining: Der Block selbst zahlt alle Beteiligten aus, kein
+Betreiber haelt fremdes Geld. Solo-Mining ist davon unberuehrt.
 
 ## Weitere Werkzeuge
 
@@ -130,31 +134,39 @@ baut aber nichts. Fuer einen Raspberry Pi gedacht.
 | `docs/CONSENSUS_V2.md` | Coinbase mit mehreren Empfaengern, Aktivierung |
 | `docs/FULLNODE.md` | Full Node, Chain Work, Forks, Reorg, Testnetz |
 | `docs/POOL_MINING.md` | PPLNS, Abrechnung, Gebuehr |
+| `docs/POOL_BETRIEB.md` | einen Pool betreiben, beitreten |
+| `docs/P2P.md` | Nachrichten, Handschlag, Grenzen zwischen Knoten |
+| `docs/UMSTELLUNG.md` | wie die Kette vom Server auf die Full Nodes zog |
 | `docs/SECURITY.md` | Schluessel, Tresor, Angriffsflaechen |
 
 ## Oberflaeche
 
-Messgeraet, nicht Spielautomat. Der Markt, in dem diese App sitzt, besteht
-aus Neonverlaeufen und hochzaehlenden Fantasiezahlen -- saehe YSKAR so aus,
-wuerde die Oberflaeche das Versprechen der Kette widerlegen.
+Werkzeug, nicht Spielautomat -- und seit September 2026 hell: weisser Grund,
+Karten, ein einziger blauer Akzent, abgeleitet vom Kristall der Marke. Der
+Markt, in dem diese App sitzt, besteht aus Neonverlaeufen und hochzaehlenden
+Fantasiezahlen; saehe YSKAR so aus, widerlegte die Oberflaeche das
+Versprechen der Kette.
 
-Der Held des Mining-Bildschirms ist der zuletzt angenommene **Hash**, nicht
-eine grosse Zahl mit Label. Fuehrende Nullen sind gedimmt: Sie SIND die
-geleistete Arbeit, und gedimmt kann man sie zaehlen statt lesen.
+Fuenf Reiter: **Home** (Guthaben, Mining-Status, Kette), **Mining**,
+**Wallet** (Senden mit QR-Scan per Kamera, Empfangen mit QR-Code),
+**Netz**, **Entdecken** (was YSKAR ist, wie es funktioniert, Roadmap, FAQ --
+die Zahlen kommen aus `src/lib/core/params.ts`, die Texte liegen in
+`src/content/entdecken.ts`).
+
+Fuehrende Nullen eines Hashes sind gedimmt: Sie SIND die geleistete Arbeit,
+und gedimmt kann man sie zaehlen statt lesen.
 
 ## Was offen ist
 
 Ehrlich benannt, damit niemand mehr erwartet als da ist.
 
-**Kein P2P.** Knoten reden nicht direkt miteinander. Faellt Supabase aus,
-steht die Kette -- vorhandene Bloecke bleiben lesbar und pruefbar, neue
-entstehen nicht.
+**Mikrozahlungen.** Kleine Betraege schnell und guenstig -- der naechste
+Schritt auf der Roadmap.
 
-**Ein Validator.** Die Rechenarbeit ist echt und nachpruefbar, aber wer den
-Server kontrolliert, kontrolliert die Kette.
+**Node Core.** Eine Veroeffentlichung des Full Node mit eingebauter Wallet
+und Mining fuer alle Systeme, ohne Node.js-Installation.
 
-**Pool nicht angeschlossen.** Die Abrechnung ist fertig und geprueft, die
-Anbindung an den Knoten fehlt.
+**Apps.** Android und iOS inklusive Lightning-Wallet.
 
 **Keine Ratenbegrenzung** auf `/api/v2/share`. Bei bekannten Testern
 unkritisch, bei offener Verteilung nicht.
