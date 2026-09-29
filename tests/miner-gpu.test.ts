@@ -149,3 +149,48 @@ test('Ein geändertes Ziel wird erneut geschickt, ein gleiches nicht', async () 
   assert.equal(zeilen[1].jobId, 'job-1', 'derselbe Job, nur anderes Ziel');
   assert.equal(zeilen[2].jobId, 'job-2');
 });
+
+test('GPU-Fortschritt liefert die Rohzahl der Hashes, nicht nur die Rate', async () => {
+  /*
+    Der Fehler, den dieser Test festhaelt:
+
+    gpu.mjs rechnete die gemeldeten Hashes in eine Rate um und warf die
+    Rohzahl weg. Damit sah der Miner die Arbeit der Karte in zwei
+    Kennzahlen nie -- im Aufwand (Hashes seit dem letzten Block) und in der
+    Gesamtzahl. Bei reinem GPU-Mining stand der Aufwand dauerhaft auf 0 %,
+    bei --cpu-gpu war er genau um den Anteil der Karte zu niedrig.
+
+    Die Rate allein genuegt nicht: Aus ihr liesse sich die Zahl nur
+    zurueckrechnen, wenn man wuesste, ueber welchen Zeitraum gemessen
+    wurde -- und genau die Angabe war weg.
+  */
+  const { writeFileSync, chmodSync } = await import('node:fs');
+  const { starteGpu } = await import('../miner/src/gpu.mjs');
+
+  const attrappe = '/tmp/yskar-test-fortschritt.sh';
+  writeFileSync(attrappe,
+    '#!/bin/bash\n'
+    + 'echo \'{"t":"progress","hashes":5000000,"ms":250}\'\n'
+    + 'echo \'{"t":"progress","hashes":4000000,"ms":200}\'\n'
+    + 'sleep 2\n');
+  chmodSync(attrappe, 0o755);
+
+  const raten: number[] = [];
+  const rohwerte: number[] = [];
+
+  const g = starteGpu({
+    programm: attrappe, geraet: 0,
+    onLog() {}, onShare() {}, onAus() {},
+    onRate(rate: number, roh: number) { raten.push(rate); rohwerte.push(roh); },
+  });
+
+  await new Promise(r => setTimeout(r, 600));
+  g.stop();
+
+  assert.equal(rohwerte.length, 2, 'beide Fortschrittsmeldungen müssen ankommen');
+  assert.deepEqual(rohwerte, [5_000_000, 4_000_000], 'die Rohzahlen unverändert');
+
+  // Die Rate bleibt, was sie war: Hashes je Sekunde.
+  assert.equal(raten[0], 20_000_000, '5 Mio in 250 ms sind 20 MH/s');
+  assert.equal(raten[1], 20_000_000, '4 Mio in 200 ms sind 20 MH/s');
+});

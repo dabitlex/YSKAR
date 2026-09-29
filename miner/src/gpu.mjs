@@ -108,7 +108,7 @@ export function headerHex(job) {
  * @param opt.programm  Pfad zu yskar-cuda
  * @param opt.geraet    Geraetenummer
  * @param opt.onShare   ({jobId, nonce}) -- ein Treffer
- * @param opt.onRate    (hashesProSekunde)
+ * @param opt.onRate    (hashesProSekunde, hashes) -- Leistung UND Rohzahl
  * @param opt.onLog     (text)
  * @param opt.onAus     (grund) -- das Programm ist weg
  */
@@ -133,7 +133,22 @@ export function starteGpu(opt) {
       if (m.t === 'found') {
         opt.onShare?.({ jobId: m.jobId, nonce: String(m.nonce) });
       } else if (m.t === 'progress') {
-        opt.onRate?.((Number(m.hashes) * 1000) / Math.max(1, Number(m.ms)));
+        /*
+          Rate UND Rohzahl weitergeben.
+
+          Vorher ging nur die Rate raus und die Rohzahl wurde
+          weggeworfen. Das machte zwei Kennzahlen des Miners still falsch:
+          Der Aufwand zaehlt die Hashes SEIT dem letzten Block, und die
+          Gesamtzahl zaehlt alle. Beide sahen die Arbeit der Karte nie.
+
+          Bei reinem GPU-Mining stand der Aufwand deshalb dauerhaft auf
+          0 %, bei --cpu-gpu war er zu niedrig -- und zwar genau um den
+          Anteil, den die Karte beigetragen hat. Eine Kennzahl, die
+          "arbeitet das Ding ueberhaupt" beantworten soll, sagte bei der
+          schnelleren Haelfte der Hardware nichts.
+        */
+        const roh = Number(m.hashes);
+        opt.onRate?.((roh * 1000) / Math.max(1, Number(m.ms)), roh);
       } else if (m.t === 'device') {
         opt.onLog?.(`GPU: ${m.name} · ${m.cc} · ${
           (Number(m.vram) / 1024 ** 3).toFixed(1)} GB`);

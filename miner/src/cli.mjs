@@ -589,7 +589,11 @@ async function main() {
             if (m.jobId !== zustand.jobId) { k.verworfen = (k.verworfen ?? 0) + 1; return; }
             sendeShare(m);
           },
-          onRate: (r) => { zustand.gpuRate = { rate: r, at: Date.now() }; },
+          onRate: (r, roh) => {
+            zustand.gpuRate = { rate: r, at: Date.now() };
+            // Ohne das zaehlt der Aufwand nur die CPU -- siehe gpu.mjs.
+            if (roh > 0) k.hashes(roh);
+          },
           onLog: (t) => ereignis(grau(`[${uhr()}] ${t}`)),
           onAus: (grund) => {
             gpu = null;
