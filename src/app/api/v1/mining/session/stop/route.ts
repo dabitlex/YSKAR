@@ -1,17 +1,20 @@
-import { authed, ok, fail } from '@/lib/http';
-import { db } from '@/lib/db/service';
+/**
+ * STILLGELEGT -- diese Route gehoert dem Full Node.
+ *
+ * Bis September 2026 lief hier ein Teil des Minings ueber Supabase. Seit
+ * der Umstellung ist der Full Node die einzige Stelle, die Arbeit verteilt
+ * und Transaktionen annimmt. Supabase haelt nur noch einen Lesespiegel der
+ * Kette fuer den Explorer.
+ *
+ * Die Begruendung und das Antwortformat stehen in src/lib/api/stillgelegt.ts.
+ */
+import { stillgelegt } from '@/lib/api/stillgelegt';
+
+export { OPTIONS } from '@/lib/api/stillgelegt';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-/** POST /api/v1/mining/session/stop -- sauberes Beenden beim Schliessen der App. */
-export async function POST(req: Request) {
-  const auth = authed(req);
-  if ('response' in auth) return auth.response;
+const ZIEL = '/api/v2/session/stop';
 
-  const { error } = await db().from('mining_sessions')
-    .update({ status: 'stopped' })
-    .eq('user_id', auth.claims.sub)
-    .eq('status', 'active');
-
-  return error ? fail('stop_failed', 500) : ok({ stopped: true }, 200, auth.renewedToken);
-}
+export async function POST() { return stillgelegt(ZIEL); }

@@ -14,9 +14,42 @@ export const dynamic = 'force-dynamic';
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'content-type',
+  'access-control-allow-headers': 'content-type, authorization',
 };
 export async function OPTIONS() { return new Response(null, { status: 204, headers: CORS }); }
+
+/**
+ * Darf dieser Aufrufer spiegeln?
+ *
+ * Diese Route ist der EINZIGE verbliebene Schreibweg nach Supabase. Alles
+ * andere -- Sitzungen, Jobs, Shares, Transaktionen -- ist stillgelegt.
+ *
+ * Absichtlich OPTIONAL: Ist YSKAR_SPIEGEL_TOKEN nicht gesetzt, bleibt die
+ * Route offen wie bisher. Das ist kein Schlamperei-Fallback, sondern die
+ * Voraussetzung dafuer, die Umstellung in zwei Schritten zu fahren: erst
+ * den Spiegel mit dem vorhandenen Knoten neu befuellen, dann abschliessen.
+ * Wer den Token setzt, muss ihn auf beiden Seiten setzen, sonst bricht das
+ * Nachziehen ab -- deshalb sagt die Fehlermeldung das auch.
+ *
+ * Was der Token NICHT ist: eine Sicherheitsgrenze gegen faule Bloecke. Die
+ * Pruefung darunter rechnet ohnehin alles selbst nach. Der Token haelt
+ * bloss fremde Ketten aus dem Spiegel heraus.
+ */
+function spiegelErlaubt(req: Request): boolean {
+  const erwartet = process.env.YSKAR_SPIEGEL_TOKEN?.trim();
+  if (!erwartet) return true;
+
+  const kopf = req.headers.get('authorization') ?? '';
+  const gegeben = kopf.startsWith('Bearer ') ? kopf.slice(7).trim() : '';
+  if (gegeben.length !== erwartet.length) return false;
+
+  // Zeichenweiser Vergleich ohne fruehen Abbruch.
+  let abweichung = 0;
+  for (let i = 0; i < erwartet.length; i++) {
+    abweichung |= erwartet.charCodeAt(i) ^ gegeben.charCodeAt(i);
+  }
+  return abweichung === 0;
+}
 
 /**
  * POST /api/v2/block   { raw: "<hex>" }
@@ -43,6 +76,15 @@ export async function OPTIONS() { return new Response(null, { status: 204, heade
 const MAX_BYTES = 1_048_576;
 
 export async function POST(req: Request) {
+  if (!spiegelErlaubt(req)) {
+    return NextResponse.json({
+      accepted: false, reason: 'spiegel_token',
+      detail:
+        'Diese Gegenstelle nimmt Blöcke nur mit gültigem Spiegel-Token an. ' +
+        'YSKAR_SPIEGEL_TOKEN muss in Vercel und auf dem Knoten denselben Wert haben.',
+    }, { status: 401, headers: CORS });
+  }
+
   let body: { raw?: string };
   try { body = await req.json(); }
   catch { return fail('bad_json'); }

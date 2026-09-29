@@ -1,14 +1,20 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db/service';
+/**
+ * STILLGELEGT -- diese Route gehoert dem Full Node.
+ *
+ * Bis September 2026 lief hier ein Teil des Minings ueber Supabase. Seit
+ * der Umstellung ist der Full Node die einzige Stelle, die Arbeit verteilt
+ * und Transaktionen annimmt. Supabase haelt nur noch einen Lesespiegel der
+ * Kette fuer den Explorer.
+ *
+ * Die Begruendung und das Antwortformat stehen in src/lib/api/stillgelegt.ts.
+ */
+import { stillgelegt } from '@/lib/api/stillgelegt';
+
+export { OPTIONS } from '@/lib/api/stillgelegt';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
-  let body: { sessionId?: string };
-  try { body = await req.json(); } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
-  if (!body.sessionId) return NextResponse.json({ error: 'missing_session' }, { status: 400 });
+const ZIEL = '/api/v2/session/stop';
 
-  await db().schema('chain2').from('sessions')
-    .update({ status: 'stopped' }).eq('id', body.sessionId).eq('status', 'active');
-  return NextResponse.json({ stopped: true });
-}
+export async function POST() { return stillgelegt(ZIEL); }

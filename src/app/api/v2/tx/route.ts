@@ -1,26 +1,20 @@
-import { NextResponse } from 'next/server';
-import { submitTransaction } from '@/lib/node/node';
-import { fromHex } from '@/lib/core/codec';
+/**
+ * STILLGELEGT -- diese Route gehoert dem Full Node.
+ *
+ * Bis September 2026 lief hier ein Teil des Minings ueber Supabase. Seit
+ * der Umstellung ist der Full Node die einzige Stelle, die Arbeit verteilt
+ * und Transaktionen annimmt. Supabase haelt nur noch einen Lesespiegel der
+ * Kette fuer den Explorer.
+ *
+ * Die Begruendung und das Antwortformat stehen in src/lib/api/stillgelegt.ts.
+ */
+import { stillgelegt } from '@/lib/api/stillgelegt';
+
+export { OPTIONS } from '@/lib/api/stillgelegt';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-/**
- * POST /api/v2/tx   { raw: "<hex>" }
- *
- * Die Signatur IST die Berechtigung -- es braucht keine Anmeldung. Wer eine
- * gueltig signierte Transaktion einreicht, hat den passenden Schluessel.
- */
-export async function POST(req: Request) {
-  let body: { raw?: string };
-  try { body = await req.json(); }
-  catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }); }
-  if (!body.raw) return NextResponse.json({ error: 'missing_raw' }, { status: 400 });
+const ZIEL = '/api/v2/tx';
 
-  let raw: Uint8Array;
-  try { raw = fromHex(body.raw); }
-  catch { return NextResponse.json({ error: 'bad_hex' }, { status: 400 }); }
-  if (raw.length > 1024) return NextResponse.json({ error: 'too_large' }, { status: 400 });
-
-  const result = await submitTransaction(raw);
-  return NextResponse.json(result, { status: result.accepted ? 200 : 400 });
-}
+export async function POST() { return stillgelegt(ZIEL); }
