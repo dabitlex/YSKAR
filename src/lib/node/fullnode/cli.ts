@@ -451,6 +451,17 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     : (opt.regtest ? '' : opt.api);
   if (nachOben) server.upstream = nachOben;
 
+  /*
+    Eine ueber die Schnittstelle eingereichte Ueberweisung an die Peers
+    ankuendigen.
+
+    Der SyncManager entsteht erst weiter unten -- deshalb die Closure und
+    nicht die Referenz: Sie liest `abgleich` erst, wenn tatsaechlich eine
+    Ueberweisung hereinkommt. Ohne P2P ist er nie gesetzt, dann passiert
+    hier nichts, und das ist richtig so.
+  */
+  server.onNeueTx = hash => { abgleich?.kuendigeAnTx(hash); };
+
   server.onUpstream = e => {
     melde(e.ok
       ? grau(`           weitergegeben, dort als Höhe ${nf(e.hoehe ?? 0)} angenommen`)

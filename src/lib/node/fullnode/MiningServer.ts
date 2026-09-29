@@ -143,6 +143,19 @@ export class MiningServer {
   upstream?: string;
   onUpstream?: (ergebnis: { ok: boolean; grund?: string; hoehe?: number }) => void;
 
+  /**
+   * Eine ueber die Schnittstelle eingereichte Ueberweisung wurde aufgenommen.
+   *
+   * Das ist der Weg, ueber den die Wallet sendet -- und er endete bisher
+   * hier. Andere Knoten erfuhren von der Ueberweisung nur, wenn sie
+   * zufaellig in einem Block auftauchte, den dieser Knoten selbst fand.
+   * Bis dahin haette jeder andere Knoten einen Block ohne sie gebaut.
+   *
+   * Gerufen wird das nur bei tatsaechlicher Aufnahme, nie bei einer
+   * Ablehnung: Was hier nicht liegt, hat auch niemand anders zu sehen.
+   */
+  onNeueTx?: (hash: Uint8Array) => void;
+
   constructor(teile: {
     chain: ChainManager; store: ChainStore; pool: TxPool; mining: MiningCoordinator;
   }, opt: ServerOptionen = {}) {
@@ -686,13 +699,17 @@ export class MiningServer {
       return { accepted: false, reason: 'missing_raw' };
     }
     try {
-      const { deserializeTx } = await import('../../core/tx.ts');
+      const { deserializeTx, txid } = await import('../../core/tx.ts');
       const tx = deserializeTx(fromHex(b.raw));
       if (tx.type !== 1) return { accepted: false, reason: 'not_a_transfer' };
       const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
-      return r.ok
-        ? { accepted: true, txid: r.txid, replaced: r.ersetzt ?? null }
-        : { accepted: false, reason: r.reason, detail: r.detail };
+      if (!r.ok) return { accepted: false, reason: r.reason, detail: r.detail };
+
+      // Den Peers sagen, dass es sie gibt -- sonst kennt sie nur dieser Knoten.
+      try { this.onNeueTx?.(txid(tx)); }
+      catch (e) { this.onFehler?.('Tx ankündigen', e as Error); }
+
+      return { accepted: true, txid: r.txid, replaced: r.ersetzt ?? null };
     } catch (e) {
       return { accepted: false, reason: 'malformed', detail: (e as Error).message };
     }

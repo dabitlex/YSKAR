@@ -29,13 +29,17 @@ import type { Frame } from './wire.ts';
 import {
   encodeGetHeaders, decodeGetHeaders, encodeHeaders, decodeHeaders,
   encodeInv, decodeInv, encodeGetData, decodeGetData, encodeNotFound,
-  INV_BLOCK, MAX_HEADERS,
+  INV_BLOCK, INV_TX, MAX_HEADERS, MAX_INV,
 } from './messages.ts';
+import { deserializeTx, serializeTx, txid, TX_COINBASE, type Transfer }
+  from '../../core/tx.ts';
 import type { TxPool } from '../fullnode/TxPool.ts';
 import { mempoolNachziehen } from '../fullnode/mempoolPflege.ts';
 
 /** Wie viele Blockkoerper gleichzeitig angefragt werden. */
 export const BLOCK_FENSTER = 16;
+/** Wie viele abgewiesene Ueberweisungen im Gedaechtnis bleiben. */
+export const ABGEWIESEN_RING = 4096;
 /** Wie lange auf angeforderte Daten gewartet wird. */
 export const ANFRAGE_TIMEOUT_MS = 30_000;
 
@@ -71,6 +75,30 @@ export class SyncManager {
 
   /** Angeforderte Bloecke: Hash -> von wem und seit wann. */
   private offen = new Map<string, OffeneAnfrage>();
+
+  /**
+   * Angeforderte Ueberweisungen, die noch nicht geliefert wurden.
+   *
+   * Getrennt von `offen`: Bloecke haengen an der Warteschlange und muessen
+   * in Reihenfolge kommen. Fuer eine Ueberweisung gilt beides nicht -- sie
+   * steht fuer sich und hat keine Vorgaenger.
+   */
+  private offeneTx = new Map<string, OffeneAnfrage>();
+
+  /**
+   * Kuerzlich abgewiesene Ueberweisungen.
+   *
+   * Ohne dieses Gedaechtnis entstuende eine Schleife aus lauter richtigem
+   * Verhalten: Peer kuendigt an, wir fordern an, wir pruefen, wir lehnen ab
+   * -- und beim naechsten Mal von vorn. Bei mehreren Peers, die einander
+   * dieselbe unbrauchbare Ueberweisung ankuendigen, laeuft das endlos.
+   *
+   * Ein Ring fester Groesse, kein wachsender Speicher: Was hinten
+   * herausfaellt, wird irgendwann noch einmal angefordert. Das ist der
+   * Preis dafuer, dass ein Angreifer diese Liste nicht aufblaehen kann.
+   */
+  private abgewiesen = new Set<string>();
+  private abgewiesenRing: string[] = [];
   /**
    * Header, deren Koerper noch fehlen -- in der Reihenfolge der Kette.
    *
@@ -139,6 +167,7 @@ export class SyncManager {
         case 'getdata':    return this.aufGetData(p, f.payload);
         case 'block':      return this.aufBlock(p, f.payload);
         case 'inv':        return this.aufInv(p, f.payload);
+        case 'tx':         return this.aufTx(p, f.payload);
         case 'notfound':   return this.aufNotFound(p, f.payload);
       }
     } catch (e) {
@@ -233,6 +262,12 @@ export class SyncManager {
     const fehlt: { typ: number; hash: Uint8Array }[] = [];
 
     for (const e of wunsch) {
+      if (e.typ === INV_TX) {
+        const tx = this.pool?.get(toHex(e.hash));
+        if (!tx) { fehlt.push(e); continue; }
+        p.send('tx', serializeTx(tx));
+        continue;
+      }
       if (e.typ !== INV_BLOCK) { fehlt.push(e); continue; }
       const b = this.store.get(e.hash);
       if (!b) { fehlt.push(e); continue; }
@@ -368,22 +403,120 @@ export class SyncManager {
 
   private aufInv(p: PeerConnection, payload: Uint8Array): void {
     const eintraege = decodeInv(payload);
+
     const wunsch = eintraege.filter(e =>
       e.typ === INV_BLOCK
       && !this.store.has(e.hash)
       && !this.offen.has(toHex(e.hash)));
 
-    if (wunsch.length === 0) return;
-
     for (const w of wunsch) {
       this.offen.set(toHex(w.hash), { peer: p, seit: Date.now() });
     }
-    p.send('getdata', encodeGetData(wunsch));
+
+    /*
+      Ueberweisungen, die wir noch nicht kennen.
+
+      Drei Gruende, eine Ankuendigung zu uebergehen: Sie liegt schon in der
+      Warteschlange, sie ist bereits unterwegs, oder wir haben sie schon
+      einmal abgewiesen. Der letzte Fall ist der wichtigste -- ohne ihn
+      fordern wir dieselbe unbrauchbare Ueberweisung endlos neu an.
+
+      Ohne Pool wird gar nicht erst gefragt: Wir haetten keinen Ort, wohin
+      damit.
+    */
+    const txWunsch = this.pool
+      ? eintraege.filter(e => {
+          if (e.typ !== INV_TX) return false;
+          const id = toHex(e.hash);
+          return !this.pool!.has(id) && !this.offeneTx.has(id) && !this.abgewiesen.has(id);
+        }).slice(0, MAX_INV)
+      : [];
+
+    for (const w of txWunsch) {
+      this.offeneTx.set(toHex(w.hash), { peer: p, seit: Date.now() });
+    }
+
+    const alle = [...wunsch, ...txWunsch];
+    if (alle.length === 0) return;
+    p.send('getdata', encodeGetData(alle));
+  }
+
+  /**
+   * Eine Ueberweisung, die ein Peer geschickt hat.
+   *
+   * Sie wird voll geprueft -- dieselbe Pruefung wie fuer eine, die ueber
+   * die eigene Schnittstelle hereinkommt. Weitergereicht wird nur, was
+   * tatsaechlich neu aufgenommen wurde. Das ist zugleich der Schutz gegen
+   * Kreisverkehr: Was schon in der Warteschlange liegt, kommt als
+   * `duplicate` zurueck und wird nicht noch einmal herumgeschickt. Ohne
+   * diese Bedingung liefe eine Ueberweisung zwischen drei Knoten ewig im
+   * Kreis.
+   */
+  private aufTx(p: PeerConnection, payload: Uint8Array): void {
+    if (!this.pool) return;
+
+    let tx: Transfer;
+    try {
+      const roh = deserializeTx(payload);
+      if (roh.type === TX_COINBASE) {
+        // Eine Coinbase entsteht im Block und wird nie einzeln verschickt.
+        return void p.close('coinbase_als_tx');
+      }
+      tx = roh as Transfer;
+    } catch {
+      return void p.close('tx_unlesbar');
+    }
+
+    const id = toHex(txid(tx));
+    this.offeneTx.delete(id);
+
+    const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
+    if (!r.ok) {
+      /*
+        Kein Grund zum Trennen: Eine Ueberweisung kann voellig richtig
+        gebaut und trotzdem hier unbrauchbar sein -- etwa weil die Nonce
+        inzwischen verbraucht ist. Nur merken, damit wir sie nicht gleich
+        wieder anfordern.
+      */
+      this.merkeAbgewiesen(id);
+      return;
+    }
+
+    this.kuendigeAnTx(txid(tx), p);
+  }
+
+  /** Eine Ueberweisung den Peers ankuendigen -- nicht dem, von dem sie kam. */
+  kuendigeAnTx(hash: Uint8Array, ausser?: PeerConnection): number {
+    return this.peers.kuendigeAn(INV_TX, hash, ausser);
+  }
+
+  /**
+   * Steht diese Ueberweisung im Gedaechtnis der Abgewiesenen?
+   *
+   * Fuer Tests und Diagnose. Ohne diese Auskunft liesse sich der
+   * Flutungsschutz nur ueber sein Ausbleiben pruefen -- also daran, dass
+   * etwas NICHT endlos passiert, und das ist keine Zusicherung, die ein
+   * Test in endlicher Zeit treffen kann.
+   */
+  istAbgewiesen(id: string): boolean { return this.abgewiesen.has(id); }
+
+  private merkeAbgewiesen(id: string): void {
+    if (this.abgewiesen.has(id)) return;
+    this.abgewiesen.add(id);
+    this.abgewiesenRing.push(id);
+    while (this.abgewiesenRing.length > ABGEWIESEN_RING) {
+      const raus = this.abgewiesenRing.shift();
+      if (raus !== undefined) this.abgewiesen.delete(raus);
+    }
   }
 
   private aufNotFound(p: PeerConnection, payload: Uint8Array): void {
     for (const e of decodeNotFoundSicher(payload)) {
       this.offen.delete(toHex(e.hash));
+      // Eine Ueberweisung, die der Peer nicht mehr hat: Der Versuch ist
+      // beendet. Nicht als abgewiesen merken -- sie kann bei einem anderen
+      // liegen und voellig in Ordnung sein.
+      this.offeneTx.delete(toHex(e.hash));
     }
     // Ein anderer Peer hat ihn vielleicht.
     const anderer = this.peers.bereite().find(x => x !== p);
