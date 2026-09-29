@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Screen, Title, Body, Button, Notice } from '@/components/ui/Primitives';
@@ -26,18 +28,20 @@ export default function Unlock() {
 
   return (
     <Screen>
-      <div className="mt-10">
+      <div className="mt-8">
+        <Image src="/marke/kristall.png" alt="" width={120} height={88} priority
+               className="zoom mx-auto mb-6" style={{ width: 120, height: 88, objectFit: 'contain' }} />
         <Title>PIN eingeben</Title>
         {wallet.address && (
-          <p className="mb-6 break-all font-mono text-sm text-dim">{wallet.address}</p>
+          <p className="mb-6 mt-3 break-all font-mono text-[12.5px] text-faint">{wallet.address}</p>
         )}
 
         <input
           inputMode="numeric" maxLength={6} value={pin} autoFocus
           onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
           onKeyDown={e => { if (e.key === 'Enter' && pin.length === 6) oeffnen(); }}
-          className="tnum sunk w-full border border-transparent px-4 py-5 text-center font-mono text-[26px]
-                     tracking-[0.5em] outline-none transition-colors focus:border-work/60"
+          className="tnum sunk w-full px-4 py-5 text-center font-mono text-[26px]
+                     tracking-[0.5em] outline-none transition-colors focus:border-work"
         />
 
         {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
@@ -51,7 +55,7 @@ export default function Unlock() {
         {!zeigeNotausgang ? (
           <button
             onClick={() => setZeigeNotausgang(true)}
-            className="mt-8 w-full text-center text-sm text-dim underline"
+            className="mt-8 w-full text-center text-[13.5px] font-bold text-dim"
           >
             PIN vergessen
           </button>

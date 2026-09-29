@@ -1,24 +1,27 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
 /*
-  IBM Plex: fuer Ingenieursdokumentation entworfen, und genau so soll sich
-  die App lesen. Ueber next/font selbst gehostet -- ein Aufruf an Google
-  waere im Telegram-WebView zusaetzliche Latenz vor dem ersten Bild.
+  Manrope: geometrisch, ruhig, mit klaren Ziffern -- so soll sich die App
+  lesen: wie ein Werkzeug, nicht wie ein Spielautomat. Die Dateien liegen im
+  Repo (src/fonts, OFL-lizenziert): Der Build braucht damit kein Google, und
+  im Telegram-WebView laedt nichts von fremden Servern.
 
-  Mono ist hier kein Stilmittel: Hexadezimal, Adressen und Merkwoerter
-  brauchen feste Zeichenbreite, sonst kann man sie nicht spaltenweise lesen
-  und nicht zuverlaessig abschreiben.
+  Mono ist kein Stilmittel: Hexadezimal, Adressen und Merkwoerter brauchen
+  feste Zeichenbreite, sonst kann man sie nicht zuverlaessig abschreiben.
 */
-const sans = IBM_Plex_Sans({
-  subsets: ['latin'], weight: ['400', '500', '600'],
-  variable: '--font-plex-sans', display: 'swap',
+const sans = localFont({
+  src: [{ path: '../fonts/manrope-latin-wght-normal.woff2', weight: '200 800', style: 'normal' }],
+  variable: '--font-sans', display: 'swap',
 });
-const mono = IBM_Plex_Mono({
-  subsets: ['latin'], weight: ['400', '500'],
-  variable: '--font-plex-mono', display: 'swap',
+const mono = localFont({
+  src: [
+    { path: '../fonts/ibm-plex-mono-latin-400-normal.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/ibm-plex-mono-latin-500-normal.woff2', weight: '500', style: 'normal' },
+  ],
+  variable: '--font-mono', display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   width: 'device-width', initialScale: 1, maximumScale: 1,
-  viewportFit: 'cover', themeColor: '#0C0F14',
+  viewportFit: 'cover', themeColor: '#F4F7FB',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

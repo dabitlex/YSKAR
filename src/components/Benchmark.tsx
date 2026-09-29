@@ -40,7 +40,7 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
   return (
     <>
       <button onClick={onZurueck}
-              className="mb-4 text-[13px] text-dim hover:text-text">
+              className="mb-4 text-[13.5px] font-bold text-work">
         ← Zurück
       </button>
 

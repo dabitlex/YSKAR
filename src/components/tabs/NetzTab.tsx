@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Panel, GroupTitle, Empty } from '@/components/ui/Primitives';
+import { Panel, GroupTitle, Empty, Status, Kennzahl } from '@/components/ui/Primitives';
+import { TopBar } from '@/components/ui/Chrome';
 import type { Summary } from '@/hooks/useMining';
 
 /**
@@ -65,19 +66,33 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
   const rest = seitLetztem == null ? null
     : Math.max(0, Math.round((600 - seitLetztem) / 60));
 
+  const seitMin = seitLetztem == null ? null : Math.round(seitLetztem / 60);
+  const fortschritt = seitLetztem == null ? 0 : Math.min(100, (seitLetztem / 600) * 100);
+
   return (
     <>
+      <TopBar titel="Netz" rechts={
+        <Status tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? 'live' : 'lädt'}</Status>
+      } />
+
       <Panel tone="work" className="rise">
-        <p className="text-[13px] text-dim">Aktuelle Höhe</p>
-        <div className="mt-1 flex items-baseline gap-2 leading-none">
-          <span className="tnum text-[42px] font-medium tracking-[-0.03em]">
-            #{summary?.height ?? '—'}
+        <p className="label">Aktuelle Höhe</p>
+        <div className="mt-2 flex items-baseline gap-2.5 leading-none">
+          <span className="tnum text-[40px] font-extrabold tracking-[-0.03em]">
+            #{summary?.height?.toLocaleString('de-DE') ?? '—'}
           </span>
-          <span className="text-[15px] text-dim">
+          <span className="text-[13.5px] font-semibold text-dim">
             {rest == null ? '' : rest > 0 ? `nächster in ≈ ${rest} min` : 'jederzeit'}
           </span>
         </div>
-        <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4">
+        <div className="bar mt-4"><i style={{ width: `${Math.max(2, fortschritt)}%` }} /></div>
+        <p className="mt-2 text-[12px] font-semibold text-faint">
+          Zielzeit 10 min je Block{seitMin != null ? ` · seit letztem Block ${seitMin} min` : ''}
+        </p>
+      </Panel>
+
+      <Panel className="rise rise-1 mt-3.5">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
           <Kennzahl label="Difficulty"
                     wert={summary?.difficulty?.toLocaleString('de-DE') ?? '—'} />
           <Kennzahl label="Netz-Hashrate" wert={rate(summary?.hashrate ?? null)} />
@@ -88,28 +103,32 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
         </dl>
       </Panel>
 
-      <GroupTitle aside="live">Letzte Blöcke</GroupTitle>
+      <GroupTitle aside={<a href="/explorer.html" className="font-bold text-work">Explorer öffnen</a>}>
+        Letzte Blöcke
+      </GroupTitle>
 
       {blocks.length === 0 ? (
         <Empty>Die Kette wird geladen…</Empty>
       ) : (
         <Panel className="rise rise-1 !p-0">
-          <ul className="divide-y divide-line/70">
+          <ul className="divide-y divide-line">
             {blocks.map(b => (
               <li key={b.height} className="flex items-center gap-3 px-4 py-3.5">
-                <span className="tnum w-10 shrink-0 text-[13px] text-work">#{b.height}</span>
+                <span className="tnum w-14 shrink-0 text-[13.5px] font-extrabold text-work">
+                  #{b.height.toLocaleString('de-DE')}
+                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-[11px] text-faint">
+                  <span className="block truncate font-mono text-[11px] text-dim">
                     {b.hash}
                   </span>
-                  <span className="mt-0.5 block text-[11.5px] text-faint">
+                  <span className="mt-0.5 block text-[12px] font-semibold text-faint">
                     {b.reward ? `${(Number(b.reward) / 10 ** decimals).toFixed(0)} ${symbol}` : '—'}
                     {' · '}{b.txCount} Tx · {vorZeit(b.timestamp)}
                   </span>
                 </span>
                 {meinHex && b.minerAddress === meinHex && (
-                  <span className="shrink-0 rounded-full bg-proof/12 px-2 py-0.5
-                                   text-[10px] text-proof">du</span>
+                  <span className="shrink-0 rounded-full bg-proof/10 px-2 py-0.5
+                                   text-[11px] font-bold text-proof">du</span>
                 )}
               </li>
             ))}
@@ -117,20 +136,6 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
         </Panel>
       )}
 
-      <a href="/explorer.html"
-         className="mt-4 block rounded-sm bg-raised px-4 py-3.5 text-center text-[14px]
-                    text-dim shadow-[inset_0_1px_0_rgb(var(--edge)/.055)]">
-        Vollständigen Explorer öffnen
-      </a>
     </>
-  );
-}
-
-function Kennzahl({ label, wert }: { label: string; wert: string }) {
-  return (
-    <div>
-      <dt className="text-[11.5px] text-faint">{label}</dt>
-      <dd className="tnum mt-1 text-[16px]">{wert}</dd>
-    </div>
   );
 }

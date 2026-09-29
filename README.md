@@ -17,7 +17,7 @@ Weitere: **proof, not promise**.
 | | |
 |---|---|
 | Kette | `yskar-main-1`, Genesis gemint am 09.09.2026 |
-| Tests | 155, keine Typfehler |
+| Tests | 289, keine Typfehler |
 | Knoten | Server unter `/api/v2/*` **und** eigenstaendiger Full Node |
 | Oberflaeche | Wallet, Senden, Empfangen, Mining, Kalibrierung |
 | Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000 |
@@ -56,7 +56,7 @@ lokal -- der Unterschied liegt in der Quelle, nicht in der Pruefung.
 
 ```bash
 npm install
-npm test                 # 155 Tests
+npm test                 # 289 Tests
 npx tsc --noEmit         # 0 Fehler
 npm run dev
 ```
