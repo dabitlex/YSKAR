@@ -437,7 +437,21 @@ export class MiningServer {
     try { nonce = BigInt(String(b.nonce)); }
     catch { return { accepted: false, reason: 'malformed' }; }
 
-    const netzDifficulty = BigInt(this.chain.tip()?.difficulty ?? 0n);
+    /*
+      Die Difficulty, gegen die der Miner GERADE arbeitet -- nicht die des
+      letzten Blocks.
+
+      Vorher stand hier chain.tip()?.difficulty. Das ist die Difficulty des
+      fertigen Blocks; der Miner arbeitet aber am naechsten, und dessen
+      Difficulty wird per LWMA neu berechnet. Beide koennen deutlich
+      auseinanderliegen. Die App zeigt diesen Wert als "Ziel" an -- und ein
+      Ziel, das ein erledigter Block bereits erreicht hat, ist keins.
+
+      aktuelleArbeit() liefert genau die Vorgaben des offenen Jobs. Nur
+      falls noch keiner gebaut wurde, bleibt der Tip als Rueckfall.
+    */
+    const netzDifficulty = this.mining.aktuelleArbeit()?.difficulty
+      ?? BigInt(this.chain.tip()?.difficulty ?? 0n);
     const r = this.mining.submitNonce(jobId, nonce);
 
     if (!r.ok) {

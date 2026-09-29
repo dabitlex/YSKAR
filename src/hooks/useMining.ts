@@ -130,6 +130,14 @@ export function useMining(address: string | null, platform: string) {
   const basis = useRef('');
   const [poolInfo, setPoolInfo] = useState<PoolInfo | null>(null);
 
+  /**
+   * Mining-Aufrufe: Sitzung, Job, Share, Stop.
+   *
+   * Diese und NUR diese folgen basis.current -- beim Solo-Mining der eigene
+   * Knoten, beim Pool-Mining die Adresse des Pools. Ein Job lebt 90
+   * Sekunden und muss auf dem aktuellen Kopf stehen; ein Spiegel ist
+   * definitionsgemaess hinterher und darf deshalb keine Jobs ausgeben.
+   */
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const res = await fetch(`${basis.current}/api/v2${path}`, {
       ...init,
@@ -141,6 +149,30 @@ export function useMining(address: string | null, platform: string) {
       // mit. Den wegzuwerfen und nur den Code zu zeigen, hilft niemandem.
       throw new Error(body.detail ?? body.error ?? res.statusText);
     }
+    return body;
+  }, []);
+
+  /**
+   * Leseaufrufe: Kennzahlen und Konto.
+   *
+   * IMMER ueber den eigenen Server, egal ob gerade gemint wird.
+   *
+   * Vorher liefen auch diese ueber basis.current. Dadurch wechselte die
+   * Quelle in dem Moment, in dem das Mining startete -- und mit ihr die
+   * Zahlen: Der Spiegel zaehlt gefundene Bloecke per Datenbankabfrage
+   * ueber die ganze Kette, der Knoten zaehlte sie nur innerhalb der letzten
+   * 40 Verlaufseintraege. Aus 1158 wurden auf Knopfdruck 40, und beides war
+   * dieselbe Wallet.
+   *
+   * Eine Angabe, zwei Quellen, zwei Zaehlweisen: Das darf nicht davon
+   * abhaengen, ob gerade gemint wird.
+   */
+  const leseApi = useCallback(async (path: string) => {
+    const res = await fetch(`/api/v2${path}`, {
+      headers: { 'content-type': 'application/json' },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail ?? body.error ?? res.statusText);
     return body;
   }, []);
 
@@ -325,18 +357,18 @@ export function useMining(address: string | null, platform: string) {
   useEffect(() => {
     const tick = async () => {
       try {
-        const s: Summary = await api('/summary');
+        const s: Summary = await leseApi('/summary');
         setSummary(s);
         if (typeof s.height === 'number') lastHeight.current = s.height;
       } catch { /* Anzeige darf still bleiben, Mining laeuft weiter */ }
       if (address) {
-        try { setAccount(await api(`/account/${address}`)); } catch { /* s.o. */ }
+        try { setAccount(await leseApi(`/account/${address}`)); } catch { /* s.o. */ }
       }
     };
     tick();
     const id = setInterval(tick, 6000);
     return () => clearInterval(id);
-  }, [api, address]);
+  }, [leseApi, address]);
 
   // Sauber stoppen, wenn die App in den Hintergrund geht. Die Plattform
   // haelt den Worker ohnehin an -- ohne das bliebe die Session offen.

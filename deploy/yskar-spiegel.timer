@@ -12,10 +12,13 @@ Documentation=https://github.com/dabitlex/YSKAR
 # geblieben. Und weil die Gegenstelle immer nur den NÄCHSTEN Block annimmt,
 # blockiert ein einziger verlorener Block alle folgenden.
 #
-# Alle 15 Minuten. Bei zehn Minuten Blockzeit heißt das: Eine Lücke steht
-# selten länger als eine Viertelstunde.
-OnBootSec=5min
-OnUnitActiveSec=15min
+# Alle 5 Minuten. Ein Lauf ohne Rückstand kostet fast nichts -- ein
+# HTTP-Request und ein Zahlenvergleich. Dafür schließt sich eine Lücke
+# schneller, und das zählt: Die Wallet in der Mini App liest ihre Zahlen
+# aus dem Spiegel, nicht aus dem Knoten. Steht der Spiegel, stehen ihre
+# Zahlen.
+OnBootSec=2min
+OnUnitActiveSec=5min
 
 # Nicht alle Timer auf dem Pi gleichzeitig loslaufen lassen.
 RandomizedDelaySec=60
