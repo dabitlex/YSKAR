@@ -21,6 +21,7 @@ import { Kennzahlen, rate as fmtRate2, hashes as fmtHashes, dauer, zahl as zahl2
   from './anzeige.mjs';
 import * as konfig from './konfig.mjs';
 import { frage, jaNein, interaktiv, warteAufTaste, schliessen } from './frage.mjs';
+import { zeigeKopf } from './banner.mjs';
 
 /**
  * Eigener Ordner.
@@ -113,6 +114,9 @@ const FARBE = process.stdout.isTTY && !process.env.NO_COLOR;
 const f = (code, s) => FARBE ? `\x1b[${code}m${s}\x1b[0m` : s;
 const gelb = s => f('33', s), gruen = s => f('32', s);
 const rot = s => f('31', s), grau = s => f('90', s), fett = s => f('1', s);
+const cyan = s => f('36', s);
+/** Gebündelt für banner.mjs — dort sind die Helfer nicht definiert. */
+const FARBEN = { gelb, gruen, rot, grau, fett, cyan };
 
 function zeile(text) {
   // Statuszeile ueberschreiben statt anhaengen, damit das Fenster nicht
@@ -222,24 +226,42 @@ async function main() {
 
   const wasm = ladeWasm();
 
-  console.log(fett(`\nYSKAR Miner ${VERSION}`));
-  console.log(grau('─'.repeat(52)));
-  console.log(`  Adresse     ${arg.address}`);
-  console.log(`  Server      ${arg.api}`);
-  if ((arg.mode ?? 'solo') === 'pool') console.log('  Modus       Pool');
-  console.log(`  Threads     ${threads} von ${os.cpus().length} Kernen`);
-  console.log(`  Intensität  ${arg.intensity} %`);
-  console.log(grau('─'.repeat(52)));
+  /*
+    Netzangaben fuer den Kopf holen -- vor der Anmeldung.
+
+    Ein zusaetzlicher Aufruf, und er darf scheitern: Ist der Knoten nicht
+    erreichbar, sagt das der Kopf, und die Anmeldung gleich darauf sagt es
+    noch einmal mit dem genauen Grund. Ein abgebrochener Start ohne jede
+    Ausgabe waere die schlechtere Antwort.
+  */
+  let netz = null;
+  try { netz = await api(arg.api, '/summary'); }
+  catch { /* Der Kopf zeigt dann "nicht erreichbar". */ }
+
+  zeigeKopf({
+    version: VERSION,
+    adresse: arg.address,
+    api: arg.api,
+    modus: arg.mode ?? 'solo',
+    threads,
+    intensitaet: arg.intensity,
+    rechner: arg.rechner,
+    geraet: arg.device,
+    netz,
+    farben: FARBEN,
+  });
+
   if (merken) {
     const pfad = konfig.speichern(WURZEL, {
       address: arg.address, workers: threads, intensity: arg.intensity,
     });
     console.log(grau(`  Gemerkt in ${pfad}`));
     console.log(grau('  Löschen mit --forget'));
+    console.log('');
   } else if (gespeichert) {
     console.log(grau('  Adresse aus yskar-miner.json · ändern mit --address'));
+    console.log('');
   }
-  console.log('');
 
   // ---- Session ----
   let session;
