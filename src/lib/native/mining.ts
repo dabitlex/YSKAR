@@ -22,12 +22,18 @@ interface Plugin {
 
 let plugin: Plugin | null = null;
 
-async function lade(): Promise<Plugin | null> {
+/*
+  Der Proxy darf nie direkt aus einer async-Funktion zurueckkommen: JavaScript
+  prueft beim Aufloesen `.then`, der Proxy meldet "then() is not implemented",
+  und der Aufruf scheitert, ohne dass eine Methode je gerufen wurde.
+*/
+async function lade(): Promise<{ p: Plugin } | null> {
   if (!istNativ()) return null;
-  if (plugin) return plugin;
-  const { registerPlugin } = await import('@capacitor/core');
-  plugin = registerPlugin<Plugin>('MiningService');
-  return plugin;
+  if (!plugin) {
+    const { registerPlugin } = await import('@capacitor/core');
+    plugin = registerPlugin<Plugin>('MiningService');
+  }
+  return { p: plugin };
 }
 
 export type DienstErgebnis =
@@ -35,8 +41,9 @@ export type DienstErgebnis =
   | { ok: false; fehler: string };
 
 export async function miningDienstStart(text: string): Promise<DienstErgebnis | null> {
-  const p = await lade();
-  if (!p) return null;
+  const h = await lade();
+  if (!h) return null;
+  const p = h.p;
   try {
     const r = await p.start({ text });
     return { ok: true, notifications: !!r?.notifications };
@@ -46,20 +53,20 @@ export async function miningDienstStart(text: string): Promise<DienstErgebnis | 
 }
 
 export async function miningDienstText(text: string): Promise<void> {
-  const p = await lade();
-  if (!p) return;
-  try { await p.update({ text }); } catch { /* Dienst laeuft nicht */ }
+  const h = await lade();
+  if (!h) return;
+  try { await h.p.update({ text }); } catch { /* Dienst laeuft nicht */ }
 }
 
 export async function miningDienstStop(): Promise<void> {
-  const p = await lade();
-  if (!p) return;
-  try { await p.stop(); } catch { /* war schon aus */ }
+  const h = await lade();
+  if (!h) return;
+  try { await h.p.stop(); } catch { /* war schon aus */ }
 }
 
 export async function miningDienstBeiStopp(fn: () => void): Promise<() => void> {
-  const p = await lade();
-  if (!p) return () => {};
-  const h = await p.addListener('stop', fn);
-  return () => { h.remove().catch(() => {}); };
+  const h = await lade();
+  if (!h) return () => {};
+  const handle = await h.p.addListener('stop', fn);
+  return () => { handle.remove().catch(() => {}); };
 }

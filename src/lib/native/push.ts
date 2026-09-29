@@ -23,13 +23,14 @@ export function pushAktiv(): boolean {
   try { return localStorage.getItem(MERKER) === '1'; } catch { return false; }
 }
 
+/* Proxy nie direkt aus async zurueckgeben -- siehe biometrie.ts. */
 async function plugin() {
   const m = await import('@capacitor/push-notifications');
-  return m.PushNotifications;
+  return { p: m.PushNotifications };
 }
 
 async function kanaele() {
-  const p = await plugin();
+  const p = (await plugin()).p;
   await p.createChannel({ id: 'wallet', name: 'Wallet', description: 'Eingänge, Bestätigungen, Blockfunde',
                           importance: 4, visibility: 1, vibration: true });
   await p.createChannel({ id: 'news', name: 'Neuigkeiten', description: 'Neuigkeiten zu YSKAR',
@@ -38,7 +39,7 @@ async function kanaele() {
 
 /** Token holen (mit Erlaubnis-Dialog) -- null, wenn verweigert oder fehlgeschlagen. */
 async function tokenHolen(): Promise<string | null> {
-  const p = await plugin();
+  const p = (await plugin()).p;
   let erl = await p.checkPermissions();
   if (erl.receive === 'prompt' || erl.receive === 'prompt-with-rationale') erl = await p.requestPermissions();
   if (erl.receive !== 'granted') return null;
@@ -75,7 +76,7 @@ export async function pushAusschalten(): Promise<void> {
     }).catch(() => {});
   }
   try { localStorage.removeItem(MERKER); localStorage.removeItem(TOKEN); } catch { /* egal */ }
-  try { (await plugin()).unregister(); } catch { /* egal */ }
+  try { (await plugin()).p.unregister(); } catch { /* egal */ }
 }
 
 /**
@@ -96,7 +97,7 @@ export async function pushAuffrischen(address: string): Promise<void> {
 /** Tipp auf eine Benachrichtigung: sagt, wohin die App springen soll. */
 export async function pushBeiTipp(fn: (art: string, daten: Record<string, string>) => void): Promise<() => void> {
   if (!istNativ()) return () => {};
-  const p = await plugin();
+  const p = (await plugin()).p;
   const h = await p.addListener('pushNotificationActionPerformed', a => {
     const d = (a.notification.data ?? {}) as Record<string, string>;
     fn(d.art ?? '', d);
