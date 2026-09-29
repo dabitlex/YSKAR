@@ -109,21 +109,32 @@ export class Kennzahlen {
 
 // --------------------------------------------------------------- Formate
 
+/**
+ * Zahl mit deutschem Dezimalkomma.
+ *
+ * toFixed liefert IMMER einen Punkt, unabhaengig von der Sprache. In einer
+ * sonst deutschen Ausgabe faellt das auf: "103.18 MH/s" neben "Höhe 2.668"
+ * liest sich, als waere der Punkt einmal Tausender- und einmal
+ * Dezimaltrenner -- und genau das ist er dann auch.
+ */
+const komma = (n, stellen) => n.toLocaleString('de-DE', {
+  minimumFractionDigits: stellen, maximumFractionDigits: stellen });
+
 export function rate(h) {
   if (!h) return '0 H/s';
-  if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GH/s`;
-  if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MH/s`;
-  if (h >= 1e3) return `${(h / 1e3).toFixed(1)} kH/s`;
-  return `${Math.round(h)} H/s`;
+  if (h >= 1e9) return `${komma(h / 1e9, 2)} GH/s`;
+  if (h >= 1e6) return `${komma(h / 1e6, 2)} MH/s`;
+  if (h >= 1e3) return `${komma(h / 1e3, 1)} kH/s`;
+  return `${komma(Math.round(h), 0)} H/s`;
 }
 
 export function hashes(n) {
   const x = Number(n);
-  if (x >= 1e12) return `${(x / 1e12).toFixed(2)} TH`;
-  if (x >= 1e9) return `${(x / 1e9).toFixed(2)} GH`;
-  if (x >= 1e6) return `${(x / 1e6).toFixed(1)} MH`;
-  if (x >= 1e3) return `${(x / 1e3).toFixed(0)} kH`;
-  return `${x}`;
+  if (x >= 1e12) return `${komma(x / 1e12, 2)} TH`;
+  if (x >= 1e9) return `${komma(x / 1e9, 2)} GH`;
+  if (x >= 1e6) return `${komma(x / 1e6, 1)} MH`;
+  if (x >= 1e3) return `${komma(x / 1e3, 0)} kH`;
+  return `${komma(x, 0)}`;
 }
 
 export function dauer(sek) {

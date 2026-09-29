@@ -607,7 +607,13 @@ async function main() {
 
     const aufwand = k.aufwand();
     zeile(
-      `${grau('[' + uhr() + ']')} ${gelb(fmtRate2(summe).padEnd(10))}` +
+      /*
+        padEnd sorgt fuer eine ruhige Spalte, solange der Wert kuerzer ist.
+        Ab drei Stellen vor dem Komma ("103,18 MH/s") ist er es nicht mehr --
+        dann fehlte das Trennzeichen davor und es stand "MH/s·" aneinander.
+        Das Leerzeichen gehoert deshalb hinter das padEnd, nicht hinein.
+      */
+      `${grau('[' + uhr() + ']')} ${gelb(fmtRate2(summe).padEnd(11))} ` +
       `${grau('·')} ${k.angenommen}${grau('/')}${k.abgelehnt} ` +
       `${grau('·')} Aufwand ${aufwand === null ? '—' : aufwand.toFixed(0) + ' %'} ` +
       `${grau('·')} Block ${k.hoehe != null ? '#' + k.hoehe : '—'} ` +
@@ -618,7 +624,7 @@ async function main() {
         schon ohne Block", und die stellt sich erst im Betrieb.
       */
       `${grau('·')} ${dauer(k.laufzeit())}` +
-      (k.bloecke ? ` ${grau('·')} ${gruen(k.bloecke + ' Blöcke')}` : ''),
+      (k.bloecke ? ` ${grau('·')} ${gruen(k.bloecke + (k.bloecke === 1 ? ' Block' : ' Blöcke'))}` : ''),
     );
   }, 1000);
 
