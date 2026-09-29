@@ -13,6 +13,7 @@ import WalletTab from '@/components/tabs/WalletTab';
 import NetzTab from '@/components/tabs/NetzTab';
 import EntdeckenTab from '@/components/tabs/EntdeckenTab';
 import Artikel from '@/components/Artikel';
+import UpdateBanner from '@/components/UpdateBanner';
 import { ARTIKEL } from '@/content/entdecken';
 import Send from '@/components/wallet/Send';
 import Receive from '@/components/wallet/Receive';
@@ -86,6 +87,7 @@ export default function AppShell({ platform }: { platform: string }) {
   return (
     <>
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-32 pt-5">
+        {ansicht === null && <UpdateBanner />}
         {ansicht === 'senden' || ansicht === 'scannen' ? (
           <Send account={m.account} decimals={dec} symbol={sym}
                 scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { adresseAusCode } from '@/lib/wallet/qr';
 import { telegramScan } from '@/lib/telegram/webapp';
+import { istTelegram } from '@/lib/native/plattform';
 import { Icon } from '@/components/ui/Primitives';
 
 /**
@@ -46,7 +47,7 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
 
   // Weg 1: Telegram.
   useEffect(() => {
-    const p = telegramScan('QR-Code der YSKAR-Adresse in den Rahmen halten');
+    const p = istTelegram() ? telegramScan('QR-Code der YSKAR-Adresse in den Rahmen halten') : undefined;
     if (!p) { setZustand('kamera'); return; }
     let lebt = true;
     p.then(text => {

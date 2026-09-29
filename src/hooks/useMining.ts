@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
+import { istNativ } from '@/lib/native/plattform';
+import { miningDienstStart, miningDienstStop, miningDienstText, miningDienstBeiStopp }
+  from '@/lib/native/mining';
 
 /** Was der Knoten ueber seinen Pool meldet -- gemessen, nicht behauptet. */
 export interface PoolInfo {
@@ -210,6 +213,8 @@ export function useMining(address: string | null, platform: string) {
     workers.current.forEach(w => { w.postMessage({ t: 'stop' }); w.terminate(); });
     workers.current = [];
     setMining(false);
+    // Android-App: Vordergrunddienst und WakeLock freigeben.
+    miningDienstStop();
     if (sessionId.current) {
       const id = sessionId.current;
       sessionId.current = null;
@@ -325,6 +330,8 @@ export function useMining(address: string | null, platform: string) {
       created.forEach(w => w.postMessage({ t: 'duty', value: duty }));
       await fetchJob();
       setMining(true);
+      // Android-App: Dienst starten, damit es im Hintergrund weitergeht.
+      miningDienstStart('Mining läuft');
     } catch (e) {
       setFehler(String((e as Error).message ?? e));
       await stop();
@@ -394,14 +401,38 @@ export function useMining(address: string | null, platform: string) {
   // Sauber stoppen, wenn die App in den Hintergrund geht. Die Plattform
   // haelt den Worker ohnehin an -- ohne das bliebe die Session offen.
   useEffect(() => {
-    const onHide = () => { if (document.hidden && mining) stop(); };
+    // In der Android-App haelt der Vordergrunddienst den Prozess am Leben --
+    // dort laeuft es im Hintergrund weiter. Im Browser und in Telegram haelt
+    // die Plattform den Worker ohnehin an, also sauber stoppen.
+    const nativ = istNativ();
+    const onHide = () => { if (document.hidden && mining && !nativ) stop(); };
     document.addEventListener('visibilitychange', onHide);
-    window.addEventListener('pagehide', stop);
+    if (!nativ) window.addEventListener('pagehide', stop);
     return () => {
       document.removeEventListener('visibilitychange', onHide);
-      window.removeEventListener('pagehide', stop);
+      if (!nativ) window.removeEventListener('pagehide', stop);
     };
   }, [mining, stop]);
+
+  // Stopp aus der Android-Benachrichtigung.
+  useEffect(() => {
+    if (!istNativ()) return;
+    let ab: (() => void) | null = null;
+    miningDienstBeiStopp(() => { stop(); }).then(f => { ab = f; });
+    return () => { ab?.(); };
+  }, [stop]);
+
+  // Hashrate in der Benachrichtigung nachfuehren -- alle paar Sekunden reicht.
+  useEffect(() => {
+    if (!mining || !istNativ()) return;
+    const id = setInterval(() => {
+      const h = hashrate;
+      const t = h >= 1e6 ? `${(h / 1e6).toFixed(2)} MH/s`
+        : h >= 1e3 ? `${(h / 1e3).toFixed(1)} kH/s` : `${Math.round(h)} H/s`;
+      miningDienstText(`${t} · Anteil ${duty} %`);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [mining, hashrate, duty]);
 
   const changeDuty = useCallback((v: number) => {
     setDuty(v);

@@ -1,0 +1,130 @@
+name: Android-App bauen und veröffentlichen
+
+# Baut die YSKAR Wallet (Android) und hängt die signierte APK an ein
+# GitHub Release. Ausgelöst durch einen Tag app-v1.2.3 -- oder von Hand
+# (dann ohne Release, nur als Artefakt zum Testen).
+#
+# Secrets, die das Repository braucht (Settings -> Secrets -> Actions):
+#   YSKAR_KEYSTORE_BASE64   der Keystore als Base64 (base64 -w0 yskar.jks)
+#   YSKAR_KEYSTORE_PASSWORD Passwort des Keystores
+#   YSKAR_KEY_ALIAS         Alias des Schlüssels (z.B. yskar)
+#   YSKAR_KEY_PASSWORD      Passwort des Schlüssels
+#   GOOGLE_SERVICES_JSON    Inhalt von google-services.json (Firebase, für Push)
+#
+# Der Keystore darf nie ins Repo. Geht er verloren, kann kein Update mehr
+# über eine bestehende Installation gelegt werden -- Android verlangt
+# dieselbe Signatur.
+
+on:
+  push:
+    tags: ['app-v*']
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: 'Server, den die App lädt (leer = Betrieb)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      YSKAR_KEYSTORE_BASE64: ${{ secrets.YSKAR_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Version aus dem Tag
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/app-v* ]]; then
+            NAME="${GITHUB_REF#refs/tags/app-v}"
+          else
+            NAME="0.0.${GITHUB_RUN_NUMBER}-test"
+          fi
+          # versionCode muss streng steigen: Laufnummer der Actions genügt dafür.
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "code=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+          echo "Version ${NAME}, Code $((1000 + GITHUB_RUN_NUMBER))"
+
+      - name: Firebase-Konfiguration
+        if: env.GOOGLE_SERVICES_JSON != ''
+        run: printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+
+      - name: Capacitor synchronisieren
+        env:
+          YSKAR_APP_URL: ${{ github.event.inputs.app_url }}
+        run: npx cap sync android
+
+      - name: Keystore ablegen
+        if: env.YSKAR_KEYSTORE_BASE64 != ''
+        run: |
+          echo "$YSKAR_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/yskar.jks"
+          echo "YSKAR_KEYSTORE_FILE=$RUNNER_TEMP/yskar.jks" >> "$GITHUB_ENV"
+
+      - name: APK bauen
+        working-directory: android
+        env:
+          YSKAR_KEYSTORE_PASSWORD: ${{ secrets.YSKAR_KEYSTORE_PASSWORD }}
+          YSKAR_KEY_ALIAS: ${{ secrets.YSKAR_KEY_ALIAS }}
+          YSKAR_KEY_PASSWORD: ${{ secrets.YSKAR_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease \
+            -PversionName="${{ steps.version.outputs.name }}" \
+            -PversionCode="${{ steps.version.outputs.code }}"
+
+      - name: APK benennen und prüfen
+        id: apk
+        run: |
+          set -e
+          SRC=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          OUT="yskar-wallet-${{ steps.version.outputs.name }}.apk"
+          cp "$SRC" "$OUT"
+          # Unsigniert darf nichts veröffentlicht werden.
+          if [ -z "${YSKAR_KEYSTORE_FILE:-}" ]; then
+            echo "::warning::Kein Keystore -- APK ist unsigniert und nur zum Testen."
+            echo "signiert=false" >> "$GITHUB_OUTPUT"
+          else
+            "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$OUT" | head -5
+            echo "signiert=true" >> "$GITHUB_OUTPUT"
+          fi
+          sha256sum "$OUT" | tee "$OUT.sha256"
+          echo "datei=$OUT" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.datei }}
+          path: |
+            ${{ steps.apk.outputs.datei }}
+            ${{ steps.apk.outputs.datei }}.sha256
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/app-v') && steps.apk.outputs.signiert == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: YSKAR Wallet ${{ steps.version.outputs.name }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.apk.outputs.datei }}
+            ${{ steps.apk.outputs.datei }}.sha256

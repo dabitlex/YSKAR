@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YSKAR Wallet</title>
+<style>
+  html,body{margin:0;height:100%;background:#F4F7FB;color:#0E1A2F;font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;text-align:center;box-sizing:border-box}
+  h1{font-size:24px;margin:20px 0 8px;letter-spacing:-.02em}
+  p{margin:0 0 24px;font-size:15px;line-height:1.55;color:#5B6B84}
+  button{border:0;border-radius:14px;background:#1F5BF0;color:#fff;font:700 15px system-ui,sans-serif;padding:15px 28px}
+  .mark{width:96px;height:96px;border-radius:28px;background:#fff;border:1px solid #E6ECF4;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="mark">
+    <svg viewBox="0 0 64 64" width="56" height="56" fill="none" stroke="#1F5BF0" stroke-width="3" stroke-linejoin="round">
+      <path d="M32 8 18 40h28z"/><path d="M12 24 6 46h18M52 24l6 22H40"/>
+    </svg>
+  </div>
+  <h1>Keine Verbindung</h1>
+  <p>YSKAR Wallet braucht Netz, um die Kette zu lesen. Deine Schlüssel liegen weiter sicher auf diesem Gerät.</p>
+  <button onclick="location.reload()">Erneut versuchen</button>
+</main>
+</body>
+</html>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
+import AppSettings from '@/components/AppSettings';
 
 /**
  * Einstellungen.
@@ -141,6 +142,8 @@ export default function Settings({ onZurueck, anteil, workers }: {
           <span className="tnum text-[13.5px] text-dim">{workers}</span>
         </li>
       </ul>
+
+      <AppSettings />
 
       <p className="label mt-6 mb-2">Gerät</p>
       <div className="mt-2">
