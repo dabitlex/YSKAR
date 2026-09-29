@@ -59,8 +59,8 @@ export const ARTIKEL: Artikel[] = [
         'Eigentum hängt aber an Schlüsseln, nicht an Telegram: Wer die zwölf ' +
         'Wörter hat, hat das Guthaben — mit oder ohne Telegram-Konto.' },
       { art: 'hinweis', tone: 'dim', text: 'YSKAR ist ein Projekt, kein Zahlungsmittel. ' +
-        'Die Kette hat derzeit einen Validator — die Arbeit ist echt und ' +
-        'nachrechenbar, vertrauensfrei ist sie noch nicht.' },
+        'Mehrere Full Nodes prüfen die Kette unabhängig voneinander; jeder Block ' +
+        'ist im Explorer nachrechenbar.' },
     ],
   },
   {
@@ -86,9 +86,9 @@ export const ARTIKEL: Artikel[] = [
       { art: 'absatz', text: 'Das Display bleibt an, solange gemint wird. Sperrt es, ' +
         'hält die Plattform den Worker an — Hintergrund-Mining lässt kein ' +
         'Telefon zu, und wir tun nicht so, als ginge es.' },
-      { art: 'hinweis', tone: 'work', text: 'Solo und Pool sind gleichberechtigt. Im Pool ' +
-        'zahlt der Block selbst alle Beteiligten aus — der Betreiber hält nie ' +
-        'fremdes Geld.' },
+      { art: 'hinweis', tone: 'work', text: 'Solo und Pool sind gleichberechtigt. Der erste ' +
+        'Pool ist aktiv: Der Block selbst zahlt alle Beteiligten aus — der ' +
+        'Betreiber hält nie fremdes Geld.' },
     ],
   },
   {
@@ -153,45 +153,57 @@ export const ARTIKEL: Artikel[] = [
   {
     slug: 'full-node-und-pool', icon: 'Wuerfel', farbe: 'work',
     titel: 'Full Node & Pool',
-    teaser: 'Selbst prüfen, selbst bauen — Stand und Fahrplan.',
+    teaser: 'Mehrere Knoten, erster Pool aktiv — so hängt das Netz zusammen.',
     lesezeit: '3 min',
-    einleitung: 'Ein Full Node holt die Kette, prüft jeden Block selbst und kann ' +
-      'eigene Blöcke bauen und einreichen. Er läuft auf jedem Rechner mit ' +
-      'Node 22 — seine Ablage ist eine SQLite-Datei.',
+    einleitung: 'Ein Full Node holt die Kette, prüft jeden Block selbst und baut ' +
+      'eigene Blöcke. Es laufen bereits mehrere Knoten gleichzeitig, die sich ' +
+      'per P2P abgleichen — die Kette hängt nicht mehr an einem einzelnen Server.',
     bausteine: [
-      { art: 'absatz', text: 'Heute kommen Blöcke über die öffentliche ' +
-        'Leseschnittstelle und gehen über die API zurück; der Server bleibt der ' +
-        'Mittelpunkt. Geprüft wird trotzdem alles lokal — der Unterschied liegt ' +
-        'in der Quelle, nicht in der Prüfung.' },
-      { art: 'schritte', titel: 'Pool-Mining, wie es gebaut ist', punkte: [
-        'Der Pool hält nie fremdes Geld. Die Aufteilung wird zur Coinbase des Blocks.',
+      { art: 'schritte', titel: 'Was ein Knoten tut', punkte: [
+        'Header zuerst: Er holt die Kette von anderen Knoten und prüft Kette und ' +
+          'Arbeit lokal, bevor er einen Block übernimmt.',
+        'Er nimmt Transaktionen in seinen Mempool und gibt Jobs an Miner aus.',
+        'Findet ein Miner einen Block, reicht der Knoten ihn ein und verteilt ihn ' +
+          'an seine Peers.',
+        'Alles mit Grenzen: Nachrichtengrößen, Fristen und Plätze je Peer sind fest — ' +
+          'ein einzelner Peer kann einen Knoten nicht überlasten.',
+      ] },
+      { art: 'absatz', text: 'Der Knoten läuft auf jedem Rechner mit Node 22; seine ' +
+        'Ablage ist eine SQLite-Datei. Wer möchte, betreibt einen eigenen und prüft ' +
+        'damit die Kette, ohne jemandem vertrauen zu müssen.' },
+      { art: 'schritte', titel: 'Pool-Mining, wie es läuft', punkte: [
+        'Der Pool hält nie fremdes Geld. Die Aufteilung wird zur Coinbase des Blocks ' +
+          '(Konsensfassung 2: Coinbase mit mehreren Empfängern).',
         'PPLNS: Bezahlt werden die letzten N Arbeitseinheiten — über Blockfunde hinweg. ' +
           'Pool-Hopping lohnt sich nicht.',
         'Die Aufteilung steht für jeden nachrechenbar im Block.',
       ] },
-      { art: 'hinweis', tone: 'dim', text: 'Voraussetzung ist die Coinbase mit mehreren ' +
-        'Empfängern (Konsensfassung 2), gültig ab Höhe 2.000. Die Abrechnung ist ' +
-        'gebaut und geprüft, aber noch nicht angeschlossen.' },
+      { art: 'hinweis', tone: 'work', text: 'Der erste Pool ist aktiv. Im Reiter „Mining" ' +
+        'wählst du „Pool" und trägst seine Adresse ein — der Pool meldet Leistung, ' +
+        'Minerzahl und Gebühr, bevor du startest.' },
     ],
   },
   {
     slug: 'roadmap', icon: 'Pfeil', farbe: 'proof',
     titel: 'Roadmap',
-    teaser: 'Pool-Auszahlung ab Höhe 2.000, P2P-Netz, Explorer.',
+    teaser: 'Mikrozahlungen, Node Core für alle Systeme, Apps mit Lightning-Wallet.',
     lesezeit: '2 min',
-    einleitung: 'Kein Datum, das nicht hält. Stattdessen Blockhöhen und Zustände, ' +
-      'die jeder im Explorer nachsehen kann.',
+    einleitung: 'Kein Datum, das nicht hält. Stattdessen Zustände, die jeder im ' +
+      'Explorer und im Quelltext nachsehen kann.',
     bausteine: [
-      { art: 'schritte', titel: 'Fertig', punkte: [
+      { art: 'schritte', titel: 'Erreicht', punkte: [
         'Kette, Wallet, Transaktionen im Block, Miner auf dem Telefon.',
         'Gebührenmarkt: Empfehlung aus der tatsächlichen Warteschlange.',
-        'Eigenständiger Full Node mit lokaler Prüfung.',
+        'Konsensfassung 2: Coinbase mit mehreren Empfängern.',
+        'Pool-Mining mit PPLNS-Auszahlung direkt aus dem Block — der erste Pool ist aktiv.',
+        'P2P zwischen Full Nodes; mehrere Knoten laufen gleichzeitig.',
+        'Die Kette lebt auf den Full Nodes; der Server ist nur noch Spiegel für die App.',
       ] },
       { art: 'schritte', titel: 'Als Nächstes', punkte: [
-        'Konsensfassung 2 ab Höhe 2.000: Coinbase mit mehreren Empfängern.',
-        'Pool-Mining anschließen: PPLNS-Auszahlung direkt aus dem Block.',
-        'P2P zwischen Full Nodes — Header zuerst, alles mit Grenzen.',
-        'Die Kette zieht auf den Full Node um; der Server wird zum Spiegel.',
+        'Mikrozahlungen: kleine Beträge schnell und günstig übertragen.',
+        'YSKAR Node Core: Veröffentlichung mit integrierter Wallet und Mining-Funktion ' +
+          'für alle Systeme.',
+        'Android- und iOS-App inklusive Lightning-Wallet.',
       ] },
       { art: 'hinweis', tone: 'work', text: 'Der Quelltext ist offen. Jeder Schritt hier ' +
         'entspricht einem Dokument im Repository.' },
@@ -214,10 +226,10 @@ export const FAQ: { frage: string; antwort: string }[] = [
       'Weder wir noch Telegram können die Wörter wiederherstellen. Schreib sie ' +
       'auf Papier — nicht als Screenshot.' },
   { frage: 'Wer betreibt die Kette?',
-    antwort: 'Derzeit ein Validator, der jeden Share nachrechnet und Blöcke ' +
-      'annimmt. Der Full Node ist gebaut; die Umstellung auf ein P2P-Netz ' +
-      'steht auf der Roadmap. Bis dahin ist die Arbeit echt und nachrechenbar, ' +
-      'aber nicht vertrauensfrei.' },
+    antwort: 'Niemand allein. Mehrere Full Nodes laufen gleichzeitig, gleichen ' +
+      'sich per P2P ab und rechnen jeden Block selbst nach. Die App liest über ' +
+      'einen Spiegel mit — wer will, betreibt einen eigenen Knoten und braucht ' +
+      'auch den nicht.' },
 ];
 
 export const NEUIGKEITEN = [
