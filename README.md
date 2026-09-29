@@ -144,6 +144,7 @@ baut aber nichts. Fuer einen Raspberry Pi gedacht.
 | `docs/P2P.md` | Nachrichten, Handschlag, Grenzen zwischen Knoten |
 | `docs/UMSTELLUNG.md` | wie die Kette vom Server auf die Full Nodes zog |
 | `docs/APP.md` | Android-App: Bau, Signatur, Release, Push-Watcher |
+| `docs/APP-TESTEN.md` | Schritt fuer Schritt: die App auf einem Geraet testen |
 | `docs/SECURITY.md` | Schluessel, Tresor, Angriffsflaechen |
 
 ## Oberflaeche

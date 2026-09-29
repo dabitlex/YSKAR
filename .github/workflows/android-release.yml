@@ -82,6 +82,9 @@ jobs:
           echo "$YSKAR_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/yskar.jks"
           echo "YSKAR_KEYSTORE_FILE=$RUNNER_TEMP/yskar.jks" >> "$GITHUB_ENV"
 
+      # Ohne Keystore: Debug-Bau. Der ist mit dem Debug-Schluessel von Gradle
+      # signiert und laesst sich installieren -- ein unsignierter Release-Bau
+      # nicht. Zum Testen auf dem eigenen Geraet reicht das.
       - name: APK bauen
         working-directory: android
         env:
@@ -90,7 +93,9 @@ jobs:
           YSKAR_KEY_PASSWORD: ${{ secrets.YSKAR_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease \
+          if [ -n "${YSKAR_KEYSTORE_FILE:-}" ]; then ZIEL=assembleRelease; else ZIEL=assembleDebug; fi
+          echo "Baue $ZIEL"
+          ./gradlew --no-daemon "$ZIEL" \
             -PversionName="${{ steps.version.outputs.name }}" \
             -PversionCode="${{ steps.version.outputs.code }}"
 
@@ -98,14 +103,16 @@ jobs:
         id: apk
         run: |
           set -e
-          SRC=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
-          OUT="yskar-wallet-${{ steps.version.outputs.name }}.apk"
-          cp "$SRC" "$OUT"
-          # Unsigniert darf nichts veröffentlicht werden.
           if [ -z "${YSKAR_KEYSTORE_FILE:-}" ]; then
-            echo "::warning::Kein Keystore -- APK ist unsigniert und nur zum Testen."
+            SRC=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
+            OUT="yskar-wallet-${{ steps.version.outputs.name }}-debug.apk"
+            cp "$SRC" "$OUT"
+            echo "::warning::Kein Keystore -- Debug-Bau, nur zum Testen. Kein Release."
             echo "signiert=false" >> "$GITHUB_OUTPUT"
           else
+            SRC=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+            OUT="yskar-wallet-${{ steps.version.outputs.name }}.apk"
+            cp "$SRC" "$OUT"
             "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$OUT" | head -5
             echo "signiert=true" >> "$GITHUB_OUTPUT"
           fi
