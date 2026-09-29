@@ -40,6 +40,8 @@ public class MiningService extends Service {
     public static final String EXTRA_TEXT = "text";
 
     private PowerManager.WakeLock wakeLock;
+    /** Fuer die Diagnose in der Oberflaeche. */
+    static volatile boolean laeuft = false;
 
     @Override
     public void onCreate() {
@@ -73,6 +75,7 @@ public class MiningService extends Service {
             startForeground(MELDUNG_ID, n);
         }
         wachHalten();
+        laeuft = true;
         return START_NOT_STICKY;
     }
 
@@ -85,6 +88,7 @@ public class MiningService extends Service {
     }
 
     private void beenden() {
+        laeuft = false;
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
         stopForeground(STOP_FOREGROUND_REMOVE);
@@ -93,6 +97,7 @@ public class MiningService extends Service {
 
     @Override
     public void onDestroy() {
+        laeuft = false;
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
         super.onDestroy();

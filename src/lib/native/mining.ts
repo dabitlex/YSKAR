@@ -30,10 +30,19 @@ async function lade(): Promise<Plugin | null> {
   return plugin;
 }
 
-export async function miningDienstStart(text: string): Promise<{ notifications: boolean } | null> {
+export type DienstErgebnis =
+  | { ok: true; notifications: boolean }
+  | { ok: false; fehler: string };
+
+export async function miningDienstStart(text: string): Promise<DienstErgebnis | null> {
   const p = await lade();
   if (!p) return null;
-  try { return await p.start({ text }); } catch { return null; }
+  try {
+    const r = await p.start({ text });
+    return { ok: true, notifications: !!r?.notifications };
+  } catch (e) {
+    return { ok: false, fehler: String((e as Error)?.message ?? e) };
+  }
 }
 
 export async function miningDienstText(text: string): Promise<void> {

@@ -401,7 +401,13 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
 
         {m.mining && (
           <p className="mt-3 text-center text-[12px] font-semibold text-faint">
-            {wach === 'aktiv'
+            {m.dienst?.ok
+              ? (m.dienst.notifications
+                  ? 'Läuft im Hintergrund weiter — auch bei gesperrtem Bildschirm.'
+                  : 'Läuft im Hintergrund; die Benachrichtigung fehlt, weil sie nicht erlaubt wurde.')
+              : m.dienst && !m.dienst.ok
+              ? `Hintergrunddienst nicht gestartet: ${m.dienst.fehler}`
+              : wach === 'aktiv'
               ? 'Der Bildschirm bleibt an, solange gemint wird.'
               : wach === 'nicht_moeglich'
               ? 'Dieses Gerät lässt den Bildschirm nicht offenhalten — sperrt er, pausiert das Mining.'

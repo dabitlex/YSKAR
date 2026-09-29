@@ -132,6 +132,9 @@ export function useMining(address: string | null, platform: string) {
   const [lastShare, setLastShare] = useState<{ hash: string; difficulty: string; at: number } | null>(null);
   const [fund, setFund] = useState<Fund | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  // Android-App: Zustand des Hintergrunddienstes, damit die Oberflaeche
+  // sagen kann, ob das Mining bei gesperrtem Bildschirm weiterlaeuft.
+  const [dienst, setDienst] = useState<null | { ok: true; notifications: boolean } | { ok: false; fehler: string }>(null);
 
   /*
     Wohin die Mining-Aufrufe gehen.
@@ -215,6 +218,7 @@ export function useMining(address: string | null, platform: string) {
     setMining(false);
     // Android-App: Vordergrunddienst und WakeLock freigeben.
     miningDienstStop();
+    setDienst(null);
     if (sessionId.current) {
       const id = sessionId.current;
       sessionId.current = null;
@@ -331,7 +335,7 @@ export function useMining(address: string | null, platform: string) {
       await fetchJob();
       setMining(true);
       // Android-App: Dienst starten, damit es im Hintergrund weitergeht.
-      miningDienstStart('Mining läuft');
+      miningDienstStart('Mining läuft').then(r => setDienst(r));
     } catch (e) {
       setFehler(String((e as Error).message ?? e));
       await stop();
@@ -443,7 +447,7 @@ export function useMining(address: string | null, platform: string) {
     mining, start, stop, duty, setDuty: changeDuty,
     hashrate, stumm, etappen,
     summary, account, lastShare, fund, fehler, shares,
-    poolInfo, refreshAccount,
+    poolInfo, refreshAccount, dienst,
     dismissFund: () => setFund(null),
   };
 }
