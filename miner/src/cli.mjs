@@ -23,6 +23,7 @@ import * as konfig from './konfig.mjs';
 import { frage, jaNein, interaktiv, warteAufTaste, schliessen } from './frage.mjs';
 import { zeigeKopf, zeigeSitzung } from './banner.mjs';
 import { Sensoren } from './sensoren.mjs';
+import { FesterKopf } from './festerKopf.mjs';
 
 /**
  * Eigener Ordner.
@@ -62,6 +63,9 @@ function argumente(argv) {
       case '--device': a.device = Math.max(0, Number(nimm()) || 0); break;
       case '--gpu-bin': a.gpuBin = nimm(); break;
       case '--forget': a.forget = true; break;
+      // Fester Kopf aus. Er kostet den Verlauf: Zeilen, die aus dem
+      // Scrollbereich laufen, sind bei den meisten Terminals weg.
+      case '--einfach': a.einfach = true; break;
       case '--help': case '-h': a.help = true; break;
       case '--version': case '-v': a.version = true; break;
       default:
@@ -80,6 +84,7 @@ Optionen
   -a, --address <adr>    Zieladresse für den Blockreward (Pflicht)
   -w, --workers <n>      Rechen-Threads (Vorgabe: Kerne minus 1)
   -i, --intensity <1-100>  Anteil der Rechenzeit (Vorgabe: 100)
+      --einfach          ohne festen Kopf — dafür bleibt der Verlauf scrollbar
       --api <url>        Server (Vorgabe: https://yskar.vercel.app)
       --mode <solo|pool> Solo oder Pool (Vorgabe: solo)
       --gpu              mit der Grafikkarte rechnen statt mit der CPU
@@ -347,6 +352,48 @@ async function main() {
     gpuRate: null,
   };
 
+  /*
+    Fester Kopf.
+
+    Vier Zeilen oben, die stehen bleiben: Was gerade gerechnet wird, wie
+    schnell, wie warm, und eine Trennlinie. Darunter laufen die Ereignisse
+    durch wie bisher.
+
+    Der Kopf zeigt NUR Werte, die sich aendern. Adresse, Knoten und
+    Sitzungsnummer stehen im Startkopf und aendern sich nicht -- sie hier
+    zu wiederholen, waere vier Zeilen weniger Platz fuer das, was
+    tatsaechlich passiert.
+
+    letzteSumme haelt die zuletzt gemessene Leistung: Der Kopf wird
+    haeufiger gemalt als gemessen, und eine Zahl, die zwischen zwei
+    Messungen auf null springt, waere falsch.
+  */
+  let letzteSumme = 0;
+  const kopfZeilen = () => {
+    const l1 = ` ${fett('YSKAR')} ${grau('·')} Block ${
+      k.hoehe != null ? '#' + zahl2(k.hoehe) : '—'} ${grau('·')} Diff ${
+      k.netzDifficulty ? zahl2(k.netzDifficulty) : '—'}${
+      k.bloecke ? ` ${grau('·')} ${gruen(k.bloecke + (k.bloecke === 1 ? ' Block' : ' Blöcke'))}` : ''}`;
+
+    const aufwand = k.aufwand();
+    const l2 = ` ${gelb(fmtRate2(letzteSumme).padEnd(11))} ${grau('·')} ${
+      k.angenommen}${grau('/')}${k.abgelehnt} ${grau('Shares')} ${grau('·')} Aufwand ${
+      aufwand === null ? '—' : aufwand.toFixed(0) + ' %'} ${grau('·')} ${
+      dauer(k.laufzeit())}`;
+
+    // Ohne Sensoren bleibt die Zeile leer statt zu verschwinden -- sonst
+    // ruckte die Trennlinie bei jedem Mess-Aussetzer eine Zeile hoch.
+    const temp = sensoren.zeile(FARBEN);
+    const l3 = temp ? ` ${temp}` : grau(' Keine Sensoren erreichbar');
+
+    return [l1, l2, l3, grau(' ' + '─'.repeat((process.stdout.columns ?? 80) - 2))];
+  };
+
+  const festerKopf = (!arg.einfach && FesterKopf.moeglich())
+    ? new FesterKopf({ hoehe: 4, zeichnen: kopfZeilen })
+    : null;
+  if (festerKopf) festerKopf.start();
+
   // ---- Threads ----
   const arbeiter = [];
   const hasherQuelle = globalThis.__YSKAR_HASHER_SRC;
@@ -604,6 +651,14 @@ async function main() {
       else summe += zustand.gpuRate.rate;
     }
     k.probe(summe);
+    letzteSumme = summe;
+
+    /*
+      Mit festem Kopf gibt es keine eigene Statuszeile mehr: Dieselben
+      Zahlen stuenden zweimal auf dem Schirm, einmal oben fest und einmal
+      unten mitlaufend. Der Kopf wird stattdessen neu gemalt.
+    */
+    if (festerKopf) { festerKopf.malen(); return; }
 
     const aufwand = k.aufwand();
     zeile(
@@ -656,8 +711,15 @@ async function main() {
       Container -- steht hier dauerhaft nichts. Das ist kein Fehler und
       wird auch nicht als einer gemeldet.
     */
-    const temp = sensoren.zeile(FARBEN);
-    if (temp) ereignis(`${grau('[' + uhr() + ']')} ${temp}`);
+    /*
+      Beim festen Kopf entfaellt das: Dort steht die Temperatur dauerhaft.
+      Sie zusaetzlich jede Minute in den Verlauf zu schreiben, waere
+      dieselbe Zahl an zwei Stellen.
+    */
+    if (!festerKopf) {
+      const temp = sensoren.zeile(FARBEN);
+      if (temp) ereignis(`${grau('[' + uhr() + ']')} ${temp}`);
+    }
   }, 60_000);
 
   /*
@@ -732,7 +794,19 @@ async function main() {
       }
     });
 
-    console.log(grau('  Tasten: h Hashrate · s Zusammenfassung · c Verbindung · q Ende\n'));
+    console.log(grau('  Tasten: h Hashrate · s Zusammenfassung · c Verbindung · q Ende'));
+    /*
+      Der Hinweis auf --einfach gehoert hierher und nicht in die Hilfe
+      allein: Wer den festen Kopf stoerend findet, sitzt gerade davor.
+      Und der Satz zum Verlauf beugt der Frage vor, warum sich nicht mehr
+      hochscrollen laesst.
+    */
+    if (festerKopf) {
+      console.log(grau('  Fester Kopf aktiv — der Verlauf oberhalb ist nicht scrollbar.'));
+      console.log(grau('  Mit --einfach abschalten. Bleibt das Fenster nach dem Ende schief: cls\n'));
+    } else {
+      console.log('');
+    }
   }
 
   // ---- Sauber beenden ----
@@ -742,6 +816,7 @@ async function main() {
     beendet = true;
     clearInterval(jobTakt); clearInterval(statusTakt); clearInterval(uebersichtTakt);
     sensoren.stop();
+    festerKopf?.stop();
     if (process.stdin.isTTY) { try { process.stdin.setRawMode(false); } catch { /* egal */ } }
     ereignis('');
     ereignis(grau('Beende…'));
