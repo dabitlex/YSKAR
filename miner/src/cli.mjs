@@ -21,7 +21,8 @@ import { Kennzahlen, rate as fmtRate2, hashes as fmtHashes, dauer, zahl as zahl2
   from './anzeige.mjs';
 import * as konfig from './konfig.mjs';
 import { frage, jaNein, interaktiv, warteAufTaste, schliessen } from './frage.mjs';
-import { zeigeKopf } from './banner.mjs';
+import { zeigeKopf, zeigeSitzung } from './banner.mjs';
+import { Sensoren } from './sensoren.mjs';
 
 /**
  * Eigener Ordner.
@@ -290,25 +291,32 @@ async function main() {
   }
 
   /*
-    Erst HIER, nicht im Startbanner: Vorher gibt es keine Sitzung, und der
-    Knoten hat noch nicht gesagt, ob er den Pool ueberhaupt betreibt.
+    Erst HIER, nicht im Startkopf: Vorher gibt es keine Sitzung, kein
+    Share-Ziel, und der Knoten hat noch nicht gesagt, ob er den Pool
+    ueberhaupt betreibt.
   */
-  if (session.pool) {
-    console.log(grau(`  Pool: ${session.pool.name} · Gebühr ${
-      (session.pool.feeBps / 100).toFixed(2)} % · ${session.pool.miner} Miner\n`));
-  } else if ((arg.mode ?? 'solo') === 'pool') {
-    console.log(gelb('  Dieser Knoten betreibt keinen Pool — es wird solo gemint.\n'));
-  }
-
-  // Erst hier bekannt: Laeuft anderswo noch ein Miner auf derselben Adresse?
-  // Ohne den Hinweis wundert man sich, warum das Guthaben schneller waechst
-  // als die eigene Hashrate erklaert.
-  if (session.concurrentSessions > 1) {
-    console.log(grau(
-      `  Parallel: ${session.concurrentSessions} Miner auf dieser Adresse\n`));
-  }
+  zeigeSitzung({
+    sitzung: session.sessionId,
+    shareZiel: Number(session.shareDifficulty),
+    pool: session.pool ?? null,
+    poolGewuenscht: (arg.mode ?? 'solo') === 'pool',
+    parallel: session.concurrentSessions ?? 1,
+    farben: FARBEN,
+  });
 
   const k = new Kennzahlen();
+
+  /*
+    Sensoren im Hintergrund, alle zehn Sekunden.
+
+    Nicht bei jeder Anzeige: Unter Windows kostet jede Messung einen
+    PowerShell-Prozess. Temperaturen aendern sich in Sekunden, nicht in
+    Millisekunden -- die Anzeige liest immer den zuletzt gemessenen Wert
+    und wartet nie auf einen neuen.
+  */
+  const sensoren = new Sensoren();
+  sensoren.start();
+
   const zustand = {
     raten: new Map(), jobId: null,
     shareDifficulty: Number(session.shareDifficulty), laeuft: true,
@@ -580,7 +588,13 @@ async function main() {
       `${grau('·')} ${k.angenommen}${grau('/')}${k.abgelehnt} ` +
       `${grau('·')} Aufwand ${aufwand === null ? '—' : aufwand.toFixed(0) + ' %'} ` +
       `${grau('·')} Block ${k.hoehe != null ? '#' + k.hoehe : '—'} ` +
-      `${grau('·')} Diff ${k.netzDifficulty ? zahl2(k.netzDifficulty) : '—'}` +
+      `${grau('·')} Diff ${k.netzDifficulty ? zahl2(k.netzDifficulty) : '—'} ` +
+      /*
+        Laufzeit gehoert HIER hin und nicht in den Startkopf: Dort waere
+        sie null. Sie beantwortet die Frage "wie lange laeuft das jetzt
+        schon ohne Block", und die stellt sich erst im Betrieb.
+      */
+      `${grau('·')} ${dauer(k.laufzeit())}` +
       (k.bloecke ? ` ${grau('·')} ${gruen(k.bloecke + ' Blöcke')}` : ''),
     );
   }, 1000);
@@ -601,6 +615,20 @@ async function main() {
       `${grau('·')} ${fmtHashes(k.hashesGesamt)} ${grau('gesamt')} ` +
       `${grau('· Laufzeit')} ${dauer(k.laufzeit())}` +
       (abstand ? ` ${grau('· Share alle')} ${dauer(abstand)}` : ''));
+
+    /*
+      Temperaturen, wenn welche messbar sind.
+
+      Eine eigene Zeile statt angehaengt: Die Uebersichtszeile ist schon
+      lang, und wer auf die Kuehlung schaut, sucht etwas anderes als wer
+      auf die Leistung schaut.
+
+      Sind keine Sensoren erreichbar -- macOS, ein Mainboard ohne WMI, ein
+      Container -- steht hier dauerhaft nichts. Das ist kein Fehler und
+      wird auch nicht als einer gemeldet.
+    */
+    const temp = sensoren.zeile(FARBEN);
+    if (temp) ereignis(`${grau('[' + uhr() + ']')} ${temp}`);
   }, 60_000);
 
   /*
@@ -629,6 +657,16 @@ async function main() {
         }
         for (const [slot, r] of [...zustand.raten].sort((x, y) => x[0] - y[0])) {
           ereignis(grau(`      ${String(slot).padStart(2)}    `) + fmtRate2(r.rate));
+        }
+        /*
+          Temperatur gehoert zur Hashrate, nicht zur Verbindung: Wer sie
+          nachschlaegt, fragt sich meistens, warum die Leistung faellt --
+          und Drosseln wegen Hitze ist die haeufigste Antwort.
+        */
+        const t = sensoren.zeile(FARBEN);
+        if (t) { ereignis(''); ereignis(`    ${t}`); }
+        else if (sensoren.verfuegbar === false) {
+          ereignis(grau('    Keine Sensoren erreichbar auf diesem System.'));
         }
         ereignis('');
       } else if (taste === 's') {
@@ -674,6 +712,7 @@ async function main() {
     if (beendet) return;
     beendet = true;
     clearInterval(jobTakt); clearInterval(statusTakt); clearInterval(uebersichtTakt);
+    sensoren.stop();
     if (process.stdin.isTTY) { try { process.stdin.setRawMode(false); } catch { /* egal */ } }
     ereignis('');
     ereignis(grau('Beende…'));
