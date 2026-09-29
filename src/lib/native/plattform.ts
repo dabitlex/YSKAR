@@ -25,3 +25,28 @@ export function plattform(): Plattform {
 
 export const istNativ = () => plattform() === 'nativ';
 export const istTelegram = () => plattform() === 'telegram';
+
+/**
+ * Fehlerspeicher fuer die Diagnose (nur Android-App).
+ *
+ * Unbehandelte Fehler und abgelehnte Promises landen hier, damit die
+ * Einstellungen sie zeigen koennen. Ohne Entwicklerwerkzeuge am Geraet ist
+ * das der einzige Blick in die Konsole.
+ */
+const FEHLER: string[] = [];
+let installiert = false;
+
+export function fehlerMerken(quelle: string, e: unknown) {
+  const text = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+  FEHLER.push(`${new Date().toLocaleTimeString('de-DE')} ${quelle}: ${text}`.slice(0, 300));
+  if (FEHLER.length > 20) FEHLER.shift();
+}
+
+export function letzteFehler(): string[] { return [...FEHLER]; }
+
+export function fehlerspeicherInstallieren() {
+  if (installiert || typeof window === 'undefined') return;
+  installiert = true;
+  window.addEventListener('error', ev => fehlerMerken('error', ev.error ?? ev.message));
+  window.addEventListener('unhandledrejection', ev => fehlerMerken('promise', ev.reason));
+}

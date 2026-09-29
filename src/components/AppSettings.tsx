@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
-import { istNativ } from '@/lib/native/plattform';
+import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type BiometrieStand }
   from '@/lib/native/biometrie';
 import { appVersion, updatePruefen, updateOeffnen, type Update } from '@/lib/native/update';
@@ -32,7 +32,8 @@ export default function AppSettings() {
   useEffect(() => {
     if (!istNativ()) return;
     setNativ(true);
-    biometrieStand().then(setBio);
+    biometrieStand().then(setBio)
+      .catch(e => { fehlerMerken('biometrieStand', e); setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }); });
     appVersion().then(setVersion);
     setPush(pushAktiv() ? 'an' : 'aus');
   }, []);
@@ -85,6 +86,11 @@ export default function AppSettings() {
                   : bio.aktiv ? 'Zum Entsperren und Senden aktiv.' : 'Aus — PIN wird verlangt.'}
             </span>
           </span>
+          {bio === null && (
+            <button onClick={() => biometrieStand().then(setBio)
+                       .catch(e => setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }))}
+                    className="text-[13px] font-bold text-work">Neu prüfen</button>
+          )}
           {bio?.verfuegbar && (
             bio.aktiv
               ? <button onClick={ausschalten} className="text-[13px] font-bold text-risk">Ausschalten</button>
@@ -152,7 +158,7 @@ export default function AppSettings() {
       <ul className="mt-2 border-t border-line">
         <li className="flex items-center justify-between border-b border-line py-3">
           <span className="text-[13.5px] font-bold">Native Brücke prüfen</span>
-          <button onClick={async () => { setDiag('laeuft'); setDiag(await diagnose()); }}
+          <button onClick={async () => { setDiag('laeuft'); try { setDiag(await diagnose()); } catch (e) { fehlerMerken('diagnose', e); setDiag(await diagnose().catch(() => null)); } }}
                   disabled={diag === 'laeuft'} className="text-[13px] font-bold text-work">
             {diag === 'laeuft' ? 'prüft…' : 'Ausführen'}
           </button>
@@ -165,7 +171,8 @@ Plugins:     ${diag.plugins.join(', ') || '—'}
 App:         ${diag.appInfo}
 Biometrie:   ${diag.biometrie}
 Speicher:    ${diag.speicher}
-MiningDienst:${diag.miningDienst}`}
+MiningDienst:${diag.miningDienst}
+Fehler:      ${diag.fehler.length ? '\n  ' + diag.fehler.join('\n  ') : 'keine'}`}
         </pre>
       )}
 
