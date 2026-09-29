@@ -154,3 +154,52 @@ export function zeigeKopf(opt) {
   console.log(grau(' ' + '─'.repeat(62)));
   console.log('');
 }
+
+/**
+ * Der zweite Block: was nach der Anmeldung feststeht.
+ *
+ * Bewusst GETRENNT vom Kopf und nicht darin. Sitzungsnummer, Share-Ziel
+ * und Pool-Angaben gibt es vor der Anmeldung schlicht nicht -- ein Kopf,
+ * der sie enthielte, muesste sie beim Start leer lassen oder erfinden.
+ *
+ * Diese Angaben standen bisher nur hinter der Taste `c`. Das ist eine
+ * Taste zu viel: Wer den Miner startet und wissen will, gegen welches
+ * Share-Ziel er rechnet, soll nicht erst ein Tastenkuerzel lernen.
+ */
+export function zeigeSitzung(opt) {
+  const { sitzung, shareZiel, pool, poolGewuenscht, parallel, farben } = opt;
+  const { grau, gelb, fett } = farben;
+  const z = (m, w) => console.log(erzeugeZeile(farben, m, w));
+
+  console.log(fett(' Sitzung'));
+  console.log(grau(' ' + '─'.repeat(62)));
+
+  z('SITZUNG', sitzung);
+  /*
+    Das Share-Ziel ist NICHT die Netz-Difficulty.
+
+    Ein Share ist ein Zwischenergebnis, das der Knoten als Arbeitsnachweis
+    annimmt -- viel leichter zu treffen als ein Block. Wer die beiden Zahlen
+    nebeneinander sieht, versteht, warum staendig Shares kommen und
+    trotzdem kein Block: Das eine ist ein Bruchteil des anderen.
+  */
+  z('SHARE-ZIEL', `${nf(shareZiel)}  ${grau('— ein Share, nicht ein Block')}`);
+
+  if (pool) {
+    z('POOL', `${pool.name}  ·  Gebühr ${(pool.feeBps / 100).toFixed(2).replace('.', ',')} %` +
+      `  ·  ${nf(pool.miner)} Miner`);
+  } else if (poolGewuenscht) {
+    z('POOL', gelb('Dieser Knoten betreibt keinen Pool — es wird solo gemint.'));
+  }
+
+  if (parallel > 1) {
+    /*
+      Ohne diesen Hinweis wundert man sich, warum das Guthaben schneller
+      waechst, als die eigene Hashrate erklaert.
+    */
+    z('PARALLEL', `${nf(parallel)} Miner auf dieser Adresse`);
+  }
+
+  console.log(grau(' ' + '─'.repeat(62)));
+  console.log('');
+}
