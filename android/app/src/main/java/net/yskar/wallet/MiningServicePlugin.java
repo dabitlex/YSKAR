@@ -73,6 +73,16 @@ public class MiningServicePlugin extends Plugin {
         call.resolve(r);
     }
 
+    /** Diagnose: Kommt der Aufruf am nativen Ende an, laeuft der Dienst? */
+    @PluginMethod
+    public void ping(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("ok", true);
+        r.put("laeuft", MiningService.laeuft);
+        r.put("notifications", getPermissionState("notifications") == PermissionState.GRANTED);
+        call.resolve(r);
+    }
+
     @PluginMethod
     public void update(PluginCall call) {
         Intent i = new Intent(getContext(), MiningService.class)

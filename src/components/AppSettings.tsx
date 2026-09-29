@@ -8,6 +8,7 @@ import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type Biomet
   from '@/lib/native/biometrie';
 import { appVersion, updatePruefen, updateOeffnen, type Update } from '@/lib/native/update';
 import { pushAktiv, pushEinschalten, pushAusschalten, type PushStand } from '@/lib/native/push';
+import { diagnose, type Diagnose } from '@/lib/native/diagnose';
 
 /**
  * Einstellungen der Android-App: Biometrie, Version, Update-Suche.
@@ -26,6 +27,7 @@ export default function AppSettings() {
   const [version, setVersion] = useState<{ version: string; build: string } | null>(null);
   const [update, setUpdate] = useState<Update | null | 'keins' | 'sucht'>(null);
   const [push, setPush] = useState<PushStand | 'arbeitet'>('aus');
+  const [diag, setDiag] = useState<Diagnose | 'laeuft' | null>(null);
 
   useEffect(() => {
     if (!istNativ()) return;
@@ -77,8 +79,9 @@ export default function AppSettings() {
             <span className="text-[12px] font-semibold text-faint">
               {bio === null ? '…'
                 : !bio.verfuegbar
-                  ? (bio.grund === 'kein_sensor' ? 'Dieses Gerät hat keinen Sensor.'
-                     : 'Im Android-System nicht eingerichtet.')
+                  ? (bio.grund === 'kein_sensor' ? `Kein Sensor gemeldet.${bio.detail ? ` (${bio.detail})` : ''}`
+                     : bio.grund === 'fehler' ? `Plugin-Fehler: ${bio.detail ?? 'unbekannt'}`
+                     : `Im Android-System nicht eingerichtet.${bio.detail ? ` (${bio.detail})` : ''}`)
                   : bio.aktiv ? 'Zum Entsperren und Senden aktiv.' : 'Aus — PIN wird verlangt.'}
             </span>
           </span>
@@ -145,6 +148,27 @@ export default function AppSettings() {
               : <button onClick={suchen} className="text-[13px] font-bold text-work">Jetzt prüfen</button>}
         </li>
       </ul>
+      <p className="label mb-2 mt-6">Diagnose</p>
+      <ul className="mt-2 border-t border-line">
+        <li className="flex items-center justify-between border-b border-line py-3">
+          <span className="text-[13.5px] font-bold">Native Brücke prüfen</span>
+          <button onClick={async () => { setDiag('laeuft'); setDiag(await diagnose()); }}
+                  disabled={diag === 'laeuft'} className="text-[13px] font-bold text-work">
+            {diag === 'laeuft' ? 'prüft…' : 'Ausführen'}
+          </button>
+        </li>
+      </ul>
+      {diag && diag !== 'laeuft' && (
+        <pre className="mt-3 overflow-x-auto rounded-[14px] bg-raised p-3 font-mono text-[11px] leading-relaxed text-dim">
+{`Plattform:   ${diag.plattform}  (Brücke: ${diag.bruecke ? 'ja' : 'nein'})
+Plugins:     ${diag.plugins.join(', ') || '—'}
+App:         ${diag.appInfo}
+Biometrie:   ${diag.biometrie}
+Speicher:    ${diag.speicher}
+MiningDienst:${diag.miningDienst}`}
+        </pre>
+      )}
+
       {update && typeof update === 'object' && update.notizen && (
         <p className="mt-3 whitespace-pre-line text-[12.5px] font-medium leading-relaxed text-dim">
           {update.notizen.slice(0, 600)}

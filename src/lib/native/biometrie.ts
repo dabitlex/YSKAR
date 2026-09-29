@@ -26,7 +26,7 @@ const SCHLUESSEL = 'yskar.tresor.pin';
 const MERKER = 'yskar.biometrie';   // localStorage: eingeschaltet ja/nein
 
 export type BiometrieStand =
-  | { verfuegbar: false; grund: 'kein_sensor' | 'nicht_eingerichtet' | 'nicht_nativ' }
+  | { verfuegbar: false; grund: 'kein_sensor' | 'nicht_eingerichtet' | 'nicht_nativ' | 'fehler'; detail?: string }
   | { verfuegbar: true; art: string; aktiv: boolean };
 
 async function bio() {
@@ -47,12 +47,15 @@ export async function biometrieStand(): Promise<BiometrieStand> {
   try {
     const r = await (await bio()).checkBiometry();
     if (!r.isAvailable) {
+      const detail = `${r.reason ?? ''} ${r.code ?? ''}`.trim() || undefined;
       return { verfuegbar: false,
-               grund: r.biometryType === 0 ? 'kein_sensor' : 'nicht_eingerichtet' };
+               grund: r.biometryType === 0 ? 'kein_sensor' : 'nicht_eingerichtet', detail };
     }
     return { verfuegbar: true, art: String(r.biometryType), aktiv: biometrieAktiv() };
-  } catch {
-    return { verfuegbar: false, grund: 'kein_sensor' };
+  } catch (e) {
+    // Der Fehlertext gehoert in die Oberflaeche: "kein Sensor" waere eine
+    // Vermutung, und genau die hat uns beim ersten Test in die Irre gefuehrt.
+    return { verfuegbar: false, grund: 'fehler', detail: String((e as Error)?.message ?? e) };
   }
 }
 
