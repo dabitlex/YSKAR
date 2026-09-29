@@ -35,6 +35,7 @@ import type { TxPool } from './TxPool.ts';
 import type { MiningCoordinator, MiningJob } from './MiningCoordinator.ts';
 import { ReadApi } from './ReadApi.ts';
 import type { PoolCoordinator, MiningModus } from '../../pool/PoolCoordinator.ts';
+import { spiegelKopf } from './spiegelKopf.ts';
 
 /** Angestrebter Abstand zwischen zwei Shares, in Sekunden. */
 const SHARE_ZIEL_SEKUNDEN = 30;
@@ -643,7 +644,7 @@ export class MiningServer {
     try {
       const res = await fetch(`${this.upstream}/api/v2/block`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: spiegelKopf(),
         body: JSON.stringify({ raw: toHex(gespeichert.body) }),
       });
       const body = await res.json().catch(() => ({}));

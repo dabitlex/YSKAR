@@ -18,6 +18,7 @@ import { stateRoot, totalSupply } from '../../core/state.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { NETWORK } from '../../core/params.ts';
 import { ChainStore } from './ChainStore.ts';
+import { spiegelKopf } from './spiegelKopf.ts';
 import { ChainManager } from './ChainManager.ts';
 import { TxPool } from './TxPool.ts';
 import { MiningCoordinator } from './MiningCoordinator.ts';
@@ -266,7 +267,7 @@ async function spiegel(
     try {
       const res = await fetch(`${ziel}/api/v2/block`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: spiegelKopf(),
         body: JSON.stringify({ raw: toHex(b.body) }),
       });
       const body = await res.json().catch(() => ({}));
