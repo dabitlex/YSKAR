@@ -17,6 +17,7 @@ import { emptyState, applyBlock, cloneState, type State }
 import { targetFromDifficulty } from '../../src/lib/core/params.ts';
 import { REGTEST } from '../../src/lib/core/networks.ts';
 import { decodeAddress } from '../../src/lib/core/address.ts';
+import type { Transfer } from '../../src/lib/core/tx.ts';
 import { sha256 } from '@noble/hashes/sha2.js';
 
 /** Zwei Adressen, damit sich Zweige an der Coinbase unterscheiden lassen. */
@@ -49,13 +50,15 @@ export function mineBlock(opts: {
   miner?: Uint8Array;
   extranonce?: bigint;
   extra?: string;
+  /** Ueberweisungen, die in den Block sollen -- fuer Mempool-Tests. */
+  mempool?: Transfer[];
 }): Gemint {
   const difficulty = opts.difficulty ?? REGTEST.genesisDifficulty;
   const gebaut = buildBlock({
     height: opts.height,
     prevHash: opts.prevHash,
     state: opts.state,
-    mempool: [],
+    mempool: opts.mempool ?? [],
     minerAddress: opts.miner ?? MINER_A,
     timestamp: opts.timestamp,
     difficulty,
@@ -151,3 +154,14 @@ export function zweig(basis: Kette, abHoehe: number, n: number, opts: {
 }
 
 export { REGTEST };
+
+/**
+ * Ein Objekt fuer eine Fehlermeldung lesbar machen.
+ *
+ * JSON.stringify kann keine BigInt und wirft. Das trifft AcceptResult,
+ * seit es die neuen und verdraengten Bloecke mitliefert -- und es trifft
+ * auch dann, wenn die Zusicherung durchgeht: Ein Template-String wird
+ * ausgewertet, bevor assert ihn ueberhaupt ansieht.
+ */
+export const zeig = (x: unknown): string =>
+  JSON.stringify(x, (_k, v) => (typeof v === 'bigint' ? v.toString() : v));

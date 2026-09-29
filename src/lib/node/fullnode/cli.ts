@@ -29,6 +29,7 @@ import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { nameToExtra } from '../../chain/finderName.ts';
 import { decodeAddress } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
+import { mempoolNachziehen } from './mempoolPflege.ts';
 
 const VERSION = '0.1.0';
 
@@ -369,7 +370,17 @@ function tipsListe(store: ChainStore): void {
  * unzumutbar waere. Jeder Block wird einzeln geprueft -- der Stapel ist
  * nur die Transportform.
  */
-async function sync(opt: Optionen, store: ChainStore, chain: ChainManager): Promise<boolean> {
+/**
+ * `pool` ist optional, weil dieselbe Funktion zwei Rollen spielt: beim
+ * Start den Erstabgleich (da gibt es noch keinen Mempool) und im Betrieb
+ * den Takt alle 30 Sekunden (da gibt es einen, und er muss gepflegt
+ * werden). Ohne ihn blieben ueber sync hereingeholte Bloecke die letzte
+ * Luecke, durch die eine erledigte Ueberweisung in der Warteschlange
+ * stehen bleibt.
+ */
+async function sync(
+  opt: Optionen, store: ChainStore, chain: ChainManager, pool?: TxPool,
+): Promise<boolean> {
   let geprueft = 0;
   const t0 = Date.now();
 
@@ -394,6 +405,7 @@ async function sync(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       }
       if (r.stored) {
         geprueft++;
+        if (pool) mempoolNachziehen(r, pool, chain.state(), chain.height());
         if (r.reorg) {
           melde(`${grau('[' + uhr() + ']')} ${gelb('Reorg')} ` +
             `auf Höhe ${r.height}, neuer Tip ${toHex(r.tip).slice(0, 16)}…`);
@@ -497,7 +509,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     });
 
     abgleich = new SyncManager({
-      chain, store, peers: netz, params,
+      chain, store, peers: netz, params, pool,
       onBlock: (h, hash, von) => {
         koordinator.invalidate();
         melde(`${grau('[' + uhr() + ']')} ${gruen('Block')} ${grau('#')}${nf(h)} ` +
@@ -651,7 +663,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     syncLaeuft = true;
     const vorher = chain.height();
     try {
-      await sync({ ...opt, einmal: true }, store, chain);
+      await sync({ ...opt, einmal: true }, store, chain, pool);
       if (chain.height() !== vorher) {
         koordinator.invalidate();
         const tip = chain.tip();

@@ -31,6 +31,8 @@ import {
   encodeInv, decodeInv, encodeGetData, decodeGetData, encodeNotFound,
   INV_BLOCK, MAX_HEADERS,
 } from './messages.ts';
+import type { TxPool } from '../fullnode/TxPool.ts';
+import { mempoolNachziehen } from '../fullnode/mempoolPflege.ts';
 
 /** Wie viele Blockkoerper gleichzeitig angefragt werden. */
 export const BLOCK_FENSTER = 16;
@@ -42,6 +44,13 @@ export interface SyncOptionen {
   store: ChainStore;
   peers: PeerManager;
   params?: ConsensusParams;
+  /**
+   * Die Warteschlange dieses Knotens.
+   *
+   * Optional, weil Tests den SyncManager ohne sie bauen. Im Betrieb gehoert
+   * sie dazu: Ohne sie bleibt der Mempool nach einem fremden Block stehen.
+   */
+  pool?: TxPool;
   /** Wird bei jedem angenommenen fremden Block gerufen. */
   onBlock?: (hoehe: number, hash: string, vonPeer: string) => void;
   onLog?: (text: string) => void;
@@ -56,6 +65,7 @@ export class SyncManager {
   private chain: ChainManager;
   private store: ChainStore;
   private peers: PeerManager;
+  private pool: TxPool | null;
   private params: ConsensusParams;
   private opt: SyncOptionen;
 
@@ -76,6 +86,7 @@ export class SyncManager {
     this.chain = o.chain;
     this.store = o.store;
     this.peers = o.peers;
+    this.pool = o.pool ?? null;
     this.params = o.params ?? MAINNET;
     this.opt = o;
   }
@@ -332,6 +343,20 @@ export class SyncManager {
     }
 
     if (r.stored) {
+      /*
+        Den Mempool an die neue Lage anpassen, BEVOR jemand anders von dem
+        Block erfaehrt.
+
+        Vorher geschah das hier gar nicht: Ein Block aus dem Netz liess die
+        eigene Warteschlange unberuehrt. Enthaltene Ueberweisungen blieben
+        darin stehen und wurden beim naechsten eigenen Block wieder
+        eingebaut -- mit verbrauchter Nonce, was den eigenen Block
+        ungueltig machte.
+      */
+      if (this.pool) {
+        mempoolNachziehen(r, this.pool, this.chain.state(), this.chain.height());
+      }
+
       this.opt.onBlock?.(r.height, hash, p.host);
       // Weitersagen -- aber nicht dem, von dem er kam.
       this.kuendigeAn(headerHash(deserializeBlock(roh).header), p);
