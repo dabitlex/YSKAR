@@ -72,11 +72,25 @@ export interface Summary {
   activeMiners: number;
 }
 
+export interface Wartend {
+  txid: string;
+  kind: 'in' | 'out';
+  from: string;
+  to: string;
+  amount: string;
+  fee: string;
+  nonce: string;
+  memo?: string | null;
+}
+
 export interface Account {
   address: string;
   balance: string;
   nonce: string;
+  /** Nonce fuer die naechste Zahlung -- Zustand plus eigene wartende. */
+  nextNonce?: string;
   blocksFound: number;
+  pending?: Wartend[];
 }
 
 export interface Fund {
@@ -353,6 +367,13 @@ export function useMining(address: string | null, platform: string) {
     return () => clearInterval(id);
   }, [mining, fetchJob]);
 
+  // Konto sofort neu lesen -- nach dem Senden soll die wartende Zahlung
+  // im Verlauf stehen, ohne auf den naechsten Takt zu warten.
+  const refreshAccount = useCallback(async () => {
+    if (!address) return;
+    try { setAccount(await leseApi(`/account/${address}`)); } catch { /* naechster Takt */ }
+  }, [leseApi, address]);
+
   // Kette und Konto abfragen
   useEffect(() => {
     const tick = async () => {
@@ -391,7 +412,7 @@ export function useMining(address: string | null, platform: string) {
     mining, start, stop, duty, setDuty: changeDuty,
     hashrate, stumm, etappen,
     summary, account, lastShare, fund, fehler, shares,
-    poolInfo,
+    poolInfo, refreshAccount,
     dismissFund: () => setFund(null),
   };
 }

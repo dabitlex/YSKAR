@@ -357,15 +357,24 @@ export class ReadApi {
 
     // Wartende Transaktionen -- sie zaehlen noch nicht zum Guthaben, aber
     // der Nutzer soll sehen, dass sie unterwegs sind.
+    // Beide Richtungen: Der Absender sieht, dass seine Zahlung unterwegs
+    // ist -- und der Empfaenger auch, nicht erst mit dem naechsten Block.
     const wartend = this.t.pool.alle()
       .filter(t => toHex(t.from) === key || toHex(t.to) === key)
       .map(t => ({
         txid: toHex(txid(t)),
+        kind: toHex(t.from) === key ? 'out' : 'in',
+        from: encodeAddress(t.from),
         to: encodeAddress(t.to),
         amount: t.amount.toString(),
         fee: t.fee.toString(),
         nonce: String(t.nonce),
+        memo: toHex(t.memo),
       }));
+    // Die Nonce, die die NAECHSTE Zahlung tragen muss: Zustand plus alles,
+    // was von dieser Adresse schon wartet. Mit der reinen Zustands-Nonce
+    // wuerde eine zweite Zahlung als Ersatz der ersten gelten.
+    const naechsteNonce = konto.nonce + BigInt(wartend.filter(w => w.kind === 'out').length);
 
     return {
       status: 200,
@@ -373,6 +382,7 @@ export class ReadApi {
         address: encodeAddress(roh),
         balance: konto.balance.toString(),
         nonce: konto.nonce.toString(),
+        nextNonce: naechsteNonce.toString(),
         blocksFound: gefunden,
         poolRewards: poolAnteile,
         pending: wartend,

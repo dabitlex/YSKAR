@@ -3,6 +3,7 @@ import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
 import { encodeAddress, decodeAddress } from '@/lib/core/address';
 import { toHex, fromHex } from '@/lib/core/codec';
+import { fullnodeLesen } from '@/lib/api/fullnode';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,13 +23,28 @@ export async function GET(
   const key = '\\x' + toHex(raw);
   const sb = db().schema('chain2');
 
-  const [{ data: acc }, { data: pending }, { count: mined }, { data: verlauf },
+  /*
+    Wartende Transaktionen kommen vom Full Node, nicht aus dem Spiegel.
+
+    Der Mempool ist fluechtig und wird nicht gespiegelt -- die Tabelle
+    chain2.mempool bleibt seit der Umstellung leer. Wer sie abfragt, sieht
+    nie eine wartende Zahlung: nicht der Absender, nicht der Empfaenger.
+    Der Knoten weiss es, also fragen wir ihn. Ist er nicht erreichbar, ist
+    die Liste leer und das Guthaben trotzdem richtig.
+  */
+  interface Wartend {
+    txid: string; kind: 'in' | 'out'; from: string; to: string;
+    amount: string; fee: string; nonce: string; memo?: string;
+  }
+  const vomKnoten = fullnodeLesen<{ pending?: Wartend[]; nextNonce?: string }>(
+    `/api/v2/account/${address}`).catch(() => null);
+
+  const [{ data: acc }, knoten, { count: mined }, { data: verlauf },
          { data: poolAnteile }] =
     await Promise.all([
       sb.from('accounts').select('balance, nonce, first_height, last_height')
         .eq('address', key).maybeSingle(),
-      sb.from('mempool').select('txid, to_addr, amount, fee, nonce')
-        .eq('from_addr', key).order('nonce'),
+      vomKnoten,
       sb.from('transactions').select('block_height', { count: 'exact', head: true })
         .eq('to_addr', key).eq('type', 0),
       // Verlauf: alles, was diese Adresse beruehrt, egal in welche Richtung.
@@ -90,12 +106,19 @@ export async function GET(
     // Die naechste Nonce, die eine Transaktion tragen muss. Ohne sie kann
     // die Wallet nicht signieren.
     nonce: acc?.nonce ?? '0',
+    // Die Nonce fuer die NAECHSTE Zahlung: Zustand plus eigene wartende.
+    // Mit der reinen Zustands-Nonce wuerde eine zweite Zahlung vor der
+    // Bestaetigung als Ersatz der ersten gelten und abgelehnt.
+    nextNonce: knoten?.nextNonce
+      ?? String(BigInt(acc?.nonce ?? '0')
+                + BigInt((knoten?.pending ?? []).filter(p => p.kind === 'out').length)),
     firstHeight: acc?.first_height ?? null,
     lastHeight: acc?.last_height ?? null,
-    pending: (pending ?? []).map(p => ({
-      txid: unprefix(p.txid as string),
-      amount: p.amount, fee: p.fee, nonce: p.nonce,
+    pending: (knoten?.pending ?? []).map(p => ({
+      txid: unprefix(p.txid), kind: p.kind, from: p.from, to: p.to,
+      amount: p.amount, fee: p.fee, nonce: p.nonce, memo: unprefix(p.memo ?? '') || null,
     })),
+    pendingSource: knoten ? 'fullnode' : 'unavailable',
     blocksFound: mined ?? 0,
     /** Bloecke, an deren Coinbase diese Adresse beteiligt war. */
     poolRewards: ausPool.length,
