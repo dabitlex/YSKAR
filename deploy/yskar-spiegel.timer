@@ -1,0 +1,29 @@
+[Unit]
+Description=YSKAR Spiegel regelmäßig nachziehen
+Documentation=https://github.com/dabitlex/YSKAR
+
+[Timer]
+# Der laufende Knoten schiebt jeden selbst gefundenen Block sofort hoch.
+# Dieser Timer ist das Netz darunter: Für jeden Block, bei dem das einmal
+# nicht geklappt hat -- Gegenstelle kurz weg, Knoten neu gestartet,
+# Internet gestolpert.
+#
+# Das ist nicht hypothetisch: Genau so ist der Spiegel im September stehen
+# geblieben. Und weil die Gegenstelle immer nur den NÄCHSTEN Block annimmt,
+# blockiert ein einziger verlorener Block alle folgenden.
+#
+# Alle 15 Minuten. Bei zehn Minuten Blockzeit heißt das: Eine Lücke steht
+# selten länger als eine Viertelstunde.
+OnBootSec=5min
+OnUnitActiveSec=15min
+
+# Nicht alle Timer auf dem Pi gleichzeitig loslaufen lassen.
+RandomizedDelaySec=60
+
+# Lief der Pi nicht, den ausgefallenen Lauf beim Start nachholen.
+Persistent=true
+
+Unit=yskar-spiegel.service
+
+[Install]
+WantedBy=timers.target
