@@ -1,0 +1,78 @@
+apply plugin: 'com.android.application'
+
+/*
+  Version und Signatur kommen von aussen.
+
+  Der GitHub-Workflow setzt -PversionCode und -PversionName aus dem Tag
+  (app-v1.2.3 -> versionName 1.2.3, versionCode aus der Laufnummer) und legt
+  den Keystore aus einem Secret ab. Lokal ohne diese Werte entsteht ein
+  unsignierter Debug-Bau -- der Schluessel liegt nie im Repo.
+*/
+def versionCodeWert = (project.hasProperty('versionCode') ? project.property('versionCode') : '1') as Integer
+def versionNameWert = project.hasProperty('versionName') ? project.property('versionName') : '0.0.0-dev'
+def keystoreDatei = System.getenv('YSKAR_KEYSTORE_FILE')
+def hatSignatur = keystoreDatei != null && file(keystoreDatei).exists()
+
+android {
+    namespace = "net.yskar.wallet"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "net.yskar.wallet"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode versionCodeWert
+        versionName versionNameWert
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (hatSignatur) {
+            release {
+                storeFile file(keystoreDatei)
+                storePassword System.getenv('YSKAR_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('YSKAR_KEY_ALIAS')
+                keyPassword System.getenv('YSKAR_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hatSignatur) signingConfig signingConfigs.release
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

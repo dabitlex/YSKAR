@@ -35,3 +35,4 @@ node/knoten/
 *.db
 *.db-wal
 *.db-shm
+android/app/google-services.json

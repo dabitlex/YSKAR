@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Screen, Title, Body, Button, Notice } from '@/components/ui/Primitives';
+import { biometrieAktiv, biometriePin, biometrieDeaktivieren } from '@/lib/native/biometrie';
 
 /**
  * Entsperren.
@@ -19,12 +20,41 @@ export default function Unlock() {
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [zeigeNotausgang, setZeigeNotausgang] = useState(false);
+  const [bio, setBio] = useState(false);
+  const bioVersucht = useRef(false);
 
   const oeffnen = async () => {
     setBusy(true); setFehler(null);
     const r = await wallet.unlock(pin);
     if (!r.ok) { setFehler(r.reason ?? 'Fehlgeschlagen.'); setPin(''); setBusy(false); }
   };
+
+  /*
+    Biometrie (nur Android-App): Sensor sofort anbieten, PIN bleibt darunter.
+    Stimmt die hinterlegte PIN nicht mehr zum Tresor -- etwa nach einer
+    Wiederherstellung mit neuer PIN -- wird Biometrie abgeschaltet, statt bei
+    jedem Start ins Leere zu laufen.
+  */
+  const mitBiometrie = async () => {
+    setBusy(true); setFehler(null);
+    const p = await biometriePin('Wallet entsperren');
+    if (!p) { setBusy(false); return; }
+    const r = await wallet.unlock(p);
+    if (!r.ok) {
+      await biometrieDeaktivieren(); setBio(false);
+      setFehler('Die hinterlegte PIN passt nicht mehr — Biometrie wurde abgeschaltet. Bitte PIN eingeben.');
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!biometrieAktiv()) return;
+    setBio(true);
+    if (bioVersucht.current) return;
+    bioVersucht.current = true;
+    mitBiometrie();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Screen>
@@ -46,10 +76,19 @@ export default function Unlock() {
 
         {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
 
-        <div className="mt-6">
+        <div className="mt-6 space-y-3">
           <Button onClick={oeffnen} disabled={pin.length !== 6 || busy}>
             {busy ? 'Wird geöffnet…' : 'Öffnen'}
           </Button>
+          {bio && (
+            <Button variant="quiet" onClick={mitBiometrie} disabled={busy}>
+              <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
+                   strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 6.5a8 8 0 0 1 12 0M3.5 10a10 10 0 0 1 15 0M7 13a5 5 0 0 1 8 0M11 11v6M8.5 16.5a4 4 0 0 0 5 0" />
+              </svg>
+              Mit Fingerabdruck / Gesicht entsperren
+            </Button>
+          )}
         </div>
 
         {!zeigeNotausgang ? (

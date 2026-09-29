@@ -21,6 +21,7 @@ interface Markt {
 import { toHex } from '@/lib/core/codec';
 import { Button, Notice, SubHeader, Icon } from '@/components/ui/Primitives';
 import Scanner from '@/components/wallet/Scanner';
+import { biometrieAktiv, biometriePin } from '@/lib/native/biometrie';
 import type { Account } from '@/hooks/useMining';
 
 /**
@@ -61,6 +62,10 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const [betrag, setBetrag] = useState('');
   const [notiz, setNotiz] = useState('');
   const [pin, setPin] = useState('');
+  // Biometrie (Android-App): Sensor statt PIN beim Signieren; PIN bleibt als Ausweg.
+  const [bio, setBio] = useState(false);
+  const [pinManuell, setPinManuell] = useState(false);
+  useEffect(() => { setBio(biometrieAktiv()); }, []);
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [ergebnis, setErgebnis] = useState<{ txid: string } | null>(null);
@@ -119,11 +124,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     setBetrag((Number(wert) / 10 ** decimals).toFixed(4).replace('.', ','));
   };
 
-  async function senden() {
+  async function senden(pinWert: string = pin) {
     setBusy(true); setFehler(null);
     try {
       // Der Schluessel kommt frisch aus dem Tresor, nicht aus dem Speicher.
-      const auf = await wallet.revealMnemonic(pin);
+      const auf = await wallet.revealMnemonic(pinWert);
       if (!auf.ok || !auf.mnemonic) throw new Error(auf.reason ?? 'PIN stimmt nicht.');
 
       const { keypairFromMnemonic } = await import('@/lib/core/wallet');
@@ -169,6 +174,12 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     } finally {
       setBusy(false);
     }
+  }
+
+  async function sendenMitBiometrie() {
+    const p = await biometriePin(`${fmt(einheiten)} ${symbol} senden`);
+    if (!p) { setFehler('Biometrie nicht bestätigt. Du kannst stattdessen die PIN eingeben.'); return; }
+    await senden(p);
   }
 
   // ------------------------------------------------------------- fertig
@@ -237,24 +248,39 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           deinem Gerät signiert.
         </div>
 
-        <label htmlFor="spin" className="mb-1.5 mt-6 block text-[13px] font-bold text-dim">
-          PIN zum Signieren
-        </label>
-        <input
-          id="spin" inputMode="numeric" maxLength={6} value={pin} autoFocus
-          onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-          className="tnum sunk w-full px-4 py-4 text-center font-mono text-xl
-                     tracking-[0.45em] outline-none transition-colors focus:border-work"
-        />
+        {bio && !pinManuell ? (
+          <>
+            {fehler && <div className="mt-6"><Notice tone="risk">{fehler}</Notice></div>}
+            <div className="mt-6 space-y-3">
+              <Button onClick={sendenMitBiometrie} disabled={busy}>
+                {busy ? 'Wird signiert…' : 'Mit Fingerabdruck / Gesicht senden'}
+              </Button>
+              <Button variant="quiet" onClick={() => setPinManuell(true)}>PIN eingeben</Button>
+              <Button variant="quiet" onClick={() => setSchritt('formular')}>Zurück</Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <label htmlFor="spin" className="mb-1.5 mt-6 block text-[13px] font-bold text-dim">
+              PIN zum Signieren
+            </label>
+            <input
+              id="spin" inputMode="numeric" maxLength={6} value={pin} autoFocus
+              onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
+              className="tnum sunk w-full px-4 py-4 text-center font-mono text-xl
+                         tracking-[0.45em] outline-none transition-colors focus:border-work"
+            />
 
-        {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
+            {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
 
-        <div className="mt-6 space-y-3">
-          <Button onClick={senden} disabled={pin.length !== 6 || busy}>
-            {busy ? 'Wird signiert…' : 'Jetzt senden'}
-          </Button>
-          <Button variant="quiet" onClick={() => setSchritt('formular')}>Zurück</Button>
-        </div>
+            <div className="mt-6 space-y-3">
+              <Button onClick={() => senden()} disabled={pin.length !== 6 || busy}>
+                {busy ? 'Wird signiert…' : 'Jetzt senden'}
+              </Button>
+              <Button variant="quiet" onClick={() => setSchritt('formular')}>Zurück</Button>
+            </div>
+          </>
+        )}
       </>
     );
   }
