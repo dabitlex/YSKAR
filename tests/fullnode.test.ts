@@ -30,6 +30,7 @@ import { blockWork, cumulativeWork, compareTips, workToBytes, workFromBytes }
 import { toHex, fromHex } from '../src/lib/core/codec.ts';
 import { stateRoot, totalSupply } from '../src/lib/core/state.ts';
 import { UNIT } from '../src/lib/core/params.ts';
+import { zeig } from './helpers/regtest.ts';
 
 const KETTE = JSON.parse(readFileSync(
   new URL('./fixtures/kette-0-14.json', import.meta.url), 'utf8')) as
@@ -151,7 +152,7 @@ test('Der Full Node nimmt die echte Kette an und prüft sie vollständig', () =>
 
   for (const b of KETTE) {
     const r = chain.accept(fromHex(b.body));
-    assert.ok(r.ok, `Block ${b.height} abgelehnt: ${JSON.stringify(r)}`);
+    assert.ok(r.ok, `Block ${b.height} abgelehnt: ${zeig(r)}`);
   }
 
   assert.equal(chain.height(), 14);

@@ -17,7 +17,7 @@ import { REGTEST } from '../src/lib/core/networks.ts';
 import { toHex } from '../src/lib/core/codec.ts';
 import { encodeAddress } from '../src/lib/core/address.ts';
 import { UNIT } from '../src/lib/core/params.ts';
-import { baueKette, MINER_A } from './helpers/regtest.ts';
+import { baueKette, MINER_A, zeig } from './helpers/regtest.ts';
 
 function api(bloecke = 5) {
   const store = new ChainStore(':memory:');
@@ -29,7 +29,7 @@ function api(bloecke = 5) {
   const kette = baueKette(bloecke);
   for (const b of kette.bloecke) {
     const r = chain.accept(b.body);
-    assert.ok(r.ok, JSON.stringify(r));
+    assert.ok(r.ok, zeig(r));
   }
   return { store, chain, pool, lesen: new ReadApi({ chain, store, pool }), kette };
 }

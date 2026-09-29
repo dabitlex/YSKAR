@@ -18,7 +18,7 @@ import { REGTEST } from '../src/lib/core/networks.ts';
 import { toHex } from '../src/lib/core/codec.ts';
 import { stateRoot, totalSupply } from '../src/lib/core/state.ts';
 import { UNIT } from '../src/lib/core/params.ts';
-import { baueKette, zweig, MINER_A, MINER_B } from './helpers/regtest.ts';
+import { baueKette, zweig, MINER_A, MINER_B, zeig } from './helpers/regtest.ts';
 
 function knoten() {
   const store = new ChainStore(':memory:');
@@ -34,7 +34,7 @@ test('Testnetz: eine gerade Kette wird vollständig angenommen', () => {
   const { store, chain } = knoten();
   for (const b of k.bloecke) {
     const r = chain.accept(b.body);
-    assert.ok(r.ok, `Block ${b.block.header.height}: ${JSON.stringify(r)}`);
+    assert.ok(r.ok, `Block ${b.block.header.height}: ${zeig(r)}`);
   }
   assert.equal(chain.height(), 5);
   assert.equal(toHex(stateRoot(chain.state())), toHex(stateRoot(k.state)));
@@ -51,7 +51,7 @@ test('Ein zweiter Block auf derselben Höhe wird gespeichert, nicht verworfen', 
   const anderer = zweig(k, 3, 1, { miner: MINER_B })[0];
   const r = chain.accept(anderer.body);
 
-  assert.ok(r.ok, JSON.stringify(r));
+  assert.ok(r.ok, zeig(r));
   assert.equal(store.atHeight(3).length, 2,
     'Beide Zweige müssen existieren, sonst ist keine Auflösung möglich');
 
@@ -75,7 +75,7 @@ test('Der längere Zweig mit mehr Arbeit übernimmt — Reorg', () => {
   let reorgGesehen = false;
   for (const g of b) {
     const r = chain.accept(g.body);
-    assert.ok(r.ok, `Zweigblock ${g.block.header.height}: ${JSON.stringify(r)}`);
+    assert.ok(r.ok, `Zweigblock ${g.block.header.height}: ${zeig(r)}`);
     if ((r as { reorg?: boolean }).reorg) reorgGesehen = true;
   }
 

@@ -28,6 +28,7 @@ import { txidHex, coinbaseTotal, type Transfer, type Coinbase } from '../../core
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore } from './ChainStore.ts';
 import type { TxPool } from './TxPool.ts';
+import { mempoolNachziehen } from './mempoolPflege.ts';
 
 /** Wie lange ein Job gueltig bleibt, bevor er neu gebaut werden muss. */
 export const JOB_TTL_MS = 90_000;
@@ -218,7 +219,21 @@ export class MiningCoordinator {
 
     const coinbase = block.txs[0] as Coinbase;
     this.offen.delete(jobId);
-    this.pool.nachBlock(offen.enthalten, this.chain.state());
+
+    /*
+      Frueher stand hier pool.nachBlock(offen.enthalten, ...) -- die
+      Transaktionen, die DIESER Knoten in DIESEN Block gebaut hat.
+
+      Das war die halbe Wahrheit. Ein angenommener Block kann einen Reorg
+      ausgeloest haben; dann sind auch Bloecke aus der aktiven Kette
+      gefallen, deren Transaktionen zurueck in die Warteschlange gehoeren.
+      Und dieselbe Pflege braucht jeder angenommene Block, nicht nur der
+      selbst gefundene -- deshalb steht sie jetzt in einer Funktion, die
+      alle drei Annahmestellen rufen.
+    */
+    if (r.stored) {
+      mempoolNachziehen(r, this.pool, this.chain.state(), this.chain.height());
+    }
 
     return {
       ok: true, block: true,

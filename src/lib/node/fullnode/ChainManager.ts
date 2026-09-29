@@ -30,9 +30,33 @@ import { blockWork, compareTips } from './ChainWork.ts';
 export const SNAPSHOT_INTERVAL = 200;
 
 export type AcceptResult =
-  | { ok: true; stored: true; reorg: boolean; height: number; tip: Uint8Array }
+  | { ok: true; stored: true; reorg: boolean; height: number; tip: Uint8Array;
+      /**
+       * Welche Bloecke durch diese Annahme aktiv wurden und welche ihren
+       * Platz in der aktiven Kette verloren haben.
+       *
+       * WOFUER: Der Mempool muss nach jedem angenommenen Block aufgeraeumt
+       * werden -- enthaltene Transaktionen raus, und bei einem Reorg die
+       * Transaktionen der verdraengten Bloecke zurueck in die Warteschlange.
+       * Vorher stand `reorg: boolean` hier und sonst nichts; wer aufraeumen
+       * wollte, wusste zwar DASS umgeschaltet wurde, aber nicht WORAUF.
+       *
+       * Deshalb die Bloecke selbst und nicht ein Rueckruf: Der ChainManager
+       * haelt die Kette. Er soll nichts vom Mempool wissen muessen.
+       *
+       * Bei einer blossen Verlaengerung steht in `neu` genau ein Block und
+       * `verdraengt` ist leer.
+       */
+      neu: StoredBlock[]; verdraengt: StoredBlock[] }
   | { ok: true; stored: false; grund: 'bekannt' }
   | { ok: false; grund: string; detail?: string };
+
+/** Was ein Zweigwechsel bewegt hat. */
+export interface Zweigwechsel {
+  reorg: boolean;
+  neu: StoredBlock[];
+  verdraengt: StoredBlock[];
+}
 
 export interface ChainState {
   state: State;
@@ -151,8 +175,9 @@ export class ChainManager {
       status: 'valid', mainChain: false,
     });
 
-    const reorg = this.besteKetteWaehlen();
-    return { ok: true, stored: true, reorg,
+    const wechsel = this.besteKetteWaehlen();
+    return { ok: true, stored: true, reorg: wechsel.reorg,
+             neu: wechsel.neu, verdraengt: wechsel.verdraengt,
              height: this.zustandHoehe,
              tip: this.zustandHash ?? new Uint8Array(32) };
   }
@@ -160,20 +185,24 @@ export class ChainManager {
   /**
    * Die Kette mit der meisten Arbeit zur aktiven machen.
    *
-   * Rueckgabe: true, wenn dafuer umgeschaltet werden musste.
+   * Rueckgabe: was sich dabei bewegt hat. reorg ist true, wenn dafuer auf
+   * einen anderen Zweig umgeschaltet werden musste -- eine blosse
+   * Verlaengerung ist keiner.
    */
-  besteKetteWaehlen(): boolean {
+  besteKetteWaehlen(): Zweigwechsel {
+    const nichts: Zweigwechsel = { reorg: false, neu: [], verdraengt: [] };
     const best = this.store.bestTip();
-    if (!best) return false;
+    if (!best) return nichts;
 
     const aktuell = this.store.mainTip();
-    if (aktuell && toHex(aktuell.hash) === toHex(best.hash)) return false;
-    if (aktuell && compareTips(alsTip(best), alsTip(aktuell)) <= 0) return false;
+    if (aktuell && toHex(aktuell.hash) === toHex(best.hash)) return nichts;
+    if (aktuell && compareTips(alsTip(best), alsTip(aktuell)) <= 0) return nichts;
 
     const warVorhanden = aktuell !== null;
-    this.umschalten(best);
+    const { neu, verdraengt } = this.umschalten(best);
     // Eine blosse Verlaengerung ist kein Reorg -- nur ein Zweigwechsel.
-    return warVorhanden && toHex(best.prevHash) !== toHex(aktuell!.hash);
+    const reorg = warVorhanden && toHex(best.prevHash) !== toHex(aktuell!.hash);
+    return { reorg, neu, verdraengt };
   }
 
   /**
@@ -183,17 +212,27 @@ export class ChainManager {
    * markieren, Zustand neu aufbauen, Wurzel gegenpruefen. Nichts wird
    * geloescht -- der alte Zweig bleibt vollstaendig erhalten und koennte
    * spaeter wieder gewinnen.
+   *
+   * Rueckgabe: die Bloecke, die aktiv wurden, und die, die ihren Platz
+   * verloren haben. Die verdraengten kannte diese Funktion schon immer --
+   * die Schleife unten laeuft genau ueber sie --, sie hat sie nur
+   * weggeworfen. Der Mempool braucht sie: Deren Transaktionen sind nicht
+   * mehr in der Kette und muessen zurueck in die Warteschlange.
    */
-  private umschalten(neuerTip: StoredBlock): void {
+  private umschalten(neuerTip: StoredBlock): { neu: StoredBlock[]; verdraengt: StoredBlock[] } {
     const neuerPfad = this.pfadZumVerankerten(neuerTip);
     const gabel = neuerPfad.length > 0 ? neuerPfad[0].height - 1 : -1;
+    const verdraengt: StoredBlock[] = [];
 
     this.store.transaktion(() => {
       // Alles oberhalb der Gabelung aus der aktiven Kette nehmen.
       let h = this.store.height();
       while (h > gabel) {
         const alt = this.store.mainAt(h);
-        if (alt) this.store.setMainChain(alt.hash, false);
+        if (alt) {
+          verdraengt.push(alt);
+          this.store.setMainChain(alt.hash, false);
+        }
         h--;
       }
       for (const b of neuerPfad) this.store.setMainChain(b.hash, true);
@@ -203,6 +242,10 @@ export class ChainManager {
     });
 
     this.zustandHerstellen();
+
+    // Aufsteigend, wie neuerPfad -- die Schleife oben lief abwaerts.
+    verdraengt.reverse();
+    return { neu: neuerPfad, verdraengt };
   }
 
   /**

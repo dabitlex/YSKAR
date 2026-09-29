@@ -17,7 +17,7 @@ import { REGTEST } from '../src/lib/core/networks.ts';
 import { toHex } from '../src/lib/core/codec.ts';
 import { stateRoot, totalSupply } from '../src/lib/core/state.ts';
 import { UNIT } from '../src/lib/core/params.ts';
-import { baueKette, zweig, MINER_A, MINER_B } from './helpers/regtest.ts';
+import { baueKette, zweig, MINER_A, MINER_B, zeig } from './helpers/regtest.ts';
 
 const warte = (ms: number) => new Promise(r => setTimeout(r, ms));
 let port = 19400;
@@ -63,7 +63,7 @@ function knoten(opt: { port?: number; seeds?: { host: string; port: number }[] }
 function fuelle(k: ReturnType<typeof knoten>, bloecke: { body: Uint8Array }[]) {
   for (const b of bloecke) {
     const r = k.chain.accept(b.body);
-    assert.ok(r.ok, `Testkette nicht annehmbar: ${JSON.stringify(r)}`);
+    assert.ok(r.ok, `Testkette nicht annehmbar: ${zeig(r)}`);
   }
 }
 
