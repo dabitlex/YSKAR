@@ -127,7 +127,7 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
       <div className="mt-5">
         <Notice>
           YSKAR ist ein Projekt, kein Zahlungsmittel. Die Arbeit ist echt und
-          nachrechenbar — die Kette hat derzeit einen Validator.
+          nachrechenbar — mehrere Knoten prüfen jeden Block unabhängig.
         </Notice>
       </div>
     </>
