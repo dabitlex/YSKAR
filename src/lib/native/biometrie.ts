@@ -29,13 +29,20 @@ export type BiometrieStand =
   | { verfuegbar: false; grund: 'kein_sensor' | 'nicht_eingerichtet' | 'nicht_nativ' | 'fehler'; detail?: string }
   | { verfuegbar: true; art: string; aktiv: boolean };
 
+/*
+  WICHTIG: Ein Capacitor-Plugin ist ein Proxy. Gibt eine async-Funktion ihn
+  direkt zurueck, prueft JavaScript beim Aufloesen `.then` -- der Proxy
+  deutet das als Plugin-Methode und wirft "then() is not implemented".
+  Genau das hat beim ersten Geraetetest Biometrie UND Mining-Dienst still
+  lahmgelegt. Deshalb kommt der Proxy hier in ein gewoehnliches Objekt.
+*/
 async function bio() {
   const m = await import('@aparajita/capacitor-biometric-auth');
-  return m.BiometricAuth;
+  return { p: m.BiometricAuth };
 }
 async function speicher() {
   const m = await import('@aparajita/capacitor-secure-storage');
-  return m.SecureStorage;
+  return { p: m.SecureStorage };
 }
 
 export function biometrieAktiv(): boolean {
@@ -45,7 +52,7 @@ export function biometrieAktiv(): boolean {
 export async function biometrieStand(): Promise<BiometrieStand> {
   if (!istNativ()) return { verfuegbar: false, grund: 'nicht_nativ' };
   try {
-    const r = await (await bio()).checkBiometry();
+    const r = await (await bio()).p.checkBiometry();
     if (!r.isAvailable) {
       const detail = `${r.reason ?? ''} ${r.code ?? ''}`.trim() || undefined;
       return { verfuegbar: false,
@@ -63,7 +70,7 @@ export async function biometrieStand(): Promise<BiometrieStand> {
 export async function biometrieBestaetigen(grund: string): Promise<boolean> {
   if (!istNativ()) return false;
   try {
-    await (await bio()).authenticate({
+    await (await bio()).p.authenticate({
       reason: grund,
       androidTitle: 'YSKAR Wallet',
       androidSubtitle: grund,
@@ -87,7 +94,7 @@ export async function biometrieAktivieren(pin: string): Promise<boolean> {
   const ok = await biometrieBestaetigen('Biometrie für YSKAR Wallet einschalten');
   if (!ok) return false;
   try {
-    await (await speicher()).set(SCHLUESSEL, pin);
+    await (await speicher()).p.set(SCHLUESSEL, pin);
     localStorage.setItem(MERKER, '1');
     return true;
   } catch {
@@ -96,7 +103,7 @@ export async function biometrieAktivieren(pin: string): Promise<boolean> {
 }
 
 export async function biometrieDeaktivieren(): Promise<void> {
-  try { await (await speicher()).remove(SCHLUESSEL); } catch { /* war nie da */ }
+  try { await (await speicher()).p.remove(SCHLUESSEL); } catch { /* war nie da */ }
   try { localStorage.removeItem(MERKER); } catch { /* egal */ }
 }
 
@@ -110,7 +117,7 @@ export async function biometriePin(grund: string): Promise<string | null> {
   const ok = await biometrieBestaetigen(grund);
   if (!ok) return null;
   try {
-    const wert = await (await speicher()).get(SCHLUESSEL);
+    const wert = await (await speicher()).p.get(SCHLUESSEL);
     return typeof wert === 'string' && /^\d{6}$/.test(wert) ? wert : null;
   } catch {
     return null;
