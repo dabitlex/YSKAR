@@ -82,8 +82,11 @@ jobs:
 
       - name: Capacitor synchronisieren
         env:
-          YSKAR_APP_URL: ${{ github.event.inputs.app_url }}
-        run: npx cap sync android
+          APP_URL_EINGABE: ${{ github.event.inputs.app_url }}
+        run: |
+          if [ -n "$APP_URL_EINGABE" ]; then export YSKAR_APP_URL="$APP_URL_EINGABE"; fi
+          npx cap sync android
+          echo "server.url:"; grep -o '"url": *"[^"]*"' android/app/src/main/assets/capacitor.config.json
 
       - name: Keystore ablegen
         if: env.YSKAR_KEYSTORE_BASE64 != ''

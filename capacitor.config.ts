@@ -12,7 +12,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * YSKAR_APP_URL erlaubt einen anderen Server, z.B. eine Vorschau-Adresse
  * fuer einen Testbau. Vorgabe ist der Betrieb.
  */
-const APP_URL = (process.env.YSKAR_APP_URL ?? 'https://yskar.vercel.app').replace(/\/+$/, '');
+// Leer zaehlt wie nicht gesetzt: Der Workflow reicht das Eingabefeld auch
+// dann durch, wenn niemand etwas eingetragen hat -- und eine leere Adresse
+// liess die App beim Start abstuerzen ("Provided server url is invalid").
+const APP_URL = (process.env.YSKAR_APP_URL?.trim() || 'https://yskar.vercel.app').replace(/\/+$/, '');
+if (!/^https?:\/\//.test(APP_URL)) throw new Error(`YSKAR_APP_URL ohne Protokoll: ${APP_URL}`);
 
 const config: CapacitorConfig = {
   appId: 'net.yskar.wallet',
