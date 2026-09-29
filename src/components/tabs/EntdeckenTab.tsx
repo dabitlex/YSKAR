@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Panel, GroupTitle, Notice, Icon, SubHeader } from '@/components/ui/Primitives';
 import { TopBar } from '@/components/ui/Chrome';
 import Artikel, { FARBE } from '@/components/Artikel';
@@ -23,6 +23,15 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
   onEinstellungen: () => void;
 }) {
   const [ansicht, setAnsicht] = useState<Ansicht>({ art: 'liste' });
+  // Neuigkeiten vom Server (Tabelle chain2.news); bis sie da sind, die aus dem Code.
+  const [news, setNews] = useState<{ datum: string; titel: string; text: string; link?: string | null }[]>(NEUIGKEITEN);
+  useEffect(() => {
+    let lebt = true;
+    fetch('/api/v2/news').then(r => r.json())
+      .then(d => { if (lebt && Array.isArray(d.news) && d.news.length) setNews(d.news); })
+      .catch(() => {});
+    return () => { lebt = false; };
+  }, []);
 
   if (ansicht.art === 'artikel') {
     const a = ARTIKEL.find(x => x.slug === ansicht.slug);
@@ -98,12 +107,14 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
       <GroupTitle>Neuigkeiten</GroupTitle>
       <Panel className="rise rise-3 !p-0">
         <ul className="divide-y divide-line">
-          {NEUIGKEITEN.map((n, k) => (
+          {news.map((n, k) => (
             <li key={k} className="flex gap-3 px-4 py-3.5">
               <span className="tnum w-16 shrink-0 pt-0.5 text-[11px] font-bold text-faint">{n.datum}</span>
               <span>
                 <span className="block text-[14px] font-extrabold">{n.titel}</span>
                 <p className="mt-1 text-[12.5px] font-medium leading-relaxed text-dim">{n.text}</p>
+                {n.link && <a href={n.link} target="_blank" rel="noreferrer"
+                              className="mt-1 inline-block text-[12.5px] font-bold text-work">Mehr ›</a>}
               </span>
             </li>
           ))}

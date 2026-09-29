@@ -17,7 +17,7 @@ Weitere: **proof, not promise**.
 | | |
 |---|---|
 | Kette | `yskar-main-1`, Genesis gemint am 09.09.2026 |
-| Tests | 291, keine Typfehler |
+| Tests | 297, keine Typfehler |
 | Knoten | Server unter `/api/v2/*` **und** eigenstaendiger Full Node |
 | Oberflaeche | Wallet, Senden, Empfangen, Mining, Kalibrierung |
 | Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000 |
@@ -32,6 +32,8 @@ src/lib/node/fullnode/   Full Node: Kette, Mempool, Mining, Pool
 src/lib/node/p2p/        Verbindung zwischen Full Nodes
 src/lib/pool/            PPLNS und Abrechnung
 src/app/                 Mini App und API
+src/lib/native/          Bruecke zur Android-App (Biometrie, Dienst, Push)
+android/                 Android-App (Capacitor)
 miner/                   eigenstaendiger Miner, baut zu einer .exe
 node/                    Full Node, Kommandozeile
 observer/                Beobachter -- prueft die Kette, baut nichts
@@ -51,6 +53,10 @@ natives Modul zu kompilieren.
 Coinbase des Blocks, die Kette zahlt jeden Beteiligten direkt aus. Der
 erste Pool ist in Betrieb (`docs/POOL_BETRIEB.md`).
 
+**YSKAR Wallet** ist die Android-App: dieselbe Oberflaeche in einer nativen
+Huelle, dazu Biometrie, Mining im Hintergrund, Push und Update-Hinweis.
+Verteilung als APK ueber GitHub Releases (`docs/APP.md`).
+
 **Mini App** auf Vercel. Mining und Transaktionen gehen an den Full Node
 (`NEXT_PUBLIC_MINING_BASE`); Guthaben, Verlauf und Kennzahlen liest die App
 ueber den eigenen Server, der dafuer den Knoten fragt (`YSKAR_FULLNODE_URL`)
@@ -61,7 +67,7 @@ Spiegel ist Bequemlichkeit fuer Explorer und Verlauf, nicht Wahrheit.
 
 ```bash
 npm install
-npm test                 # 291 Tests
+npm test                 # 297 Tests
 npx tsc --noEmit         # 0 Fehler
 npm run dev
 ```
@@ -137,6 +143,7 @@ baut aber nichts. Fuer einen Raspberry Pi gedacht.
 | `docs/POOL_BETRIEB.md` | einen Pool betreiben, beitreten |
 | `docs/P2P.md` | Nachrichten, Handschlag, Grenzen zwischen Knoten |
 | `docs/UMSTELLUNG.md` | wie die Kette vom Server auf die Full Nodes zog |
+| `docs/APP.md` | Android-App: Bau, Signatur, Release, Push-Watcher |
 | `docs/SECURITY.md` | Schluessel, Tresor, Angriffsflaechen |
 
 ## Oberflaeche
@@ -166,7 +173,8 @@ Schritt auf der Roadmap.
 **Node Core.** Eine Veroeffentlichung des Full Node mit eingebauter Wallet
 und Mining fuer alle Systeme, ohne Node.js-Installation.
 
-**Apps.** Android und iOS inklusive Lightning-Wallet.
+**Apps.** Android ist da (YSKAR Wallet, APK ueber GitHub Releases); der
+Play Store und iOS fehlen, die Lightning-Wallet ebenso.
 
 **Keine Ratenbegrenzung** auf `/api/v2/share`. Bei bekannten Testern
 unkritisch, bei offener Verteilung nicht.

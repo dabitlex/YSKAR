@@ -14,6 +14,7 @@ import NetzTab from '@/components/tabs/NetzTab';
 import EntdeckenTab from '@/components/tabs/EntdeckenTab';
 import Artikel from '@/components/Artikel';
 import UpdateBanner from '@/components/UpdateBanner';
+import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
 import { ARTIKEL } from '@/content/entdecken';
 import Send from '@/components/wallet/Send';
 import Receive from '@/components/wallet/Receive';
@@ -80,6 +81,20 @@ export default function AppShell({ platform }: { platform: string }) {
     setBench(g);
     setWorker(g.besteWorker);
   }, []);
+
+  // Android-App: Push-Anmeldung auffrischen; Tipp auf eine Meldung fuehrt
+  // in die Wallet (Eingang) oder nach Entdecken (News).
+  useEffect(() => {
+    if (wallet.address) pushAuffrischen(wallet.address);
+    let ab: (() => void) | null = null;
+    pushBeiTipp(art => {
+      setAnsicht(null);
+      setTab(art === 'news' ? 'entdecken' : 'wallet');
+      m.refreshAccount();
+    }).then(f => { ab = f; });
+    return () => { ab?.(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet.address]);
 
   const dec = m.summary?.token?.decimals ?? 8;
   const sym = m.summary?.token?.token_symbol ?? 'YSR';
