@@ -5,7 +5,7 @@
     <!--
       allowBackup="false": Der Tresor mit den verschluesselten Woertern liegt im
       WebView-Speicher. Mit Backup wanderte er ueber das Google-Konto auf ein
-      anderes Geraet -- ein Ort, den der Nutzer nicht kontrolliert.
+      anderes Geraet, ein Ort, den der Nutzer nicht kontrolliert.
     -->
     <application
         android:allowBackup="false"
