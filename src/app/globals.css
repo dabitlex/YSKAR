@@ -3,33 +3,38 @@
 @tailwind utilities;
 
 /*
-  YSKAR — Gestaltungssystem.
+  YSKAR — Gestaltungssystem „Eis".
 
-  Leitlinie bleibt: ein Werkzeug, kein Spielautomat. Aber Zurueckhaltung ist
-  nicht dasselbe wie Kargheit. Was diese Oberflaeche traegt, sind Ebenen,
-  Rhythmus und Hierarchie -- nicht Verlaeufe und Glanz.
+  Hell, ruhig, ein Akzent. Die Marke ist ein Kristall auf Weiss; die App
+  folgt ihr: heller Grund, weisse Karten, dunkelblaue Schrift, Saphirblau
+  fuer alles, was aktiv ist oder bedient werden kann. Gruen heisst „von der
+  Kette bestaetigt", Rot heisst „unwiderruflich".
+
+  Die Namen der Farben sind geblieben (ink, surface, work, proof ...), nur
+  ihre Werte nicht. So bleibt jeder Bildschirm, der auf die Namen baut,
+  ohne Umbau im neuen Kleid.
 
   Farben als RGB-Kanaele: Nur so kann Tailwind Deckkraft anwenden. Mit
   fertigen Farbwerten werden Klassen wie bg-dim/70 lautlos verworfen.
 */
 :root {
-  --ink:     10 13 18;      /* #0A0D12  Basis */
-  --sunk:    8 10 15;       /* #080A0F  tiefer als Basis, fuer Vertiefungen */
-  --surface: 18 23 32;      /* #121720  erste Ebene */
-  --raised:  24 30 42;      /* #181E2A  zweite Ebene */
-  --line:    38 46 60;      /* #262E3C */
-  --edge:    255 255 255;   /* Lichtkante, nur mit sehr wenig Deckkraft */
-  --text:    233 238 245;
-  --dim:     130 141 158;
-  --faint:   94 104 120;
+  --ink:     244 247 251;   /* #F4F7FB  Grund */
+  --sunk:    255 255 255;   /* Eingabefelder, Diagrammgrund */
+  --surface: 255 255 255;   /* Karten */
+  --raised:  241 244 249;   /* #F1F4F9  ruhige Knoepfe, Chips */
+  --line:    230 236 244;   /* #E6ECF4 */
+  --edge:    14 26 47;      /* Kante, nur mit sehr wenig Deckkraft */
+  --text:    14 26 47;      /* #0E1A2F */
+  --dim:     91 107 132;    /* #5B6B84 */
+  --faint:   142 154 176;   /* #8E9AB0 */
 
-  --work:  240 185 60;      /* rechnet gerade */
-  --proof: 62 214 148;      /* von der Kette angenommen */
-  --risk:  232 92 80;       /* unwiderruflich */
+  --work:  31 91 240;       /* #1F5BF0  aktiv, bedienbar */
+  --proof: 11 138 92;       /* #0B8A5C  von der Kette angenommen */
+  --risk:  217 64 74;       /* #D9404A  unwiderruflich */
 
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 20px;
+  --r-sm: 12px;
+  --r-md: 20px;
+  --r-lg: 24px;
 }
 
 html, body {
@@ -41,37 +46,34 @@ html, body {
 body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
-  font-feature-settings: 'ss01', 'cv05';
 }
 
 .tnum { font-variant-numeric: tabular-nums; }
 
-/*
-  Erhoehte Flaeche mit Lichtkante.
-
-  Der 1px-Streifen oben ist der ganze Trick: Er laesst die Flaeche wie ein
-  physisches Blatt wirken, das Licht von oben faengt. Ein Schatten allein
-  wuerde auf dunklem Grund nichts ausrichten.
-*/
+/* Karte. Weiss auf hellem Grund braucht eine feine Linie und einen weichen
+   Schatten -- eine Lichtkante allein ist auf Weiss unsichtbar. */
 .panel {
   background: rgb(var(--surface));
+  border: 1px solid rgb(var(--line));
   border-radius: var(--r-md);
   position: relative;
-  box-shadow:
-    inset 0 1px 0 rgb(var(--edge) / 0.055),
-    0 1px 2px rgb(0 0 0 / 0.4);
+  box-shadow: 0 8px 24px -16px rgb(var(--edge) / 0.18);
 }
 .panel-raised { background: rgb(var(--raised)); }
 
-/* Vertiefung -- fuer Eingabefelder und den Diagrammgrund. */
-/* Fortschrittsbalken. Eingelassen wie die Eingabefelder, damit er nicht
-   wie ein aufgesetztes Element wirkt. */
+/* Eingabefeld: weiss mit Linie, keine Vertiefung. */
+.sunk {
+  background: rgb(var(--sunk));
+  border-radius: var(--r-sm);
+  border: 1px solid rgb(var(--line));
+}
+
+/* Fortschrittsbalken. */
 .bar {
   height: 6px;
   border-radius: 99px;
-  background: rgb(var(--sunk));
+  background: rgb(var(--raised));
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / .5);
 }
 .bar > i {
   display: block;
@@ -81,17 +83,27 @@ body {
   transition: width .3s ease;
 }
 
-.sunk {
-  background: rgb(var(--sunk));
-  border-radius: var(--r-sm);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.45);
+/* Kleine Ueberschrift ueber einer Kennzahl. */
+.label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgb(var(--faint));
 }
 
 /*
-  Signaturflaeche: ein sehr weiter, sehr schwacher Schein hinter dem
-  Guthaben. Kein Farbverlauf ueber die ganze Karte -- nur so viel, dass die
-  Zahl Gewicht bekommt.
+  Hervorgehobene Karte: dunkles Blau mit Verlauf, fuer die eine Zahl, die
+  auf einem Bildschirm zaehlt (Guthaben, Halving).
 */
+.hero {
+  background: linear-gradient(160deg, #0E1A2F 0%, #14305F 60%, #1F5BF0 130%);
+  color: #fff;
+  border: 0;
+  border-radius: var(--r-md);
+}
+
+/* Signaturschein hinter einer Kennzahl -- sehr weit, sehr schwach. */
 .glow-work::before,
 .glow-proof::before {
   content: '';
@@ -102,14 +114,11 @@ body {
   pointer-events: none;
   z-index: 0;
 }
-.glow-work::before  { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--work)  / .10), transparent 70%); }
-.glow-proof::before { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--proof) / .09), transparent 70%); }
+.glow-work::before  { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--work)  / .07), transparent 70%); }
+.glow-proof::before { background: radial-gradient(60% 50% at 50% 0%, rgb(var(--proof) / .07), transparent 70%); }
 
-/*
-  Der Hash ist das Material dieser Kette. Fuehrende Nullen gedimmt: Sie SIND
-  die geleistete Arbeit, und gedimmt kann man sie zaehlen statt lesen.
-*/
-.hash-lead { color: rgb(var(--faint)); }
+/* Fuehrende Nullen eines Hashes gedimmt: Sie SIND die geleistete Arbeit. */
+.hash-lead { color: rgb(var(--faint) / .75); }
 .hash-sig  { color: rgb(var(--text)); }
 
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
@@ -138,6 +147,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   to   { opacity: 1; transform: none }
 }
 .zoom { animation: zoomIn .5s cubic-bezier(.2,.7,.3,1) both; }
+
+@keyframes lade {
+  0%   { transform: translateX(-100%) }
+  100% { transform: translateX(300%) }
+}
+.lade { animation: lade 1.4s ease-in-out infinite; }
+
+@keyframes scanline {
+  0%   { top: 6% }
+  50%  { top: 92% }
+  100% { top: 6% }
+}
+.scanline { animation: scanline 2.6s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

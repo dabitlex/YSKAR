@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { keypairFromMnemonic } from '@/lib/core/wallet';
-import { Screen, Title, Body, Button, Notice, Hash } from '@/components/ui/Primitives';
+import Image from 'next/image';
+import { Screen, Title, Body, Button, Notice, Icon } from '@/components/ui/Primitives';
+import Vorstellung from '@/components/Vorstellung';
 
 /**
  * Wallet einrichten.
@@ -23,7 +25,7 @@ import { Screen, Title, Body, Button, Notice, Hash } from '@/components/ui/Primi
  *     Danach liest sie niemand mehr.
  */
 
-type Step = 'start' | 'warnung' | 'woerter' | 'pruefen' | 'pin' | 'wiederherstellen';
+type Step = 'start' | 'mehr' | 'warnung' | 'woerter' | 'pruefen' | 'pin' | 'wiederherstellen';
 
 export default function Onboarding() {
   const wallet = useWallet();
@@ -31,7 +33,10 @@ export default function Onboarding() {
   const [mnemonic, setMnemonic] = useState<string>('');
 
   if (step === 'start') return <Start onCreate={() => setStep('warnung')}
-                                      onRecover={() => setStep('wiederherstellen')} />;
+                                      onRecover={() => setStep('wiederherstellen')}
+                                      onMehr={() => setStep('mehr')} />;
+  if (step === 'mehr') return <Vorstellung onZurueck={() => setStep('start')}
+                                           onLos={() => setStep('warnung')} />;
   if (step === 'warnung') return <Warnung onWeiter={() => {
     setMnemonic(wallet.create());
     setStep('woerter');
@@ -46,30 +51,74 @@ export default function Onboarding() {
 
 // ---------------------------------------------------------------- Start
 
-function Start({ onCreate, onRecover }: { onCreate: () => void; onRecover: () => void }) {
+/**
+ * Willkommen.
+ *
+ * Erst sagen, was YSKAR ist, dann die Wallet anlegen. Wer hier ankommt,
+ * kennt meist nur den Bot-Link -- drei Saetze, drei Versprechen, die die
+ * App danach auch haelt.
+ */
+function Start({ onCreate, onRecover, onMehr }: {
+  onCreate: () => void; onRecover: () => void; onMehr: () => void;
+}) {
   return (
-    <Screen>
-      <div className="mb-10 mt-6">
-        <Hash value="000000090a14a03f1562d11113d539c1" className="text-xs leading-relaxed" />
-        <p className="mt-3 text-xs text-dim">Block 0 · 09.09.2026 · „proof, not promise“</p>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-7 pt-5"
+          style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, rgb(var(--ink)) 42%)' }}>
+      <div className="zoom flex flex-col items-center gap-1">
+        <Image src="/marke/kristall.png" alt="" width={168} height={122} priority
+               style={{ width: 168, height: 122, objectFit: 'contain' }} />
+        <span className="text-[12px] font-extrabold tracking-[0.22em] text-work">
+          GEMEINSAM · DEZENTRAL · STARK
+        </span>
       </div>
 
-      <Title>Eine Kette, die du nachrechnen kannst</Title>
-      <Body>
-        YSKAR wird auf deinem Telefon gemint. Dein Gerät rechnet echte Hashes,
-        der Server prüft jeden einzelnen nach, und jeder Block liegt offen im
-        Explorer. Keine hochgezählten Fantasiezahlen.
-      </Body>
-      <Body>
-        Dafür brauchst du zuerst eine Wallet. Sie gehört dir allein — nicht
-        deinem Telegram-Konto.
-      </Body>
+      <div className="rise mt-4">
+        <Title>Eine Kette, die du nachrechnen kannst.</Title>
+        <Body>
+          YSKAR ist echtes Proof of Work auf deinem Telefon. Dein Gerät rechnet,
+          das Netz prüft, jeder Block liegt offen.
+        </Body>
+      </div>
 
-      <div className="mt-8 space-y-3">
+      <div className="rise rise-1 mt-5 flex flex-col gap-2">
+        <Merkmal icon={Icon.Blitz} titel="Echtes Mining">
+          SHA-256d auf deinem Gerät. Keine hochgezählten Zahlen, jeder Share wird
+          nachgerechnet.
+        </Merkmal>
+        <Merkmal icon={Icon.Schloss} titel="Deine Schlüssel, dein Guthaben">
+          Zwölf Wörter gehören dir allein — nicht deinem Telegram-Konto.
+        </Merkmal>
+        <Merkmal icon={Icon.Haken} titel="Offen und prüfbar">
+          Offener Quelltext, Block Explorer im Browser. Proof, not promise.
+        </Merkmal>
+      </div>
+
+      <div className="flex-1" />
+
+      <div className="rise rise-2 mt-6 space-y-2.5">
         <Button onClick={onCreate}>Wallet erstellen</Button>
-        <Button variant="quiet" onClick={onRecover}>Ich habe schon Wörter</Button>
+        <Button variant="quiet" onClick={onRecover}>Ich habe schon zwölf Wörter</Button>
+        <button onClick={onMehr}
+                className="mt-1 w-full text-center text-[13.5px] font-bold text-work">
+          Erst mehr über YSKAR erfahren →
+        </button>
       </div>
-    </Screen>
+    </main>
+  );
+}
+
+function Merkmal({ icon, titel, children }: {
+  icon: React.ReactNode; titel: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3.5 rounded-[18px] border border-line bg-surface px-4 py-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px]
+                       bg-work/10 text-work">{icon}</span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-[14.5px] font-bold">{titel}</span>
+        <span className="text-[13px] font-medium leading-[1.5] text-dim">{children}</span>
+      </span>
+    </div>
   );
 }
 
@@ -100,7 +149,7 @@ function Warnung({ onWeiter, onZurueck }: { onWeiter: () => void; onZurueck: () 
         <input
           type="checkbox" checked={verstanden}
           onChange={e => setVerstanden(e.target.checked)}
-          className="mt-1 h-4 w-4 shrink-0 accent-[rgb(var(--work))]"
+          className="mt-1 h-4 w-4 shrink-0 accent-[#1F5BF0]"
         />
         <span>Ich habe Stift und Papier bereit.</span>
       </label>
@@ -189,8 +238,8 @@ function Pruefen({ mnemonic, onBestanden, onNochmal }: {
               value={antworten[i] ?? ''}
               onChange={e => { setAntworten(a => ({ ...a, [i]: e.target.value })); setFehler(false); }}
               autoCapitalize="none" autoCorrect="off" spellCheck={false}
-              className="sunk w-full border border-transparent px-4 py-3.5 font-mono text-[15px]
-                         outline-none transition-colors focus:border-work/60"
+              className="sunk w-full px-4 py-3.5 font-mono text-[15px]
+                         outline-none transition-colors focus:border-work"
             />
           </div>
         ))}
@@ -243,8 +292,8 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
           <input
             id="pin" inputMode="numeric" maxLength={6} value={pin}
             onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-            className="tnum sunk w-full border border-transparent px-4 py-4 text-center font-mono text-xl
-                       tracking-[0.45em] outline-none transition-colors focus:border-work/60"
+            className="tnum sunk w-full px-4 py-4 text-center font-mono text-xl
+                       tracking-[0.45em] outline-none transition-colors focus:border-work"
           />
         </div>
         <div>
@@ -252,8 +301,8 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
           <input
             id="pin2" inputMode="numeric" maxLength={6} value={wdh}
             onChange={e => setWdh(e.target.value.replace(/\D/g, ''))}
-            className="tnum sunk w-full border border-transparent px-4 py-4 text-center font-mono text-xl
-                       tracking-[0.45em] outline-none transition-colors focus:border-work/60"
+            className="tnum sunk w-full px-4 py-4 text-center font-mono text-xl
+                       tracking-[0.45em] outline-none transition-colors focus:border-work"
           />
         </div>
       </div>
@@ -324,8 +373,8 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
         onChange={e => { setText(e.target.value); setFehler(null); }}
         rows={4} autoCapitalize="none" autoCorrect="off" spellCheck={false}
         placeholder="wort eins wort zwei …"
-        className="sunk w-full border border-transparent px-4 py-3.5 font-mono text-[15px]
-                   leading-relaxed outline-none transition-colors focus:border-work/60"
+        className="sunk w-full px-4 py-3.5 font-mono text-[15px]
+                   leading-relaxed outline-none transition-colors focus:border-work"
       />
       <p className="mt-2 text-sm text-dim tnum">{anzahl} von 12 Wörtern</p>
 
@@ -348,9 +397,9 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
         <input
           id="rpin" inputMode="numeric" maxLength={6} value={pin}
           onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-          className="sunk tnum w-full border border-transparent px-4 py-4 text-center
+          className="sunk tnum w-full px-4 py-4 text-center
                        font-mono text-xl tracking-[0.45em] outline-none
-                       transition-colors focus:border-work/60"
+                       transition-colors focus:border-work"
         />
       </div>
 

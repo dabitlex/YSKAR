@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
@@ -19,7 +19,8 @@ interface Markt {
   hinweis: string;
 }
 import { toHex } from '@/lib/core/codec';
-import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
+import { Button, Notice, SubHeader, Icon } from '@/components/ui/Primitives';
+import Scanner from '@/components/wallet/Scanner';
 import type { Account } from '@/hooks/useMining';
 
 /**
@@ -37,13 +38,23 @@ import type { Account } from '@/hooks/useMining';
 
 type Schritt = 'formular' | 'pruefen' | 'fertig';
 
-export default function Send({ account, decimals, symbol, onFertig, onAbbruch }: {
+export default function Send({ account, decimals, symbol, scanSofort, onFertig, onAbbruch }: {
   account: Account | null; decimals: number; symbol: string;
+  /** Aus der Wallet mit „Scannen" geoeffnet: Kamera zuerst, Formular danach. */
+  scanSofort?: boolean;
   onFertig: () => void; onAbbruch: () => void;
 }) {
   const wallet = useWallet();
   const [schritt, setSchritt] = useState<Schritt>('formular');
   const [ziel, setZiel] = useState('');
+  // Ob die Adresse gescannt wurde -- im Pruefschritt steht das dabei, damit
+  // klar ist, woher sie kommt und dass man sie trotzdem ganz lesen sollte.
+  const [gescannt, setGescannt] = useState(false);
+  const [scanner, setScanner] = useState(!!scanSofort);
+  const scanErgebnis = useCallback((adr: string) => {
+    setZiel(adr); setGescannt(true); setScanner(false);
+  }, []);
+  const scanAbbruch = useCallback(() => setScanner(false), []);
   const [betrag, setBetrag] = useState('');
   const [notiz, setNotiz] = useState('');
   const [pin, setPin] = useState('');
@@ -149,14 +160,19 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
   if (schritt === 'fertig') {
     return (
       <div className="text-center">
-        <div className="mx-auto mt-10 flex h-14 w-14 items-center justify-center
-                        rounded-full border border-proof text-2xl text-proof">✓</div>
-        <h1 className="mt-5 text-2xl font-medium">Gesendet</h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-dim">
+        <div className="zoom mx-auto mt-10 flex h-16 w-16 items-center justify-center
+                        rounded-full bg-proof text-white shadow-[0_10px_24px_-10px_rgb(var(--proof)/.6)]">
+          <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor"
+               strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 11.5l4 4 8-9" /></svg>
+        </div>
+        <h1 className="rise mt-5 text-[26px] font-extrabold tracking-[-0.02em]">Gesendet</h1>
+        <p className="rise rise-1 mt-3 text-[15px] font-medium leading-relaxed text-dim">
           {fmt(einheiten)} {symbol} sind unterwegs. Sie erscheinen im nächsten Block.
         </p>
-        <p className="mt-6 border-t border-line pt-4 text-sm text-dim">Transaktion</p>
-        <p className="mt-1 break-all font-mono text-xs">{ergebnis?.txid}</p>
+        <div className="panel rise rise-2 mt-6 p-4 text-left">
+          <p className="label">Transaktion</p>
+          <p className="mt-1.5 break-all font-mono text-xs">{ergebnis?.txid}</p>
+        </div>
         <div className="mt-8"><Button variant="quiet" onClick={onFertig}>Fertig</Button></div>
       </div>
     );
@@ -166,15 +182,24 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
   if (schritt === 'pruefen') {
     return (
       <>
-        <Title>Prüfen und senden</Title>
-        <Body>Eine gesendete Zahlung lässt sich nicht zurückholen.</Body>
+        <SubHeader titel="Prüfen und senden" onZurueck={() => setSchritt('formular')} />
 
-        <div className="panel mt-5 p-5">
-          <p className="text-xs text-dim">Betrag</p>
-          <p className="tnum mt-0.5 text-2xl font-medium">{fmt(einheiten)} {symbol}</p>
+        <div className="panel rise p-5">
+          <p className="label">Du sendest</p>
+          <p className="tnum mt-1.5 text-[32px] font-extrabold tracking-[-0.03em]">
+            {fmt(einheiten)} <span className="text-[16px] font-bold text-faint">{symbol}</span>
+          </p>
           <div className="my-4 h-px bg-line" />
-          <p className="text-xs text-dim">An</p>
-          <p className="mt-0.5 break-all font-mono text-[13px]">{ziel.trim()}</p>
+          <p className="label">An</p>
+          <div className="mt-1.5 flex items-start gap-2 rounded-[12px] bg-ink px-3 py-2.5">
+            {gescannt && <span className="mt-0.5 shrink-0 text-work">{Icon.Scan}</span>}
+            <p className="break-all font-mono text-[12.5px] leading-[1.5]">{ziel.trim()}</p>
+          </div>
+          {gescannt && (
+            <p className="mt-1.5 text-[12px] font-semibold text-faint">
+              Adresse per QR-Scan übernommen · trotzdem vollständig prüfen
+            </p>
+          )}
           {notiz && (
             <>
               <div className="my-4 h-px bg-line" />
@@ -183,21 +208,28 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
             </>
           )}
           <div className="my-4 h-px bg-line" />
-          <dl className="space-y-1.5 text-[13px]">
-            <Zeile label="Gebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
+          <dl className="space-y-2 text-[13.5px]">
+            <Zeile label="Netzgebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
             <Zeile label="Belastung" wert={`${fmt(summe)} ${symbol}`} />
-            <Zeile label="Rest" wert={`${fmt(guthaben - summe)} ${symbol}`} />
+            <Zeile label="Rest danach" wert={`${fmt(guthaben - summe)} ${symbol}`} />
           </dl>
         </div>
 
-        <label htmlFor="spin" className="mb-1.5 mt-6 block text-sm text-dim">
+        <div className="rise rise-1 mt-4 flex items-start gap-2.5 rounded-[14px] bg-[#FFF4E5] px-3.5 py-3
+                        text-[12.5px] font-semibold leading-[1.5] text-[#8A5300]">
+          <span className="shrink-0">{Icon.Warnung}</span>
+          Eine gesendete Zahlung lässt sich nicht zurückholen. Die Transaktion wird auf
+          deinem Gerät signiert.
+        </div>
+
+        <label htmlFor="spin" className="mb-1.5 mt-6 block text-[13px] font-bold text-dim">
           PIN zum Signieren
         </label>
         <input
           id="spin" inputMode="numeric" maxLength={6} value={pin} autoFocus
           onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-          className="tnum sunk w-full border border-transparent px-4 py-4 text-center font-mono text-xl
-                     tracking-[0.45em] outline-none transition-colors focus:border-work/60"
+          className="tnum sunk w-full px-4 py-4 text-center font-mono text-xl
+                     tracking-[0.45em] outline-none transition-colors focus:border-work"
         />
 
         {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
@@ -213,67 +245,81 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
   }
 
   // ------------------------------------------------------------ formular
+  if (scanner) {
+    return <Scanner onErgebnis={scanErgebnis} onAbbruch={scanAbbruch} />;
+  }
   return (
     <>
-      <div className="flex items-baseline justify-between">
-        <button onClick={onAbbruch} className="text-sm text-dim">← Zurück</button>
-        <span className="tnum text-sm text-dim">Verfügbar {fmt(guthaben)}</span>
-      </div>
-      <div className="mt-4"><Title>Senden</Title></div>
+      <SubHeader titel="Senden" onZurueck={onAbbruch}
+                 rechts={<span className="tnum text-[12.5px] font-bold text-dim">
+                   {fmt(guthaben)} {symbol}</span>} />
 
-      <label htmlFor="ziel" className="mb-1.5 mt-5 block text-sm text-dim">Empfänger</label>
-      <input
-        id="ziel" value={ziel} onChange={e => setZiel(e.target.value)}
-        autoCapitalize="none" autoCorrect="off" spellCheck={false}
-        placeholder="ysr1…"
-        className="sunk w-full border border-transparent px-4 py-3.5 font-mono text-[13px]
-                   outline-none transition-colors focus:border-work/60"
-      />
-      {ziel.trim().length > 0 && (
-        <p className={`mt-1.5 text-sm ${
+      <label htmlFor="ziel" className="mb-1.5 block text-[13px] font-bold text-dim">Empfänger</label>
+      <div className="sunk flex items-center gap-2 pl-4 pr-1.5 transition-colors focus-within:border-work">
+        <input
+          id="ziel" value={ziel} onChange={e => { setZiel(e.target.value); setGescannt(false); }}
+          autoCapitalize="none" autoCorrect="off" spellCheck={false}
+          placeholder="ysr1…"
+          className="min-w-0 flex-1 bg-transparent py-3.5 font-mono text-[13.5px] outline-none
+                     placeholder:text-faint"
+        />
+        <button type="button" onClick={() => setScanner(true)} aria-label="QR-Code scannen"
+                className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-[11px] bg-work/10
+                           px-3.5 text-[13px] font-extrabold text-work active:scale-95">
+          {Icon.Scan} Scannen
+        </button>
+      </div>
+      {ziel.trim().length > 0 ? (
+        <p className={`mt-1.5 text-[12.5px] font-bold ${
           eigene ? 'text-risk' : zielGueltig ? 'text-proof' : 'text-risk'}`}>
           {eigene ? 'Das ist deine eigene Adresse.'
-            : zielGueltig ? '✓ Gültige YSKAR-Adresse'
+            : zielGueltig ? (gescannt ? '✓ Gültige YSKAR-Adresse, per QR-Scan übernommen'
+                                      : '✓ Gültige YSKAR-Adresse')
             : 'Keine gültige YSKAR-Adresse.'}
+        </p>
+      ) : (
+        <p className="mt-1.5 text-[12px] font-semibold text-faint">
+          QR-Code des Empfängers mit der Kamera scannen oder Adresse einfügen.
         </p>
       )}
 
-      <label htmlFor="betrag" className="mb-1.5 mt-5 block text-sm text-dim">Betrag</label>
-      <div className="sunk flex items-center border border-transparent px-4
-                      transition-colors focus-within:border-work/60">
+      <label htmlFor="betrag" className="mb-1.5 mt-5 block text-[13px] font-bold text-dim">Betrag</label>
+      <div className="sunk flex items-center px-4 transition-colors focus-within:border-work">
         <input
           id="betrag" inputMode="decimal" value={betrag}
           onChange={e => setBetrag(e.target.value.replace(/[^\d.,]/g, ''))}
           placeholder="0,0000"
-          className="tnum flex-1 bg-transparent py-3 font-mono text-[17px] outline-none"
+          className="tnum flex-1 bg-transparent py-3 font-mono text-[20px] outline-none
+                     placeholder:text-faint"
         />
-        <span className="text-sm text-dim">{symbol}</span>
+        <span className="text-[14px] font-bold text-faint">{symbol}</span>
       </div>
       <div className="mt-2 flex gap-2">
-        {[[0.25, '25%'], [0.5, '50%'], [1, 'Alles']].map(([t, l]) => (
+        {[[0.25, '25 %'], [0.5, '50 %'], [1, 'Alles']].map(([t, l]) => (
           <button key={String(l)} onClick={() => setzeAnteil(t as number)}
-                  className="rounded-full bg-raised px-3 py-1.5 text-[12px] text-dim">
+                  className="rounded-full border border-line bg-surface px-3.5 py-1.5
+                             text-[12px] font-bold text-dim active:bg-raised">
             {l as string}
           </button>
         ))}
       </div>
       {einheiten > 0n && !reicht && (
-        <p className="mt-2 text-sm text-risk">
+        <p className="mt-2 text-[12.5px] font-bold text-risk">
           Mehr als verfügbar. Die Gebühr von {fmt(gebuehr)} kommt noch dazu.
         </p>
       )}
 
-      <label htmlFor="notiz" className="mb-1.5 mt-5 block text-sm text-dim">
-        Notiz <span className="text-dim">optional, max. 32 Zeichen</span>
+      <label htmlFor="notiz" className="mb-1.5 mt-5 block text-[13px] font-bold text-dim">
+        Notiz <span className="font-semibold text-faint">optional · max. 32 Zeichen</span>
       </label>
       <input
         id="notiz" value={notiz} maxLength={32}
         onChange={e => setNotiz(e.target.value)}
-        className="sunk w-full border border-transparent px-4 py-3.5 text-[13px]
-                   outline-none transition-colors focus:border-work/60"
+        className="sunk w-full px-4 py-3.5 text-[14px] font-medium outline-none
+                   transition-colors focus:border-work"
       />
 
-      <dl className="mt-6 space-y-1.5 border-t border-line pt-4 text-[13px]">
+      <dl className="panel mt-5 space-y-1.5 px-4 py-3 text-[13.5px]">
         {/*
           Gebührenwahl.
 
@@ -283,28 +329,28 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         */}
         {markt?.andrang ? (
           <>
-            <div className="mb-1.5 mt-5 flex items-baseline justify-between">
-              <span className="text-sm text-dim">Gebühr</span>
-              <span className="text-[12px] text-faint">{markt.wartend} warten</span>
+            <div className="mb-1.5 mt-1 flex items-baseline justify-between">
+              <span className="text-[13.5px] font-semibold text-dim">Gebühr</span>
+              <span className="text-[12px] font-semibold text-faint">{markt.wartend} warten</span>
             </div>
-            <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+            <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
               {(['langsam', 'normal', 'schnell'] as const).map(k => (
                 <button key={k} onClick={() => setStufe(k)} aria-pressed={stufe === k}
-                        className={`flex-1 rounded-full py-2 text-[12.5px] capitalize
+                        className={`flex-1 rounded-full py-2 text-[12.5px] font-bold capitalize
                                     transition-colors ${
-                          stufe === k ? 'bg-work text-ink' : 'text-faint'}`}>
+                          stufe === k ? 'bg-surface text-text shadow-sm' : 'text-dim'}`}>
                   {k}
                 </button>
               ))}
             </div>
-            <div className="mt-2 flex items-baseline justify-between text-[12.5px]">
+            <div className="mt-2 flex items-baseline justify-between text-[12.5px] font-semibold">
               <span className="tnum font-mono">{fmt(gebuehr)} {symbol}</span>
               <span className="text-dim">
                 {zielBlock === 1 ? 'voraussichtlich nächster Block'
                                  : `voraussichtlich in ${zielBlock} Blöcken`}
               </span>
             </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-faint">
+            <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">
               Geschätzt, unter der Annahme dass nichts Neues dazukommt.
               Kommt gleich jemand mit höherer Gebühr, dauert es länger.
             </p>
@@ -312,14 +358,16 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
         ) : (
           <>
             <Zeile label="Netzgebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
-            <p className="mt-2 text-[12px] leading-relaxed text-faint">
+            <p className="pb-1 text-[12px] font-medium leading-relaxed text-faint">
               {markt
                 ? 'Kein Andrang — die Mindestgebühr genügt für den nächsten Block.'
                 : 'Mindestgebühr.'}
             </p>
           </>
         )}
-        <Zeile label="Summe" wert={`${fmt(summe)} ${symbol}`} />
+        <div className="!mt-2 border-t border-line pt-2">
+          <Zeile label="Summe" wert={`${fmt(summe)} ${symbol}`} />
+        </div>
       </dl>
 
       <div className="mt-6">
@@ -331,9 +379,9 @@ export default function Send({ account, decimals, symbol, onFertig, onAbbruch }:
 
 function Zeile({ label, wert }: { label: string; wert: string }) {
   return (
-    <div className="flex justify-between">
-      <dt className="text-dim">{label}</dt>
-      <dd className="tnum">{wert}</dd>
+    <div className="flex justify-between py-0.5">
+      <dt className="font-semibold text-dim">{label}</dt>
+      <dd className="tnum font-bold">{wert}</dd>
     </div>
   );
 }

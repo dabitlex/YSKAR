@@ -25,7 +25,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
     return (
       <>
         <button onClick={() => { setModus('liste'); setWoerter(null); setPin(''); }}
-                className="text-sm text-dim">← Einstellungen</button>
+                className="text-[13.5px] font-bold text-work">← Einstellungen</button>
         <div className="mt-4"><Title>Deine zwölf Wörter</Title></div>
 
         {!woerter ? (
@@ -37,9 +37,9 @@ export default function Settings({ onZurueck, anteil, workers }: {
             <input
               inputMode="numeric" maxLength={6} value={pin} autoFocus
               onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-              className="sunk tnum mt-4 w-full border border-transparent px-4 py-4
+              className="sunk tnum mt-4 w-full px-4 py-4
                          text-center font-mono text-xl tracking-[0.45em] outline-none
-                         transition-colors focus:border-work/60"
+                         transition-colors focus:border-work"
             />
             {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
             <div className="mt-5">
@@ -81,7 +81,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
     return (
       <>
         <button onClick={() => { setModus('liste'); setBestaetigt(false); }}
-                className="text-sm text-dim">← Einstellungen</button>
+                className="text-[13.5px] font-bold text-work">← Einstellungen</button>
         <div className="mt-4"><Title>Wallet entfernen</Title></div>
         <Body>
           Die verschlüsselten Wörter werden von diesem Gerät gelöscht. Dein
@@ -116,10 +116,10 @@ export default function Settings({ onZurueck, anteil, workers }: {
 
   return (
     <>
-      <button onClick={onZurueck} className="text-sm text-dim">← Info</button>
+      <button onClick={onZurueck} className="text-[13.5px] font-bold text-work">← Zurück</button>
       <div className="mt-4"><Title>Einstellungen</Title></div>
 
-      <p className="mt-6 text-sm text-dim">Wallet</p>
+      <p className="label mt-6 mb-2">Wallet</p>
       <ul className="mt-2 border-t border-line">
         <Eintrag onClick={() => setModus('woerter')}>Zwölf Wörter anzeigen</Eintrag>
         <li className="flex items-center justify-between border-b border-line py-3">
@@ -130,7 +130,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
         </li>
       </ul>
 
-      <p className="mt-6 text-sm text-dim">Mining</p>
+      <p className="label mt-6 mb-2">Mining</p>
       <ul className="mt-2 border-t border-line">
         <li className="flex items-center justify-between border-b border-line py-3">
           <span className="text-[13.5px]">Rechenanteil</span>
@@ -142,7 +142,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
         </li>
       </ul>
 
-      <p className="mt-6 text-sm text-dim">Gerät</p>
+      <p className="label mt-6 mb-2">Gerät</p>
       <div className="mt-2">
         <Button variant="risk" onClick={() => setModus('entfernen')}>
           Wallet von diesem Gerät entfernen

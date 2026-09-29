@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Panel, GroupTitle, ActionButton, Icon, Empty, Button }
   from '@/components/ui/Primitives';
+import { TopBar } from '@/components/ui/Chrome';
 import type { Account } from '@/hooks/useMining';
 
 /**
@@ -33,10 +34,12 @@ function vorZeit(ts: string | null): string {
 
 const kurz = (a: string | null) => a ? `${a.slice(0, 10)}…${a.slice(-4)}` : 'unbekannt';
 
-export default function WalletTab({ account, symbol, decimals, onSenden, onEmpfangen }: {
+export default function WalletTab({ account, symbol, decimals, address,
+                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onExplorer }: {
   account: (Account & { history?: HistoryEintrag[]; pending?: any[] }) | null;
-  symbol: string; decimals: number;
-  onSenden: () => void; onEmpfangen: () => void;
+  symbol: string; decimals: number; address: string | null;
+  onSenden: () => void; onScannen: () => void; onEmpfangen: () => void;
+  onEinstellungen: () => void; onExplorer: () => void;
 }) {
   // Ausgewaehlte Transaktion. Als Ueberlagerung und nicht als eigene Seite:
   // Man will danach wieder in derselben Liste stehen, an derselben Stelle.
@@ -49,22 +52,32 @@ export default function WalletTab({ account, symbol, decimals, onSenden, onEmpfa
 
   return (
     <>
-      <Panel tone="proof" className="rise">
-        <p className="text-[13px] text-dim">Guthaben</p>
-        <div className="mt-1 flex items-baseline gap-2 leading-none">
-          <span className="tnum text-[42px] font-medium tracking-[-0.03em] text-text">
-            {Number(ganz).toLocaleString('de-DE')}
-            <span className="text-[26px] text-dim">,{bruch}</span>
-          </span>
-          <span className="text-[15px] text-dim">{symbol}</span>
-        </div>
-        <p className="mt-2 text-[13px] text-dim">
-          {account?.blocksFound ?? 0} Blöcke gefunden
-        </p>
+      <TopBar titel="Wallet" rechts={
+        <button onClick={onEinstellungen} aria-label="Einstellungen"
+                className="flex h-9 w-9 items-center justify-center rounded-full border
+                           border-line bg-surface text-dim">{Icon.Zahnrad}</button>
+      } />
 
-        <div className="mt-6 flex gap-2">
+      <Panel tone="proof" className="rise">
+        <div className="flex flex-col items-center text-center">
+          <p className="label">Gesamtguthaben</p>
+          <div className="mt-2 flex items-baseline gap-2 leading-none">
+            <span className="tnum text-[42px] font-extrabold tracking-[-0.03em] text-text">
+              {Number(ganz).toLocaleString('de-DE')}
+              <span className="text-[24px] text-faint">,{bruch}</span>
+            </span>
+            <span className="text-[16px] font-bold text-faint">{symbol}</span>
+          </div>
+          {address && (
+            <p className="mt-2 font-mono text-[12px] text-faint">{kurz(address)}</p>
+          )}
+        </div>
+
+        <div className="mt-5 flex gap-1.5">
           <ActionButton icon={Icon.Senden} label="Senden" onClick={onSenden} tone="work" />
           <ActionButton icon={Icon.Empfangen} label="Empfangen" onClick={onEmpfangen} />
+          <ActionButton icon={Icon.Scan} label="Scannen" onClick={onScannen} />
+          <ActionButton icon={Icon.Verlauf} label="Explorer" onClick={onExplorer} />
         </div>
       </Panel>
 
@@ -78,7 +91,7 @@ export default function WalletTab({ account, symbol, decimals, onSenden, onEmpfa
         </Empty>
       ) : (
         <Panel className="rise rise-1 !p-0">
-          <ul className="divide-y divide-line/70">
+          <ul className="divide-y divide-line">
             {wartend.map((p: any) => (
               <Eintrag key={p.txid} art="wait"
                 titel={`An ${kurz(null)}`} unten="wartet auf Bestätigung"
@@ -139,17 +152,16 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
     : eintrag.kind === 'in' ? 'Empfangen' : 'Gesendet';
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-end bg-ink/80 backdrop-blur-sm"
+    <div className="fixed inset-0 z-40 flex flex-col justify-end bg-text/40 backdrop-blur-sm"
          onClick={onSchliessen}>
-      <div className="rise max-h-[85dvh] overflow-y-auto rounded-t-lg bg-surface p-5
-                      pb-[calc(20px+env(safe-area-inset-bottom))]
-                      shadow-[inset_0_1px_0_rgb(var(--edge)/.07)]"
+      <div className="rise max-h-[85dvh] overflow-y-auto rounded-t-[24px] bg-surface p-5
+                      pb-[calc(20px+env(safe-area-inset-bottom))]"
            onClick={e => e.stopPropagation()}>
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-line" />
 
-        <p className="text-[13px] text-dim">{titel}</p>
+        <p className="label">{titel}</p>
         <div className="mt-1 flex items-baseline gap-2 leading-none">
-          <span className={`tnum text-[32px] font-medium tracking-[-0.03em] ${
+          <span className={`tnum text-[32px] font-extrabold tracking-[-0.03em] ${
             eingang ? 'text-proof' : 'text-text'}`}>
             {eingang ? '+' : '−'}{betrag.toFixed(4)}
           </span>
@@ -185,8 +197,8 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
 
         <div className="mt-6 space-y-3">
           <a href={`/explorer.html#block-${eintrag.height}`}
-             className="block rounded-sm bg-raised py-3.5 text-center text-[15px]
-                        font-medium shadow-[inset_0_1px_0_rgb(var(--edge)/.055)]">
+             className="block rounded-[14px] border border-line bg-surface py-3.5
+                        text-center text-[15px] font-bold">
             Block im Explorer ansehen
           </a>
           <Button variant="quiet" onClick={onSchliessen}>Schließen</Button>
@@ -201,11 +213,11 @@ function Feld({ label, wert, mono, umbruch, onKopieren, kopiert }: {
   onKopieren?: () => void; kopiert?: boolean;
 }) {
   return (
-    <div className="border-b border-line/70 py-3 last:border-0">
-      <dt className="flex items-baseline justify-between text-[12px] text-faint">
+    <div className="border-b border-line py-3 last:border-0">
+      <dt className="flex items-baseline justify-between text-[12px] font-semibold text-faint">
         {label}
         {onKopieren && (
-          <button onClick={onKopieren} className="text-work">
+          <button onClick={onKopieren} className="font-bold text-work">
             {kopiert ? 'kopiert' : 'kopieren'}
           </button>
         )}
@@ -220,8 +232,8 @@ function Eintrag({ art, titel, unten, betrag, gut, onClick }: {
   art: 'in' | 'out' | 'wait'; titel: string; unten: string;
   betrag: string; gut?: boolean; onClick?: () => void;
 }) {
-  const look = art === 'in' ? 'bg-proof/12 text-proof'
-    : art === 'wait' ? 'bg-raised text-faint' : 'bg-raised text-text';
+  const look = art === 'in' ? 'bg-proof/10 text-proof'
+    : art === 'wait' ? 'bg-[#FFF4E5] text-[#B26A00]' : 'bg-raised text-text';
   const Zeile = onClick ? 'button' : 'div';
   return (
     <li>
@@ -233,10 +245,10 @@ function Eintrag({ art, titel, unten, betrag, gut, onClick }: {
         {art === 'in' ? '↓' : art === 'out' ? '↑' : '·'}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px]">{titel}</span>
-        <span className="mt-0.5 block text-[11.5px] text-faint">{unten}</span>
+        <span className="block truncate text-[14px] font-bold">{titel}</span>
+        <span className="mt-0.5 block text-[12px] font-semibold text-faint">{unten}</span>
       </span>
-      <span className={`tnum whitespace-nowrap text-[14px] ${
+      <span className={`tnum whitespace-nowrap text-[14px] font-bold ${
         art === 'wait' ? 'text-faint' : gut ? 'text-proof' : 'text-text'}`}>
         {betrag}
       </span>

@@ -7,6 +7,7 @@ import Unlock from '@/components/Unlock';
 import AppShell from '@/components/AppShell';
 import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
+import { telegramFarben } from '@/lib/telegram/webapp';
 
 declare global {
   interface Window { Telegram?: { WebApp: any } }
@@ -36,6 +37,7 @@ function Router() {
     if (!tg || !tg.initData) { setAusserhalb(true); return; }
     tg.ready();
     tg.expand?.();
+    telegramFarben();
     setPlatform(tg.platform);
   }, []);
 
@@ -48,7 +50,7 @@ function Router() {
             Die Wallet und das Mining brauchen die Mini App. Die Kette selbst
             kannst du hier ansehen.
           </Body>
-          <a href="/explorer.html" className="text-work underline">Block Explorer</a>
+          <a href="/explorer.html" className="mt-4 inline-block font-bold text-work underline">Block Explorer</a>
         </div>
       </Screen>
     );

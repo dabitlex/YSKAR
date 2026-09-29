@@ -8,9 +8,12 @@ import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
 import { Panel, GroupTitle, Button, Hash, Status, Notice, Row }
   from '@/components/ui/Primitives';
 import ShareChart from '@/components/ShareChart';
+import HomeTab from '@/components/tabs/HomeTab';
 import WalletTab from '@/components/tabs/WalletTab';
 import NetzTab from '@/components/tabs/NetzTab';
-import InfoTab from '@/components/tabs/InfoTab';
+import EntdeckenTab from '@/components/tabs/EntdeckenTab';
+import Artikel from '@/components/Artikel';
+import { ARTIKEL } from '@/content/entdecken';
 import Send from '@/components/wallet/Send';
 import Receive from '@/components/wallet/Receive';
 import Benchmark from '@/components/Benchmark';
@@ -29,7 +32,8 @@ import Settings from '@/components/Settings';
  * Beim Zurueckgehen soll der Reiter stehen, in dem man war.
  */
 
-type Ansicht = null | 'senden' | 'empfangen' | 'einstellungen' | 'benchmark';
+type Ansicht = null | 'senden' | 'scannen' | 'empfangen' | 'einstellungen' | 'benchmark'
+  | { artikel: string };
 
 export default function AppShell({ platform }: { platform: string }) {
   const wallet = useWallet();
@@ -38,7 +42,7 @@ export default function AppShell({ platform }: { platform: string }) {
   // und das Mining endet mitten im Job -- ohne dass jemand etwas gedrueckt
   // haette.
   const wach = useWakeLock(m.mining);
-  const [tab, setTab] = useState<Tab>('mining');
+  const [tab, setTab] = useState<Tab>('home');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
 
   /*
@@ -81,9 +85,10 @@ export default function AppShell({ platform }: { platform: string }) {
 
   return (
     <>
-      <main className="mx-auto min-h-dvh max-w-md px-4 pb-32 pt-5">
-        {ansicht === 'senden' ? (
+      <main className="mx-auto min-h-dvh max-w-md px-5 pb-32 pt-5">
+        {ansicht === 'senden' || ansicht === 'scannen' ? (
           <Send account={m.account} decimals={dec} symbol={sym}
+                scanSofort={ansicht === 'scannen'}
                 onFertig={() => setAnsicht(null)} onAbbruch={() => setAnsicht(null)} />
         ) : ansicht === 'empfangen' && wallet.address ? (
           <Receive address={wallet.address} onZurueck={() => setAnsicht(null)} />
@@ -93,6 +98,17 @@ export default function AppShell({ platform }: { platform: string }) {
           <Benchmark onZurueck={() => setAnsicht(null)}
                      onUebernehmen={(w) => { setWorker(w); setAnsicht(null); }}
                      onErgebnis={setBench} />
+        ) : ansicht && typeof ansicht === 'object' ? (
+          <Artikel artikel={ARTIKEL.find(a => a.slug === ansicht.artikel) ?? ARTIKEL[0]}
+                   onZurueck={() => setAnsicht(null)} />
+        ) : tab === 'home' ? (
+          <HomeTab account={m.account} summary={m.summary} mining={m.mining}
+                   hashrate={m.hashrate} decimals={dec} symbol={sym}
+                   onSenden={() => setAnsicht('senden')}
+                   onEmpfangen={() => setAnsicht('empfangen')}
+                   onMining={() => setTab('mining')}
+                   onEntdecken={() => setTab('entdecken')}
+                   onArtikel={slug => setAnsicht({ artikel: slug })} />
         ) : tab === 'mining' ? (
           <MiningTab m={m} dec={dec} sym={sym} wach={wach}
                      modus={modus} setModus={setModus}
@@ -102,14 +118,18 @@ export default function AppShell({ platform }: { platform: string }) {
                      bench={bench} setAnsicht={setAnsicht} />
         ) : tab === 'wallet' ? (
           <WalletTab account={m.account as any} decimals={dec} symbol={sym}
+                     address={wallet.address}
                      onSenden={() => setAnsicht('senden')}
-                     onEmpfangen={() => setAnsicht('empfangen')} />
+                     onScannen={() => setAnsicht('scannen')}
+                     onEmpfangen={() => setAnsicht('empfangen')}
+                     onEinstellungen={() => setAnsicht('einstellungen')}
+                     onExplorer={() => setTab('netz')} />
         ) : tab === 'netz' ? (
           <NetzTab summary={m.summary} meineAdresse={wallet.address}
                    decimals={dec} symbol={sym} />
         ) : (
-          <InfoTab summary={m.summary} decimals={dec} symbol={sym}
-                   onEinstellungen={() => setAnsicht('einstellungen')} />
+          <EntdeckenTab summary={m.summary} decimals={dec} symbol={sym}
+                        onEinstellungen={() => setAnsicht('einstellungen')} />
         )}
       </main>
 
@@ -131,12 +151,12 @@ export default function AppShell({ platform }: { platform: string }) {
             darunter -- die Ueberlagerung liesse sich nicht schliessen.
           */}
           <div className="glow-proof pointer-events-none absolute inset-0" />
-          <p className="rise relative text-[13px] tracking-[0.14em] text-proof">
+          <p className="rise relative text-[13px] font-extrabold tracking-[0.14em] text-proof">
             BLOCK GEFUNDEN
           </p>
-          <p className="zoom tnum relative mt-4 text-[64px] font-medium leading-none
+          <p className="zoom tnum relative mt-4 text-[64px] font-extrabold leading-none
                         tracking-[-0.04em]">#{m.fund.height}</p>
-          <p className="rise rise-2 relative mt-3 text-[22px] text-proof">
+          <p className="rise rise-2 relative mt-3 text-[22px] font-bold text-proof">
             +{(Number(m.fund.reward) / 10 ** dec).toFixed(0)} {sym}
           </p>
           <Hash value={m.fund.hash}
@@ -176,7 +196,7 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
   const r = rate(m.hashrate);
   return (
     <>
-      <TopBar rechts={
+      <TopBar titel="Mining" rechts={
         <Status tone={m.mining ? 'work' : 'off'}>
           {m.mining ? 'rechnet' : 'gestoppt'}
         </Status>
@@ -185,13 +205,13 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
       {/* Hauptflaeche: die Leistung. Sie bewegt sich jede Sekunde und
           beantwortet die einzige Frage, die beim Mining zaehlt. */}
       <Panel tone="work" className="rise">
-        <p className="text-[13px] text-dim">Rechenleistung</p>
+        <p className="label">Rechenleistung</p>
         <div className="mt-1 flex items-baseline gap-2 leading-none">
-          <span className={`tnum text-[46px] font-medium tracking-[-0.03em] ${
+          <span className={`tnum text-[44px] font-extrabold tracking-[-0.03em] ${
             m.mining ? 'text-work' : 'text-faint'}`}>{r.wert}</span>
-          <span className="text-[17px] text-dim">{r.einheit}</span>
+          <span className="text-[16px] font-bold text-faint">{r.einheit}</span>
         </div>
-        <p className="mt-2 text-[13px] text-dim">
+        <p className="mt-2 text-[13px] font-semibold text-dim">
           {m.mining
             ? `${m.account?.blocksFound ?? 0} Blöcke gefunden · Anteil ${m.duty} %`
             : 'Gestoppt — dein Gerät rechnet gerade nicht'}
@@ -236,33 +256,33 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
           PPLNS-Fenster in der Schwebe. Wer wechseln will, stoppt zuerst.
         */}
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[13px] text-dim">Modus</span>
-          <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+          <span className="text-[13.5px] font-semibold text-dim">Modus</span>
+          <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             <button onClick={() => setModus('solo')} aria-pressed={modus === 'solo'}
                     disabled={m.mining}
-                    className={`min-w-[64px] rounded-full py-1.5 text-[12.5px]
+                    className={`min-w-[64px] rounded-full py-1.5 text-[12.5px] font-bold
                                 transition-colors disabled:opacity-60 ${
-                      modus === 'solo' ? 'bg-work text-ink' : 'text-faint'}`}>
+                      modus === 'solo' ? 'bg-work text-white' : 'text-dim'}`}>
               Solo
             </button>
             <button onClick={() => setModus('pool')} aria-pressed={modus === 'pool'}
                     disabled={m.mining}
-                    className={`min-w-[64px] rounded-full py-1.5 text-[12.5px]
+                    className={`min-w-[64px] rounded-full py-1.5 text-[12.5px] font-bold
                                 transition-colors disabled:opacity-60 ${
-                      modus === 'pool' ? 'bg-work text-ink' : 'text-faint'}`}>
+                      modus === 'pool' ? 'bg-work text-white' : 'text-dim'}`}>
               Pool
             </button>
           </div>
         </div>
 
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[13px] text-dim">Rechenanteil</span>
-          <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+          <span className="text-[13.5px] font-semibold text-dim">Rechenanteil</span>
+          <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             {[25, 50, 75, 100].map(v => (
               <button key={v} onClick={() => m.setDuty(v)} aria-pressed={m.duty === v}
-                      className={`min-w-[48px] rounded-full py-1.5 text-[12.5px]
+                      className={`min-w-[48px] rounded-full py-1.5 text-[12.5px] font-bold
                                   transition-colors ${
-                        m.duty === v ? 'bg-work text-ink' : 'text-faint'}`}>
+                        m.duty === v ? 'bg-work text-white' : 'text-dim'}`}>
                 {v}%
               </button>
             ))}
@@ -278,17 +298,17 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
           Hardwarebesonderheit.
         */}
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[13px] text-dim">
+          <span className="text-[13.5px] font-semibold text-dim">
             Worker
             {kerne ? <span className="ml-1.5 text-faint">von {kerne}</span> : null}
           </span>
-          <div className="sunk flex overflow-hidden !rounded-full p-0.5">
+          <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             {workerStufen.map(v => (
               <button key={v} onClick={() => setWorker(v)} aria-pressed={worker === v}
                       disabled={m.mining}
-                      className={`min-w-[40px] rounded-full py-1.5 text-[12.5px]
+                      className={`min-w-[40px] rounded-full py-1.5 text-[12.5px] font-bold
                                   transition-colors disabled:opacity-60 ${
-                        worker === v ? 'bg-work text-ink' : 'text-faint'}`}>
+                        worker === v ? 'bg-work text-white' : 'text-dim'}`}>
                 {v}
               </button>
             ))}
@@ -304,13 +324,13 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
         */}
         {modus === 'pool' && !m.mining && (
           <div className="mb-4">
-            <label htmlFor="pooladr" className="text-[13px] text-dim">Pool-Adresse</label>
+            <label htmlFor="pooladr" className="text-[13.5px] font-semibold text-dim">Pool-Adresse</label>
             <input id="pooladr" type="text" inputMode="url" spellCheck={false}
                    value={poolAdresse} onChange={e => setPoolAdresse(e.target.value)}
                    placeholder="pool.yskar.net"
-                   className="sunk mono mt-2 w-full rounded-[10px] px-3 py-3
-                              text-[13.5px] text-text outline-none placeholder:text-faint" />
-            <p className="mt-2 text-[12px] leading-relaxed text-faint">
+                   className="sunk mt-2 w-full px-3 py-3 font-mono text-[13.5px]
+                              text-text outline-none focus:border-work placeholder:text-faint" />
+            <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">
               Der Block selbst zahlt alle Beteiligten aus — niemand hält dein
               Guthaben zwischenzeitlich. Im Explorer nachrechenbar.
             </p>
@@ -319,7 +339,7 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
 
         {/* Was der Pool über sich meldet, sobald die Sitzung steht. */}
         {modus === 'pool' && m.poolInfo && (
-          <div className="sunk mb-4 rounded-[10px] px-3.5 py-3">
+          <div className="mb-4 rounded-[12px] bg-raised px-3.5 py-3">
             <div className="flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-proof" />
               <span className="text-[12.5px] text-proof">{m.poolInfo.name}</span>
@@ -354,8 +374,7 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
 
         {!m.mining && (
           <button onClick={() => setAnsicht('benchmark')}
-                  className="mt-3 w-full text-center text-[12.5px] text-work
-                             underline decoration-work/40 underline-offset-4">
+                  className="mt-3 w-full text-center text-[13px] font-bold text-work">
             {bench
               ? `Kalibrierung: ${bench.besteWorker} Worker empfohlen`
               : 'Gerät kalibrieren — beste Einstellung ermitteln'}
@@ -363,7 +382,7 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
         )}
 
         {m.mining && (
-          <p className="mt-3 text-center text-[12px] text-faint">
+          <p className="mt-3 text-center text-[12px] font-semibold text-faint">
             {wach === 'aktiv'
               ? 'Der Bildschirm bleibt an, solange gemint wird.'
               : wach === 'nicht_moeglich'
@@ -377,7 +396,7 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
             <Notice tone="risk">
               Der Miner meldet seit zehn Sekunden keinen Fortschritt.
             </Notice>
-            <div className="sunk px-4 py-3">
+            <div className="rounded-[12px] bg-raised px-4 py-3">
               {Object.entries(m.etappen).map(([slot, e]) => (
                 <p key={slot} className="font-mono text-[11px] text-faint">
                   Worker {slot}: {e}
