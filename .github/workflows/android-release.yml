@@ -47,7 +47,16 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      # Das Android-SDK ist auf ubuntu-latest vorinstalliert (ANDROID_HOME).
+      # Nur die Plattform und Build-Tools nachziehen, die variables.gradle
+      # verlangt. (android-actions/setup-android scheitert an einem
+      # veralteten Paket namens "tools" und wird deshalb nicht benutzt.)
+      - name: Android-SDK-Pakete
+        run: |
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+          "$SDKM" --install "platforms;android-36" "build-tools;36.0.0" "platform-tools" > /dev/null
+          echo "SDK: $ANDROID_HOME"; ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools"
 
       - uses: gradle/actions/setup-gradle@v4
 
