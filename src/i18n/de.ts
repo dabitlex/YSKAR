@@ -128,8 +128,10 @@ const de = {
 
   wiederherstellen: {
     titel: 'Wallet wiederherstellen',
-    text: 'Trag deine zwölf Wörter ein, durch Leerzeichen getrennt. Groß- und Kleinschreibung ist egal.',
-    platzhalter: 'wort eins wort zwei …',
+    text: 'Ein Wort je Feld, in der Reihenfolge deiner Liste. Beim Tippen schlägt die App das Wort vor — Antippen übernimmt es.',
+    einfuegen: 'Aus Zwischenablage einfügen',
+    nichtInListe: 'Nicht in der Wortliste',
+    ungueltig: 'Zwölf Wörter, aber keine gültige Wallet — bitte prüfen.',
     anzahl: (n: number) => `${n} von 12 Wörtern`,
     vorschau: 'Diese Wallet wird geöffnet',
     neuePin: 'Neue PIN für dieses Gerät',

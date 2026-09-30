@@ -6,6 +6,7 @@ import { keypairFromMnemonic } from '@/lib/core/wallet';
 import Image from 'next/image';
 import { Screen, Title, Body, Button, Notice, Icon } from '@/components/ui/Primitives';
 import Vorstellung from '@/components/Vorstellung';
+import WortFelder, { istWort } from '@/components/wallet/WortFelder';
 import { useT, SPRACHEN, fehlerText as grund } from '@/i18n';
 
 /**
@@ -337,16 +338,18 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
 
 function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
   const wallet = useWallet();
-  const [text, setText] = useState('');
+  const [woerter, setWoerter] = useState<string[]>(() => Array(12).fill(''));
   const [pin, setPin] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { t } = useT();
 
-  const anzahl = text.trim().split(/\s+/).filter(Boolean).length;
+  const text = woerter.map(w => w.trim()).join(' ');
+  // Gezaehlt wird, was in der Wortliste steht -- ein halb getipptes Wort nicht.
+  const anzahl = woerter.filter(istWort).length;
   const vorschau = useMemo(() => {
     try {
-      if (anzahl !== 12 && anzahl !== 24) return null;
+      if (anzahl !== 12) return null;
       return keypairFromMnemonic(text).address;
     } catch { return null; }
   }, [text, anzahl]);
@@ -362,15 +365,14 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
       <Title>{t.wiederherstellen.titel}</Title>
       <Body>{t.wiederherstellen.text}</Body>
 
-      <textarea
-        value={text}
-        onChange={e => { setText(e.target.value); setFehler(null); }}
-        rows={4} autoCapitalize="none" autoCorrect="off" spellCheck={false}
-        placeholder={t.wiederherstellen.platzhalter}
-        className="sunk w-full px-4 py-3.5 font-mono text-[15px]
-                   leading-relaxed outline-none transition-colors focus:border-work"
-      />
-      <p className="mt-2 text-sm text-dim tnum">{t.wiederherstellen.anzahl(anzahl)}</p>
+      <div className="mt-5">
+        <WortFelder woerter={woerter} onChange={w => { setWoerter(w); setFehler(null); }}
+                    texte={{ wort: t.pruefen.wort, einfuegen: t.wiederherstellen.einfuegen,
+                             nichtInListe: t.wiederherstellen.nichtInListe }} />
+      </div>
+      <p className="mt-2 text-sm text-dim tnum">
+        {anzahl === 12 && !vorschau ? t.wiederherstellen.ungueltig : t.wiederherstellen.anzahl(anzahl)}
+      </p>
 
       {/*
         Adressvorschau, sobald die Woerter stimmen. Wer die falsche Wallet
