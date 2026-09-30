@@ -6,6 +6,7 @@ import { keypairFromMnemonic } from '@/lib/core/wallet';
 import Image from 'next/image';
 import { Screen, Title, Body, Button, Notice, Icon } from '@/components/ui/Primitives';
 import Vorstellung from '@/components/Vorstellung';
+import { useT, SPRACHEN, fehlerText as grund } from '@/i18n';
 
 /**
  * Wallet einrichten.
@@ -61,46 +62,55 @@ export default function Onboarding() {
 function Start({ onCreate, onRecover, onMehr }: {
   onCreate: () => void; onRecover: () => void; onMehr: () => void;
 }) {
+  const { t, sprache, setSprache } = useT();
   return (
     <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-7"
           style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, rgb(var(--ink)) 42%)' }}>
+      {/*
+        Sprachwahl ganz oben, vor allem anderen: Wer die Sprache nicht
+        versteht, kann den Rest nicht beurteilen. Namen in der jeweiligen
+        Sprache selbst, keine Flaggen -- Sprache ist kein Land.
+      */}
+      <div className="flex justify-end">
+        <div className="flex overflow-hidden rounded-full bg-raised p-0.5" role="group" aria-label={t.allgemein.sprache}>
+          {SPRACHEN.map(s => (
+            <button key={s.code} onClick={() => setSprache(s.code)} aria-pressed={sprache === s.code}
+                    lang={s.code}
+                    className={`rounded-full px-3 py-1 text-[12px] font-bold transition-colors ${
+                      sprache === s.code ? 'bg-surface text-text shadow-sm' : 'text-dim'}`}>
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="zoom flex flex-col items-center gap-1">
         <Image src="/marke/kristall.png" alt="" width={168} height={122} priority
                style={{ width: 168, height: 122, objectFit: 'contain' }} />
         <span className="text-[12px] font-extrabold tracking-[0.22em] text-work">
-          GEMEINSAM · DEZENTRAL · STARK
+          {t.start.claim}
         </span>
       </div>
 
       <div className="rise mt-4">
-        <Title>Eine Kette, die du nachrechnen kannst.</Title>
-        <Body>
-          YSKAR ist echtes Proof of Work auf deinem Telefon. Dein Gerät rechnet,
-          das Netz prüft, jeder Block liegt offen.
-        </Body>
+        <Title>{t.start.titel}</Title>
+        <Body>{t.start.text}</Body>
       </div>
 
       <div className="rise rise-1 mt-5 flex flex-col gap-2">
-        <Merkmal icon={Icon.Blitz} titel="Echtes Mining">
-          SHA-256d auf deinem Gerät. Keine hochgezählten Zahlen, jeder Share wird
-          nachgerechnet.
-        </Merkmal>
-        <Merkmal icon={Icon.Schloss} titel="Deine Schlüssel, dein Guthaben">
-          Zwölf Wörter gehören dir allein — nicht deinem Telegram-Konto.
-        </Merkmal>
-        <Merkmal icon={Icon.Haken} titel="Offen und prüfbar">
-          Offener Quelltext, Block Explorer im Browser. Proof, not promise.
-        </Merkmal>
+        <Merkmal icon={Icon.Blitz} titel={t.start.m1t}>{t.start.m1}</Merkmal>
+        <Merkmal icon={Icon.Schloss} titel={t.start.m2t}>{t.start.m2}</Merkmal>
+        <Merkmal icon={Icon.Haken} titel={t.start.m3t}>{t.start.m3}</Merkmal>
       </div>
 
       <div className="flex-1" />
 
       <div className="rise rise-2 mt-6 space-y-2.5">
-        <Button onClick={onCreate}>Wallet erstellen</Button>
-        <Button variant="quiet" onClick={onRecover}>Ich habe schon zwölf Wörter</Button>
+        <Button onClick={onCreate}>{t.start.erstellen}</Button>
+        <Button variant="quiet" onClick={onRecover}>{t.start.habeWoerter}</Button>
         <button onClick={onMehr}
                 className="mt-1 w-full text-center text-[13.5px] font-bold text-work">
-          Erst mehr über YSKAR erfahren →
+          {t.start.mehr}
         </button>
       </div>
     </main>
@@ -126,23 +136,15 @@ function Merkmal({ icon, titel, children }: {
 
 function Warnung({ onWeiter, onZurueck }: { onWeiter: () => void; onZurueck: () => void }) {
   const [verstanden, setVerstanden] = useState(false);
+  const { t } = useT();
   return (
     <Screen>
-      <Title>Gleich siehst du zwölf Wörter</Title>
-      <Body>
-        Diese Wörter sind deine Wallet. Wer sie hat, hat dein Guthaben — und
-        wer sie verliert, verliert es.
-      </Body>
+      <Title>{t.warnung.titel}</Title>
+      <Body>{t.warnung.text}</Body>
 
       <div className="my-6 space-y-3">
-        <Notice tone="risk">
-          Niemand kann sie zurücksetzen. Nicht ich, nicht Telegram, niemand.
-          Es gibt kein Passwort-vergessen.
-        </Notice>
-        <Notice>
-          Schreib sie auf Papier. Ein Screenshot landet in der Fotogalerie und
-          in deiner Cloud-Sicherung — beides ist kein guter Ort dafür.
-        </Notice>
+        <Notice tone="risk">{t.warnung.n1}</Notice>
+        <Notice>{t.warnung.n2}</Notice>
       </div>
 
       <label className="mb-8 flex cursor-pointer items-start gap-3 text-[15px]">
@@ -151,12 +153,12 @@ function Warnung({ onWeiter, onZurueck }: { onWeiter: () => void; onZurueck: () 
           onChange={e => setVerstanden(e.target.checked)}
           className="mt-1 h-4 w-4 shrink-0 accent-[#1F5BF0]"
         />
-        <span>Ich habe Stift und Papier bereit.</span>
+        <span>{t.warnung.bereit}</span>
       </label>
 
       <div className="space-y-3">
-        <Button onClick={onWeiter} disabled={!verstanden}>Wörter anzeigen</Button>
-        <Button variant="quiet" onClick={onZurueck}>Zurück</Button>
+        <Button onClick={onWeiter} disabled={!verstanden}>{t.warnung.zeigen}</Button>
+        <Button variant="quiet" onClick={onZurueck}>{t.allgemein.zurueck}</Button>
       </div>
     </Screen>
   );
@@ -166,10 +168,11 @@ function Warnung({ onWeiter, onZurueck }: { onWeiter: () => void; onZurueck: () 
 
 function Woerter({ mnemonic, onWeiter }: { mnemonic: string; onWeiter: () => void }) {
   const words = mnemonic.split(' ');
+  const { t } = useT();
   return (
     <Screen>
-      <Title>Deine zwölf Wörter</Title>
-      <Body>Schreib sie in dieser Reihenfolge auf. Die Nummern gehören dazu.</Body>
+      <Title>{t.woerter.titel}</Title>
+      <Body>{t.woerter.text}</Body>
 
       {/*
         Zweispaltig mit fortlaufenden Nummern. Die Nummerierung ist hier
@@ -185,12 +188,10 @@ function Woerter({ mnemonic, onWeiter }: { mnemonic: string; onWeiter: () => voi
         ))}
       </ol>
 
-      <Notice tone="risk">
-        Nach dem nächsten Schritt werden die Wörter nicht mehr angezeigt.
-      </Notice>
+      <Notice tone="risk">{t.woerter.hinweis}</Notice>
 
       <div className="mt-6">
-        <Button onClick={onWeiter}>Ich habe sie aufgeschrieben</Button>
+        <Button onClick={onWeiter}>{t.woerter.aufgeschrieben}</Button>
       </div>
     </Screen>
   );
@@ -212,6 +213,7 @@ function Pruefen({ mnemonic, onBestanden, onNochmal }: {
 
   const [antworten, setAntworten] = useState<Record<number, string>>({});
   const [fehler, setFehler] = useState(false);
+  const { t } = useT();
 
   const pruefen = () => {
     const alleRichtig = positions.every(
@@ -224,14 +226,14 @@ function Pruefen({ mnemonic, onBestanden, onNochmal }: {
 
   return (
     <Screen>
-      <Title>Kurze Gegenprobe</Title>
-      <Body>Trag drei Wörter aus deiner Liste ein.</Body>
+      <Title>{t.pruefen.titel}</Title>
+      <Body>{t.pruefen.text}</Body>
 
       <div className="my-6 space-y-4">
         {positions.map(i => (
           <div key={i}>
             <label htmlFor={`w${i}`} className="mb-1.5 block text-sm text-dim">
-              Wort {i + 1}
+              {t.pruefen.wort(i + 1)}
             </label>
             <input
               id={`w${i}`}
@@ -247,15 +249,13 @@ function Pruefen({ mnemonic, onBestanden, onNochmal }: {
 
       {fehler && (
         <div className="mb-4">
-          <Notice tone="risk">
-            Mindestens ein Wort stimmt nicht. Sieh auf deinem Zettel nach.
-          </Notice>
+          <Notice tone="risk">{t.pruefen.falsch}</Notice>
         </div>
       )}
 
       <div className="space-y-3">
-        <Button onClick={pruefen} disabled={!vollstaendig}>Weiter</Button>
-        <Button variant="quiet" onClick={onNochmal}>Wörter nochmal zeigen</Button>
+        <Button onClick={pruefen} disabled={!vollstaendig}>{t.allgemein.weiter}</Button>
+        <Button variant="quiet" onClick={onNochmal}>{t.pruefen.nochmal}</Button>
       </div>
     </Screen>
   );
@@ -268,6 +268,7 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
   const [wdh, setWdh] = useState('');
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const { t } = useT();
 
   const gueltig = /^\d{6}$/.test(pin);
   const passt = gueltig && pin === wdh;
@@ -280,15 +281,12 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
 
   return (
     <Screen>
-      <Title>PIN für dieses Gerät</Title>
-      <Body>
-        Sechs Ziffern. Damit werden deine Wörter auf diesem Telefon
-        verschlüsselt abgelegt.
-      </Body>
+      <Title>{t.pin.titel}</Title>
+      <Body>{t.pin.text}</Body>
 
       <div className="my-6 space-y-4">
         <div>
-          <label htmlFor="pin" className="mb-1.5 block text-sm text-dim">PIN</label>
+          <label htmlFor="pin" className="mb-1.5 block text-sm text-dim">{t.pin.label}</label>
           <input
             id="pin" inputMode="numeric" maxLength={6} value={pin}
             onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
@@ -297,7 +295,7 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
           />
         </div>
         <div>
-          <label htmlFor="pin2" className="mb-1.5 block text-sm text-dim">Nochmal</label>
+          <label htmlFor="pin2" className="mb-1.5 block text-sm text-dim">{t.pin.nochmal}</label>
           <input
             id="pin2" inputMode="numeric" maxLength={6} value={wdh}
             onChange={e => setWdh(e.target.value.replace(/\D/g, ''))}
@@ -314,24 +312,20 @@ function PinSetzen({ onFertig }: { onFertig: (pin: string) => Promise<void> }) {
         entschlossenen Angreifer -- und das sollte dort stehen, wo der Nutzer
         sie setzt, nicht in einer Hilfeseite.
       */}
-      <Notice>
-        Die PIN schützt davor, dass jemand dein entsperrtes Telefon in die
-        Hand nimmt. Gegen einen entschlossenen Angreifer mit Zugriff auf das
-        Gerät hilft nur, keine großen Beträge darauf zu lassen.
-      </Notice>
+      <Notice>{t.pin.hinweis}</Notice>
 
       {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
 
       <div className="mt-6">
         <Button onClick={speichern} disabled={!passt || busy}>
-          {busy ? 'Wird verschlüsselt…' : 'Wallet anlegen'}
+          {busy ? t.pin.verschluesselt : t.pin.anlegen}
         </Button>
       </div>
       {pin.length > 0 && !gueltig && (
-        <p className="mt-3 text-sm text-dim">Genau sechs Ziffern.</p>
+        <p className="mt-3 text-sm text-dim">{t.pin.sechs}</p>
       )}
       {gueltig && wdh.length === 6 && !passt && (
-        <p className="mt-3 text-sm text-risk">Die beiden Eingaben sind verschieden.</p>
+        <p className="mt-3 text-sm text-risk">{t.pin.verschieden}</p>
       )}
     </Screen>
   );
@@ -345,6 +339,7 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
   const [pin, setPin] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { t } = useT();
 
   const anzahl = text.trim().split(/\s+/).filter(Boolean).length;
   const vorschau = useMemo(() => {
@@ -357,26 +352,23 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
   const los = async () => {
     setBusy(true); setFehler(null);
     const r = await wallet.recover(text, pin);
-    if (!r.ok) { setFehler(r.reason ?? 'Fehlgeschlagen.'); setBusy(false); }
+    if (!r.ok) { setFehler(grund(r.reason, t)); setBusy(false); }
   };
 
   return (
     <Screen>
-      <Title>Wallet wiederherstellen</Title>
-      <Body>
-        Trag deine zwölf Wörter ein, durch Leerzeichen getrennt. Groß- und
-        Kleinschreibung ist egal.
-      </Body>
+      <Title>{t.wiederherstellen.titel}</Title>
+      <Body>{t.wiederherstellen.text}</Body>
 
       <textarea
         value={text}
         onChange={e => { setText(e.target.value); setFehler(null); }}
         rows={4} autoCapitalize="none" autoCorrect="off" spellCheck={false}
-        placeholder="wort eins wort zwei …"
+        placeholder={t.wiederherstellen.platzhalter}
         className="sunk w-full px-4 py-3.5 font-mono text-[15px]
                    leading-relaxed outline-none transition-colors focus:border-work"
       />
-      <p className="mt-2 text-sm text-dim tnum">{anzahl} von 12 Wörtern</p>
+      <p className="mt-2 text-sm text-dim tnum">{t.wiederherstellen.anzahl(anzahl)}</p>
 
       {/*
         Adressvorschau, sobald die Woerter stimmen. Wer die falsche Wallet
@@ -385,14 +377,14 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
       */}
       {vorschau && (
         <div className="mt-5 border-y border-line py-4">
-          <p className="mb-1.5 text-sm text-dim">Diese Wallet wird geöffnet</p>
+          <p className="mb-1.5 text-sm text-dim">{t.wiederherstellen.vorschau}</p>
           <p className="break-all font-mono text-sm text-proof">{vorschau}</p>
         </div>
       )}
 
       <div className="mt-6">
         <label htmlFor="rpin" className="mb-1.5 block text-sm text-dim">
-          Neue PIN für dieses Gerät
+          {t.wiederherstellen.neuePin}
         </label>
         <input
           id="rpin" inputMode="numeric" maxLength={6} value={pin}
@@ -407,10 +399,11 @@ function Wiederherstellen({ onZurueck }: { onZurueck: () => void }) {
 
       <div className="mt-6 space-y-3">
         <Button onClick={los} disabled={!vorschau || !/^\d{6}$/.test(pin) || busy}>
-          {busy ? 'Wird geöffnet…' : 'Wallet öffnen'}
+          {busy ? t.wiederherstellen.oeffnet : t.wiederherstellen.oeffnen}
         </Button>
-        <Button variant="quiet" onClick={onZurueck}>Zurück</Button>
+        <Button variant="quiet" onClick={onZurueck}>{t.allgemein.zurueck}</Button>
       </div>
     </Screen>
   );
 }
+

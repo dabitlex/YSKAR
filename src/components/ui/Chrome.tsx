@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { useT } from '@/i18n';
 
 /**
  * Rahmen der App: Navigationsleiste, Kopfzeile, Startbild.
@@ -9,16 +10,16 @@ import { useEffect, useState } from 'react';
 
 export type Tab = 'home' | 'mining' | 'wallet' | 'netz' | 'entdecken';
 
-const PUNKTE: { key: Tab; label: string; pfad: React.ReactNode }[] = [
-  { key: 'home', label: 'Home',
+const PUNKTE: { key: Tab; pfad: React.ReactNode }[] = [
+  { key: 'home',
     pfad: <path d="M3 10.5 11 4l8 6.5V19a1 1 0 0 1-1 1h-4v-6H8v6H4a1 1 0 0 1-1-1z" /> },
-  { key: 'mining', label: 'Mining',
+  { key: 'mining',
     pfad: <path d="M12 2 5 13h5l-1 7 8-11h-5l1-7z" /> },
-  { key: 'wallet', label: 'Wallet',
+  { key: 'wallet',
     pfad: <><rect x="2.5" y="5.5" width="17" height="12" rx="3" /><path d="M15 11.5h2.5" /></> },
-  { key: 'netz', label: 'Netz',
+  { key: 'netz',
     pfad: <path d="M11 3 4 7v8l7 4 7-4V7zM4 7l7 4 7-4M11 11v8" /> },
-  { key: 'entdecken', label: 'Entdecken',
+  { key: 'entdecken',
     pfad: <><circle cx="11" cy="11" r="8.5" /><path d="m14 8-1.5 4.5L8 14l1.5-4.5z" /></> },
 ];
 
@@ -31,6 +32,7 @@ const PUNKTE: { key: Tab; label: string; pfad: React.ReactNode }[] = [
 export function BottomNav({ aktiv, onWechsel }: {
   aktiv: Tab; onWechsel: (t: Tab) => void;
 }) {
+  const { t } = useT();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line
                     rand-unten bg-surface/95 backdrop-blur-xl">
@@ -50,7 +52,7 @@ export function BottomNav({ aktiv, onWechsel }: {
                    strokeLinecap="round" strokeLinejoin="round">
                 {p.pfad}
               </svg>
-              <span className="text-[10.5px] font-bold">{p.label}</span>
+              <span className="text-[10.5px] font-bold">{t.nav[p.key]}</span>
             </button>
           );
         })}
@@ -93,6 +95,7 @@ export function useSplash(mindestensMs = 1100) {
  * Mitte. Weiss dahinter, damit beim Laden nichts Dunkles aufblitzt.
  */
 export function Splash() {
+  const { t } = useT();
   return (
     <main className="relative min-h-dvh overflow-hidden bg-white">
       <Image src="/marke/splash.jpg" alt="YSKAR — Gemeinsam. Dezentral. Stark."
@@ -104,7 +107,7 @@ export function Splash() {
           <div className="lade absolute left-0 top-0 h-[3px] w-10 rounded-full bg-work" />
         </div>
         <span className="text-[11px] font-bold tracking-[0.18em] text-faint">
-          KETTE WIRD GELADEN
+          {t.splash.laedt}
         </span>
       </div>
     </main>

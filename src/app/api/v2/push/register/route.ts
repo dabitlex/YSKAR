@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (token.length < 20 || token.length > 4096) return fehler('bad_token');
   if (!isValidAddress(address)) return fehler('bad_address');
   const plattform = typeof body.plattform === 'string' ? body.plattform.slice(0, 20) : 'android';
-  const sprache = typeof body.sprache === 'string' ? body.sprache.slice(0, 8) : 'de';
+  const sprache = typeof body.sprache === 'string' ? body.sprache.slice(0, 8) : 'en';
 
   const { error } = await db().schema('chain2').from('push_geraete')
     .upsert({ token, address, plattform, sprache, zuletzt: new Date().toISOString() },

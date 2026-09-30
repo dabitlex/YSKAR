@@ -23,6 +23,7 @@ import { Button, Notice, SubHeader, Icon } from '@/components/ui/Primitives';
 import Scanner from '@/components/wallet/Scanner';
 import { biometrieAktiv, biometriePin } from '@/lib/native/biometrie';
 import type { Account } from '@/hooks/useMining';
+import { useT, fehlerText, type Woerterbuch } from '@/i18n';
 
 /**
  * Senden -- drei Schritte mit einer bewussten Bestaetigung dazwischen.
@@ -49,6 +50,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   onFertig: () => void; onAbbruch: () => void;
 }) {
   const wallet = useWallet();
+  const { t } = useT();
   const [schritt, setSchritt] = useState<Schritt>('formular');
   const [ziel, setZiel] = useState('');
   // Ob die Adresse gescannt wurde -- im Pruefschritt steht das dabei, damit
@@ -129,7 +131,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     try {
       // Der Schluessel kommt frisch aus dem Tresor, nicht aus dem Speicher.
       const auf = await wallet.revealMnemonic(pinWert);
-      if (!auf.ok || !auf.mnemonic) throw new Error(auf.reason ?? 'PIN stimmt nicht.');
+      if (!auf.ok || !auf.mnemonic) throw new Error(fehlerText(auf.reason ?? 'wrong_pin', t));
 
       const { keypairFromMnemonic } = await import('@/lib/core/wallet');
       const kp = keypairFromMnemonic(auf.mnemonic);
@@ -164,7 +166,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         body: JSON.stringify({ raw: toHex(serializeTx(tx)) }),
       });
       const body = await res.json();
-      if (!body.accepted) throw new Error(uebersetze(body.reason));
+      if (!body.accepted) throw new Error(uebersetze(body.reason, t));
 
       setErgebnis({ txid: body.txid ?? toHex(txid(tx)) });
       setSchritt('fertig');
@@ -177,8 +179,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   }
 
   async function sendenMitBiometrie() {
-    const p = await biometriePin(`${fmt(einheiten)} ${symbol} senden`);
-    if (!p) { setFehler('Biometrie nicht bestätigt. Du kannst stattdessen die PIN eingeben.'); return; }
+    const p = await biometriePin(t.senden.bioGrund(fmt(einheiten), symbol));
+    if (!p) { setFehler(t.senden.bioNicht); return; }
     await senden(p);
   }
 
@@ -191,15 +193,15 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor"
                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 11.5l4 4 8-9" /></svg>
         </div>
-        <h1 className="rise mt-5 text-[26px] font-extrabold tracking-[-0.02em]">Gesendet</h1>
+        <h1 className="rise mt-5 text-[26px] font-extrabold tracking-[-0.02em]">{t.senden.gesendet}</h1>
         <p className="rise rise-1 mt-3 text-[15px] font-medium leading-relaxed text-dim">
-          {fmt(einheiten)} {symbol} sind unterwegs. Sie erscheinen im nächsten Block.
+          {t.senden.unterwegs(fmt(einheiten), symbol)}
         </p>
         <div className="panel rise rise-2 mt-6 p-4 text-left">
-          <p className="label">Transaktion</p>
+          <p className="label">{t.senden.transaktion}</p>
           <p className="mt-1.5 break-all font-mono text-xs">{ergebnis?.txid}</p>
         </div>
-        <div className="mt-8"><Button variant="quiet" onClick={onFertig}>Fertig</Button></div>
+        <div className="mt-8"><Button variant="quiet" onClick={onFertig}>{t.allgemein.fertig}</Button></div>
       </div>
     );
   }
@@ -208,44 +210,43 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   if (schritt === 'pruefen') {
     return (
       <>
-        <SubHeader titel="Prüfen und senden" onZurueck={() => setSchritt('formular')} />
+        <SubHeader titel={t.senden.pruefenTitel} onZurueck={() => setSchritt('formular')} />
 
         <div className="panel rise p-5">
-          <p className="label">Du sendest</p>
+          <p className="label">{t.senden.duSendest}</p>
           <p className="tnum mt-1.5 text-[32px] font-extrabold tracking-[-0.03em]">
             {fmt(einheiten)} <span className="text-[16px] font-bold text-faint">{symbol}</span>
           </p>
           <div className="my-4 h-px bg-line" />
-          <p className="label">An</p>
+          <p className="label">{t.senden.an}</p>
           <div className="mt-1.5 flex items-start gap-2 rounded-[12px] bg-ink px-3 py-2.5">
             {gescannt && <span className="mt-0.5 shrink-0 text-work">{Icon.Scan}</span>}
             <p className="break-all font-mono text-[12.5px] leading-[1.5]">{ziel.trim()}</p>
           </div>
           {gescannt && (
             <p className="mt-1.5 text-[12px] font-semibold text-faint">
-              Adresse per QR-Scan übernommen · trotzdem vollständig prüfen
+              {t.senden.perScan}
             </p>
           )}
           {notiz && (
             <>
               <div className="my-4 h-px bg-line" />
-              <p className="text-xs text-dim">Notiz</p>
+              <p className="text-xs text-dim">{t.senden.notiz}</p>
               <p className="mt-0.5 text-[13px]">{notiz.slice(0, 32)}</p>
             </>
           )}
           <div className="my-4 h-px bg-line" />
           <dl className="space-y-2 text-[13.5px]">
-            <Zeile label="Netzgebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
-            <Zeile label="Belastung" wert={`${fmt(summe)} ${symbol}`} />
-            <Zeile label="Rest danach" wert={`${fmt(guthaben - summe)} ${symbol}`} />
+            <Zeile label={t.senden.netzgebuehr} wert={`${fmt(gebuehr)} ${symbol}`} />
+            <Zeile label={t.senden.belastung} wert={`${fmt(summe)} ${symbol}`} />
+            <Zeile label={t.senden.rest} wert={`${fmt(guthaben - summe)} ${symbol}`} />
           </dl>
         </div>
 
         <div className="rise rise-1 mt-4 flex items-start gap-2.5 rounded-[14px] bg-[#FFF4E5] px-3.5 py-3
                         text-[12.5px] font-semibold leading-[1.5] text-[#8A5300]">
           <span className="shrink-0">{Icon.Warnung}</span>
-          Eine gesendete Zahlung lässt sich nicht zurückholen. Die Transaktion wird auf
-          deinem Gerät signiert.
+          {t.senden.warnung}
         </div>
 
         {bio && !pinManuell ? (
@@ -253,16 +254,16 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
             {fehler && <div className="mt-6"><Notice tone="risk">{fehler}</Notice></div>}
             <div className="mt-6 space-y-3">
               <Button onClick={sendenMitBiometrie} disabled={busy}>
-                {busy ? 'Wird signiert…' : 'Mit Fingerabdruck / Gesicht senden'}
+                {busy ? t.senden.signiert : t.senden.mitBio}
               </Button>
-              <Button variant="quiet" onClick={() => setPinManuell(true)}>PIN eingeben</Button>
-              <Button variant="quiet" onClick={() => setSchritt('formular')}>Zurück</Button>
+              <Button variant="quiet" onClick={() => setPinManuell(true)}>{t.senden.pinEingeben}</Button>
+              <Button variant="quiet" onClick={() => setSchritt('formular')}>{t.allgemein.zurueck}</Button>
             </div>
           </>
         ) : (
           <>
             <label htmlFor="spin" className="mb-1.5 mt-6 block text-[13px] font-bold text-dim">
-              PIN zum Signieren
+              {t.senden.pinSignieren}
             </label>
             <input
               id="spin" inputMode="numeric" maxLength={6} value={pin} autoFocus
@@ -275,9 +276,9 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
 
             <div className="mt-6 space-y-3">
               <Button onClick={() => senden()} disabled={pin.length !== 6 || busy}>
-                {busy ? 'Wird signiert…' : 'Jetzt senden'}
+                {busy ? t.senden.signiert : t.senden.jetzt}
               </Button>
-              <Button variant="quiet" onClick={() => setSchritt('formular')}>Zurück</Button>
+              <Button variant="quiet" onClick={() => setSchritt('formular')}>{t.allgemein.zurueck}</Button>
             </div>
           </>
         )}
@@ -291,11 +292,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   }
   return (
     <>
-      <SubHeader titel="Senden" onZurueck={onAbbruch}
+      <SubHeader titel={t.senden.titel} onZurueck={onAbbruch}
                  rechts={<span className="tnum text-[12.5px] font-bold text-dim">
                    {fmt(guthaben)} {symbol}</span>} />
 
-      <label htmlFor="ziel" className="mb-1.5 block text-[13px] font-bold text-dim">Empfänger</label>
+      <label htmlFor="ziel" className="mb-1.5 block text-[13px] font-bold text-dim">{t.senden.empfaenger}</label>
       <div className="sunk flex items-center gap-2 pl-4 pr-1.5 transition-colors focus-within:border-work">
         <input
           id="ziel" value={ziel} onChange={e => { setZiel(e.target.value); setGescannt(false); }}
@@ -304,27 +305,26 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           className="min-w-0 flex-1 bg-transparent py-3.5 font-mono text-[13.5px] outline-none
                      placeholder:text-faint"
         />
-        <button type="button" onClick={() => setScanner(true)} aria-label="QR-Code scannen"
+        <button type="button" onClick={() => setScanner(true)} aria-label={t.senden.scanAria}
                 className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-[11px] bg-work/10
                            px-3.5 text-[13px] font-extrabold text-work active:scale-95">
-          {Icon.Scan} Scannen
+          {Icon.Scan} {t.senden.scannen}
         </button>
       </div>
       {ziel.trim().length > 0 ? (
         <p className={`mt-1.5 text-[12.5px] font-bold ${
           eigene ? 'text-risk' : zielGueltig ? 'text-proof' : 'text-risk'}`}>
-          {eigene ? 'Das ist deine eigene Adresse.'
-            : zielGueltig ? (gescannt ? '✓ Gültige YSKAR-Adresse, per QR-Scan übernommen'
-                                      : '✓ Gültige YSKAR-Adresse')
-            : 'Keine gültige YSKAR-Adresse.'}
+          {eigene ? t.senden.eigene
+            : zielGueltig ? (gescannt ? t.senden.gueltigScan : t.senden.gueltig)
+            : t.senden.ungueltig}
         </p>
       ) : (
         <p className="mt-1.5 text-[12px] font-semibold text-faint">
-          QR-Code des Empfängers mit der Kamera scannen oder Adresse einfügen.
+          {t.senden.tipp}
         </p>
       )}
 
-      <label htmlFor="betrag" className="mb-1.5 mt-5 block text-[13px] font-bold text-dim">Betrag</label>
+      <label htmlFor="betrag" className="mb-1.5 mt-5 block text-[13px] font-bold text-dim">{t.senden.betrag}</label>
       <div className="sunk flex items-center px-4 transition-colors focus-within:border-work">
         <input
           id="betrag" inputMode="decimal" value={betrag}
@@ -336,8 +336,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         <span className="text-[14px] font-bold text-faint">{symbol}</span>
       </div>
       <div className="mt-2 flex gap-2">
-        {[[0.25, '25 %'], [0.5, '50 %'], [1, 'Alles']].map(([t, l]) => (
-          <button key={String(l)} onClick={() => setzeAnteil(t as number)}
+        {[[0.25, '25 %'], [0.5, '50 %'], [1, t.senden.alles]].map(([teil, l]) => (
+          <button key={String(l)} onClick={() => setzeAnteil(teil as number)}
                   className="rounded-full border border-line bg-surface px-3.5 py-1.5
                              text-[12px] font-bold text-dim active:bg-raised">
             {l as string}
@@ -346,12 +346,12 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
       </div>
       {einheiten > 0n && !reicht && (
         <p className="mt-2 text-[12.5px] font-bold text-risk">
-          Mehr als verfügbar. Die Gebühr von {fmt(gebuehr)} kommt noch dazu.
+          {t.senden.zuViel(fmt(gebuehr))}
         </p>
       )}
 
       <label htmlFor="notiz" className="mb-1.5 mt-5 block text-[13px] font-bold text-dim">
-        Notiz <span className="font-semibold text-faint">optional · max. 32 Zeichen</span>
+        {t.senden.notiz} <span className="font-semibold text-faint">{t.senden.notizHinweis}</span>
       </label>
       <input
         id="notiz" value={notiz} maxLength={32}
@@ -371,8 +371,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         {markt?.andrang ? (
           <>
             <div className="mb-1.5 mt-1 flex items-baseline justify-between">
-              <span className="text-[13.5px] font-semibold text-dim">Gebühr</span>
-              <span className="text-[12px] font-semibold text-faint">{markt.wartend} warten</span>
+              <span className="text-[13.5px] font-semibold text-dim">{t.senden.gebuehr}</span>
+              <span className="text-[12px] font-semibold text-faint">{t.senden.warten(markt.wartend)}</span>
             </div>
             <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
               {(['langsam', 'normal', 'schnell'] as const).map(k => (
@@ -380,39 +380,35 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
                         className={`flex-1 rounded-full py-2 text-[12.5px] font-bold capitalize
                                     transition-colors ${
                           stufe === k ? 'bg-surface text-text shadow-sm' : 'text-dim'}`}>
-                  {k}
+                  {t.senden.stufe[k]}
                 </button>
               ))}
             </div>
             <div className="mt-2 flex items-baseline justify-between text-[12.5px] font-semibold">
               <span className="tnum font-mono">{fmt(gebuehr)} {symbol}</span>
               <span className="text-dim">
-                {zielBlock === 1 ? 'voraussichtlich nächster Block'
-                                 : `voraussichtlich in ${zielBlock} Blöcken`}
+                {zielBlock === 1 ? t.senden.naechster : t.senden.inBloecken(zielBlock)}
               </span>
             </div>
             <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">
-              Geschätzt, unter der Annahme dass nichts Neues dazukommt.
-              Kommt gleich jemand mit höherer Gebühr, dauert es länger.
+              {t.senden.geschaetzt}
             </p>
           </>
         ) : (
           <>
-            <Zeile label="Netzgebühr" wert={`${fmt(gebuehr)} ${symbol}`} />
+            <Zeile label={t.senden.netzgebuehr} wert={`${fmt(gebuehr)} ${symbol}`} />
             <p className="pb-1 text-[12px] font-medium leading-relaxed text-faint">
-              {markt
-                ? 'Kein Andrang — die Mindestgebühr genügt für den nächsten Block.'
-                : 'Mindestgebühr.'}
+              {markt ? t.senden.keinAndrang : t.senden.mindest}
             </p>
           </>
         )}
         <div className="!mt-2 border-t border-line pt-2">
-          <Zeile label="Summe" wert={`${fmt(summe)} ${symbol}`} />
+          <Zeile label={t.senden.summe} wert={`${fmt(summe)} ${symbol}`} />
         </div>
       </dl>
 
       <div className="mt-6">
-        <Button onClick={() => setSchritt('pruefen')} disabled={!bereit}>Weiter</Button>
+        <Button onClick={() => setSchritt('pruefen')} disabled={!bereit}>{t.allgemein.weiter}</Button>
       </div>
     </>
   );
@@ -427,15 +423,8 @@ function Zeile({ label, wert }: { label: string; wert: string }) {
   );
 }
 
-function uebersetze(grund: string): string {
-  const texte: Record<string, string> = {
-    insufficient_funds: 'Guthaben reicht nicht.',
-    nonce_used: 'Diese Zahlung wurde bereits eingereicht.',
-    fee_not_higher: 'Es wartet schon eine Zahlung mit dieser Nummer.',
-    fee_too_low: 'Die Gebühr ist zu niedrig.',
-    self_transfer: 'Empfänger und Absender sind identisch.',
-    bad_signature: 'Signatur ungültig.',
-    malformed: 'Die Transaktion ist fehlerhaft aufgebaut.',
-  };
-  return texte[grund] ?? `Abgelehnt: ${grund}`;
+function uebersetze(grund: string, t: Woerterbuch): string {
+  const texte = t.fehler.tx;
+  if (grund in texte && grund !== 'sonst') return texte[grund as Exclude<keyof typeof texte, 'sonst'>];
+  return texte.sonst(grund);
 }

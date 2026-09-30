@@ -89,9 +89,9 @@ export async function biometrieBestaetigen(grund: string): Promise<boolean> {
  * worden sein -- hier wird nichts geprueft, nur abgelegt. Der Sensor wird
  * einmal verlangt, damit niemand die Funktion unbemerkt einschaltet.
  */
-export async function biometrieAktivieren(pin: string): Promise<boolean> {
+export async function biometrieAktivieren(pin: string, grund: string): Promise<boolean> {
   if (!istNativ()) return false;
-  const ok = await biometrieBestaetigen('Biometrie für YSKAR Wallet einschalten');
+  const ok = await biometrieBestaetigen(grund);
   if (!ok) return false;
   try {
     await (await speicher()).p.set(SCHLUESSEL, pin);

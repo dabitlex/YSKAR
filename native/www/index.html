@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -20,9 +20,21 @@
       <path d="M32 8 18 40h28z"/><path d="M12 24 6 46h18M52 24l6 22H40"/>
     </svg>
   </div>
-  <h1>Keine Verbindung</h1>
-  <p>YSKAR Wallet braucht Netz, um die Kette zu lesen. Deine Schlüssel liegen weiter sicher auf diesem Gerät.</p>
-  <button onclick="location.reload()">Erneut versuchen</button>
+  <h1 id="h">No connection</h1>
+  <p id="p">YSKAR Wallet needs a network connection to read the chain. Your keys remain safe on this device.</p>
+  <button id="b" onclick="location.reload()">Try again</button>
 </main>
+<script>
+  // Sprache wie in der App: gemerkte Wahl, sonst System, sonst Englisch.
+  try {
+    var s = localStorage.getItem('yskar.sprache') || (navigator.language || '').slice(0, 2);
+    if (s === 'de') {
+      document.documentElement.lang = 'de';
+      document.getElementById('h').textContent = 'Keine Verbindung';
+      document.getElementById('p').textContent = 'YSKAR Wallet braucht Netz, um die Kette zu lesen. Deine Schlüssel liegen weiter sicher auf diesem Gerät.';
+      document.getElementById('b').textContent = 'Erneut versuchen';
+    }
+  } catch (e) {}
+</script>
 </body>
 </html>

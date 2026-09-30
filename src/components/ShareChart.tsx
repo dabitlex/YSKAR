@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/i18n';
+
 /**
  * Share-Diagramm.
  *
@@ -55,6 +57,7 @@ export default function ShareChart({ shares, active }: {
 }) {
   const sichtbar = shares.slice(-MAX_SHARES);
   const leer = sichtbar.length === 0;
+  const { t, zahl } = useT();
 
   /*
     Bezugsgroesse ist die AKTUELLE Network Difficulty -- die des letzten
@@ -85,18 +88,18 @@ export default function ShareChart({ shares, active }: {
   });
 
   return (
-    <section className="mt-1" aria-label="Erreichte Difficulty je Versuch">
+    <section className="mt-1" aria-label={t.chart.aria}>
       <div className="mb-2 flex items-baseline justify-between text-xs text-dim">
-        <span>Erreichte Difficulty je Share</span>
+        <span>{t.chart.titel}</span>
         <span className="tnum">
-          {leer ? '—' : `${sichtbar.length} Versuche · Ziel ${ziel.toLocaleString('de-DE')}`}
+          {leer ? '—' : t.chart.stand(sichtbar.length, zahl(ziel))}
         </span>
       </div>
 
       <div className="relative" style={{ height: HOEHE }} aria-hidden="true">
         {leer ? (
           <p className="absolute inset-0 flex items-center text-xs text-dim">
-            {active ? 'Warte auf den ersten Share…' : 'Noch keine Versuche.'}
+            {active ? t.chart.warte : t.chart.keine}
           </p>
         ) : (
           <>
@@ -130,7 +133,7 @@ export default function ShareChart({ shares, active }: {
                       <>
                         <span className="absolute left-1/2 -translate-x-1/2 text-work"
                               style={{ bottom: Math.min(hoehe + 15, NUTZ + 12) }}>
-                          <Rakete />
+                          <Rakete titel={t.chart.gefunden} />
                         </span>
                         <span className="tnum absolute left-1/2 -translate-x-1/2
                                          whitespace-nowrap text-[10px] font-medium text-work"
@@ -176,25 +179,25 @@ export default function ShareChart({ shares, active }: {
         stehen immer in ihrer Naehe.
       */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-dim">
-        <Legende farbe="bg-dim/75">angenommen</Legende>
-        <Legende farbe="bg-dim/25">ungültig</Legende>
-        <Legende farbe="bg-work">Block</Legende>
+        <Legende farbe="bg-dim/75">{t.chart.angenommen}</Legende>
+        <Legende farbe="bg-dim/25">{t.chart.ungueltig}</Legende>
+        <Legende farbe="bg-work">{t.chart.block}</Legende>
         <span className="flex items-center gap-1.5">
-          <span className="text-work"><Rakete /></span>
-          Reward
+          <span className="text-work"><Rakete titel={t.chart.gefunden} /></span>
+          {t.chart.reward}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-px w-3 bg-text" />
-          Network Difficulty
+          {t.chart.netz}
         </span>
       </div>
     </section>
   );
 }
 
-function Rakete() {
+function Rakete({ titel }: { titel: string }) {
   return (
-    <svg viewBox="0 0 16 16" width="12" height="12" role="img" aria-label="Block gefunden">
+    <svg viewBox="0 0 16 16" width="12" height="12" role="img" aria-label={titel}>
       <path d="M8 0.8c2.3 2 3.5 4.6 3.5 7.4l-1.7 1.7H6.2L4.5 8.2C4.5 5.4 5.7 2.8 8 0.8z"
             fill="currentColor" />
       <path d="M6.4 10.6 8 15.2l1.6-4.6z" fill="currentColor" opacity="0.55" />

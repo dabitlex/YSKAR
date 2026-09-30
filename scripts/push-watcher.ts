@@ -106,7 +106,7 @@ async function durchlauf() {
   }
 
   // 4. News
-  const { data: news } = await sb.from('news').select('id, titel, text, link')
+  const { data: news } = await sb.from('news').select('*')
     .eq('push', true).is('gepusht', null).order('id').limit(5);
   for (const n of news ?? []) {
     for (const e of ausNews(n, geraete)) await zustellen(e);

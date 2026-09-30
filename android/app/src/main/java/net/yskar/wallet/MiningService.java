@@ -66,7 +66,7 @@ public class MiningService extends Service {
         }
 
         String text = intent != null && intent.hasExtra(EXTRA_TEXT)
-            ? intent.getStringExtra(EXTRA_TEXT) : "Mining läuft";
+            ? intent.getStringExtra(EXTRA_TEXT) : getString(R.string.mining_laeuft);
 
         Notification n = meldung(text);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -110,8 +110,8 @@ public class MiningService extends Service {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm.getNotificationChannel(KANAL) != null) return;
         NotificationChannel k = new NotificationChannel(
-            KANAL, "Mining", NotificationManager.IMPORTANCE_LOW);
-        k.setDescription("Zeigt an, dass dein Gerät gerade für YSKAR rechnet.");
+            KANAL, getString(R.string.mining_kanal), NotificationManager.IMPORTANCE_LOW);
+        k.setDescription(getString(R.string.mining_kanal_text));
         k.setShowBadge(false);
         nm.createNotificationChannel(k);
     }
@@ -134,7 +134,7 @@ public class MiningService extends Service {
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .setContentIntent(tippen)
-            .addAction(0, "Mining stoppen", stoppen)
+            .addAction(0, getString(R.string.mining_stoppen), stoppen)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

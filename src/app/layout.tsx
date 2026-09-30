@@ -26,7 +26,7 @@ const mono = localFont({
 
 export const metadata: Metadata = {
   title: 'YSKAR',
-  description: 'Proof of Work auf dem Telefon. Nachrechenbar.',
+  description: 'Proof of work on your phone. Verifiable. — Proof of Work auf dem Telefon. Nachrechenbar.',
 };
 
 export const viewport: Viewport = {
@@ -36,7 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="font-sans">
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         {children}

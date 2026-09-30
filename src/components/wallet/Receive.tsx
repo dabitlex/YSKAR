@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button, Notice, SubHeader, Icon } from '@/components/ui/Primitives';
+import { useT } from '@/i18n';
 
 /**
  * Empfangen.
@@ -16,6 +17,7 @@ export default function Receive({ address, onZurueck }: {
 }) {
   const [bild, setBild] = useState<string | null>(null);
   const [kopiert, setKopiert] = useState(false);
+  const { t } = useT();
 
   useEffect(() => {
     import('qrcode').then(QR => QR.toDataURL(address, {
@@ -30,7 +32,7 @@ export default function Receive({ address, onZurueck }: {
 
   return (
     <div className="text-center">
-      <SubHeader titel="Empfangen" onZurueck={onZurueck} />
+      <SubHeader titel={t.empfangen.titel} onZurueck={onZurueck} />
 
       <div className="panel rise flex flex-col items-center gap-4 px-5 py-6">
         <div className="flex items-center gap-2">
@@ -42,14 +44,14 @@ export default function Receive({ address, onZurueck }: {
                         shadow-[0_12px_30px_-18px_rgb(var(--edge)/.3)]">
           <div className="h-[220px] w-[220px] overflow-hidden rounded-[8px] bg-white">
             {bild
-              ? <img src={bild} alt="QR-Code der Adresse" width={220} height={220} />
+              ? <img src={bild} alt={t.empfangen.qrAlt} width={220} height={220} />
               : <div className="flex h-full items-center justify-center text-xs font-semibold text-faint">
-                  wird erzeugt…
+                  {t.empfangen.erzeugt}
                 </div>}
           </div>
         </div>
         <div className="flex flex-col items-center gap-1.5">
-          <span className="label">Deine Adresse</span>
+          <span className="label">{t.empfangen.adresse}</span>
           <p className="max-w-[280px] break-all font-mono text-[13px] leading-[1.6]">{address}</p>
         </div>
       </div>
@@ -59,19 +61,15 @@ export default function Receive({ address, onZurueck }: {
           try { await navigator.clipboard.writeText(address); setKopiert(true);
                 setTimeout(() => setKopiert(false), 2000); } catch { /* egal */ }
         }}>
-          {Icon.Kopieren}{kopiert ? 'Kopiert' : 'Kopieren'}
+          {Icon.Kopieren}{kopiert ? t.allgemein.Kopiert : t.allgemein.Kopieren}
         </Button>
         <Button variant="quiet" onClick={() => {
           if (navigator.share) navigator.share({ text: address }).catch(() => {});
-        }}>{Icon.Teilen}Teilen</Button>
+        }}>{Icon.Teilen}{t.allgemein.teilen}</Button>
       </div>
 
       <div className="mt-4 text-left">
-        <Notice tone="work">
-          Ein anderer Nutzer scannt diesen Code in seiner Wallet unter „Senden → Scannen".
-          Der QR-Code wird auf deinem Gerät erzeugt, nichts verlässt das Telefon.
-          Blockrewards kommen automatisch hier an.
-        </Notice>
+        <Notice tone="work">{t.empfangen.hinweis}</Notice>
       </div>
     </div>
   );
