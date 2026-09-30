@@ -42,7 +42,7 @@ function knoten(opt: { port?: number; seeds?: { host: string; port: number }[] }
   store.setMeta('network', REGTEST.network);
   store.setMeta('chain_id', toHex(REGTEST.chainId));
   const chain = new ChainManager(store, REGTEST);
-  const pool = new TxPool();
+  const pool = new TxPool(REGTEST);
 
   let sync: SyncManager;
 
@@ -70,7 +70,7 @@ function knoten(opt: { port?: number; seeds?: { host: string; port: number }[] }
 }
 
 function ueberweisung(nonce: bigint, betrag = UNIT): Transfer {
-  return buildTransfer({
+  return buildTransfer({ chainId: REGTEST.chainId,
     from: MINER.addressRaw, to: EMPFAENGER, amount: betrag,
     fee: MIN_FEE, nonce,
     publicKey: MINER.publicKey, privateKey: MINER.privateKey,
@@ -199,7 +199,7 @@ test('Eine abgewiesene Überweisung landet im Gedächtnis und wird nicht neu ang
   await a.start();
 
   const fremder = keypairFromMnemonic(WORTE, 'anderer', 0, 0);
-  const ungedeckt = buildTransfer({
+  const ungedeckt = buildTransfer({ chainId: REGTEST.chainId,
     from: fremder.addressRaw, to: EMPFAENGER, amount: UNIT,
     fee: MIN_FEE, nonce: 0n,
     publicKey: fremder.publicKey, privateKey: fremder.privateKey,

@@ -174,7 +174,7 @@ export class MiningServer {
       App soll eine andere Adresse bekommen, keinen anderen Code.
     */
     this.lesen = new ReadApi({
-      chain: teile.chain, store: teile.store, pool: teile.pool,
+      chain: teile.chain, store: teile.store, pool: teile.pool, params: this.params,
       hashrate: () => this.gesamtHashrate() || null,
       aktiveMiner: () =>
         new Set([...this.sessions.values()].map(s => s.addressHex)).size,

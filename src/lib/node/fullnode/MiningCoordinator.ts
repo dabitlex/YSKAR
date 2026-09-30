@@ -137,7 +137,7 @@ export class MiningCoordinator {
 
     const { difficulty, zeitstempel } = this.naechsteVorgaben(tip);
 
-    const { included } = selectTransactions(state, this.pool.alle(), hoehe);
+    const { included } = selectTransactions(state, this.pool.alle(), hoehe, undefined, this.params);
 
     const gebaut = buildBlock({
       height: hoehe,

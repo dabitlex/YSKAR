@@ -29,7 +29,7 @@ const MINER = keypairFromMnemonic(WORTE, '', 0, 0);
 const EMPFAENGER = new Uint8Array(20).fill(0xee);
 
 function ueberweisung(nonce: bigint, betrag = UNIT): Transfer {
-  return buildTransfer({
+  return buildTransfer({ chainId: REGTEST.chainId,
     from: MINER.addressRaw, to: EMPFAENGER, amount: betrag,
     fee: MIN_FEE, nonce,
     publicKey: MINER.publicKey, privateKey: MINER.privateKey,
@@ -54,7 +54,7 @@ function knotenMitGuthaben(n: number) {
     assert.ok(chain.accept(g.body).ok);
     prev = g.hash;
   }
-  const pool = new TxPool();
+  const pool = new TxPool(REGTEST);
   const api = new ReadApi({ chain, store, pool });
   return { store, chain, pool, api };
 }

@@ -54,6 +54,7 @@ const es = {
     keinPool: 'Este nodo no opera ningún pool.',
     shareAbgelehnt: (grund: string) => `Share rechazado: ${grund}`,
     tx: {
+      dust: 'Importe demasiado pequeño (límite de polvo).',
       insufficient_funds: 'Saldo insuficiente.',
       nonce_used: 'Este pago ya se ha enviado.',
       fee_not_higher: 'Ya hay un pago en espera con este número.',
@@ -286,6 +287,7 @@ const es = {
   },
 
   senden: {
+    staub: 'Demasiado pequeño — mínimo 0,000001 YSR.',
     titel: 'Enviar',
     empfaenger: 'Destinatario',
     scannen: 'Escanear',

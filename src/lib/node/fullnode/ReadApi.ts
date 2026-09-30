@@ -23,7 +23,8 @@ import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
 import { finderName } from '../../chain/finderName.ts';
 import { marktlage, position } from '../../core/feemarket.ts';
-import { MIN_FEE } from '../../core/params.ts';
+import { FEE_V3_HEIGHT } from '../../core/params.ts';
+import type { ConsensusParams } from '../../core/networks.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore, StoredBlock } from './ChainStore.ts';
@@ -43,6 +44,7 @@ export interface ReadTeile {
   chain: ChainManager;
   store: ChainStore;
   pool: TxPool;
+  params?: ConsensusParams;
   /** Wird fuer die Kennzahlen gebraucht -- sonst bliebe hashrate leer. */
   hashrate?: () => number | null;
   aktiveMiner?: () => number;
@@ -246,7 +248,12 @@ export class ReadApi {
    */
   fees(such: URLSearchParams) {
     const mempool = this.t.pool.alle();
-    const m = marktlage(this.t.chain.state(), mempool, this.t.chain.height() + 1);
+    const hoehe = this.t.chain.height() + 1;
+    // Untergrenze fuer eine Ueberweisung ohne Notiz; die App rechnet ihre
+    // eigene Groesse (Notiz) mit mindestJeByte selbst nach.
+    const boden = this.t.pool.mindestGebuehr(hoehe, 0);
+    const m = marktlage(this.t.chain.state(), mempool, hoehe, undefined, boden);
+    const jeByte = hoehe >= (this.t.params?.feeV3Height ?? FEE_V3_HEIGHT) ? this.t.pool.relayFeeRate : null;
 
     const roh = such.get('fee');
     let eigene = null;
@@ -256,7 +263,10 @@ export class ReadApi {
     }
 
     return {
-      minFee: MIN_FEE.toString(),
+      minFee: boden.toString(),
+      /** Weiterleitungs-Satz je Byte ab der Aktivierung, sonst null. */
+      mindestJeByte: jeByte === null ? null : jeByte.toString(),
+      hoehe,
       wartend: m.wartend,
       plaetzeJeBlock: m.plaetzeJeBlock,
       andrang: m.andrang,

@@ -92,7 +92,7 @@ export function applyBlock(
     const t = block.txs[i];
     if (t.type !== TX_TRANSFER) return fail(i, 'not_transfer');
 
-    const structural = checkTransfer(t, block.header.height);
+    const structural = checkTransfer(t, block.header.height, params);
     if (structural) return fail(i, structural);
 
     const from = getAccount(draft, t.from);

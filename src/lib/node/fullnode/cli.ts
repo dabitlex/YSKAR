@@ -437,7 +437,7 @@ async function sync(
  */
 async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Promise<void> {
   const params: ConsensusParams = opt.regtest ? REGTEST : MAINNET;
-  const pool = new TxPool();
+  const pool = new TxPool(params);
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
     host: opt.bind, port: opt.port, params,

@@ -38,7 +38,40 @@ export const EMERGENCY_FACTOR = 3n;
 export const MEDIAN_TIME_BLOCKS = 11;
 export const MAX_FUTURE_DRIFT = 120n;          // Sekunden
 
-export const MIN_FEE = 100_000n;               // 0,001 YSR
+export const MIN_FEE = 100_000n;               // 0,001 YSR -- Konsens bis FEE_V3_HEIGHT
+
+/*
+ * Gebuehren je Byte -- Konsensfassung 3.
+ *
+ * Bis FEE_V3_HEIGHT gilt die feste Untergrenze MIN_FEE. Ab dieser Hoehe
+ * gilt fee >= bytes * MIN_FEE_RATE, wie bei Bitcoin: Der Konsens verlangt
+ * fast nichts (eine Ueberweisung ohne Notiz kostet 168 Einheiten, also
+ * 0,00000168 YSR), den Preis macht der Markt. Wer groessere Transaktionen
+ * einfuehrt (Kanaele), zahlt automatisch mehr -- ohne neue Regel.
+ *
+ * Dazu die Staubgrenze DUST_LIMIT: Betraege darunter sind ab derselben
+ * Hoehe unzulaessig. Ohne sie liesse sich der Zustand fuer fast nichts
+ * mit Millionen Kleinstkonten fuellen.
+ *
+ * Die Hoehe liegt rund 1.100 Bloecke (7-8 Tage) nach dem Beschluss bei
+ * Hoehe 2.880 -- Zeit fuer Knoten und Miner, zu aktualisieren. Bloecke
+ * darunter bleiben byteweise gueltig; fuer sie gilt MIN_FEE weiter.
+ */
+export const FEE_V3_HEIGHT = 4_000;
+export const MIN_FEE_RATE = 1n;                // Einheiten je Byte, Konsens
+export const DUST_LIMIT = 100n;                // 0,000001 YSR, Konsens
+
+/** Konsens-Untergrenze der Gebuehr fuer eine Transaktion dieser Groesse. */
+export function minFeeAt(height: number, bytes: number, feeV3Height = FEE_V3_HEIGHT): bigint {
+  return height >= feeV3Height ? BigInt(bytes) * MIN_FEE_RATE : MIN_FEE;
+}
+
+/*
+ * Weiterleitungs-Satz -- KEIN Konsens. Was ein Knoten mindestens je Byte
+ * verlangt, um eine Transaktion in seinen Mempool zu nehmen (Bitcoins
+ * minrelaytxfee). Spam-Schutz, ohne Fork nachjustierbar.
+ */
+export const RELAY_FEE_RATE = 10n;             // Einheiten je Byte, Policy
 export const MAX_TXS_PER_BLOCK = 2_000;
 export const MAX_MEMO_BYTES = 32;
 

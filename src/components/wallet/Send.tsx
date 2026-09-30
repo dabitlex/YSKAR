@@ -4,7 +4,8 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
-import { MIN_FEE, UNIT } from '@/lib/core/params';
+import { MIN_FEE, UNIT, DUST_LIMIT } from '@/lib/core/params';
+import { transferBytes } from '@/lib/core/tx';
 
 /** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
 const MINING_BASIS = (process.env.NEXT_PUBLIC_MINING_BASE ?? '').trim()
@@ -13,6 +14,8 @@ const MINING_BASIS = (process.env.NEXT_PUBLIC_MINING_BASE ?? '').trim()
 /** Antwort von /api/v2/fees -- siehe src/lib/core/feemarket.ts. */
 interface Markt {
   minFee: string;
+  /** Weiterleitungs-Satz je Byte ab Konsensfassung 3, sonst null. */
+  mindestJeByte?: string | null;
   wartend: number;
   andrang: boolean;
   stufen: Record<'langsam' | 'normal' | 'schnell', { fee: string; block: number }>;
@@ -93,8 +96,13 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     return () => { lebt = false; };
   }, []);
 
-  // Ohne Auskunft vom Knoten: Mindestgebühr. Nie raten.
-  const gebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
+  // Ohne Auskunft vom Knoten: alte Mindestgebühr -- die deckt jede Regel.
+  // Mit Auskunft: Stufe des Marktes, aber nie unter dem Satz je Byte für
+  // die tatsächliche Größe dieser Transaktion (die Notiz macht sie länger).
+  const notizBytes = notiz ? new TextEncoder().encode(notiz.slice(0, 32)).length : 0;
+  const bodenJeByte = markt?.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(transferBytes(notizBytes)) : 0n;
+  const stufenGebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
+  const gebuehr = stufenGebuehr > bodenJeByte ? stufenGebuehr : bodenJeByte;
   const zielBlock = markt ? markt.stufen[stufe].block : 1;
 
   // Verfuegbar ist, was nach den schon wartenden Zahlungen uebrig bleibt.
@@ -114,11 +122,20 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     return BigInt(Math.round(n * Number(UNIT)));
   }, [betrag]);
 
+  // Staubgrenze gilt ab derselben Höhe wie der Satz je Byte.
+  const staub = !!markt?.mindestJeByte && einheiten > 0n && einheiten < DUST_LIMIT;
   const summe = einheiten + gebuehr;
   const reicht = einheiten > 0n && summe <= guthaben;
-  const bereit = zielGueltig && !eigene && reicht;
+  const bereit = zielGueltig && !eigene && reicht && !staub;
 
   const fmt = (v: bigint) => (Number(v) / 10 ** decimals).toFixed(4);
+  // Gebühren sind seit Fassung 3 winzig: so viele Stellen wie nötig, höchstens acht.
+  const fmtGebuehr = (v: bigint) => {
+    const n = Number(v) / 10 ** decimals;
+    const lang = n.toFixed(8).replace(/0+$/, '');
+    const stellen = lang.split('.')[1]?.length ?? 0;
+    return stellen <= 4 ? n.toFixed(4) : lang;
+  };
 
   const setzeAnteil = (teil: number) => {
     const verfuegbar = guthaben > gebuehr ? guthaben - gebuehr : 0n;
@@ -238,7 +255,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           )}
           <div className="my-4 h-px bg-line" />
           <dl className="space-y-2 text-[13.5px]">
-            <Zeile label={t.senden.netzgebuehr} wert={`${fmt(gebuehr)} ${symbol}`} />
+            <Zeile label={t.senden.netzgebuehr} wert={`${fmtGebuehr(gebuehr)} ${symbol}`} />
             <Zeile label={t.senden.belastung} wert={`${fmt(summe)} ${symbol}`} />
             <Zeile label={t.senden.rest} wert={`${fmt(guthaben - summe)} ${symbol}`} />
           </dl>
@@ -347,8 +364,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
       </div>
       {einheiten > 0n && !reicht && (
         <p className="mt-2 text-[12.5px] font-bold text-risk">
-          {t.senden.zuViel(fmt(gebuehr))}
+          {t.senden.zuViel(fmtGebuehr(gebuehr))}
         </p>
+      )}
+      {staub && (
+        <p className="mt-2 text-[12.5px] font-bold text-risk">{t.senden.staub}</p>
       )}
 
       <label htmlFor="notiz" className="mb-1.5 mt-5 block text-[13px] font-bold text-dim">
@@ -386,7 +406,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
               ))}
             </div>
             <div className="mt-2 flex items-baseline justify-between text-[12.5px] font-semibold">
-              <span className="tnum font-mono">{fmt(gebuehr)} {symbol}</span>
+              <span className="tnum font-mono">{fmtGebuehr(gebuehr)} {symbol}</span>
               <span className="text-dim">
                 {zielBlock === 1 ? t.senden.naechster : t.senden.inBloecken(zielBlock)}
               </span>
@@ -397,7 +417,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           </>
         ) : (
           <>
-            <Zeile label={t.senden.netzgebuehr} wert={`${fmt(gebuehr)} ${symbol}`} />
+            <Zeile label={t.senden.netzgebuehr} wert={`${fmtGebuehr(gebuehr)} ${symbol}`} />
             <p className="pb-1 text-[12px] font-medium leading-relaxed text-faint">
               {markt ? t.senden.keinAndrang : t.senden.mindest}
             </p>

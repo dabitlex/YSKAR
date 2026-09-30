@@ -54,6 +54,7 @@ const tr = {
     keinPool: 'Bu düğüm havuz çalıştırmıyor.',
     shareAbgelehnt: (grund: string) => `Share reddedildi: ${grund}`,
     tx: {
+      dust: 'Tutar çok küçük (toz sınırı).',
       insufficient_funds: 'Bakiye yetersiz.',
       nonce_used: 'Bu ödeme zaten gönderildi.',
       fee_not_higher: 'Bu numarayla bekleyen bir ödeme zaten var.',
@@ -286,6 +287,7 @@ const tr = {
   },
 
   senden: {
+    staub: 'Çok küçük — en az 0,000001 YSR.',
     titel: 'Gönder',
     empfaenger: 'Alıcı',
     scannen: 'Tara',

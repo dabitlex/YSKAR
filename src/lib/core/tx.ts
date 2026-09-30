@@ -2,7 +2,7 @@ import { Writer, Reader, toHex } from './codec.ts';
 import { sha256d } from './hash.ts';
 import { sign, verifySignature } from './wallet.ts';
 import { addressFromPublicKey } from './address.ts';
-import { CHAIN_ID, MAX_MEMO_BYTES, MIN_FEE, ADDRESS_BYTES,
+import { CHAIN_ID, MAX_MEMO_BYTES, MIN_FEE, ADDRESS_BYTES, FEE_V3_HEIGHT, DUST_LIMIT, minFeeAt,
          COINBASE_V2, MAX_COINBASE_OUTPUTS } from './params.ts';
 
 /**
@@ -77,10 +77,10 @@ export function coinbaseTotal(cb: Coinbase): bigint {
 export type Tx = Transfer | Coinbase;
 
 /** Die signierten Felder. Enthaelt CHAIN_ID, aber nicht die Signatur. */
-export function signingBytes(t: Omit<Transfer, 'signature' | 'publicKey'>): Uint8Array {
+export function signingBytes(t: Omit<Transfer, 'signature' | 'publicKey'>, chainId: Uint8Array = CHAIN_ID): Uint8Array {
   if (t.memo.length > MAX_MEMO_BYTES) throw new Error('memo zu lang');
   return new Writer()
-    .bytes(CHAIN_ID, 32)
+    .bytes(chainId, 32)
     .u16(t.version)
     .u8(TX_TRANSFER)
     .bytes(t.from, ADDRESS_BYTES)
@@ -94,9 +94,13 @@ export function signingBytes(t: Omit<Transfer, 'signature' | 'publicKey'>): Uint
     .finish();
 }
 
-export function sighash(t: Omit<Transfer, 'signature' | 'publicKey'>): Uint8Array {
-  return sha256d(signingBytes(t));
+export function sighash(t: Omit<Transfer, 'signature' | 'publicKey'>, chainId: Uint8Array = CHAIN_ID): Uint8Array {
+  return sha256d(signingBytes(t, chainId));
 }
+
+/** Groesse einer Ueberweisung auf der Leitung: 168 Byte plus Notiz. */
+export const TRANSFER_BASE_BYTES = 2 + 1 + ADDRESS_BYTES * 2 + 8 + 8 + 8 + 4 + 1 + 32 + 64;
+export const transferBytes = (memoLength: number): number => TRANSFER_BASE_BYTES + memoLength;
 
 /** Uebertragungsformat. CHAIN_ID steckt nur im Sighash, nicht auf der Leitung. */
 export function serializeTx(t: Tx): Uint8Array {
@@ -172,6 +176,8 @@ export function buildTransfer(params: {
   from: Uint8Array; to: Uint8Array; amount: bigint; fee: bigint;
   nonce: bigint; validUntil?: number; memo?: Uint8Array;
   publicKey: Uint8Array; privateKey: Uint8Array;
+  /** Chain-ID des Netzes; Vorgabe ist das Mainnet. */
+  chainId?: Uint8Array;
 }): Transfer {
   // Typannotation statt "as const": In einem veraenderlichen Objektliteral
   // weitet TypeScript den Literaltyp 1 sonst zu number, und das passt dann
@@ -187,23 +193,34 @@ export function buildTransfer(params: {
   return {
     ...base,
     publicKey: params.publicKey,
-    signature: sign(sighash(base), params.privateKey),
+    signature: sign(sighash(base, params.chainId ?? CHAIN_ID), params.privateKey),
   };
 }
 
 export type TxError =
-  | 'bad_version' | 'bad_amount' | 'fee_too_low' | 'memo_too_long'
+  | 'bad_version' | 'bad_amount' | 'dust' | 'fee_too_low' | 'memo_too_long'
   | 'pubkey_mismatch' | 'bad_signature' | 'self_transfer' | 'expired';
+
+/** Netzabhaengige Teile der Pruefung. Vorgabe: Mainnet. */
+export interface CheckParams { chainId?: Uint8Array; feeV3Height?: number }
 
 /**
  * Pruefungen, die ohne Kenntnis des Kontostands moeglich sind. Guthaben und
  * Nonce prueft erst state.ts beim Anwenden.
+ *
+ * Gebuehr und Staub haengen an der Hoehe (Konsensfassung 3, params.ts).
+ * Ohne Hoehe gilt die alte, strengere Regel -- nie die lockere raten.
  */
-export function checkTransfer(t: Transfer, atHeight?: number): TxError | null {
+export function checkTransfer(t: Transfer, atHeight?: number, params: CheckParams = {}): TxError | null {
+  const feeV3 = params.feeV3Height ?? FEE_V3_HEIGHT;
+  const chainId = params.chainId ?? CHAIN_ID;
   if (t.version !== TX_VERSION) return 'bad_version';
   if (t.amount <= 0n) return 'bad_amount';
-  if (t.fee < MIN_FEE) return 'fee_too_low';
   if (t.memo.length > MAX_MEMO_BYTES) return 'memo_too_long';
+  if (atHeight !== undefined && atHeight >= feeV3) {
+    if (t.amount < DUST_LIMIT) return 'dust';
+    if (t.fee < minFeeAt(atHeight, transferBytes(t.memo.length), feeV3)) return 'fee_too_low';
+  } else if (t.fee < MIN_FEE) return 'fee_too_low';
   if (t.validUntil !== 0 && atHeight !== undefined && atHeight > t.validUntil) return 'expired';
 
   const derived = addressFromPublicKey(t.publicKey);
@@ -211,6 +228,6 @@ export function checkTransfer(t: Transfer, atHeight?: number): TxError | null {
   if (toHex(t.from) === toHex(t.to)) return 'self_transfer';
 
   const { signature, publicKey, ...unsigned } = t;
-  if (!verifySignature(signature, sighash(unsigned), publicKey)) return 'bad_signature';
+  if (!verifySignature(signature, sighash(unsigned, chainId), publicKey)) return 'bad_signature';
   return null;
 }
