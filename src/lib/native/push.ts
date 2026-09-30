@@ -20,6 +20,9 @@ const TOKEN = 'yskar.push.token';
 
 export type PushStand = 'aus' | 'an' | 'verweigert' | 'nicht_nativ';
 
+/** Kanalnamen in der Sprache der App (t.app). */
+export interface Kanaltexte { kanalWallet: string; kanalWalletText: string; kanalNews: string; kanalNewsText: string }
+
 export function pushAktiv(): boolean {
   try { return localStorage.getItem(MERKER) === '1'; } catch { return false; }
 }
@@ -30,24 +33,21 @@ async function plugin() {
   return { p: m.PushNotifications };
 }
 
-async function kanaele(sprache: string) {
+async function kanaele(k: Kanaltexte) {
   const p = (await plugin()).p;
-  const en = sprache !== 'de';
-  await p.createChannel({ id: 'wallet', name: 'Wallet',
-                          description: en ? 'Incoming payments, confirmations, block finds' : 'Eingänge, Bestätigungen, Blockfunde',
+  await p.createChannel({ id: 'wallet', name: k.kanalWallet, description: k.kanalWalletText,
                           importance: 4, visibility: 1, vibration: true });
-  await p.createChannel({ id: 'news', name: en ? 'News' : 'Neuigkeiten',
-                          description: en ? 'News about YSKAR' : 'Neuigkeiten zu YSKAR',
+  await p.createChannel({ id: 'news', name: k.kanalNews, description: k.kanalNewsText,
                           importance: 3, visibility: 1 });
 }
 
 /** Token holen (mit Erlaubnis-Dialog) -- null, wenn verweigert oder fehlgeschlagen. */
-async function tokenHolen(sprache: string): Promise<string | null> {
+async function tokenHolen(k: Kanaltexte): Promise<string | null> {
   const p = (await plugin()).p;
   let erl = await p.checkPermissions();
   if (erl.receive === 'prompt' || erl.receive === 'prompt-with-rationale') erl = await p.requestPermissions();
   if (erl.receive !== 'granted') return null;
-  await kanaele(sprache);
+  await kanaele(k);
   return new Promise<string | null>(resolve => {
     let fertig = false;
     const ende = (t: string | null) => { if (!fertig) { fertig = true; resolve(t); } };
@@ -58,9 +58,9 @@ async function tokenHolen(sprache: string): Promise<string | null> {
   });
 }
 
-export async function pushEinschalten(address: string, sprache: string): Promise<PushStand> {
+export async function pushEinschalten(address: string, sprache: string, k: Kanaltexte): Promise<PushStand> {
   if (!istNativ()) return 'nicht_nativ';
-  const token = await tokenHolen(sprache);
+  const token = await tokenHolen(k);
   if (!token) return 'verweigert';
   const res = await fetch('/api/v2/push/register', {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -87,9 +87,9 @@ export async function pushAusschalten(): Promise<void> {
  * Beim Start: Token auffrischen (FCM tauscht ihn gelegentlich) und die
  * Anmeldung mit der aktuellen Adresse bestaetigen. Nur, wenn eingeschaltet.
  */
-export async function pushAuffrischen(address: string, sprache: string): Promise<void> {
+export async function pushAuffrischen(address: string, sprache: string, k: Kanaltexte): Promise<void> {
   if (!istNativ() || !pushAktiv()) return;
-  const token = await tokenHolen(sprache).catch(() => null);
+  const token = await tokenHolen(k).catch(() => null);
   if (!token) return;
   try { localStorage.setItem(TOKEN, token); } catch { /* egal */ }
   fetch('/api/v2/push/register', {

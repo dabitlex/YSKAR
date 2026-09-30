@@ -124,9 +124,12 @@ abschaltbar; Abschalten löscht den Token beim Server.
 
 ## Sprachen
 
-Die Oberfläche ist zweisprachig (Deutsch, Englisch). Alle Texte liegen in
-`src/i18n/de.ts` und `src/i18n/en.ts` mit identischen Schlüsseln — fehlt
-einer, bricht der Build. Artikel, FAQ und Neuigkeiten liegen je Sprache in
+Die Oberfläche gibt es in sechs Sprachen: Englisch, Deutsch, Spanisch,
+Portugiesisch (BR), Russisch, Türkisch. Alle Texte liegen in
+`src/i18n/<code>.ts` mit identischen Schlüsseln (`de.ts` ist die Quelle) —
+fehlt einer, bricht der Build. Nur Deutsch und Englisch sind von Hand
+geprüft; die anderen vier stammen aus maschineller Übersetzung und sollten
+vor einer Vorstellung in dem Markt einmal gegengelesen werden. Artikel, FAQ und Neuigkeiten liegen je Sprache in
 `src/content/entdecken.<sprache>.ts`. Vorbelegung: gemerkte Wahl, sonst
 Telegram `language_code`, sonst Systemsprache, sonst Englisch. Wählbar auf
 dem ersten Bildschirm und in den Einstellungen. Push-Texte folgen der
@@ -151,8 +154,8 @@ curl -X POST https://yskar.vercel.app/api/v2/news \
   -d '{"titel":"Pool #2 ist online","text":"…","titel_en":"Pool #2 is online","text_en":"…","link":"https://…","push":true}'
 ```
 
-`titel_en`/`text_en` sind die englische Fassung (Migration 00019). Fehlt sie,
-bekommen englische Geräte den deutschen Text.
+`titel_en`/`text_en` sind die englische Fassung (Migration 00019). Alle
+nicht-deutschen Geräte bekommen sie; fehlt sie, den deutschen Text.
 
 `push: true` → der Watcher schickt die Meldung an alle Geräte. Ohne
 `YSKAR_ADMIN_TOKEN` in der Umgebung antwortet die Route mit 401 — dann

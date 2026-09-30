@@ -223,7 +223,7 @@ const NEUIGKEITEN: Neuigkeit[] = [
     datum: '2026-09-30',
     titel: 'Android-App „YSKAR Wallet"',
     text: 'Push-Benachrichtigung bei Eingängen, Entsperren und Senden per Fingerabdruck, ' +
-      'Mining bei gesperrtem Bildschirm. Als APK auf GitHub — und die App ist jetzt zweisprachig.',
+      'Mining bei gesperrtem Bildschirm. Als APK auf GitHub — und die App spricht jetzt mehrere Sprachen.',
     link: 'https://github.com/dabitlex/YSKAR/releases',
   },
   {

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="mining_laeuft">Майнинг идёт</string>
+    <string name="mining_kanal">Майнинг</string>
+    <string name="mining_kanal_text">Показывает, что устройство сейчас вычисляет для YSKAR.</string>
+    <string name="mining_stoppen">Остановить майнинг</string>
+</resources>
