@@ -149,6 +149,10 @@ const es = {
   },
 
   home: {
+    laeuft: (w: number) => `activo · ${w} workers`,
+    sharesZiel: (s: number, z: string) => `${s} shares · objetivo ${z}`,
+    heute: (b: string, sym: string) => `+${b} ${sym} hoy`,
+    naechster: 'Próximo bloque',
     morgen: 'Buenos días',
     tag: 'Buenas tardes',
     abend: 'Buenas noches',
@@ -172,6 +176,17 @@ const es = {
   },
 
   mining: {
+    seit: (min: number) => `activo desde hace ${min} min`,
+    zumZiel: 'del objetivo',
+    letzte: 'Últimos 90 segundos',
+    schnitt: (r: string) => `Ø ${r}`,
+    aktivitaet: 'Actividad',
+    shareAngenommen: 'Share aceptado',
+    ueberZiel: 'por encima del objetivo',
+    neuerJob: 'Nuevo job',
+    shares: (n: number) => `${n} shares`,
+    bloecke: (n: number) => `${n} bloques`,
+    nochKeine: 'Aún sin actividad — en cuanto se acepte un share, aparecerá aquí.',
     titel: 'Minería',
     rechnet: 'minando',
     gestoppt: 'detenida',
@@ -232,6 +247,13 @@ const es = {
   },
 
   wallet: {
+    wartetKurz: 'pendiente',
+    heute: 'Hoy',
+    gestern: 'Ayer',
+    frueher: 'Antes',
+    alle: 'Todo',
+    eingaenge: 'Entradas',
+    ausgaenge: 'Salidas',
     titel: 'Wallet',
     gesamt: 'Saldo total',
     unterwegs: (b: string, sym: string) => `${b} ${sym} en camino, aún sin confirmar`,
@@ -331,6 +353,7 @@ const es = {
   },
 
   netz: {
+    zielKurz: 'de 10 min',
     titel: 'Red',
     hoehe: 'Altura actual',
     naechster: (min: number) => `próximo en ≈ ${min} min`,

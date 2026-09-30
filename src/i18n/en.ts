@@ -149,6 +149,10 @@ const en = {
   },
 
   home: {
+    laeuft: (w: number) => `running · ${w} workers`,
+    sharesZiel: (s: number, z: string) => `${s} shares · target ${z}`,
+    heute: (b: string, sym: string) => `+${b} ${sym} today`,
+    naechster: 'Next block',
     morgen: 'Good morning',
     tag: 'Good day',
     abend: 'Good evening',
@@ -172,6 +176,17 @@ const en = {
   },
 
   mining: {
+    seit: (min: number) => `running for ${min} min`,
+    zumZiel: 'to target',
+    letzte: 'Last 90 seconds',
+    schnitt: (r: string) => `avg ${r}`,
+    aktivitaet: 'Activity',
+    shareAngenommen: 'Share accepted',
+    ueberZiel: 'above target',
+    neuerJob: 'New job',
+    shares: (n: number) => `${n} shares`,
+    bloecke: (n: number) => `${n} blocks`,
+    nochKeine: 'No activity yet — once a share is accepted, it shows up here.',
     titel: 'Mining',
     rechnet: 'running',
     gestoppt: 'stopped',
@@ -232,6 +247,13 @@ const en = {
   },
 
   wallet: {
+    wartetKurz: 'pending',
+    heute: 'Today',
+    gestern: 'Yesterday',
+    frueher: 'Earlier',
+    alle: 'All',
+    eingaenge: 'Incoming',
+    ausgaenge: 'Outgoing',
     titel: 'Wallet',
     gesamt: 'Total balance',
     unterwegs: (b: string, sym: string) => `${b} ${sym} on the way, not yet confirmed`,
@@ -331,6 +353,7 @@ const en = {
   },
 
   netz: {
+    zielKurz: 'of 10 min',
     titel: 'Network',
     hoehe: 'Current height',
     naechster: (min: number) => `next in ≈ ${min} min`,

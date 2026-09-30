@@ -149,6 +149,10 @@ const pt = {
   },
 
   home: {
+    laeuft: (w: number) => `ativo · ${w} workers`,
+    sharesZiel: (s: number, z: string) => `${s} shares · alvo ${z}`,
+    heute: (b: string, sym: string) => `+${b} ${sym} hoje`,
+    naechster: 'Próximo bloco',
     morgen: 'Bom dia',
     tag: 'Boa tarde',
     abend: 'Boa noite',
@@ -172,6 +176,17 @@ const pt = {
   },
 
   mining: {
+    seit: (min: number) => `ativo há ${min} min`,
+    zumZiel: 'do alvo',
+    letzte: 'Últimos 90 segundos',
+    schnitt: (r: string) => `Ø ${r}`,
+    aktivitaet: 'Atividade',
+    shareAngenommen: 'Share aceito',
+    ueberZiel: 'acima do alvo',
+    neuerJob: 'Novo job',
+    shares: (n: number) => `${n} shares`,
+    bloecke: (n: number) => `${n} blocos`,
+    nochKeine: 'Ainda sem atividade — assim que um share for aceito, ele aparece aqui.',
     titel: 'Mineração',
     rechnet: 'minerando',
     gestoppt: 'parado',
@@ -232,6 +247,13 @@ const pt = {
   },
 
   wallet: {
+    wartetKurz: 'pendente',
+    heute: 'Hoje',
+    gestern: 'Ontem',
+    frueher: 'Antes',
+    alle: 'Tudo',
+    eingaenge: 'Entradas',
+    ausgaenge: 'Saídas',
     titel: 'Carteira',
     gesamt: 'Saldo total',
     unterwegs: (b: string, sym: string) => `${b} ${sym} a caminho, ainda não confirmados`,
@@ -331,6 +353,7 @@ const pt = {
   },
 
   netz: {
+    zielKurz: 'de 10 min',
     titel: 'Rede',
     hoehe: 'Altura atual',
     naechster: (min: number) => `próximo em ≈ ${min} min`,

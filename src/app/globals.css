@@ -33,9 +33,9 @@
   --proof: 11 138 92;       /* #0B8A5C  von der Kette angenommen */
   --risk:  217 64 74;       /* #D9404A  unwiderruflich */
 
-  --r-sm: 12px;
-  --r-md: 20px;
-  --r-lg: 24px;
+  --r-sm: 16px;
+  --r-md: 24px;
+  --r-lg: 28px;
 }
 
 /*
@@ -95,9 +95,22 @@ body {
   border: 1px solid rgb(var(--line));
   border-radius: var(--r-md);
   position: relative;
-  box-shadow: 0 8px 24px -16px rgb(var(--edge) / 0.18);
+  box-shadow: 0 14px 34px -22px rgb(var(--edge) / 0.28);
 }
-:root[data-thema="dunkel"] .panel { box-shadow: 0 8px 24px -16px rgb(0 0 0 / 0.6); }
+:root[data-thema="dunkel"] .panel { box-shadow: 0 14px 34px -22px rgb(0 0 0 / 0.7); }
+
+/* Lichtschein oben auf dem Grund -- gibt der Seite eine Richtung. */
+.schein { background: radial-gradient(70% 34% at 50% 0%, rgb(var(--work) / .10) 0%, transparent 70%); }
+:root[data-thema="dunkel"] .schein { background: radial-gradient(70% 34% at 50% 0%, rgb(var(--work) / .16) 0%, transparent 70%); }
+
+/* Schwebende Navigationsleiste. */
+.tabs { background: rgb(var(--surface) / .86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgb(var(--edge) / .06); box-shadow: 0 14px 34px -22px rgb(var(--edge) / .35); }
+:root[data-thema="dunkel"] .tabs { border-color: rgb(255 255 255 / .06); box-shadow: 0 14px 34px -22px rgb(0 0 0 / .8); }
+
+/* Grosse Zahl: Ganzzahl kraeftig, Nachkommastellen gedimmt. */
+.zahl-gross { font-weight: 800; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.zahl-gross .bruch { color: rgb(var(--faint)); font-weight: 700; }
 .panel-raised { background: rgb(var(--raised)); }
 
 /* Eingabefeld: weiss mit Linie, keine Vertiefung. */

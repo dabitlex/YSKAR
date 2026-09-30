@@ -8,6 +8,7 @@ import { useAutoSperre } from '@/hooks/useAutoSperre';
 import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
 import { Panel, GroupTitle, Button, Hash, Status, Notice, Row }
   from '@/components/ui/Primitives';
+import { Zahl, Etikett, Karte, Pille, Kurve, Ring, Blatt } from '@/components/ui/Bausteine';
 import ShareChart from '@/components/ShareChart';
 import HomeTab from '@/components/tabs/HomeTab';
 import WalletTab from '@/components/tabs/WalletTab';
@@ -106,16 +107,9 @@ export default function AppShell({ platform }: { platform: string }) {
 
   return (
     <>
-      <main className="rand-oben mx-auto min-h-dvh max-w-md px-5 pb-32">
+      <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-5 pb-36">
         {ansicht === null && <UpdateBanner />}
-        {ansicht === 'senden' || ansicht === 'scannen' ? (
-          <Send account={m.account} decimals={dec} symbol={sym}
-                scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}
-                onFertig={() => { m.refreshAccount(); setAnsicht(null); }}
-                onAbbruch={() => setAnsicht(null)} />
-        ) : ansicht === 'empfangen' && wallet.address ? (
-          <Receive address={wallet.address} onZurueck={() => setAnsicht(null)} />
-        ) : ansicht === 'einstellungen' ? (
+        {ansicht === 'einstellungen' ? (
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} />
         ) : ansicht === 'benchmark' ? (
           <Benchmark onZurueck={() => setAnsicht(null)}
@@ -126,15 +120,18 @@ export default function AppShell({ platform }: { platform: string }) {
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
         ) : tab === 'home' ? (
-          <HomeTab account={m.account} summary={m.summary} mining={m.mining}
-                   hashrate={m.hashrate} decimals={dec} symbol={sym}
+          <HomeTab account={m.account as any} summary={m.summary} mining={m.mining}
+                   hashrate={m.hashrate} hashVerlauf={m.hashVerlauf} worker={worker}
+                   shares={m.sharesZahl} ziel={m.ziel} decimals={dec} symbol={sym}
                    onSenden={() => setAnsicht('senden')}
                    onEmpfangen={() => setAnsicht('empfangen')}
+                   onScannen={() => setAnsicht('scannen')}
+                   onExplorer={() => setTab('netz')}
                    onMining={() => setTab('mining')}
                    onEntdecken={() => setTab('entdecken')}
                    onArtikel={slug => setAnsicht({ artikel: slug })} />
         ) : tab === 'mining' ? (
-          <MiningTab m={m} dec={dec} sym={sym} wach={wach} t={t} zahl={zahl}
+          <MiningTab m={m} dec={dec} sym={sym} wach={wach} t={t} zahl={zahl} locale={locale}
                      modus={modus} setModus={setModus}
                      poolAdresse={poolAdresse} setPoolAdresse={setPoolAdresse}
                      worker={worker} setWorker={setWorker}
@@ -158,6 +155,22 @@ export default function AppShell({ platform }: { platform: string }) {
       </main>
 
       <BottomNav aktiv={tab} onWechsel={t => { setAnsicht(null); setTab(t); }} />
+
+      {/* Senden und Empfangen sind Blaetter ueber dem Reiter -- der Rahmen
+          bleibt stehen, man kommt genau dorthin zurueck, wo man war. */}
+      <Blatt offen={ansicht === 'senden' || ansicht === 'scannen'} onSchliessen={() => setAnsicht(null)}>
+        {(ansicht === 'senden' || ansicht === 'scannen') && (
+          <Send account={m.account} decimals={dec} symbol={sym}
+                scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}
+                onFertig={() => { m.refreshAccount(); setAnsicht(null); }}
+                onAbbruch={() => setAnsicht(null)} />
+        )}
+      </Blatt>
+      <Blatt offen={ansicht === 'empfangen'} onSchliessen={() => setAnsicht(null)}>
+        {ansicht === 'empfangen' && wallet.address && (
+          <Receive address={wallet.address} onZurueck={() => setAnsicht(null)} />
+        )}
+      </Blatt>
 
       {/*
         Blockfund. Das seltenste Ereignis der App -- im ganzen Netz alle zehn
@@ -201,11 +214,11 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym, wach, t, zahl, modus, setModus, poolAdresse, setPoolAdresse,
+function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAdresse, setPoolAdresse,
                      worker, setWorker,
                      kerne, workerStufen, bench, setAnsicht }: {
   m: ReturnType<typeof useMining>; dec: number; sym: string;
-  t: Woerterbuch; zahl: (n: number) => string;
+  t: Woerterbuch; zahl: (n: number) => string; locale: string;
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
   modus: 'solo' | 'pool';
   setModus: (v: 'solo' | 'pool') => void;
@@ -219,33 +232,49 @@ function MiningTab({ m, dec, sym, wach, t, zahl, modus, setModus, poolAdresse, s
   setAnsicht: (v: 'benchmark') => void;
 }) {
   const r = rate(m.hashrate);
+  const minuten = m.seit ? Math.max(0, Math.round((Date.now() - m.seit) / 60000)) : 0;
+  // Fortschritt zum Ziel: bester Share der Sitzung gegen die Block-Difficulty.
+  const bester = m.shares.reduce((b, s) => Math.max(b, s.achieved), 0);
+  const blockDiff = m.summary?.difficulty ?? 0;
+  const anteil = blockDiff > 0 ? Math.min(1, bester / blockDiff) : 0;
+  const schnitt = m.hashVerlauf.length ? m.hashVerlauf.reduce((a, b) => a + b, 0) / m.hashVerlauf.length : 0;
+  const aktiv = [...m.shares].slice(-4).reverse();
   return (
     <>
-      <TopBar titel={t.mining.titel} rechts={
-        <Status tone={m.mining ? 'work' : 'off'}>
-          {m.mining ? t.mining.rechnet : t.mining.gestoppt}
-        </Status>
-      } />
+      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
+      <header className="relative mb-5 flex items-center justify-between">
+        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.mining.titel}</h1>
+        <Pille tone={m.mining ? 'work' : 'off'} puls={m.mining}>
+          {m.mining ? t.mining.seit(minuten) : t.mining.gestoppt}
+        </Pille>
+      </header>
 
-      {/* Hauptflaeche: die Leistung. Sie bewegt sich jede Sekunde und
-          beantwortet die einzige Frage, die beim Mining zaehlt. */}
-      <Panel tone="work" className="rise">
-        <p className="label">{t.mining.leistung}</p>
-        <div className="mt-1 flex items-baseline gap-2 leading-none">
-          <span className={`tnum text-[44px] font-extrabold tracking-[-0.03em] ${
-            m.mining ? 'text-work' : 'text-faint'}`}>{r.wert}</span>
-          <span className="text-[16px] font-bold text-faint">{r.einheit}</span>
+      {/* Die Zahl steht auf dem Grund; der Ring daneben zeigt, wie nah der
+          beste Share dieser Sitzung an der Block-Difficulty war. */}
+      <section className="relative rise flex items-center justify-between gap-3 px-0.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Etikett>{t.mining.leistung}</Etikett>
+          <Zahl ganz={m.mining ? r.wert : '0'} einheit={m.mining ? r.einheit : 'H/s'} size={54} />
+          <span className="text-[13px] font-bold text-dim">
+            {m.mining
+              ? <>{t.mining.shares(m.sharesZahl)} · {t.mining.bloecke(m.account?.blocksFound ?? 0)}</>
+              : t.mining.steht}
+          </span>
         </div>
-        <p className="mt-2 text-[13px] font-semibold text-dim">
-          {m.mining
-            ? t.mining.stand(m.account?.blocksFound ?? 0, m.duty)
-            : t.mining.steht}
-        </p>
+        <Ring anteil={anteil} oben={`${Math.round(anteil * 100)} %`} unten={t.mining.zumZiel} />
+      </section>
 
-        <div className="mt-5">
-          <ShareChart shares={m.shares} active={m.mining} />
+      <Karte className="rise rise-1 mt-5 p-4 pb-3">
+        <div className="flex items-center justify-between">
+          <Etikett>{t.mining.letzte}</Etikett>
+          <span className="text-[11.5px] font-bold text-faint">{t.mining.schnitt(`${rate(schnitt).wert} ${rate(schnitt).einheit}`)}</span>
         </div>
-      </Panel>
+        <div className="mt-2"><Kurve werte={m.hashVerlauf} hoehe={72} /></div>
+      </Karte>
+
+      <Karte className="rise rise-2 mt-3 p-4">
+        <ShareChart shares={m.shares} active={m.mining} />
+      </Karte>
 
       {m.lastShare && (
         <>
@@ -257,15 +286,24 @@ function MiningTab({ m, dec, sym, wach, t, zahl, modus, setModus, poolAdresse, s
         </>
       )}
 
-      <GroupTitle>{t.mining.kette}</GroupTitle>
+      <GroupTitle>{t.mining.aktivitaet}</GroupTitle>
       <Panel className="rise rise-2 !py-1">
-        <dl>
-          <Row label={t.mining.guthaben} tone={Number(m.account?.balance ?? 0) > 0 ? 'proof' : undefined}
-               value={`${(Number(m.account?.balance ?? 0) / 10 ** dec).toFixed(4)} ${sym}`} />
-          <Row label={t.mining.block} value={m.summary?.height != null ? `#${m.summary.height}` : '—'} />
-          <Row label="Difficulty"
-               value={m.summary?.difficulty != null ? zahl(m.summary.difficulty) : '—'} />
-        </dl>
+        {aktiv.length === 0 ? (
+          <p className="py-3 text-[13px] font-semibold text-dim">{t.mining.nochKeine}</p>
+        ) : aktiv.map((sh, i) => (
+          <div key={sh.at + '-' + i} className="flex items-center gap-3 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${sh.isBlock ? 'bg-proof' : sh.accepted ? 'bg-work' : 'bg-risk'}`} />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[13.5px] font-bold">{sh.isBlock ? t.fund.titel : t.mining.shareAngenommen}</span>
+              <span className="text-[11.5px] font-semibold text-faint">
+                {t.mining.difficulty(zahl(Math.round(sh.achieved)))}{sh.achieved >= sh.required ? ` · ${t.mining.ueberZiel}` : ''}
+              </span>
+            </span>
+            <span className="tnum font-mono text-[12px] text-dim">
+              {new Date(sh.at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          </div>
+        ))}
       </Panel>
 
       <GroupTitle>{t.mining.steuerung}</GroupTitle>

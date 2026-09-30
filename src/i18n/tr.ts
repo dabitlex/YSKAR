@@ -149,6 +149,10 @@ const tr = {
   },
 
   home: {
+    laeuft: (w: number) => `çalışıyor · ${w} worker`,
+    sharesZiel: (s: number, z: string) => `${s} share · hedef ${z}`,
+    heute: (b: string, sym: string) => `bugün +${b} ${sym}`,
+    naechster: 'Sonraki blok',
     morgen: 'Günaydın',
     tag: 'İyi günler',
     abend: 'İyi akşamlar',
@@ -172,6 +176,17 @@ const tr = {
   },
 
   mining: {
+    seit: (min: number) => `${min} dk’dır çalışıyor`,
+    zumZiel: 'hedefe',
+    letzte: 'Son 90 saniye',
+    schnitt: (r: string) => `Ø ${r}`,
+    aktivitaet: 'Etkinlik',
+    shareAngenommen: 'Share kabul edildi',
+    ueberZiel: 'hedefin üstünde',
+    neuerJob: 'Yeni iş',
+    shares: (n: number) => `${n} share`,
+    bloecke: (n: number) => `${n} blok`,
+    nochKeine: 'Henüz etkinlik yok — bir share kabul edilir edilmez burada görünür.',
     titel: 'Madencilik',
     rechnet: 'çalışıyor',
     gestoppt: 'durduruldu',
@@ -232,6 +247,13 @@ const tr = {
   },
 
   wallet: {
+    wartetKurz: 'bekliyor',
+    heute: 'Bugün',
+    gestern: 'Dün',
+    frueher: 'Daha önce',
+    alle: 'Tümü',
+    eingaenge: 'Gelen',
+    ausgaenge: 'Giden',
     titel: 'Cüzdan',
     gesamt: 'Toplam bakiye',
     unterwegs: (b: string, sym: string) => `${b} ${sym} yolda, henüz onaylanmadı`,
@@ -331,6 +353,7 @@ const tr = {
   },
 
   netz: {
+    zielKurz: '/ 10 dk',
     titel: 'Ağ',
     hoehe: 'Güncel yükseklik',
     naechster: (min: number) => `sonraki ≈ ${min} dk içinde`,

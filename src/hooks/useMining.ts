@@ -124,6 +124,9 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
 
   const [mining, setMining] = useState(false);
   const [hashrate, setHashrate] = useState(0);
+  // Verlauf der letzten 90 Sekunden -- fuer die Kurve auf Home und Mining.
+  const [hashVerlauf, setHashVerlauf] = useState<number[]>([]);
+  const [seit, setSeit] = useState<number | null>(null);
   const [stumm, setStumm] = useState(false);
   // Letzte Etappe je Worker. Nur zur Fehlersuche sichtbar, wenn nichts kommt.
   const [etappen, setEtappen] = useState<Record<number, string>>({});
@@ -406,8 +409,9 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     etwas nicht -- und das gehoert auf den Schirm, nicht in ein Logfile.
   */
   useEffect(() => {
-    if (!mining) { setHashrate(0); setStumm(false); rates.current.clear(); return; }
+    if (!mining) { setHashrate(0); setStumm(false); rates.current.clear(); setHashVerlauf([]); setSeit(null); return; }
     lastProgress.current = Date.now();
+    setSeit(Date.now());
     const id = setInterval(() => {
       const jetzt = Date.now();
       // Summe ueber alle Worker. Wer laenger als drei Sekunden nichts
@@ -419,6 +423,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
         else summe += r.rate;
       }
       setHashrate(summe);
+      setHashVerlauf(v => (v.length >= 90 ? v.slice(1) : v).concat(summe));
       setStumm(jetzt - lastProgress.current > 10_000);
     }, 1000);
     return () => clearInterval(id);
@@ -532,7 +537,8 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
 
   return {
     mining, start, stop, duty, setDuty: changeDuty,
-    hashrate, stumm, etappen,
+    hashrate, hashVerlauf, seit, stumm, etappen,
+    sharesZahl: sharesGesamt.current, ziel: shareDifficulty.current ?? 0,
     summary, account, lastShare, fund, fehler, shares,
     poolInfo, refreshAccount, dienst,
     dismissFund: () => setFund(null),
