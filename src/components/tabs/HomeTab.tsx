@@ -70,8 +70,8 @@ export default function HomeTab({ account, summary, mining, hashrate, decimals, 
         <span className="label !text-white/60">{t.home.guthaben}</span>
         <div className="mt-2 flex items-baseline gap-2 leading-none">
           <span className="tnum text-[40px] font-extrabold tracking-[-0.03em]">
-            {g.ganz}
-            <span className="text-[24px] text-white/70">{g.trenner}{g.bruch}</span>
+            {account ? g.ganz : '—'}
+            {account && <span className="text-[24px] text-white/70">{g.trenner}{g.bruch}</span>}
           </span>
           <span className="text-[15px] font-bold text-white/75">{symbol}</span>
         </div>

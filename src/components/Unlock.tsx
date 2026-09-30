@@ -7,6 +7,7 @@ import { useWallet } from '@/lib/wallet/useWallet';
 import { Screen, Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import { biometrieAktiv, biometriePin, biometrieDeaktivieren } from '@/lib/native/biometrie';
 import { useT, fehlerText } from '@/i18n';
+import { vorladen } from '@/lib/vorladen';
 
 /**
  * Entsperren.
@@ -48,6 +49,10 @@ export default function Unlock() {
       setBusy(false);
     }
   };
+
+  // Waehrend der Nutzer die PIN tippt, Konto und Kennzahlen frisch holen --
+  // der Hauptbildschirm steht dann sofort mit den richtigen Zahlen.
+  useEffect(() => { vorladen(wallet.address); }, [wallet.address]);
 
   useEffect(() => {
     if (!biometrieAktiv()) return;

@@ -5,6 +5,7 @@ import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
 import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import type { Woerterbuch } from '@/i18n';
+import { vorgeladen } from '@/lib/vorladen';
 import { miningDienstStart, miningDienstStop, miningDienstText, miningDienstBeiStopp }
   from '@/lib/native/mining';
 
@@ -129,8 +130,13 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
   // den Hash nachgerechnet hat.
   const [shares, setShares] = useState<ShareEntry[]>([]);
   const [duty, setDuty] = useState(50);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [account, setAccount] = useState<Account | null>(null);
+  // Mit den Werten aus dem Vorladen beginnen (Startbild), statt mit null:
+  // Sonst zeigt der erste Bildschirm "0,0000", bis der erste Takt kommt.
+  const [summary, setSummary] = useState<Summary | null>(() => vorgeladen().summary);
+  const [account, setAccount] = useState<Account | null>(() => {
+    const v = vorgeladen();
+    return address && v.adresse === address ? v.account : null;
+  });
   const [lastShare, setLastShare] = useState<{ hash: string; difficulty: string; at: number } | null>(null);
   const [fund, setFund] = useState<Fund | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);

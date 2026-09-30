@@ -10,6 +10,7 @@ import { Splash, useSplash } from '@/components/ui/Chrome';
 import { telegramFarben } from '@/lib/telegram/webapp';
 import { plattform, fehlerspeicherInstallieren } from '@/lib/native/plattform';
 import { SpracheProvider, useT } from '@/i18n';
+import { vorladen } from '@/lib/vorladen';
 
 declare global {
   interface Window { Telegram?: { WebApp: any } }
@@ -34,6 +35,14 @@ function Router() {
   const splashVorbei = useSplash(1100);
   const [platform, setPlatform] = useState<string | null>(null);
   const [ausserhalb, setAusserhalb] = useState(false);
+  // Kennzahlen und Konto schon hinter dem Startbild holen -- die Adresse
+  // ist auch bei gesperrtem Tresor bekannt. Erst wenn das da ist (oder
+  // nach spaetestens vier Sekunden), geht es weiter.
+  const [vorgeladen, setVorgeladen] = useState(false);
+  useEffect(() => {
+    if (wallet.phase === 'laden') return;
+    vorladen(wallet.address).finally(() => setVorgeladen(true));
+  }, [wallet.phase, wallet.address]);
 
   useEffect(() => {
     // Drei Orte: die Android-App (YSKAR Wallet), der Telegram-Client, ein
@@ -64,7 +73,7 @@ function Router() {
 
   // Startbild statt Ladetext: Der erste Eindruck der App ist die Marke,
   // nicht ein Platzhalter.
-  if (!splashVorbei || wallet.phase === 'laden' || (platform === null && !ausserhalb)) {
+  if (!splashVorbei || !vorgeladen || wallet.phase === 'laden' || (platform === null && !ausserhalb)) {
     return <Splash />;
   }
   if (wallet.phase === 'kein_tresor') return <Onboarding />;

@@ -58,8 +58,8 @@ export default function WalletTab({ account, symbol, decimals, address,
           <p className="label">{t.wallet.gesamt}</p>
           <div className="mt-2 flex items-baseline gap-2 leading-none">
             <span className="tnum text-[42px] font-extrabold tracking-[-0.03em] text-text">
-              {g.ganz}
-              <span className="text-[24px] text-faint">{g.trenner}{g.bruch}</span>
+              {account ? g.ganz : '—'}
+              {account && <span className="text-[24px] text-faint">{g.trenner}{g.bruch}</span>}
             </span>
             <span className="text-[16px] font-bold text-faint">{symbol}</span>
           </div>
