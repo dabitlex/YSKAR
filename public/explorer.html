@@ -1,10 +1,10 @@
 <!doctype html> 
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>YSKAR Explorer</title>
-<meta name="description" content="Blöcke der YSKAR-Kette — im Browser nachgerechnet.">
+<meta name="description" content="YSKAR chain explorer — every block verified in your browser.">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap">
 <style>
@@ -55,6 +55,11 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
 .kopfrechts{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;
   font-weight:700;color:var(--dim);white-space:nowrap}
 .kopfrechts b{color:var(--text);font-weight:500}
+#sprache{appearance:none;-webkit-appearance:none;border:1px solid var(--line);
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235B6B84' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color:var(--text);font:inherit;font-weight:700;font-size:12.5px;padding:7px 26px 7px 11px;
+  border-radius:99px;cursor:pointer}
+#sprache:focus{outline:none;border-color:var(--work)}
 /* Zustandsplakette: Farbe traegt Bedeutung */
 #verdict{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:6px 11px;
   font-size:12px;font-weight:800;background:var(--raised);color:var(--dim)}
@@ -187,9 +192,12 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
   .wrap{padding:16px 16px 34px}
   header{padding:12px 16px;gap:10px}
   .marke small{display:none}
-  .kopfrechts{font-size:12px;gap:10px}
+  .marke{order:1}
+  #sprache{order:2;margin-left:auto;padding:6px 22px 6px 9px;font-size:12px;background-position:right 8px center}
+  .kopfrechts{order:3;font-size:12px;flex:1 1 100%;margin-left:0}
+  .suche{order:4}
   .kopfrechts .hoehe{display:none}
-  .suche{order:3;flex-basis:100%;max-width:none}
+  .suche{flex-basis:100%;max-width:none}
   .spalte{width:112px}
   .wuerfel{width:104px;height:104px;padding:8px 6px}
   .w-klein{font-size:10px}
@@ -205,45 +213,41 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
   <a class="marke" href="/"><img src="/marke/kristall.png" alt="">YSKAR<small>Explorer</small></a>
   <div class="suche">
     <input id="q" type="search" autocomplete="off" spellcheck="false"
-           placeholder="Adresse, Transaktion, Blockhöhe oder Blockhash"
-           aria-label="Suche">
-    <button id="qgo" type="button">Suchen</button>
+           placeholder="" aria-label="Search">
+    <button id="qgo" type="button" data-t="suchen"></button>
   </div>
   <div class="kopfrechts">
-    <span class="hoehe">Höhe <b id="kopfHoehe" class="mono">—</b></span>
-    <span id="verdict">wird geladen…</span>
-    <a href="/">Zur App →</a>
+    <span class="hoehe"><span data-t="hoehe"></span> <b id="kopfHoehe" class="mono">—</b></span>
+    <span id="verdict"></span>
   </div>
+  <select id="sprache" aria-label="Language"></select>
 </header>
 
 <div class="wrap">
 
   <div class="hinweis">
     <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8.5"/><path d="M7.5 11.5l2.3 2.3 4.7-5"/></svg>
-    <span><b>Jeder Block wird hier im Browser nachgerechnet.</b>
-    Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die
-    eingetragene Difficulty geprüft, Verkettung verfolgt. Keine dieser Aussagen
-    stammt vom Server. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.</span>
+    <span><b data-t="hinweisTitel"></b> <span data-t="hinweisText"></span></span>
   </div>
 
   <div class="err" id="err"></div>
   <div id="treffer"></div>
 
   <div class="reihenkopf">
-    <h2>Blöcke</h2>
-    <span class="faint" style="font-size:11.5px">links im Bau · rechts gefunden</span>
+    <h2 data-t="bloecke"></h2>
+    <span class="faint" style="font-size:11.5px" data-t="legende"></span>
   </div>
   <div class="kette" id="kette"></div>
 
   <div class="detail" id="detail">
-    <div class="leer">Auf einen Block klicken, um seine Transaktionen zu sehen.</div>
+    <div class="leer" data-t="klickHinweis"></div>
   </div>
 
   <div class="karten" id="stats"></div>
 
   <div class="fuss">
-    <a href="/">← Zurück zur App</a>
-    <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer">Quelltext auf GitHub</a>
+    <a href="/" data-t="zurApp"></a>
+    <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer" data-t="quelltext"></a>
     <span id="engine"></span>
   </div>
 </div>
@@ -375,7 +379,259 @@ async function verify(b,vorgaenger){
 
 // ---------------------------------------------------------------- Anzeige
 const $=id=>document.getElementById(id);
-const nf=n=>Number(n).toLocaleString('de-DE');
+const nf=n=>Number(n).toLocaleString(LOC);
+// ---------------------------------------------------------------- Sprachen
+// Dieselben sechs wie in der App. Erkennung: gemerkte Wahl -> Browsersprache
+// -> Englisch. Der Server liefert nur Zahlen und Codes; jeder Text entsteht hier.
+const SPRACHEN=[['en','English'],['de','Deutsch'],['es','Español'],['pt','Português'],['ru','Русский'],['tr','Türkçe']];
+const LOCALES={en:'en-US',de:'de-DE',es:'es-ES',pt:'pt-BR',ru:'ru-RU',tr:'tr-TR'};
+const WB={
+en:{
+  platzhalter:'Address, transaction, block height or block hash',suchen:'Search',hoehe:'Height',
+  laedt:'loading…',hinweisTitel:'Every block is re-verified here in your browser.',
+  hinweisText:'The header is rebuilt from its fields, double-hashed, checked against the recorded difficulty, and the chain link is followed. None of these statements comes from the server. A green dot on a block means: verified here.',
+  bloecke:'Blocks',legende:'left: in progress · right: found',
+  klickHinweis:'Click a block to see its transactions.',zurApp:'← Back to the app',quelltext:'Source on GitHub',
+  imBau:'in progress',tx:n=>n+(n===1?' transaction':' transactions'),wirdGesucht:'being searched',
+  unbekannt:'Unknown',selbstauskunft:'Self-reported by the finder',aeltere:'Load older',laedtKurz:'loading…',
+  stimmt:'valid',stimmtNicht:'INVALID',offen:'open',txLaden:'Loading transactions…',
+  empfaenger:n=>n+(n===1?' recipient':' recipients'),von:'From',an:'To',gebuehr:'Fee',
+  coinbase:'Coinbase',ueberweisung:'Transfer',block:'Block',gefundenVon:'Found by',schliessen:'Close',
+  hash:'Hash',vorgaenger:'Previous',difficulty:'Difficulty',erreicht:'Achieved',groesse:'Size',byte:'bytes',
+  transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Reward',
+  serialisierung:'Serialization',hashGeprueft:'Hash recomputed',pow:'Proof of work',verkettung:'Chain link',
+  wirdGeradeGesucht:'Currently being searched',wartendeTx:'Pending transactions',
+  bauLeer:'The mempool is empty, so this block only contains the coinbase so far.',
+  bauVoll:'The pending payments go into this block as far as they fit.',bauWer:'Who finds it is not yet known.',
+  kHoehe:'Height',kHoeheUnter:h=>'State recomputed up to '+h,kDifficultyUnter:'Recalculated at every block (LWMA over 45 blocks).',
+  kNetz:'Network hashrate',kNetzUnter:'From difficulty and target block time.',kLive:'Measured, live',
+  kMiner:n=>n+(n===1?' active miner':' active miners'),kBlockzeit:'Block time',
+  kBlockzeitUnter:n=>'Target 10 min · last '+n+' blocks',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'No pending payments — the minimum fee is enough.',kMempoolVoll:'Pending payments.',
+  kUmlauf:'In circulation',kUmlaufUnter:(max,sym,p)=>'of '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Next halving',kHalbierungUnter:(n,r,sym)=>n+' blocks to go · reward then '+r+' '+sym,
+  urteilBad:'A check failed',urteilOk:n=>n+' blocks verified here',
+  ladenFehl:'Loading failed: ',nachladenFehl:'Loading more failed: ',sucheLaeuft:'searching…',
+  nichtsGefunden:'Nothing found.',sucheFehl:'Search failed: ',
+  sBadAddress:'Not a valid YSKAR address.',sBadHeight:'Invalid height.',sNoBlock:h=>'Block '+h+' does not exist (yet).',
+  sNoHash:'No block and no transaction with this hash.',sEmpty:'Enter an address, transaction, block height or block hash.',
+  adresse:'Address',guthaben:'Balance',gefundeneBloecke:'Blocks found',poolAnteile:'Pool shares',
+  letzteBewegungen:'Recent activity',blockreward:'Block reward',poolAnteil:'Pool share',eingang:'Incoming',ausgang:'Outgoing',
+  keineBewegungen:'No activity yet.',txNichtLesbar:'Transaction not readable.',transaktion:'Transaction',
+  status:'Status',wartetAufBlock:'waiting for a block',inBlock:h=>'in block '+h,art:'Type',betrag:'Amount',
+  zuBlock:h=>'Go to block '+h,geradeEben:'just now',vorMin:n=>n+' min ago',vorStd:n=>n+' h ago',vorTg:n=>n+' d ago',
+},
+de:{
+  platzhalter:'Adresse, Transaktion, Blockhöhe oder Blockhash',suchen:'Suchen',hoehe:'Höhe',
+  laedt:'wird geladen…',hinweisTitel:'Jeder Block wird hier im Browser nachgerechnet.',
+  hinweisText:'Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die eingetragene Difficulty geprüft, Verkettung verfolgt. Keine dieser Aussagen stammt vom Server. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.',
+  bloecke:'Blöcke',legende:'links im Bau · rechts gefunden',
+  klickHinweis:'Auf einen Block klicken, um seine Transaktionen zu sehen.',zurApp:'← Zurück zur App',quelltext:'Quelltext auf GitHub',
+  imBau:'im Bau',tx:n=>n+(n===1?' Transaktion':' Transaktionen'),wirdGesucht:'wird gesucht',
+  unbekannt:'Unbekannt',selbstauskunft:'Selbstauskunft des Finders',aeltere:'Ältere laden',laedtKurz:'lädt…',
+  stimmt:'stimmt',stimmtNicht:'stimmt NICHT',offen:'offen',txLaden:'Transaktionen werden geladen…',
+  empfaenger:n=>n+' Empfänger',von:'Von',an:'An',gebuehr:'Gebühr',
+  coinbase:'Coinbase',ueberweisung:'Überweisung',block:'Block',gefundenVon:'Gefunden von',schliessen:'Schließen',
+  hash:'Hash',vorgaenger:'Vorgänger',difficulty:'Difficulty',erreicht:'Erreicht',groesse:'Größe',byte:'Byte',
+  transaktionen:'Transaktionen',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Belohnung',
+  serialisierung:'Serialisierung',hashGeprueft:'Hash nachgerechnet',pow:'Proof of Work',verkettung:'Verkettung',
+  wirdGeradeGesucht:'Wird gerade gesucht',wartendeTx:'Wartende Transaktionen',
+  bauLeer:'Der Mempool ist leer, also enthält dieser Block bisher nur die Coinbase.',
+  bauVoll:'Die wartenden Zahlungen kommen in diesen Block, soweit sie hineinpassen.',bauWer:'Wer ihn findet, steht noch nicht fest.',
+  kHoehe:'Höhe',kHoeheUnter:h=>'Zustand bis '+h+' nachgerechnet',kDifficultyUnter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).',
+  kNetz:'Netz-Hashrate',kNetzUnter:'Aus Difficulty und Zielblockzeit.',kLive:'Gemessen, live',
+  kMiner:n=>n+(n===1?' aktiver Miner':' aktive Miner'),kBlockzeit:'Blockzeit',
+  kBlockzeitUnter:n=>'Ziel 10 min · letzte '+n+' Blöcke',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Keine wartenden Zahlungen — die Mindestgebühr genügt.',kMempoolVoll:'Wartende Zahlungen.',
+  kUmlauf:'Im Umlauf',kUmlaufUnter:(max,sym,p)=>'von '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Nächste Halbierung',kHalbierungUnter:(n,r,sym)=>'Noch '+n+' Blöcke · Belohnung dann '+r+' '+sym,
+  urteilBad:'Eine Prüfung ist fehlgeschlagen',urteilOk:n=>n+' Blöcke hier nachgerechnet',
+  ladenFehl:'Laden fehlgeschlagen: ',nachladenFehl:'Nachladen fehlgeschlagen: ',sucheLaeuft:'wird gesucht…',
+  nichtsGefunden:'Nichts gefunden.',sucheFehl:'Suche fehlgeschlagen: ',
+  sBadAddress:'Keine gültige YSKAR-Adresse.',sBadHeight:'Ungültige Höhe.',sNoBlock:h=>'Block '+h+' gibt es (noch) nicht.',
+  sNoHash:'Kein Block und keine Transaktion mit diesem Hash.',sEmpty:'Adresse, Transaktion, Blockhöhe oder Blockhash eingeben.',
+  adresse:'Adresse',guthaben:'Guthaben',gefundeneBloecke:'Gefundene Blöcke',poolAnteile:'Pool-Anteile',
+  letzteBewegungen:'Letzte Bewegungen',blockreward:'Blockreward',poolAnteil:'Pool-Anteil',eingang:'Eingang',ausgang:'Ausgang',
+  keineBewegungen:'Noch keine Bewegungen.',txNichtLesbar:'Transaktion nicht lesbar.',transaktion:'Transaktion',
+  status:'Status',wartetAufBlock:'wartet auf einen Block',inBlock:h=>'in Block '+h,art:'Art',betrag:'Betrag',
+  zuBlock:h=>'Zu Block '+h,geradeEben:'gerade eben',vorMin:n=>'vor '+n+' Min',vorStd:n=>'vor '+n+' Std',vorTg:n=>'vor '+n+' Tg',
+},
+es:{
+  platzhalter:'Dirección, transacción, altura o hash de bloque',suchen:'Buscar',hoehe:'Altura',
+  laedt:'cargando…',hinweisTitel:'Cada bloque se recalcula aquí, en tu navegador.',
+  hinweisText:'La cabecera se reconstruye a partir de sus campos, se hashea dos veces, se comprueba contra la dificultad registrada y se sigue el encadenamiento. Ninguna de estas afirmaciones viene del servidor. El punto verde en un bloque significa: verificado aquí.',
+  bloecke:'Bloques',legende:'izquierda: en curso · derecha: encontrados',
+  klickHinweis:'Pulsa un bloque para ver sus transacciones.',zurApp:'← Volver a la app',quelltext:'Código en GitHub',
+  imBau:'en curso',tx:n=>n+(n===1?' transacción':' transacciones'),wirdGesucht:'en búsqueda',
+  unbekannt:'Desconocido',selbstauskunft:'Declarado por quien lo encontró',aeltere:'Cargar anteriores',laedtKurz:'cargando…',
+  stimmt:'correcto',stimmtNicht:'INCORRECTO',offen:'abierto',txLaden:'Cargando transacciones…',
+  empfaenger:n=>n+(n===1?' destinatario':' destinatarios'),von:'De',an:'Para',gebuehr:'Comisión',
+  coinbase:'Coinbase',ueberweisung:'Transferencia',block:'Bloque',gefundenVon:'Encontrado por',schliessen:'Cerrar',
+  hash:'Hash',vorgaenger:'Anterior',difficulty:'Dificultad',erreicht:'Alcanzado',groesse:'Tamaño',byte:'bytes',
+  transaktionen:'Transacciones',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
+  serialisierung:'Serialización',hashGeprueft:'Hash recalculado',pow:'Prueba de trabajo',verkettung:'Encadenamiento',
+  wirdGeradeGesucht:'Se está buscando ahora',wartendeTx:'Transacciones pendientes',
+  bauLeer:'El mempool está vacío, así que este bloque por ahora solo contiene la coinbase.',
+  bauVoll:'Los pagos pendientes entran en este bloque en la medida en que quepan.',bauWer:'Aún no se sabe quién lo encontrará.',
+  kHoehe:'Altura',kHoeheUnter:h=>'Estado recalculado hasta '+h,kDifficultyUnter:'Se recalcula en cada bloque (LWMA sobre 45 bloques).',
+  kNetz:'Hashrate de la red',kNetzUnter:'A partir de la dificultad y el tiempo objetivo de bloque.',kLive:'Medido, en vivo',
+  kMiner:n=>n+(n===1?' minero activo':' mineros activos'),kBlockzeit:'Tiempo de bloque',
+  kBlockzeitUnter:n=>'Objetivo 10 min · últimos '+n+' bloques',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Sin pagos pendientes — basta la comisión mínima.',kMempoolVoll:'Pagos pendientes.',
+  kUmlauf:'En circulación',kUmlaufUnter:(max,sym,p)=>'de '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Próximo halving',kHalbierungUnter:(n,r,sym)=>'Faltan '+n+' bloques · recompensa después '+r+' '+sym,
+  urteilBad:'Una comprobación ha fallado',urteilOk:n=>n+' bloques verificados aquí',
+  ladenFehl:'Error al cargar: ',nachladenFehl:'Error al cargar más: ',sucheLaeuft:'buscando…',
+  nichtsGefunden:'Nada encontrado.',sucheFehl:'Error en la búsqueda: ',
+  sBadAddress:'No es una dirección YSKAR válida.',sBadHeight:'Altura no válida.',sNoBlock:h=>'El bloque '+h+' no existe (todavía).',
+  sNoHash:'Ningún bloque ni transacción con este hash.',sEmpty:'Introduce una dirección, transacción, altura o hash de bloque.',
+  adresse:'Dirección',guthaben:'Saldo',gefundeneBloecke:'Bloques encontrados',poolAnteile:'Participaciones de pool',
+  letzteBewegungen:'Actividad reciente',blockreward:'Recompensa de bloque',poolAnteil:'Participación de pool',eingang:'Entrada',ausgang:'Salida',
+  keineBewegungen:'Sin actividad todavía.',txNichtLesbar:'Transacción no legible.',transaktion:'Transacción',
+  status:'Estado',wartetAufBlock:'esperando un bloque',inBlock:h=>'en el bloque '+h,art:'Tipo',betrag:'Importe',
+  zuBlock:h=>'Ir al bloque '+h,geradeEben:'ahora mismo',vorMin:n=>'hace '+n+' min',vorStd:n=>'hace '+n+' h',vorTg:n=>'hace '+n+' d',
+},
+pt:{
+  platzhalter:'Endereço, transação, altura ou hash do bloco',suchen:'Buscar',hoehe:'Altura',
+  laedt:'carregando…',hinweisTitel:'Cada bloco é recalculado aqui, no seu navegador.',
+  hinweisText:'O cabeçalho é remontado a partir dos campos, passa por hash duplo, é conferido com a dificuldade registrada e o encadeamento é seguido. Nenhuma dessas afirmações vem do servidor. O ponto verde em um bloco significa: verificado aqui.',
+  bloecke:'Blocos',legende:'esquerda: em andamento · direita: encontrados',
+  klickHinweis:'Toque em um bloco para ver suas transações.',zurApp:'← Voltar ao app',quelltext:'Código no GitHub',
+  imBau:'em andamento',tx:n=>n+(n===1?' transação':' transações'),wirdGesucht:'em busca',
+  unbekannt:'Desconhecido',selbstauskunft:'Informado por quem encontrou',aeltere:'Carregar anteriores',laedtKurz:'carregando…',
+  stimmt:'confere',stimmtNicht:'NÃO confere',offen:'em aberto',txLaden:'Carregando transações…',
+  empfaenger:n=>n+(n===1?' destinatário':' destinatários'),von:'De',an:'Para',gebuehr:'Taxa',
+  coinbase:'Coinbase',ueberweisung:'Transferência',block:'Bloco',gefundenVon:'Encontrado por',schliessen:'Fechar',
+  hash:'Hash',vorgaenger:'Anterior',difficulty:'Dificuldade',erreicht:'Alcançado',groesse:'Tamanho',byte:'bytes',
+  transaktionen:'Transações',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
+  serialisierung:'Serialização',hashGeprueft:'Hash recalculado',pow:'Prova de trabalho',verkettung:'Encadeamento',
+  wirdGeradeGesucht:'Sendo procurado agora',wartendeTx:'Transações pendentes',
+  bauLeer:'O mempool está vazio, então este bloco por enquanto só contém a coinbase.',
+  bauVoll:'Os pagamentos pendentes entram neste bloco na medida em que couberem.',bauWer:'Ainda não se sabe quem vai encontrá-lo.',
+  kHoehe:'Altura',kHoeheUnter:h=>'Estado recalculado até '+h,kDifficultyUnter:'Recalculada a cada bloco (LWMA sobre 45 blocos).',
+  kNetz:'Hashrate da rede',kNetzUnter:'A partir da dificuldade e do tempo-alvo de bloco.',kLive:'Medido, ao vivo',
+  kMiner:n=>n+(n===1?' minerador ativo':' mineradores ativos'),kBlockzeit:'Tempo de bloco',
+  kBlockzeitUnter:n=>'Alvo 10 min · últimos '+n+' blocos',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Nenhum pagamento pendente — a taxa mínima basta.',kMempoolVoll:'Pagamentos pendentes.',
+  kUmlauf:'Em circulação',kUmlaufUnter:(max,sym,p)=>'de '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Próximo halving',kHalbierungUnter:(n,r,sym)=>'Faltam '+n+' blocos · recompensa depois '+r+' '+sym,
+  urteilBad:'Uma verificação falhou',urteilOk:n=>n+' blocos verificados aqui',
+  ladenFehl:'Falha ao carregar: ',nachladenFehl:'Falha ao carregar mais: ',sucheLaeuft:'buscando…',
+  nichtsGefunden:'Nada encontrado.',sucheFehl:'Falha na busca: ',
+  sBadAddress:'Não é um endereço YSKAR válido.',sBadHeight:'Altura inválida.',sNoBlock:h=>'O bloco '+h+' (ainda) não existe.',
+  sNoHash:'Nenhum bloco nem transação com este hash.',sEmpty:'Informe um endereço, transação, altura ou hash do bloco.',
+  adresse:'Endereço',guthaben:'Saldo',gefundeneBloecke:'Blocos encontrados',poolAnteile:'Cotas de pool',
+  letzteBewegungen:'Atividade recente',blockreward:'Recompensa de bloco',poolAnteil:'Cota de pool',eingang:'Entrada',ausgang:'Saída',
+  keineBewegungen:'Ainda sem atividade.',txNichtLesbar:'Transação ilegível.',transaktion:'Transação',
+  status:'Status',wartetAufBlock:'aguardando um bloco',inBlock:h=>'no bloco '+h,art:'Tipo',betrag:'Valor',
+  zuBlock:h=>'Ir ao bloco '+h,geradeEben:'agora mesmo',vorMin:n=>'há '+n+' min',vorStd:n=>'há '+n+' h',vorTg:n=>'há '+n+' d',
+},
+ru:{
+  platzhalter:'Адрес, транзакция, высота или хеш блока',suchen:'Найти',hoehe:'Высота',
+  laedt:'загрузка…',hinweisTitel:'Каждый блок пересчитывается здесь, в вашем браузере.',
+  hinweisText:'Заголовок собирается заново из полей, хешируется дважды, сверяется с записанной сложностью, проверяется связь с предыдущим блоком. Ни одно из этих утверждений не приходит с сервера. Зелёная точка на блоке значит: проверено здесь.',
+  bloecke:'Блоки',legende:'слева: в работе · справа: найденные',
+  klickHinweis:'Нажмите на блок, чтобы увидеть его транзакции.',zurApp:'← Назад в приложение',quelltext:'Исходный код на GitHub',
+  imBau:'в работе',tx:n=>n+' '+ruPl(n,'транзакция','транзакции','транзакций'),wirdGesucht:'идёт поиск',
+  unbekannt:'Неизвестно',selbstauskunft:'Указано нашедшим',aeltere:'Загрузить старые',laedtKurz:'загрузка…',
+  stimmt:'верно',stimmtNicht:'НЕВЕРНО',offen:'открыто',txLaden:'Загрузка транзакций…',
+  empfaenger:n=>n+' '+ruPl(n,'получатель','получателя','получателей'),von:'От',an:'Кому',gebuehr:'Комиссия',
+  coinbase:'Coinbase',ueberweisung:'Перевод',block:'Блок',gefundenVon:'Нашёл',schliessen:'Закрыть',
+  hash:'Хеш',vorgaenger:'Предыдущий',difficulty:'Сложность',erreicht:'Достигнуто',groesse:'Размер',byte:'байт',
+  transaktionen:'Транзакции',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Награда',
+  serialisierung:'Сериализация',hashGeprueft:'Хеш пересчитан',pow:'Proof of Work',verkettung:'Связь цепочки',
+  wirdGeradeGesucht:'Сейчас ищется',wartendeTx:'Ожидающие транзакции',
+  bauLeer:'Мемпул пуст, поэтому пока в этом блоке только coinbase.',
+  bauVoll:'Ожидающие платежи попадут в этот блок, насколько поместятся.',bauWer:'Кто его найдёт, пока неизвестно.',
+  kHoehe:'Высота',kHoeheUnter:h=>'Состояние пересчитано до '+h,kDifficultyUnter:'Пересчитывается на каждом блоке (LWMA по 45 блокам).',
+  kNetz:'Хешрейт сети',kNetzUnter:'Из сложности и целевого времени блока.',kLive:'Измерено, вживую',
+  kMiner:n=>n+' '+ruPl(n,'активный майнер','активных майнера','активных майнеров'),kBlockzeit:'Время блока',
+  kBlockzeitUnter:n=>'Цель 10 мин · последние '+n+' '+ruPl(n,'блок','блока','блоков'),minS:(m,s)=>m+' мин '+s+' с',
+  kMempool:'Мемпул',kMempoolLeer:'Ожидающих платежей нет — достаточно минимальной комиссии.',kMempoolVoll:'Ожидающие платежи.',
+  kUmlauf:'В обращении',kUmlaufUnter:(max,sym,p)=>'из '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Следующий халвинг',kHalbierungUnter:(n,r,sym)=>'Осталось '+n+' '+ruPl(n,'блок','блока','блоков')+' · награда затем '+r+' '+sym,
+  urteilBad:'Одна из проверок не пройдена',urteilOk:n=>n+' '+ruPl(n,'блок проверен','блока проверены','блоков проверены')+' здесь',
+  ladenFehl:'Ошибка загрузки: ',nachladenFehl:'Ошибка подгрузки: ',sucheLaeuft:'поиск…',
+  nichtsGefunden:'Ничего не найдено.',sucheFehl:'Ошибка поиска: ',
+  sBadAddress:'Недействительный адрес YSKAR.',sBadHeight:'Недопустимая высота.',sNoBlock:h=>'Блока '+h+' (пока) нет.',
+  sNoHash:'Ни блока, ни транзакции с таким хешем.',sEmpty:'Введите адрес, транзакцию, высоту или хеш блока.',
+  adresse:'Адрес',guthaben:'Баланс',gefundeneBloecke:'Найдено блоков',poolAnteile:'Доли пула',
+  letzteBewegungen:'Последние операции',blockreward:'Награда за блок',poolAnteil:'Доля пула',eingang:'Входящий',ausgang:'Исходящий',
+  keineBewegungen:'Операций пока нет.',txNichtLesbar:'Транзакция нечитаема.',transaktion:'Транзакция',
+  status:'Статус',wartetAufBlock:'ожидает блока',inBlock:h=>'в блоке '+h,art:'Тип',betrag:'Сумма',
+  zuBlock:h=>'К блоку '+h,geradeEben:'только что',vorMin:n=>n+' мин назад',vorStd:n=>n+' ч назад',vorTg:n=>n+' дн назад',
+},
+tr:{
+  platzhalter:'Adres, işlem, blok yüksekliği veya blok hash’i',suchen:'Ara',hoehe:'Yükseklik',
+  laedt:'yükleniyor…',hinweisTitel:'Her blok burada, tarayıcınızda yeniden hesaplanır.',
+  hinweisText:'Başlık alanlarından yeniden kurulur, iki kez hash’lenir, kayıtlı zorlukla karşılaştırılır ve zincir bağı izlenir. Bu ifadelerin hiçbiri sunucudan gelmez. Bloktaki yeşil nokta şu anlama gelir: burada doğrulandı.',
+  bloecke:'Bloklar',legende:'sol: yapımda · sağ: bulunan',
+  klickHinweis:'İşlemlerini görmek için bir bloğa dokunun.',zurApp:'← Uygulamaya dön',quelltext:'GitHub’da kaynak kodu',
+  imBau:'yapımda',tx:n=>n+' işlem',wirdGesucht:'aranıyor',
+  unbekannt:'Bilinmiyor',selbstauskunft:'Bulanın kendi beyanı',aeltere:'Eskileri yükle',laedtKurz:'yükleniyor…',
+  stimmt:'doğru',stimmtNicht:'DOĞRU DEĞİL',offen:'açık',txLaden:'İşlemler yükleniyor…',
+  empfaenger:n=>n+' alıcı',von:'Gönderen',an:'Alıcı',gebuehr:'Ücret',
+  coinbase:'Coinbase',ueberweisung:'Transfer',block:'Blok',gefundenVon:'Bulan',schliessen:'Kapat',
+  hash:'Hash',vorgaenger:'Önceki',difficulty:'Zorluk',erreicht:'Ulaşılan',groesse:'Boyut',byte:'bayt',
+  transaktionen:'İşlemler',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ödül',
+  serialisierung:'Serileştirme',hashGeprueft:'Hash yeniden hesaplandı',pow:'İş kanıtı',verkettung:'Zincir bağı',
+  wirdGeradeGesucht:'Şu anda aranıyor',wartendeTx:'Bekleyen işlemler',
+  bauLeer:'Mempool boş, bu yüzden bu blok şimdilik yalnızca coinbase içeriyor.',
+  bauVoll:'Bekleyen ödemeler sığdıkları ölçüde bu bloğa girer.',bauWer:'Kimin bulacağı henüz belli değil.',
+  kHoehe:'Yükseklik',kHoeheUnter:h=>'Durum '+h+'’e kadar yeniden hesaplandı',kDifficultyUnter:'Her blokta yeniden hesaplanır (45 blok üzerinden LWMA).',
+  kNetz:'Ağ hashrate’i',kNetzUnter:'Zorluk ve hedef blok süresinden.',kLive:'Ölçülen, canlı',
+  kMiner:n=>n+' aktif madenci',kBlockzeit:'Blok süresi',
+  kBlockzeitUnter:n=>'Hedef 10 dk · son '+n+' blok',minS:(m,s)=>m+' dk '+s+' sn',
+  kMempool:'Mempool',kMempoolLeer:'Bekleyen ödeme yok — asgari ücret yeterli.',kMempoolVoll:'Bekleyen ödemeler.',
+  kUmlauf:'Dolaşımda',kUmlaufUnter:(max,sym,p)=>max+' '+sym+' içinden · % '+p,
+  kHalbierung:'Sonraki yarılanma',kHalbierungUnter:(n,r,sym)=>n+' blok kaldı · sonra ödül '+r+' '+sym,
+  urteilBad:'Bir kontrol başarısız oldu',urteilOk:n=>n+' blok burada doğrulandı',
+  ladenFehl:'Yükleme başarısız: ',nachladenFehl:'Daha fazla yükleme başarısız: ',sucheLaeuft:'aranıyor…',
+  nichtsGefunden:'Bir şey bulunamadı.',sucheFehl:'Arama başarısız: ',
+  sBadAddress:'Geçerli bir YSKAR adresi değil.',sBadHeight:'Geçersiz yükseklik.',sNoBlock:h=>h+' numaralı blok (henüz) yok.',
+  sNoHash:'Bu hash ile blok veya işlem yok.',sEmpty:'Adres, işlem, blok yüksekliği veya blok hash’i girin.',
+  adresse:'Adres',guthaben:'Bakiye',gefundeneBloecke:'Bulunan bloklar',poolAnteile:'Havuz payları',
+  letzteBewegungen:'Son hareketler',blockreward:'Blok ödülü',poolAnteil:'Havuz payı',eingang:'Gelen',ausgang:'Giden',
+  keineBewegungen:'Henüz hareket yok.',txNichtLesbar:'İşlem okunamıyor.',transaktion:'İşlem',
+  status:'Durum',wartetAufBlock:'blok bekliyor',inBlock:h=>h+' numaralı blokta',art:'Tür',betrag:'Tutar',
+  zuBlock:h=>h+' numaralı bloğa git',geradeEben:'az önce',vorMin:n=>n+' dk önce',vorStd:n=>n+' sa önce',vorTg:n=>n+' gün önce',
+},
+};
+function ruPl(n,eins,wenige,viele){
+  const a=Math.abs(n)%100,b=a%10;
+  if(a>10&&a<20)return viele; if(b>1&&b<5)return wenige; if(b===1)return eins; return viele;
+}
+function spracheErkennen(){
+  try{ const g=localStorage.getItem('yskar.sprache'); if(g&&WB[g]) return g; }catch{}
+  const liste=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||''];
+  for(const l of liste){ const k=String(l).slice(0,2).toLowerCase(); if(WB[k]) return k; }
+  return 'en';
+}
+let L=spracheErkennen();
+let T=WB[L];
+let LOC=LOCALES[L];
+function spracheSetzen(k){
+  if(!WB[k])return;
+  L=k; T=WB[k]; LOC=LOCALES[k];
+  try{ localStorage.setItem('yskar.sprache',k); }catch{}
+  document.documentElement.lang=k;
+  statischeTexte();
+  if(sum){ renderStats(); renderVerdict(); renderKette(); }
+  if(open==='bau') zeigeBau(); else if(open!==null) zeigeBlock(open); else if(sum) schliesse();
+  const q=$('q').value.trim(); if(q) suchen();
+}
+function statischeTexte(){
+  document.querySelectorAll('[data-t]').forEach(e=>{ e.textContent=T[e.dataset.t]; });
+  $('q').placeholder=T.platzhalter;
+  const v=$('verdict'); if(!v.className) v.textContent=T.laedt;
+  const sel=$('sprache');
+  if(!sel.options.length){
+    for(const [k,name] of SPRACHEN){ const o=document.createElement('option'); o.value=k; o.textContent=name; sel.appendChild(o); }
+    sel.addEventListener('change',()=>spracheSetzen(sel.value));
+  }
+  sel.value=L;
+}
+
 const esc=t=>String(t).replace(/[&<>"']/g,c=>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -388,13 +644,13 @@ function hashrate(h){
 }
 function alter(ts){
   const d=Math.floor(Date.now()/1000)-Number(ts);
-  if(d<60)return 'gerade eben';
-  if(d<3600)return 'vor '+Math.round(d/60)+' Min';
-  if(d<86400)return 'vor '+Math.round(d/3600)+' Std';
-  return 'vor '+Math.round(d/86400)+' Tg';
+  if(d<60)return T.geradeEben;
+  if(d<3600)return T.vorMin(Math.round(d/60));
+  if(d<86400)return T.vorStd(Math.round(d/3600));
+  return T.vorTg(Math.round(d/86400));
 }
 function uhr(ts){
-  return new Date(Number(ts)*1000).toLocaleString('de-DE',
+  return new Date(Number(ts)*1000).toLocaleString(LOC,
     {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
@@ -430,12 +686,12 @@ function renderKette(){
 
   let html=`
     <div class="spalte">
-      <div class="k-kopf"><span class="faint" style="font-size:12px">im Bau</span></div>
+      <div class="k-kopf"><span class="faint" style="font-size:12px">${T.imBau}</span></div>
       <button class="wuerfel w-bau${open==='bau'?' offen':''}" type="button"
               onclick="zeigeBau()">
         <div class="w-zahl" style="color:var(--work)">${nf(naechste)}</div>
-        <div class="w-klein">${wartend} Transaktion${wartend===1?'':'en'}</div>
-        <div class="w-zeit">wird gesucht</div>
+        <div class="w-klein">${T.tx(wartend)}</div>
+        <div class="w-zeit">${T.wirdGesucht}</div>
       </button>
       <div class="finder faint">—</div>
     </div>
@@ -448,8 +704,8 @@ function renderKette(){
       ||c.kette==='fail'||c.serialisierung==='fail');
     const punkt=schlecht?'var(--risk)':(gut?'var(--proof)':'var(--faint)');
     const name=b.finder
-      ? `<span class="poolname" title="Selbstauskunft des Finders">${esc(b.finder)}</span>`
-      : `<span class="unbekannt">Unbekannt</span>`;
+      ? `<span class="poolname" title="${T.selbstauskunft}">${esc(b.finder)}</span>`
+      : `<span class="unbekannt">${T.unbekannt}</span>`;
     const lohn=b.reward!=null?(Number(b.reward)/10**dec).toFixed(0):'—';
 
     html+=`
@@ -460,7 +716,7 @@ function renderKette(){
           <div class="w-punkt" style="background:${punkt}"></div>
           <div class="w-zahl">${lohn}</div>
           <div class="w-klein">${sym}</div>
-          <div class="w-klein">${b.txCount} Transaktion${b.txCount===1?'':'en'}</div>
+          <div class="w-klein">${T.tx(b.txCount)}</div>
           <div class="w-zeit">${alter(b.timestamp)}</div>
         </button>
         <div class="finder">${name}</div>
@@ -469,7 +725,7 @@ function renderKette(){
 
   const aeltester=blocks[blocks.length-1].height;
   if(aeltester>0){
-    html+=`<button class="mehr" id="mehr" type="button" onclick="mehrLaden()">Ältere laden</button>`;
+    html+=`<button class="mehr" id="mehr" type="button" onclick="mehrLaden()">${T.aeltere}</button>`;
   }
   ziel.innerHTML=html;
 }
@@ -483,9 +739,9 @@ function renderKette(){
   wurde -- und genau darum geht es hier.
 */
 function urteil(w){
-  if(w==='ok')return '<span class="ok">stimmt</span>';
-  if(w==='fail')return '<span class="bad">stimmt NICHT</span>';
-  return '<span class="offen">offen</span>';
+  if(w==='ok')return '<span class="ok">'+T.stimmt+'</span>';
+  if(w==='fail')return '<span class="bad">'+T.stimmtNicht+'</span>';
+  return '<span class="offen">'+T.offen+'</span>';
 }
 
 function zeigeBlock(h){
@@ -493,22 +749,22 @@ function zeigeBlock(h){
   if(!b){ return; }
   const c=checks[h]||{};
   const d=details[h];
-  const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+  const ysr=n=>(Number(n)/10**dec).toLocaleString(LOC,
     {minimumFractionDigits:2,maximumFractionDigits:8});
 
   const finder=b.finder
     ? `<span class="poolname">${esc(b.finder)}</span>
-       <span class="faint" style="font-size:11px"> · Selbstauskunft</span>`
-    : '<span class="unbekannt">Unbekannt</span>';
+       <span class="faint" style="font-size:11px"> · ${T.selbstauskunft}</span>`
+    : `<span class="unbekannt">${T.unbekannt}</span>`;
 
-  let txs='<div class="leer">Transaktionen werden geladen…</div>';
+  let txs=`<div class="leer">${T.txLaden}</div>`;
   if(d&&d.txs){
     txs=d.txs.map(t=>{
       const cb=t.type==='coinbase';
       let inhalt;
       if(cb&&t.recipients&&t.recipients.length){
         inhalt=`<div class="faint" style="margin-top:9px;font-size:12px">${
-          t.recipients.length} Empfänger</div><div class="empf">`
+          T.empfaenger(t.recipients.length)}</div><div class="empf">`
           +t.recipients.map(e=>`<div class="e">
               <span class="mono faint" style="font-size:11.5px">${esc(e.address)}</span>
               <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')
@@ -519,16 +775,16 @@ function zeigeBlock(h){
           <span class="mono tnum">${ysr(t.amount)} ${sym}</span></div></div>`;
       }else{
         inhalt=`<div class="empf">
-          <div class="e"><span class="faint">Von</span>
+          <div class="e"><span class="faint">${T.von}</span>
             <span class="mono" style="font-size:11.5px">${esc(t.from||'—')}</span></div>
-          <div class="e"><span class="faint">An</span>
+          <div class="e"><span class="faint">${T.an}</span>
             <span class="mono" style="font-size:11.5px">${esc(t.to||'—')}</span></div>
-          <div class="e"><span class="faint">Gebühr</span>
+          <div class="e"><span class="faint">${T.gebuehr}</span>
             <span class="mono tnum">${ysr(t.fee)} ${sym}</span></div></div>`;
       }
       return `<div class="tx">
         <div class="tx-kopf">
-          <span class="${cb?'marke-cb':'marke-tx'}">${cb?'Coinbase':'Überweisung'}</span>
+          <span class="${cb?'marke-cb':'marke-tx'}">${cb?T.coinbase:T.ueberweisung}</span>
           <span class="mono tnum" style="color:var(--proof)">${ysr(t.amount)} ${sym}</span>
         </div>
         <div class="mono faint" style="margin-top:7px;font-size:11px;word-break:break-all">${
@@ -541,29 +797,29 @@ function zeigeBlock(h){
   $('detail').innerHTML=`
     <div class="detail-kopf">
       <div>
-        <h2>Block ${nf(b.height)}</h2>
+        <h2>${T.block} ${nf(b.height)}</h2>
         <div class="muted" style="font-size:12.5px;margin-top:3px">
-          Gefunden von ${finder} · ${uhr(b.timestamp)}</div>
+          ${T.gefundenVon} ${finder} · ${uhr(b.timestamp)}</div>
       </div>
-      <button class="zu" type="button" onclick="location.hash=''">Schließen</button>
+      <button class="zu" type="button" onclick="location.hash=''">${T.schliessen}</button>
     </div>
     <div class="kv">
-      <div class="z"><span>Hash</span><span class="v">${esc(b.hash)}</span></div>
-      <div class="z"><span>Vorgänger</span><span class="v">${esc(b.prevHash||'—')}</span></div>
-      <div class="z"><span>Difficulty</span><span class="v tnum">${nf(b.difficulty)}</span></div>
-      <div class="z"><span>Erreicht</span><span class="v tnum">${
+      <div class="z"><span>${T.hash}</span><span class="v">${esc(b.hash)}</span></div>
+      <div class="z"><span>${T.vorgaenger}</span><span class="v">${esc(b.prevHash||'—')}</span></div>
+      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nf(b.difficulty)}</span></div>
+      <div class="z"><span>${T.erreicht}</span><span class="v tnum">${
         c.erreicht!==undefined?nf(c.erreicht):'—'}</span></div>
-      <div class="z"><span>Größe</span><span class="v tnum">${b.sizeBytes} Byte</span></div>
-      <div class="z"><span>Transaktionen</span><span class="v tnum">${b.txCount}</span></div>
-      <div class="z"><span>Nonce</span><span class="v tnum">${esc(b.nonce||'—')}</span></div>
-      <div class="z"><span>Extranonce</span><span class="v tnum">${esc(b.extranonce||'—')}</span></div>
-      <div class="z"><span>Belohnung</span><span class="v tnum">${ysr(b.reward)} ${sym}</span></div>
-      <div class="z"><span>Serialisierung</span><span class="v">${urteil(c.serialisierung)}</span></div>
-      <div class="z"><span>Hash nachgerechnet</span><span class="v">${urteil(c.hash)}</span></div>
-      <div class="z"><span>Proof of Work</span><span class="v">${urteil(c.difficulty)}</span></div>
-      <div class="z"><span>Verkettung</span><span class="v">${urteil(c.kette)}</span></div>
+      <div class="z"><span>${T.groesse}</span><span class="v tnum">${b.sizeBytes} ${T.byte}</span></div>
+      <div class="z"><span>${T.transaktionen}</span><span class="v tnum">${b.txCount}</span></div>
+      <div class="z"><span>${T.nonce}</span><span class="v tnum">${esc(b.nonce||'—')}</span></div>
+      <div class="z"><span>${T.extranonce}</span><span class="v tnum">${esc(b.extranonce||'—')}</span></div>
+      <div class="z"><span>${T.belohnung}</span><span class="v tnum">${ysr(b.reward)} ${sym}</span></div>
+      <div class="z"><span>${T.serialisierung}</span><span class="v">${urteil(c.serialisierung)}</span></div>
+      <div class="z"><span>${T.hashGeprueft}</span><span class="v">${urteil(c.hash)}</span></div>
+      <div class="z"><span>${T.pow}</span><span class="v">${urteil(c.difficulty)}</span></div>
+      <div class="z"><span>${T.verkettung}</span><span class="v">${urteil(c.kette)}</span></div>
     </div>
-    <div class="txkopf">Transaktionen</div>
+    <div class="txkopf">${T.transaktionen}</div>
     ${txs}`;
 
   if(!d){
@@ -580,31 +836,29 @@ function zeigeBau(){
   $('detail').innerHTML=`
     <div class="detail-kopf">
       <div>
-        <h2>Block ${nf(naechste)}</h2>
-        <div class="muted" style="font-size:12.5px;margin-top:3px">Wird gerade gesucht</div>
+        <h2>${T.block} ${nf(naechste)}</h2>
+        <div class="muted" style="font-size:12.5px;margin-top:3px">${T.wirdGeradeGesucht}</div>
       </div>
-      <button class="zu" type="button" onclick="location.hash=''">Schließen</button>
+      <button class="zu" type="button" onclick="location.hash=''">${T.schliessen}</button>
     </div>
     <div class="kv">
-      <div class="z"><span>Vorgänger</span><span class="v tnum">${nf(sum?.height??0)}</span></div>
-      <div class="z"><span>Difficulty</span><span class="v tnum">${nf(sum?.difficulty??0)}</span></div>
-      <div class="z"><span>Wartende Transaktionen</span><span class="v tnum">${
+      <div class="z"><span>${T.vorgaenger}</span><span class="v tnum">${nf(sum?.height??0)}</span></div>
+      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nf(sum?.difficulty??0)}</span></div>
+      <div class="z"><span>${T.wartendeTx}</span><span class="v tnum">${
         sum?.mempool??0}</span></div>
-      <div class="z"><span>Belohnung</span><span class="v tnum">${
+      <div class="z"><span>${T.belohnung}</span><span class="v tnum">${
         ((Number(sum?.nextReward??0))/10**dec).toFixed(2)} ${sym}</span></div>
     </div>
     <div style="padding:4px 16px 18px;font-size:12.5px;color:var(--dim);line-height:1.6">
       ${(sum?.mempool??0)===0
-        ? 'Der Mempool ist leer, also enthält dieser Block bisher nur die Coinbase.'
-        : 'Die wartenden Zahlungen kommen in diesen Block, soweit sie hineinpassen.'}
-      Wer ihn findet, steht noch nicht fest.
+        ? T.bauLeer : T.bauVoll}
+      ${T.bauWer}
     </div>`;
 }
 
 function schliesse(){
   open=null; renderKette();
-  $('detail').innerHTML='<div class="leer">Auf einen Block klicken, '
-    +'um seine Transaktionen zu sehen.</div>';
+  $('detail').innerHTML=`<div class="leer">${T.klickHinweis}</div>`;
 }
 
 // --------------------------------------------------------------- Karten
@@ -613,11 +867,11 @@ function renderStats(){
   dec=sum.token?.decimals??8; sym=sum.token?.token_symbol??'YSR';
   $('kopfHoehe').textContent='#'+nf(sum.height??0);
 
-  const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+  const ysr=n=>(Number(n)/10**dec).toLocaleString(LOC,
     {minimumFractionDigits:0,maximumFractionDigits:0});
-  const ysrGenau=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+  const ysrGenau=n=>(Number(n)/10**dec).toLocaleString(LOC,
     {minimumFractionDigits:0,maximumFractionDigits:2});
-  const prozent=n=>n.toLocaleString('de-DE',
+  const prozent=n=>n.toLocaleString(LOC,
     {minimumFractionDigits:2,maximumFractionDigits:2});
 
   const umlauf=Number(sum.totalSupply)/10**dec, max=Number(sum.maxSupply)/10**dec;
@@ -633,28 +887,25 @@ function renderStats(){
   }
 
   const karten=[
-    {label:'Höhe',wert:'#'+nf(hoehe),
-     unter:'Zustand bis '+nf(sum.stateHeight)+' nachgerechnet'},
-    {label:'Difficulty',wert:nf(sum.difficulty??0),
-     unter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).'},
-    {label:'Netz-Hashrate',wert:hashrate(sum.hashrate),
-     unter:'Aus Difficulty und Zielblockzeit.'},
-    {label:'Gemessen, live',wert:hashrate(sum.minerHashrate),
-     unter:(sum.activeMiners??0)+' aktive Miner'},
-    {label:'Blockzeit',
-     wert:bz!=null?(Math.floor(bz/60)+' min '+Math.round(bz%60)+' s'):'—',
-     unter:'Ziel 10 min · letzte '+Math.max(0,blocks.length-1)+' Blöcke',
+    {label:T.kHoehe,wert:'#'+nf(hoehe),
+     unter:T.kHoeheUnter(nf(sum.stateHeight))},
+    {label:T.difficulty,wert:nf(sum.difficulty??0),
+     unter:T.kDifficultyUnter},
+    {label:T.kNetz,wert:hashrate(sum.hashrate),
+     unter:T.kNetzUnter},
+    {label:T.kLive,wert:hashrate(sum.minerHashrate),
+     unter:T.kMiner(sum.activeMiners??0)},
+    {label:T.kBlockzeit,
+     wert:bz!=null?T.minS(Math.floor(bz/60),Math.round(bz%60)):'—',
+     unter:T.kBlockzeitUnter(Math.max(0,blocks.length-1)),
      balken:bz!=null?Math.min(100,bz/600*100):null},
-    {label:'Mempool',wert:nf(sum.mempool??0),
-     unter:(sum.mempool??0)===0
-       ? 'Keine wartenden Zahlungen — die Mindestgebühr genügt.'
-       : 'Wartende Zahlungen.'},
-    {label:'Im Umlauf',wert:ysr(sum.totalSupply),
-     unter:'von '+ysr(sum.maxSupply)+' '+sym+' · '+prozent(anteil)+' %',
+    {label:T.kMempool,wert:nf(sum.mempool??0),
+     unter:(sum.mempool??0)===0?T.kMempoolLeer:T.kMempoolVoll},
+    {label:T.kUmlauf,wert:ysr(sum.totalSupply),
+     unter:T.kUmlaufUnter(ysr(sum.maxSupply),sym,prozent(anteil)),
      balken:anteil},
-    {label:'Nächste Halbierung',wert:'Block '+nf(hoehe+bis),
-     unter:'Noch '+nf(bis)+' Blöcke · Belohnung dann '
-       +ysrGenau(Number(sum.nextReward)/2)+' '+sym},
+    {label:T.kHalbierung,wert:T.block+' '+nf(hoehe+bis),
+     unter:T.kHalbierungUnter(nf(bis),ysrGenau(Number(sum.nextReward)/2),sym)},
   ];
 
   $('stats').innerHTML=karten.map(k=>`
@@ -672,8 +923,8 @@ function renderVerdict(){
   const kaputt=Object.values(checks).some(c=>
     c.hash==='fail'||c.difficulty==='fail'||c.kette==='fail'||c.serialisierung==='fail');
   const e=$('verdict');
-  if(kaputt){ e.className='bad'; e.textContent='Eine Prüfung ist fehlgeschlagen'; }
-  else{ e.className='ok'; e.textContent=n+' Blöcke hier nachgerechnet'; }
+  if(kaputt){ e.className='bad'; e.textContent=T.urteilBad; }
+  else{ e.className='ok'; e.textContent=T.urteilOk(n); }
 }
 // ---------------------------------------------------------------- Laden
 async function pruefeAlle(){
@@ -696,7 +947,7 @@ async function load(){
     renderStats(); renderVerdict(); renderKette();
     if(open!==null&&open!=='bau') zeigeBlock(open);
   }catch(e){
-    $('err').textContent='Laden fehlgeschlagen: '+e.message;
+    $('err').textContent=T.ladenFehl+e.message;
   }
 }
 
@@ -712,7 +963,7 @@ async function mehrLaden(){
   if(laedt||blocks.length===0)return;
   laedt=true;
   const knopf=$('mehr');
-  if(knopf){ knopf.disabled=true; knopf.textContent='lädt…'; }
+  if(knopf){ knopf.disabled=true; knopf.textContent=T.laedtKurz; }
   try{
     const aeltester=blocks[blocks.length-1].height;
     const r=await fetch(`${API}/blocks?limit=12&before=${aeltester}`).then(r=>r.json());
@@ -726,7 +977,7 @@ async function mehrLaden(){
     }
     renderVerdict(); renderKette();
   }catch(e){
-    $('err').textContent='Nachladen fehlgeschlagen: '+e.message;
+    $('err').textContent=T.nachladenFehl+e.message;
   }finally{
     laedt=false;
   }
@@ -742,13 +993,14 @@ async function suchen(){
   const q=$('q').value.trim();
   const ziel=$('treffer');
   if(!q){ ziel.innerHTML=''; return; }
-  ziel.innerHTML='<div class="detail"><div class="leer">wird gesucht…</div></div>';
+  ziel.innerHTML=`<div class="detail"><div class="leer">${T.sucheLaeuft}</div></div>`;
   try{
     const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
 
     if(r.kind==='nichts'||r.kind==='leer'){
-      ziel.innerHTML=`<div class="detail"><div class="leer">${
-        esc(r.hinweis||'Nichts gefunden.')}</div></div>`;
+      const codes={bad_address:T.sBadAddress,bad_height:T.sBadHeight,no_hash:T.sNoHash,empty:T.sEmpty};
+      const text=r.code==='no_block'?T.sNoBlock(nf(r.height??q)):(codes[r.code]||r.hinweis||T.nichtsGefunden);
+      ziel.innerHTML=`<div class="detail"><div class="leer">${esc(text)}</div></div>`;
       return;
     }
     if(r.kind==='block'){
@@ -757,65 +1009,64 @@ async function suchen(){
       return;
     }
 
-    const ysr=n=>(Number(n)/10**dec).toLocaleString('de-DE',
+    const ysr=n=>(Number(n)/10**dec).toLocaleString(LOC,
       {minimumFractionDigits:2,maximumFractionDigits:8});
 
     if(r.kind==='address'){
       const a=await fetch(`${API}/account/${r.address}`).then(x=>x.json());
       ziel.innerHTML=`<div class="detail">
-        <div class="detail-kopf"><div><h2>Adresse</h2>
+        <div class="detail-kopf"><div><h2>${T.adresse}</h2>
           <div class="mono muted" style="font-size:12px;margin-top:3px;word-break:break-all">${
             esc(r.address)}</div></div>
-          <button class="zu" type="button" onclick="leereSuche()">Schließen</button></div>
+          <button class="zu" type="button" onclick="leereSuche()">${T.schliessen}</button></div>
         <div class="kv">
-          <div class="z"><span>Guthaben</span><span class="v tnum">${ysr(a.balance||'0')} ${sym}</span></div>
-          <div class="z"><span>Gefundene Blöcke</span><span class="v tnum">${a.blocksFound??0}</span></div>
-          ${a.poolRewards?`<div class="z"><span>Pool-Anteile</span><span class="v tnum">${a.poolRewards}</span></div>`:''}
-          <div class="z"><span>Nonce</span><span class="v tnum">${a.nonce??'0'}</span></div>
+          <div class="z"><span>${T.guthaben}</span><span class="v tnum">${ysr(a.balance||'0')} ${sym}</span></div>
+          <div class="z"><span>${T.gefundeneBloecke}</span><span class="v tnum">${a.blocksFound??0}</span></div>
+          ${a.poolRewards?`<div class="z"><span>${T.poolAnteile}</span><span class="v tnum">${a.poolRewards}</span></div>`:''}
+          <div class="z"><span>${T.nonce}</span><span class="v tnum">${a.nonce??'0'}</span></div>
         </div>
-        ${(a.history&&a.history.length)?`<div class="txkopf">Letzte Bewegungen</div>`
+        ${(a.history&&a.history.length)?`<div class="txkopf">${T.letzteBewegungen}</div>`
           +a.history.slice(0,12).map(h=>`<div class="tx"><div class="tx-kopf">
-              <span class="marke-tx">${h.kind==='reward'?'Blockreward':
-                h.kind==='pool'?'Pool-Anteil':h.kind==='in'?'Eingang':'Ausgang'}${
-                h.height!=null?' · Block '+nf(h.height):''}</span>
+              <span class="marke-tx">${h.kind==='reward'?T.blockreward:
+                h.kind==='pool'?T.poolAnteil:h.kind==='in'?T.eingang:T.ausgang}${
+                h.height!=null?' · '+T.block+' '+nf(h.height):''}</span>
               <span class="mono tnum" style="color:var(--proof)">${ysr(h.amount)} ${sym}</span>
             </div></div>`).join('')
-          :'<div class="leer">Noch keine Bewegungen.</div>'}
+          :`<div class="leer">${T.keineBewegungen}</div>`}
       </div>`;
       return;
     }
 
     if(r.kind==='tx'){
       const t=await fetch(`${API}/tx/${r.txid}`).then(x=>x.json());
-      if(t.error){ ziel.innerHTML='<div class="detail"><div class="leer">'
-        +'Transaktion nicht lesbar.</div></div>'; return; }
+      if(t.error){ ziel.innerHTML=`<div class="detail"><div class="leer">${T.txNichtLesbar}</div></div>`; return; }
       ziel.innerHTML=`<div class="detail">
-        <div class="detail-kopf"><div><h2>Transaktion</h2>
+        <div class="detail-kopf"><div><h2>${T.transaktion}</h2>
           <div class="mono muted" style="font-size:11.5px;margin-top:3px;word-break:break-all">${
             esc(t.txid)}</div></div>
-          <button class="zu" type="button" onclick="leereSuche()">Schließen</button></div>
+          <button class="zu" type="button" onclick="leereSuche()">${T.schliessen}</button></div>
         <div class="kv">
-          <div class="z"><span>Status</span><span class="v">${
-            t.status==='pending'?'wartet auf einen Block':'in Block '+nf(t.height)}</span></div>
-          <div class="z"><span>Art</span><span class="v">${
-            t.type==='coinbase'?'Blockreward':'Überweisung'}</span></div>
-          ${t.from?`<div class="z"><span>Von</span><span class="v">${esc(t.from)}</span></div>`:''}
-          ${t.to?`<div class="z"><span>An</span><span class="v">${esc(t.to)}</span></div>`:''}
-          <div class="z"><span>Betrag</span><span class="v tnum">${ysr(t.amount)} ${sym}</span></div>
-          ${Number(t.fee)>0?`<div class="z"><span>Gebühr</span><span class="v tnum">${
+          <div class="z"><span>${T.status}</span><span class="v">${
+            t.status==='pending'?T.wartetAufBlock:T.inBlock(nf(t.height))}</span></div>
+          <div class="z"><span>${T.art}</span><span class="v">${
+            t.type==='coinbase'?T.blockreward:T.ueberweisung}</span></div>
+          ${t.from?`<div class="z"><span>${T.von}</span><span class="v">${esc(t.from)}</span></div>`:''}
+          ${t.to?`<div class="z"><span>${T.an}</span><span class="v">${esc(t.to)}</span></div>`:''}
+          <div class="z"><span>${T.betrag}</span><span class="v tnum">${ysr(t.amount)} ${sym}</span></div>
+          ${Number(t.fee)>0?`<div class="z"><span>${T.gebuehr}</span><span class="v tnum">${
             ysr(t.fee)} ${sym}</span></div>`:''}
         </div>
-        ${t.recipients?`<div class="txkopf">${t.recipients.length} Empfänger</div>
+        ${t.recipients?`<div class="txkopf">${T.empfaenger(t.recipients.length)}</div>
           <div class="tx"><div class="empf">`+t.recipients.map(e=>`<div class="e">
             <span class="mono faint" style="font-size:11.5px">${esc(e.address)}</span>
             <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')
           +`</div></div>`:''}
         ${t.height!=null?`<div style="padding:4px 16px 16px">
-          <a href="#block-${t.height}">Zu Block ${nf(t.height)}</a></div>`:''}
+          <a href="#block-${t.height}">${T.zuBlock(nf(t.height))}</a></div>`:''}
       </div>`;
     }
   }catch(e){
-    ziel.innerHTML=`<div class="detail"><div class="leer">Suche fehlgeschlagen: ${
+    ziel.innerHTML=`<div class="detail"><div class="leer">${T.sucheFehl}${
       esc(e.message)}</div></div>`;
   }
 }
@@ -850,6 +1101,8 @@ window.addEventListener('hashchange',ausHash);
 
 $('engine').textContent=useSubtle?'crypto.subtle':'SHA-256 in JavaScript';
 
+document.documentElement.lang=L;
+statischeTexte();
 load().then(ausHash);
 
 /*

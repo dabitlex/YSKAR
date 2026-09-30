@@ -121,7 +121,9 @@ Betreiber haelt fremdes Geld. Solo-Mining ist davon unberuehrt.
 **Explorer** unter `/explorer.html`. Er laedt die Bloecke und rechnet sie
 **im Browser** nach: Header aus den Einzelfeldern neu zusammengesetzt,
 doppelt gehasht, gegen die eingetragene Difficulty geprueft, Verkettung
-verfolgt. Keine dieser Aussagen stammt vom Server.
+verfolgt. Keine dieser Aussagen stammt vom Server. Dieselben sechs Sprachen
+wie die App, erkannt aus der Browsersprache (sonst Englisch), umschaltbar
+im Kopf; die Suchroute liefert dafuer Codes statt fertiger Saetze.
 
 **Eigenstaendiger Miner** in `miner/`. Baut zu einer einzelnen Datei, die
 ohne Node laeuft (`npm run build:exe`). Fasst keine Schluessel an -- er
