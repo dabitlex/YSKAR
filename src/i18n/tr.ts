@@ -391,6 +391,11 @@ const tr = {
     sperreSofort: 'Hemen',
     sperreNie: 'Asla',
     sperreMin: (n: number) => `${n} min`,
+    thema: 'Görünüm',
+    themaText: '“Sistem”, cihazınızın ayarını izler.',
+    themaSystem: 'Sistem',
+    themaHell: 'Açık',
+    themaDunkel: 'Koyu',
   },
 
   apk: {

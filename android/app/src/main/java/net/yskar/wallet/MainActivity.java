@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(MiningServicePlugin.class);
         registerPlugin(WidgetPlugin.class);
         registerPlugin(AppUpdatePlugin.class);
+        registerPlugin(OberflaechePlugin.class);
         super.onCreate(savedInstanceState);
 
         /*

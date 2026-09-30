@@ -391,6 +391,11 @@ const ru = {
     sperreSofort: 'Сразу',
     sperreNie: 'Никогда',
     sperreMin: (n: number) => `${n} min`,
+    thema: 'Оформление',
+    themaText: '«Система» следует настройке устройства.',
+    themaSystem: 'Система',
+    themaHell: 'Светлая',
+    themaDunkel: 'Тёмная',
   },
 
   apk: {

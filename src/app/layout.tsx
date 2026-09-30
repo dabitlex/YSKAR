@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import localFont from 'next/font/local';
 import './globals.css';
+import { THEMA_STARTSKRIPT } from '@/lib/thema';
 
 /*
   Manrope: geometrisch, ruhig, mit klaren Ziffern -- so soll sich die App
@@ -31,12 +32,20 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   width: 'device-width', initialScale: 1, maximumScale: 1,
-  viewportFit: 'cover', themeColor: '#F4F7FB',
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F4F7FB' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A101C' },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+      <head>
+        {/* Thema vor dem ersten Zeichnen setzen -- sonst blitzt Hell auf. */}
+        <script dangerouslySetInnerHTML={{ __html: THEMA_STARTSKRIPT }} />
+      </head>
       <body className="font-sans">
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         {children}

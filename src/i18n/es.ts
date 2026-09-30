@@ -391,6 +391,11 @@ const es = {
     sperreSofort: 'Al instante',
     sperreNie: 'Nunca',
     sperreMin: (n: number) => `${n} min`,
+    thema: 'Apariencia',
+    themaText: '«Sistema» sigue el ajuste de tu dispositivo.',
+    themaSystem: 'Sistema',
+    themaHell: 'Claro',
+    themaDunkel: 'Oscuro',
   },
 
   apk: {

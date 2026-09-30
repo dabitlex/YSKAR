@@ -235,7 +235,7 @@ function Eintrag({ art, titel, unten, betrag, gut, onClick }: {
   betrag: string; gut?: boolean; onClick?: () => void;
 }) {
   const look = art === 'in' ? 'bg-proof/10 text-proof'
-    : art === 'wait' ? 'bg-[#FFF4E5] text-[#B26A00]' : 'bg-raised text-text';
+    : art === 'wait' ? 'warte' : 'bg-raised text-text';
   const Zeile = onClick ? 'button' : 'div';
   return (
     <li>

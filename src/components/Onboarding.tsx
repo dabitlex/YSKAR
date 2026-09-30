@@ -66,7 +66,7 @@ function Start({ onCreate, onRecover, onMehr }: {
   const { t, sprache, setSprache } = useT();
   return (
     <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-7"
-          style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, rgb(var(--ink)) 42%)' }}>
+          style={{ background: 'linear-gradient(180deg, rgb(var(--surface)) 0%, rgb(var(--ink)) 42%)' }}>
       {/*
         Sprachwahl ganz oben, vor allem anderen: Wer die Sprache nicht
         versteht, kann den Rest nicht beurteilen. Namen in der jeweiligen

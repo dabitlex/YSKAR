@@ -25,14 +25,14 @@ export function telegramNutzer(): TgNutzer | null {
   };
 }
 
-/** Rahmenfarben des Telegram-Clients an das helle Design angleichen. */
-export function telegramFarben() {
+/** Rahmenfarben des Telegram-Clients an das Design angleichen -- hell oder dunkel. */
+export function telegramFarben(dunkel = false) {
   const tg = window.Telegram?.WebApp;
   if (!tg) return;
   try {
-    tg.setHeaderColor?.('#F4F7FB');
-    tg.setBackgroundColor?.('#F4F7FB');
-    tg.setBottomBarColor?.('#FFFFFF');
+    tg.setHeaderColor?.(dunkel ? '#0A101C' : '#F4F7FB');
+    tg.setBackgroundColor?.(dunkel ? '#0A101C' : '#F4F7FB');
+    tg.setBottomBarColor?.(dunkel ? '#131C2E' : '#FFFFFF');
   } catch { /* aeltere Clients kennen die Aufrufe nicht */ }
 }
 

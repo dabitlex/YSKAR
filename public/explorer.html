@@ -4,6 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>YSKAR Explorer</title>
+<script>
+// ---------------------------------------------------------------- Thema
+// Gleicher Schluessel wie die App: system / hell / dunkel. Vor allem anderen,
+// damit der erste Frame schon stimmt.
+(function(){
+  function lesen(){ try{ var t=localStorage.getItem('yskar.thema'); if(t==='hell'||t==='dunkel') return t; }catch(e){} return 'system'; }
+  function dunkel(t){ return t==='dunkel'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); }
+  function anwenden(){ document.documentElement.dataset.thema=dunkel(lesen())?'dunkel':'hell'; }
+  anwenden();
+  window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ if(lesen()==='system') anwenden(); });
+  document.addEventListener('DOMContentLoaded',function(){
+    document.getElementById('thema').addEventListener('click',function(){
+      var neu=document.documentElement.dataset.thema==='dunkel'?'hell':'dunkel';
+      try{ localStorage.setItem('yskar.thema',neu); }catch(e){}
+      anwenden();
+    });
+  });
+})();
+</script>
 <meta name="description" content="YSKAR chain explorer — every block verified in your browser.">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap">
@@ -22,6 +41,17 @@
   --work:#1F5BF0; --work-tint:#EAF0FE; --proof:#0B8A5C; --proof-tint:#E7F5EE;
   --risk:#D9404A; --risk-tint:#FBE9EA;
   --schatten:0 8px 24px -16px rgba(14,26,47,.18);
+  --bau:#B9CCF8; --hinweis-text:#1747B8;
+}
+/* Dunkel -- dieselben Werte wie in der App (globals.css). */
+:root[data-thema="dunkel"]{
+  --ink:#0A101C; --sunk:#0F1728; --surface:#131C2E; --raised:#1C283E;
+  --line:#24324C; --text:#EAF0F8; --dim:#9EADC6; --faint:#6E7E9A;
+  --work:#4F82FF; --work-tint:#16244A; --proof:#2EBE85; --proof-tint:#12332A;
+  --risk:#F0616B; --risk-tint:#3A1C22;
+  --schatten:0 8px 24px -16px rgba(0,0,0,.6);
+  --bau:#2C4A8C; --hinweis-text:#9DB8FF;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -33,7 +63,7 @@ body{margin:0;background:var(--ink);color:var(--text);
 .muted{color:var(--dim)}
 .faint{color:var(--faint)}
 a{color:var(--work);text-decoration:none;font-weight:700}
-a:hover{color:#1747B8}
+a:hover{opacity:.8}
 
 /* ------------------------------------------------------------- Kopfzeile */
 header{border-bottom:1px solid var(--line);background:var(--surface);padding:14px 32px;
@@ -60,6 +90,12 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
   color:var(--text);font:inherit;font-weight:700;font-size:12.5px;padding:7px 26px 7px 11px;
   border-radius:99px;cursor:pointer}
 #sprache:focus{outline:none;border-color:var(--work)}
+#thema{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:99px;
+  border:1px solid var(--line);background:var(--surface);color:var(--dim);cursor:pointer}
+#thema:hover{color:var(--work);border-color:var(--work)}
+#thema .sonne{display:none}
+:root[data-thema="dunkel"] #thema .mond{display:none}
+:root[data-thema="dunkel"] #thema .sonne{display:inline}
 /* Zustandsplakette: Farbe traegt Bedeutung */
 #verdict{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:6px 11px;
   font-size:12px;font-weight:800;background:var(--raised);color:var(--dim)}
@@ -69,7 +105,7 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
 
 .wrap{padding:24px 32px 40px;max-width:1500px;margin:0 auto}
 .hinweis{display:flex;gap:12px;align-items:flex-start;background:var(--work-tint);
-  border-radius:16px;padding:13px 16px;font-size:13px;font-weight:600;color:#1747B8;
+  border-radius:16px;padding:13px 16px;font-size:13px;font-weight:600;color:var(--hinweis-text);
   line-height:1.55;margin-bottom:22px}
 .hinweis svg{flex-shrink:0;margin-top:1px}
 .hinweis b{color:var(--text);font-weight:800}
@@ -94,7 +130,7 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
   background:var(--surface);transition:transform .12s,border-color .12s}
 .wuerfel:hover{border-color:var(--work)}
 .wuerfel:active{transform:scale(.98)}
-.w-bau{border:1.5px dashed #B9CCF8;color:var(--dim)}
+.w-bau{border:1.5px dashed var(--bau);color:var(--dim)}
 .w-block{box-shadow:var(--schatten)}
 .w-block.offen,.w-bau.offen{border:2px solid var(--work)}
 .w-zahl{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
@@ -121,7 +157,7 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
 .spalte.frisch .w-block{animation:aufleuchten 1.5s ease-out}
 /* Der Block im Bau pulst leise -- er wird gerade gesucht. */
 @keyframes suchen{
-  0%,100%{border-color:#B9CCF8}
+  0%,100%{border-color:var(--bau)}
   50%    {border-color:var(--work)}
 }
 .w-bau{animation:suchen 2.6s ease-in-out infinite}
@@ -194,6 +230,7 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
   .marke small{display:none}
   .marke{order:1}
   #sprache{order:2;margin-left:auto;padding:6px 22px 6px 9px;font-size:12px;background-position:right 8px center}
+  #thema{order:2}
   .kopfrechts{order:3;font-size:12px;flex:1 1 100%;margin-left:0}
   .suche{order:4}
   .kopfrechts .hoehe{display:none}
@@ -221,6 +258,10 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
     <span id="verdict"></span>
   </div>
   <select id="sprache" aria-label="Language"></select>
+  <button id="thema" type="button" aria-label="Theme">
+    <svg class="mond" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z"/></svg>
+    <svg class="sonne" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>
+  </button>
 </header>
 
 <div class="wrap">

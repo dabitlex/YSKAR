@@ -78,7 +78,7 @@ export default function HomeTab({ account, summary, mining, hashrate, decimals, 
         <div className="mt-4 flex gap-2">
           <button onClick={onSenden}
                   className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[12px]
-                             bg-white text-[13.5px] font-bold text-text active:scale-[.98]">
+                             knopf-hell bg-white text-[13.5px] font-bold active:scale-[.98]">
             {t.home.senden}
           </button>
           <button onClick={onEmpfangen}
