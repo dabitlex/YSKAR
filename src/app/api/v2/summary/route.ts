@@ -51,6 +51,8 @@ export async function GET() {
       /** Sessions, die laut Fullnode aktuell aktiv sind. */
       miningSessions: summary.miningSessions ?? 0,
       activeMiners: summary.activeMiners ?? 0,
+      /** Knoten, deren Miner in activeMiners und minerHashrate mitzaehlen. */
+      knoten: summary.knoten ?? 1,
     }, { headers: CORS });
   } catch (error) {
     return NextResponse.json(

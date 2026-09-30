@@ -49,6 +49,8 @@ export interface ReadTeile {
   hashrate?: () => number | null;
   aktiveMiner?: () => number;
   miningSessions?: () => number;
+  /** Knoten mit gueltiger Statistik-Meldung, dieser eingeschlossen. */
+  knoten?: () => number;
 }
 
 export class ReadApi {
@@ -96,7 +98,13 @@ export class ReadApi {
       height: tip ? tip.height : null,
       nextHeight: hoehe + 1,
       difficulty: tip ? Number(tip.difficulty) : null,
-      hashrate: this.t.hashrate?.() ?? this.hashrateAusKette(),
+      /*
+        Netz-Hashrate: aus Difficulty und Blockzeit -- die einzige Zahl, die
+        jeden Miner enthaelt, auch solche an fremden Knoten, und die niemand
+        melden muss. Erst ohne genug Bloecke auf die gemessene zurueck.
+      */
+      hashrate: this.hashrateAusKette() ?? this.t.hashrate?.() ?? null,
+      /** Gemessen: eigene Sitzungen plus Meldungen der Peers. */
       minerHashrate: this.t.hashrate?.() ?? null,
       targetBlockTime: Number(TARGET_BLOCK_TIME),
       tipHash: tip ? toHex(tip.hash) : null,
@@ -109,6 +117,7 @@ export class ReadApi {
       activeMiners: this.t.aktiveMiner?.() ?? 0,
       // Sitzungen, nicht Adressen -- dasselbe Feld wie auf dem Server.
       miningSessions: this.t.miningSessions?.() ?? 0,
+      knoten: this.t.knoten?.() ?? 1,
       // Nur der Knoten kennt sie: Die App zeigt sie nicht, der Explorer
       // koennte es. Zusaetzliche Felder stoeren nicht -- fehlende schon.
       chainWork: tip ? tip.chainWork.toString() : '0',
