@@ -36,8 +36,8 @@ export default function Receive({ address, onZurueck }: {
 
       <div className="panel rise flex flex-col items-center gap-4 px-5 py-6">
         <div className="flex items-center gap-2">
-          <Image src="/marke/kristall.png" alt="" width={30} height={24}
-                 style={{ width: 30, height: 24, objectFit: 'contain' }} />
+          <Image src="/marke/kristall.png" alt="" width={30} height={20}
+                 style={{ width: 30, height: 20, objectFit: 'contain' }} />
           <span className="text-[12px] font-extrabold tracking-[0.16em] text-dim">YSKAR · YSR</span>
         </div>
         <div className="rounded-[20px] border border-line bg-white p-3.5

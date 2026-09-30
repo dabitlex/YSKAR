@@ -55,8 +55,8 @@ export default function HomeTab({ account, summary, mining, hashrate, decimals, 
             <img src={nutzer.foto} alt="" width={36} height={36}
                  className="h-9 w-9 rounded-full object-cover" />
           ) : (
-            <Image src="/marke/kristall.png" alt="" width={40} height={34}
-                   style={{ width: 40, height: 34, objectFit: 'contain' }} />
+            <Image src="/marke/kristall.png" alt="" width={40} height={26}
+                   style={{ width: 40, height: 26, objectFit: 'contain' }} />
           )}
           <div className="flex flex-col leading-tight">
             <span className="text-[12px] font-semibold text-faint">{gruss}</span>

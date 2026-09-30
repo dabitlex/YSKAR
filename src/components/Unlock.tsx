@@ -61,8 +61,8 @@ export default function Unlock() {
   return (
     <Screen>
       <div className="mt-8">
-        <Image src="/marke/kristall.png" alt="" width={120} height={88} priority
-               className="zoom mx-auto mb-6" style={{ width: 120, height: 88, objectFit: 'contain' }} />
+        <Image src="/marke/kristall.png" alt="" width={120} height={78} priority
+               className="zoom mx-auto mb-6" style={{ width: 120, height: 78, objectFit: 'contain' }} />
         <Title>{t.unlock.titel}</Title>
         {wallet.address && (
           <p className="mb-6 mt-3 break-all font-mono text-[12.5px] text-faint">{wallet.address}</p>

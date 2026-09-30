@@ -87,8 +87,8 @@ function Start({ onCreate, onRecover, onMehr }: {
       </div>
 
       <div className="zoom flex flex-col items-center gap-1">
-        <Image src="/marke/kristall.png" alt="" width={168} height={122} priority
-               style={{ width: 168, height: 122, objectFit: 'contain' }} />
+        <Image src="/marke/kristall.png" alt="" width={168} height={109} priority
+               style={{ width: 168, height: 109, objectFit: 'contain' }} />
         <span className="text-[12px] font-extrabold tracking-[0.22em] text-work">
           {t.start.claim}
         </span>
