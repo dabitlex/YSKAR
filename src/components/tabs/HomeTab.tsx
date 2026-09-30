@@ -31,7 +31,7 @@ function heuteEingang(history: HistoryEintrag[] | undefined, dec: number): numbe
   if (!history) return 0;
   const start = new Date(); start.setHours(0, 0, 0, 0);
   return history
-    .filter(e => e.kind !== 'out' && e.timestamp && new Date(e.timestamp) >= start)
+    .filter(e => e.kind !== 'out' && e.timestamp && Number(e.timestamp) * 1000 >= start.getTime())
     .reduce((s, e) => s + Number(e.amount), 0) / 10 ** dec;
 }
 

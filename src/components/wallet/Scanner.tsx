@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { adresseAusCode } from '@/lib/wallet/qr';
 import { telegramScan } from '@/lib/telegram/webapp';
 import { istTelegram } from '@/lib/native/plattform';
@@ -147,9 +148,11 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
   };
 
   // Waehrend Telegram scannt, ist von uns nichts zu sehen.
-  if (zustand === 'start') return null;
+  if (zustand === 'start' || typeof document === 'undefined') return null;
 
-  return (
+  // Portal an body: Der Scanner darf nie in einem Blatt oder einer Karte
+  // haengen bleiben -- er ist der ganze Bildschirm.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col text-white"
          style={{ background: 'radial-gradient(120% 80% at 50% 40%, #223452 0%, #0A0F1A 70%)' }}>
       {zustand === 'kamera' && (
@@ -236,7 +239,7 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
         </button>
       </div>
     </div>
-  );
+  , document.body);
 }
 
 function Ecke({ style }: { style: React.CSSProperties }) {

@@ -154,6 +154,8 @@ export default function AppShell({ platform }: { platform: string }) {
         )}
       </main>
 
+      <div className="schleier-oben" aria-hidden="true" />
+      <div className="schleier-unten" aria-hidden="true" />
       <BottomNav aktiv={tab} onWechsel={t => { setAnsicht(null); setTab(t); }} />
 
       {/* Senden und Empfangen sind Blaetter ueber dem Reiter -- der Rahmen
