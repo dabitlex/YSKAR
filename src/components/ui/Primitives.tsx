@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/i18n';
+
 /**
  * Bausteine der Oberflaeche.
  *
@@ -51,9 +53,10 @@ export function Body({ children }: { children: React.ReactNode }) {
 export function SubHeader({ titel, onZurueck, rechts }: {
   titel: string; onZurueck: () => void; rechts?: React.ReactNode;
 }) {
+  const { t } = useT();
   return (
     <div className="mb-5 flex items-center justify-between">
-      <button onClick={onZurueck} aria-label="Zurück"
+      <button onClick={onZurueck} aria-label={t.allgemein.zurueck}
               className="flex h-9 w-9 items-center justify-center rounded-full border
                          border-line bg-surface text-text active:scale-95">
         <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"

@@ -1,7 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
+<!-- Vorgabe Englisch, wie in der App; Deutsch in values-de. Android waehlt nach Systemsprache. -->
 <resources>
     <string name="app_name">YSKAR Wallet</string>
     <string name="title_activity_main">YSKAR Wallet</string>
     <string name="package_name">net.yskar.wallet</string>
     <string name="custom_url_scheme">net.yskar.wallet</string>
+    <string name="mining_laeuft">Mining running</string>
+    <string name="mining_kanal">Mining</string>
+    <string name="mining_kanal_text">Shows that your device is currently computing for YSKAR.</string>
+    <string name="mining_stoppen">Stop mining</string>
 </resources>

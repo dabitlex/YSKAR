@@ -122,6 +122,23 @@ Neuigkeiten mit `push=true`. Jedes Ereignis geht genau einmal je Gerät
 mehr, als die Kette weiß. Deshalb Opt-in in den Einstellungen, jederzeit
 abschaltbar; Abschalten löscht den Token beim Server.
 
+## Sprachen
+
+Die Oberfläche ist zweisprachig (Deutsch, Englisch). Alle Texte liegen in
+`src/i18n/de.ts` und `src/i18n/en.ts` mit identischen Schlüsseln — fehlt
+einer, bricht der Build. Artikel, FAQ und Neuigkeiten liegen je Sprache in
+`src/content/entdecken.<sprache>.ts`. Vorbelegung: gemerkte Wahl, sonst
+Telegram `language_code`, sonst Systemsprache, sonst Englisch. Wählbar auf
+dem ersten Bildschirm und in den Einstellungen. Push-Texte folgen der
+gemeldeten Sprache des Geräts (`push_geraete.sprache`); die
+Benachrichtigung des Mining-Dienstes folgt der Android-Systemsprache
+(`res/values`, `res/values-de`).
+
+Eine weitere Sprache: `src/i18n/<code>.ts` und
+`src/content/entdecken.<code>.ts` anlegen, in `src/i18n/index.tsx` und
+`src/content/entdecken.ts` eintragen, Texte in `src/lib/push/ereignisse.ts`
+und `native/www/offline.html` ergänzen.
+
 ## Neuigkeiten pflegen
 
 Statt im Quelltext (`src/content/entdecken.ts`) jetzt in `chain2.news`.
@@ -131,8 +148,11 @@ Anlegen per API mit dem Token aus `YSKAR_ADMIN_TOKEN` (Vercel-Umgebung):
 curl -X POST https://yskar.vercel.app/api/v2/news \
   -H "authorization: Bearer $YSKAR_ADMIN_TOKEN" \
   -H "content-type: application/json" \
-  -d '{"titel":"Pool #2 ist online","text":"…","link":"https://…","push":true}'
+  -d '{"titel":"Pool #2 ist online","text":"…","titel_en":"Pool #2 is online","text_en":"…","link":"https://…","push":true}'
 ```
+
+`titel_en`/`text_en` sind die englische Fassung (Migration 00019). Fehlt sie,
+bekommen englische Geräte den deutschen Text.
 
 `push: true` → der Watcher schickt die Meldung an alle Geräte. Ohne
 `YSKAR_ADMIN_TOKEN` in der Umgebung antwortet die Route mit 401 — dann

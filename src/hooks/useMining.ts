@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
 import { istNativ, fehlerMerken } from '@/lib/native/plattform';
+import type { Woerterbuch } from '@/i18n';
 import { miningDienstStart, miningDienstStop, miningDienstText, miningDienstBeiStopp }
   from '@/lib/native/mining';
 
@@ -104,7 +105,8 @@ export interface Fund {
 
 const HEX = (b: number[]) => b.map(x => x.toString(16).padStart(2, '0')).join('');
 
-export function useMining(address: string | null, platform: string) {
+export function useMining(address: string | null, platform: string, t: Woerterbuch) {
+  const tRef = useRef(t); tRef.current = t;
   const workers = useRef<Worker[]>([]);
   const sessionId = useRef<string | null>(null);
   const jobId = useRef<string | null>(null);
@@ -255,7 +257,7 @@ export function useMining(address: string | null, platform: string) {
         seine Arbeit werde geteilt.
       */
       if (modus === 'pool' && session.mode !== 'pool') {
-        throw new Error('Dieser Knoten betreibt keinen Pool.');
+        throw new Error(tRef.current.fehler.keinPool);
       }
       if (session.pool) setPoolInfo(session.pool);
 
@@ -307,7 +309,7 @@ export function useMining(address: string | null, platform: string) {
 
             if (!r.accepted) {
               if (r.reason === 'job_expired' || r.reason === 'stale_job') { fetchJob(); return; }
-              setFehler(`Share abgelehnt: ${r.reason}`);
+              setFehler(tRef.current.fehler.shareAbgelehnt(r.reason));
               return;
             }
             setFehler(null);
@@ -335,7 +337,7 @@ export function useMining(address: string | null, platform: string) {
       await fetchJob();
       setMining(true);
       // Android-App: Dienst starten, damit es im Hintergrund weitergeht.
-      miningDienstStart('Mining läuft')
+      miningDienstStart(tRef.current.mining.dienstText)
         .then(r => setDienst(r))
         .catch(e => { fehlerMerken('miningDienstStart', e); setDienst({ ok: false, fehler: String(e) }); });
     } catch (e) {
@@ -433,9 +435,9 @@ export function useMining(address: string | null, platform: string) {
     if (!mining || !istNativ()) return;
     const id = setInterval(() => {
       const h = hashrate;
-      const t = h >= 1e6 ? `${(h / 1e6).toFixed(2)} MH/s`
+      const r = h >= 1e6 ? `${(h / 1e6).toFixed(2)} MH/s`
         : h >= 1e3 ? `${(h / 1e3).toFixed(1)} kH/s` : `${Math.round(h)} H/s`;
-      miningDienstText(`${t} · Anteil ${duty} %`);
+      miningDienstText(tRef.current.mining.dienstRate(`${r} · ${duty} %`));
     }, 5000);
     return () => clearInterval(id);
   }, [mining, hashrate, duty]);

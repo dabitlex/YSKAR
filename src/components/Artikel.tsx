@@ -2,6 +2,7 @@
 
 import { Panel, SubHeader, Notice, Icon } from '@/components/ui/Primitives';
 import type { Artikel as ArtikelDaten, Baustein } from '@/content/entdecken';
+import { useT } from '@/i18n';
 
 /**
  * Ein Artikel aus „Entdecken". Reine Darstellung der Datenbausteine --
@@ -18,11 +19,12 @@ export const FARBE = {
 export default function Artikel({ artikel, onZurueck, unten }: {
   artikel: ArtikelDaten; onZurueck: () => void; unten?: React.ReactNode;
 }) {
+  const { t } = useT();
   return (
     <>
       <SubHeader titel="" onZurueck={onZurueck}
                  rechts={<span className="label text-work">
-                   YSKAR verstehen · {artikel.lesezeit}</span>} />
+                   {t.entdecken.lesezeit(artikel.lesezeit)}</span>} />
 
       <div className="rise">
         <span className={`inline-flex h-11 w-11 items-center justify-center rounded-[13px]

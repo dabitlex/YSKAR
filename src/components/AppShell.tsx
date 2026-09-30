@@ -15,7 +15,8 @@ import EntdeckenTab from '@/components/tabs/EntdeckenTab';
 import Artikel from '@/components/Artikel';
 import UpdateBanner from '@/components/UpdateBanner';
 import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
-import { ARTIKEL } from '@/content/entdecken';
+import { inhalte } from '@/content/entdecken';
+import { useT, type Woerterbuch } from '@/i18n';
 import Send from '@/components/wallet/Send';
 import Receive from '@/components/wallet/Receive';
 import Benchmark from '@/components/Benchmark';
@@ -39,7 +40,8 @@ type Ansicht = null | 'senden' | 'scannen' | 'empfangen' | 'einstellungen' | 'be
 
 export default function AppShell({ platform }: { platform: string }) {
   const wallet = useWallet();
-  const m = useMining(wallet.address, platform);
+  const { t, sprache, locale, zahl } = useT();
+  const m = useMining(wallet.address, platform, t);
   // Ohne das schaltet das Display ab, die Plattform haelt den Worker an,
   // und das Mining endet mitten im Job -- ohne dass jemand etwas gedrueckt
   // haette.
@@ -85,7 +87,7 @@ export default function AppShell({ platform }: { platform: string }) {
   // Android-App: Push-Anmeldung auffrischen; Tipp auf eine Meldung fuehrt
   // in die Wallet (Eingang) oder nach Entdecken (News).
   useEffect(() => {
-    if (wallet.address) pushAuffrischen(wallet.address);
+    if (wallet.address) pushAuffrischen(wallet.address, sprache);
     let ab: (() => void) | null = null;
     pushBeiTipp(art => {
       setAnsicht(null);
@@ -94,7 +96,7 @@ export default function AppShell({ platform }: { platform: string }) {
     }).then(f => { ab = f; });
     return () => { ab?.(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet.address]);
+  }, [wallet.address, sprache]);
 
   const dec = m.summary?.token?.decimals ?? 8;
   const sym = m.summary?.token?.token_symbol ?? 'YSR';
@@ -117,7 +119,8 @@ export default function AppShell({ platform }: { platform: string }) {
                      onUebernehmen={(w) => { setWorker(w); setAnsicht(null); }}
                      onErgebnis={setBench} />
         ) : ansicht && typeof ansicht === 'object' ? (
-          <Artikel artikel={ARTIKEL.find(a => a.slug === ansicht.artikel) ?? ARTIKEL[0]}
+          <Artikel artikel={inhalte(sprache, locale).ARTIKEL.find(a => a.slug === ansicht.artikel)
+                            ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
         ) : tab === 'home' ? (
           <HomeTab account={m.account} summary={m.summary} mining={m.mining}
@@ -128,7 +131,7 @@ export default function AppShell({ platform }: { platform: string }) {
                    onEntdecken={() => setTab('entdecken')}
                    onArtikel={slug => setAnsicht({ artikel: slug })} />
         ) : tab === 'mining' ? (
-          <MiningTab m={m} dec={dec} sym={sym} wach={wach}
+          <MiningTab m={m} dec={dec} sym={sym} wach={wach} t={t} zahl={zahl}
                      modus={modus} setModus={setModus}
                      poolAdresse={poolAdresse} setPoolAdresse={setPoolAdresse}
                      worker={worker} setWorker={setWorker}
@@ -170,7 +173,7 @@ export default function AppShell({ platform }: { platform: string }) {
           */}
           <div className="glow-proof pointer-events-none absolute inset-0" />
           <p className="rise relative text-[13px] font-extrabold tracking-[0.14em] text-proof">
-            BLOCK GEFUNDEN
+            {t.fund.titel}
           </p>
           <p className="zoom tnum relative mt-4 text-[64px] font-extrabold leading-none
                         tracking-[-0.04em]">#{m.fund.height}</p>
@@ -180,7 +183,7 @@ export default function AppShell({ platform }: { platform: string }) {
           <Hash value={m.fund.hash}
                 className="rise rise-3 relative mb-10 mt-8 text-[11px] leading-[1.8] opacity-60" />
           <div className="relative z-10 w-full max-w-xs">
-            <Button variant="quiet" onClick={m.dismissFund}>Weiter</Button>
+            <Button variant="quiet" onClick={m.dismissFund}>{t.fund.weiter}</Button>
           </div>
         </div>
       )}
@@ -195,10 +198,11 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdresse,
+function MiningTab({ m, dec, sym, wach, t, zahl, modus, setModus, poolAdresse, setPoolAdresse,
                      worker, setWorker,
                      kerne, workerStufen, bench, setAnsicht }: {
   m: ReturnType<typeof useMining>; dec: number; sym: string;
+  t: Woerterbuch; zahl: (n: number) => string;
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
   modus: 'solo' | 'pool';
   setModus: (v: 'solo' | 'pool') => void;
@@ -214,16 +218,16 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
   const r = rate(m.hashrate);
   return (
     <>
-      <TopBar titel="Mining" rechts={
+      <TopBar titel={t.mining.titel} rechts={
         <Status tone={m.mining ? 'work' : 'off'}>
-          {m.mining ? 'rechnet' : 'gestoppt'}
+          {m.mining ? t.mining.rechnet : t.mining.gestoppt}
         </Status>
       } />
 
       {/* Hauptflaeche: die Leistung. Sie bewegt sich jede Sekunde und
           beantwortet die einzige Frage, die beim Mining zaehlt. */}
       <Panel tone="work" className="rise">
-        <p className="label">Rechenleistung</p>
+        <p className="label">{t.mining.leistung}</p>
         <div className="mt-1 flex items-baseline gap-2 leading-none">
           <span className={`tnum text-[44px] font-extrabold tracking-[-0.03em] ${
             m.mining ? 'text-work' : 'text-faint'}`}>{r.wert}</span>
@@ -231,8 +235,8 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
         </div>
         <p className="mt-2 text-[13px] font-semibold text-dim">
           {m.mining
-            ? `${m.account?.blocksFound ?? 0} Blöcke gefunden · Anteil ${m.duty} %`
-            : 'Gestoppt — dein Gerät rechnet gerade nicht'}
+            ? t.mining.stand(m.account?.blocksFound ?? 0, m.duty)
+            : t.mining.steht}
         </p>
 
         <div className="mt-5">
@@ -242,26 +246,26 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
 
       {m.lastShare && (
         <>
-          <GroupTitle aside={`Difficulty ${Number(m.lastShare.difficulty)
-            .toLocaleString('de-DE')}`}>Letzter angenommener Share</GroupTitle>
+          <GroupTitle aside={t.mining.difficulty(zahl(Number(m.lastShare.difficulty)))}>
+            {t.mining.letzterShare}</GroupTitle>
           <Panel className="rise rise-1">
             <Hash value={m.lastShare.hash} className="text-[12.5px] leading-[1.75]" />
           </Panel>
         </>
       )}
 
-      <GroupTitle>Kette</GroupTitle>
+      <GroupTitle>{t.mining.kette}</GroupTitle>
       <Panel className="rise rise-2 !py-1">
         <dl>
-          <Row label="Guthaben" tone={Number(m.account?.balance ?? 0) > 0 ? 'proof' : undefined}
+          <Row label={t.mining.guthaben} tone={Number(m.account?.balance ?? 0) > 0 ? 'proof' : undefined}
                value={`${(Number(m.account?.balance ?? 0) / 10 ** dec).toFixed(4)} ${sym}`} />
-          <Row label="Block" value={m.summary?.height != null ? `#${m.summary.height}` : '—'} />
+          <Row label={t.mining.block} value={m.summary?.height != null ? `#${m.summary.height}` : '—'} />
           <Row label="Difficulty"
-               value={m.summary?.difficulty?.toLocaleString('de-DE') ?? '—'} />
+               value={m.summary?.difficulty != null ? zahl(m.summary.difficulty) : '—'} />
         </dl>
       </Panel>
 
-      <GroupTitle>Steuerung</GroupTitle>
+      <GroupTitle>{t.mining.steuerung}</GroupTitle>
       <Panel className="rise rise-3">
         {/*
           Solo oder Pool.
@@ -274,27 +278,27 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
           PPLNS-Fenster in der Schwebe. Wer wechseln will, stoppt zuerst.
         */}
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[13.5px] font-semibold text-dim">Modus</span>
+          <span className="text-[13.5px] font-semibold text-dim">{t.mining.modus}</span>
           <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             <button onClick={() => setModus('solo')} aria-pressed={modus === 'solo'}
                     disabled={m.mining}
                     className={`min-w-[64px] rounded-full py-1.5 text-[12.5px] font-bold
                                 transition-colors disabled:opacity-60 ${
                       modus === 'solo' ? 'bg-work text-white' : 'text-dim'}`}>
-              Solo
+              {t.mining.solo}
             </button>
             <button onClick={() => setModus('pool')} aria-pressed={modus === 'pool'}
                     disabled={m.mining}
                     className={`min-w-[64px] rounded-full py-1.5 text-[12.5px] font-bold
                                 transition-colors disabled:opacity-60 ${
                       modus === 'pool' ? 'bg-work text-white' : 'text-dim'}`}>
-              Pool
+              {t.mining.pool}
             </button>
           </div>
         </div>
 
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-[13.5px] font-semibold text-dim">Rechenanteil</span>
+          <span className="text-[13.5px] font-semibold text-dim">{t.mining.anteil}</span>
           <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             {[25, 50, 75, 100].map(v => (
               <button key={v} onClick={() => m.setDuty(v)} aria-pressed={m.duty === v}
@@ -317,8 +321,8 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
         */}
         <div className="mb-4 flex items-center justify-between">
           <span className="text-[13.5px] font-semibold text-dim">
-            Worker
-            {kerne ? <span className="ml-1.5 text-faint">von {kerne}</span> : null}
+            {t.mining.worker}
+            {kerne ? <span className="ml-1.5 text-faint">{t.mining.von(kerne)}</span> : null}
           </span>
           <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             {workerStufen.map(v => (
@@ -342,15 +346,14 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
         */}
         {modus === 'pool' && !m.mining && (
           <div className="mb-4">
-            <label htmlFor="pooladr" className="text-[13.5px] font-semibold text-dim">Pool-Adresse</label>
+            <label htmlFor="pooladr" className="text-[13.5px] font-semibold text-dim">{t.mining.poolAdresse}</label>
             <input id="pooladr" type="text" inputMode="url" spellCheck={false}
                    value={poolAdresse} onChange={e => setPoolAdresse(e.target.value)}
                    placeholder="pool.yskar.net"
                    className="sunk mt-2 w-full px-3 py-3 font-mono text-[13.5px]
                               text-text outline-none focus:border-work placeholder:text-faint" />
             <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">
-              Der Block selbst zahlt alle Beteiligten aus — niemand hält dein
-              Guthaben zwischenzeitlich. Im Explorer nachrechenbar.
+              {t.mining.poolHinweis}
             </p>
           </div>
         )}
@@ -364,18 +367,17 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
             </div>
             <div className="mt-2.5 flex flex-col gap-1.5">
               <div className="flex justify-between text-[12.5px]">
-                <span className="text-dim">Leistung</span>
+                <span className="text-dim">{t.mining.poolLeistung}</span>
                 <span className="mono">{rate(m.poolInfo.hashrate).wert} {rate(m.poolInfo.hashrate).einheit}</span>
               </div>
               <div className="flex justify-between text-[12.5px]">
-                <span className="text-dim">Miner im Pool</span>
+                <span className="text-dim">{t.mining.poolMiner}</span>
                 <span className="mono">{m.poolInfo.miner}</span>
               </div>
               <div className="flex justify-between text-[12.5px]">
-                <span className="text-dim">Gebühr</span>
+                <span className="text-dim">{t.mining.poolGebuehr}</span>
                 <span className="mono">
-                  {(m.poolInfo.feeBps / 100).toLocaleString('de-DE',
-                    { minimumFractionDigits: 2 })} %
+                  {zahl(m.poolInfo.feeBps / 100)} %
                 </span>
               </div>
             </div>
@@ -387,47 +389,41 @@ function MiningTab({ m, dec, sym, wach, modus, setModus, poolAdresse, setPoolAdr
                   : m.start(worker, modus, poolAdresse))}
                 disabled={modus === 'pool' && !m.mining && poolAdresse.trim() === ''}
                 variant={m.mining ? 'quiet' : 'primary'}>
-          {m.mining ? 'Mining stoppen' : 'Mining starten'}
+          {m.mining ? t.mining.stoppen : t.mining.starten}
         </Button>
 
         {!m.mining && (
           <button onClick={() => setAnsicht('benchmark')}
                   className="mt-3 w-full text-center text-[13px] font-bold text-work">
-            {bench
-              ? `Kalibrierung: ${bench.besteWorker} Worker empfohlen`
-              : 'Gerät kalibrieren — beste Einstellung ermitteln'}
+            {bench ? t.mining.kalibrierung(bench.besteWorker) : t.mining.kalibrieren}
           </button>
         )}
 
         {m.mining && (
           <p className="mt-3 text-center text-[12px] font-semibold text-faint">
             {m.dienst?.ok
-              ? (m.dienst.notifications
-                  ? 'Läuft im Hintergrund weiter — auch bei gesperrtem Bildschirm.'
-                  : 'Läuft im Hintergrund; die Benachrichtigung fehlt, weil sie nicht erlaubt wurde.')
+              ? (m.dienst.notifications ? t.mining.hintergrund : t.mining.hintergrundOhne)
               : m.dienst && !m.dienst.ok
-              ? `Hintergrunddienst nicht gestartet: ${m.dienst.fehler}`
+              ? t.mining.dienstFehler(m.dienst.fehler)
               : wach === 'aktiv'
-              ? 'Der Bildschirm bleibt an, solange gemint wird.'
+              ? t.mining.wach
               : wach === 'nicht_moeglich'
-              ? 'Dieses Gerät lässt den Bildschirm nicht offenhalten — sperrt er, pausiert das Mining.'
-              : 'Sperrt der Bildschirm, pausiert das Mining.'}
+              ? t.mining.wachNicht
+              : t.mining.wachAus}
           </p>
         )}
 
         {m.stumm && !m.fehler && (
           <div className="mt-4 space-y-2">
-            <Notice tone="risk">
-              Der Miner meldet seit zehn Sekunden keinen Fortschritt.
-            </Notice>
+            <Notice tone="risk">{t.mining.stumm}</Notice>
             <div className="rounded-[12px] bg-raised px-4 py-3">
               {Object.entries(m.etappen).map(([slot, e]) => (
                 <p key={slot} className="font-mono text-[11px] text-faint">
-                  Worker {slot}: {e}
+                  {t.mining.workerZeile(slot, e)}
                 </p>
               ))}
               {Object.keys(m.etappen).length === 0 && (
-                <p className="font-mono text-[11px] text-faint">keine Meldung erhalten</p>
+                <p className="font-mono text-[11px] text-faint">{t.mining.keineMeldung}</p>
               )}
             </div>
           </div>

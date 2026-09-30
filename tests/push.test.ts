@@ -10,9 +10,10 @@ import { dienstJwt, Fcm } from '../src/lib/push/fcm.ts';
 
 const A = 'ysr1qaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const B = 'ysr1qbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+// a1 deutsch, a2 englisch, b ohne Angabe (= Englisch, wie in der App).
 const GERAETE: Geraet[] = [
-  { token: 'tok-a1', address: A },
-  { token: 'tok-a2', address: A },
+  { token: 'tok-a1', address: A, sprache: 'de' },
+  { token: 'tok-a2', address: A, sprache: 'en' },
   { token: 'tok-b', address: B },
 ];
 
@@ -26,6 +27,9 @@ test('Block: Eingang meldet nur den Empfänger, je Gerät einmal', () => {
   assert.equal(e[0].schluessel, 'ok:aa');
   assert.match(e[0].nachricht.titel, /25,0000 YSR erhalten/);
   assert.match(e[0].nachricht.text, /#2\.188/);
+  // Dasselbe Ereignis auf Englisch: Punkt statt Komma, eigene Woerter.
+  assert.match(e[1].nachricht.titel, /25\.0000 YSR received/);
+  assert.match(e[1].nachricht.text, /#2,188/);
 });
 
 test('Block: Solo-Fund und Pool-Anteil', () => {
@@ -34,7 +38,7 @@ test('Block: Solo-Fund und Pool-Anteil', () => {
   ] }, GERAETE);
   assert.equal(solo.length, 1);
   assert.equal(solo[0].token, 'tok-b');
-  assert.match(solo[0].nachricht.titel, /Block #5 gefunden/);
+  assert.match(solo[0].nachricht.titel, /Block #5 found/, 'ohne Sprache: Englisch');
 
   const pool = ausBlock({ height: 6, txs: [
     { txid: 'cb', type: 'coinbase', from: null, to: null, amount: '87500000000',
@@ -43,6 +47,7 @@ test('Block: Solo-Fund und Pool-Anteil', () => {
   assert.equal(pool.length, 2);
   assert.match(pool[0].nachricht.titel, /Pool-Anteil/);
   assert.match(pool[0].nachricht.text, /600,0000 YSR/);
+  assert.match(pool[1].nachricht.titel, /Pool share/);
   assert.equal(pool[0].schluessel, 'block:6');
 });
 
@@ -54,6 +59,7 @@ test('Mempool: nur eingehende, nur für die Adresse', () => {
   assert.equal(e.length, 2);
   assert.equal(e[0].schluessel, 'in:x1');
   assert.match(e[0].nachricht.titel, /1,0000 YSR unterwegs/);
+  assert.match(e[1].nachricht.titel, /1\.0000 YSR on the way/);
   assert.equal(ausMempool('ysr1qniemand', [{ txid: 'x', kind: 'in', from: B, amount: '1' }], GERAETE).length, 0);
 });
 

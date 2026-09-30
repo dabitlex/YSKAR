@@ -159,7 +159,13 @@ Fuenf Reiter: **Home** (Guthaben, Mining-Status, Kette), **Mining**,
 **Wallet** (Senden mit QR-Scan per Kamera, Empfangen mit QR-Code),
 **Netz**, **Entdecken** (was YSKAR ist, wie es funktioniert, Roadmap, FAQ --
 die Zahlen kommen aus `src/lib/core/params.ts`, die Texte liegen in
-`src/content/entdecken.ts`).
+`src/content/entdecken.<sprache>.ts`).
+
+Zweisprachig: Deutsch und Englisch, waehlbar auf dem ersten Bildschirm und
+in den Einstellungen; Vorgabe ist die Sprache des Telegram-Kontos bzw. des
+Systems, sonst Englisch. Alle Texte der Oberflaeche liegen in `src/i18n/`
+mit identischen Schluesseln je Sprache -- fehlt einer, bricht der Build.
+Push-Benachrichtigungen kommen in der Sprache der App.
 
 Fuehrende Nullen eines Hashes sind gedimmt: Sie SIND die geleistete Arbeit,
 und gedimmt kann man sie zaehlen statt lesen.

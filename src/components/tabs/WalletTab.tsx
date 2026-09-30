@@ -5,6 +5,7 @@ import { Panel, GroupTitle, ActionButton, Icon, Empty, Button }
   from '@/components/ui/Primitives';
 import { TopBar } from '@/components/ui/Chrome';
 import type { Account, Wartend } from '@/hooks/useMining';
+import { useT } from '@/i18n';
 
 /**
  * Wallet.
@@ -23,16 +24,7 @@ export interface HistoryEintrag {
   memo?: string | null;
 }
 
-function vorZeit(ts: string | null): string {
-  if (!ts) return '';
-  const s = Math.max(0, Date.now() / 1000 - Number(ts));
-  if (s < 60) return `vor ${Math.round(s)} s`;
-  if (s < 3600) return `vor ${Math.round(s / 60)} min`;
-  if (s < 86400) return `vor ${Math.round(s / 3600)} h`;
-  return `vor ${Math.round(s / 86400)} d`;
-}
-
-const kurz = (a: string | null) => a ? `${a.slice(0, 10)}…${a.slice(-4)}` : 'unbekannt';
+const kurz = (a: string | null, sonst: string) => a ? `${a.slice(0, 10)}…${a.slice(-4)}` : sonst;
 
 export default function WalletTab({ account, symbol, decimals, address,
                                     onSenden, onScannen, onEmpfangen, onEinstellungen, onExplorer }: {
@@ -44,9 +36,10 @@ export default function WalletTab({ account, symbol, decimals, address,
   // Ausgewaehlte Transaktion. Als Ueberlagerung und nicht als eigene Seite:
   // Man will danach wieder in derselben Liste stehen, an derselben Stelle.
   const [offen, setOffen] = useState<HistoryEintrag | null>(null);
+  const { t, betrag, vorZeit } = useT();
+  const unb = t.allgemein.unbekannt;
 
-  const guthaben = Number(account?.balance ?? 0) / 10 ** decimals;
-  const [ganz, bruch] = guthaben.toFixed(4).split('.');
+  const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
   const verlauf = account?.history ?? [];
   const wartend = account?.pending ?? [];
   const unterwegs = wartend.filter(p => p.kind === 'out')
@@ -54,71 +47,69 @@ export default function WalletTab({ account, symbol, decimals, address,
 
   return (
     <>
-      <TopBar titel="Wallet" rechts={
-        <button onClick={onEinstellungen} aria-label="Einstellungen"
+      <TopBar titel={t.wallet.titel} rechts={
+        <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
                 className="flex h-9 w-9 items-center justify-center rounded-full border
                            border-line bg-surface text-dim">{Icon.Zahnrad}</button>
       } />
 
       <Panel tone="proof" className="rise">
         <div className="flex flex-col items-center text-center">
-          <p className="label">Gesamtguthaben</p>
+          <p className="label">{t.wallet.gesamt}</p>
           <div className="mt-2 flex items-baseline gap-2 leading-none">
             <span className="tnum text-[42px] font-extrabold tracking-[-0.03em] text-text">
-              {Number(ganz).toLocaleString('de-DE')}
-              <span className="text-[24px] text-faint">,{bruch}</span>
+              {g.ganz}
+              <span className="text-[24px] text-faint">{g.trenner}{g.bruch}</span>
             </span>
             <span className="text-[16px] font-bold text-faint">{symbol}</span>
           </div>
           {address && (
-            <p className="mt-2 font-mono text-[12px] text-faint">{kurz(address)}</p>
+            <p className="mt-2 font-mono text-[12px] text-faint">{kurz(address, unb)}</p>
           )}
           {unterwegs > 0 && (
             <p className="tnum mt-1.5 text-[12px] font-bold text-[#B26A00]">
-              {unterwegs.toFixed(4)} {symbol} unterwegs, noch nicht bestätigt
+              {t.wallet.unterwegs(unterwegs.toFixed(4), symbol)}
             </p>
           )}
         </div>
 
         <div className="mt-5 flex gap-1.5">
-          <ActionButton icon={Icon.Senden} label="Senden" onClick={onSenden} tone="work" />
-          <ActionButton icon={Icon.Empfangen} label="Empfangen" onClick={onEmpfangen} />
-          <ActionButton icon={Icon.Scan} label="Scannen" onClick={onScannen} />
-          <ActionButton icon={Icon.Verlauf} label="Explorer" onClick={onExplorer} />
+          <ActionButton icon={Icon.Senden} label={t.wallet.senden} onClick={onSenden} tone="work" />
+          <ActionButton icon={Icon.Empfangen} label={t.wallet.empfangen} onClick={onEmpfangen} />
+          <ActionButton icon={Icon.Scan} label={t.wallet.scannen} onClick={onScannen} />
+          <ActionButton icon={Icon.Verlauf} label={t.wallet.explorer} onClick={onExplorer} />
         </div>
       </Panel>
 
       <GroupTitle aside={wartend.length
-        ? `${wartend.length} ${wartend.length === 1 ? 'wartet' : 'warten'}`
-        : verlauf.length ? `${verlauf.length} Einträge` : undefined}>
-        Verlauf
+        ? t.wallet.wartet(wartend.length)
+        : verlauf.length ? t.wallet.eintraege(verlauf.length) : undefined}>
+        {t.wallet.verlauf}
       </GroupTitle>
 
       {verlauf.length === 0 && wartend.length === 0 ? (
-        <Empty>
-          Noch nichts passiert. Sobald du einen Block findest, steht er hier.
-        </Empty>
+        <Empty>{t.wallet.leer}</Empty>
       ) : (
         <Panel className="rise rise-1 !p-0">
           <ul className="divide-y divide-line">
             {wartend.map(p => (
               <Eintrag key={p.txid} art="wait"
-                titel={p.kind === 'out' ? `An ${kurz(p.to)}` : `Von ${kurz(p.from)}`}
+                titel={p.kind === 'out' ? t.wallet.an(kurz(p.to, unb)) : t.wallet.von(kurz(p.from, unb))}
                 unten={p.kind === 'out'
-                  ? `wartet auf Bestätigung · Gebühr ${(Number(p.fee) / 10 ** decimals).toFixed(4)}`
-                  : 'wartet auf Bestätigung · kommt mit dem nächsten Block'}
+                  ? t.wallet.wartetGebuehr((Number(p.fee) / 10 ** decimals).toFixed(4))
+                  : t.wallet.wartetBlock}
                 betrag={`${p.kind === 'out' ? '−' : '+'}${(Number(p.amount) / 10 ** decimals).toFixed(4)}`} />
             ))}
             {verlauf.map(e => (
               <Eintrag key={e.txid}
                 onClick={() => setOffen(e)}
                 art={e.kind === 'out' ? 'out' : 'in'}
-                titel={e.kind === 'reward' ? `Blockreward #${e.height}`
-                  : e.kind === 'in' ? `Von ${kurz(e.counterparty)}`
-                  : `An ${kurz(e.counterparty)}`}
+                titel={e.kind === 'reward' ? t.wallet.blockreward(e.height)
+                  : e.kind === 'in' ? t.wallet.von(kurz(e.counterparty, unb))
+                  : t.wallet.an(kurz(e.counterparty, unb))}
                 unten={vorZeit(e.timestamp) +
                   (e.kind === 'out' && Number(e.fee) > 0
-                    ? ` · Gebühr ${(Number(e.fee) / 10 ** decimals).toFixed(4)}` : '')}
+                    ? ` · ${t.wallet.gebuehr((Number(e.fee) / 10 ** decimals).toFixed(4))}` : '')}
                 betrag={`${e.kind === 'out' ? '−' : '+'}${
                   (Number(e.amount) / 10 ** decimals).toFixed(4)}`}
                 gut={e.kind !== 'out'} />
@@ -148,6 +139,7 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
   onSchliessen: () => void;
 }) {
   const [kopiert, setKopiert] = useState<string | null>(null);
+  const { t, datum } = useT();
   const betrag = Number(eintrag.amount) / 10 ** decimals;
   const gebuehr = Number(eintrag.fee) / 10 ** decimals;
   const eingang = eintrag.kind !== 'out';
@@ -160,8 +152,8 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
     } catch { /* nicht ueberall erlaubt */ }
   };
 
-  const titel = eintrag.kind === 'reward' ? 'Blockreward'
-    : eintrag.kind === 'in' ? 'Empfangen' : 'Gesendet';
+  const titel = eintrag.kind === 'reward' ? t.wallet.dBlockreward
+    : eintrag.kind === 'in' ? t.wallet.dEmpfangen : t.wallet.dGesendet;
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end bg-text/40 backdrop-blur-sm"
@@ -181,28 +173,25 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
         </div>
 
         <dl className="mt-6">
-          <Feld label="Status" wert={
-            <span className="text-proof">In Block #{eintrag.height} bestätigt</span>} />
-          <Feld label="Zeitpunkt" wert={
-            eintrag.timestamp
-              ? new Date(Number(eintrag.timestamp) * 1000).toLocaleString('de-DE')
-              : '—'} />
+          <Feld label={t.wallet.status} wert={
+            <span className="text-proof">{t.wallet.bestaetigt(eintrag.height)}</span>} />
+          <Feld label={t.wallet.zeitpunkt} wert={eintrag.timestamp ? datum(eintrag.timestamp) : '—'} />
           {eintrag.kind !== 'reward' && (
-            <Feld label={eingang ? 'Von' : 'An'} mono umbruch
-                  wert={eintrag.counterparty ?? 'unbekannt'}
+            <Feld label={eingang ? t.wallet.dVon : t.wallet.dAn} mono umbruch
+                  wert={eintrag.counterparty ?? t.allgemein.unbekannt}
                   onKopieren={eintrag.counterparty
                     ? () => kopiere('adresse', eintrag.counterparty!) : undefined}
                   kopiert={kopiert === 'adresse'} />
           )}
           {eintrag.kind === 'out' && gebuehr > 0 && (
-            <Feld label="Netzgebühr" wert={`${gebuehr.toFixed(4)} ${symbol}`} />
+            <Feld label={t.wallet.netzgebuehr} wert={`${gebuehr.toFixed(4)} ${symbol}`} />
           )}
           {eintrag.memo && (
-            <Feld label="Notiz" wert={new TextDecoder().decode(
+            <Feld label={t.wallet.notiz} wert={new TextDecoder().decode(
               Uint8Array.from(eintrag.memo.match(/../g) ?? [],
                               h => parseInt(h, 16)))} />
           )}
-          <Feld label="Transaktion" mono umbruch wert={eintrag.txid}
+          <Feld label={t.wallet.transaktion} mono umbruch wert={eintrag.txid}
                 onKopieren={() => kopiere('txid', eintrag.txid)}
                 kopiert={kopiert === 'txid'} />
         </dl>
@@ -211,9 +200,9 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
           <a href={`/explorer.html#block-${eintrag.height}`}
              className="block rounded-[14px] border border-line bg-surface py-3.5
                         text-center text-[15px] font-bold">
-            Block im Explorer ansehen
+            {t.wallet.imExplorer}
           </a>
-          <Button variant="quiet" onClick={onSchliessen}>Schließen</Button>
+          <Button variant="quiet" onClick={onSchliessen}>{t.allgemein.schliessen}</Button>
         </div>
       </div>
     </div>
@@ -224,13 +213,14 @@ function Feld({ label, wert, mono, umbruch, onKopieren, kopiert }: {
   label: string; wert: React.ReactNode; mono?: boolean; umbruch?: boolean;
   onKopieren?: () => void; kopiert?: boolean;
 }) {
+  const { t } = useT();
   return (
     <div className="border-b border-line py-3 last:border-0">
       <dt className="flex items-baseline justify-between text-[12px] font-semibold text-faint">
         {label}
         {onKopieren && (
           <button onClick={onKopieren} className="font-bold text-work">
-            {kopiert ? 'kopiert' : 'kopieren'}
+            {kopiert ? t.allgemein.kopiert : t.allgemein.kopieren}
           </button>
         )}
       </dt>

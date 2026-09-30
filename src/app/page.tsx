@@ -9,6 +9,7 @@ import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
 import { telegramFarben } from '@/lib/telegram/webapp';
 import { plattform, fehlerspeicherInstallieren } from '@/lib/native/plattform';
+import { SpracheProvider, useT } from '@/i18n';
 
 declare global {
   interface Window { Telegram?: { WebApp: any } }
@@ -16,14 +17,17 @@ declare global {
 
 export default function Page() {
   return (
-    <WalletProvider>
-      <Router />
-    </WalletProvider>
+    <SpracheProvider>
+      <WalletProvider>
+        <Router />
+      </WalletProvider>
+    </SpracheProvider>
   );
 }
 
 function Router() {
   const wallet = useWallet();
+  const { t } = useT();
   // Ohne Mindestdauer stuende das Startbild einen Frame lang: Tresor und
   // Plattform werden synchron gelesen. Der erste Eindruck der Marke darf
   // nicht davon abhaengen, wie schnell das Geraet ist.
@@ -50,12 +54,9 @@ function Router() {
     return (
       <Screen>
         <div className="mt-16">
-          <Title>YSKAR läuft in Telegram</Title>
-          <Body>
-            Die Wallet und das Mining brauchen die Mini App. Die Kette selbst
-            kannst du hier ansehen.
-          </Body>
-          <a href="/explorer.html" className="mt-4 inline-block font-bold text-work underline">Block Explorer</a>
+          <Title>{t.browser.titel}</Title>
+          <Body>{t.browser.text}</Body>
+          <a href="/explorer.html" className="mt-4 inline-block font-bold text-work underline">{t.browser.explorer}</a>
         </div>
       </Screen>
     );

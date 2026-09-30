@@ -80,7 +80,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const recover = useCallback(async (mnemonic: string, pin: string) => {
     const clean = normalizeMnemonic(mnemonic);
     if (!isValidMnemonic(clean)) {
-      return { ok: false, reason: 'Die Wörter ergeben keine gültige Wallet.' };
+      return { ok: false, reason: 'bad_mnemonic' };
     }
     const kp = keypairFromMnemonic(clean);
     vault.save(await vault.seal(clean, pin, kp.address));
@@ -92,9 +92,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const unlock = useCallback(async (pin: string) => {
     const v = vault.load();
-    if (!v) return { ok: false, reason: 'Kein Tresor auf diesem Gerät.' };
+    if (!v) return { ok: false, reason: 'no_vault' };
     const opened = await vault.unseal(v, pin);
-    if (!opened.ok) return { ok: false, reason: 'PIN stimmt nicht.' };
+    if (!opened.ok) return { ok: false, reason: 'wrong_pin' };
     const kp = keypairFromMnemonic(opened.mnemonic);
     setKeypair(kp);
     setAddress(kp.address);
@@ -111,9 +111,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   */
   const revealMnemonic = useCallback(async (pin: string) => {
     const v = vault.load();
-    if (!v) return { ok: false, reason: 'Kein Tresor auf diesem Gerät.' };
+    if (!v) return { ok: false, reason: 'no_vault' };
     const opened = await vault.unseal(v, pin);
-    if (!opened.ok) return { ok: false, reason: 'PIN stimmt nicht.' };
+    if (!opened.ok) return { ok: false, reason: 'wrong_pin' };
     return { ok: true, mnemonic: opened.mnemonic };
   }, []);
 

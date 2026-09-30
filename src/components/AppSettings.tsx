@@ -9,6 +9,7 @@ import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type Biomet
 import { appVersion, updatePruefen, updateOeffnen, type Update } from '@/lib/native/update';
 import { pushAktiv, pushEinschalten, pushAusschalten, type PushStand } from '@/lib/native/push';
 import { diagnose, type Diagnose } from '@/lib/native/diagnose';
+import { useT } from '@/i18n';
 
 /**
  * Einstellungen der Android-App: Biometrie, Version, Update-Suche.
@@ -28,6 +29,7 @@ export default function AppSettings() {
   const [update, setUpdate] = useState<Update | null | 'keins' | 'sucht'>(null);
   const [push, setPush] = useState<PushStand | 'arbeitet'>('aus');
   const [diag, setDiag] = useState<Diagnose | 'laeuft' | null>(null);
+  const { t, sprache } = useT();
 
   useEffect(() => {
     if (!istNativ()) return;
@@ -42,7 +44,7 @@ export default function AppSettings() {
     if (!wallet.address) return;
     setPush('arbeitet');
     if (pushAktiv()) { await pushAusschalten(); setPush('aus'); return; }
-    setPush(await pushEinschalten(wallet.address));
+    setPush(await pushEinschalten(wallet.address, sprache));
   };
 
   if (!nativ) return null;
@@ -52,10 +54,10 @@ export default function AppSettings() {
     // Die PIN wird gegen den Tresor geprueft, bevor sie hinterlegt wird --
     // eine falsche PIN im geschuetzten Speicher waere ein stiller Fehler.
     const probe = await wallet.revealMnemonic(pin);
-    if (!probe.ok) { setFehler('PIN stimmt nicht.'); setPin(''); setBusy(false); return; }
-    const ok = await biometrieAktivieren(pin);
+    if (!probe.ok) { setFehler(t.fehler.pinFalsch); setPin(''); setBusy(false); return; }
+    const ok = await biometrieAktivieren(pin, t.app.bioGrund);
     setPin(''); setPinFrage(false); setBusy(false);
-    if (!ok) { setFehler('Biometrie wurde nicht bestätigt.'); return; }
+    if (!ok) { setFehler(t.app.bioNicht); return; }
     setBio(await biometrieStand());
   };
 
@@ -72,36 +74,36 @@ export default function AppSettings() {
 
   return (
     <>
-      <p className="label mb-2 mt-6">Sicherheit</p>
+      <p className="label mb-2 mt-6">{t.app.sicherheit}</p>
       <ul className="mt-2 border-t border-line">
         <li className="flex items-center justify-between gap-3 border-b border-line py-3">
           <span className="flex flex-col">
-            <span className="text-[13.5px] font-bold">Fingerabdruck / Gesicht</span>
+            <span className="text-[13.5px] font-bold">{t.app.biometrie}</span>
             <span className="text-[12px] font-semibold text-faint">
               {bio === null ? '…'
                 : !bio.verfuegbar
-                  ? (bio.grund === 'kein_sensor' ? `Kein Sensor gemeldet.${bio.detail ? ` (${bio.detail})` : ''}`
-                     : bio.grund === 'fehler' ? `Plugin-Fehler: ${bio.detail ?? 'unbekannt'}`
-                     : `Im Android-System nicht eingerichtet.${bio.detail ? ` (${bio.detail})` : ''}`)
-                  : bio.aktiv ? 'Zum Entsperren und Senden aktiv.' : 'Aus — PIN wird verlangt.'}
+                  ? (bio.grund === 'kein_sensor' ? `${t.app.keinSensor}${bio.detail ? ` (${bio.detail})` : ''}`
+                     : bio.grund === 'fehler' ? t.app.pluginFehler(bio.detail ?? t.allgemein.unbekannt)
+                     : `${t.app.nichtEingerichtet}${bio.detail ? ` (${bio.detail})` : ''}`)
+                  : bio.aktiv ? t.app.bioAktiv : t.app.bioAus}
             </span>
           </span>
           {bio === null && (
             <button onClick={() => biometrieStand().then(setBio)
                        .catch(e => setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }))}
-                    className="text-[13px] font-bold text-work">Neu prüfen</button>
+                    className="text-[13px] font-bold text-work">{t.app.neuPruefen}</button>
           )}
           {bio?.verfuegbar && (
             bio.aktiv
-              ? <button onClick={ausschalten} className="text-[13px] font-bold text-risk">Ausschalten</button>
-              : <button onClick={() => setPinFrage(true)} className="text-[13px] font-bold text-work">Einschalten</button>
+              ? <button onClick={ausschalten} className="text-[13px] font-bold text-risk">{t.allgemein.ausschalten}</button>
+              : <button onClick={() => setPinFrage(true)} className="text-[13px] font-bold text-work">{t.allgemein.einschalten}</button>
           )}
         </li>
       </ul>
 
       {pinFrage && (
         <div className="panel mt-3 p-4">
-          <Body>Zum Einschalten einmal die PIN eingeben. Sie wird im geschützten Speicher des Geräts hinterlegt und nur nach bestätigter Biometrie gelesen.</Body>
+          <Body>{t.app.bioPinText}</Body>
           <input inputMode="numeric" maxLength={6} value={pin} autoFocus
                  onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
                  className="tnum sunk mt-4 w-full px-4 py-4 text-center font-mono text-xl
@@ -109,58 +111,58 @@ export default function AppSettings() {
           {fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
           <div className="mt-4 space-y-2">
             <Button onClick={einschalten} disabled={pin.length !== 6 || busy}>
-              {busy ? 'Wird eingerichtet…' : 'Biometrie einschalten'}
+              {busy ? t.app.bioEinrichten : t.app.bioEinschalten}
             </Button>
-            <Button variant="quiet" onClick={() => { setPinFrage(false); setPin(''); setFehler(null); }}>Abbrechen</Button>
+            <Button variant="quiet" onClick={() => { setPinFrage(false); setPin(''); setFehler(null); }}>{t.allgemein.abbrechen}</Button>
           </div>
         </div>
       )}
       {!pinFrage && fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
 
-      <p className="label mb-2 mt-6">Benachrichtigungen</p>
+      <p className="label mb-2 mt-6">{t.app.benachrichtigungen}</p>
       <ul className="mt-2 border-t border-line">
         <li className="flex items-center justify-between gap-3 border-b border-line py-3">
           <span className="flex flex-col">
-            <span className="text-[13.5px] font-bold">Wallet-Eingänge und Neuigkeiten</span>
+            <span className="text-[13.5px] font-bold">{t.app.pushTitel}</span>
             <span className="text-[12px] font-semibold text-faint">
-              {push === 'an' ? 'An — auch wenn die App geschlossen ist.'
-                : push === 'verweigert' ? 'Android hat die Erlaubnis verweigert. In den System-Einstellungen freigeben.'
+              {push === 'an' ? t.app.pushAn
+                : push === 'verweigert' ? t.app.pushVerweigert
                 : push === 'arbeitet' ? '…'
-                : 'Aus. Beim Einschalten wird deine Adresse mit diesem Gerät beim Server angemeldet.'}
+                : t.app.pushAus}
             </span>
           </span>
           <button onClick={pushUmschalten} disabled={push === 'arbeitet'}
                   className={`text-[13px] font-bold ${push === 'an' ? 'text-risk' : 'text-work'}`}>
-            {push === 'an' ? 'Ausschalten' : 'Einschalten'}
+            {push === 'an' ? t.allgemein.ausschalten : t.allgemein.einschalten}
           </button>
         </li>
       </ul>
 
-      <p className="label mb-2 mt-6">App</p>
+      <p className="label mb-2 mt-6">{t.app.app}</p>
       <ul className="mt-2 border-t border-line">
         <li className="flex items-center justify-between border-b border-line py-3">
-          <span className="text-[13.5px] font-bold">Version</span>
+          <span className="text-[13.5px] font-bold">{t.app.version}</span>
           <span className="tnum text-[13.5px] font-semibold text-dim">
             {version ? `${version.version} (${version.build})` : '—'}
           </span>
         </li>
         <li className="flex items-center justify-between border-b border-line py-3">
-          <span className="text-[13.5px] font-bold">Updates</span>
-          {update === 'sucht' ? <span className="text-[13px] font-semibold text-faint">sucht…</span>
-            : update === 'keins' ? <span className="text-[13px] font-semibold text-proof">aktuell</span>
+          <span className="text-[13.5px] font-bold">{t.app.updates}</span>
+          {update === 'sucht' ? <span className="text-[13px] font-semibold text-faint">{t.app.sucht}</span>
+            : update === 'keins' ? <span className="text-[13px] font-semibold text-proof">{t.app.aktuell}</span>
             : update && typeof update === 'object'
               ? <button onClick={() => updateOeffnen(update.url)} className="text-[13px] font-bold text-work">
-                  {update.version} laden</button>
-              : <button onClick={suchen} className="text-[13px] font-bold text-work">Jetzt prüfen</button>}
+                  {t.app.laden(update.version)}</button>
+              : <button onClick={suchen} className="text-[13px] font-bold text-work">{t.app.jetztPruefen}</button>}
         </li>
       </ul>
-      <p className="label mb-2 mt-6">Diagnose</p>
+      <p className="label mb-2 mt-6">{t.app.diagnose}</p>
       <ul className="mt-2 border-t border-line">
         <li className="flex items-center justify-between border-b border-line py-3">
-          <span className="text-[13.5px] font-bold">Native Brücke prüfen</span>
+          <span className="text-[13.5px] font-bold">{t.app.bruecke}</span>
           <button onClick={async () => { setDiag('laeuft'); try { setDiag(await diagnose()); } catch (e) { fehlerMerken('diagnose', e); setDiag(await diagnose().catch(() => null)); } }}
                   disabled={diag === 'laeuft'} className="text-[13px] font-bold text-work">
-            {diag === 'laeuft' ? 'prüft…' : 'Ausführen'}
+            {diag === 'laeuft' ? t.app.prueft : t.app.ausfuehren}
           </button>
         </li>
       </ul>

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Screen, Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import { biometrieAktiv, biometriePin, biometrieDeaktivieren } from '@/lib/native/biometrie';
+import { useT, fehlerText } from '@/i18n';
 
 /**
  * Entsperren.
@@ -22,11 +23,12 @@ export default function Unlock() {
   const [zeigeNotausgang, setZeigeNotausgang] = useState(false);
   const [bio, setBio] = useState(false);
   const bioVersucht = useRef(false);
+  const { t } = useT();
 
   const oeffnen = async () => {
     setBusy(true); setFehler(null);
     const r = await wallet.unlock(pin);
-    if (!r.ok) { setFehler(r.reason ?? 'Fehlgeschlagen.'); setPin(''); setBusy(false); }
+    if (!r.ok) { setFehler(fehlerText(r.reason, t)); setPin(''); setBusy(false); }
   };
 
   /*
@@ -37,12 +39,12 @@ export default function Unlock() {
   */
   const mitBiometrie = async () => {
     setBusy(true); setFehler(null);
-    const p = await biometriePin('Wallet entsperren');
+    const p = await biometriePin(t.unlock.bioGrund);
     if (!p) { setBusy(false); return; }
     const r = await wallet.unlock(p);
     if (!r.ok) {
       await biometrieDeaktivieren(); setBio(false);
-      setFehler('Die hinterlegte PIN passt nicht mehr — Biometrie wurde abgeschaltet. Bitte PIN eingeben.');
+      setFehler(t.unlock.bioWeg);
       setBusy(false);
     }
   };
@@ -61,7 +63,7 @@ export default function Unlock() {
       <div className="mt-8">
         <Image src="/marke/kristall.png" alt="" width={120} height={88} priority
                className="zoom mx-auto mb-6" style={{ width: 120, height: 88, objectFit: 'contain' }} />
-        <Title>PIN eingeben</Title>
+        <Title>{t.unlock.titel}</Title>
         {wallet.address && (
           <p className="mb-6 mt-3 break-all font-mono text-[12.5px] text-faint">{wallet.address}</p>
         )}
@@ -78,7 +80,7 @@ export default function Unlock() {
 
         <div className="mt-6 space-y-3">
           <Button onClick={oeffnen} disabled={pin.length !== 6 || busy}>
-            {busy ? 'Wird geöffnet…' : 'Öffnen'}
+            {busy ? t.unlock.oeffnet : t.unlock.oeffnen}
           </Button>
           {bio && (
             <Button variant="quiet" onClick={mitBiometrie} disabled={busy}>
@@ -86,7 +88,7 @@ export default function Unlock() {
                    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 6.5a8 8 0 0 1 12 0M3.5 10a10 10 0 0 1 15 0M7 13a5 5 0 0 1 8 0M11 11v6M8.5 16.5a4 4 0 0 0 5 0" />
               </svg>
-              Mit Fingerabdruck / Gesicht entsperren
+              {t.unlock.biometrie}
             </Button>
           )}
         </div>
@@ -96,21 +98,17 @@ export default function Unlock() {
             onClick={() => setZeigeNotausgang(true)}
             className="mt-8 w-full text-center text-[13.5px] font-bold text-dim"
           >
-            PIN vergessen
+            {t.unlock.vergessen}
           </button>
         ) : (
           <div className="mt-8 space-y-4">
-            <Notice tone="risk">
-              Die PIN lässt sich nicht zurücksetzen. Du kannst diesen Tresor
-              nur löschen und die Wallet mit deinen zwölf Wörtern neu
-              einrichten. Ohne die Wörter ist das Guthaben verloren.
-            </Notice>
+            <Notice tone="risk">{t.unlock.notausgang}</Notice>
             <Button variant="risk" onClick={() => {
-              if (confirm('Tresor auf diesem Gerät löschen? Ohne deine zwölf Wörter kommst du danach nicht mehr an dein Guthaben.')) {
+              if (confirm(t.unlock.loeschenFrage)) {
                 wallet.forget();
               }
             }}>
-              Tresor löschen
+              {t.unlock.loeschen}
             </Button>
           </div>
         )}
