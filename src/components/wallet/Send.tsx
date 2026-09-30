@@ -19,7 +19,8 @@ interface Markt {
   hinweis: string;
 }
 import { toHex } from '@/lib/core/codec';
-import { Button, Notice, SubHeader, Icon } from '@/components/ui/Primitives';
+import { Button, Notice, Icon } from '@/components/ui/Primitives';
+import { BlattKopf } from '@/components/ui/Bausteine';
 import Scanner from '@/components/wallet/Scanner';
 import { biometrieAktiv, biometriePin } from '@/lib/native/biometrie';
 import type { Account } from '@/hooks/useMining';
@@ -210,7 +211,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   if (schritt === 'pruefen') {
     return (
       <>
-        <SubHeader titel={t.senden.pruefenTitel} onZurueck={() => setSchritt('formular')} />
+        <BlattKopf titel={t.senden.pruefenTitel} onZurueck={() => setSchritt('formular')} art="zurueck" />
 
         <div className="panel rise p-5">
           <p className="label">{t.senden.duSendest}</p>
@@ -292,7 +293,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   }
   return (
     <>
-      <SubHeader titel={t.senden.titel} onZurueck={onAbbruch}
+      <BlattKopf titel={t.senden.titel} onZurueck={onAbbruch}
                  rechts={<span className="tnum text-[12.5px] font-bold text-dim">
                    {fmt(guthaben)} {symbol}</span>} />
 

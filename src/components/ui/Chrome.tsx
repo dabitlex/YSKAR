@@ -35,9 +35,9 @@ export function BottomNav({ aktiv, onWechsel }: {
 }) {
   const { t } = useT();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line
-                    rand-unten bg-surface/95 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-md gap-1 px-2 py-1.5">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 rand-unten">
+      <div className="mx-auto max-w-md px-[14px] pb-3">
+      <div className="tabs pointer-events-auto flex gap-0.5 rounded-[26px] p-1.5">
         {PUNKTE.map(p => {
           const an = aktiv === p.key;
           return (
@@ -45,18 +45,19 @@ export function BottomNav({ aktiv, onWechsel }: {
               key={p.key}
               onClick={() => onWechsel(p.key)}
               aria-current={an ? 'page' : undefined}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-[12px] py-2
-                          transition-colors ${an ? 'text-work' : 'text-faint active:bg-raised'}`}
+              className={`flex flex-1 flex-col items-center gap-[3px] rounded-[18px] pb-1.5 pt-[7px]
+                          transition-colors ${an ? 'bg-work/10 text-work' : 'text-faint active:bg-raised'}`}
             >
               <svg viewBox="0 0 22 22" width="22" height="22" fill="none"
                    stroke="currentColor" strokeWidth={an ? 2 : 1.7}
                    strokeLinecap="round" strokeLinejoin="round">
                 {p.pfad}
               </svg>
-              <span className="text-[10.5px] font-bold">{t.nav[p.key]}</span>
+              <span className={`text-[10.5px] ${an ? 'font-extrabold' : 'font-bold'}`}>{t.nav[p.key]}</span>
             </button>
           );
         })}
+      </div>
       </div>
     </nav>
   );
@@ -66,7 +67,7 @@ export function BottomNav({ aktiv, onWechsel }: {
 export function TopBar({ titel, rechts }: { titel: string; rechts?: React.ReactNode }) {
   return (
     <header className="mb-4 flex items-center justify-between">
-      <h1 className="text-[22px] font-extrabold tracking-[-0.02em]">{titel}</h1>
+      <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{titel}</h1>
       {rechts}
     </header>
   );

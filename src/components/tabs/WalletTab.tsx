@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel, GroupTitle, ActionButton, Icon, Empty, Button }
-  from '@/components/ui/Primitives';
-import { TopBar } from '@/components/ui/Chrome';
+import { Icon, Button } from '@/components/ui/Primitives';
+import { Zahl, Etikett, Karte, Segment, Identicon } from '@/components/ui/Bausteine';
 import type { Account, Wartend } from '@/hooks/useMining';
 import { useT } from '@/i18n';
 
@@ -36,87 +35,122 @@ export default function WalletTab({ account, symbol, decimals, address,
   // Ausgewaehlte Transaktion. Als Ueberlagerung und nicht als eigene Seite:
   // Man will danach wieder in derselben Liste stehen, an derselben Stelle.
   const [offen, setOffen] = useState<HistoryEintrag | null>(null);
+  const [filter, setFilter] = useState<'alle' | 'in' | 'out'>('alle');
+  const [kopiert, setKopiert] = useState(false);
   const { t, betrag, vorZeit } = useT();
   const unb = t.allgemein.unbekannt;
 
   const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
-  const verlauf = account?.history ?? [];
-  const wartend = account?.pending ?? [];
-  const unterwegs = wartend.filter(p => p.kind === 'out')
+  const verlauf = (account?.history ?? []).filter(e =>
+    filter === 'alle' || (filter === 'out' ? e.kind === 'out' : e.kind !== 'out'));
+  const wartend = (account?.pending ?? []).filter(p => filter === 'alle' || p.kind === filter);
+  const unterwegs = (account?.pending ?? []).filter(p => p.kind === 'out')
     .reduce((s, p) => s + Number(p.amount) + Number(p.fee), 0) / 10 ** decimals;
+
+  // Nach Tagen gruppieren: Heute, Gestern, Frueher.
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const gestern = new Date(heute); gestern.setDate(gestern.getDate() - 1);
+  const gruppe = (ts: string | null) => {
+    if (!ts) return t.wallet.frueher;
+    const d = new Date(ts);
+    return d >= heute ? t.wallet.heute : d >= gestern ? t.wallet.gestern : t.wallet.frueher;
+  };
+  const gruppen: { name: string; eintraege: HistoryEintrag[] }[] = [];
+  for (const e of verlauf) {
+    const n = gruppe(e.timestamp);
+    const letzte = gruppen[gruppen.length - 1];
+    if (letzte && letzte.name === n) letzte.eintraege.push(e); else gruppen.push({ name: n, eintraege: [e] });
+  }
+
+  const kopiere = async () => {
+    if (!address) return;
+    try { await navigator.clipboard.writeText(address); setKopiert(true); setTimeout(() => setKopiert(false), 1600); } catch { /* egal */ }
+  };
 
   return (
     <>
-      <TopBar titel={t.wallet.titel} rechts={
+      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
+      <header className="relative mb-5 flex items-center justify-between">
+        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.wallet.titel}</h1>
         <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="flex h-9 w-9 items-center justify-center rounded-full border
-                           border-line bg-surface text-dim">{Icon.Zahnrad}</button>
-      } />
+                className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text">{Icon.Zahnrad}</button>
+      </header>
 
-      <Panel tone="proof" className="rise">
-        <div className="flex flex-col items-center text-center">
-          <p className="label">{t.wallet.gesamt}</p>
-          <div className="mt-2 flex items-baseline gap-2 leading-none">
-            <span className="tnum text-[42px] font-extrabold tracking-[-0.03em] text-text">
-              {account ? g.ganz : '—'}
-              {account && <span className="text-[24px] text-faint">{g.trenner}{g.bruch}</span>}
-            </span>
-            <span className="text-[16px] font-bold text-faint">{symbol}</span>
-          </div>
-          {address && (
-            <p className="mt-2 font-mono text-[12px] text-faint">{kurz(address, unb)}</p>
-          )}
-          {unterwegs > 0 && (
-            <p className="tnum mt-1.5 text-[12px] font-bold warte-text">
-              {t.wallet.unterwegs(unterwegs.toFixed(4), symbol)}
-            </p>
-          )}
+      <section className="relative rise flex flex-col items-center gap-2.5 text-center">
+        <Identicon adresse={address} size={64} />
+        <div className="mt-1">
+          {account
+            ? <Zahl ganz={g.ganz} bruch={g.bruch} trenner={g.trenner} einheit={symbol} size={46} className="justify-center" />
+            : <Zahl ganz="—" einheit={symbol} size={46} className="justify-center" />}
+        </div>
+        {address && (
+          <button onClick={kopiere}
+                  className="panel inline-flex items-center gap-2 !rounded-full py-[7px] pl-3.5 pr-3 text-dim">
+            <span className="font-mono text-[12.5px]">{kopiert ? t.allgemein.kopiert : kurz(address, unb)}</span>
+            <span className="text-work">{Icon.Kopieren}</span>
+          </button>
+        )}
+        {unterwegs > 0 && (
+          <p className="tnum text-[12px] font-bold warte-text">
+            {t.wallet.unterwegs(unterwegs.toFixed(4), symbol)}
+          </p>
+        )}
+      </section>
+
+      <div className="rise rise-1 mt-5 grid grid-cols-2 gap-2.5">
+        <Button onClick={onSenden}>{Icon.Senden}{t.wallet.senden}</Button>
+        <Button variant="quiet" onClick={onEmpfangen}>{Icon.Empfangen}{t.wallet.empfangen}</Button>
+      </div>
+      <div className="rise rise-1 mt-2.5 grid grid-cols-2 gap-2.5">
+        <button onClick={onScannen} className="panel flex items-center justify-center gap-2 !rounded-[16px] py-2.5 text-[13px] font-extrabold text-dim">{Icon.Scan}{t.wallet.scannen}</button>
+        <button onClick={onExplorer} className="panel flex items-center justify-center gap-2 !rounded-[16px] py-2.5 text-[13px] font-extrabold text-dim">{Icon.Verlauf}{t.wallet.explorer}</button>
+      </div>
+
+      <Karte className="rise rise-2 mt-5 px-[18px] pt-4 pb-1">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[15px] font-extrabold">{t.wallet.verlauf}</span>
+          <Segment label={t.wallet.verlauf} wert={filter} onChange={setFilter}
+                   werte={[{ v: 'alle', text: t.wallet.alle }, { v: 'in', text: t.wallet.eingaenge }, { v: 'out', text: t.wallet.ausgaenge }]} />
         </div>
 
-        <div className="mt-5 flex gap-1.5">
-          <ActionButton icon={Icon.Senden} label={t.wallet.senden} onClick={onSenden} tone="work" />
-          <ActionButton icon={Icon.Empfangen} label={t.wallet.empfangen} onClick={onEmpfangen} />
-          <ActionButton icon={Icon.Scan} label={t.wallet.scannen} onClick={onScannen} />
-          <ActionButton icon={Icon.Verlauf} label={t.wallet.explorer} onClick={onExplorer} />
-        </div>
-      </Panel>
-
-      <GroupTitle aside={wartend.length
-        ? t.wallet.wartet(wartend.length)
-        : verlauf.length ? t.wallet.eintraege(verlauf.length) : undefined}>
-        {t.wallet.verlauf}
-      </GroupTitle>
-
-      {verlauf.length === 0 && wartend.length === 0 ? (
-        <Empty>{t.wallet.leer}</Empty>
-      ) : (
-        <Panel className="rise rise-1 !p-0">
-          <ul className="divide-y divide-line">
+        {verlauf.length === 0 && wartend.length === 0 ? (
+          <p className="py-6 text-center text-[13.5px] font-semibold leading-relaxed text-dim">{t.wallet.leer}</p>
+        ) : (
+          <ul>
+            {wartend.length > 0 && <Etikett className="block pb-1 pt-3">{t.wallet.wartet(wartend.length)}</Etikett>}
             {wartend.map(p => (
-              <Eintrag key={p.txid} art="wait"
+              <Eintrag key={p.txid} art="wait" adresse={p.kind === 'out' ? p.to : p.from}
                 titel={p.kind === 'out' ? t.wallet.an(kurz(p.to, unb)) : t.wallet.von(kurz(p.from, unb))}
                 unten={p.kind === 'out'
                   ? t.wallet.wartetGebuehr((Number(p.fee) / 10 ** decimals).toFixed(4))
                   : t.wallet.wartetBlock}
-                betrag={`${p.kind === 'out' ? '−' : '+'}${(Number(p.amount) / 10 ** decimals).toFixed(4)}`} />
+                betrag={`${p.kind === 'out' ? '−' : '+'}${(Number(p.amount) / 10 ** decimals).toFixed(4)}`} symbol={symbol} />
             ))}
-            {verlauf.map(e => (
-              <Eintrag key={e.txid}
-                onClick={() => setOffen(e)}
-                art={e.kind === 'out' ? 'out' : 'in'}
-                titel={e.kind === 'reward' ? t.wallet.blockreward(e.height)
-                  : e.kind === 'in' ? t.wallet.von(kurz(e.counterparty, unb))
-                  : t.wallet.an(kurz(e.counterparty, unb))}
-                unten={vorZeit(e.timestamp) +
-                  (e.kind === 'out' && Number(e.fee) > 0
-                    ? ` · ${t.wallet.gebuehr((Number(e.fee) / 10 ** decimals).toFixed(4))}` : '')}
-                betrag={`${e.kind === 'out' ? '−' : '+'}${
-                  (Number(e.amount) / 10 ** decimals).toFixed(4)}`}
-                gut={e.kind !== 'out'} />
+            {gruppen.map(gr => (
+              <li key={gr.name}>
+                <Etikett className="block pb-1 pt-3">{gr.name}</Etikett>
+                <ul>
+                  {gr.eintraege.map(e => (
+                    <Eintrag key={e.txid}
+                      onClick={() => setOffen(e)}
+                      art={e.kind === 'out' ? 'out' : 'in'}
+                      adresse={e.kind === 'reward' ? `reward-${e.height}` : e.counterparty}
+                      titel={e.kind === 'reward' ? t.wallet.blockreward(e.height)
+                        : e.kind === 'in' ? t.wallet.von(kurz(e.counterparty, unb))
+                        : t.wallet.an(kurz(e.counterparty, unb))}
+                      unten={vorZeit(e.timestamp) +
+                        (e.kind === 'out' && Number(e.fee) > 0
+                          ? ` · ${t.wallet.gebuehr((Number(e.fee) / 10 ** decimals).toFixed(4))}` : '')}
+                      betrag={`${e.kind === 'out' ? '−' : '+'}${
+                        (Number(e.amount) / 10 ** decimals).toFixed(4)}`} symbol={symbol}
+                      gut={e.kind !== 'out'} />
+                  ))}
+                </ul>
+              </li>
             ))}
           </ul>
-        </Panel>
-      )}
+        )}
+      </Karte>
 
       {offen && (
         <Detail eintrag={offen} decimals={decimals} symbol={symbol}
@@ -230,35 +264,30 @@ function Feld({ label, wert, mono, umbruch, onKopieren, kopiert }: {
   );
 }
 
-function Eintrag({ art, titel, unten, betrag, gut, onClick }: {
-  art: 'in' | 'out' | 'wait'; titel: string; unten: string;
-  betrag: string; gut?: boolean; onClick?: () => void;
+function Eintrag({ art, adresse, titel, unten, betrag, symbol, gut, onClick }: {
+  art: 'in' | 'out' | 'wait'; adresse: string | null; titel: string; unten: string;
+  betrag: string; symbol: string; gut?: boolean; onClick?: () => void;
 }) {
-  const look = art === 'in' ? 'bg-proof/10 text-proof'
-    : art === 'wait' ? 'warte' : 'bg-raised text-text';
+  const { t } = useT();
   const Zeile = onClick ? 'button' : 'div';
   return (
     <li>
     <Zeile onClick={onClick}
-      className={`flex w-full items-center gap-3 px-4 py-3.5 text-left ${
-        onClick ? 'active:bg-raised/60' : ''}`}>
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center
-                        rounded-full text-[15px] ${look}`}>
-        {art === 'in' ? '↓' : art === 'out' ? '↑' : (
-          <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor"
-               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7.5" /><path d="M11 7.5v4l2.5 1.5" />
-          </svg>)}
+      className={`flex w-full items-center gap-3 border-t border-line py-3 text-left ${
+        onClick ? 'active:opacity-70' : ''}`}>
+      <Identicon adresse={adresse} size={40} />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex items-center gap-1.5 truncate text-[14px] font-extrabold">
+          {titel}
+          {art === 'wait' && <span className="warte rounded-full px-1.5 py-0.5 text-[10px] font-extrabold">{t.wallet.wartetKurz}</span>}
+        </span>
+        <span className="truncate font-mono text-[11.5px] text-faint">{unten}</span>
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-bold">{titel}</span>
-        <span className="mt-0.5 block text-[12px] font-semibold text-faint">{unten}</span>
+      <span className="flex flex-col items-end gap-0.5">
+        <span className={`tnum whitespace-nowrap text-[14.5px] font-extrabold ${
+          art === 'wait' ? 'text-faint' : gut ? 'text-proof' : 'text-text'}`}>{betrag}</span>
+        <span className="text-[11px] font-bold text-faint">{symbol}</span>
       </span>
-      <span className={`tnum whitespace-nowrap text-[14px] font-bold ${
-        art === 'wait' ? 'text-faint' : gut ? 'text-proof' : 'text-text'}`}>
-        {betrag}
-      </span>
-      {onClick && <span className="text-faint">›</span>}
     </Zeile>
     </li>
   );

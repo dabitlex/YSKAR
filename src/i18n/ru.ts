@@ -149,6 +149,10 @@ const ru = {
   },
 
   home: {
+    laeuft: (w: number) => `работает · воркеров: ${w}`,
+    sharesZiel: (s: number, z: string) => `шар: ${s} · цель ${z}`,
+    heute: (b: string, sym: string) => `+${b} ${sym} сегодня`,
+    naechster: 'Следующий блок',
     morgen: 'Доброе утро',
     tag: 'Добрый день',
     abend: 'Добрый вечер',
@@ -172,6 +176,17 @@ const ru = {
   },
 
   mining: {
+    seit: (min: number) => `работает ${min} мин`,
+    zumZiel: 'до цели',
+    letzte: 'Последние 90 секунд',
+    schnitt: (r: string) => `Ø ${r}`,
+    aktivitaet: 'Активность',
+    shareAngenommen: 'Шара принята',
+    ueberZiel: 'выше цели',
+    neuerJob: 'Новое задание',
+    shares: (n: number) => `шар: ${n}`,
+    bloecke: (n: number) => `блоков: ${n}`,
+    nochKeine: 'Пока нет активности — как только шара будет принята, она появится здесь.',
     titel: 'Майнинг',
     rechnet: 'работает',
     gestoppt: 'остановлен',
@@ -232,6 +247,13 @@ const ru = {
   },
 
   wallet: {
+    wartetKurz: 'ожидает',
+    heute: 'Сегодня',
+    gestern: 'Вчера',
+    frueher: 'Ранее',
+    alle: 'Все',
+    eingaenge: 'Входящие',
+    ausgaenge: 'Исходящие',
     titel: 'Кошелёк',
     gesamt: 'Общий баланс',
     unterwegs: (b: string, sym: string) => `${b} ${sym} в пути, ещё не подтверждено`,
@@ -331,6 +353,7 @@ const ru = {
   },
 
   netz: {
+    zielKurz: 'из 10 мин',
     titel: 'Сеть',
     hoehe: 'Текущая высота',
     naechster: (min: number) => `следующий через ≈ ${min} мин`,

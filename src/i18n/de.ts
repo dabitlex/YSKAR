@@ -153,6 +153,10 @@ const de = {
   },
 
   home: {
+    laeuft: (w: number) => `läuft · ${w} Worker`,
+    sharesZiel: (s: number, z: string) => `${s} Shares · Ziel ${z}`,
+    heute: (b: string, sym: string) => `+${b} ${sym} heute`,
+    naechster: 'Nächster Block',
     morgen: 'Guten Morgen',
     tag: 'Guten Tag',
     abend: 'Guten Abend',
@@ -176,6 +180,17 @@ const de = {
   },
 
   mining: {
+    seit: (min: number) => `läuft seit ${min} min`,
+    zumZiel: 'zum Ziel',
+    letzte: 'Letzte 90 Sekunden',
+    schnitt: (r: string) => `Ø ${r}`,
+    aktivitaet: 'Aktivität',
+    shareAngenommen: 'Share angenommen',
+    ueberZiel: 'über Ziel',
+    neuerJob: 'Neuer Job',
+    shares: (n: number) => `${n} Shares`,
+    bloecke: (n: number) => `${n} Blöcke`,
+    nochKeine: 'Noch keine Aktivität — sobald ein Share angenommen ist, steht er hier.',
     titel: 'Mining',
     rechnet: 'rechnet',
     gestoppt: 'gestoppt',
@@ -236,6 +251,13 @@ const de = {
   },
 
   wallet: {
+    wartetKurz: 'wartet',
+    heute: 'Heute',
+    gestern: 'Gestern',
+    frueher: 'Früher',
+    alle: 'Alle',
+    eingaenge: 'Eingänge',
+    ausgaenge: 'Ausgänge',
     titel: 'Wallet',
     gesamt: 'Gesamtguthaben',
     unterwegs: (b: string, sym: string) => `${b} ${sym} unterwegs, noch nicht bestätigt`,
@@ -335,6 +357,7 @@ const de = {
   },
 
   netz: {
+    zielKurz: 'von 10 min',
     titel: 'Netz',
     hoehe: 'Aktuelle Höhe',
     naechster: (min: number) => `nächster in ≈ ${min} min`,

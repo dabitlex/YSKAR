@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Panel, GroupTitle, Empty, Status, Kennzahl } from '@/components/ui/Primitives';
-import { TopBar } from '@/components/ui/Chrome';
+import { Panel, GroupTitle, Empty } from '@/components/ui/Primitives';
 import type { Summary } from '@/hooks/useMining';
 import { useT } from '@/i18n';
+import { Zahl, Etikett, Kachel, Pille, Ring } from '@/components/ui/Bausteine';
 
 /**
  * Netz.
@@ -65,37 +65,30 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
 
   return (
     <>
-      <TopBar titel={t.netz.titel} rechts={
-        <Status tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? t.allgemein.live : t.allgemein.laedt}</Status>
-      } />
+      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
+      <header className="relative mb-5 flex items-center justify-between">
+        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.netz.titel}</h1>
+        <Pille tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? t.allgemein.live : t.allgemein.laedt}</Pille>
+      </header>
 
-      <Panel tone="work" className="rise">
-        <p className="label">{t.netz.hoehe}</p>
-        <div className="mt-2 flex items-baseline gap-2.5 leading-none">
-          <span className="tnum text-[40px] font-extrabold tracking-[-0.03em]">
-            #{summary?.height != null ? zahl(summary.height) : '—'}
-          </span>
-          <span className="text-[13.5px] font-semibold text-dim">
-            {rest == null ? '' : rest > 0 ? t.netz.naechster(rest) : t.netz.jederzeit}
+      <section className="relative rise flex items-center justify-between gap-3 px-0.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Etikett>{t.netz.hoehe}</Etikett>
+          <Zahl ganz={`#${summary?.height != null ? zahl(summary.height) : '—'}`} size={50} />
+          <span className="text-[13px] font-bold text-dim">
+            {rest == null ? t.netz.zielzeit : rest > 0 ? t.netz.naechster(rest) : t.netz.jederzeit}
           </span>
         </div>
-        <div className="bar mt-4"><i style={{ width: `${Math.max(2, fortschritt)}%` }} /></div>
-        <p className="mt-2 text-[12px] font-semibold text-faint">
-          {t.netz.zielzeit}{seitMin != null ? t.netz.seitLetztem(seitMin) : ''}
-        </p>
-      </Panel>
+        <Ring anteil={fortschritt / 100} oben={seitMin != null ? `${seitMin}′` : '—'} unten={t.netz.zielKurz} size={108} />
+      </section>
 
-      <Panel className="rise rise-1 mt-3.5">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
-          <Kennzahl label={t.netz.difficulty}
-                    wert={summary?.difficulty != null ? zahl(summary.difficulty) : '—'} />
-          <Kennzahl label={t.netz.hashrate} wert={rate(summary?.hashrate ?? null)} />
-          <Kennzahl label={t.netz.aktiveMiner} wert={String(summary?.activeMiners ?? 0)} />
-          <Kennzahl label={t.netz.umlauf}
-                    wert={`${zahl(Number(summary?.totalSupply ?? 0) / 10 ** decimals,
-                      { maximumFractionDigits: 0 })} ${symbol}`} />
-        </dl>
-      </Panel>
+      <div className="rise rise-1 mt-5 grid grid-cols-2 gap-2.5">
+        <Kachel label={t.netz.difficulty} wert={summary?.difficulty != null ? zahl(summary.difficulty) : '—'} />
+        <Kachel label={t.netz.hashrate} wert={rate(summary?.hashrate ?? null)} />
+        <Kachel label={t.netz.aktiveMiner} wert={String(summary?.activeMiners ?? 0)} />
+        <Kachel label={t.netz.umlauf}
+                wert={`${zahl(Number(summary?.totalSupply ?? 0) / 10 ** decimals, { maximumFractionDigits: 0 })} ${symbol}`} />
+      </div>
 
       <GroupTitle aside={<a href="/explorer.html" className="font-bold text-work">{t.netz.explorer}</a>}>
         {t.netz.letzte}

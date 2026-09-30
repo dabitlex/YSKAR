@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Button, Notice, SubHeader, Icon } from '@/components/ui/Primitives';
+import { Button, Notice, Icon } from '@/components/ui/Primitives';
+import { BlattKopf } from '@/components/ui/Bausteine';
 import { useT } from '@/i18n';
 
 /**
@@ -32,7 +33,7 @@ export default function Receive({ address, onZurueck }: {
 
   return (
     <div className="text-center">
-      <SubHeader titel={t.empfangen.titel} onZurueck={onZurueck} />
+      <BlattKopf titel={t.empfangen.titel} onZurueck={onZurueck} />
 
       <div className="panel rise flex flex-col items-center gap-4 px-5 py-6">
         <div className="flex items-center gap-2">

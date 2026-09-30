@@ -8,6 +8,7 @@ import { Screen, Title, Body, Button, Notice, Icon } from '@/components/ui/Primi
 import Vorstellung from '@/components/Vorstellung';
 import WortFelder, { istWort } from '@/components/wallet/WortFelder';
 import { useT, SPRACHEN, fehlerText as grund } from '@/i18n';
+import { useThema } from '@/lib/useThema';
 
 /**
  * Wallet einrichten.
@@ -64,17 +65,24 @@ function Start({ onCreate, onRecover, onMehr }: {
   onCreate: () => void; onRecover: () => void; onMehr: () => void;
 }) {
   const { t, sprache, setSprache } = useT();
+  const { dunkel } = useThema();
   return (
-    <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-7"
-          style={{ background: 'linear-gradient(180deg, rgb(var(--surface)) 0%, rgb(var(--ink)) 42%)' }}>
+    <main className="relative mx-auto flex min-h-dvh max-w-md flex-col overflow-hidden bg-ink">
+      {/* Das Markenbild oben, in den Grund auslaufend. */}
+      <div className="absolute inset-x-0 top-0 h-[56dvh]">
+        <Image src={dunkel ? '/marke/splash-dunkel.jpg' : '/marke/splash.jpg'} alt="" fill priority sizes="100vw"
+               style={{ objectFit: 'cover', objectPosition: dunkel ? 'center 0%' : 'center 24%' }} />
+        <div className="absolute inset-x-0 bottom-0 h-[55%]"
+             style={{ background: 'linear-gradient(180deg, transparent, rgb(var(--ink)))' }} />
+      </div>
+
       {/*
         Sprachwahl ganz oben, vor allem anderen: Wer die Sprache nicht
         versteht, kann den Rest nicht beurteilen. Namen in der jeweiligen
         Sprache selbst, keine Flaggen -- Sprache ist kein Land.
       */}
-      <div className="flex justify-end">
-        <label className="flex items-center gap-1.5 rounded-full border border-line bg-surface
-                          py-1.5 pl-3 pr-2.5 text-[12.5px] font-bold text-dim">
+      <div className="rand-oben relative flex justify-end px-6">
+        <label className="tabs flex items-center gap-1.5 !rounded-full py-1.5 pl-3 pr-2.5 text-[12.5px] font-bold text-dim">
           <svg viewBox="0 0 22 22" width="15" height="15" fill="none" stroke="currentColor"
                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="8.5" /><path d="M2.5 11h17M11 2.5c2.5 2.6 3.7 5.4 3.7 8.5s-1.2 5.9-3.7 8.5c-2.5-2.6-3.7-5.4-3.7-8.5S8.5 5.1 11 2.5z" />
@@ -87,53 +95,41 @@ function Start({ onCreate, onRecover, onMehr }: {
         </label>
       </div>
 
-      <div className="zoom flex flex-col items-center gap-1">
-        <Image src="/marke/kristall.png" alt="" width={168} height={109} priority
-               style={{ width: 168, height: 109, objectFit: 'contain' }} />
-        <span className="text-[12px] font-extrabold tracking-[0.22em] text-work">
-          {t.start.claim}
-        </span>
-      </div>
-
-      <div className="rise mt-4">
-        <Title>{t.start.titel}</Title>
-        <Body>{t.start.text}</Body>
-      </div>
-
-      <div className="rise rise-1 mt-5 flex flex-col gap-2">
-        <Merkmal icon={Icon.Blitz} titel={t.start.m1t}>{t.start.m1}</Merkmal>
-        <Merkmal icon={Icon.Schloss} titel={t.start.m2t}>{t.start.m2}</Merkmal>
-        <Merkmal icon={Icon.Haken} titel={t.start.m3t}>{t.start.m3}</Merkmal>
-      </div>
-
       <div className="flex-1" />
 
-      <div className="rise rise-2 mt-6 space-y-2.5">
-        <Button onClick={onCreate}>{t.start.erstellen}</Button>
-        <Button variant="quiet" onClick={onRecover}>{t.start.habeWoerter}</Button>
-        <button onClick={onMehr}
-                className="mt-1 w-full text-center text-[13.5px] font-bold text-work">
-          {t.start.mehr}
-        </button>
+      <div className="relative flex flex-col gap-5 px-6 pb-[calc(28px+var(--unten))]">
+        <div className="rise">
+          <h1 className="text-[34px] font-extrabold leading-[1.08] tracking-[-0.03em]">{t.start.titel}</h1>
+          <p className="mt-2.5 text-[15px] font-semibold leading-[1.5] text-dim">{t.start.text}</p>
+        </div>
+
+        <div className="rise rise-1 flex flex-wrap gap-2">
+          <Merkmal icon={Icon.Blitz}>{t.start.m1t}</Merkmal>
+          <Merkmal icon={Icon.Schloss}>{t.start.m2t}</Merkmal>
+          <Merkmal icon={Icon.Haken}>{t.start.m3t}</Merkmal>
+        </div>
+
+        <div className="rise rise-2 space-y-2.5">
+          <Button onClick={onCreate} className="!h-14 !rounded-[18px] !text-[16px]">{t.start.erstellen}</Button>
+          <Button variant="quiet" onClick={onRecover} className="!rounded-[18px]">{t.start.habeWoerter}</Button>
+          <button onClick={onMehr}
+                  className="mt-1 w-full text-center text-[13.5px] font-bold text-work">
+            {t.start.mehr}
+          </button>
+        </div>
       </div>
     </main>
   );
 }
 
-function Merkmal({ icon, titel, children }: {
-  icon: React.ReactNode; titel: string; children: React.ReactNode;
-}) {
+function Merkmal({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex items-start gap-3.5 rounded-[18px] border border-line bg-surface px-4 py-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px]
-                       bg-work/10 text-work">{icon}</span>
-      <span className="flex flex-col gap-0.5">
-        <span className="text-[14.5px] font-bold">{titel}</span>
-        <span className="text-[13px] font-medium leading-[1.5] text-dim">{children}</span>
-      </span>
-    </div>
+    <span className="panel inline-flex items-center gap-1.5 !rounded-full py-2 pl-2.5 pr-3 text-[12px] font-extrabold">
+      <span className="text-work [&>svg]:h-[15px] [&>svg]:w-[15px]">{icon}</span>{children}
+    </span>
   );
 }
+
 
 // ---------------------------------------------------------------- Warnung
 

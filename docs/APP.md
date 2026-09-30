@@ -175,6 +175,17 @@ Minuten selbst `/api/v2/account/<adresse>` und `/api/v2/summary`
 (`YskarWidget`, `WidgetDaten`). Die Mining-Werte gibt es nur aus der App;
 sie entstehen im WebView.
 
+## Gestaltung, zweite Generation
+
+Bausteine in `src/components/ui/Bausteine.tsx`: `Zahl` (grosse Zahl,
+Nachkommastellen gedimmt), `Etikett`, `Karte`, `Kachel`, `Aktion`, `Pille`,
+`Segment`, `Kurve` (Hashrate-Verlauf, 90 s aus `useMining().hashVerlauf`),
+`Ring`, `Identicon` (Farbkachel aus der Adresse, kein Sicherheitsmerkmal),
+`Blatt` (Bottom-Sheet) und `BlattKopf`. Regel: Die eine Zahl eines
+Bildschirms steht auf dem Grund, Karten sind fuer Sekundaeres; Radien ab
+16 px; schwebende Tab-Leiste; Senden und Empfangen sind Blaetter ueber dem
+Reiter. Die alten Primitives bleiben fuer Onboarding, Einstellungen, Artikel.
+
 ## Darstellung: hell und dunkel
 
 Einstellungen -> Darstellung: System / Hell / Dunkel, gemerkt unter
