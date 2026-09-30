@@ -7,6 +7,7 @@ import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import type { Woerterbuch } from '@/i18n';
 import { vorgeladen } from '@/lib/vorladen';
 import { widgetMelden } from '@/lib/native/widget';
+import { protokoll } from '@/lib/miningProtokoll';
 import { miningDienstStart, miningDienstStop, miningDienstText, miningDienstBeiStopp }
   from '@/lib/native/mining';
 
@@ -207,11 +208,29 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     return body;
   }, []);
 
+  // Wann der letzte Job kam, und ob gerade einer geholt wird. Die Erneuerung
+  // haengt nicht mehr allein an setInterval: Im Hintergrund drosselt der
+  // WebView Timer, die Meldungen der Worker kommen aber weiter -- an denen
+  // haengt die Erneuerung jetzt zusaetzlich.
+  const jobZeit = useRef(0);
+  const jobHolt = useRef(false);
+
   const fetchJob = useCallback(async () => {
-    if (!sessionId.current) return null;
-    const job = await api(`/job?session=${sessionId.current}`);
+    if (!sessionId.current || jobHolt.current) return null;
+    jobHolt.current = true;
+    let job;
+    try {
+      job = await api(`/job?session=${sessionId.current}`);
+    } catch (e) {
+      protokoll(`job FEHLER ${String((e as Error)?.message ?? e)}`);
+      throw e;
+    } finally {
+      jobHolt.current = false;
+    }
+    jobZeit.current = Date.now();
     jobId.current = job.jobId;
     shareDifficulty.current = Number(job.shareDifficulty);
+    protokoll(`job ${String(job.jobId).slice(0, 8)} hoehe ${job.height ?? '?'} ziel ${job.shareDifficulty}${document.hidden ? ' (hintergrund)' : ''}`);
     workers.current.forEach(w => w.postMessage({ t: 'job', job }));
     return job;
   }, [api]);
@@ -224,6 +243,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
   }, []);
 
   const stop = useCallback(async () => {
+    if (workers.current.length) protokoll('stop');
     workers.current.forEach(w => { w.postMessage({ t: 'stop' }); w.terminate(); });
     workers.current = [];
     setMining(false);
@@ -260,6 +280,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
         body: JSON.stringify({ address, platform, mode: modus }),
       });
       sessionId.current = session.sessionId;
+      protokoll(`session ${String(session.sessionId).slice(0, 8)} ${modus} ${workerCount} worker`);
 
       /*
         Der Knoten sagt, in welchem Modus die Sitzung laeuft. Wer Pool
@@ -290,6 +311,8 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
           if (e.data.t === 'progress') {
             const jetzt = Date.now();
             lastProgress.current = jetzt;
+            // Job-Erneuerung an der Worker-Meldung, unabhaengig von Timern.
+            if (jetzt - jobZeit.current > 40_000) fetchJob().catch(() => {});
             // Der Worker liefert Hashes UND das Zeitfenster mit -- daraus
             // ergibt sich die Rate ohne jede Annahme ueber den Takt.
             const spanne = Math.max(1, e.data.ms ?? 1000);
@@ -304,6 +327,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
               sessionId: sessionId.current, jobId: e.data.jobId, nonce: e.data.nonce,
             }),
           }).then(r => {
+            protokoll(`share ${r.accepted ? 'ok' : 'abgelehnt ' + r.reason}${r.block ? ' BLOCK' : ''}${document.hidden ? ' (hintergrund)' : ''}`);
             // Auch abgelehnte Versuche gehoeren ins Bild: Sie zeigen, dass
             // gearbeitet wurde, und wo die Schwelle liegt.
             if (r.accepted) sharesGesamt.current += 1;
@@ -331,7 +355,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
               setFund({ height: r.height, reward: r.reward, hash: r.hash });
               fetchJob();
             }
-          }).catch(err => setFehler(String(err.message ?? err)));
+          }).catch(err => { protokoll(`share FEHLER ${String(err.message ?? err)}`); setFehler(String(err.message ?? err)); });
         };
         // Ein Worker, der beim Laden scheitert, meldet sich sonst nie wieder.
         w.onerror = ev => {
@@ -434,7 +458,10 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     // dort laeuft es im Hintergrund weiter. Im Browser und in Telegram haelt
     // die Plattform den Worker ohnehin an, also sauber stoppen.
     const nativ = istNativ();
-    const onHide = () => { if (document.hidden && mining && !nativ) stop(); };
+    const onHide = () => {
+      if (mining) protokoll(document.hidden ? 'app im hintergrund' : 'app wieder sichtbar');
+      if (document.hidden && mining && !nativ) stop();
+    };
     document.addEventListener('visibilitychange', onHide);
     if (!nativ) window.addEventListener('pagehide', stop);
     return () => {

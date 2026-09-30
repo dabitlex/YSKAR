@@ -1,6 +1,7 @@
 'use client';
 
 import { istNativ, letzteFehler } from './plattform';
+import { protokollLesen } from '@/lib/miningProtokoll';
 
 /**
  * Diagnose der nativen Bruecke -- fuer die Einstellungen der Android-App.
@@ -18,6 +19,7 @@ export interface Diagnose {
   speicher: string;
   miningDienst: string;
   fehler: string[];
+  mining: string[];
 }
 
 async function probe(fn: () => Promise<unknown>): Promise<string> {
@@ -33,6 +35,7 @@ export async function diagnose(): Promise<Diagnose> {
     plugins: Object.keys(cap?.Plugins ?? {}),
     appInfo: '', biometrie: '', speicher: '', miningDienst: '',
     fehler: letzteFehler(),
+    mining: protokollLesen(40),
   };
   if (!istNativ()) return d;
   d.appInfo = await probe(async () => (await import('@capacitor/app')).App.getInfo());

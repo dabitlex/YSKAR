@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useAutoSperre } from '@/hooks/useAutoSperre';
 import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
 import { Panel, GroupTitle, Button, Hash, Status, Notice, Row }
   from '@/components/ui/Primitives';
@@ -46,6 +47,8 @@ export default function AppShell({ platform }: { platform: string }) {
   // und das Mining endet mitten im Job -- ohne dass jemand etwas gedrueckt
   // haette.
   const wach = useWakeLock(m.mining);
+  // Sperre nach Zeit im Hintergrund -- das Mining laeuft darunter weiter.
+  useAutoSperre(wallet.phase === 'offen', wallet.lock);
   const [tab, setTab] = useState<Tab>('home');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
 

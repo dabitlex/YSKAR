@@ -26,6 +26,8 @@ export type WalletPhase = 'laden' | 'kein_tresor' | 'gesperrt' | 'offen';
 
 interface WalletState {
   phase: WalletPhase;
+  /** In dieser Sitzung schon einmal entsperrt -- dann liegt die Sperre als Ebene ueber der App. */
+  sitzung: boolean;
   address: string | null;
   keypair: Keypair | null;
   /** Nur direkt nach dem Erstellen gesetzt, bis der Nutzer bestaetigt hat. */
@@ -49,6 +51,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [keypair, setKeypair] = useState<Keypair | null>(null);
   const [freshMnemonic, setFreshMnemonic] = useState<string | null>(null);
+  const [sitzung, setSitzung] = useState(false);
 
   useEffect(() => {
     const v = vault.load();
@@ -73,6 +76,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setAddress(kp.address);
     setFreshMnemonic(null);
     setPhase('offen');
+    setSitzung(true);
   }, [freshMnemonic]);
 
   const discardFresh = useCallback(() => setFreshMnemonic(null), []);
@@ -87,6 +91,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setKeypair(kp);
     setAddress(kp.address);
     setPhase('offen');
+    setSitzung(true);
     return { ok: true };
   }, []);
 
@@ -99,6 +104,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setKeypair(kp);
     setAddress(kp.address);
     setPhase('offen');
+    setSitzung(true);
     return { ok: true };
   }, []);
 
@@ -129,12 +135,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setKeypair(null);
     setAddress(null);
     setFreshMnemonic(null);
+    setSitzung(false);
     setPhase('kein_tresor');
   }, []);
 
   return (
     <Ctx.Provider value={{
-      phase, address, keypair, freshMnemonic,
+      phase, sitzung, address, keypair, freshMnemonic,
       create, confirmAndSeal, discardFresh, recover, unlock, revealMnemonic,
       lock, forget,
     }}>

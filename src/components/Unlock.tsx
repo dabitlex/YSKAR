@@ -16,7 +16,7 @@ import { vorladen } from '@/lib/vorladen';
  * einem Neuladen ist er weg -- deshalb erscheint dieser Bildschirm, und
  * deshalb ist er absichtlich kurz.
  */
-export default function Unlock() {
+export default function Unlock({ ebene = false }: { ebene?: boolean }) {
   const wallet = useWallet();
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
@@ -63,7 +63,7 @@ export default function Unlock() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
+  const inhalt = (
     <Screen>
       <div className="mt-8">
         <Image src="/marke/kristall.png" alt="" width={120} height={78} priority
@@ -120,4 +120,8 @@ export default function Unlock() {
       </div>
     </Screen>
   );
+  // Als Ebene ueber der laufenden App: deckt alles ab, auch die Navigation.
+  return ebene
+    ? <div className="fixed inset-0 z-[70] overflow-y-auto bg-ink">{inhalt}</div>
+    : inhalt;
 }
