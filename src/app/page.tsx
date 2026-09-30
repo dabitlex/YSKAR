@@ -77,6 +77,14 @@ function Router() {
     return <Splash />;
   }
   if (wallet.phase === 'kein_tresor') return <Onboarding />;
-  if (wallet.phase === 'gesperrt') return <Unlock />;
-  return <AppShell platform={platform ?? ''} />;
+  // Erste Sperre der Sitzung: nur der PIN-Bildschirm. Spaetere Sperren
+  // (automatisch nach dem Hintergrund) legen sich UEBER die laufende App,
+  // damit das Mining darunter weiterlaeuft.
+  if (wallet.phase === 'gesperrt' && !wallet.sitzung) return <Unlock />;
+  return (
+    <>
+      <AppShell platform={platform ?? ''} />
+      {wallet.phase === 'gesperrt' && <Unlock ebene />}
+    </>
+  );
 }

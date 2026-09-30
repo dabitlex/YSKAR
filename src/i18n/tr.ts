@@ -386,6 +386,11 @@ const tr = {
     entfernenText: 'Şifreli kelimeler bu cihazdan silinir. Bakiyen zincirde kalır — ama ona yalnızca on iki kelimenle yeniden ulaşabilirsin.',
     entfernenWarnung: 'Kelimeler olmadan bakiye geri getirilemez şekilde kaybolur. Bizim üzerimizden bir kurtarma yolu yoktur.',
     notiert: 'On iki kelimemi güvenli bir yere yazdım.',
+    sperre: 'Otomatik kilit',
+    sperreText: 'Uygulama bu kadar süre arka planda kalınca cüzdanı kilitler. Madencilik devam eder.',
+    sperreSofort: 'Hemen',
+    sperreNie: 'Asla',
+    sperreMin: (n: number) => `${n} min`,
   },
 
   app: {

@@ -390,6 +390,11 @@ const de = {
     entfernenText: 'Die verschlüsselten Wörter werden von diesem Gerät gelöscht. Dein Guthaben bleibt in der Kette — aber du kommst nur mit deinen zwölf Wörtern wieder heran.',
     entfernenWarnung: 'Ohne die Wörter ist das Guthaben unwiederbringlich verloren. Es gibt keine Wiederherstellung über uns.',
     notiert: 'Ich habe meine zwölf Wörter sicher notiert.',
+    sperre: 'Automatisch sperren',
+    sperreText: 'Sperrt die Wallet, wenn die App so lange im Hintergrund war. Das Mining läuft dabei weiter.',
+    sperreSofort: 'Sofort',
+    sperreNie: 'Nie',
+    sperreMin: (n: number) => `${n} min`,
   },
 
   app: {

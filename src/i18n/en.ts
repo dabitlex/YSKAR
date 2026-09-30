@@ -386,6 +386,11 @@ const en = {
     entfernenText: 'The encrypted words are deleted from this device. Your balance stays on the chain — but you can only get back to it with your twelve words.',
     entfernenWarnung: 'Without the words, the balance is lost for good. There is no recovery through us.',
     notiert: 'I have safely written down my twelve words.',
+    sperre: 'Auto-lock',
+    sperreText: 'Locks the wallet after the app has been in the background this long. Mining keeps running.',
+    sperreSofort: 'Immediately',
+    sperreNie: 'Never',
+    sperreMin: (n: number) => `${n} min`,
   },
 
   app: {

@@ -386,6 +386,11 @@ const es = {
     entfernenText: 'Las palabras cifradas se borran de este dispositivo. Tu saldo sigue en la cadena, pero solo podrás recuperarlo con tus doce palabras.',
     entfernenWarnung: 'Sin las palabras, el saldo se pierde para siempre. No hay recuperación a través de nosotros.',
     notiert: 'He anotado mis doce palabras en un lugar seguro.',
+    sperre: 'Bloqueo automático',
+    sperreText: 'Bloquea la wallet cuando la app ha estado en segundo plano este tiempo. La minería sigue.',
+    sperreSofort: 'Al instante',
+    sperreNie: 'Nunca',
+    sperreMin: (n: number) => `${n} min`,
   },
 
   app: {

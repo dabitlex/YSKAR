@@ -178,7 +178,8 @@ App:         ${diag.appInfo}
 Biometrie:   ${diag.biometrie}
 Speicher:    ${diag.speicher}
 MiningDienst:${diag.miningDienst}
-Fehler:      ${diag.fehler.length ? '\n  ' + diag.fehler.join('\n  ') : 'keine'}`}
+Fehler:      ${diag.fehler.length ? '\n  ' + diag.fehler.join('\n  ') : 'keine'}
+Mining:      ${diag.mining.length ? '\n  ' + diag.mining.join('\n  ') : '—'}`}
         </pre>
       )}
 

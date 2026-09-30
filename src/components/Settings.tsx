@@ -5,6 +5,7 @@ import { useWallet } from '@/lib/wallet/useWallet';
 import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import AppSettings from '@/components/AppSettings';
 import { useT, fehlerText, SPRACHEN } from '@/i18n';
+import { SPERRE_STUFEN, sperreLesen, sperreSetzen } from '@/hooks/useAutoSperre';
 
 /**
  * Einstellungen.
@@ -23,6 +24,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
   const [fehler, setFehler] = useState<string | null>(null);
   const [bestaetigt, setBestaetigt] = useState(false);
   const { t, sprache, setSprache } = useT();
+  const [sperre, setSperre] = useState<number>(() => sperreLesen());
 
   if (modus === 'woerter') {
     return (
@@ -130,6 +132,18 @@ export default function Settings({ onZurueck, anteil, workers }: {
           </span>
         </li>
       </ul>
+
+      <p className="label mt-6 mb-2">{t.einstellungen.sperre}</p>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t.einstellungen.sperre}>
+        {SPERRE_STUFEN.map(ms => (
+          <button key={ms} onClick={() => { sperreSetzen(ms); setSperre(ms); }} aria-pressed={sperre === ms}
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
+                    sperre === ms ? 'border-work bg-work/10 text-work' : 'border-line bg-surface text-dim'}`}>
+            {ms === 0 ? t.einstellungen.sperreSofort : ms < 0 ? t.einstellungen.sperreNie : t.einstellungen.sperreMin(ms / 60_000)}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">{t.einstellungen.sperreText}</p>
 
       <p className="label mt-6 mb-2">{t.einstellungen.mining}</p>
       <ul className="mt-2 border-t border-line">

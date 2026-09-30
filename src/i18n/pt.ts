@@ -386,6 +386,11 @@ const pt = {
     entfernenText: 'As palavras criptografadas serão apagadas deste aparelho. Seu saldo continua na cadeia — mas você só volta a acessá-lo com suas doze palavras.',
     entfernenWarnung: 'Sem as palavras, o saldo está perdido para sempre. Não existe recuperação por nós.',
     notiert: 'Anotei minhas doze palavras em lugar seguro.',
+    sperre: 'Bloqueio automático',
+    sperreText: 'Bloqueia a carteira quando o app ficou em segundo plano por esse tempo. A mineração continua.',
+    sperreSofort: 'Imediato',
+    sperreNie: 'Nunca',
+    sperreMin: (n: number) => `${n} min`,
   },
 
   app: {
