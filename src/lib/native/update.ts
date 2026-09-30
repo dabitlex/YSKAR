@@ -81,3 +81,47 @@ export async function updateOeffnen(url: string): Promise<void> {
     window.open(url, '_blank');
   }
 }
+
+/**
+ * Update aus der App heraus (Android): APK laden, Installer oeffnen.
+ *
+ * "erlaubnis": Android will erst die Freigabe "Apps aus dieser Quelle
+ * installieren" -- die Einstellungsseite ist schon offen, danach erneut
+ * tippen. null: Huelle ohne dieses Plugin -> Browser-Weg.
+ */
+export type LadeStand = { status: 'laedt' | 'erlaubnis' | 'fertig' | 'fehler' | 'keins'; prozent: number };
+
+interface UpdatePlugin {
+  laden(o: { url: string; version: string }): Promise<{ status: 'laedt' | 'erlaubnis' }>;
+  stand(): Promise<LadeStand>;
+  installieren(): Promise<void>;
+}
+
+async function updatePlugin(): Promise<{ p: UpdatePlugin } | null> {
+  if (!istNativ()) return null;
+  const { registerPlugin } = await import('@capacitor/core');
+  return { p: registerPlugin<UpdatePlugin>('AppUpdate') };
+}
+
+export async function updateLaden(u: Update): Promise<LadeStand | null> {
+  const h = await updatePlugin();
+  if (!h) return null;
+  try {
+    const r = await h.p.laden({ url: u.url, version: u.version });
+    return { status: r.status, prozent: 0 };
+  } catch {
+    return null;
+  }
+}
+
+export async function updateStand(): Promise<LadeStand | null> {
+  const h = await updatePlugin();
+  if (!h) return null;
+  try { return await h.p.stand(); } catch { return null; }
+}
+
+export async function updateInstallieren(): Promise<boolean> {
+  const h = await updatePlugin();
+  if (!h) return false;
+  try { await h.p.installieren(); return true; } catch { return false; }
+}

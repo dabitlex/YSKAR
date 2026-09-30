@@ -426,6 +426,10 @@ const pt = {
     updateText: (v: string) => `Você tem a ${v}. Toque para baixar.`,
     updateLaden: 'Baixar',
     spaeter: 'Depois',
+    updateLaedt: (p: number) => `Baixando… ${p} %`,
+    updateErlaubnis: 'Permita “Instalar apps desta fonte” e toque de novo.',
+    updateInstallieren: 'Baixado — abrir instalador',
+    updateFehler: 'O download falhou. Baixe pelo navegador.',
   },
 
   bench: {

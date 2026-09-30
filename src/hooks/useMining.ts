@@ -6,6 +6,7 @@ import { MINER_WASM_URL } from '@/lib/minerWasm';
 import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import type { Woerterbuch } from '@/i18n';
 import { vorgeladen } from '@/lib/vorladen';
+import { widgetMelden } from '@/lib/native/widget';
 import { miningDienstStart, miningDienstStop, miningDienstText, miningDienstBeiStopp }
   from '@/lib/native/mining';
 
@@ -129,6 +130,8 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
   // ist die Aussage "wie nah war ich" -- sie kommt vom Server, weil nur er
   // den Hash nachgerechnet hat.
   const [shares, setShares] = useState<ShareEntry[]>([]);
+  // Angenommene Shares seit dem Start -- das Diagramm behaelt nur die letzten 44.
+  const sharesGesamt = useRef(0);
   const [duty, setDuty] = useState(50);
   // Mit den Werten aus dem Vorladen beginnen (Startbild), statt mit null:
   // Sonst zeigt der erste Bildschirm "0,0000", bis der erste Takt kommt.
@@ -243,6 +246,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     if (!address) return;
     setFehler(null);
     setShares([]);
+    sharesGesamt.current = 0;
     setPoolInfo(null);
 
     // Die Adresse fuer diesen Lauf festlegen, BEVOR der erste Aufruf geht.
@@ -302,6 +306,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
           }).then(r => {
             // Auch abgelehnte Versuche gehoeren ins Bild: Sie zeigen, dass
             // gearbeitet wurde, und wo die Schwelle liegt.
+            if (r.accepted) sharesGesamt.current += 1;
             if (r.achieved) {
               setShares(prev => [...prev, {
                 achieved: Number(r.achieved),
@@ -412,6 +417,16 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     return () => clearInterval(id);
   }, [leseApi, address]);
 
+  // Android-Widget: Konto und Kette melden, sobald sie da sind.
+  useEffect(() => {
+    if (!istNativ() || !address || !account) return;
+    widgetMelden({
+      address, balance: account.balance, blocksFound: account.blocksFound,
+      ...(summary?.height != null ? { height: summary.height } : {}),
+      ...(summary?.difficulty != null ? { difficulty: summary.difficulty } : {}),
+    });
+  }, [address, account, summary]);
+
   // Sauber stoppen, wenn die App in den Hintergrund geht. Die Plattform
   // haelt den Worker ohnehin an -- ohne das bliebe die Session offen.
   useEffect(() => {
@@ -445,8 +460,8 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     "Mining laeuft". Jetzt: Werte in Refs, ein einziger Takt je Lauf, und
     die erste Meldung, sobald die erste Rate da ist.
   */
-  const stand = useRef({ hashrate: 0, duty: 50 });
-  stand.current = { hashrate, duty };
+  const stand = useRef({ hashrate: 0, duty: 50, shares: 0, ziel: 0 });
+  stand.current = { hashrate, duty, shares: sharesGesamt.current, ziel: shareDifficulty.current ?? 0 };
   useEffect(() => {
     if (!mining || !istNativ()) return;
     let zuletzt = 0;
@@ -455,6 +470,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
       const r = h >= 1e6 ? `${(h / 1e6).toFixed(2)} MH/s`
         : h >= 1e3 ? `${(h / 1e3).toFixed(1)} kH/s` : `${Math.round(h)} H/s`;
       miningDienstText(tRef.current.mining.dienstRate(`${r} · ${d} %`));
+      widgetMelden({ mining: true, rate: r, shares: stand.current.shares, ziel: stand.current.ziel });
       zuletzt = Date.now();
     };
     const id = setInterval(melden, 4000);
@@ -462,7 +478,10 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     const erste = setInterval(() => {
       if (stand.current.hashrate > 0 && zuletzt === 0) melden();
     }, 500);
-    return () => { clearInterval(id); clearInterval(erste); };
+    return () => {
+      clearInterval(id); clearInterval(erste);
+      widgetMelden({ mining: false });
+    };
   }, [mining]);
 
   const changeDuty = useCallback((v: number) => {

@@ -162,6 +162,29 @@ nicht-deutschen Geräte bekommen sie; fehlt sie, den deutschen Text.
 Einträge direkt in Supabase anlegen. Ist die Tabelle leer, zeigt die App
 weiter die Meldungen aus dem Code.
 
+## Widget
+
+Homescreen-Widget (4×2): Guthaben, gefundene Blöcke und Blockhöhe, darunter
+die Mining-Zeile (Hashrate · Shares · Share-Ziel) oder „gestoppt". Tipp auf
+die Fläche öffnet die App, der Pfeil holt sofort vom Server.
+
+Zwei Quellen: Die Oberfläche meldet über das Plugin `Widget` (`stand({...})`),
+was sie weiß — Konto und Kette bei jedem Takt, die Mining-Werte alle vier
+Sekunden, solange gemint wird. Ist die App zu, holt das Widget alle 30
+Minuten selbst `/api/v2/account/<adresse>` und `/api/v2/summary`
+(`YskarWidget`, `WidgetDaten`). Die Mining-Werte gibt es nur aus der App;
+sie entstehen im WebView.
+
+## Update aus der App heraus
+
+Der Banner „Update x.y.z verfügbar" lädt die APK über den DownloadManager
+(Plugin `AppUpdate`: `laden`, `stand`, `installieren`) und öffnet danach den
+Installer; der Nutzer bestätigt nur noch. Beim ersten Mal verlangt Android
+die Freigabe „Apps aus dieser Quelle installieren" — die App öffnet die
+Einstellungsseite und bittet, danach erneut zu tippen. Ohne das Plugin
+(ältere Hülle) oder bei einem Fehler bleibt der Weg über den Browser.
+Vollautomatisch ohne Bestätigung geht außerhalb des Play Store nicht.
+
 ## Biometrie, ehrlich
 
 Der Tresor bleibt mit der PIN verschlüsselt. Wer Biometrie einschaltet,

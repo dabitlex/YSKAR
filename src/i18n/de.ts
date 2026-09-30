@@ -430,6 +430,10 @@ const de = {
     updateText: (v: string) => `Du hast ${v}. Tippen zum Laden.`,
     updateLaden: 'Laden',
     spaeter: 'Später',
+    updateLaedt: (p: number) => `Wird geladen… ${p} %`,
+    updateErlaubnis: 'Bitte „Apps aus dieser Quelle installieren“ erlauben, dann erneut tippen.',
+    updateInstallieren: 'Geladen — Installer öffnen',
+    updateFehler: 'Download fehlgeschlagen. Über den Browser laden.',
   },
 
   bench: {

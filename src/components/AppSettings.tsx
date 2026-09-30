@@ -6,7 +6,7 @@ import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type BiometrieStand }
   from '@/lib/native/biometrie';
-import { appVersion, updatePruefen, updateOeffnen, type Update } from '@/lib/native/update';
+import { appVersion, updatePruefen, updateOeffnen, updateLaden, type Update } from '@/lib/native/update';
 import { pushAktiv, pushEinschalten, pushAusschalten, type PushStand } from '@/lib/native/push';
 import { diagnose, type Diagnose } from '@/lib/native/diagnose';
 import { useT } from '@/i18n';
@@ -151,7 +151,11 @@ export default function AppSettings() {
           {update === 'sucht' ? <span className="text-[13px] font-semibold text-faint">{t.app.sucht}</span>
             : update === 'keins' ? <span className="text-[13px] font-semibold text-proof">{t.app.aktuell}</span>
             : update && typeof update === 'object'
-              ? <button onClick={() => updateOeffnen(update.url)} className="text-[13px] font-bold text-work">
+              ? <button onClick={async () => {
+                    // Erst in der App laden; ohne Plugin oder bei Ablehnung der Browser.
+                    const r = await updateLaden(update);
+                    if (!r || r.status === 'erlaubnis') { if (!r) updateOeffnen(update.url); return; }
+                  }} className="text-[13px] font-bold text-work">
                   {t.app.laden(update.version)}</button>
               : <button onClick={suchen} className="text-[13px] font-bold text-work">{t.app.jetztPruefen}</button>}
         </li>

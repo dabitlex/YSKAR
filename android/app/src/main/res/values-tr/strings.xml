@@ -5,4 +5,15 @@
     <string name="mining_kanal_text">Cihazının şu anda YSKAR için hesap yaptığını gösterir.</string>
     <string name="mining_stoppen">Madenciliği durdur</string>
     <string name="mining_titel">YSKAR hesaplıyor</string>
+    <string name="widget_beschreibung">YSKAR bakiyesi ve madencilik bir bakışta</string>
+    <string name="widget_holen">Yenile</string>
+    <string name="widget_keine_wallet">Henüz cüzdan yok</string>
+    <string name="widget_mining">Madencilik</string>
+    <string name="widget_gestoppt">durdu</string>
+    <string name="widget_shares">share</string>
+    <string name="widget_ziel">hedef</string>
+    <plurals name="widget_bloecke">
+        <item quantity="one">%s blok bulundu</item>
+        <item quantity="other">%s blok bulundu</item>
+    </plurals>
 </resources>
