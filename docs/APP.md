@@ -175,6 +175,19 @@ Minuten selbst `/api/v2/account/<adresse>` und `/api/v2/summary`
 (`YskarWidget`, `WidgetDaten`). Die Mining-Werte gibt es nur aus der App;
 sie entstehen im WebView.
 
+## Darstellung: hell und dunkel
+
+Einstellungen -> Darstellung: System / Hell / Dunkel, gemerkt unter
+`yskar.thema` (derselbe Schluessel wie im Explorer). "System" folgt dem
+Geraet, im Telegram-Client dessen Farbschema. Die Farben stehen als
+Token in `globals.css` (`:root[data-thema="dunkel"]`); ein Startskript im
+Layout setzt das Attribut vor dem ersten Zeichnen. Der Web-Splash nimmt
+`public/marke/splash-dunkel.jpg`, der native Android-Splash die
+`drawable-*-night`-Varianten (aus `assets/splash-dark.png`; folgt der
+Systemeinstellung, nicht der App-Wahl -- er laeuft, bevor die Oberflaeche
+geladen ist). Die Systemleisten faerbt das Plugin `Oberflaeche`
+(`leisten({dunkel})`), Telegram-Rahmen ueber `telegramFarben(dunkel)`.
+
 ## Hinweis auf die App (Telegram, Browser)
 
 Wer YSKAR auf einem Android-Geraet in Telegram oder im Browser benutzt,

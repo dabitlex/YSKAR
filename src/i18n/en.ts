@@ -391,6 +391,11 @@ const en = {
     sperreSofort: 'Immediately',
     sperreNie: 'Never',
     sperreMin: (n: number) => `${n} min`,
+    thema: 'Appearance',
+    themaText: '“System” follows your device setting.',
+    themaSystem: 'System',
+    themaHell: 'Light',
+    themaDunkel: 'Dark',
   },
 
   apk: {

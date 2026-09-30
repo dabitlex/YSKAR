@@ -7,6 +7,8 @@ import AppSettings from '@/components/AppSettings';
 import { useT, fehlerText, SPRACHEN } from '@/i18n';
 import { SPERRE_STUFEN, sperreLesen, sperreSetzen } from '@/hooks/useAutoSperre';
 import { AppLaden } from '@/components/AppLaden';
+import { useThema } from '@/lib/useThema';
+import { THEMEN } from '@/lib/thema';
 import { istNativ } from '@/lib/native/plattform';
 
 /**
@@ -28,6 +30,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
   const { t, sprache, setSprache } = useT();
   const [sperre, setSperre] = useState<number>(() => sperreLesen());
   const [apkOffen, setApkOffen] = useState(false);
+  const { thema, setThema } = useThema();
 
   if (modus === 'woerter') {
     return (
@@ -124,6 +127,18 @@ export default function Settings({ onZurueck, anteil, workers }: {
           </button>
         ))}
       </div>
+
+      <p className="label mt-6 mb-2">{t.einstellungen.thema}</p>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t.einstellungen.thema}>
+        {THEMEN.map(th => (
+          <button key={th} onClick={() => setThema(th)} aria-pressed={thema === th}
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
+                    thema === th ? 'border-work bg-work/10 text-work' : 'border-line bg-surface text-dim'}`}>
+            {th === 'system' ? t.einstellungen.themaSystem : th === 'hell' ? t.einstellungen.themaHell : t.einstellungen.themaDunkel}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">{t.einstellungen.themaText}</p>
 
       <p className="label mt-6 mb-2">{t.einstellungen.wallet}</p>
       <ul className="mt-2 border-t border-line">

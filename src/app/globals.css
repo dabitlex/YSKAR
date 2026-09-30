@@ -38,6 +38,29 @@
 }
 
 /*
+  Dunkel: dieselbe Ordnung, umgedreht. Grund Mitternachtsblau, Karten eine
+  Stufe heller, Schrift fast weiss. Die drei Signalfarben sind fuer dunklen
+  Grund aufgehellt, sonst faellt Blau auf Blau zusammen. Gesetzt wird das
+  Attribut von src/lib/thema.ts -- vor dem ersten Zeichnen.
+*/
+:root[data-thema="dunkel"] {
+  --ink:     10 16 28;      /* #0A101C */
+  --sunk:    15 23 40;      /* #0F1728  Eingabefelder */
+  --surface: 19 28 46;      /* #131C2E  Karten */
+  --raised:  28 40 62;      /* #1C283E  Chips */
+  --line:    36 50 76;      /* #24324C */
+  --edge:    0 0 0;
+  --text:    234 240 248;   /* #EAF0F8 */
+  --dim:     158 173 198;   /* #9EADC6 */
+  --faint:   110 126 154;   /* #6E7E9A */
+
+  --work:  79 130 255;      /* #4F82FF */
+  --proof: 46 190 133;      /* #2EBE85 */
+  --risk:  240 97 107;      /* #F0616B */
+}
+:root[data-thema="dunkel"] { color-scheme: dark; }
+
+/*
   Systemleisten. Seit Android 15 zeichnet die App bis unter Statusleiste
   und Gestenbalken. Capacitor traegt deren Hoehe als --safe-area-inset-*
   in das <html>-Element ein; im iOS-WebView und im Browser kommt sie per
@@ -72,6 +95,7 @@ body {
   position: relative;
   box-shadow: 0 8px 24px -16px rgb(var(--edge) / 0.18);
 }
+:root[data-thema="dunkel"] .panel { box-shadow: 0 8px 24px -16px rgb(0 0 0 / 0.6); }
 .panel-raised { background: rgb(var(--raised)); }
 
 /* Eingabefeld: weiss mit Linie, keine Vertiefung. */
@@ -115,6 +139,16 @@ body {
   border: 0;
   border-radius: var(--r-md);
 }
+/* Auf dunklem Grund braucht die Karte eine Kante, sonst verschwimmt sie. */
+:root[data-thema="dunkel"] .hero {
+  background: linear-gradient(160deg, #16274A 0%, #1B3E86 60%, #2F6BFF 130%);
+  border: 1px solid rgb(var(--line));
+}
+/* Weisser Knopf auf der Hero-Karte: Schrift bleibt dunkel, in beiden Themen. */
+.hero .knopf-hell { color: #0E1A2F; }
+/* Abzeichen "wartet" (Verlauf): Bernstein, je Thema. */
+.warte { background: #FFF4E5; color: #B26A00; }
+:root[data-thema="dunkel"] .warte { background: rgb(66 48 20); color: #F2B25C; }
 
 /* Signaturschein hinter einer Kennzahl -- sehr weit, sehr schwach. */
 .glow-work::before,

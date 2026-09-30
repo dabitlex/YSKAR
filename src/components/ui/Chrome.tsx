@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useT } from '@/i18n';
+import { useThema } from '@/lib/useThema';
 
 /**
  * Rahmen der App: Navigationsleiste, Kopfzeile, Startbild.
@@ -96,11 +97,13 @@ export function useSplash(mindestensMs = 1100) {
  */
 export function Splash() {
   const { t } = useT();
+  const { dunkel } = useThema();
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-white">
-      <Image src="/marke/splash.jpg" alt="YSKAR — Gemeinsam. Dezentral. Stark."
+    <main className="relative min-h-dvh overflow-hidden bg-ink">
+      <Image src={dunkel ? '/marke/splash-dunkel.jpg' : '/marke/splash.jpg'}
+             alt="YSKAR — Gemeinsam. Dezentral. Stark."
              fill priority sizes="100vw"
-             style={{ objectFit: 'cover', objectPosition: 'center 46%' }} />
+             style={{ objectFit: 'cover', objectPosition: dunkel ? 'center 42%' : 'center 46%' }} />
       <div className="absolute inset-x-6 bottom-[calc(56px+var(--unten))]
                       flex flex-col items-center gap-3">
         <div className="relative h-[3px] w-[120px] overflow-hidden rounded-full bg-line">

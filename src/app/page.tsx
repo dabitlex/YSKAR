@@ -8,10 +8,10 @@ import AppLadenHinweis from '@/components/AppLaden';
 import AppShell from '@/components/AppShell';
 import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
-import { telegramFarben } from '@/lib/telegram/webapp';
 import { plattform, fehlerspeicherInstallieren } from '@/lib/native/plattform';
 import { SpracheProvider, useT } from '@/i18n';
 import { vorladen } from '@/lib/vorladen';
+import { ThemaProvider } from '@/lib/useThema';
 
 declare global {
   interface Window { Telegram?: { WebApp: any } }
@@ -20,9 +20,11 @@ declare global {
 export default function Page() {
   return (
     <SpracheProvider>
-      <WalletProvider>
-        <Router />
-      </WalletProvider>
+      <ThemaProvider>
+        <WalletProvider>
+          <Router />
+        </WalletProvider>
+      </ThemaProvider>
     </SpracheProvider>
   );
 }
@@ -56,7 +58,6 @@ function Router() {
     if (!tg || !tg.initData) { setAusserhalb(true); return; }
     tg.ready();
     tg.expand?.();
-    telegramFarben();
     setPlatform(tg.platform);
   }, []);
 

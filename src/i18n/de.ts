@@ -395,6 +395,11 @@ const de = {
     sperreSofort: 'Sofort',
     sperreNie: 'Nie',
     sperreMin: (n: number) => `${n} min`,
+    thema: 'Darstellung',
+    themaText: '„System“ folgt der Einstellung deines Geräts.',
+    themaSystem: 'System',
+    themaHell: 'Hell',
+    themaDunkel: 'Dunkel',
   },
 
   apk: {
