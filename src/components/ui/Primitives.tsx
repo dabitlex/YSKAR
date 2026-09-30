@@ -233,7 +233,9 @@ export const Icon = {
   Wuerfel:   <svg {...strich}><path d="M11 3 4 7v8l7 4 7-4V7zM4 7l7 4 7-4M11 11v8" /></svg>,
   Pfeil:     <svg {...strich}><path d="M4 11h14M13 6l5 5-5 5" /></svg>,
   Tabelle:   <svg {...strich}><rect x="3" y="4" width="16" height="14" rx="3" /><path d="M3 9h16M7 13h4" /></svg>,
-  Zahnrad:   <svg {...strich}><circle cx="11" cy="11" r="2.5" /><path d="M11 2.5v2M11 17.5v2M2.5 11h2M17.5 11h2M5 5l1.4 1.4M15.6 15.6 17 17M5 17l1.4-1.4M15.6 6.4 17 5" /></svg>,
+  // Zahnrad mit acht Zaehnen als geschlossener Umriss -- der alte Kreis mit
+  // Strahlen las sich als Sonne.
+  Zahnrad:   <svg {...strich}><circle cx="11" cy="11" r="2.7" /><path d="M9.51 4.98L9.71 2.40L12.29 2.40L12.49 4.98L14.20 5.69L16.17 4.00L18.00 5.83L16.31 7.80L17.02 9.51L19.60 9.71L19.60 12.29L17.02 12.49L16.31 14.20L18.00 16.17L16.17 18.00L14.20 16.31L12.49 17.02L12.29 19.60L9.71 19.60L9.51 17.02L7.80 16.31L5.83 18.00L4.00 16.17L5.69 14.20L4.98 12.49L2.40 12.29L2.40 9.71L4.98 9.51L5.69 7.80L4.00 5.83L5.83 4.00L7.80 5.69z" /></svg>,
   Info:      <svg {...strich}><circle cx="11" cy="11" r="8.5" /><path d="M11 10v5M11 7h.01" /></svg>,
   Warnung:   <svg {...strich}><path d="M11 7v5M11 15h.01M10.1 3.6 2.6 17a1 1 0 0 0 .9 1.5h15a1 1 0 0 0 .9-1.5L11.9 3.6a1 1 0 0 0-1.8 0z" /></svg>,
   Kopieren:  <svg {...strich}><rect x="7" y="7" width="11" height="11" rx="2" /><path d="M4 14V5a1 1 0 0 1 1-1h9" /></svg>,
