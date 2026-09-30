@@ -40,7 +40,7 @@
   --line:#E6ECF4; --text:#0E1A2F; --dim:#5B6B84; --faint:#8E9AB0;
   --work:#1F5BF0; --work-tint:#EAF0FE; --proof:#0B8A5C; --proof-tint:#E7F5EE;
   --risk:#D9404A; --risk-tint:#FBE9EA;
-  --schatten:0 8px 24px -16px rgba(14,26,47,.18);
+  --schatten:0 14px 34px -22px rgba(14,26,47,.28);
   --bau:#B9CCF8; --hinweis-text:#1747B8;
 }
 /* Dunkel -- dieselben Werte wie in der App (globals.css). */
@@ -49,7 +49,7 @@
   --line:#24324C; --text:#EAF0F8; --dim:#9EADC6; --faint:#6E7E9A;
   --work:#4F82FF; --work-tint:#16244A; --proof:#2EBE85; --proof-tint:#12332A;
   --risk:#F0616B; --risk-tint:#3A1C22;
-  --schatten:0 8px 24px -16px rgba(0,0,0,.6);
+  --schatten:0 14px 34px -22px rgba(0,0,0,.7);
   --bau:#2C4A8C; --hinweis-text:#9DB8FF;
   color-scheme:dark;
 }
@@ -176,8 +176,8 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
 .mehr:disabled{opacity:.5;cursor:default}
 
 /* -------------------------------------------------------------- Detail */
-.detail{margin-top:22px;background:var(--surface);border:1px solid var(--line);
-  border-radius:20px;box-shadow:var(--schatten);overflow:hidden}
+.detail{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:24px;
+  box-shadow:var(--schatten);overflow:hidden}
 .detail-kopf{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
   align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .detail-kopf>div{min-width:0;flex:1 1 200px}
@@ -210,7 +210,7 @@ header{border-bottom:1px solid var(--line);background:var(--surface);padding:14p
 /* -------------------------------------------------------------- Karten */
 .karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:14px;margin-top:24px}
-.karte{background:var(--surface);border:1px solid var(--line);border-radius:20px;
+.karte{background:var(--surface);border:1px solid var(--line);border-radius:24px;
   padding:18px 20px;box-shadow:var(--schatten)}
 .karte .label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
   color:var(--faint)}

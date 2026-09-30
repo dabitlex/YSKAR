@@ -57,8 +57,7 @@ export function SubHeader({ titel, onZurueck, rechts }: {
   return (
     <div className="mb-5 flex items-center justify-between">
       <button onClick={onZurueck} aria-label={t.allgemein.zurueck}
-              className="flex h-9 w-9 items-center justify-center rounded-full border
-                         border-line bg-surface text-text active:scale-95">
+              className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text active:scale-95">
         <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M13 5l-6 6 6 6" />
