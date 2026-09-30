@@ -250,6 +250,53 @@ export function decodeAddr(b: Uint8Array): PeerAdresse[] {
   return out;
 }
 
+// ------------------------------------------------------------ Statistik
+
+/**
+ * Was ein Knoten ueber seine Miner meldet -- zur Anzeige, KEIN Konsens.
+ *
+ * Nur an Peers, deren Kennung "+stats" enthaelt. Ein Knoten ohne diese
+ * Fassung kennt den Befehl nicht, wuerde die Verbindung trennen und den
+ * Absender als auffaellig vermerken.
+ *
+ * Die Zahlen sind GEMELDET, nicht bewiesen. Beweisbar ist nur die
+ * Hashrate aus Difficulty und Blockzeit; die steht getrennt davon.
+ */
+export const STATS_FAEHIG = '+stats';
+export const MAX_STATS_ADRESSEN = 500;
+
+export interface Stats {
+  /** Zufaellig je Prozess -- erkennt denselben Knoten ueber mehrere Wege. */
+  knoten: bigint;
+  /** Gemessene Hashrate der eigenen Sitzungen, H/s. */
+  hashrate: bigint;
+  sessions: number;
+  /** Rohadressen (20 Byte) der Miner mit aktiver Sitzung. */
+  adressen: Uint8Array[];
+}
+
+export function encodeStats(s: Stats): Uint8Array {
+  const liste = s.adressen.slice(0, MAX_STATS_ADRESSEN);
+  const w = new Writer().u64(s.knoten).u64(s.hashrate).u32(s.sessions).u16(liste.length);
+  for (const a of liste) {
+    if (a.length !== 20) throw new Error('Adresse muss 20 Byte haben');
+    w.bytes(a);
+  }
+  return w.finish();
+}
+
+export function decodeStats(b: Uint8Array): Stats {
+  const r = new Reader(b);
+  const knoten = r.u64();
+  const hashrate = r.u64();
+  const sessions = r.u32();
+  const n = r.u16();
+  if (n > MAX_STATS_ADRESSEN) throw new Error('Zu viele Adressen');
+  const adressen: Uint8Array[] = [];
+  for (let i = 0; i < n; i++) adressen.push(r.bytes(20));
+  return { knoten, hashrate, sessions, adressen };
+}
+
 /** Zwei Adressen vergleichen -- fuer Mengen und Dubletten. */
 export const peerKey = (a: { host: string; port: number }) =>
   `${a.host.toLowerCase()}:${a.port}`;

@@ -25,6 +25,9 @@ import { MiningCoordinator } from './MiningCoordinator.ts';
 import { MiningServer } from './MiningServer.ts';
 import { MAINNET, REGTEST, type ConsensusParams } from '../../core/networks.ts';
 import { PeerManager } from '../p2p/PeerManager.ts';
+import type { PeerConnection } from '../p2p/PeerConnection.ts';
+import { encodeStats, decodeStats, STATS_FAEHIG } from '../p2p/messages.ts';
+import { NetzStatistik } from './NetzStatistik.ts';
 import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { nameToExtra } from '../../chain/finderName.ts';
 import { decodeAddress } from '../../core/address.ts';
@@ -490,6 +493,34 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   */
   let netz: PeerManager | null = null;
   let abgleich: SyncManager | null = null;
+  let statsTakt: ReturnType<typeof setInterval> | null = null;
+
+  /*
+    Miner-Statistik ueber die Knoten hinweg (NetzStatistik.ts).
+
+    Gesendet wird NUR an Peers, deren Kennung "+stats" traegt. Ein Knoten
+    aelterer Fassung kennt den Befehl nicht und wuerde die Verbindung
+    trennen -- er bekommt deshalb nie eine Meldung und sieht auch sonst
+    keinen Unterschied.
+  */
+  const statistik = new NetzStatistik(
+    BigInt.asUintN(64, BigInt(Math.floor(Math.random() * 2 ** 32)) << 32n
+      | BigInt(Math.floor(Math.random() * 2 ** 32))));
+  server.netzStatistik = statistik;
+  const kannStats = (p: PeerConnection) => p.info().agent.includes(STATS_FAEHIG);
+  const meldeStats = (an?: PeerConnection) => {
+    if (!netz) return;
+    const l = server.lokaleStatistik();
+    const nutzlast = encodeStats({
+      knoten: statistik.eigeneKennung,
+      hashrate: BigInt(Math.max(0, Math.round(l.hashrate))),
+      sessions: l.sessions,
+      adressen: l.adressen.map(h => fromHex(h)),
+    });
+    for (const p of an ? [an] : netz.bereite()) {
+      if (kannStats(p)) p.send('stats', nutzlast);
+    }
+  };
 
   if (!opt.keinP2P) {
     const seeds = opt.seeds.map(s => {
@@ -500,7 +531,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     netz = new PeerManager({
       params,
-      agent: `yskar-node/${VERSION}`,
+      agent: `yskar-node/${VERSION} ${STATS_FAEHIG}`,
       listenPort: opt.p2pPort,
       seeds,
       kette: () => {
@@ -511,8 +542,16 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
         melde(`${grau('[' + uhr() + ']')} ${grau('Peer')} ${p.host} ` +
           `${grau('· Höhe')} ${nf(p.fremdeHoehe())}`);
         abgleich?.aufPeer(p);
+        meldeStats(p);
       },
-      onMessage: (p, f) => abgleich?.aufNachricht(p, f),
+      onMessage: (p, f) => {
+        if (f.command === 'stats') {
+          try { statistik.aufnehmen(decodeStats(f.payload)); }
+          catch (e) { p.close(`stats_unlesbar:${(e as Error).message}`); }
+          return;
+        }
+        abgleich?.aufNachricht(p, f);
+      },
       onClose: (p, g) => {
         if (p.ready) melde(grau(`[${uhr()}] Peer ${p.host} weg: ${g}`));
       },
@@ -547,6 +586,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     try {
       await netz.start();
       abgleich.start();
+      statsTakt = setInterval(() => meldeStats(), 30_000);
     } catch (e) {
       melde(gelb(`  Knotennetz konnte nicht starten: ${(e as Error).message}`));
       netz = null; abgleich = null;
@@ -646,6 +686,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     laeuft = false;
     clearInterval(syncTakt);
     clearInterval(takt);
+    if (statsTakt) clearInterval(statsTakt);
     abgleich?.stop();
     await netz?.stop();
     await server.close();

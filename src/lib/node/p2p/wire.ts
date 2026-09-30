@@ -67,6 +67,7 @@ export const COMMANDS = [
   'inv',                        // Ankuendigung
   'tx',                         // Transaktionen
   'getaddr', 'addr',            // Peers austauschen
+  'stats',                      // Miner-Statistik, nur an '+stats'-Peers
 ] as const;
 
 export type Command = typeof COMMANDS[number];

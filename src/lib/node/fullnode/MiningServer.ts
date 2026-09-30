@@ -20,6 +20,7 @@
  * Schnittstelle nimmt Arbeit entgegen und baut Bloecke; sie gehoert nicht
  * ungeschuetzt ins Netz.
  */
+import { NetzStatistik, type LokaleStatistik, type NetzSumme } from './NetzStatistik.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
@@ -103,6 +104,29 @@ export class MiningServer {
    */
   blockName: Uint8Array = new Uint8Array(0);
 
+  /**
+   * Meldungen der anderen Knoten (P2P, "+stats"). Ohne sie zeigt die
+   * Zusammenfassung nur die eigenen Sitzungen -- wie bisher.
+   */
+  netzStatistik: NetzStatistik | null = null;
+
+  /** Was dieser Knoten selbst misst -- fuer die eigene Meldung ins Netz. */
+  lokaleStatistik(): LokaleStatistik {
+    this.aufraeumen();
+    return {
+      adressen: [...new Set([...this.sessions.values()].map(s => s.addressHex))],
+      hashrate: this.gesamtHashrate(),
+      sessions: this.sessions.size,
+    };
+  }
+
+  /** Eigene Sitzungen plus Meldungen der Peers. */
+  private netzSumme(): NetzSumme {
+    const lokal = this.lokaleStatistik();
+    return this.netzStatistik?.summe(lokal)
+      ?? { knoten: 1, miner: lokal.adressen.length, hashrate: lokal.hashrate, sessions: lokal.sessions };
+  }
+
   /** Was die App ueber diesen Pool wissen muss -- gemessen, nicht gemeldet. */
   private poolInfo(): Record<string, unknown> | null {
     const pk = this.poolKoordinator;
@@ -175,10 +199,10 @@ export class MiningServer {
     */
     this.lesen = new ReadApi({
       chain: teile.chain, store: teile.store, pool: teile.pool, params: this.params,
-      hashrate: () => this.gesamtHashrate() || null,
-      aktiveMiner: () =>
-        new Set([...this.sessions.values()].map(s => s.addressHex)).size,
-      miningSessions: () => this.aktiveSessions(),
+      hashrate: () => this.netzSumme().hashrate || null,
+      aktiveMiner: () => this.netzSumme().miner,
+      miningSessions: () => this.netzSumme().sessions,
+      knoten: () => this.netzSumme().knoten,
     });
   }
 
