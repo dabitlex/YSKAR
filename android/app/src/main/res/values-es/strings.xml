@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="mining_laeuft">Minería en curso</string>
+    <string name="mining_kanal">Minería</string>
+    <string name="mining_kanal_text">Indica que tu dispositivo está calculando para YSKAR.</string>
+    <string name="mining_stoppen">Detener minería</string>
+</resources>

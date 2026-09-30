@@ -72,16 +72,18 @@ function Start({ onCreate, onRecover, onMehr }: {
         Sprache selbst, keine Flaggen -- Sprache ist kein Land.
       */}
       <div className="flex justify-end">
-        <div className="flex overflow-hidden rounded-full bg-raised p-0.5" role="group" aria-label={t.allgemein.sprache}>
-          {SPRACHEN.map(s => (
-            <button key={s.code} onClick={() => setSprache(s.code)} aria-pressed={sprache === s.code}
-                    lang={s.code}
-                    className={`rounded-full px-3 py-1 text-[12px] font-bold transition-colors ${
-                      sprache === s.code ? 'bg-surface text-text shadow-sm' : 'text-dim'}`}>
-              {s.name}
-            </button>
-          ))}
-        </div>
+        <label className="flex items-center gap-1.5 rounded-full border border-line bg-surface
+                          py-1.5 pl-3 pr-2.5 text-[12.5px] font-bold text-dim">
+          <svg viewBox="0 0 22 22" width="15" height="15" fill="none" stroke="currentColor"
+               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8.5" /><path d="M2.5 11h17M11 2.5c2.5 2.6 3.7 5.4 3.7 8.5s-1.2 5.9-3.7 8.5c-2.5-2.6-3.7-5.4-3.7-8.5S8.5 5.1 11 2.5z" />
+          </svg>
+          <span className="sr-only">{t.allgemein.sprache}</span>
+          <select value={sprache} onChange={e => setSprache(e.target.value as typeof sprache)}
+                  className="appearance-none bg-transparent pr-3 text-[12.5px] font-bold text-text outline-none">
+            {SPRACHEN.map(s => <option key={s.code} value={s.code} lang={s.code}>{s.name}</option>)}
+          </select>
+        </label>
       </div>
 
       <div className="zoom flex flex-col items-center gap-1">

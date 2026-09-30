@@ -87,7 +87,7 @@ export default function AppShell({ platform }: { platform: string }) {
   // Android-App: Push-Anmeldung auffrischen; Tipp auf eine Meldung fuehrt
   // in die Wallet (Eingang) oder nach Entdecken (News).
   useEffect(() => {
-    if (wallet.address) pushAuffrischen(wallet.address, sprache);
+    if (wallet.address) pushAuffrischen(wallet.address, sprache, t.app);
     let ab: (() => void) | null = null;
     pushBeiTipp(art => {
       setAnsicht(null);

@@ -44,7 +44,7 @@ export default function AppSettings() {
     if (!wallet.address) return;
     setPush('arbeitet');
     if (pushAktiv()) { await pushAusschalten(); setPush('aus'); return; }
-    setPush(await pushEinschalten(wallet.address, sprache));
+    setPush(await pushEinschalten(wallet.address, sprache, t.app));
   };
 
   if (!nativ) return null;

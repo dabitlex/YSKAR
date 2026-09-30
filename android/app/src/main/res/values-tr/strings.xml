@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="mining_laeuft">Madencilik çalışıyor</string>
+    <string name="mining_kanal">Madencilik</string>
+    <string name="mining_kanal_text">Cihazının şu anda YSKAR için hesap yaptığını gösterir.</string>
+    <string name="mining_stoppen">Madenciliği durdur</string>
+</resources>

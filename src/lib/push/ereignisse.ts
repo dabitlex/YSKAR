@@ -56,7 +56,7 @@ type Texte = {
   unterwegs: (b: string, sym: string) => string;
   vonNaechster: (von: string) => string;
 };
-const TEXTE: Record<'de' | 'en', Texte> = {
+const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt', Texte> = {
   de: {
     locale: 'de-DE',
     poolAnteil: h => `Pool-Anteil aus Block #${h}`,
@@ -77,9 +77,50 @@ const TEXTE: Record<'de' | 'en', Texte> = {
     unterwegs: (b, sym) => `${b} ${sym} on the way`,
     vonNaechster: von => `From ${von} · arrives with the next block`,
   },
+  ru: {
+    locale: 'ru-RU',
+    poolAnteil: h => `Доля пула из блока #${h}`,
+    blockGefunden: h => `Найден блок #${h}`,
+    aufAdresse: (b, sym) => `+${b} ${sym} на твоём адресе.`,
+    erhalten: (b, sym) => `Получено ${b} ${sym}`,
+    vonBestaetigt: (von, h) => `От ${von} · подтверждено в блоке #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} в пути`,
+    vonNaechster: von => `От ${von} · придёт со следующим блоком`,
+  },
+  es: {
+    locale: 'es-ES',
+    poolAnteil: h => `Parte del pool del bloque #${h}`,
+    blockGefunden: h => `Bloque #${h} encontrado`,
+    aufAdresse: (b, sym) => `+${b} ${sym} están en tu dirección.`,
+    erhalten: (b, sym) => `${b} ${sym} recibidos`,
+    vonBestaetigt: (von, h) => `De ${von} · confirmado en el bloque #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} en camino`,
+    vonNaechster: von => `De ${von} · llega con el próximo bloque`,
+  },
+  tr: {
+    locale: 'tr-TR',
+    poolAnteil: h => `#${h} numaralı bloktan havuz payı`,
+    blockGefunden: h => `#${h} numaralı blok bulundu`,
+    aufAdresse: (b, sym) => `+${b} ${sym} adresinde.`,
+    erhalten: (b, sym) => `${b} ${sym} alındı`,
+    vonBestaetigt: (von, h) => `Gönderen ${von} · #${h} numaralı blokta onaylandı`,
+    unterwegs: (b, sym) => `${b} ${sym} yolda`,
+    vonNaechster: von => `Gönderen ${von} · bir sonraki blokla gelecek`,
+  },
+  pt: {
+    locale: 'pt-BR',
+    poolAnteil: h => `Parte do pool do bloco #${h}`,
+    blockGefunden: h => `Bloco #${h} encontrado`,
+    aufAdresse: (b, sym) => `+${b} ${sym} estão no seu endereço.`,
+    erhalten: (b, sym) => `${b} ${sym} recebidos`,
+    vonBestaetigt: (von, h) => `De ${von} · confirmado no bloco #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} a caminho`,
+    vonNaechster: von => `De ${von} · chega com o próximo bloco`,
+  },
 };
 export function texteFuer(sprache?: string): Texte {
-  return sprache?.toLowerCase().startsWith('de') ? TEXTE.de : TEXTE.en;
+  const k = (sprache ?? '').toLowerCase().slice(0, 2);
+  return k in TEXTE ? TEXTE[k as keyof typeof TEXTE] : TEXTE.en;
 }
 const ysr = (roh: string, locale: string, dec = 8) =>
   (Number(BigInt(roh)) / 10 ** dec).toLocaleString(locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
@@ -162,7 +203,7 @@ export function ausNews(news: { id: number; titel: string; text: string; link?: 
     if (gesehen.has(g.token)) continue;
     gesehen.add(g.token);
     // Englische Fassung, wenn das Geraet englisch ist und es sie gibt.
-    const en = texteFuer(g.sprache) === TEXTE.en;
+    const en = texteFuer(g.sprache) !== TEXTE.de;
     const titel = (en && news.titel_en) || news.titel;
     const text = (en && news.text_en) || news.text;
     aus.push({

@@ -161,8 +161,8 @@ Fuenf Reiter: **Home** (Guthaben, Mining-Status, Kette), **Mining**,
 die Zahlen kommen aus `src/lib/core/params.ts`, die Texte liegen in
 `src/content/entdecken.<sprache>.ts`).
 
-Zweisprachig: Deutsch und Englisch, waehlbar auf dem ersten Bildschirm und
-in den Einstellungen; Vorgabe ist die Sprache des Telegram-Kontos bzw. des
+Sechs Sprachen (Englisch, Deutsch, Spanisch, Portugiesisch, Russisch,
+Tuerkisch), waehlbar auf dem ersten Bildschirm und in den Einstellungen; Vorgabe ist die Sprache des Telegram-Kontos bzw. des
 Systems, sonst Englisch. Alle Texte der Oberflaeche liegen in `src/i18n/`
 mit identischen Schluesseln je Sprache -- fehlt einer, bricht der Build.
 Push-Benachrichtigungen kommen in der Sprache der App.

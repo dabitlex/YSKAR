@@ -29,7 +29,10 @@ export interface NewsEintrag {
  * sie fuer einen Eintrag, bleibt der deutsche Text.
  */
 export async function GET(req: Request) {
-  const sprache = new URL(req.url).searchParams.get('sprache') === 'en' ? 'en' : 'de';
+  // Deutsch bekommt den deutschen Text; jede andere Sprache die englische
+  // Fassung, sofern vorhanden -- andere Uebersetzungen gibt es in der Tabelle nicht.
+  const roh = new URL(req.url).searchParams.get('sprache') ?? 'en';
+  const sprache = roh === 'de' ? 'de' : 'en';
   try {
     const { data, error } = await db().schema('chain2').from('news')
       .select('*').order('datum', { ascending: false })

@@ -110,11 +110,11 @@ export default function Settings({ onZurueck, anteil, workers }: {
       <div className="mt-4"><Title>{t.einstellungen.titel}</Title></div>
 
       <p className="label mt-6 mb-2">{t.einstellungen.sprache}</p>
-      <div className="mt-2 flex overflow-hidden rounded-full bg-raised p-0.5" role="group" aria-label={t.einstellungen.sprache}>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t.einstellungen.sprache}>
         {SPRACHEN.map(s => (
           <button key={s.code} onClick={() => setSprache(s.code)} aria-pressed={sprache === s.code} lang={s.code}
-                  className={`flex-1 rounded-full py-2 text-[13px] font-bold transition-colors ${
-                    sprache === s.code ? 'bg-surface text-text shadow-sm' : 'text-dim'}`}>
+                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
+                    sprache === s.code ? 'border-work bg-work/10 text-work' : 'border-line bg-surface text-dim'}`}>
             {s.name}
           </button>
         ))}

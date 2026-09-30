@@ -215,7 +215,7 @@ const NEUIGKEITEN: Neuigkeit[] = [
     datum: '2026-09-30',
     titel: 'Android app “YSKAR Wallet”',
     text: 'Push notifications for incoming payments, unlock and send with your fingerprint, ' +
-      'mining with the screen locked. As an APK on GitHub — and the app is now bilingual.',
+      'mining with the screen locked. As an APK on GitHub — and the app now speaks several languages.',
     link: 'https://github.com/dabitlex/YSKAR/releases',
   },
   {

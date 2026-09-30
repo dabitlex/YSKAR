@@ -3,6 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import de, { type Woerterbuch } from './de';
 import en from './en';
+import ru from './ru';
+import es from './es';
+import tr from './tr';
+import pt from './pt';
 
 /**
  * Sprache der Oberflaeche.
@@ -16,19 +20,23 @@ import en from './en';
  * Alle Texte liegen in de.ts und en.ts mit identischen Schluesseln; eine
  * neue Sprache ist eine weitere Datei und ein Eintrag in SPRACHEN.
  */
-export type Sprache = 'de' | 'en';
+export type Sprache = 'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt';
 
 export const SPRACHEN: { code: Sprache; name: string }[] = [
-  { code: 'de', name: de.name },
   { code: 'en', name: en.name },
+  { code: 'de', name: de.name },
+  { code: 'es', name: es.name },
+  { code: 'pt', name: pt.name },
+  { code: 'ru', name: ru.name },
+  { code: 'tr', name: tr.name },
 ];
 
-const BUECHER: Record<Sprache, Woerterbuch> = { de, en };
+const BUECHER: Record<Sprache, Woerterbuch> = { de, en, ru, es, tr, pt };
 const MERKER = 'yskar.sprache';
 const VORGABE: Sprache = 'en';
 
 function istSprache(s: unknown): s is Sprache {
-  return s === 'de' || s === 'en';
+  return typeof s === 'string' && s in BUECHER;
 }
 
 /** Gemerkte Wahl, sonst Telegram, sonst System, sonst Englisch. */
