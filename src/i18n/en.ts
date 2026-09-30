@@ -124,8 +124,10 @@ const en = {
 
   wiederherstellen: {
     titel: 'Restore wallet',
-    text: 'Enter your twelve words separated by spaces. Capitalization does not matter.',
-    platzhalter: 'word one word two …',
+    text: 'One word per field, in the order of your list. As you type, the app suggests the word — tap to accept.',
+    einfuegen: 'Paste from clipboard',
+    nichtInListe: 'Not in the word list',
+    ungueltig: 'Twelve words, but not a valid wallet — please check.',
     anzahl: (n: number) => `${n} of 12 words`,
     vorschau: 'This wallet will be opened',
     neuePin: 'New PIN for this device',

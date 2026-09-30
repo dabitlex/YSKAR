@@ -124,8 +124,10 @@ const pt = {
 
   wiederherstellen: {
     titel: 'Restaurar carteira',
-    text: 'Digite suas doze palavras separadas por espaço. Maiúsculas e minúsculas não importam.',
-    platzhalter: 'palavra um palavra dois …',
+    text: 'Uma palavra por campo, na ordem da sua lista. Ao digitar, o app sugere a palavra — toque para aceitar.',
+    einfuegen: 'Colar da área de transferência',
+    nichtInListe: 'Não está na lista',
+    ungueltig: 'Doze palavras, mas não formam uma carteira válida. Confira.',
     anzahl: (n: number) => `${n} de 12 palavras`,
     vorschau: 'Esta carteira será aberta',
     neuePin: 'Novo PIN para este aparelho',

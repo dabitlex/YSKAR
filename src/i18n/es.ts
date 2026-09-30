@@ -124,8 +124,10 @@ const es = {
 
   wiederherstellen: {
     titel: 'Restaurar wallet',
-    text: 'Introduce tus doce palabras separadas por espacios. No importan mayúsculas ni minúsculas.',
-    platzhalter: 'palabra uno palabra dos …',
+    text: 'Una palabra por campo, en el orden de tu lista. Al escribir, la app sugiere la palabra: toca para aceptarla.',
+    einfuegen: 'Pegar del portapapeles',
+    nichtInListe: 'No está en la lista',
+    ungueltig: 'Doce palabras, pero no forman una wallet válida. Revísalas.',
     anzahl: (n: number) => `${n} de 12 palabras`,
     vorschau: 'Se abrirá esta wallet',
     neuePin: 'Nuevo PIN para este dispositivo',

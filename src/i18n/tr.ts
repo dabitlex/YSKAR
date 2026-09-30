@@ -124,8 +124,10 @@ const tr = {
 
   wiederherstellen: {
     titel: 'Cüzdanı geri yükle',
-    text: 'On iki kelimeni boşlukla ayırarak gir. Büyük-küçük harf fark etmez.',
-    platzhalter: 'kelime bir kelime iki …',
+    text: 'Her alana bir kelime, listendeki sırayla. Yazarken uygulama kelimeyi önerir — dokunarak kabul et.',
+    einfuegen: 'Panodan yapıştır',
+    nichtInListe: 'Kelime listesinde yok',
+    ungueltig: 'On iki kelime var ama geçerli bir cüzdan oluşmuyor — kontrol et.',
     anzahl: (n: number) => `${n} / 12 kelime`,
     vorschau: 'Bu cüzdan açılacak',
     neuePin: 'Bu cihaz için yeni PIN',
