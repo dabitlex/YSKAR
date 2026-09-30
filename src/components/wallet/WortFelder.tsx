@@ -147,7 +147,7 @@ export default function WortFelder({ woerter, onChange, texte }: {
                   <button key={v} type="button" tabIndex={-1}
                           onMouseDown={e => { e.preventDefault(); uebernehmen(i, v); }}
                           className={`rounded-[8px] px-2.5 py-1.5 font-mono text-[13.5px] ${
-                            k === 0 ? 'bg-work text-white' : 'text-[#B9CCF8]'}`}>
+                            k === 0 ? 'bg-work text-white' : 'text-work/50'}`}>
                     {v}
                   </button>
                 ))}

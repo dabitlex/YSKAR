@@ -12,7 +12,7 @@ import { useT } from '@/i18n';
 export const FARBE = {
   work:  'bg-work/10 text-work',
   proof: 'bg-proof/10 text-proof',
-  amber: 'bg-[#FFF4E5] text-[#B26A00]',
+  amber: 'warte',
   ink:   'bg-raised text-text',
 } as const;
 
@@ -50,7 +50,7 @@ function Stein({ b, i }: { b: Baustein; i: number }) {
   const rise = `rise rise-${Math.min(3, i)}`;
   switch (b.art) {
     case 'absatz':
-      return <p className={`${rise} px-0.5 text-[15px] font-medium leading-[1.65] text-[#2A3A55]`}>
+      return <p className={`${rise} px-0.5 text-[15px] font-medium leading-[1.65] text-lese`}>
         {b.text}</p>;
     case 'kennzahlen':
       return (
@@ -74,7 +74,7 @@ function Stein({ b, i }: { b: Baustein; i: number }) {
                                  rounded-full bg-work/10 text-[12.5px] font-extrabold text-work">
                   {k + 1}
                 </span>
-                <span className="text-[14px] font-medium leading-[1.5] text-[#2A3A55]">{p}</span>
+                <span className="text-[14px] font-medium leading-[1.5] text-lese">{p}</span>
               </li>
             ))}
           </ol>
