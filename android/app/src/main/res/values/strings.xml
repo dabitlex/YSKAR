@@ -9,4 +9,5 @@
     <string name="mining_kanal">Mining</string>
     <string name="mining_kanal_text">Shows that your device is currently computing for YSKAR.</string>
     <string name="mining_stoppen">Stop mining</string>
+    <string name="mining_titel">YSKAR is computing</string>
 </resources>

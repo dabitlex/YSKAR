@@ -436,17 +436,34 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     return () => { ab?.(); };
   }, [stop]);
 
-  // Hashrate in der Benachrichtigung nachfuehren -- alle paar Sekunden reicht.
+  /*
+    Hashrate in der Benachrichtigung nachfuehren.
+
+    Vorher hing der Effekt an `hashrate` -- die aendert sich jede Sekunde,
+    der Effekt lief jedes Mal neu an, und der 5-Sekunden-Takt wurde jedes
+    Mal zurueckgesetzt, bevor er je gefeuert hat. Die Meldung blieb bei
+    "Mining laeuft". Jetzt: Werte in Refs, ein einziger Takt je Lauf, und
+    die erste Meldung, sobald die erste Rate da ist.
+  */
+  const stand = useRef({ hashrate: 0, duty: 50 });
+  stand.current = { hashrate, duty };
   useEffect(() => {
     if (!mining || !istNativ()) return;
-    const id = setInterval(() => {
-      const h = hashrate;
+    let zuletzt = 0;
+    const melden = () => {
+      const { hashrate: h, duty: d } = stand.current;
       const r = h >= 1e6 ? `${(h / 1e6).toFixed(2)} MH/s`
         : h >= 1e3 ? `${(h / 1e3).toFixed(1)} kH/s` : `${Math.round(h)} H/s`;
-      miningDienstText(tRef.current.mining.dienstRate(`${r} · ${duty} %`));
-    }, 5000);
-    return () => clearInterval(id);
-  }, [mining, hashrate, duty]);
+      miningDienstText(tRef.current.mining.dienstRate(`${r} · ${d} %`));
+      zuletzt = Date.now();
+    };
+    const id = setInterval(melden, 4000);
+    // Nicht vier Sekunden auf die erste Zahl warten.
+    const erste = setInterval(() => {
+      if (stand.current.hashrate > 0 && zuletzt === 0) melden();
+    }, 500);
+    return () => { clearInterval(id); clearInterval(erste); };
+  }, [mining]);
 
   const changeDuty = useCallback((v: number) => {
     setDuty(v);
