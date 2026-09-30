@@ -397,6 +397,24 @@ const de = {
     sperreMin: (n: number) => `${n} min`,
   },
 
+  apk: {
+    titel: 'YSKAR Wallet für Android',
+    text: 'Push bei Eingängen, Mining auch bei gesperrtem Bildschirm, Entsperren per Fingerabdruck — als eigene App auf deinem Gerät.',
+    version: (v: string, mb: string) => `Version ${v} · ${mb} MB · signierte APK von GitHub`,
+    versionSucht: 'Neueste Version wird gesucht…',
+    anleitung: 'So wird sie installiert',
+    schritt1: '„APK laden“ tippen und den Download bestätigen.',
+    schritt2: (quelle: string) => `Die geladene Datei öffnen. Android fragt nach der Erlaubnis „Unbekannte Apps installieren“ — dort für ${quelle} „Aus dieser Quelle zulassen“ einschalten und zurück.`,
+    schritt3: '„Installieren“ tippen. Danach YSKAR Wallet öffnen und die Wallet mit den 12 Wörtern wiederherstellen.',
+    warum: 'Die Freigabe ist nötig, weil die App direkt von GitHub kommt und nicht aus dem Play Store. Die APK ist mit dem YSKAR-Schlüssel signiert; Android prüft das bei jeder Installation und jedem Update.',
+    laden: 'APK laden',
+    seite: 'Release-Seite öffnen',
+    spaeter: 'Später',
+    nie: 'Nicht mehr zeigen',
+    einstellung: 'Android-App laden',
+    einstellungText: 'YSKAR Wallet als eigene App installieren.',
+  },
+
   app: {
     sicherheit: 'Sicherheit',
     biometrie: 'Fingerabdruck / Gesicht',

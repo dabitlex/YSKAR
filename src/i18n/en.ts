@@ -393,6 +393,24 @@ const en = {
     sperreMin: (n: number) => `${n} min`,
   },
 
+  apk: {
+    titel: 'YSKAR Wallet for Android',
+    text: 'Push for incoming payments, mining even with the screen locked, unlock with your fingerprint — as its own app on your device.',
+    version: (v: string, mb: string) => `Version ${v} · ${mb} MB · signed APK from GitHub`,
+    versionSucht: 'Looking for the latest version…',
+    anleitung: 'How to install it',
+    schritt1: 'Tap “Download APK” and confirm the download.',
+    schritt2: (quelle: string) => `Open the downloaded file. Android asks for the permission “Install unknown apps” — turn on “Allow from this source” for ${quelle} there and go back.`,
+    schritt3: 'Tap “Install”. Then open YSKAR Wallet and restore your wallet with the 12 words.',
+    warum: 'This permission is needed because the app comes straight from GitHub, not from the Play Store. The APK is signed with the YSKAR key; Android checks that on every install and update.',
+    laden: 'Download APK',
+    seite: 'Open release page',
+    spaeter: 'Later',
+    nie: 'Don’t show again',
+    einstellung: 'Get the Android app',
+    einstellungText: 'Install YSKAR Wallet as its own app.',
+  },
+
   app: {
     sicherheit: 'Security',
     biometrie: 'Fingerprint / face',

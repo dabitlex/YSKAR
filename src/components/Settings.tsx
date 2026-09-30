@@ -6,6 +6,8 @@ import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import AppSettings from '@/components/AppSettings';
 import { useT, fehlerText, SPRACHEN } from '@/i18n';
 import { SPERRE_STUFEN, sperreLesen, sperreSetzen } from '@/hooks/useAutoSperre';
+import { AppLaden } from '@/components/AppLaden';
+import { istNativ } from '@/lib/native/plattform';
 
 /**
  * Einstellungen.
@@ -25,6 +27,7 @@ export default function Settings({ onZurueck, anteil, workers }: {
   const [bestaetigt, setBestaetigt] = useState(false);
   const { t, sprache, setSprache } = useT();
   const [sperre, setSperre] = useState<number>(() => sperreLesen());
+  const [apkOffen, setApkOffen] = useState(false);
 
   if (modus === 'woerter') {
     return (
@@ -156,6 +159,17 @@ export default function Settings({ onZurueck, anteil, workers }: {
           <span className="tnum text-[13.5px] text-dim">{workers}</span>
         </li>
       </ul>
+
+      {!istNativ() && (
+        <>
+          <p className="label mt-6 mb-2">{t.apk.titel}</p>
+          <ul className="mt-2 border-t border-line">
+            <Eintrag onClick={() => setApkOffen(true)}>{t.apk.einstellung}</Eintrag>
+          </ul>
+          <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">{t.apk.einstellungText}</p>
+          {apkOffen && <AppLaden onSchliessen={() => setApkOffen(false)} />}
+        </>
+      )}
 
       <AppSettings />
 

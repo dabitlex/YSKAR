@@ -393,6 +393,24 @@ const tr = {
     sperreMin: (n: number) => `${n} min`,
   },
 
+  apk: {
+    titel: 'Android için YSKAR Wallet',
+    text: 'Gelen ödemelerde bildirim, ekran kilitliyken bile madencilik, parmak iziyle kilit açma — cihazınızda ayrı bir uygulama olarak.',
+    version: (v: string, mb: string) => `Sürüm ${v} · ${mb} MB · GitHub’dan imzalı APK`,
+    versionSucht: 'En yeni sürüm aranıyor…',
+    anleitung: 'Nasıl kurulur',
+    schritt1: '“APK indir”e dokunun ve indirmeyi onaylayın.',
+    schritt2: (quelle: string) => `İndirilen dosyayı açın. Android “Bilinmeyen uygulamaları yükle” izni ister — orada ${quelle} için “Bu kaynaktan izin ver”i açın ve geri dönün.`,
+    schritt3: '“Yükle”ye dokunun. Ardından YSKAR Wallet’ı açın ve cüzdanınızı 12 kelimeyle geri yükleyin.',
+    warum: 'Bu izin gerekli, çünkü uygulama Play Store’dan değil doğrudan GitHub’dan gelir. APK, YSKAR anahtarıyla imzalıdır; Android bunu her kurulumda ve güncellemede denetler.',
+    laden: 'APK indir',
+    seite: 'Sürüm sayfasını aç',
+    spaeter: 'Sonra',
+    nie: 'Bir daha gösterme',
+    einstellung: 'Android uygulamasını indir',
+    einstellungText: 'YSKAR Wallet’ı ayrı bir uygulama olarak kurun.',
+  },
+
   app: {
     sicherheit: 'Güvenlik',
     biometrie: 'Parmak izi / yüz',

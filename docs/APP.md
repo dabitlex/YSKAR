@@ -175,6 +175,17 @@ Minuten selbst `/api/v2/account/<adresse>` und `/api/v2/summary`
 (`YskarWidget`, `WidgetDaten`). Die Mining-Werte gibt es nur aus der App;
 sie entstehen im WebView.
 
+## Hinweis auf die App (Telegram, Browser)
+
+Wer YSKAR auf einem Android-Geraet in Telegram oder im Browser benutzt,
+bekommt einmal ein Pop-up mit der Android-App: Version und Groesse der
+neuesten APK (GitHub Releases), eine Anleitung in drei Schritten -- samt
+der Freigabe "Unbekannte Apps installieren" fuer Telegram bzw. Chrome --
+und dem Grund dafuer. "Spaeter" verschiebt um sieben Tage, "Nicht mehr
+zeigen" fuer immer (`yskar.apk.hinweis`). Ausserdem als Eintrag in den
+Einstellungen. In der App selbst und auf iPhone/Desktop erscheint nichts.
+Texte in allen sechs Sprachen (`apk.*`).
+
 ## Update aus der App heraus
 
 Der Banner „Update x.y.z verfügbar" lädt die APK über den DownloadManager

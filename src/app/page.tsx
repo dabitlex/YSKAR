@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { WalletProvider, useWallet } from '@/lib/wallet/useWallet';
 import Onboarding from '@/components/Onboarding';
 import Unlock from '@/components/Unlock';
+import AppLadenHinweis from '@/components/AppLaden';
 import AppShell from '@/components/AppShell';
 import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
@@ -84,6 +85,8 @@ function Router() {
   return (
     <>
       <AppShell platform={platform ?? ''} />
+      {/* Android-App anbieten -- nur ausserhalb der App, nur auf Android. */}
+      <AppLadenHinweis />
       {wallet.phase === 'gesperrt' && <Unlock ebene />}
     </>
   );
