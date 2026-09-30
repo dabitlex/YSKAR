@@ -79,8 +79,13 @@ html, body {
   background: rgb(var(--ink));
   color: rgb(var(--text));
   margin: 0;
-  overflow-x: hidden;
 }
+/*
+  Quer nichts, laengs alles. `overflow-x: hidden` auf html UND body macht
+  im WebView den body zum Scroll-Container und laehmt das Scrollen --
+  `clip` schneidet nur ab und laesst das Fenster scrollen.
+*/
+body { overflow-x: clip; }
 
 /*
   Leisten-Schleier. Die App zeichnet bis unter Status- und Gestenleiste;
