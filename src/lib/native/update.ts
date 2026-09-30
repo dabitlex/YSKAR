@@ -125,3 +125,38 @@ export async function updateInstallieren(): Promise<boolean> {
   if (!h) return false;
   try { await h.p.installieren(); return true; } catch { return false; }
 }
+
+/**
+ * Neueste APK fuer Nutzer, die die App NOCH NICHT haben (Telegram, Browser).
+ *
+ * Gleiche Release-Liste wie updatePruefen, aber ohne Vergleich mit einer
+ * installierten Version. `mb` ist die Groesse der APK, gerundet -- die
+ * steht im Hinweis, damit niemand von einem 30-MB-Download ueberrascht wird.
+ */
+export interface Apk { version: string; url: string; seite: string; mb: string }
+
+export async function neuesteApk(): Promise<Apk | null> {
+  try {
+    const res = await fetch(RELEASES, { headers: { accept: 'application/vnd.github+json' } });
+    if (!res.ok) return null;
+    const liste = await res.json() as {
+      tag_name: string; html_url: string; draft: boolean; prerelease: boolean;
+      assets: { name: string; browser_download_url: string; size: number }[];
+    }[];
+    const neueste = liste
+      .filter(r => !r.draft && !r.prerelease && TAG.test(r.tag_name))
+      .sort((x, y) => vergleich(y.tag_name.slice(5), x.tag_name.slice(5)))[0];
+    if (!neueste) return null;
+    const apk = neueste.assets.find(a => a.name.endsWith('.apk'));
+    if (!apk) return null;
+    return {
+      version: neueste.tag_name.slice(5),
+      url: apk.browser_download_url,
+      seite: neueste.html_url,
+      mb: (apk.size / 1_048_576).toFixed(1),
+    };
+  } catch { return null; }
+}
+
+/** Release-Seite, falls die Abfrage scheitert: die gibt es immer. */
+export const RELEASE_SEITE = `https://github.com/${REPO}/releases/latest`;
