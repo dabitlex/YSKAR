@@ -74,9 +74,9 @@ export default function AppSettings() {
 
   return (
     <>
-      <p className="label mb-2 mt-6">{t.app.sicherheit}</p>
-      <ul className="mt-2 border-t border-line">
-        <li className="flex items-center justify-between gap-3 border-b border-line py-3">
+      <p className="label mb-2 mt-7 px-0.5">{t.app.sicherheit}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <li className="flex items-center justify-between gap-3 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
           <span className="flex flex-col">
             <span className="text-[13.5px] font-bold">{t.app.biometrie}</span>
             <span className="text-[12px] font-semibold text-faint">
@@ -119,9 +119,9 @@ export default function AppSettings() {
       )}
       {!pinFrage && fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
 
-      <p className="label mb-2 mt-6">{t.app.benachrichtigungen}</p>
-      <ul className="mt-2 border-t border-line">
-        <li className="flex items-center justify-between gap-3 border-b border-line py-3">
+      <p className="label mb-2 mt-7 px-0.5">{t.app.benachrichtigungen}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <li className="flex items-center justify-between gap-3 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
           <span className="flex flex-col">
             <span className="text-[13.5px] font-bold">{t.app.pushTitel}</span>
             <span className="text-[12px] font-semibold text-faint">
@@ -138,15 +138,15 @@ export default function AppSettings() {
         </li>
       </ul>
 
-      <p className="label mb-2 mt-6">{t.app.app}</p>
-      <ul className="mt-2 border-t border-line">
-        <li className="flex items-center justify-between border-b border-line py-3">
+      <p className="label mb-2 mt-7 px-0.5">{t.app.app}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
           <span className="text-[13.5px] font-bold">{t.app.version}</span>
           <span className="tnum text-[13.5px] font-semibold text-dim">
             {version ? `${version.version} (${version.build})` : '—'}
           </span>
         </li>
-        <li className="flex items-center justify-between border-b border-line py-3">
+        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
           <span className="text-[13.5px] font-bold">{t.app.updates}</span>
           {update === 'sucht' ? <span className="text-[13px] font-semibold text-faint">{t.app.sucht}</span>
             : update === 'keins' ? <span className="text-[13px] font-semibold text-proof">{t.app.aktuell}</span>
@@ -160,9 +160,9 @@ export default function AppSettings() {
               : <button onClick={suchen} className="text-[13px] font-bold text-work">{t.app.jetztPruefen}</button>}
         </li>
       </ul>
-      <p className="label mb-2 mt-6">{t.app.diagnose}</p>
-      <ul className="mt-2 border-t border-line">
-        <li className="flex items-center justify-between border-b border-line py-3">
+      <p className="label mb-2 mt-7 px-0.5">{t.app.diagnose}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
           <span className="text-[13.5px] font-bold">{t.app.bruecke}</span>
           <button onClick={async () => { setDiag('laeuft'); try { setDiag(await diagnose()); } catch (e) { fehlerMerken('diagnose', e); setDiag(await diagnose().catch(() => null)); } }}
                   disabled={diag === 'laeuft'} className="text-[13px] font-bold text-work">

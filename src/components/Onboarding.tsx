@@ -178,9 +178,9 @@ function Woerter({ mnemonic, onWeiter }: { mnemonic: string; onWeiter: () => voi
         keine Dekoration -- die Reihenfolge ist Teil des Geheimnisses, und
         wer sie vertauscht abschreibt, kommt nicht mehr an sein Geld.
       */}
-      <ol className="my-6 grid grid-cols-2 gap-x-4 border-t border-line">
+      <ol className="panel my-6 grid grid-cols-2 gap-x-5 px-5 !py-1">
         {words.map((w, i) => (
-          <li key={i} className="flex items-baseline gap-3 border-b border-line py-3">
+          <li key={i} className="flex items-baseline gap-3 py-3 [&:not(:nth-last-child(-n+2))]:border-b [&:not(:nth-last-child(-n+2))]:border-line">
             <span className="tnum w-5 shrink-0 text-right text-xs text-dim">{i + 1}</span>
             <span className="font-mono text-[15px]">{w}</span>
           </li>

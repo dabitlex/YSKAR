@@ -26,8 +26,9 @@ export default function Artikel({ artikel, onZurueck, unten }: {
                  rechts={<span className="label text-work">
                    {t.entdecken.lesezeit(artikel.lesezeit)}</span>} />
 
-      <div className="rise">
-        <span className={`inline-flex h-11 w-11 items-center justify-center rounded-[13px]
+      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
+      <div className="rise relative">
+        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-[16px]
                           ${FARBE[artikel.farbe]}`}>{Icon[artikel.icon]}</span>
         <h1 className="mt-4 text-[28px] font-extrabold leading-[1.15] tracking-[-0.02em]">
           {artikel.titel}
