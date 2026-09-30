@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useT } from '@/i18n';
 
 /**
@@ -14,15 +15,22 @@ import { useT } from '@/i18n';
  */
 
 /** Grosse Zahl mit gedimmten Nachkommastellen und Einheit. */
-export function Zahl({ ganz, bruch, trenner = ',', einheit, size = 52, className = '' }: {
-  ganz: string; bruch?: string; trenner?: string; einheit?: string; size?: number; className?: string;
+export function Zahl({ ganz, bruch, trenner = ',', einheit, size = 52, breite = 300, className = '' }: {
+  ganz: string; bruch?: string; trenner?: string; einheit?: string; size?: number;
+  /** Verfuegbare Breite in px -- die Schrift schrumpft, bis die Zahl hineinpasst. */
+  breite?: number; className?: string;
 }) {
+  // Tabellenziffern in Manrope sind etwa 0,6 em breit. Ein grosses Guthaben
+  // (1.325.744,6759) darf nie ueber den Rand laufen -- sonst scrollt die
+  // ganze Seite quer, samt Navigationsleiste.
+  const zeichen = ganz.length + (bruch !== undefined ? bruch.length + trenner.length : 0);
+  const eff = Math.max(22, Math.min(size, Math.floor(breite / (zeichen * 0.6))));
   return (
-    <span className={`flex items-baseline gap-2 ${className}`}>
-      <span className="zahl-gross" style={{ fontSize: size }}>
+    <span className={`flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 ${className}`}>
+      <span className="zahl-gross whitespace-nowrap" style={{ fontSize: eff }}>
         {ganz}{bruch !== undefined && <span className="bruch">{trenner}{bruch}</span>}
       </span>
-      {einheit && <span className="font-extrabold text-dim" style={{ fontSize: Math.round(size / 3) }}>{einheit}</span>}
+      {einheit && <span className="font-extrabold text-dim" style={{ fontSize: Math.round(eff / 3) }}>{einheit}</span>}
     </span>
   );
 }
@@ -179,14 +187,16 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts }: {
   const { t } = useT();
   const [sichtbar, setSichtbar] = useState(offen);
   useEffect(() => { if (offen) setSichtbar(true); else { const id = setTimeout(() => setSichtbar(false), 220); return () => clearTimeout(id); } }, [offen]);
-  if (!sichtbar) return null;
-  return (
+  if (!sichtbar || typeof document === 'undefined') return null;
+  // Kein transform und kein filter auf dem Blatt: beides macht es zum
+  // Bezugsrahmen fuer fixierte Nachfahren -- der Scanner (fixed inset-0)
+  // saesse sonst im Blatt statt auf dem Bildschirm.
+  return createPortal(
     <div className={`fixed inset-0 z-40 flex flex-col justify-end transition-opacity duration-200 ${offen ? 'opacity-100' : 'opacity-0'}`}
-         style={{ background: 'rgb(var(--edge) / .45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+         style={{ background: 'rgb(var(--edge) / .45)' }}
          onClick={onSchliessen} role="dialog" aria-modal="true">
-      <div className={`mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-[30px] bg-surface px-5 pt-2.5
-                       pb-[calc(24px+var(--unten))] shadow-[0_-20px_60px_-20px_rgba(0,0,0,.35)]
-                       transition-transform duration-200 ${offen ? 'translate-y-0' : 'translate-y-6'}`}
+      <div className="mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-[30px] bg-surface px-5 pt-2.5
+                       pb-[calc(24px+var(--unten))] shadow-[0_-20px_60px_-20px_rgba(0,0,0,.35)]"
            onClick={e => e.stopPropagation()}>
         <div className="mx-auto mb-4 h-[5px] w-10 rounded-full bg-line" />
         {(titel || rechts) && (
@@ -202,7 +212,8 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts }: {
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

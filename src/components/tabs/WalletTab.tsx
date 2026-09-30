@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon, Button } from '@/components/ui/Primitives';
 import { Zahl, Etikett, Karte, Segment, Identicon } from '@/components/ui/Bausteine';
 import type { Account, Wartend } from '@/hooks/useMining';
@@ -52,7 +53,7 @@ export default function WalletTab({ account, symbol, decimals, address,
   const gestern = new Date(heute); gestern.setDate(gestern.getDate() - 1);
   const gruppe = (ts: string | null) => {
     if (!ts) return t.wallet.frueher;
-    const d = new Date(ts);
+    const d = new Date(Number(ts) * 1000);
     return d >= heute ? t.wallet.heute : d >= gestern ? t.wallet.gestern : t.wallet.frueher;
   };
   const gruppen: { name: string; eintraege: HistoryEintrag[] }[] = [];
@@ -189,8 +190,9 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
   const titel = eintrag.kind === 'reward' ? t.wallet.dBlockreward
     : eintrag.kind === 'in' ? t.wallet.dEmpfangen : t.wallet.dGesendet;
 
-  return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-end bg-text/40 backdrop-blur-sm"
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div className="fixed inset-0 z-40 flex flex-col justify-end bg-text/40"
          onClick={onSchliessen}>
       <div className="rise max-h-[85dvh] overflow-y-auto rounded-t-[24px] bg-surface p-5
                       pb-[calc(20px+var(--unten))]"
@@ -240,7 +242,7 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }
 
 function Feld({ label, wert, mono, umbruch, onKopieren, kopiert }: {
