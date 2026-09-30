@@ -33,7 +33,7 @@ export function BottomNav({ aktiv, onWechsel }: {
 }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line
-                    bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+                    rand-unten bg-surface/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-md gap-1 px-2 py-1.5">
         {PUNKTE.map(p => {
           const an = aktiv === p.key;
@@ -98,7 +98,7 @@ export function Splash() {
       <Image src="/marke/splash.jpg" alt="YSKAR — Gemeinsam. Dezentral. Stark."
              fill priority sizes="100vw"
              style={{ objectFit: 'cover', objectPosition: 'center 46%' }} />
-      <div className="absolute inset-x-6 bottom-[calc(56px+env(safe-area-inset-bottom))]
+      <div className="absolute inset-x-6 bottom-[calc(56px+var(--unten))]
                       flex flex-col items-center gap-3">
         <div className="relative h-[3px] w-[120px] overflow-hidden rounded-full bg-line">
           <div className="lade absolute left-0 top-0 h-[3px] w-10 rounded-full bg-work" />

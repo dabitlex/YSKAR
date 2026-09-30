@@ -37,6 +37,19 @@
   --r-lg: 24px;
 }
 
+/*
+  Systemleisten. Seit Android 15 zeichnet die App bis unter Statusleiste
+  und Gestenbalken. Capacitor traegt deren Hoehe als --safe-area-inset-*
+  in das <html>-Element ein; im iOS-WebView und im Browser kommt sie per
+  env(). Wo keins von beidem existiert, ist der Rand 0.
+*/
+:root {
+  --oben:  var(--safe-area-inset-top,    env(safe-area-inset-top,    0px));
+  --unten: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+.rand-oben  { padding-top:    calc(20px + var(--oben)); }
+.rand-unten { padding-bottom: var(--unten); }
+
 html, body {
   background: rgb(var(--ink));
   color: rgb(var(--text));

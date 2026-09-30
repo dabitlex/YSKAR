@@ -35,12 +35,13 @@ const config: CapacitorConfig = {
     includePlugins: undefined,
   },
   plugins: {
-    // Android 15+ zeichnet Apps bis unter die Statusleiste. "native" laesst
-    // Capacitor das WebView unter die Systemleisten ruecken -- die
-    // Weboberflaeche muss nichts davon wissen (env(safe-area-inset-*) ist
-    // im Android-WebView ohnehin 0). Die App ist hell, also helle Leiste
+    // Android 15+ zeichnet Apps bis unter Statusleiste und Gestenbalken.
+    // Capacitor traegt deren Hoehe als --safe-area-inset-* ins <html> ein
+    // (insetsHandling "css", die Vorgabe); die Oberflaeche nutzt das in
+    // globals.css. "native" hatte das Eintragen abgeschaltet -- deshalb
+    // bleibt es hier bei der Vorgabe. Die App ist hell, also helle Leiste
     // mit dunklen Symbolen, unabhaengig vom Systemthema.
-    SystemBars: { insetsHandling: 'native', style: 'LIGHT' },
+    SystemBars: { style: 'LIGHT' },
     PushNotifications: { presentationOptions: ['badge', 'sound', 'alert'] },
     CapacitorHttp: { enabled: false },
   },

@@ -167,7 +167,7 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
     <div className="fixed inset-0 z-40 flex flex-col justify-end bg-text/40 backdrop-blur-sm"
          onClick={onSchliessen}>
       <div className="rise max-h-[85dvh] overflow-y-auto rounded-t-[24px] bg-surface p-5
-                      pb-[calc(20px+env(safe-area-inset-bottom))]"
+                      pb-[calc(20px+var(--unten))]"
            onClick={e => e.stopPropagation()}>
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-line" />
 

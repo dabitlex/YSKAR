@@ -156,7 +156,7 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
       {/* Abdunkeln ausserhalb des Rahmens, damit die Mitte fuehrt. */}
       <div className="pointer-events-none absolute inset-0 bg-black/45" />
 
-      <div className="relative flex items-center justify-between px-5 pt-[calc(16px+env(safe-area-inset-top))]">
+      <div className="relative flex items-center justify-between px-5 pt-[calc(16px+var(--oben))]">
         <button onClick={onAbbruch} aria-label="Abbrechen"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
           <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
@@ -207,7 +207,7 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
         </div>
       </div>
 
-      <div className="relative flex flex-col gap-2.5 px-5 pb-[calc(24px+env(safe-area-inset-bottom))]">
+      <div className="relative flex flex-col gap-2.5 px-5 pb-[calc(24px+var(--unten))]">
         {treffer ? (
           <div className="flex items-center gap-3 rounded-[16px] border border-proof/40 bg-proof/20 px-4 py-3.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-proof">

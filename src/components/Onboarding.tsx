@@ -62,7 +62,7 @@ function Start({ onCreate, onRecover, onMehr }: {
   onCreate: () => void; onRecover: () => void; onMehr: () => void;
 }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-7 pt-5"
+    <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-7"
           style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, rgb(var(--ink)) 42%)' }}>
       <div className="zoom flex flex-col items-center gap-1">
         <Image src="/marke/kristall.png" alt="" width={168} height={122} priority
