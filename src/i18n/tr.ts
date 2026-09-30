@@ -426,6 +426,10 @@ const tr = {
     updateText: (v: string) => `Sürümün: ${v}. İndirmek için dokun.`,
     updateLaden: 'İndir',
     spaeter: 'Sonra',
+    updateLaedt: (p: number) => `İndiriliyor… %${p}`,
+    updateErlaubnis: '“Bu kaynaktan uygulama yükle” iznini ver, sonra tekrar dokun.',
+    updateInstallieren: 'İndirildi — yükleyiciyi aç',
+    updateFehler: 'İndirme başarısız. Tarayıcıdan indir.',
   },
 
   bench: {

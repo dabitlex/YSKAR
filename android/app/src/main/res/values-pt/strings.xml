@@ -5,4 +5,15 @@
     <string name="mining_kanal_text">Mostra que seu aparelho está calculando para o YSKAR.</string>
     <string name="mining_stoppen">Parar mineração</string>
     <string name="mining_titel">YSKAR está calculando</string>
+    <string name="widget_beschreibung">Saldo e mineração do YSKAR num relance</string>
+    <string name="widget_holen">Atualizar</string>
+    <string name="widget_keine_wallet">Nenhuma carteira ainda</string>
+    <string name="widget_mining">Mineração</string>
+    <string name="widget_gestoppt">parada</string>
+    <string name="widget_shares">shares</string>
+    <string name="widget_ziel">alvo</string>
+    <plurals name="widget_bloecke">
+        <item quantity="one">%s bloco encontrado</item>
+        <item quantity="other">%s blocos encontrados</item>
+    </plurals>
 </resources>

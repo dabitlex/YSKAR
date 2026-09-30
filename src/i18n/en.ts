@@ -426,6 +426,10 @@ const en = {
     updateText: (v: string) => `You have ${v}. Tap to download.`,
     updateLaden: 'Download',
     spaeter: 'Later',
+    updateLaedt: (p: number) => `Downloading… ${p} %`,
+    updateErlaubnis: 'Please allow “Install apps from this source”, then tap again.',
+    updateInstallieren: 'Downloaded — open installer',
+    updateFehler: 'Download failed. Get it via the browser.',
   },
 
   bench: {

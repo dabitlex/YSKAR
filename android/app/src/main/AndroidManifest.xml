@@ -49,6 +49,20 @@
                 android:value="Proof-of-Work-Mining, vom Nutzer gestartet und jederzeit ueber die Benachrichtigung stoppbar" />
         </service>
 
+        <!-- Homescreen-Widget: Guthaben, Bloecke, Mining-Zeile. -->
+        <receiver
+            android:name=".YskarWidget"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="net.yskar.wallet.WIDGET_HOLEN" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -74,4 +88,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Entsperren und Senden mit Fingerabdruck oder Gesicht -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Update aus der App heraus: die geladene APK dem Installer uebergeben. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

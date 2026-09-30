@@ -426,6 +426,10 @@ const es = {
     updateText: (v: string) => `Tienes ${v}. Toca para descargar.`,
     updateLaden: 'Descargar',
     spaeter: 'Más tarde',
+    updateLaedt: (p: number) => `Descargando… ${p} %`,
+    updateErlaubnis: 'Permite «Instalar apps de esta fuente» y vuelve a tocar.',
+    updateInstallieren: 'Descargado — abrir instalador',
+    updateFehler: 'La descarga falló. Descárgala desde el navegador.',
   },
 
   bench: {

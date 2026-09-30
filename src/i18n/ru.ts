@@ -426,6 +426,10 @@ const ru = {
     updateText: (v: string) => `У тебя ${v}. Нажми, чтобы загрузить.`,
     updateLaden: 'Загрузить',
     spaeter: 'Позже',
+    updateLaedt: (p: number) => `Загрузка… ${p} %`,
+    updateErlaubnis: 'Разреши «Установку приложений из этого источника» и нажми ещё раз.',
+    updateInstallieren: 'Загружено — открыть установщик',
+    updateFehler: 'Загрузка не удалась. Скачай через браузер.',
   },
 
   bench: {

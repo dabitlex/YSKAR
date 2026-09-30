@@ -124,6 +124,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const forget = useCallback(() => {
     vault.wipe();
+    // Android-Widget zeigt sonst weiter das alte Guthaben.
+    import('@/lib/native/widget').then(w => w.widgetLeeren()).catch(() => {});
     setKeypair(null);
     setAddress(null);
     setFreshMnemonic(null);

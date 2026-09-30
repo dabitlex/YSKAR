@@ -10,6 +10,8 @@ public class MainActivity extends BridgeActivity {
         // Eigene Plugins vor super.onCreate registrieren, sonst kennt die
         // Bruecke sie nicht.
         registerPlugin(MiningServicePlugin.class);
+        registerPlugin(WidgetPlugin.class);
+        registerPlugin(AppUpdatePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
