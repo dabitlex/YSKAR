@@ -11,7 +11,7 @@
     "wasm": "node wasm/build.js && node wasm/publish.js",
     "wasm:gen": "python3 wasm/gen_wat.py && npm run wasm",
     "app:sync": "cap sync android",
-    "app:assets": "capacitor-assets generate --android --iconBackgroundColor #FFFFFF --splashBackgroundColor #FFFFFF --splashBackgroundColorDark #FFFFFF"
+    "app:assets": "capacitor-assets generate --android --iconBackgroundColor \"#FFFFFF\" --splashBackgroundColor \"#FFFFFF\" --splashBackgroundColorDark \"#FFFFFF\""
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.2",
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
