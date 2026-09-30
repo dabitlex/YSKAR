@@ -54,6 +54,7 @@ const ru = {
     keinPool: 'Эта нода не запускает пул.',
     shareAbgelehnt: (grund: string) => `Share отклонён: ${grund}`,
     tx: {
+      dust: 'Сумма слишком мала (пылевой порог).',
       insufficient_funds: 'Недостаточно средств.',
       nonce_used: 'Этот платёж уже был отправлен.',
       fee_not_higher: 'Платёж с этим номером уже ожидает.',
@@ -286,6 +287,7 @@ const ru = {
   },
 
   senden: {
+    staub: 'Слишком мало — минимум 0,000001 YSR.',
     titel: 'Отправить',
     empfaenger: 'Получатель',
     scannen: 'Сканировать',

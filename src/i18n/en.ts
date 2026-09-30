@@ -54,6 +54,7 @@ const en = {
     keinPool: 'This node does not run a pool.',
     shareAbgelehnt: (grund: string) => `Share rejected: ${grund}`,
     tx: {
+      dust: 'Amount too small (dust limit).',
       insufficient_funds: 'Insufficient balance.',
       nonce_used: 'This payment has already been submitted.',
       fee_not_higher: 'A payment with this number is already waiting.',
@@ -286,6 +287,7 @@ const en = {
   },
 
   senden: {
+    staub: 'Too small — at least 0.000001 YSR.',
     titel: 'Send',
     empfaenger: 'Recipient',
     scannen: 'Scan',

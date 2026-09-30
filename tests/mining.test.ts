@@ -42,7 +42,7 @@ function knoten() {
   store.setMeta('network', REGTEST.network);
   store.setMeta('chain_id', toHex(REGTEST.chainId));
   const chain = new ChainManager(store, REGTEST);
-  const pool = new TxPool();
+  const pool = new TxPool(REGTEST);
 
   // Gesetzte Uhr: rückt je Job um die Zielblockzeit vor. Damit sieht die
   // Difficulty-Regel genau 600 Sekunden und bleibt bei 1 stehen --
@@ -166,7 +166,7 @@ test('Der Mempool nimmt nur an, was gedeckt und richtig signiert ist', () => {
   const geber = wallet();
 
   // Unbekanntes Konto
-  const ohne = buildTransfer({
+  const ohne = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: empfaenger.addressRaw,
     amount: 1n * UNIT, fee: MIN_FEE, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
@@ -176,7 +176,7 @@ test('Der Mempool nimmt nur an, was gedeckt und richtig signiert ist', () => {
   assert.equal((r1 as { reason: string }).reason, 'unknown_account');
 
   // Zu niedrige Gebühr
-  const billig = buildTransfer({
+  const billig = buildTransfer({ chainId: REGTEST.chainId,
     from: MINER_A, to: empfaenger.addressRaw,
     amount: 1n * UNIT, fee: 1n, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
@@ -199,7 +199,7 @@ test('Der Mempool verhindert dieselbe Nonce zweimal ohne höhere Gebühr', () =>
   }
 
   const ziel = wallet();
-  const eins = buildTransfer({
+  const eins = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: ziel.addressRaw,
     amount: 10n * UNIT, fee: MIN_FEE, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
@@ -207,7 +207,7 @@ test('Der Mempool verhindert dieselbe Nonce zweimal ohne höhere Gebühr', () =>
   assert.equal(pool.add(eins, chain.state(), chain.height() + 1).ok, true);
 
   // Gleiche Nonce, gleiche Gebühr
-  const gleich = buildTransfer({
+  const gleich = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: ziel.addressRaw,
     amount: 20n * UNIT, fee: MIN_FEE, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
@@ -217,7 +217,7 @@ test('Der Mempool verhindert dieselbe Nonce zweimal ohne höhere Gebühr', () =>
   assert.equal((r as { reason: string }).reason, 'fee_not_higher');
 
   // Höhere Gebühr ersetzt
-  const hoeher = buildTransfer({
+  const hoeher = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: ziel.addressRaw,
     amount: 20n * UNIT, fee: MIN_FEE * 2n, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
@@ -237,7 +237,7 @@ test('Eine Überweisung landet im Block und verschwindet aus dem Mempool', () =>
   }
 
   const ziel = wallet();
-  const tx = buildTransfer({
+  const tx = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: ziel.addressRaw,
     amount: 100n * UNIT, fee: MIN_FEE, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
@@ -266,14 +266,14 @@ test('Nach dem Block fliegen ungültig gewordene Einträge aus dem Mempool', () 
 
   const ziel = wallet();
   // Zwei Überweisungen, zusammen mehr als das Guthaben nach der ersten
-  const a = buildTransfer({
+  const a = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: ziel.addressRaw,
     amount: 800n * UNIT, fee: MIN_FEE, nonce: 0n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,
   });
   assert.equal(pool.add(a, chain.state(), 1).ok, true);
 
-  const b = buildTransfer({
+  const b = buildTransfer({ chainId: REGTEST.chainId,
     from: geber.addressRaw, to: ziel.addressRaw,
     amount: 800n * UNIT, fee: MIN_FEE, nonce: 1n,
     publicKey: geber.publicKey, privateKey: geber.privateKey,

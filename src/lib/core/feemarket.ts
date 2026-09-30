@@ -22,10 +22,12 @@
  * Bytes. Knapp ist hier also ein PLATZ, nicht ein Byte -- und der Preis
  * eines Platzes ist genau die absolute Gebuehr, die es schon gibt.
  *
- * Sobald Transaktionen unterschiedlich gross werden UND die Blockgrenze in
- * Bytes zaehlt, wird ein Satz je Byte richtig. Beides waere eine
- * Konsensaenderung mit Aktivierungshoehe. Das Feld `fee` bliebe dabei
- * unveraendert -- die Rate ist nur die Rechnung fee / vbytes.
+ * Seit Konsensfassung 3 (params.ts, FEE_V3_HEIGHT) ist die UNTERGRENZE
+ * ein Satz je Byte -- Konsens 1 Einheit, Weiterleitung 10 Einheiten je
+ * Byte. Der MARKT rechnet weiterhin je Platz, denn knapp ist der Platz.
+ * Deshalb nimmt marktlage() die Untergrenze als `boden` entgegen: Der
+ * Knoten reicht seine Weiterleitungsgebuehr fuer die betreffende Hoehe
+ * hinein, und keine Stufe faellt darunter.
  * ---------------------------------------------------------------------
  */
 import { serializeTx, txid, type Transfer } from './tx.ts';
@@ -135,6 +137,8 @@ export function projiziere(
 export function marktlage(
   state: State, mempool: Transfer[], hoehe: number,
   limit = MAX_TXS_PER_BLOCK - 1,
+  /** Untergrenze, unter die keine Stufe faellt (Weiterleitungsgebuehr des Knotens). */
+  boden: bigint = MIN_FEE,
 ): Marktlage {
   const plaetze = projiziere(state, mempool, hoehe, VORSCHAU_BLOECKE, limit);
 
@@ -165,7 +169,7 @@ export function marktlage(
       Drei verschiedene Preise anzubieten, waere eine Erfindung -- der
       Nutzer wuerde mehr zahlen, ohne irgendetwas dafuer zu bekommen.
     */
-    const s: Stufe = { fee: MIN_FEE, block: 1 };
+    const s: Stufe = { fee: boden, block: 1 };
     return {
       wartend: mempool.length, plaetzeJeBlock: limit, kappung: null,
       andrang: false, langsam: s, normal: s, schnell: s, bloecke,
@@ -175,20 +179,20 @@ export function marktlage(
   // Mit Andrang: Preise aus den tatsaechlichen Grenzen ablesen.
   const grenze = (block: number): bigint => {
     const b = bloecke.find(x => x.block === block);
-    return b ? b.minFee : MIN_FEE;
+    return b ? (b.minFee > boden ? b.minFee : boden) : boden;
   };
   // Ein Schritt ueber die Kappung -- sonst landet man gleichauf mit der
   // schwaechsten Transaktion und haengt vom Zufall der Reihenfolge ab.
-  const schritt = MIN_FEE / 10n > 0n ? MIN_FEE / 10n : 1n;
+  const schritt = boden / 10n > 0n ? boden / 10n : 1n;
 
   return {
     wartend: mempool.length,
     plaetzeJeBlock: limit,
     kappung,
     andrang: true,
-    schnell: { fee: (kappung ?? MIN_FEE) + schritt, block: 1 },
+    schnell: { fee: (kappung !== null && kappung > boden ? kappung : boden) + schritt, block: 1 },
     normal: { fee: grenze(2), block: 2 },
-    langsam: { fee: MIN_FEE, block: bloecke.length > 0 ? bloecke[bloecke.length - 1].block : 1 },
+    langsam: { fee: boden, block: bloecke.length > 0 ? bloecke[bloecke.length - 1].block : 1 },
     bloecke,
   };
 }

@@ -5,10 +5,10 @@ import { buildBlock, finalizeBlock, type BuildResult } from '../core/builder.ts'
 import { validateBlock, expectedDifficulty } from '../core/validate.ts';
 import { effectiveDifficulty } from '../core/difficulty.ts';
 import { headerHash, serializeHeader, withNonce, deserializeHeader } from '../core/block.ts';
-import { deserializeTx, checkTransfer, txid, TX_TRANSFER, type Transfer } from '../core/tx.ts';
+import { deserializeTx, checkTransfer, txid, transferBytes, TX_TRANSFER, type Transfer } from '../core/tx.ts';
 import { applyBlock, cloneState, getAccount, stateRoot, type State } from '../core/state.ts';
 import { decodeAddress } from '../core/address.ts';
-import { GENESIS_DIFFICULTY, LWMA_WINDOW } from '../core/params.ts';
+import { GENESIS_DIFFICULTY, LWMA_WINDOW, FEE_V3_HEIGHT, RELAY_FEE_RATE } from '../core/params.ts';
 import { sha256dTargetBytes } from './target-helpers.ts';
 import { serializeBlock } from '../core/block.ts';
 import { toHex, fromHex } from '../core/codec.ts';
@@ -143,6 +143,10 @@ export async function submitTransaction(raw: Uint8Array): Promise<
 
   const structural = checkTransfer(tx, height);
   if (structural) return { accepted: false, reason: structural };
+  // Weiterleitungs-Policy wie im Full Node: ab der Aktivierung je Byte.
+  if (height >= FEE_V3_HEIGHT && tx.fee < BigInt(transferBytes(tx.memo.length)) * RELAY_FEE_RATE) {
+    return { accepted: false, reason: 'fee_too_low' };
+  }
 
   const { state } = await store.loadState();
   const acc = getAccount(state, tx.from);

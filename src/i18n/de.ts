@@ -58,6 +58,7 @@ const de = {
     keinPool: 'Dieser Knoten betreibt keinen Pool.',
     shareAbgelehnt: (grund: string) => `Share abgelehnt: ${grund}`,
     tx: {
+      dust: 'Der Betrag ist zu klein (Staubgrenze).',
       insufficient_funds: 'Guthaben reicht nicht.',
       nonce_used: 'Diese Zahlung wurde bereits eingereicht.',
       fee_not_higher: 'Es wartet schon eine Zahlung mit dieser Nummer.',
@@ -290,6 +291,7 @@ const de = {
   },
 
   senden: {
+    staub: 'Zu klein — mindestens 0,000001 YSR.',
     titel: 'Senden',
     empfaenger: 'Empfänger',
     scannen: 'Scannen',

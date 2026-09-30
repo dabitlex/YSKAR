@@ -45,7 +45,7 @@ function knoten() {
 const idVon = (t: Transfer) => toHex(txid(t));
 
 function ueberweisung(nonce: bigint, betrag = UNIT): Transfer {
-  return buildTransfer({
+  return buildTransfer({ chainId: REGTEST.chainId,
     from: MINER.addressRaw, to: EMPFAENGER, amount: betrag,
     fee: MIN_FEE, nonce,
     publicKey: MINER.publicKey, privateKey: MINER.privateKey,
@@ -81,7 +81,7 @@ test('Ein Block aus dem Netz nimmt die enthaltene Überweisung aus der Warteschl
   const k = ketteMitGuthaben(3);
   for (const b of k.bloecke) assert.ok(chain.accept(b.body).ok);
 
-  const pool = new TxPool();
+  const pool = new TxPool(REGTEST);
   const tx = ueberweisung(0n);
   const add = pool.add(tx, chain.state(), chain.height() + 1);
   assert.ok(add.ok, `Aufnahme fehlgeschlagen: ${zeig(add)}`);
@@ -112,7 +112,7 @@ test('Nach einem Reorg kommt die Überweisung des verdrängten Blocks zurück', 
   const k = ketteMitGuthaben(3);
   for (const b of k.bloecke) assert.ok(chain.accept(b.body).ok);
 
-  const pool = new TxPool();
+  const pool = new TxPool(REGTEST);
   const tx = ueberweisung(0n);
   assert.ok(pool.add(tx, chain.state(), chain.height() + 1).ok);
 
@@ -197,7 +197,7 @@ test('Eine Überweisung, die der neue Zustand nicht mehr deckt, fällt raus', ()
   const k = ketteMitGuthaben(3);
   for (const b of k.bloecke) assert.ok(chain.accept(b.body).ok);
 
-  const pool = new TxPool();
+  const pool = new TxPool(REGTEST);
   /*
     Zwei Überweisungen mit DERSELBEN Nonce sind nicht gleichzeitig möglich --
     deshalb nacheinander: Erst kommt Nonce 0 in den Block, danach ist die

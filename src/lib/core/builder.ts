@@ -80,12 +80,13 @@ export function selectTransactions(
   mempool: Transfer[],
   height: number,
   limit = MAX_TXS_PER_BLOCK - 1,   // ein Platz gehoert der Coinbase
+  params: ConsensusParams = MAINNET,
 ): { included: Transfer[]; rejected: { txid: string; reason: string }[]; fees: bigint } {
   const rejected: { txid: string; reason: string }[] = [];
   const bySender = new Map<string, Transfer[]>();
 
   for (const t of mempool) {
-    const structural = checkTransfer(t, height);
+    const structural = checkTransfer(t, height, params);
     if (structural) { rejected.push({ txid: toHex(txid(t)), reason: structural }); continue; }
     const key = toHex(t.from);
     const list = bySender.get(key) ?? [];
@@ -209,7 +210,7 @@ export function buildCoinbaseV2(
 
 export function buildBlock(p: BuildParams): BuildResult {
   const { included, rejected, fees } =
-    selectTransactions(p.state, p.mempool, p.height);
+    selectTransactions(p.state, p.mempool, p.height, undefined, p.params ?? MAINNET);
 
   /*
     Aufteilung erst hier, weil erst jetzt feststeht, wie viel zu verteilen

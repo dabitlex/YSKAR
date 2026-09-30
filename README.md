@@ -20,7 +20,7 @@ Weitere: **proof, not promise**.
 | Tests | 297, keine Typfehler |
 | Knoten | Server unter `/api/v2/*` **und** eigenstaendiger Full Node |
 | Oberflaeche | Wallet, Senden, Empfangen, Mining, Kalibrierung |
-| Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000 |
+| Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000; Fassung 3 (Gebuehr je Byte, Staubgrenze) ab Hoehe 4000 -- docs/CONSENSUS_V3.md |
 | Pool | Abrechnung gebaut und geprueft, noch nicht angeschlossen |
 
 ## Aufbau

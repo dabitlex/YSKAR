@@ -17,8 +17,9 @@
  * Deshalb: erst pruefen, dann aufnehmen, dann erst weitergeben. Nie
  * umgekehrt.
  */
-import { checkTransfer, txidHex, type Transfer } from '../../core/tx.ts';
-import { MIN_FEE } from '../../core/params.ts';
+import { checkTransfer, txidHex, transferBytes, type Transfer } from '../../core/tx.ts';
+import { MIN_FEE, RELAY_FEE_RATE, FEE_V3_HEIGHT } from '../../core/params.ts';
+import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
 import type { State } from '../../core/state.ts';
 
@@ -48,6 +49,25 @@ interface Eintrag {
 
 export class TxPool {
   private nachId = new Map<string, Eintrag>();
+  private params: ConsensusParams;
+  /** Weiterleitungs-Satz in Einheiten je Byte -- Policy, kein Konsens. */
+  readonly relayFeeRate: bigint;
+
+  constructor(params: ConsensusParams = MAINNET, relayFeeRate: bigint = RELAY_FEE_RATE) {
+    this.params = params;
+    this.relayFeeRate = relayFeeRate;
+  }
+
+  /**
+   * Was dieser Knoten mindestens verlangt, um eine Transaktion zu
+   * behalten. Bis zur Aktivierung die alte Untergrenze; danach der
+   * Satz je Byte -- ueber dem Konsens (1 je Byte), unter dem, was ein
+   * Markt bei Andrang verlangt.
+   */
+  mindestGebuehr(height: number, memoBytes = 0): bigint {
+    if (height < (this.params.feeV3Height ?? FEE_V3_HEIGHT)) return MIN_FEE;
+    return BigInt(transferBytes(memoBytes)) * this.relayFeeRate;
+  }
   /** Je Absender die wartenden Nonces -- fuer Ersetzung und Luecken. */
   private nachAbsender = new Map<string, Map<string, Eintrag>>();
 
@@ -75,8 +95,9 @@ export class TxPool {
     // weil es die Signatur prueft -- und eine Ed25519-Pruefung ist rund
     // tausendmal teurer als ein Kartenzugriff. Wer sie vorn ansetzt, laedt
     // jeden ein, den Knoten mit Muell zu beschaeftigen.
-    if (tx.fee < MIN_FEE) {
-      return { ok: false, reason: 'fee_too_low', detail: `${tx.fee} < ${MIN_FEE}` };
+    const mindest = this.mindestGebuehr(height, tx.memo.length);
+    if (tx.fee < mindest) {
+      return { ok: false, reason: 'fee_too_low', detail: `${tx.fee} < ${mindest}` };
     }
     if (tx.amount <= 0n) {
       return { ok: false, reason: 'malformed', detail: 'bad_amount' };
@@ -99,9 +120,11 @@ export class TxPool {
 
     const vorhanden = [...wartend.values()].find(e => e.nonce === tx.nonce);
     if (vorhanden) {
-      // Ersetzung nur mit hoeherer Gebuehr. Ohne diese Regel liesse sich
-      // eine wartende Transaktion beliebig oft kostenlos ueberschreiben.
-      if (tx.fee <= vorhanden.fee) {
+      // Ersetzung nur mit hoeherer Gebuehr -- und zwar um mindestens die
+      // Weiterleitungsgebuehr (Bitcoins incremental relay fee). Sonst
+      // liesse sich eine wartende Transaktion fuer eine Einheit mehr
+      // beliebig oft neu verteilen.
+      if (tx.fee < vorhanden.fee + mindest) {
         return { ok: false, reason: 'fee_not_higher',
                  detail: `${tx.fee} <= ${vorhanden.fee}` };
       }
@@ -133,7 +156,7 @@ export class TxPool {
     }
 
     // Teuerste Pruefung zuletzt: Struktur, Adressableitung und Signatur.
-    const strukturell = checkTransfer(tx, height);
+    const strukturell = checkTransfer(tx, height, this.params);
     if (strukturell) {
       return {
         ok: false,

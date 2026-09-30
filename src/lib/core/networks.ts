@@ -23,7 +23,7 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import {
   NETWORK, CHAIN_ID, TARGET_BLOCK_TIME, MIN_DIFFICULTY, GENESIS_DIFFICULTY,
-  LWMA_WINDOW, LWMA_CLAMP, SOLVETIME_CAP, COINBASE_V2_HEIGHT,
+  LWMA_WINDOW, LWMA_CLAMP, SOLVETIME_CAP, COINBASE_V2_HEIGHT, FEE_V3_HEIGHT,
 } from './params.ts';
 
 export interface ConsensusParams {
@@ -47,6 +47,8 @@ export interface ConsensusParams {
    * bisherige Block byteweise gueltig.
    */
   coinbaseV2Height: number;
+  /** Ab dieser Hoehe: Gebuehr je Byte und Staubgrenze (Konsensfassung 3). */
+  feeV3Height: number;
 }
 
 /** Das laufende Netz. Exakt die Werte aus params.ts. */
@@ -60,6 +62,7 @@ export const MAINNET: ConsensusParams = {
   lwmaClamp: LWMA_CLAMP,
   solvetimeCap: SOLVETIME_CAP,
   coinbaseV2Height: COINBASE_V2_HEIGHT,
+  feeV3Height: FEE_V3_HEIGHT,
 };
 
 /**
@@ -82,6 +85,9 @@ export const REGTEST: ConsensusParams = {
   // Im Testnetz von Anfang an -- sonst liessen sich die Pool-Regeln nicht
   // pruefen, ohne erst zweitausend Bloecke zu minen.
   coinbaseV2Height: 0,
+  // Ebenso die Byte-Gebuehr: von Anfang an, damit die Tests die Regel
+  // pruefen, die im Netz ab Hoehe 4.000 gilt.
+  feeV3Height: 0,
 };
 
 export function istMainnet(p: ConsensusParams): boolean {
