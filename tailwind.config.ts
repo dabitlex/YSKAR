@@ -16,6 +16,7 @@ export default {
         faint: 'rgb(var(--faint) / <alpha-value>)',
         surface: 'rgb(var(--surface) / <alpha-value>)',
         raised: 'rgb(var(--raised) / <alpha-value>)',
+        lese: 'rgb(var(--lese) / <alpha-value>)',
         line: 'rgb(var(--line) / <alpha-value>)',
         text: 'rgb(var(--text) / <alpha-value>)',
         dim: 'rgb(var(--dim) / <alpha-value>)',

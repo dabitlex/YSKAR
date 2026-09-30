@@ -52,7 +52,7 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
       <>
         <SubHeader titel={t.entdecken.faq} onZurueck={() => setAnsicht({ art: 'liste' })} />
         <h1 className="rise text-[24px] font-extrabold leading-[1.2] tracking-[-0.02em]">{f.frage}</h1>
-        <p className="rise rise-1 mt-4 text-[15px] font-medium leading-[1.65] text-text/85">
+        <p className="rise rise-1 mt-4 text-[15px] font-medium leading-[1.65] text-lese">
           {f.antwort}
         </p>
       </>

@@ -27,6 +27,7 @@
   --text:    14 26 47;      /* #0E1A2F */
   --dim:     91 107 132;    /* #5B6B84 */
   --faint:   142 154 176;   /* #8E9AB0 */
+  --lese:    42 58 85;      /* #2A3A55  Fliesstext in Artikeln */
 
   --work:  31 91 240;       /* #1F5BF0  aktiv, bedienbar */
   --proof: 11 138 92;       /* #0B8A5C  von der Kette angenommen */
@@ -53,6 +54,7 @@
   --text:    234 240 248;   /* #EAF0F8 */
   --dim:     158 173 198;   /* #9EADC6 */
   --faint:   110 126 154;   /* #6E7E9A */
+  --lese:    214 222 236;   /* #D6DEEC */
 
   --work:  79 130 255;      /* #4F82FF */
   --proof: 46 190 133;      /* #2EBE85 */
@@ -149,6 +151,8 @@ body {
 /* Abzeichen "wartet" (Verlauf): Bernstein, je Thema. */
 .warte { background: #FFF4E5; color: #B26A00; }
 :root[data-thema="dunkel"] .warte { background: rgb(66 48 20); color: #F2B25C; }
+.warte-text { color: #B26A00; }
+:root[data-thema="dunkel"] .warte-text { color: #F2B25C; }
 
 /* Signaturschein hinter einer Kennzahl -- sehr weit, sehr schwach. */
 .glow-work::before,

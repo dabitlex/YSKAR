@@ -243,8 +243,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           </dl>
         </div>
 
-        <div className="rise rise-1 mt-4 flex items-start gap-2.5 rounded-[14px] bg-[#FFF4E5] px-3.5 py-3
-                        text-[12.5px] font-semibold leading-[1.5] text-[#8A5300]">
+        <div className="rise rise-1 mt-4 flex items-start gap-2.5 warte rounded-[14px] px-3.5 py-3
+                        text-[12.5px] font-semibold leading-[1.5]">
           <span className="shrink-0">{Icon.Warnung}</span>
           {t.senden.warnung}
         </div>

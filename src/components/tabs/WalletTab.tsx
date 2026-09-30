@@ -67,7 +67,7 @@ export default function WalletTab({ account, symbol, decimals, address,
             <p className="mt-2 font-mono text-[12px] text-faint">{kurz(address, unb)}</p>
           )}
           {unterwegs > 0 && (
-            <p className="tnum mt-1.5 text-[12px] font-bold text-[#B26A00]">
+            <p className="tnum mt-1.5 text-[12px] font-bold warte-text">
               {t.wallet.unterwegs(unterwegs.toFixed(4), symbol)}
             </p>
           )}
