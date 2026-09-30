@@ -4,4 +4,5 @@
     <string name="mining_kanal">Майнинг</string>
     <string name="mining_kanal_text">Показывает, что устройство сейчас вычисляет для YSKAR.</string>
     <string name="mining_stoppen">Остановить майнинг</string>
+    <string name="mining_titel">YSKAR вычисляет</string>
 </resources>

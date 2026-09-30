@@ -4,4 +4,5 @@
     <string name="mining_kanal">Madencilik</string>
     <string name="mining_kanal_text">Cihazının şu anda YSKAR için hesap yaptığını gösterir.</string>
     <string name="mining_stoppen">Madenciliği durdur</string>
+    <string name="mining_titel">YSKAR hesaplıyor</string>
 </resources>
