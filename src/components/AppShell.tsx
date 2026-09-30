@@ -101,7 +101,7 @@ export default function AppShell({ platform }: { platform: string }) {
 
   return (
     <>
-      <main className="mx-auto min-h-dvh max-w-md px-5 pb-32 pt-5">
+      <main className="rand-oben mx-auto min-h-dvh max-w-md px-5 pb-32">
         {ansicht === null && <UpdateBanner />}
         {ansicht === 'senden' || ansicht === 'scannen' ? (
           <Send account={m.account} decimals={dec} symbol={sym}

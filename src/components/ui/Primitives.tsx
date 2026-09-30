@@ -9,7 +9,7 @@
  */
 
 export function Screen({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto min-h-dvh max-w-md px-5 pb-32 pt-5">{children}</main>;
+  return <main className="rand-oben mx-auto min-h-dvh max-w-md px-5 pb-32">{children}</main>;
 }
 
 export function Panel({ children, tone, className = '' }: {
