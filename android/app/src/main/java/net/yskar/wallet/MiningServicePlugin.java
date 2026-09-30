@@ -80,6 +80,14 @@ public class MiningServicePlugin extends Plugin {
         r.put("ok", true);
         r.put("laeuft", MiningService.laeuft);
         r.put("notifications", getPermissionState("notifications") == PermissionState.GRANTED);
+        // Herzschlag als Uhrzeiten, aeltester zuerst; dazu die letzte Meldung aus der Oberflaeche.
+        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.ROOT);
+        StringBuilder herz = new StringBuilder();
+        synchronized (MiningService.HERZ) {
+            for (Long t : MiningService.HERZ) { if (herz.length() > 0) herz.append(' '); herz.append(f.format(new java.util.Date(t))); }
+        }
+        r.put("herz", herz.toString());
+        r.put("letzteMeldung", MiningService.letzteMeldung > 0 ? f.format(new java.util.Date(MiningService.letzteMeldung)) : "");
         call.resolve(r);
     }
 

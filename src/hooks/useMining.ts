@@ -214,6 +214,9 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
   // haengt die Erneuerung jetzt zusaetzlich.
   const jobZeit = useRef(0);
   const jobHolt = useRef(false);
+  // Womit die Sitzung eroeffnet wurde -- um sie nach einem Einfrieren
+  // still neu zu eroeffnen, statt mit "session_inactive" haengenzubleiben.
+  const sitzungDaten = useRef<{ address: string; platform: string; mode: 'solo' | 'pool' } | null>(null);
 
   const fetchJob = useCallback(async () => {
     if (!sessionId.current || jobHolt.current) return null;
@@ -221,6 +224,16 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     let job;
     try {
       job = await api(`/job?session=${sessionId.current}`);
+      if (job?.error === 'session_inactive' && sitzungDaten.current) {
+        // Der Knoten hat die Sitzung nach Inaktivitaet verworfen (die App
+        // war eingefroren). Neue Sitzung, dann den Job noch einmal.
+        protokoll('session verworfen -- neu eroeffnen');
+        const s = await api('/session', { method: 'POST', body: JSON.stringify(sitzungDaten.current) });
+        sessionId.current = s.sessionId;
+        if (s.pool) setPoolInfo(s.pool);
+        job = await api(`/job?session=${sessionId.current}`);
+      }
+      if (!job?.jobId) throw new Error(job?.error ?? 'kein Job');
     } catch (e) {
       protokoll(`job FEHLER ${String((e as Error)?.message ?? e)}`);
       throw e;
@@ -280,6 +293,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
         body: JSON.stringify({ address, platform, mode: modus }),
       });
       sessionId.current = session.sessionId;
+      sitzungDaten.current = { address, platform, mode: modus };
       protokoll(`session ${String(session.sessionId).slice(0, 8)} ${modus} ${workerCount} worker`);
 
       /*

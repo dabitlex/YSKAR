@@ -23,7 +23,7 @@ export interface Diagnose {
 }
 
 async function probe(fn: () => Promise<unknown>): Promise<string> {
-  try { return JSON.stringify(await fn()).slice(0, 200); }
+  try { return JSON.stringify(await fn()).slice(0, 600); }
   catch (e) { return `Fehler: ${String((e as Error)?.message ?? e).slice(0, 200)}`; }
 }
 

@@ -43,6 +43,24 @@ public class MiningService extends Service {
     /** Fuer die Diagnose in der Oberflaeche. */
     static volatile boolean laeuft = false;
 
+    /*
+      Herzschlag des Dienstes -- unabhaengig vom WebView. Alle 10 s ein
+      Zeitstempel, die letzten 30 bleiben. Dazu der Zeitpunkt der letzten
+      Textmeldung aus der Oberflaeche. Stehen beide, hat Android die ganze
+      App eingefroren; laeuft der Herzschlag weiter, aber die Meldungen
+      bleiben aus, ist nur der WebView-Renderer eingefroren. Ohne diese
+      Unterscheidung wuerde man am falschen Ende schrauben.
+    */
+    static final java.util.ArrayDeque<Long> HERZ = new java.util.ArrayDeque<>();
+    static volatile long letzteMeldung = 0;
+    private final android.os.Handler takt = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable schlag = new Runnable() {
+        @Override public void run() {
+            synchronized (HERZ) { HERZ.addLast(System.currentTimeMillis()); while (HERZ.size() > 30) HERZ.removeFirst(); }
+            if (laeuft) takt.postDelayed(this, 10_000);
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -67,6 +85,7 @@ public class MiningService extends Service {
 
         String text = intent != null && intent.hasExtra(EXTRA_TEXT)
             ? intent.getStringExtra(EXTRA_TEXT) : getString(R.string.mining_laeuft);
+        if (AKTION_TEXT.equals(aktion)) letzteMeldung = System.currentTimeMillis();
 
         Notification n = meldung(text);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -75,7 +94,7 @@ public class MiningService extends Service {
             startForeground(MELDUNG_ID, n);
         }
         wachHalten();
-        laeuft = true;
+        if (!laeuft) { laeuft = true; takt.removeCallbacks(schlag); takt.post(schlag); }
         return START_NOT_STICKY;
     }
 
@@ -89,6 +108,7 @@ public class MiningService extends Service {
 
     private void beenden() {
         laeuft = false;
+        takt.removeCallbacks(schlag);
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
         stopForeground(STOP_FOREGROUND_REMOVE);
