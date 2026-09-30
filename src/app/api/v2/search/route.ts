@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   if (q.startsWith('ysr1')) {
     let bytes: Uint8Array;
     try { bytes = decodeAddress(q); }
-    catch { return nichts('Keine gültige YSKAR-Adresse.'); }
+    catch { return nichts('Keine gültige YSKAR-Adresse.', 'bad_address'); }
 
     const { data } = await db().schema('chain2').from('accounts')
       .select('balance, first_height').eq('address', '\\x' + toHex(bytes)).maybeSingle();
@@ -56,12 +56,12 @@ export async function GET(req: Request) {
   // --- Blockhoehe ---
   if (/^\d+$/.test(q)) {
     const hoehe = Number(q);
-    if (!Number.isSafeInteger(hoehe) || hoehe < 0) return nichts('Ungültige Höhe.');
+    if (!Number.isSafeInteger(hoehe) || hoehe < 0) return nichts('Ungültige Höhe.', 'bad_height');
     const { data } = await db().schema('chain2').from('blocks')
       .select('height').eq('height', hoehe).maybeSingle();
     return data
       ? NextResponse.json({ kind: 'block', height: hoehe }, { headers: CORS })
-      : nichts(`Block ${hoehe} gibt es (noch) nicht.`);
+      : nichts(`Block ${hoehe} gibt es (noch) nicht.`, 'no_block', hoehe);
   }
 
   // --- 64 Hexzeichen: Blockhash oder Transaktion ---
@@ -92,12 +92,14 @@ export async function GET(req: Request) {
       }, { headers: CORS });
     }
 
-    return nichts('Kein Block und keine Transaktion mit diesem Hash.');
+    return nichts('Kein Block und keine Transaktion mit diesem Hash.', 'no_hash');
   }
 
-  return nichts('Adresse, Transaktion, Blockhöhe oder Blockhash eingeben.');
+  return nichts('Adresse, Transaktion, Blockhöhe oder Blockhash eingeben.', 'empty');
 }
 
-function nichts(hinweis: string) {
-  return NextResponse.json({ kind: 'nichts', hinweis }, { headers: CORS });
+// `code` laesst den Explorer den Hinweis in seiner Sprache zeigen; `hinweis`
+// bleibt als deutscher Klartext fuer aeltere Aufrufer.
+function nichts(hinweis: string, code: string, height?: number) {
+  return NextResponse.json({ kind: 'nichts', hinweis, code, height }, { headers: CORS });
 }
