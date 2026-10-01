@@ -39,6 +39,14 @@ Die Startseite holt Blockhöhe, Hashrate und Umlaufmenge jede Minute von
 `https://yskar.vercel.app/api/v2/summary`. Fällt das aus, zeigt sie „—“
 und einen Hinweis; die Seite selbst funktioniert weiter.
 
+## Explorer unter /explorer
+
+Der Explorer gehört zur App (`public/explorer.html` im App-Projekt). Diese
+Website reicht ihn nur durch (`rewrites` in `vercel.json`): `/explorer`,
+dazu seine Datenabrufe `/api/v2/…`, das Logo `/marke/…` und die Schriften
+`/schrift/…`. In der Adressleiste steht `www.yskar.app/explorer`; es gibt
+weiter nur einen Explorer. `yskar.vercel.app` bleibt unverändert.
+
 ## Lokal ansehen
 
 ```bash

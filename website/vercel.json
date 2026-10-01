@@ -30,5 +30,27 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/explorer",
+      "destination": "https://yskar.vercel.app/explorer.html"
+    },
+    {
+      "source": "/explorer.html",
+      "destination": "https://yskar.vercel.app/explorer.html"
+    },
+    {
+      "source": "/api/v2/:pfad*",
+      "destination": "https://yskar.vercel.app/api/v2/:pfad*"
+    },
+    {
+      "source": "/marke/:pfad*",
+      "destination": "https://yskar.vercel.app/marke/:pfad*"
+    },
+    {
+      "source": "/schrift/:pfad*",
+      "destination": "https://yskar.vercel.app/schrift/:pfad*"
+    }
   ]
 }
