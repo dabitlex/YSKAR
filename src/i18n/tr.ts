@@ -451,6 +451,9 @@ const tr = {
     themaSystem: 'Sistem',
     themaHell: 'Açık',
     themaDunkel: 'Koyu',
+    gruppeAllgemein: 'Genel',
+    netzStand: (block: string, miner: number) => `Blok #${block} · ${miner} madenci aktif`,
+    sperreKurz: 'Madencilik devam eder',
   },
 
   apk: {

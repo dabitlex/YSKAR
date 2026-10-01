@@ -451,6 +451,9 @@ const ru = {
     themaSystem: 'Система',
     themaHell: 'Светлая',
     themaDunkel: 'Тёмная',
+    gruppeAllgemein: 'Общие',
+    netzStand: (block: string, miner: number) => `Блок #${block} · активных майнеров: ${miner}`,
+    sperreKurz: 'Майнинг при этом продолжается',
   },
 
   apk: {
