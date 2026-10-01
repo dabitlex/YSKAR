@@ -451,6 +451,9 @@ const zh = {
     themaSystem: '跟随系统',
     themaHell: '浅色',
     themaDunkel: '深色',
+    gruppeAllgemein: '通用',
+    netzStand: (block: string, miner: number) => `区块 #${block} · ${miner} 个矿工在线`,
+    sperreKurz: '挖矿继续运行',
   },
 
   apk: {

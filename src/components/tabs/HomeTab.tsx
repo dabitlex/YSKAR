@@ -36,12 +36,14 @@ function heuteEingang(history: HistoryEintrag[] | undefined, dec: number): numbe
 
 export default function HomeTab({ account, summary, mining, hashrate, hashVerlauf, worker, shares, ziel,
                                   decimals, symbol,
-                                  onSenden, onEmpfangen, onScannen, onExplorer, onMining, onEntdecken, onArtikel }: {
+                                  onSenden, onEmpfangen, onScannen, onExplorer, onMining, onEntdecken, onArtikel,
+                                  onEinstellungen }: {
   account: (Account & { history?: HistoryEintrag[] }) | null; summary: Summary | null;
   mining: boolean; hashrate: number; hashVerlauf: number[]; worker: number; shares: number; ziel: number;
   decimals: number; symbol: string;
   onSenden: () => void; onEmpfangen: () => void; onScannen: () => void; onExplorer: () => void;
   onMining: () => void; onEntdecken: () => void; onArtikel: (slug: string) => void;
+  onEinstellungen: () => void;
 }) {
   const [nutzer, setNutzer] = useState<TgNutzer | null>(null);
   useEffect(() => { setNutzer(telegramNutzer()); }, []);
@@ -49,7 +51,6 @@ export default function HomeTab({ account, summary, mining, hashrate, hashVerlau
 
   const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
   const r = rate(hashrate);
-  const online = !!summary?.height;
   const heute = heuteEingang(account?.history, decimals);
 
   const stunde = new Date().getHours();
@@ -77,7 +78,11 @@ export default function HomeTab({ account, summary, mining, hashrate, hashVerlau
             <span className="text-[15px] font-extrabold">{nutzer?.vorname ?? t.home.beiYskar}</span>
           </div>
         </div>
-        <Pille tone={online ? 'proof' : 'off'}>{online ? t.home.synchron : t.home.verbinde}</Pille>
+        {/* Das Zahnrad steht, wo frueher "Netz synchron" stand -- der
+            Netz-Status ist jetzt die erste Zeile der Einstellungen. Derselbe
+            Knopf wie im Wallet-Tab. */}
+        <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
+                className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text active:scale-95">{Icon.Zahnrad}</button>
       </header>
 
       <section className="relative rise px-0.5">

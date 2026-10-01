@@ -112,7 +112,7 @@ export default function AppShell({ platform }: { platform: string }) {
       <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-5 pb-36">
         {ansicht === null && <UpdateBanner />}
         {ansicht === 'einstellungen' ? (
-          <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} />
+          <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} summary={m.summary} />
         ) : ansicht === 'benchmark' ? (
           <Benchmark onZurueck={() => setAnsicht(null)}
                      onUebernehmen={(w) => { setWorker(w); setAnsicht(null); }}
@@ -131,7 +131,8 @@ export default function AppShell({ platform }: { platform: string }) {
                    onExplorer={() => setTab('netz')}
                    onMining={() => setTab('mining')}
                    onEntdecken={() => setTab('entdecken')}
-                   onArtikel={slug => setAnsicht({ artikel: slug })} />
+                   onArtikel={slug => setAnsicht({ artikel: slug })}
+                   onEinstellungen={() => setAnsicht('einstellungen')} />
         ) : tab === 'mining' ? (
           <MiningTab m={m} dec={dec} sym={sym} wach={wach} t={t} zahl={zahl} locale={locale}
                      modus={modus} setModus={setModus}

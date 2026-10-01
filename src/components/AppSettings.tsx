@@ -12,12 +12,20 @@ import { diagnose, type Diagnose } from '@/lib/native/diagnose';
 import { useT } from '@/i18n';
 
 /**
- * Einstellungen der Android-App: Biometrie, Version, Update-Suche.
+ * Einstellungen der Android-App: Biometrie, Push, Version, Update-Suche,
+ * Diagnose.
  *
  * Eigene Datei, weil das alles ausserhalb der App nicht existiert. Im
- * Telegram-WebView rendert die Komponente nichts.
+ * Telegram-WebView rendern beide Komponenten nichts.
+ *
+ *   AppBiometrie  eine Zeile fuer die Gruppe "Sicherheit" (Settings.tsx)
+ *   AppSettings   die Gruppen "Benachrichtigungen" und "App"
  */
-export default function AppSettings() {
+
+const ZEILE = 'flex items-center justify-between gap-3 py-3';
+
+/** Fingerabdruck -- als Zeile (<li>) in der Gruppe "Sicherheit". */
+export function AppBiometrie() {
   const wallet = useWallet();
   const [nativ, setNativ] = useState(false);
   const [bio, setBio] = useState<BiometrieStand | null>(null);
@@ -25,27 +33,14 @@ export default function AppSettings() {
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [version, setVersion] = useState<{ version: string; build: string } | null>(null);
-  const [update, setUpdate] = useState<Update | null | 'keins' | 'sucht'>(null);
-  const [push, setPush] = useState<PushStand | 'arbeitet'>('aus');
-  const [diag, setDiag] = useState<Diagnose | 'laeuft' | null>(null);
-  const { t, sprache } = useT();
+  const { t } = useT();
 
   useEffect(() => {
     if (!istNativ()) return;
     setNativ(true);
     biometrieStand().then(setBio)
       .catch(e => { fehlerMerken('biometrieStand', e); setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }); });
-    appVersion().then(setVersion);
-    setPush(pushAktiv() ? 'an' : 'aus');
   }, []);
-
-  const pushUmschalten = async () => {
-    if (!wallet.address) return;
-    setPush('arbeitet');
-    if (pushAktiv()) { await pushAusschalten(); setPush('aus'); return; }
-    setPush(await pushEinschalten(wallet.address, sprache, t.app));
-  };
 
   if (!nativ) return null;
 
@@ -66,43 +61,34 @@ export default function AppSettings() {
     setBio(await biometrieStand());
   };
 
-  const suchen = async () => {
-    setUpdate('sucht');
-    const u = await updatePruefen();
-    setUpdate(u ?? 'keins');
-  };
-
   return (
-    <>
-      <p className="label mb-2 mt-7 px-0.5">{t.app.sicherheit}</p>
-      <ul className="panel mt-2 !py-0.5 px-4">
-        <li className="flex items-center justify-between gap-3 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-          <span className="flex flex-col">
-            <span className="text-[13.5px] font-bold">{t.app.biometrie}</span>
-            <span className="text-[12px] font-semibold text-faint">
-              {bio === null ? '…'
-                : !bio.verfuegbar
-                  ? (bio.grund === 'kein_sensor' ? `${t.app.keinSensor}${bio.detail ? ` (${bio.detail})` : ''}`
-                     : bio.grund === 'fehler' ? t.app.pluginFehler(bio.detail ?? t.allgemein.unbekannt)
-                     : `${t.app.nichtEingerichtet}${bio.detail ? ` (${bio.detail})` : ''}`)
-                  : bio.aktiv ? t.app.bioAktiv : t.app.bioAus}
-            </span>
+    <li className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+      <div className={ZEILE}>
+        <span className="flex min-w-0 flex-col">
+          <span className="text-[13.5px] font-bold">{t.app.biometrie}</span>
+          <span className="text-[12px] font-semibold text-faint">
+            {bio === null ? '…'
+              : !bio.verfuegbar
+                ? (bio.grund === 'kein_sensor' ? `${t.app.keinSensor}${bio.detail ? ` (${bio.detail})` : ''}`
+                   : bio.grund === 'fehler' ? t.app.pluginFehler(bio.detail ?? t.allgemein.unbekannt)
+                   : `${t.app.nichtEingerichtet}${bio.detail ? ` (${bio.detail})` : ''}`)
+                : bio.aktiv ? t.app.bioAktiv : t.app.bioAus}
           </span>
-          {bio === null && (
-            <button onClick={() => biometrieStand().then(setBio)
-                       .catch(e => setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }))}
-                    className="text-[13px] font-bold text-work">{t.app.neuPruefen}</button>
-          )}
-          {bio?.verfuegbar && (
-            bio.aktiv
-              ? <button onClick={ausschalten} className="text-[13px] font-bold text-risk">{t.allgemein.ausschalten}</button>
-              : <button onClick={() => setPinFrage(true)} className="text-[13px] font-bold text-work">{t.allgemein.einschalten}</button>
-          )}
-        </li>
-      </ul>
+        </span>
+        {bio === null && (
+          <button onClick={() => biometrieStand().then(setBio)
+                     .catch(e => setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }))}
+                  className="shrink-0 text-[13px] font-bold text-work">{t.app.neuPruefen}</button>
+        )}
+        {bio?.verfuegbar && (
+          bio.aktiv
+            ? <button onClick={ausschalten} className="shrink-0 text-[13px] font-bold text-risk">{t.allgemein.ausschalten}</button>
+            : <button onClick={() => setPinFrage(true)} className="shrink-0 text-[13px] font-bold text-work">{t.allgemein.einschalten}</button>
+        )}
+      </div>
 
       {pinFrage && (
-        <div className="panel mt-3 p-4">
+        <div className="pb-4">
           <Body>{t.app.bioPinText}</Body>
           <input inputMode="numeric" maxLength={6} value={pin} autoFocus
                  onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
@@ -117,12 +103,48 @@ export default function AppSettings() {
           </div>
         </div>
       )}
-      {!pinFrage && fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
+      {!pinFrage && fehler && <div className="pb-3"><Notice tone="risk">{fehler}</Notice></div>}
+    </li>
+  );
+}
 
+export default function AppSettings() {
+  const wallet = useWallet();
+  const [nativ, setNativ] = useState(false);
+  const [version, setVersion] = useState<{ version: string; build: string } | null>(null);
+  const [update, setUpdate] = useState<Update | null | 'keins' | 'sucht'>(null);
+  const [push, setPush] = useState<PushStand | 'arbeitet'>('aus');
+  const [diag, setDiag] = useState<Diagnose | 'laeuft' | null>(null);
+  const { t, sprache } = useT();
+
+  useEffect(() => {
+    if (!istNativ()) return;
+    setNativ(true);
+    appVersion().then(setVersion);
+    setPush(pushAktiv() ? 'an' : 'aus');
+  }, []);
+
+  const pushUmschalten = async () => {
+    if (!wallet.address) return;
+    setPush('arbeitet');
+    if (pushAktiv()) { await pushAusschalten(); setPush('aus'); return; }
+    setPush(await pushEinschalten(wallet.address, sprache, t.app));
+  };
+
+  if (!nativ) return null;
+
+  const suchen = async () => {
+    setUpdate('sucht');
+    const u = await updatePruefen();
+    setUpdate(u ?? 'keins');
+  };
+
+  return (
+    <>
       <p className="label mb-2 mt-7 px-0.5">{t.app.benachrichtigungen}</p>
       <ul className="panel mt-2 !py-0.5 px-4">
-        <li className="flex items-center justify-between gap-3 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-          <span className="flex flex-col">
+        <li className={ZEILE}>
+          <span className="flex min-w-0 flex-col">
             <span className="text-[13.5px] font-bold">{t.app.pushTitel}</span>
             <span className="text-[12px] font-semibold text-faint">
               {push === 'an' ? t.app.pushAn
@@ -132,7 +154,7 @@ export default function AppSettings() {
             </span>
           </span>
           <button onClick={pushUmschalten} disabled={push === 'arbeitet'}
-                  className={`text-[13px] font-bold ${push === 'an' ? 'text-risk' : 'text-work'}`}>
+                  className={`shrink-0 text-[13px] font-bold ${push === 'an' ? 'text-risk' : 'text-work'}`}>
             {push === 'an' ? t.allgemein.ausschalten : t.allgemein.einschalten}
           </button>
         </li>
@@ -140,13 +162,13 @@ export default function AppSettings() {
 
       <p className="label mb-2 mt-7 px-0.5">{t.app.app}</p>
       <ul className="panel mt-2 !py-0.5 px-4">
-        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+        <li className={`${ZEILE} border-b border-line`}>
           <span className="text-[13.5px] font-bold">{t.app.version}</span>
           <span className="tnum text-[13.5px] font-semibold text-dim">
             {version ? `${version.version} (${version.build})` : '—'}
           </span>
         </li>
-        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+        <li className={`${ZEILE} border-b border-line`}>
           <span className="text-[13.5px] font-bold">{t.app.updates}</span>
           {update === 'sucht' ? <span className="text-[13px] font-semibold text-faint">{t.app.sucht}</span>
             : update === 'keins' ? <span className="text-[13px] font-semibold text-proof">{t.app.aktuell}</span>
@@ -159,17 +181,19 @@ export default function AppSettings() {
                   {t.app.laden(update.version)}</button>
               : <button onClick={suchen} className="text-[13px] font-bold text-work">{t.app.jetztPruefen}</button>}
         </li>
-      </ul>
-      <p className="label mb-2 mt-7 px-0.5">{t.app.diagnose}</p>
-      <ul className="panel mt-2 !py-0.5 px-4">
-        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-          <span className="text-[13.5px] font-bold">{t.app.bruecke}</span>
+        <li className={ZEILE}>
+          <span className="text-[13.5px] font-bold">{t.app.diagnose}</span>
           <button onClick={async () => { setDiag('laeuft'); try { setDiag(await diagnose()); } catch (e) { fehlerMerken('diagnose', e); setDiag(await diagnose().catch(() => null)); } }}
                   disabled={diag === 'laeuft'} className="text-[13px] font-bold text-work">
             {diag === 'laeuft' ? t.app.prueft : t.app.ausfuehren}
           </button>
         </li>
       </ul>
+      {update && typeof update === 'object' && update.notizen && (
+        <p className="mt-3 whitespace-pre-line text-[12.5px] font-medium leading-relaxed text-dim">
+          {update.notizen.slice(0, 600)}
+        </p>
+      )}
       {diag && diag !== 'laeuft' && (
         <pre className="mt-3 overflow-x-auto rounded-[14px] bg-raised p-3 font-mono text-[11px] leading-relaxed text-dim">
 {`Plattform:   ${diag.plattform}  (Brücke: ${diag.bruecke ? 'ja' : 'nein'})
@@ -182,13 +206,6 @@ Fehler:      ${diag.fehler.length ? '\n  ' + diag.fehler.join('\n  ') : 'keine'}
 Mining:      ${diag.mining.length ? '\n  ' + diag.mining.join('\n  ') : '—'}${diag.nativ.length ? '\nNativ:       \n  ' + diag.nativ.join('\n  ') : ''}`}
         </pre>
       )}
-
-      {update && typeof update === 'object' && update.notizen && (
-        <p className="mt-3 whitespace-pre-line text-[12.5px] font-medium leading-relaxed text-dim">
-          {update.notizen.slice(0, 600)}
-        </p>
-      )}
     </>
   );
 }
-

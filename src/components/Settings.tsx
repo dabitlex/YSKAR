@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
-import AppSettings from '@/components/AppSettings';
+import AppSettings, { AppBiometrie } from '@/components/AppSettings';
+import { Segment, Blatt } from '@/components/ui/Bausteine';
+import type { Summary } from '@/hooks/useMining';
 import { useT, fehlerText, SPRACHEN } from '@/i18n';
 import { SPERRE_STUFEN, sperreLesen, sperreSetzen } from '@/hooks/useAutoSperre';
 import { AppLaden } from '@/components/AppLaden';
@@ -18,8 +20,8 @@ import { istNativ } from '@/lib/native/plattform';
  * Woerter erneut anzeigen und die Wallet vom Geraet entfernen. Beide sind
  * hinter der PIN beziehungsweise einer ausdruecklichen Bestaetigung.
  */
-export default function Settings({ onZurueck, anteil, workers }: {
-  onZurueck: () => void; anteil: number; workers: number;
+export default function Settings({ onZurueck, anteil, workers, summary }: {
+  onZurueck: () => void; anteil: number; workers: number; summary: Summary | null;
 }) {
   const wallet = useWallet();
   const [modus, setModus] = useState<'liste' | 'woerter' | 'entfernen'>('liste');
@@ -27,7 +29,10 @@ export default function Settings({ onZurueck, anteil, workers }: {
   const [woerter, setWoerter] = useState<string[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [bestaetigt, setBestaetigt] = useState(false);
-  const { t, sprache, setSprache } = useT();
+  const { t, sprache, setSprache, zahl } = useT();
+  // Auswahl-Blaetter: Sprache und Sperrzeit sind Listen, keine Chip-Reihen.
+  const [blatt, setBlatt] = useState<null | 'sprache' | 'sperre'>(null);
+  const [kopiert, setKopiert] = useState(false);
   const [sperre, setSperre] = useState<number>(() => sperreLesen());
   const [apkOffen, setApkOffen] = useState(false);
   const { thema, setThema } = useThema();
@@ -112,6 +117,16 @@ export default function Settings({ onZurueck, anteil, workers }: {
     );
   }
 
+  const online = !!summary?.height;
+  const sperreText = (ms: number) =>
+    ms === 0 ? t.einstellungen.sperreSofort : ms < 0 ? t.einstellungen.sperreNie : t.einstellungen.sperreMin(ms / 60_000);
+  const adresse = wallet.address ?? '';
+  const adresseKurz = adresse.length > 18 ? `${adresse.slice(0, 10)}…${adresse.slice(-4)}` : adresse;
+  const kopiere = async () => {
+    if (!adresse) return;
+    try { await navigator.clipboard.writeText(adresse); setKopiert(true); setTimeout(() => setKopiert(false), 1600); } catch { /* egal */ }
+  };
+
   return (
     <>
       <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
@@ -123,61 +138,70 @@ export default function Settings({ onZurueck, anteil, workers }: {
         <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.einstellungen.titel}</h1>
       </header>
 
-      <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.sprache}</p>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t.einstellungen.sprache}>
-        {SPRACHEN.map(s => (
-          <button key={s.code} onClick={() => setSprache(s.code)} aria-pressed={sprache === s.code} lang={s.code}
-                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
-                    sprache === s.code ? 'border-work bg-work/10 text-work' : 'panel !rounded-full text-dim'}`}>
-            {s.name}
-          </button>
-        ))}
+      {/* Netz-Status -- stand frueher als Pille oben rechts auf Home. */}
+      <div className="panel relative mt-5 flex items-center gap-3 !rounded-[20px] px-4 py-3.5" role="status">
+        <span className={`flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] ${online ? 'bg-proof/10' : 'bg-raised'}`}>
+          <span className={`h-2.5 w-2.5 rounded-full ${online ? 'bg-proof shadow-[0_0_0_5px_rgb(var(--proof)/.18)]' : 'bg-faint'}`} />
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="text-[14.5px] font-extrabold">{online ? t.home.synchron : t.home.verbinde}</span>
+          {online && (
+            <span className="truncate text-[12px] font-semibold text-dim">
+              {t.einstellungen.netzStand(zahl(summary!.height!), summary?.activeMiners ?? 0)}
+            </span>
+          )}
+        </span>
       </div>
 
-      <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.thema}</p>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t.einstellungen.thema}>
-        {THEMEN.map(th => (
-          <button key={th} onClick={() => setThema(th)} aria-pressed={thema === th}
-                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
-                    thema === th ? 'border-work bg-work/10 text-work' : 'panel !rounded-full text-dim'}`}>
-            {th === 'system' ? t.einstellungen.themaSystem : th === 'hell' ? t.einstellungen.themaHell : t.einstellungen.themaDunkel}
-          </button>
-        ))}
-      </div>
-      <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">{t.einstellungen.themaText}</p>
-
-      <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.wallet}</p>
+      <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.gruppeAllgemein}</p>
       <ul className="panel mt-2 !py-0.5 px-4">
-        <Eintrag onClick={() => setModus('woerter')}>{t.einstellungen.woerterZeigen}</Eintrag>
-        <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-          <span className="text-[13.5px]">{t.einstellungen.adresse}</span>
-          <span className="max-w-[55%] truncate font-mono text-xs text-dim">
-            {wallet.address}
-          </span>
+        <Eintrag onClick={() => setBlatt('sprache')}
+                 wert={<span lang={sprache}>{SPRACHEN.find(x => x.code === sprache)?.name ?? sprache}</span>}>
+          {t.einstellungen.sprache}
+        </Eintrag>
+        <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2.5">
+          <span className="text-[13.5px] font-bold">{t.einstellungen.thema}</span>
+          <Segment label={t.einstellungen.thema} wert={thema} onChange={setThema}
+                   werte={THEMEN.map(th => ({ v: th, text: th === 'system' ? t.einstellungen.themaSystem
+                     : th === 'hell' ? t.einstellungen.themaHell : t.einstellungen.themaDunkel }))} />
         </li>
       </ul>
 
-      <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.sperre}</p>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={t.einstellungen.sperre}>
-        {SPERRE_STUFEN.map(ms => (
-          <button key={ms} onClick={() => { sperreSetzen(ms); setSperre(ms); }} aria-pressed={sperre === ms}
-                  className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-colors ${
-                    sperre === ms ? 'border-work bg-work/10 text-work' : 'panel !rounded-full text-dim'}`}>
-            {ms === 0 ? t.einstellungen.sperreSofort : ms < 0 ? t.einstellungen.sperreNie : t.einstellungen.sperreMin(ms / 60_000)}
+      <p className="label mb-2 mt-7 px-0.5">{t.app.sicherheit}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <Eintrag onClick={() => setModus('woerter')}>{t.einstellungen.woerterZeigen}</Eintrag>
+        <Eintrag onClick={() => setBlatt('sperre')} wert={sperreText(sperre)} unter={t.einstellungen.sperreKurz}>
+          {t.einstellungen.sperre}
+        </Eintrag>
+        <AppBiometrie />
+      </ul>
+
+      <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.wallet}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <li>
+          <button onClick={kopiere} aria-label={`${t.einstellungen.adresse} ${t.allgemein.kopieren}`}
+                  className="flex w-full items-center justify-between gap-3 py-3 text-left active:opacity-70">
+            <span className="text-[13.5px] font-bold">{t.einstellungen.adresse}</span>
+            <span className="flex min-w-0 items-center gap-2 text-dim">
+              <span className="truncate font-mono text-[12px]">{kopiert ? t.allgemein.kopiert : adresseKurz}</span>
+              <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9"
+                   strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-work" aria-hidden="true">
+                <rect x="7" y="7" width="11" height="11" rx="2" /><path d="M4 14V5a1 1 0 0 1 1-1h9" />
+              </svg>
+            </span>
           </button>
-        ))}
-      </div>
-      <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">{t.einstellungen.sperreText}</p>
+        </li>
+      </ul>
 
       <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.mining}</p>
       <ul className="panel mt-2 !py-0.5 px-4">
         <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-          <span className="text-[13.5px]">{t.einstellungen.anteil}</span>
-          <span className="tnum text-[13.5px] text-dim">{anteil}%</span>
+          <span className="text-[13.5px] font-bold">{t.einstellungen.anteil}</span>
+          <span className="tnum text-[13.5px] font-semibold text-dim">{anteil} %</span>
         </li>
         <li className="flex items-center justify-between py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-          <span className="text-[13.5px]">{t.einstellungen.worker}</span>
-          <span className="tnum text-[13.5px] text-dim">{workers}</span>
+          <span className="text-[13.5px] font-bold">{t.einstellungen.worker}</span>
+          <span className="tnum text-[13.5px] font-semibold text-dim">{workers}</span>
         </li>
       </ul>
 
@@ -195,21 +219,66 @@ export default function Settings({ onZurueck, anteil, workers }: {
       <AppSettings />
 
       <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.geraet}</p>
-      <div className="mt-2">
-        <Button variant="risk" onClick={() => setModus('entfernen')}>
-          {t.einstellungen.entfernen}
-        </Button>
-      </div>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        <Eintrag onClick={() => setModus('entfernen')} rot>{t.einstellungen.entfernen}</Eintrag>
+      </ul>
+
+      <Blatt offen={blatt === 'sprache'} onSchliessen={() => setBlatt(null)} titel={t.einstellungen.sprache}>
+        <ul role="listbox" aria-label={t.einstellungen.sprache}>
+          {SPRACHEN.map(sp => (
+            <li key={sp.code} className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+              <button onClick={() => { setSprache(sp.code); setBlatt(null); }} lang={sp.code}
+                      role="option" aria-selected={sprache === sp.code}
+                      className={`flex w-full items-center justify-between py-3 text-left text-[14.5px] font-bold active:opacity-70 ${
+                        sprache === sp.code ? 'text-work' : 'text-text'}`}>
+                {sp.name}{sprache === sp.code && <Haken />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Blatt>
+
+      <Blatt offen={blatt === 'sperre'} onSchliessen={() => setBlatt(null)} titel={t.einstellungen.sperre}>
+        <p className="-mt-1 mb-2 text-[12.5px] font-medium leading-relaxed text-dim">{t.einstellungen.sperreText}</p>
+        <ul role="listbox" aria-label={t.einstellungen.sperre}>
+          {SPERRE_STUFEN.map(ms => (
+            <li key={ms} className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+              <button onClick={() => { sperreSetzen(ms); setSperre(ms); setBlatt(null); }}
+                      role="option" aria-selected={sperre === ms}
+                      className={`flex w-full items-center justify-between py-3 text-left text-[14.5px] font-bold active:opacity-70 ${
+                        sperre === ms ? 'text-work' : 'text-text'}`}>
+                {sperreText(ms)}{sperre === ms && <Haken />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Blatt>
     </>
   );
 }
 
-function Eintrag({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+const Haken = () => (
+  <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 11.5l4 4 8-9" /></svg>
+);
+
+/** Eine Zeile, die etwas oeffnet: Titel, optional Untertitel, rechts der aktuelle Wert. */
+function Eintrag({ onClick, children, wert, unter, rot }: {
+  onClick: () => void; children: React.ReactNode;
+  wert?: React.ReactNode; unter?: string; rot?: boolean;
+}) {
   return (
     <li className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
       <button onClick={onClick}
-              className="flex w-full items-center justify-between py-3 text-left text-[13.5px] font-semibold active:opacity-70">
-        {children} <span className="text-faint">›</span>
+              className={`flex w-full items-center justify-between gap-3 py-3 text-left text-[13.5px] font-bold active:opacity-70 ${
+                rot ? 'text-risk' : ''}`}>
+        <span className="flex min-w-0 flex-col">
+          <span>{children}</span>
+          {unter && <span className="text-[12px] font-semibold text-faint">{unter}</span>}
+        </span>
+        <span className={`flex shrink-0 items-center gap-1.5 text-[13px] font-semibold ${rot ? 'text-risk' : 'text-dim'}`}>
+          {wert}<span className={rot ? '' : 'text-faint'}>›</span>
+        </span>
       </button>
     </li>
   );

@@ -451,6 +451,9 @@ const en = {
     themaSystem: 'System',
     themaHell: 'Light',
     themaDunkel: 'Dark',
+    gruppeAllgemein: 'General',
+    netzStand: (block: string, miner: number) => `Block #${block} · ${miner} ${miner === 1 ? 'miner' : 'miners'} active`,
+    sperreKurz: 'Mining keeps running',
   },
 
   apk: {

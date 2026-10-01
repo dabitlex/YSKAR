@@ -459,6 +459,9 @@ const pl = {
     themaSystem: 'System',
     themaHell: 'Jasny',
     themaDunkel: 'Ciemny',
+    gruppeAllgemein: 'Ogólne',
+    netzStand: (block: string, miner: number) => `Blok #${block} · aktywni górnicy: ${miner}`,
+    sperreKurz: 'Kopanie trwa dalej',
   },
 
   apk: {
