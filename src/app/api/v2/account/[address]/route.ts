@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
-import { encodeAddress, decodeAddress } from '@/lib/core/address';
-import { toHex, fromHex } from '@/lib/core/codec';
+import { decodeAddress } from '@/lib/core/address';
+import { toHex } from '@/lib/core/codec';
 import { fullnodeLesen } from '@/lib/api/fullnode';
+import { verlaufLaden } from '@/lib/api/verlauf';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -39,66 +40,28 @@ export async function GET(
   const vomKnoten = fullnodeLesen<{ pending?: Wartend[]; nextNonce?: string }>(
     `/api/v2/account/${address}`).catch(() => null);
 
-  const [{ data: acc }, knoten, { count: mined }, { data: verlauf },
-         { data: poolAnteile }] =
+  const [{ data: acc }, knoten, { count: mined }, { count: poolAnzahl }, seite] =
     await Promise.all([
       sb.from('accounts').select('balance, nonce, first_height, last_height')
         .eq('address', key).maybeSingle(),
       vomKnoten,
       sb.from('transactions').select('block_height', { count: 'exact', head: true })
         .eq('to_addr', key).eq('type', 0),
-      // Verlauf: alles, was diese Adresse beruehrt, egal in welche Richtung.
-      sb.from('transactions')
-        .select('txid, block_height, type, from_addr, to_addr, amount, fee, memo, coinbase_outputs')
-        .or(`from_addr.eq.${key},to_addr.eq.${key}`)
-        .order('block_height', { ascending: false }).limit(40),
       /*
-        Coinbase mit mehreren Empfaengern.
-
-        Bei Fassung 2 steht in to_addr NICHTS -- die Aufteilung liegt in
-        coinbase_outputs. Wer ueber einen Pool bezahlt wird, faende seinen
-        Eingang sonst nirgends: nicht im Verlauf, nicht in der Zahl der
-        gefundenen Bloecke. Das Guthaben stimmte, die Herkunft waere
-        unsichtbar.
+        Coinbase mit mehreren Empfaengern: Bei Fassung 2 steht in to_addr
+        NICHTS, die Aufteilung liegt in coinbase_outputs. Gezaehlt wird
+        ueber alle Bloecke -- vorher war die Zahl an die 40 Verlaufseintraege
+        gebunden und blieb bei 40 stehen.
       */
-      sb.from('transactions')
-        .select('txid, block_height, type, amount, memo, coinbase_outputs')
-        .contains('coinbase_outputs', JSON.stringify([{ to: key.replace(/^\\x/, '') }]))
-        .order('block_height', { ascending: false }).limit(40),
+      sb.from('transactions').select('block_height', { count: 'exact', head: true })
+        .contains('coinbase_outputs', JSON.stringify([{ to: key.replace(/^\\x/, '') }])),
+      /*
+        Erste Seite des Verlaufs (Migration 00021). Weitere Seiten holt die
+        App ueber /api/v2/account/:adresse/verlauf mit dem Cursor
+        historyWeiter -- so laesst sich der ganze Verlauf durchblaettern.
+      */
+      verlaufLaden(raw, 'alle', null, 40).catch(() => ({ eintraege: [], weiter: null })),
     ]);
-
-  /*
-    Pool-Anteile in den Verlauf einreihen.
-
-    Sie kommen aus einer eigenen Abfrage, weil sie in to_addr nicht zu
-    finden sind. Zusammengefuehrt und nach Hoehe sortiert, damit der Nutzer
-    eine Liste sieht und nicht zwei.
-  */
-  const key_hex = toHex(raw);
-  const ausPool = (poolAnteile ?? []).flatMap(t => {
-    const outs = (t.coinbase_outputs ?? []) as { to: string; amount: string }[];
-    const meiner = outs.find(o => unprefix(o.to) === key_hex);
-    if (!meiner) return [];
-    return [{
-      txid: t.txid, block_height: t.block_height, type: t.type,
-      from_addr: null, to_addr: null,
-      amount: meiner.amount, fee: '0', memo: t.memo,
-      poolAnteil: true,
-      empfaenger: outs.length,
-    }];
-  });
-
-  const zusammen = [...(verlauf ?? []).map(t => ({ ...t, poolAnteil: false, empfaenger: 1 })),
-                    ...ausPool]
-    .sort((a, b) => b.block_height - a.block_height)
-    .slice(0, 40);
-
-  // Blockzeiten dazu -- ohne sie waere der Verlauf ohne Zeitbezug.
-  const hoehen = [...new Set(zusammen.map(t => t.block_height))];
-  const { data: bloecke } = hoehen.length
-    ? await sb.from('blocks').select('height, block_time').in('height', hoehen)
-    : { data: [] };
-  const zeit = new Map((bloecke ?? []).map(b => [b.height, String(b.block_time)]));
 
   return NextResponse.json({
     address,
@@ -121,26 +84,9 @@ export async function GET(
     pendingSource: knoten ? 'fullnode' : 'unavailable',
     blocksFound: mined ?? 0,
     /** Bloecke, an deren Coinbase diese Adresse beteiligt war. */
-    poolRewards: ausPool.length,
-    history: zusammen.map(t => {
-      const eingang = unprefix(t.to_addr) === toHex(raw);
-      // Als bech32m, nicht als Rohbytes: Der Nutzer soll dieselbe
-      // Zeichenkette sehen wie in seiner Wallet und sie vergleichen koennen.
-      const gegenHex = unprefix(eingang ? t.from_addr : t.to_addr);
-      return {
-        txid: unprefix(t.txid),
-        height: t.block_height,
-        timestamp: zeit.get(t.block_height) ?? null,
-        kind: t.type === 0
-          ? (t.poolAnteil ? 'pool' : 'reward')
-          : (eingang ? 'in' : 'out'),
-        counterparty: gegenHex ? encodeAddress(fromHex(gegenHex)) : null,
-        // Bei einem Pool-Anteil: wie viele sich den Block geteilt haben.
-        shares: t.poolAnteil ? t.empfaenger : undefined,
-        amount: String(t.amount),
-        fee: String(t.fee),
-        memo: unprefix(t.memo),
-      };
-    }),
+    poolRewards: poolAnzahl ?? 0,
+    history: seite.eintraege,
+    /** Cursor fuer die naechste Seite, null = das ist schon alles. */
+    historyWeiter: seite.weiter,
   }, { headers: CORS });
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon, Button } from '@/components/ui/Primitives';
 import { Zahl, Etikett, Karte, Segment, Identicon } from '@/components/ui/Bausteine';
@@ -18,17 +18,40 @@ import { useT } from '@/i18n';
  */
 
 export interface HistoryEintrag {
-  txid: string; height: number; timestamp: string | null;
-  kind: 'reward' | 'in' | 'out';
+  txid: string; height: number; idx?: number; timestamp: string | null;
+  kind: 'reward' | 'pool' | 'in' | 'out';
   counterparty: string | null; amount: string; fee: string;
   memo?: string | null;
+  /** Pool-Anteil: wie viele sich den Block geteilt haben. */
+  shares?: number;
+}
+
+/*
+  Vollstaendiger Verlauf.
+
+  Das Konto bringt die neuesten 40 Eintraege mit (alle Richtungen) und einen
+  Cursor. Aeltere holt "Aeltere laden" seitenweise ueber
+  /api/v2/account/:adresse/verlauf. Fuer "Eingaenge" und "Ausgaenge" fragt
+  die Liste den Server mit Filter -- sonst saehe man unter "Ausgaenge" nur,
+  was zufaellig unter den letzten 40 Eintraegen aller Art war.
+*/
+type Richtung = 'alle' | 'ein' | 'aus';
+interface Seite { eintraege: HistoryEintrag[]; weiter: string | null }
+const LEER: Seite = { eintraege: [], weiter: null };
+const schluessel = (e: HistoryEintrag) => `${e.txid}:${e.kind}`;
+
+/** Zusammenfuehren ohne Doppel, neueste zuerst -- nach Block, dann Position im Block. */
+function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
+  const m = new Map<string, HistoryEintrag>();
+  for (const l of listen) for (const e of l) if (!m.has(schluessel(e))) m.set(schluessel(e), e);
+  return [...m.values()].sort((a, b) => b.height - a.height || (b.idx ?? 0) - (a.idx ?? 0));
 }
 
 const kurz = (a: string | null, sonst: string) => a ? `${a.slice(0, 10)}…${a.slice(-4)}` : sonst;
 
 export default function WalletTab({ account, symbol, decimals, address,
                                     onSenden, onScannen, onEmpfangen, onEinstellungen, onExplorer }: {
-  account: (Account & { history?: HistoryEintrag[]; pending?: Wartend[] }) | null;
+  account: (Account & { history?: HistoryEintrag[]; historyWeiter?: string | null; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
   onSenden: () => void; onScannen: () => void; onEmpfangen: () => void;
   onEinstellungen: () => void; onExplorer: () => void;
@@ -38,12 +61,69 @@ export default function WalletTab({ account, symbol, decimals, address,
   const [offen, setOffen] = useState<HistoryEintrag | null>(null);
   const [filter, setFilter] = useState<'alle' | 'in' | 'out'>('alle');
   const [kopiert, setKopiert] = useState(false);
-  const { t, betrag, vorZeit } = useT();
+  const { t, betrag, vorZeit, locale } = useT();
   const unb = t.allgemein.unbekannt;
 
+  const richtung: Richtung = filter === 'alle' ? 'alle' : filter === 'in' ? 'ein' : 'aus';
+  // Erste Seite je Filter (nur "ein"/"aus"; "alle" kommt mit dem Konto).
+  const [koepfe, setKoepfe] = useState<Record<'ein' | 'aus', Seite | null>>({ ein: null, aus: null });
+  // Nachgeladene aeltere Seiten je Filter. null = noch nichts nachgeladen.
+  const [aeltere, setAeltere] = useState<Record<Richtung, Seite | null>>({ alle: null, ein: null, aus: null });
+  const [laedt, setLaedt] = useState(false);
+  const [ladeFehler, setLadeFehler] = useState(false);
+
+  // Andere Wallet: alles Nachgeladene gehoert nicht mehr hierher.
+  useEffect(() => {
+    setKoepfe({ ein: null, aus: null });
+    setAeltere({ alle: null, ein: null, aus: null });
+  }, [address]);
+
+  // Erste gefilterte Seite holen -- beim Umschalten und wenn neue Eintraege
+  // dazukommen (der neueste Eintrag des Kontos aendert sich).
+  const neuester = account?.history?.[0] ? schluessel(account.history[0]) : '';
+  useEffect(() => {
+    if (!address || richtung === 'alle') return;
+    let abgebrochen = false;
+    fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&limit=40`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then((s: Seite) => { if (!abgebrochen) setKoepfe(k => ({ ...k, [richtung]: s })); })
+      .catch(() => { /* bleibt bei der gefilterten Kontoliste */ });
+    return () => { abgebrochen = true; };
+  }, [address, richtung, neuester]);
+
+  const kopf: Seite = richtung === 'alle'
+    ? { eintraege: account?.history ?? [], weiter: account?.historyWeiter ?? null }
+    : koepfe[richtung] ?? {
+        // Bis der Server antwortet: das Passende aus der Kontoliste, ohne
+        // "Aeltere laden" -- der Cursor waere einer fuer alle Richtungen.
+        eintraege: (account?.history ?? []).filter(e => richtung === 'aus' ? e.kind === 'out' : e.kind !== 'out'),
+        weiter: null,
+      };
+  const nachgeladen = aeltere[richtung];
+  const verlauf = useMemo(() => zusammen(kopf.eintraege, (nachgeladen ?? LEER).eintraege),
+    [kopf.eintraege, nachgeladen]);
+  // Weiterblaettern: ab der letzten nachgeladenen Seite, sonst ab der ersten.
+  const cursor = nachgeladen ? nachgeladen.weiter : kopf.weiter;
+
+  const mehrLaden = async () => {
+    if (!address || !cursor || laedt) return;
+    setLaedt(true); setLadeFehler(false);
+    try {
+      const r = await fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&vor=${encodeURIComponent(cursor)}&limit=50`);
+      if (!r.ok) throw new Error(String(r.status));
+      const s: Seite = await r.json();
+      // Beim ersten Nachladen die erste Seite mit festhalten: Kommt spaeter
+      // ein neuer Eintrag dazu, rutscht der bisher letzte aus der ersten
+      // Seite -- er darf dann nicht zwischen beiden Seiten verloren gehen.
+      setAeltere(a => ({ ...a, [richtung]: {
+        eintraege: [...(a[richtung]?.eintraege ?? kopf.eintraege), ...s.eintraege],
+        weiter: s.weiter,
+      } }));
+    } catch { setLadeFehler(true); }
+    finally { setLaedt(false); }
+  };
+
   const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
-  const verlauf = (account?.history ?? []).filter(e =>
-    filter === 'alle' || (filter === 'out' ? e.kind === 'out' : e.kind !== 'out'));
   const wartend = (account?.pending ?? []).filter(p => filter === 'alle' || p.kind === filter);
   const unterwegs = (account?.pending ?? []).filter(p => p.kind === 'out')
     .reduce((s, p) => s + Number(p.amount) + Number(p.fee), 0) / 10 ** decimals;
@@ -51,10 +131,12 @@ export default function WalletTab({ account, symbol, decimals, address,
   // Nach Tagen gruppieren: Heute, Gestern, Frueher.
   const heute = new Date(); heute.setHours(0, 0, 0, 0);
   const gestern = new Date(heute); gestern.setDate(gestern.getDate() - 1);
+  // Aeltere Eintraege nach Datum, damit ein langer Verlauf lesbar bleibt.
+  const tagFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   const gruppe = (ts: string | null) => {
     if (!ts) return t.wallet.frueher;
     const d = new Date(Number(ts) * 1000);
-    return d >= heute ? t.wallet.heute : d >= gestern ? t.wallet.gestern : t.wallet.frueher;
+    return d >= heute ? t.wallet.heute : d >= gestern ? t.wallet.gestern : tagFormat.format(d);
   };
   const gruppen: { name: string; eintraege: HistoryEintrag[] }[] = [];
   for (const e of verlauf) {
@@ -132,11 +214,13 @@ export default function WalletTab({ account, symbol, decimals, address,
                 <Etikett className="block pb-1 pt-3">{gr.name}</Etikett>
                 <ul>
                   {gr.eintraege.map(e => (
-                    <Eintrag key={e.txid}
+                    <Eintrag key={schluessel(e)}
                       onClick={() => setOffen(e)}
                       art={e.kind === 'out' ? 'out' : 'in'}
-                      adresse={e.kind === 'reward' ? `reward-${e.height}` : e.counterparty}
+                      adresse={e.kind === 'reward' ? `reward-${e.height}`
+                        : e.kind === 'pool' ? `pool-${e.height}` : e.counterparty}
                       titel={e.kind === 'reward' ? t.wallet.blockreward(e.height)
+                        : e.kind === 'pool' ? t.wallet.poolAnteil(e.height)
                         : e.kind === 'in' ? t.wallet.von(kurz(e.counterparty, unb))
                         : t.wallet.an(kurz(e.counterparty, unb))}
                       unten={vorZeit(e.timestamp) +
@@ -150,6 +234,23 @@ export default function WalletTab({ account, symbol, decimals, address,
               </li>
             ))}
           </ul>
+        )}
+
+        {/* Weiterblaettern bis zum allerersten Eintrag. */}
+        {cursor ? (
+          <div className="border-t border-line py-3">
+            <button onClick={mehrLaden} disabled={laedt}
+                    className="w-full rounded-[14px] py-2.5 text-[13.5px] font-extrabold text-work disabled:opacity-60">
+              {laedt ? t.wallet.laedtMehr : t.wallet.aeltereLaden}
+            </button>
+            {ladeFehler && (
+              <p className="pt-1 text-center text-[12px] font-semibold text-risk">{t.wallet.ladenFehler}</p>
+            )}
+          </div>
+        ) : verlauf.length > 0 && (
+          <p className="border-t border-line py-3 text-center text-[12px] font-semibold text-faint">
+            {t.wallet.alleGeladen}
+          </p>
         )}
       </Karte>
 
@@ -188,6 +289,7 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
   };
 
   const titel = eintrag.kind === 'reward' ? t.wallet.dBlockreward
+    : eintrag.kind === 'pool' ? t.wallet.dPoolAnteil
     : eintrag.kind === 'in' ? t.wallet.dEmpfangen : t.wallet.dGesendet;
 
   if (typeof document === 'undefined') return null;
@@ -212,7 +314,7 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
           <Feld label={t.wallet.status} wert={
             <span className="text-proof">{t.wallet.bestaetigt(eintrag.height)}</span>} />
           <Feld label={t.wallet.zeitpunkt} wert={eintrag.timestamp ? datum(eintrag.timestamp) : '—'} />
-          {eintrag.kind !== 'reward' && (
+          {(eintrag.kind === 'in' || eintrag.kind === 'out') && (
             <Feld label={eingang ? t.wallet.dVon : t.wallet.dAn} mono umbruch
                   wert={eintrag.counterparty ?? t.allgemein.unbekannt}
                   onKopieren={eintrag.counterparty

@@ -284,6 +284,12 @@ const es = {
     notiz: 'Nota',
     transaktion: 'Transacción',
     imExplorer: 'Ver bloque en el explorador',
+    poolAnteil: (h: number) => `Parte del pool #${h}`,
+    dPoolAnteil: 'Parte del pool',
+    aeltereLaden: 'Cargar entradas anteriores',
+    laedtMehr: 'Cargando …',
+    alleGeladen: 'Esas son todas las entradas.',
+    ladenFehler: 'Error al cargar. Inténtalo de nuevo.',
   },
 
   senden: {

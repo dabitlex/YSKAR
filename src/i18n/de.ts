@@ -288,6 +288,12 @@ const de = {
     notiz: 'Notiz',
     transaktion: 'Transaktion',
     imExplorer: 'Block im Explorer ansehen',
+    poolAnteil: (h: number) => `Pool-Anteil #${h}`,
+    dPoolAnteil: 'Pool-Anteil',
+    aeltereLaden: 'Ältere Einträge laden',
+    laedtMehr: 'Wird geladen …',
+    alleGeladen: 'Das sind alle Einträge.',
+    ladenFehler: 'Laden fehlgeschlagen. Bitte erneut versuchen.',
   },
 
   senden: {
