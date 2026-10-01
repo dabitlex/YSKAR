@@ -284,6 +284,12 @@ const zh = {
     notiz: '备注',
     transaktion: '交易',
     imExplorer: '在区块浏览器中查看区块',
+    poolAnteil: (h: number) => `矿池份额 #${h}`,
+    dPoolAnteil: '矿池份额',
+    aeltereLaden: '加载更早的记录',
+    laedtMehr: '加载中 …',
+    alleGeladen: '已显示全部记录。',
+    ladenFehler: '加载失败，请重试。',
   },
 
   senden: {

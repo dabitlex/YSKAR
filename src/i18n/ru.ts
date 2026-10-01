@@ -284,6 +284,12 @@ const ru = {
     notiz: 'Заметка',
     transaktion: 'Транзакция',
     imExplorer: 'Открыть блок в explorer',
+    poolAnteil: (h: number) => `Доля пула #${h}`,
+    dPoolAnteil: 'Доля пула',
+    aeltereLaden: 'Загрузить более ранние записи',
+    laedtMehr: 'Загрузка …',
+    alleGeladen: 'Это все записи.',
+    ladenFehler: 'Не удалось загрузить. Попробуйте ещё раз.',
   },
 
   senden: {

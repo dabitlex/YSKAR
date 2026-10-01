@@ -292,6 +292,12 @@ const pl = {
     notiz: 'Notatka',
     transaktion: 'Transakcja',
     imExplorer: 'Zobacz blok w explorerze',
+    poolAnteil: (h: number) => `Udział w puli #${h}`,
+    dPoolAnteil: 'Udział w puli',
+    aeltereLaden: 'Wczytaj starsze wpisy',
+    laedtMehr: 'Wczytywanie …',
+    alleGeladen: 'To wszystkie wpisy.',
+    ladenFehler: 'Nie udało się wczytać. Spróbuj ponownie.',
   },
 
   senden: {

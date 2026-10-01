@@ -284,6 +284,12 @@ const tr = {
     notiz: 'Not',
     transaktion: 'İşlem',
     imExplorer: 'Bloğu gezginde görüntüle',
+    poolAnteil: (h: number) => `Havuz payı #${h}`,
+    dPoolAnteil: 'Havuz payı',
+    aeltereLaden: 'Eski kayıtları yükle',
+    laedtMehr: 'Yükleniyor …',
+    alleGeladen: 'Tüm kayıtlar bu kadar.',
+    ladenFehler: 'Yükleme başarısız. Lütfen tekrar deneyin.',
   },
 
   senden: {

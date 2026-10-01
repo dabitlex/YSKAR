@@ -284,6 +284,12 @@ const pt = {
     notiz: 'Nota',
     transaktion: 'Transação',
     imExplorer: 'Ver bloco no explorer',
+    poolAnteil: (h: number) => `Parte do pool #${h}`,
+    dPoolAnteil: 'Parte do pool',
+    aeltereLaden: 'Carregar entradas anteriores',
+    laedtMehr: 'Carregando …',
+    alleGeladen: 'Essas são todas as entradas.',
+    ladenFehler: 'Falha ao carregar. Tente novamente.',
   },
 
   senden: {

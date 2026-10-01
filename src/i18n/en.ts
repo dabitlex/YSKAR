@@ -284,6 +284,12 @@ const en = {
     notiz: 'Note',
     transaktion: 'Transaction',
     imExplorer: 'View block in explorer',
+    poolAnteil: (h: number) => `Pool share #${h}`,
+    dPoolAnteil: 'Pool share',
+    aeltereLaden: 'Load older entries',
+    laedtMehr: 'Loading …',
+    alleGeladen: 'That\'s all entries.',
+    ladenFehler: 'Loading failed. Please try again.',
   },
 
   senden: {

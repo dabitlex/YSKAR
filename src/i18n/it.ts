@@ -284,6 +284,12 @@ const it = {
     notiz: 'Nota',
     transaktion: 'Transazione',
     imExplorer: 'Vedi blocco nell’explorer',
+    poolAnteil: (h: number) => `Quota pool #${h}`,
+    dPoolAnteil: 'Quota pool',
+    aeltereLaden: 'Carica voci precedenti',
+    laedtMehr: 'Caricamento …',
+    alleGeladen: 'Queste sono tutte le voci.',
+    ladenFehler: 'Caricamento non riuscito. Riprova.',
   },
 
   senden: {

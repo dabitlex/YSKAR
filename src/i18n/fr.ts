@@ -288,6 +288,12 @@ const fr = {
     notiz: 'Note',
     transaktion: 'Transaction',
     imExplorer: 'Voir le bloc dans l’explorateur',
+    poolAnteil: (h: number) => `Part du pool #${h}`,
+    dPoolAnteil: 'Part du pool',
+    aeltereLaden: 'Charger les entrées plus anciennes',
+    laedtMehr: 'Chargement …',
+    alleGeladen: 'Ce sont toutes les entrées.',
+    ladenFehler: 'Échec du chargement. Veuillez réessayer.',
   },
 
   senden: {
