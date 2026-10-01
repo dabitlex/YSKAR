@@ -166,7 +166,12 @@ const FARBEN = ['#1F5BF0', '#38BDF8', '#0B8A5C', '#8B5CF6', '#F59E0B', '#EC4899'
 export function Identicon({ adresse, size = 40, className = '' }: { adresse: string | null; size?: number; className?: string }) {
   let h = 7;
   for (const c of adresse ?? '') h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const a = FARBEN[h % 8], b = FARBEN[(h >> 3) % 8], c = FARBEN[(h >> 6) % 8];
+  // >>> statt >>: h ist vorzeichenlos. Mit >> wurde der Index bei etwa
+  // jeder zweiten Adresse negativ -- keine Farbe, die Kachel blieb leer.
+  // Fuer alle anderen Adressen ergibt >>> genau dieselben Farben wie vorher.
+  // Der Winkel bleibt bei >>: Ein negativer Winkel ist gueltiges CSS, und so
+  // sieht keine Kachel, die schon richtig war, danach anders aus.
+  const a = FARBEN[h % 8], b = FARBEN[(h >>> 3) % 8], c = FARBEN[(h >>> 6) % 8];
   const winkel = (h >> 9) % 360;
   return (
     <span aria-hidden="true" className={`inline-block shrink-0 ${className}`}
