@@ -124,7 +124,7 @@
   "nav.label": "Principal",
   "nav.menue": "Menú",
   "held.bildAlt": "Pantalla de inicio de la app YSKAR con saldo y minería",
-  "wallet.bildAlt": "Pantalla de la wallet en la app YSKAR",
+  "wallet.bildAlt": "Pantalla de inicio de YSKAR Wallet en modo oscuro",
   "zahlen.diagrammAlt": "10,5; 15,75; 18,38; 19,69; 20,34; 20,67; 20,84; 20,92 millones de YSR tras los bloques 12.000 a 96.000",
   "an.etikett": "Guías",
   "an.titel": "Paso a paso",

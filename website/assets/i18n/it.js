@@ -124,7 +124,7 @@
   "nav.label": "Principale",
   "nav.menue": "Menu",
   "held.bildAlt": "Schermata home dell’app YSKAR con saldo e mining",
-  "wallet.bildAlt": "Schermata wallet dell’app YSKAR",
+  "wallet.bildAlt": "Schermata di avvio di YSKAR Wallet in modalità scura",
   "zahlen.diagrammAlt": "10,5; 15,75; 18,38; 19,69; 20,34; 20,67; 20,84; 20,92 milioni di YSR dopo i blocchi da 12.000 a 96.000",
   "an.etikett": "Guide",
   "an.titel": "Passo dopo passo",

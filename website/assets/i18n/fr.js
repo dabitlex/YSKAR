@@ -124,7 +124,7 @@
   "nav.label": "Principal",
   "nav.menue": "Menu",
   "held.bildAlt": "Écran d’accueil de l’app YSKAR avec solde et minage",
-  "wallet.bildAlt": "Écran portefeuille de l’app YSKAR",
+  "wallet.bildAlt": "Écran de démarrage de YSKAR Wallet en mode sombre",
   "zahlen.diagrammAlt": "10,5 ; 15,75 ; 18,38 ; 19,69 ; 20,34 ; 20,67 ; 20,84 ; 20,92 millions de YSR après les blocs 12 000 à 96 000",
   "an.etikett": "Guides",
   "an.titel": "Pas à pas",

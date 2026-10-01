@@ -124,7 +124,7 @@
   "nav.label": "主导航",
   "nav.menue": "菜单",
   "held.bildAlt": "YSKAR 应用首页，显示余额和挖矿状态",
-  "wallet.bildAlt": "YSKAR 应用的钱包页面",
+  "wallet.bildAlt": "YSKAR Wallet 深色模式下的启动画面",
   "zahlen.diagrammAlt": "区块 12,000 至 96,000 之后分别为 10.5、15.75、18.38、19.69、20.34、20.67、20.84、20.92 百万 YSR",
   "an.etikett": "教程",
   "an.titel": "分步指南",
