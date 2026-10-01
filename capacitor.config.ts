@@ -28,6 +28,13 @@ const config: CapacitorConfig = {
     errorPath: 'offline.html',
   },
   android: {
+    /*
+      Kennung fuer natives Mining (src/lib/native/nativMining.ts). Nur diese
+      APK hat den NativMiner im Dienst; die Oberflaeche erkennt ihn daran
+      ohne Warten. Telegram, Browser und aeltere APKs haben die Kennung
+      nicht und minen weiter im WebView.
+    */
+    appendUserAgent: 'YSKAR-NativMining/1',
     allowMixedContent: false,
     backgroundColor: '#F4F7FB',
     // Der Tresor liegt im WebView-Speicher -- ohne Sicherung im Backup,

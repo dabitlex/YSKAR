@@ -21,7 +21,15 @@ import com.getcapacitor.annotation.PermissionCallback;
  *   start(text)   Dienst starten, Benachrichtigung zeigen
  *   update(text)  Text der Benachrichtigung (Hashrate) nachfuehren
  *   stop()        Dienst beenden
- *   Ereignis "stop": Der Nutzer hat in der Benachrichtigung auf Stopp getippt.
+ *   Ereignis "stop": Der Nutzer hat in der Benachrichtigung auf Stopp getippt
+ *                   (oder der native Miner hat sich mit einem Fehler beendet).
+ *
+ * Natives Mining (ab App 1.0.9, siehe NativMiner):
+ *   faehigkeiten()              { nativMining: true }
+ *   nativStart({ basis, address, mode, platform, threads, duty, vorlage })
+ *   nativDuty({ duty })
+ *   nativStatus()               Zustand des Miners + Protokoll
+ *   stop()                      wie bisher -- beendet auch den nativen Miner
  *
  * Ab Android 13 braucht die dauerhafte Benachrichtigung die Erlaubnis
  * POST_NOTIFICATIONS; ohne sie laeuft der Dienst zwar, ist aber unsichtbar --
@@ -54,6 +62,78 @@ public class MiningServicePlugin extends Plugin {
             return;
         }
         starten(call);
+    }
+
+    @PluginMethod
+    public void faehigkeiten(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("nativMining", true);
+        r.put("version", 1);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void nativStart(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            && getPermissionState("notifications") != PermissionState.GRANTED) {
+            requestPermissionForAlias("notifications", call, "nativNachErlaubnis");
+            return;
+        }
+        nativStarten(call);
+    }
+
+    @PermissionCallback
+    private void nativNachErlaubnis(PluginCall call) {
+        // Wie beim Web-Mining: auch ohne Erlaubnis starten; die Oberflaeche
+        // sagt dem Nutzer, dass die Meldung fehlt.
+        nativStarten(call);
+    }
+
+    private void nativStarten(PluginCall call) {
+        String basis = call.getString("basis", "");
+        String adresse = call.getString("address", "");
+        if (basis == null || !basis.startsWith("http") || adresse == null || adresse.isEmpty()) {
+            call.reject("basis und address sind noetig");
+            return;
+        }
+        Intent i = new Intent(getContext(), MiningService.class)
+            .setAction(MiningService.AKTION_NATIV_START)
+            .putExtra(MiningService.EXTRA_BASIS, basis)
+            .putExtra(MiningService.EXTRA_ADRESSE, adresse)
+            .putExtra(MiningService.EXTRA_MODUS, call.getString("mode", "solo"))
+            .putExtra(MiningService.EXTRA_PLATTFORM, call.getString("platform", "android"))
+            .putExtra(MiningService.EXTRA_THREADS, (int) call.getInt("threads", 2))
+            .putExtra(MiningService.EXTRA_DUTY, (int) call.getInt("duty", 50))
+            .putExtra(MiningService.EXTRA_VORLAGE, call.getString("vorlage", "{rate}"));
+        ContextCompat.startForegroundService(getContext(), i);
+        JSObject r = new JSObject();
+        r.put("notifications", getPermissionState("notifications") == PermissionState.GRANTED);
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void nativDuty(PluginCall call) {
+        NativMiner m = MiningService.miner;
+        if (m != null) m.dutySetzen((int) call.getInt("duty", 50));
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void nativStatus(PluginCall call) {
+        NativMiner m = MiningService.miner;
+        JSObject r;
+        try {
+            r = m != null ? new JSObject(m.statusJson()) : new JSObject();
+        } catch (org.json.JSONException e) {
+            r = new JSObject();
+            r.put("statusFehler", e.getMessage());
+        }
+        if (m == null) r.put("laeuft", false);
+        r.put("dienst", MiningService.laeuft);
+        com.getcapacitor.JSArray p = new com.getcapacitor.JSArray();
+        for (String z : NativMiner.protokollLesen(80)) p.put(z);
+        r.put("protokoll", p);
+        call.resolve(r);
     }
 
     @PermissionCallback
