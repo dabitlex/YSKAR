@@ -26,8 +26,8 @@ export default {
       },
       borderRadius: { sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)' },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+        sans: ['var(--font-sans)', 'var(--font-sans-ext)', 'var(--font-sans-kyr)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'var(--font-mono-ext)', 'var(--font-mono-kyr)', 'ui-monospace', 'monospace'],
       },
     },
   },

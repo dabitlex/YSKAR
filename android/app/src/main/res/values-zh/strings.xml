@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="mining_laeuft">挖矿运行中</string>
+    <string name="mining_kanal">挖矿</string>
+    <string name="mining_kanal_text">显示你的设备正在为 YSKAR 进行计算。</string>
+    <string name="mining_stoppen">停止挖矿</string>
+    <string name="mining_titel">YSKAR 正在计算</string>
+    <string name="widget_beschreibung">一目了然查看 YSKAR 余额和挖矿状态</string>
+    <string name="widget_holen">刷新</string>
+    <string name="widget_keine_wallet">尚未设置钱包</string>
+    <string name="widget_mining">挖矿</string>
+    <string name="widget_gestoppt">已停止</string>
+    <string name="widget_shares">Share</string>
+    <string name="widget_ziel">目标</string>
+    <plurals name="widget_bloecke">
+        <item quantity="other">已找到 %s 个区块</item>
+    </plurals>
+</resources>

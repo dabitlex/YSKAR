@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="mining_laeuft">Minage en cours</string>
+    <string name="mining_kanal">Minage</string>
+    <string name="mining_kanal_text">Indique que ton appareil calcule en ce moment pour YSKAR.</string>
+    <string name="mining_stoppen">Arrêter le minage</string>
+    <string name="mining_titel">YSKAR calcule</string>
+    <string name="widget_beschreibung">Solde YSKAR et minage en un coup d\'œil</string>
+    <string name="widget_holen">Actualiser</string>
+    <string name="widget_keine_wallet">Aucun portefeuille configuré</string>
+    <string name="widget_mining">Minage</string>
+    <string name="widget_gestoppt">arrêté</string>
+    <string name="widget_shares">shares</string>
+    <string name="widget_ziel">cible</string>
+    <plurals name="widget_bloecke">
+        <item quantity="one">%s bloc trouvé</item>
+        <item quantity="many">%s blocs trouvés</item>
+        <item quantity="other">%s blocs trouvés</item>
+    </plurals>
+</resources>

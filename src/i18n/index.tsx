@@ -7,6 +7,10 @@ import ru from './ru';
 import es from './es';
 import tr from './tr';
 import pt from './pt';
+import it from './it';
+import fr from './fr';
+import pl from './pl';
+import zh from './zh';
 
 /**
  * Sprache der Oberflaeche.
@@ -20,18 +24,22 @@ import pt from './pt';
  * Alle Texte liegen in de.ts und en.ts mit identischen Schluesseln; eine
  * neue Sprache ist eine weitere Datei und ein Eintrag in SPRACHEN.
  */
-export type Sprache = 'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt';
+export type Sprache = 'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl' | 'zh';
 
 export const SPRACHEN: { code: Sprache; name: string }[] = [
   { code: 'en', name: en.name },
   { code: 'de', name: de.name },
   { code: 'es', name: es.name },
   { code: 'pt', name: pt.name },
+  { code: 'fr', name: fr.name },
+  { code: 'it', name: it.name },
+  { code: 'pl', name: pl.name },
   { code: 'ru', name: ru.name },
   { code: 'tr', name: tr.name },
+  { code: 'zh', name: zh.name },
 ];
 
-const BUECHER: Record<Sprache, Woerterbuch> = { de, en, ru, es, tr, pt };
+const BUECHER: Record<Sprache, Woerterbuch> = { de, en, ru, es, tr, pt, it, fr, pl, zh };
 const MERKER = 'yskar.sprache';
 const VORGABE: Sprache = 'en';
 

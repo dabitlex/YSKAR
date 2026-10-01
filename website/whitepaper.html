@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en" class="i18n-wartet">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whitepaper – YSKAR</title>
+<meta name="description" content="The YSKAR whitepaper: blocks, transactions, proof of work, difficulty, issuance, wallets, pool mining and the network.">
+<meta name="theme-color" content="#0A101C">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/style.css">
+<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
+<script src="/assets/i18n/en.js"></script>
+<script src="/assets/site.js" defer></script>
+</head>
+<body data-seite="whitepaper">
+
+<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+
+<header class="kopf">
+<div class="wrap">
+<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/kristall.png" alt="" width="40" height="26"><span>YSKAR</span></a>
+<div style="display:flex;align-items:center;gap:12px">
+<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
+<a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
+<a href="/#wallet" data-t="nav.wallet">Wallet</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" aria-current="page" data-t="nav.whitepaper">Whitepaper</a>
+<a href="https://yskar.vercel.app/explorer.html" data-t="nav.explorer">Explorer</a>
+<a class="knopf primaer klein" href="/#mitmachen" data-t="nav.minen">Start mining</a>
+</nav>
+<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
+<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+</button>
+</div>
+</div>
+</header>
+
+<main id="inhalt">
+<section class="seitenkopf">
+<div class="wrap">
+<p class="etikett" style="color:var(--blau-d)">Whitepaper</p>
+<h1>YSKAR</h1>
+<p data-t="wpseite.untertitel">A proof-of-work blockchain that anyone can mine and anyone can verify.</p>
+</div>
+</section>
+
+<div class="inhalt">
+<div class="wrap inhalt-raster">
+<nav class="toc" id="wp-toc" aria-label="Contents" data-ta="aria-label:wpseite.toc"></nav>
+
+<div class="text">
+<div class="sprachhinweis">
+<span id="wp-hinweis" hidden data-t="wpseite.nurDeEn">The whitepaper is currently available in English and German.</span>
+<button type="button" data-wp="en" aria-pressed="true">English</button>
+<button type="button" data-wp="de" aria-pressed="false">Deutsch</button>
+<button type="button" onclick="window.print()" data-t="wpseite.drucken">Print / save as PDF</button>
+</div>
+
+<!-- ================================================================ EN -->
+<article id="wp-en" lang="en">
+<p class="wp-meta">Version 1.0 · October 2026 · Network yskar-main-1</p>
+
+<h2 id="k1">1. Summary</h2>
+<p>YSKAR is an independent blockchain secured by proof of work. Its coin is called YSR. At most 21 million YSR will ever exist; they are created exclusively as block rewards for miners, halving every 12,000 blocks. A new block is targeted every 10 minutes.</p>
+<p>YSKAR was designed around two promises. First, <strong>mining for everyone</strong>: a phone in a Telegram Mini App, an Android app or a home PC can take part, alone or in a pool that never holds anyone’s money. Second, <strong>verifiable by anyone</strong>: every rule is fixed in open code, every block can be checked in an ordinary browser, and anyone can run a full node that verifies the chain from its first block. The genesis block carries the inscription that sums this up: <em>proof, not promise</em>.</p>
+<p>This document describes the system as it is implemented, including its current limits.</p>
+
+<h2 id="k2">2. Architecture</h2>
+<ul>
+<li><strong>Full nodes</strong> store the chain, validate every block and transaction completely and exchange blocks over a peer-to-peer network. A node can also offer a mining interface and run a pool.</li>
+<li><strong>Miners</strong> request work from a node, search for a valid hash and submit results. They only need a payout address, never a private key.</li>
+<li><strong>Wallets</strong> create and keep keys on the user’s device and sign transactions there. The YSKAR app (Telegram Mini App and Android) is such a wallet.</li>
+<li><strong>The explorer</strong> displays the chain and independently re-verifies each block in the browser.</li>
+<li><strong>A database mirror</strong> of the chain serves the explorer and website for fast reads. It is a convenience only; the nodes are authoritative.</li>
+</ul>
+
+<h2 id="k3">3. Blocks</h2>
+<p>A block consists of a 136-byte header and a list of transactions, the first of which is always the coinbase. All integers are little-endian.</p>
+<table>
+<thead><tr><th>Offset</th><th>Field</th><th>Size</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>version</td><td>4</td><td>Block version</td></tr>
+<tr><td>4</td><td>height</td><td>4</td><td>Position in the chain</td></tr>
+<tr><td>8</td><td>prev_hash</td><td>32</td><td>Hash of the previous block</td></tr>
+<tr><td>40</td><td>merkle_root</td><td>32</td><td>Commitment to all transactions</td></tr>
+<tr><td>72</td><td>state_root</td><td>32</td><td>Commitment to all account balances after this block</td></tr>
+<tr><td>104</td><td>timestamp</td><td>8</td><td>Seconds since 1970</td></tr>
+<tr><td>112</td><td>difficulty</td><td>4</td><td>Required work (encoding: section 5.4)</td></tr>
+<tr><td>116</td><td>tx_count</td><td>4</td><td>Number of transactions</td></tr>
+<tr><td>120</td><td>extranonce</td><td>8</td><td>Separates the search spaces of miners</td></tr>
+<tr><td>128</td><td>nonce</td><td>8</td><td>Varied by the miner</td></tr>
+</tbody>
+</table>
+<p>The size is deliberate: with SHA-256 padding, 136 bytes fill exactly three 64-byte blocks, and every field except the nonce lies in the first 128 bytes. A miner computes the state of the first two compression rounds once per job (the midstate) and then needs only two compressions per attempt.</p>
+<p><strong>Merkle tree.</strong> Leaves are <code>sha256d(0x00 ‖ txid)</code>, inner nodes <code>sha256d(0x01 ‖ left ‖ right)</code>. An odd node is passed up unchanged instead of being duplicated. The prefixes prevent an inner node from being presented as a leaf, and the absence of duplication avoids the ambiguity known from Bitcoin (CVE-2012-2459).</p>
+<p><strong>State root.</strong> Every header commits to the complete account state after the block. Two nodes with the same state root have computed exactly the same balances. A block whose state root does not match the node’s own computation is rejected.</p>
+<p><strong>Limits.</strong> At most 2,000 transactions per block, the coinbase included.</p>
+
+<h2 id="k4">4. Transactions</h2>
+<p>YSKAR uses an <strong>account model</strong>: each address has a balance and a nonce, a counter of the transactions it has sent. There are two transaction types.</p>
+<h3>4.1 Transfer</h3>
+<p>A transfer contains the sender and receiver address, the amount, the fee, the sender’s next nonce, an optional expiry height (<code>valid_until</code>), an optional memo of up to 32 bytes, the sender’s public key and an Ed25519 signature. Without a memo, a transfer is 168 bytes long.</p>
+<p>The signature covers all fields plus the <strong>chain ID</strong>, the SHA-256 hash of the network name. A transaction signed for the test network is therefore invalid on the main network and vice versa. The nonce must match exactly, so each transaction can be included only once and in order.</p>
+<h3>4.2 Coinbase</h3>
+<p>The first transaction of each block creates new YSR. Its total must be <strong>exactly</strong> the block reward plus the fees of all transactions in the block – not a unit more or less. Up to height 1,999 a coinbase has exactly one recipient. From height 2,000 (consensus version 2) it may have up to 64 recipients; this is what makes pool mining without custody possible (section 10). The coinbase may carry a short self-chosen name of the finder.</p>
+<h3>4.3 Fees</h3>
+<p>Up to height 3,999 every transfer costs a fixed minimum of 0.001 YSR. From height 4,000 (consensus version 3) the minimum is calculated <strong>per byte</strong>, as in Bitcoin: at least 1 unit (0.00000001 YSR) per byte. Nodes additionally require 10 units per byte before relaying a transaction; this is policy, not consensus, and can be adjusted without a fork. Amounts below 100 units (0.000001 YSR) are invalid from height 4,000, which prevents the state from being filled with dust. A waiting transaction can be replaced by one with the same nonce only if its fee is higher by at least the relay rate.</p>
+
+<h2 id="k5">5. Proof of work and difficulty</h2>
+<h3>5.1 The puzzle</h3>
+<p>The block hash is <code>SHA-256(SHA-256(header))</code>. A block is valid if its hash, read as a 256-bit number, does not exceed the target:</p>
+<div class="formel">target = 2^240 / difficulty</div>
+<p>One unit of difficulty therefore corresponds to 65,536 expected hashes on average. The network hashrate can be estimated as <code>difficulty × 65,536 / block time</code>.</p>
+<h3>5.2 Adjustment (LWMA)</h3>
+<p>The difficulty of each block is recalculated from the previous 45 blocks with a linearly weighted moving average: recent solve times count more than older ones. Single solve times are capped at six times the target, and the result may change by at most a factor of four per block. All arithmetic is done in integers; there is no floating point in consensus, so every node arrives at exactly the same value.</p>
+<h3>5.3 Emergency rule and timestamps</h3>
+<p>If no block appears for more than three times the target block time (30 minutes), the required difficulty decreases in proportion to the waiting time. This keeps the chain moving if hashrate suddenly disappears. A block must be within the range between this relaxed value and the regular value.</p>
+<p>A timestamp must be later than the median of the previous 11 blocks and may be at most 120 seconds in the future. Without these rules, the difficulty could be manipulated through false times.</p>
+<h3>5.4 Difficulty without an upper limit</h3>
+<p>The header field for the difficulty is four bytes. Up to height 5,999 it is a plain unsigned integer, which ends at 4,294,967,295 – about 469 GH/s of network hashrate. From height 6,000 (consensus version 4) the same field is read differently:</p>
+<div class="formel">top bit 0:  difficulty = field                    (1 … 2^31 − 1)
+top bit 1:  e = bits 23–30,  m = bits 0–22
+            difficulty = (2^23 + m) · 2^e        (2^31 … ≈ 2^240)</div>
+<p>Below 2^31 the bytes are identical to the old format. Above it, the value is a floating-point number with 24 bits of precision. Every value has exactly one valid encoding; the adjustment rounds down to the nearest representable value. The upper bound lies just below 2^240, where the target reaches 1 – the limit of SHA-256 itself.</p>
+
+<h2 id="k6">6. Choosing the chain</h2>
+<p>If two valid branches compete, nodes follow the one with the most accumulated work, not the longest one. Since the expected number of hashes is proportional to the difficulty, the work of a block is its difficulty, and the work of a chain is the sum. If two branches have exactly the same work, the one whose tip has the smaller hash wins – a rule every node can evaluate independently and identically.</p>
+
+<h2 id="k7">7. Issuance</h2>
+<p>The reward starts at 875 YSR per block and halves every 12,000 blocks. It is computed with a bit shift, without rounding rules that could differ between implementations.</p>
+<table>
+<thead><tr><th>Epoch</th><th>Blocks</th><th>Reward</th><th>Total after the epoch</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>0 – 11,999</td><td>875 YSR</td><td>10,500,000 YSR (50%)</td></tr>
+<tr><td>2</td><td>12,000 – 23,999</td><td>437.5 YSR</td><td>15,750,000 YSR (75%)</td></tr>
+<tr><td>3</td><td>24,000 – 35,999</td><td>218.75 YSR</td><td>18,375,000 YSR</td></tr>
+<tr><td>4</td><td>36,000 – 47,999</td><td>109.375 YSR</td><td>19,687,500 YSR</td></tr>
+<tr><td>5</td><td>48,000 – 59,999</td><td>54.6875 YSR</td><td>20,343,750 YSR</td></tr>
+<tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+<tr><td>37</td><td>432,000 – 443,999</td><td>0.00000001 YSR</td><td>20,999,999.99832 YSR</td></tr>
+</tbody>
+</table>
+<p>From block 444,000 the reward is zero and miners are paid by fees alone. At the target block time an epoch lasts about 83 days; 99% of all YSR exist after roughly 1.6 years, the last unit after about 8.4 years. Because of rounding, the total stays slightly below 21 million.</p>
+<p><strong>No pre-allocation.</strong> There is no allocation in the code: every YSR comes from a coinbase whose amount the rules check exactly. The reward of the genesis block went to the all-zero address, for which no usable key exists.</p>
+
+<h2 id="k8">8. Wallets and addresses</h2>
+<ul>
+<li><strong>Recovery words:</strong> 12 words according to BIP39 produce a seed.</li>
+<li><strong>Keys:</strong> Ed25519 key pairs are derived with SLIP-0010 along the hardened path <code>m/44'/9077'/account'/0'/index'</code>.</li>
+<li><strong>Address:</strong> the first 20 bytes of <code>SHA-256(public key)</code>, written in bech32m with the prefix <code>ysr</code> – for example <code>ysr1…</code>. The checksum catches typing errors.</li>
+<li><strong>On the device:</strong> the app stores the key encrypted with a user-chosen PIN locally. No server ever receives it. The PIN protects the device; the 12 words are the actual key and restore the wallet anywhere.</li>
+</ul>
+
+<h2 id="k9">9. Mining</h2>
+<p>A miner opens a session at a node with its payout address and receives jobs: a complete block template with all fields except the nonce. Each session gets its own extranonce, which lies in the header, so two miners can never compute the same candidate.</p>
+<p>The miner does not only report blocks but <strong>shares</strong>: hashes that meet an easier, personal target. The node adjusts this target so that each device finds about one share every 30 seconds. Shares show that the device is working and, in a pool, are the basis of the payout. The node recomputes every submitted hash itself and trusts no claim of the device.</p>
+<p>Ways to mine today: the Telegram Mini App (computing in WebAssembly), the Android app (also in the background) and the PC miner for processors and NVIDIA graphics cards.</p>
+
+<h2 id="k10">10. Pool mining without custody</h2>
+<p>A pool is not a separate service but a full node that splits its coinbase. Pool blocks pay all participants directly in the coinbase (consensus version 2). At no point does the operator hold anyone else’s money, and anyone can check the split in the explorer.</p>
+<ul>
+<li><strong>PPLNS:</strong> the last units of work are paid, across block boundaries. The window is twice the network difficulty, so hopping in shortly before an expected block brings no advantage.</li>
+<li><strong>Counted value:</strong> the share target that applied, not the value achieved by luck.</li>
+<li><strong>Limits:</strong> up to 63 miners per block plus the fee; work that does not fit is carried into the next block. The fee is at most 5%.</li>
+<li><strong>What still requires trust:</strong> the counting of shares. Shares are not in any block. The payout is verifiable; whether it was deserved is not. This applies to every pool, Bitcoin included.</li>
+</ul>
+
+<h2 id="k11">11. Network</h2>
+<p>Nodes connect over TCP (default port 8646). On connecting they exchange the network name and the accumulated work of their chains, then fetch missing blocks. Every block arriving over the network is validated completely: header, proof of work, signatures, balances and state root. A peer supplies data, nothing more. Nodes that support it also exchange miner statistics, so that apps can show the miners of the whole network; these figures are reported, not proven.</p>
+
+<h2 id="k12">12. Consensus changes</h2>
+<p>Rule changes are activated at a fixed height announced in advance. Blocks below that height remain valid byte for byte.</p>
+<table>
+<thead><tr><th>Version</th><th>Active from</th><th>Change</th></tr></thead>
+<tbody>
+<tr><td>2</td><td>Block 2,000</td><td>Coinbase with up to 64 recipients (pool mining without custody)</td></tr>
+<tr><td>3</td><td>Block 4,000</td><td>Fee per byte, dust limit</td></tr>
+<tr><td>4</td><td>Block 6,000</td><td>Difficulty without an upper limit</td></tr>
+</tbody>
+</table>
+
+<h2 id="k13">13. Limits and outlook</h2>
+<p>We would rather name the weaknesses than hide them:</p>
+<ul>
+<li><strong>Few nodes.</strong> The network is young and runs on very few nodes and one large pool. Security grows with every independent node and pool.</li>
+<li><strong>Devices differ.</strong> SHA-256d runs far faster on graphics cards than on phones. Phones contribute; their share of rewards is correspondingly smaller. Existing SHA-256 ASICs cannot mine YSKAR because they are built for Bitcoin’s 80-byte header.</li>
+<li><strong>Confirmation time.</strong> With 10-minute blocks, a payment is secure only after confirmations. Instant payments via payment channels are being planned; there is no date yet.</li>
+<li><strong>Reported figures.</strong> Active miners and measured hashrate across nodes are reported by the nodes. The network hashrate derived from difficulty and block times is the provable figure.</li>
+</ul>
+<p>Everything described here can be checked in the source code at <a href="https://github.com/dabitlex/YSKAR">github.com/dabitlex/YSKAR</a>.</p>
+</article>
+
+<!-- ================================================================ DE -->
+<article id="wp-de" lang="de" hidden>
+<p class="wp-meta">Version 1.0 · Oktober 2026 · Netz yskar-main-1</p>
+
+<h2 id="k1-de">1. Zusammenfassung</h2>
+<p>YSKAR ist eine eigenständige Blockchain, gesichert durch Proof of Work. Ihre Münze heißt YSR. Es wird nie mehr als 21 Millionen YSR geben; sie entstehen ausschließlich als Blockbelohnung für Miner, und die Belohnung halbiert sich alle 12.000 Blöcke. Ziel ist ein neuer Block alle 10 Minuten.</p>
+<p>YSKAR folgt zwei Versprechen. Erstens <strong>Mining für alle</strong>: Ein Telefon in einer Telegram Mini App, eine Android-App oder ein PC zu Hause können mitmachen, allein oder in einem Pool, der nie fremdes Geld verwahrt. Zweitens <strong>nachprüfbar für jeden</strong>: Jede Regel steht in offenem Code, jeder Block lässt sich in einem gewöhnlichen Browser prüfen, und jeder kann einen eigenen Knoten betreiben, der die Kette ab dem ersten Block nachrechnet. Der Genesis-Block trägt die Inschrift, die das zusammenfasst: <em>proof, not promise</em>.</p>
+<p>Dieses Dokument beschreibt das System so, wie es umgesetzt ist, einschließlich seiner heutigen Grenzen.</p>
+
+<h2 id="k2-de">2. Aufbau</h2>
+<ul>
+<li><strong>Fullnodes</strong> speichern die Kette, prüfen jeden Block und jede Transaktion vollständig und tauschen Blöcke über ein Peer-to-Peer-Netz aus. Ein Knoten kann zusätzlich eine Mining-Schnittstelle anbieten und einen Pool betreiben.</li>
+<li><strong>Miner</strong> holen sich Arbeit von einem Knoten, suchen einen gültigen Hash und reichen Ergebnisse ein. Sie brauchen nur eine Auszahlungsadresse, nie einen privaten Schlüssel.</li>
+<li><strong>Wallets</strong> erzeugen und verwahren Schlüssel auf dem Gerät des Nutzers und signieren dort. Die YSKAR-App (Telegram Mini App und Android) ist eine solche Wallet.</li>
+<li><strong>Der Explorer</strong> zeigt die Kette an und prüft jeden Block unabhängig im Browser nach.</li>
+<li><strong>Ein Datenbank-Spiegel</strong> der Kette dient Explorer und Website zum schnellen Lesen. Er ist nur eine Bequemlichkeit; maßgeblich sind die Knoten.</li>
+</ul>
+
+<h2 id="k3-de">3. Blöcke</h2>
+<p>Ein Block besteht aus einem 136 Byte langen Kopf und einer Liste von Transaktionen; die erste ist immer die Coinbase. Alle Ganzzahlen sind Little-Endian.</p>
+<table>
+<thead><tr><th>Stelle</th><th>Feld</th><th>Größe</th><th>Bedeutung</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>version</td><td>4</td><td>Blockfassung</td></tr>
+<tr><td>4</td><td>height</td><td>4</td><td>Position in der Kette</td></tr>
+<tr><td>8</td><td>prev_hash</td><td>32</td><td>Hash des vorigen Blocks</td></tr>
+<tr><td>40</td><td>merkle_root</td><td>32</td><td>Verpflichtung auf alle Transaktionen</td></tr>
+<tr><td>72</td><td>state_root</td><td>32</td><td>Verpflichtung auf alle Kontostände nach diesem Block</td></tr>
+<tr><td>104</td><td>timestamp</td><td>8</td><td>Sekunden seit 1970</td></tr>
+<tr><td>112</td><td>difficulty</td><td>4</td><td>Geforderte Arbeit (Kodierung: Abschnitt 5.4)</td></tr>
+<tr><td>116</td><td>tx_count</td><td>4</td><td>Anzahl der Transaktionen</td></tr>
+<tr><td>120</td><td>extranonce</td><td>8</td><td>Trennt die Suchräume der Miner</td></tr>
+<tr><td>128</td><td>nonce</td><td>8</td><td>Wird vom Miner variiert</td></tr>
+</tbody>
+</table>
+<p>Die Größe ist gewollt: Mit dem SHA-256-Padding füllen 136 Byte genau drei 64-Byte-Blöcke, und jedes Feld außer der Nonce liegt in den ersten 128 Byte. Ein Miner berechnet den Zustand der ersten beiden Kompressionen einmal je Aufgabe (Midstate) und braucht danach nur zwei Kompressionen je Versuch.</p>
+<p><strong>Merkle-Baum.</strong> Blätter sind <code>sha256d(0x00 ‖ txid)</code>, innere Knoten <code>sha256d(0x01 ‖ links ‖ rechts)</code>. Ein ungerader Knoten wird unverändert hochgereicht statt verdoppelt. Die Präfixe verhindern, dass ein innerer Knoten als Blatt ausgegeben werden kann, und ohne Verdopplung entfällt die von Bitcoin bekannte Mehrdeutigkeit (CVE-2012-2459).</p>
+<p><strong>Zustandswurzel.</strong> Jeder Kopf verpflichtet auf den vollständigen Kontostand nach dem Block. Zwei Knoten mit derselben Wurzel haben exakt dieselben Guthaben berechnet. Ein Block, dessen Wurzel nicht zur eigenen Rechnung passt, wird abgelehnt.</p>
+<p><strong>Grenzen.</strong> Höchstens 2.000 Transaktionen je Block, die Coinbase eingeschlossen.</p>
+
+<h2 id="k4-de">4. Transaktionen</h2>
+<p>YSKAR nutzt ein <strong>Kontenmodell</strong>: Jede Adresse hat ein Guthaben und eine Nonce, einen Zähler ihrer gesendeten Transaktionen. Es gibt zwei Arten von Transaktionen.</p>
+<h3>4.1 Überweisung</h3>
+<p>Eine Überweisung enthält Absender- und Empfängeradresse, Betrag, Gebühr, die nächste Nonce des Absenders, eine optionale Ablaufhöhe (<code>valid_until</code>), eine optionale Notiz bis 32 Byte, den öffentlichen Schlüssel des Absenders und eine Ed25519-Signatur. Ohne Notiz ist eine Überweisung 168 Byte lang.</p>
+<p>Die Signatur deckt alle Felder ab und zusätzlich die <strong>Chain-ID</strong>, den SHA-256-Hash des Netznamens. Eine für das Testnetz signierte Transaktion ist im Hauptnetz ungültig und umgekehrt. Die Nonce muss genau passen; jede Transaktion kann also nur einmal und in der richtigen Reihenfolge aufgenommen werden.</p>
+<h3>4.2 Coinbase</h3>
+<p>Die erste Transaktion jedes Blocks erzeugt neue YSR. Ihre Summe muss <strong>genau</strong> der Blockbelohnung plus den Gebühren aller Transaktionen des Blocks entsprechen, keine Einheit mehr oder weniger. Bis Höhe 1.999 hat eine Coinbase genau einen Empfänger. Ab Höhe 2.000 (Konsensfassung 2) darf sie bis zu 64 Empfänger haben; das ermöglicht Pool-Mining ohne Verwahrung (Abschnitt 10). Die Coinbase kann einen kurzen, selbst gewählten Namen des Finders tragen.</p>
+<h3>4.3 Gebühren</h3>
+<p>Bis Höhe 3.999 kostet jede Überweisung fest mindestens 0,001 YSR. Ab Höhe 4.000 (Konsensfassung 3) wird das Minimum <strong>je Byte</strong> berechnet, wie bei Bitcoin: mindestens 1 Einheit (0,00000001 YSR) je Byte. Knoten verlangen zusätzlich 10 Einheiten je Byte, bevor sie eine Transaktion weiterleiten; das ist Richtlinie, kein Konsens, und lässt sich ohne Fork anpassen. Beträge unter 100 Einheiten (0,000001 YSR) sind ab Höhe 4.000 ungültig; so lässt sich der Zustand nicht mit Kleinstbeträgen füllen. Eine wartende Transaktion lässt sich durch eine mit derselben Nonce nur ersetzen, wenn deren Gebühr um mindestens den Weiterleitungssatz höher ist.</p>
+
+<h2 id="k5-de">5. Proof of Work und Schwierigkeit</h2>
+<h3>5.1 Die Aufgabe</h3>
+<p>Der Blockhash ist <code>SHA-256(SHA-256(Kopf))</code>. Ein Block ist gültig, wenn sein Hash, gelesen als 256-Bit-Zahl, das Ziel nicht überschreitet:</p>
+<div class="formel">ziel = 2^240 / difficulty</div>
+<p>Eine Einheit Difficulty entspricht damit im Mittel 65.536 erwarteten Hashes. Die Netz-Hashrate lässt sich als <code>difficulty × 65.536 / Blockzeit</code> abschätzen.</p>
+<h3>5.2 Anpassung (LWMA)</h3>
+<p>Die Difficulty jedes Blocks wird aus den vorigen 45 Blöcken mit einem linear gewichteten gleitenden Mittel neu berechnet: Jüngere Lösungszeiten zählen mehr als ältere. Einzelne Lösungszeiten werden beim Sechsfachen des Ziels gedeckelt, und das Ergebnis darf sich je Block höchstens um den Faktor vier ändern. Gerechnet wird ausschließlich mit Ganzzahlen; im Konsens gibt es keine Gleitkommazahl, damit jeder Knoten exakt denselben Wert erhält.</p>
+<h3>5.3 Notfallregel und Zeitstempel</h3>
+<p>Erscheint länger als das Dreifache der Zielzeit (30 Minuten) kein Block, sinkt die geforderte Difficulty im Verhältnis zur Wartezeit. So bleibt die Kette in Bewegung, wenn Rechenleistung plötzlich wegfällt. Ein Block muss zwischen diesem gelockerten und dem regulären Wert liegen.</p>
+<p>Ein Zeitstempel muss später als der Median der vorigen 11 Blöcke liegen und darf höchstens 120 Sekunden in der Zukunft liegen. Ohne diese Regeln ließe sich die Difficulty über falsche Zeiten verschieben.</p>
+<h3>5.4 Difficulty ohne Obergrenze</h3>
+<p>Das Feld für die Difficulty im Kopf ist vier Byte groß. Bis Höhe 5.999 ist es eine schlichte vorzeichenlose Ganzzahl, die bei 4.294.967.295 endet, also bei rund 469 GH/s Netz-Hashrate. Ab Höhe 6.000 (Konsensfassung 4) wird dasselbe Feld anders gelesen:</p>
+<div class="formel">oberstes Bit 0:  difficulty = Feld                   (1 … 2^31 − 1)
+oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
+                 difficulty = (2^23 + m) · 2^e       (2^31 … ≈ 2^240)</div>
+<p>Unter 2^31 sind die Bytes identisch mit dem alten Format. Darüber ist der Wert eine Gleitkommazahl mit 24 Bit Genauigkeit. Jeder Wert hat genau eine gültige Schreibweise; die Anpassung rundet auf den nächsten darstellbaren Wert ab. Die Obergrenze liegt knapp unter 2^240, wo das Ziel 1 erreicht – die Grenze von SHA-256 selbst.</p>
+
+<h2 id="k6-de">6. Wahl der Kette</h2>
+<p>Konkurrieren zwei gültige Zweige, folgen die Knoten dem mit der meisten angesammelten Arbeit, nicht dem längsten. Da die erwartete Zahl der Hashes proportional zur Difficulty ist, ist die Arbeit eines Blocks seine Difficulty und die Arbeit einer Kette die Summe. Haben zwei Zweige genau gleich viel Arbeit, gewinnt der, dessen Spitze den kleineren Hash hat – eine Regel, die jeder Knoten unabhängig und gleich auswertet.</p>
+
+<h2 id="k7-de">7. Ausgabe</h2>
+<p>Die Belohnung beginnt bei 875 YSR je Block und halbiert sich alle 12.000 Blöcke. Sie wird per Bitverschiebung berechnet, ohne Rundungsregeln, die zwischen Umsetzungen abweichen könnten.</p>
+<table>
+<thead><tr><th>Epoche</th><th>Blöcke</th><th>Belohnung</th><th>Summe nach der Epoche</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>0 – 11.999</td><td>875 YSR</td><td>10.500.000 YSR (50 %)</td></tr>
+<tr><td>2</td><td>12.000 – 23.999</td><td>437,5 YSR</td><td>15.750.000 YSR (75 %)</td></tr>
+<tr><td>3</td><td>24.000 – 35.999</td><td>218,75 YSR</td><td>18.375.000 YSR</td></tr>
+<tr><td>4</td><td>36.000 – 47.999</td><td>109,375 YSR</td><td>19.687.500 YSR</td></tr>
+<tr><td>5</td><td>48.000 – 59.999</td><td>54,6875 YSR</td><td>20.343.750 YSR</td></tr>
+<tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+<tr><td>37</td><td>432.000 – 443.999</td><td>0,00000001 YSR</td><td>20.999.999,99832 YSR</td></tr>
+</tbody>
+</table>
+<p>Ab Block 444.000 ist die Belohnung null; Miner werden dann nur noch über Gebühren bezahlt. Bei der Zielblockzeit dauert eine Epoche rund 83 Tage; 99 % aller YSR existieren nach etwa 1,6 Jahren, die letzte Einheit nach etwa 8,4 Jahren. Wegen der Abrundung bleibt die Summe knapp unter 21 Millionen.</p>
+<p><strong>Keine Vorab-Zuteilung.</strong> Im Code gibt es keine Zuteilung: Jede YSR stammt aus einer Coinbase, deren Betrag die Regeln exakt prüfen. Die Belohnung des Genesis-Blocks ging an die Null-Adresse, für die es keinen nutzbaren Schlüssel gibt.</p>
+
+<h2 id="k8-de">8. Wallets und Adressen</h2>
+<ul>
+<li><strong>Merkwörter:</strong> 12 Wörter nach BIP39 ergeben einen Seed.</li>
+<li><strong>Schlüssel:</strong> Ed25519-Schlüsselpaare werden nach SLIP-0010 entlang des gehärteten Pfads <code>m/44'/9077'/konto'/0'/index'</code> abgeleitet.</li>
+<li><strong>Adresse:</strong> die ersten 20 Byte von <code>SHA-256(öffentlicher Schlüssel)</code>, geschrieben in bech32m mit dem Präfix <code>ysr</code>, also etwa <code>ysr1…</code>. Die Prüfsumme fängt Tippfehler ab.</li>
+<li><strong>Auf dem Gerät:</strong> Die App speichert den Schlüssel lokal, verschlüsselt mit einer selbst gewählten PIN. Kein Server erhält ihn je. Die PIN schützt das Gerät; die 12 Wörter sind der eigentliche Schlüssel und stellen die Wallet überall wieder her.</li>
+</ul>
+
+<h2 id="k9-de">9. Mining</h2>
+<p>Ein Miner eröffnet bei einem Knoten eine Sitzung mit seiner Auszahlungsadresse und bekommt Aufgaben: eine vollständige Blockvorlage mit allen Feldern außer der Nonce. Jede Sitzung erhält ihre eigene Extranonce, die im Kopf steht; zwei Miner können also nie denselben Kandidaten berechnen.</p>
+<p>Der Miner meldet nicht nur Blöcke, sondern <strong>Shares</strong>: Hashes, die ein leichteres, persönliches Ziel erreichen. Der Knoten stellt dieses Ziel so ein, dass jedes Gerät etwa alle 30 Sekunden einen Share findet. Shares zeigen, dass das Gerät arbeitet, und sind im Pool die Grundlage der Auszahlung. Der Knoten rechnet jeden eingereichten Hash selbst nach und glaubt keiner Angabe des Geräts.</p>
+<p>Wege zum Mining heute: die Telegram Mini App (gerechnet in WebAssembly), die Android-App (auch im Hintergrund) und der PC-Miner für Prozessoren und NVIDIA-Grafikkarten.</p>
+
+<h2 id="k10-de">10. Pool-Mining ohne Verwahrung</h2>
+<p>Ein Pool ist kein eigener Dienst, sondern ein Fullnode, der seine Coinbase aufteilt. Pool-Blöcke zahlen alle Beteiligten direkt in der Coinbase aus (Konsensfassung 2). Zu keinem Zeitpunkt hält der Betreiber fremdes Geld, und jeder kann die Aufteilung im Explorer nachprüfen.</p>
+<ul>
+<li><strong>PPLNS:</strong> Bezahlt werden die letzten Arbeitseinheiten, über Blockgrenzen hinweg. Das Fenster ist doppelt so groß wie die Netz-Difficulty; kurz vor einem erwarteten Block einzusteigen bringt deshalb nichts.</li>
+<li><strong>Gezählter Wert:</strong> das geltende Share-Ziel, nicht der durch Glück erreichte Wert.</li>
+<li><strong>Grenzen:</strong> bis zu 63 Miner je Block plus Gebühr; Arbeit, die nicht hineinpasst, wird in den nächsten Block vorgetragen. Die Gebühr beträgt höchstens 5 %.</li>
+<li><strong>Was Vertrauen bleibt:</strong> die Zählung der Shares. Shares stehen in keinem Block. Die Auszahlung ist nachprüfbar, ob sie verdient war, nicht. Das gilt für jeden Pool, auch bei Bitcoin.</li>
+</ul>
+
+<h2 id="k11-de">11. Netz</h2>
+<p>Knoten verbinden sich über TCP (Standardport 8646). Beim Verbinden tauschen sie den Netznamen und die angesammelte Arbeit ihrer Ketten aus und holen dann fehlende Blöcke. Jeder Block, der über das Netz kommt, wird vollständig geprüft: Kopf, Proof of Work, Signaturen, Guthaben und Zustandswurzel. Ein Peer liefert Daten, sonst nichts. Knoten, die es unterstützen, tauschen zusätzlich Miner-Statistiken aus, damit Apps die Miner des ganzen Netzes anzeigen können; diese Zahlen sind gemeldet, nicht bewiesen.</p>
+
+<h2 id="k12-de">12. Änderungen am Konsens</h2>
+<p>Regeländerungen werden an einer festen, vorher angekündigten Höhe aktiv. Blöcke unterhalb dieser Höhe bleiben Byte für Byte gültig.</p>
+<table>
+<thead><tr><th>Fassung</th><th>Aktiv ab</th><th>Änderung</th></tr></thead>
+<tbody>
+<tr><td>2</td><td>Block 2.000</td><td>Coinbase mit bis zu 64 Empfängern (Pool-Mining ohne Verwahrung)</td></tr>
+<tr><td>3</td><td>Block 4.000</td><td>Gebühr je Byte, Staubgrenze</td></tr>
+<tr><td>4</td><td>Block 6.000</td><td>Difficulty ohne Obergrenze</td></tr>
+</tbody>
+</table>
+
+<h2 id="k13-de">13. Grenzen und Ausblick</h2>
+<p>Wir nennen die Schwächen lieber, als sie zu verstecken:</p>
+<ul>
+<li><strong>Wenige Knoten.</strong> Das Netz ist jung und läuft auf sehr wenigen Knoten und einem großen Pool. Die Sicherheit wächst mit jedem unabhängigen Knoten und Pool.</li>
+<li><strong>Geräte sind verschieden.</strong> SHA-256d läuft auf Grafikkarten weit schneller als auf Telefonen. Telefone tragen bei; ihr Anteil an den Belohnungen ist entsprechend kleiner. Vorhandene SHA-256-ASICs können YSKAR nicht minen, weil sie für Bitcoins 80-Byte-Kopf gebaut sind.</li>
+<li><strong>Bestätigungszeit.</strong> Bei 10-Minuten-Blöcken ist eine Zahlung erst nach Bestätigungen sicher. Sofortzahlungen über Zahlungskanäle sind in Planung; einen Termin gibt es noch nicht.</li>
+<li><strong>Gemeldete Zahlen.</strong> Aktive Miner und gemessene Hashrate über mehrere Knoten werden von den Knoten gemeldet. Beweisbar ist die Netz-Hashrate aus Difficulty und Blockzeiten.</li>
+</ul>
+<p>Alles hier Beschriebene lässt sich im Quelltext unter <a href="https://github.com/dabitlex/YSKAR">github.com/dabitlex/YSKAR</a> nachprüfen.</p>
+</article>
+
+</div>
+</div>
+</div>
+</main>
+
+<footer class="fusszeile">
+<div class="wrap">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
+<a class="marke" href="/"><img src="/assets/img/kristall.png" alt="" width="40" height="26"><span style="font-size:18px">YSKAR</span></a>
+<p class="motto">proof, not promise</p>
+<p class="motto">© <span id="jahr">2026</span> YSKAR</p>
+</div>
+<div class="spalten">
+<div>
+<span class="kennung" data-t="fuss.netz">Network</span>
+<a href="https://yskar.vercel.app/explorer.html" data-t="nav.explorer">Explorer</a>
+<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
+<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.mitmachen">Take part</span>
+<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.rechtliches">Legal</span>
+<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
+<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>
