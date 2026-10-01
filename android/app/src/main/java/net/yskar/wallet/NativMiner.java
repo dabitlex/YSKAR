@@ -444,8 +444,15 @@ final class NativMiner {
 
         if (!ok) {
             abgelehnt++;
+            /*
+              Der Job ist ueberholt -- kein Fehler, sondern: sofort neuen
+              holen, statt bis zum naechsten 40-s-Takt am alten Kopf zu
+              rechnen. job_unknown heisst: Der Knoten hat seine offenen Jobs
+              verworfen, weil ein neuer Block kam (MiningCoordinator.
+              invalidate). Gesehen in der Diagnose vom 01.10.2026.
+            */
             if ("job_expired".equals(grund) || "stale_job".equals(grund) || "job_foreign".equals(grund)
-                || "session_inactive".equals(grund)) {
+                || "job_unknown".equals(grund) || "session_inactive".equals(grund)) {
                 jobAnfordern();
                 return;
             }
