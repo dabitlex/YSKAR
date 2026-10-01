@@ -104,7 +104,7 @@ export async function loadTimings(window: number): Promise<{
   timings: BlockTiming[]; timestamps: bigint[];
 }> {
   const { data } = await db().schema('chain2').from('blocks')
-    .select('height, difficulty, block_time')
+    .select('height, difficulty::text, block_time')
     .order('height', { ascending: false }).limit(window + 1);
 
   const asc = [...(data ?? [])].reverse();

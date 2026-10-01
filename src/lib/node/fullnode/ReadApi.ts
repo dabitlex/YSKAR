@@ -97,7 +97,10 @@ export class ReadApi {
       token: { token_name: 'YSKAR', token_symbol: 'YSR', decimals: 8 },
       height: tip ? tip.height : null,
       nextHeight: hoehe + 1,
+      // Als Zahl fuer bestehende Clients; ab 2^53 (rund 9 Billiarden) nur
+      // noch gerundet. Exakt und beliebig gross: difficultyWert.
       difficulty: tip ? Number(tip.difficulty) : null,
+      difficultyWert: tip ? tip.difficulty.toString() : null,
       /*
         Netz-Hashrate: aus Difficulty und Blockzeit -- die einzige Zahl, die
         jeden Miner enthaelt, auch solche an fremden Knoten, und die niemand
@@ -179,6 +182,7 @@ export class ReadApi {
       prevHash: toHex(b.prevHash),
       timestamp: String(b.blockTime),
       difficulty: Number(b.difficulty),
+      difficultyWert: b.difficulty.toString(),
       txCount: b.txCount,
       reward: coinbaseTotal(cb).toString(),
       minerAddress: cb.outputs.length === 1

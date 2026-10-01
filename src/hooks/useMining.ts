@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { hashrateText } from '@/lib/format/hashrate';
 import { MAX_SHARES, type ShareEntry } from '@/components/ShareChart';
 import { MINER_WASM_URL } from '@/lib/minerWasm';
 import { istNativ, fehlerMerken } from '@/lib/native/plattform';
@@ -513,8 +514,7 @@ export function useMining(address: string | null, platform: string, t: Woerterbu
     let zuletzt = 0;
     const melden = () => {
       const { hashrate: h, duty: d } = stand.current;
-      const r = h >= 1e6 ? `${(h / 1e6).toFixed(2)} MH/s`
-        : h >= 1e3 ? `${(h / 1e3).toFixed(1)} kH/s` : `${Math.round(h)} H/s`;
+      const r = hashrateText(h);
       miningDienstText(tRef.current.mining.dienstRate(`${r} · ${d} %`));
       widgetMelden({ mining: true, rate: r, shares: stand.current.shares, ziel: stand.current.ziel });
       zuletzt = Date.now();

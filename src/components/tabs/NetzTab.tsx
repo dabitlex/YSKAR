@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { hashrateText, grosseZahl } from '@/lib/format/hashrate';
 import { Panel, GroupTitle, Empty } from '@/components/ui/Primitives';
 import type { Summary } from '@/hooks/useMining';
 import { useT } from '@/i18n';
@@ -19,13 +20,7 @@ interface Blockzeile {
   reward: string | null; minerAddress: string | null;
 }
 
-function rate(h: number | null) {
-  if (h == null) return '—';
-  if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GH/s`;
-  if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MH/s`;
-  if (h >= 1e3) return `${(h / 1e3).toFixed(1)} kH/s`;
-  return `${Math.round(h)} H/s`;
-}
+const rate = hashrateText;
 
 export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
   summary: Summary | null; meineAdresse: string | null;
@@ -33,7 +28,7 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
 }) {
   const [blocks, setBlocks] = useState<Blockzeile[]>([]);
   const [meinHex, setMeinHex] = useState<string | null>(null);
-  const { t, zahl, vorZeit } = useT();
+  const { t, zahl, vorZeit, locale } = useT();
 
   useEffect(() => {
     const hole = () => fetch('/api/v2/blocks?limit=12')
@@ -83,7 +78,7 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
       </section>
 
       <div className="rise rise-1 mt-5 grid grid-cols-2 gap-2.5">
-        <Kachel label={t.netz.difficulty} wert={summary?.difficulty != null ? zahl(summary.difficulty) : '—'} />
+        <Kachel label={t.netz.difficulty} wert={summary?.difficulty != null ? grosseZahl(summary.difficulty, locale) : '—'} />
         <Kachel label={t.netz.hashrate} wert={rate(summary?.hashrate ?? null)} />
         <Kachel label={t.netz.aktiveMiner} wert={String(summary?.activeMiners ?? 0)} />
         <Kachel label={t.netz.umlauf}

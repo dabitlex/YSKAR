@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     // extranonce und nonce als TEXT: Sie sind numeric(20,0), und PostgREST
     // liefert numeric als JSON-Zahl -- ueber 2^53 rundet JavaScript sie,
     // und der daraus gebaute Header ergibt einen anderen Hash.
-    .select('height, hash, version, prev_hash, merkle_root, state_root, block_time, difficulty, tx_count, extranonce::text, nonce::text, header, size_bytes, received_at')
+    .select('height, hash, version, prev_hash, merkle_root, state_root, block_time, difficulty::text, tx_count, extranonce::text, nonce::text, header, size_bytes, received_at')
     .order('height', { ascending: false }).limit(limit);
   if (before) q = q.lt('height', Number(before));
 
@@ -59,6 +59,9 @@ export async function GET(req: Request) {
         stateRoot: unprefix(b.state_root),
         timestamp: String(b.block_time),
         difficulty: Number(b.difficulty),
+        // Exakt, beliebig gross (Konsensfassung 4). Die Spalte ist numeric;
+        // als Zahl gelesen rundete JavaScript ab 2^53.
+        difficultyWert: String(b.difficulty),
         txCount: b.tx_count,
         extranonce: String(b.extranonce),
         nonce: String(b.nonce),

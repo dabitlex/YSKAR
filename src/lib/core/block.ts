@@ -2,7 +2,7 @@ import { Writer, Reader } from './codec.ts';
 import { sha256d, merkleRoot } from './hash.ts';
 import { serializeTx, deserializeTx, txid, type Tx, TX_COINBASE } from './tx.ts';
 import {
-  targetFromDifficulty, bytesToBig, MAX_TXS_PER_BLOCK,
+  targetFromDifficulty, bytesToBig, MAX_TXS_PER_BLOCK, encodeDifficulty, decodeDifficulty,
 } from './params.ts';
 
 /**
@@ -13,6 +13,10 @@ import {
  *    8  32B  prev_hash      116  u32  tx_count
  *   40  32B  merkle_root    120  u64  extranonce
  *   72  32B  state_root     128  u64  nonce
+ *
+ * difficulty: bis DIFF_V4_HEIGHT eine schlichte u32, danach unter 2^31
+ * dieselbe Zahl, darueber eine Gleitkomma-Schreibweise (params.ts).
+ * BlockHeader.difficulty ist immer der ECHTE Wert.
  *
  * Die 136 Byte sind kein Zufall. SHA-256 verarbeitet 64-Byte-Bloecke; mit
  * Padding ergeben 136 Byte genau drei davon. Alle Felder ausser der Nonce
@@ -53,9 +57,9 @@ export interface Block {
 }
 
 export function serializeHeader(h: BlockHeader): Uint8Array {
-  if (h.difficulty <= 0n || h.difficulty > 0xffffffffn) {
-    throw new Error(`difficulty muss ein u32 > 0 sein, ist ${h.difficulty}`);
-  }
+  // Ab Konsensfassung 4 steht hier ggf. die Gleitkomma-Schreibweise
+  // (params.ts). Unter 2^31 ist das Feld dasselbe wie vorher.
+  const feld = encodeDifficulty(h.difficulty, h.height);
   return new Writer()
     .u32(h.version)
     .u32(h.height)
@@ -63,7 +67,7 @@ export function serializeHeader(h: BlockHeader): Uint8Array {
     .bytes(h.merkleRoot, 32)
     .bytes(h.stateRoot, 32)
     .u64(h.timestamp)
-    .u32(Number(h.difficulty))
+    .u32(feld)
     .u32(h.txCount)
     .u64(h.extranonce)
     .u64(h.nonce)
@@ -75,14 +79,16 @@ export function deserializeHeader(b: Uint8Array): BlockHeader {
     throw new Error(`Header muss ${HEADER_SIZE} Byte sein, ist ${b.length}`);
   }
   const r = new Reader(b);
+  const version = r.u32();
+  const height = r.u32();
   return {
-    version: r.u32(),
-    height: r.u32(),
+    version,
+    height,
     prevHash: r.bytes(32),
     merkleRoot: r.bytes(32),
     stateRoot: r.bytes(32),
     timestamp: r.u64(),
-    difficulty: BigInt(r.u32()),
+    difficulty: decodeDifficulty(r.u32(), height),
     txCount: r.u32(),
     extranonce: r.u64(),
     nonce: r.u64(),

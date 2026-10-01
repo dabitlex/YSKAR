@@ -72,6 +72,89 @@ export function minFeeAt(height: number, bytes: number, feeV3Height = FEE_V3_HEI
  * minrelaytxfee). Spam-Schutz, ohne Fork nachjustierbar.
  */
 export const RELAY_FEE_RATE = 10n;             // Einheiten je Byte, Policy
+
+/*
+ * Difficulty ohne Obergrenze -- Konsensfassung 4.
+ *
+ * Bis hierher steht die Difficulty als schlichte u32 im Header. Das Feld
+ * endet bei 4.294.967.295, entsprechend rund 469 GH/s Netz-Hashrate. Darueber
+ * kann die Anpassung nicht mehr folgen: Der Knoten kann keinen Header bauen,
+ * die Notfallregel lockert nach 30 Minuten, und die Kette laeuft in Stoessen
+ * mit langen Pausen.
+ *
+ * Ab DIFF_V4_HEIGHT wird dasselbe 4-Byte-Feld anders GELESEN:
+ *
+ *   oberstes Bit 0   difficulty = Feld                    1 .. 2^31-1
+ *   oberstes Bit 1   e = Bits 23..30, m = Bits 0..22
+ *                    difficulty = (2^23 + m) << e         2^31 .. MAX_DIFFICULTY
+ *
+ * Unterhalb von 2^31 ist das Feld damit Byte fuer Byte dasselbe wie vorher.
+ * Darueber ist es eine Gleitkommazahl mit 24 Bit Genauigkeit -- die
+ * Rundung kostet weniger als 2^-23 (rund 1,2e-7) relativ.
+ *
+ * Eindeutigkeit: Jeder Wert hat genau eine Schreibweise. Werte unter 2^31
+ * nur als Klartext; die Mantisse ist normiert (fuehrende 1 implizit), und
+ * e muss mindestens 8 sein -- mit e < 8 laege der Wert unter 2^31.
+ *
+ * Obergrenze: MAX_DIFFICULTY = (2^24 - 1) << 216, knapp unter 2^240. Dort
+ * ist das Target 1 -- die Grenze von SHA-256 selbst, nicht von YSKAR.
+ *
+ * Die Hoehe gilt fuer ALLE Netze, weil sie im Header-Codec wirkt und der
+ * keine Netzparameter kennt. Fuer Regtest ist das unschaedlich: Unter 2^31
+ * unterscheiden sich alte und neue Lesart nicht.
+ */
+export const DIFF_V4_HEIGHT = 6_000;
+export const DIFF_KLARTEXT_GRENZE = 1n << 31n;          // ab hier Gleitkomma
+const MANTISSE_BITS = 24n;
+const EXP_MIN = 8n;
+const EXP_MAX = 216n;
+export const MAX_DIFFICULTY = ((1n << MANTISSE_BITS) - 1n) << EXP_MAX;
+const U32_MAX = 0xffffffffn;
+
+/**
+ * Groesster darstellbarer Wert <= v. Monoton: aus a <= b folgt
+ * floorDifficulty(a) <= floorDifficulty(b). Darauf beruht, dass der
+ * zulaessige Bereich in validate nie leer wird.
+ */
+export function floorDifficulty(v: bigint): bigint {
+  if (v < DIFF_KLARTEXT_GRENZE) return v;
+  if (v >= MAX_DIFFICULTY) return MAX_DIFFICULTY;
+  const e = BigInt(v.toString(2).length) - MANTISSE_BITS;
+  return (v >> e) << e;
+}
+
+/** Difficulty, die an dieser Hoehe tatsaechlich im Header stehen kann. */
+export function difficultyAtHeight(v: bigint, height: number, v4Height = DIFF_V4_HEIGHT): bigint {
+  return height >= v4Height ? floorDifficulty(v) : v;
+}
+
+/** Wert -> 4-Byte-Feld. Wirft, wenn der Wert so nicht darstellbar ist. */
+export function encodeDifficulty(v: bigint, height: number, v4Height = DIFF_V4_HEIGHT): number {
+  if (v <= 0n) throw new Error(`difficulty muss > 0 sein, ist ${v}`);
+  if (height < v4Height) {
+    if (v > U32_MAX) throw new Error(`difficulty muss ein u32 > 0 sein, ist ${v}`);
+    return Number(v);
+  }
+  if (v < DIFF_KLARTEXT_GRENZE) return Number(v);
+  if (v > MAX_DIFFICULTY) throw new Error(`difficulty ueber dem Hoechstwert: ${v}`);
+  const e = BigInt(v.toString(2).length) - MANTISSE_BITS;
+  const m = v >> e;
+  if (m << e !== v) throw new Error(`difficulty nicht darstellbar (erst abrunden): ${v}`);
+  return Number((1n << 31n) | (e << 23n) | (m - (1n << 23n)));
+}
+
+/** 4-Byte-Feld -> Wert. Wirft bei nicht-kanonischer Schreibweise. */
+export function decodeDifficulty(feld: number, height: number, v4Height = DIFF_V4_HEIGHT): bigint {
+  if (!Number.isInteger(feld) || feld < 0 || feld > 0xffffffff) {
+    throw new Error(`difficulty-Feld ausserhalb u32: ${feld}`);
+  }
+  const f = BigInt(feld);
+  if (height < v4Height || f < DIFF_KLARTEXT_GRENZE) return f;
+  const e = (f >> 23n) & 0xffn;
+  const m = (f & 0x7fffffn) | (1n << 23n);
+  if (e < EXP_MIN || e > EXP_MAX) throw new Error(`difficulty-Exponent unzulaessig: ${e}`);
+  return m << e;
+}
 export const MAX_TXS_PER_BLOCK = 2_000;
 export const MAX_MEMO_BYTES = 32;
 

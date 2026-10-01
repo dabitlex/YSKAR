@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { hashrateText } from '@/lib/format/hashrate';
 import { Panel, GroupTitle, Button } from '@/components/ui/Primitives';
 import {
   useBenchmark, gespeichert, verwerfen, type BenchErgebnis, type Messung,
@@ -17,10 +18,7 @@ import { useT, type Woerterbuch } from '@/i18n';
 
 function rate(h: number): string {
   if (!h || !Number.isFinite(h)) return '—';
-  if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GH/s`;
-  if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MH/s`;
-  if (h >= 1e3) return `${(h / 1e3).toFixed(1)} kH/s`;
-  return `${Math.round(h)} H/s`;
+  return hashrateText(h);
 }
 
 export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {

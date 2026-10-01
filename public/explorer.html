@@ -374,6 +374,17 @@ function fromHex(s){
 }
 const toHex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
 
+// Konsensfassung 4 -- identisch zu src/lib/core/params.ts. Ab Hoehe 6.000
+// steht die Difficulty ueber 2^31 als Gleitkomma im Header-Feld. Der Explorer
+// rechnet die Schreibweise selbst nach, statt sie vom Server zu glauben.
+const DIFF_V4=6000;
+const diffWert=b=>BigInt(b.difficultyWert??b.difficulty);
+function diffFeld(v,height){
+  if(height<DIFF_V4||v<(1n<<31n))return Number(v);
+  const e=BigInt(v.toString(2).length)-24n, m=v>>e;
+  return Number((1n<<31n)|(e<<23n)|(m-(1n<<23n)));
+}
+
 function serializeHeader(b){
   // 136 Byte, Little-Endian. Identisch zu src/lib/core/block.ts.
   //   0 u32 version | 4 u32 height | 8 prev_hash | 40 merkle_root
@@ -386,7 +397,7 @@ function serializeHeader(b){
   out.set(fromHex(b.merkleRoot),40);
   out.set(fromHex(b.stateRoot),72);
   dv.setBigUint64(104,BigInt(b.timestamp),true);
-  dv.setUint32(112,b.difficulty,true);
+  dv.setUint32(112,diffFeld(diffWert(b),b.height),true);
   dv.setUint32(116,b.txCount,true);
   dv.setBigUint64(120,BigInt(b.extranonce),true);
   dv.setBigUint64(128,BigInt(b.nonce),true);
@@ -411,7 +422,7 @@ async function verify(b,vorgaenger){
       // bevor er sich im Hash versteckt.
       serialisierung: b.header ? (toHex(gebaut)===b.header?'ok':'fail') : 'offen',
       hash: errechnet===b.hash?'ok':'fail',
-      difficulty: toBig(digest)<=targetOf(b.difficulty)?'ok':'fail',
+      difficulty: toBig(digest)<=targetOf(diffWert(b))?'ok':'fail',
       kette: !vorgaenger?'offen':(b.prevHash===vorgaenger.hash?'ok':'fail'),
       erreicht: achieved(digest),
     };
@@ -421,6 +432,11 @@ async function verify(b,vorgaenger){
 // ---------------------------------------------------------------- Anzeige
 const $=id=>document.getElementById(id);
 const nf=n=>Number(n).toLocaleString(LOC);
+// Difficulty kann ab Konsensfassung 4 beliebig gross werden. Unter einer
+// Billion ausgeschrieben, darueber kompakt -- sonst sprengt sie die Zeile.
+const nfGross=n=>{const x=Number(n);if(!Number.isFinite(x))return '—';
+  if(x<1e12)return x.toLocaleString(LOC);
+  return new Intl.NumberFormat(LOC,{notation:x<1e15?'compact':'scientific',maximumFractionDigits:2}).format(x);};
 // ---------------------------------------------------------------- Sprachen
 // Dieselben sechs wie in der App. Erkennung: gemerkte Wahl -> Browsersprache
 // -> Englisch. Der Server liefert nur Zahlen und Codes; jeder Text entsteht hier.
@@ -678,6 +694,9 @@ const esc=t=>String(t).replace(/[&<>"']/g,c=>
 
 function hashrate(h){
   if(h===null||h===undefined)return '—';
+  if(h>=1e27)return h.toExponential(2)+' H/s';
+  for(const [ab,e] of [[1e24,'YH/s'],[1e21,'ZH/s'],[1e18,'EH/s'],[1e15,'PH/s'],[1e12,'TH/s']])
+    if(h>=ab)return (h/ab).toFixed(2)+' '+e;
   if(h>=1e9)return (h/1e9).toFixed(2)+' GH/s';
   if(h>=1e6)return (h/1e6).toFixed(2)+' MH/s';
   if(h>=1e3)return (h/1e3).toFixed(1)+' kH/s';
@@ -847,7 +866,7 @@ function zeigeBlock(h){
     <div class="kv">
       <div class="z"><span>${T.hash}</span><span class="v">${esc(b.hash)}</span></div>
       <div class="z"><span>${T.vorgaenger}</span><span class="v">${esc(b.prevHash||'—')}</span></div>
-      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nf(b.difficulty)}</span></div>
+      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nfGross(b.difficultyWert??b.difficulty)}</span></div>
       <div class="z"><span>${T.erreicht}</span><span class="v tnum">${
         c.erreicht!==undefined?nf(c.erreicht):'—'}</span></div>
       <div class="z"><span>${T.groesse}</span><span class="v tnum">${b.sizeBytes} ${T.byte}</span></div>
@@ -884,7 +903,7 @@ function zeigeBau(){
     </div>
     <div class="kv">
       <div class="z"><span>${T.vorgaenger}</span><span class="v tnum">${nf(sum?.height??0)}</span></div>
-      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nf(sum?.difficulty??0)}</span></div>
+      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nfGross(sum?.difficultyWert??sum?.difficulty??0)}</span></div>
       <div class="z"><span>${T.wartendeTx}</span><span class="v tnum">${
         sum?.mempool??0}</span></div>
       <div class="z"><span>${T.belohnung}</span><span class="v tnum">${
@@ -930,7 +949,7 @@ function renderStats(){
   const karten=[
     {label:T.kHoehe,wert:'#'+nf(hoehe),
      unter:T.kHoeheUnter(nf(sum.stateHeight))},
-    {label:T.difficulty,wert:nf(sum.difficulty??0),
+    {label:T.difficulty,wert:nfGross(sum.difficultyWert??sum.difficulty??0),
      unter:T.kDifficultyUnter},
     {label:T.kNetz,wert:hashrate(sum.hashrate),
      unter:T.kNetzUnter},

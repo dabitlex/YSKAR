@@ -120,8 +120,12 @@ export class Kennzahlen {
 const komma = (n, stellen) => n.toLocaleString('de-DE', {
   minimumFractionDigits: stellen, maximumFractionDigits: stellen });
 
+const STUFEN = [[1e24, 'YH/s'], [1e21, 'ZH/s'], [1e18, 'EH/s'], [1e15, 'PH/s'], [1e12, 'TH/s']];
+
 export function rate(h) {
   if (!h) return '0 H/s';
+  if (h >= 1e27) return `${h.toExponential(2).replace('.', ',')} H/s`;
+  for (const [ab, einheit] of STUFEN) if (h >= ab) return `${komma(h / ab, 2)} ${einheit}`;
   if (h >= 1e9) return `${komma(h / 1e9, 2)} GH/s`;
   if (h >= 1e6) return `${komma(h / 1e6, 2)} MH/s`;
   if (h >= 1e3) return `${komma(h / 1e3, 1)} kH/s`;

@@ -19,7 +19,8 @@ import { buildBlock, finalizeBlock, selectTransactions, type BuildResult }
 import { serializeHeader, serializeBlock, headerHash, deserializeBlock }
   from '../../core/block.ts';
 import { expectedDifficulty } from '../../core/validate.ts';
-import { targetFromDifficulty, MAX_FUTURE_DRIFT } from '../../core/params.ts';
+import { targetFromDifficulty, MAX_FUTURE_DRIFT, difficultyAtHeight, encodeDifficulty }
+  from '../../core/params.ts';
 import { medianTimePast, effectiveDifficulty } from '../../core/difficulty.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
@@ -41,7 +42,17 @@ export interface MiningJob {
   merkleRoot: string;
   stateRoot: string;
   timestamp: string;
+  /**
+   * Das ROHE 4-Byte-Feld aus dem Header, nicht der Wert.
+   *
+   * Aeltere Miner (App, Mini App, CLI) schreiben genau diese Zahl an
+   * Stelle 112 in ihren Header. Unter 2^31 ist Feld = Wert; darueber
+   * (Konsensfassung 4) steht hier die Gleitkomma-Schreibweise -- und nur so
+   * rechnen alte Miner weiter richtig. Fuer Anzeigen: difficultyWert.
+   */
   difficulty: number;
+  /** Echte Difficulty als Dezimaltext -- beliebig gross, ohne Rundung. */
+  difficultyWert: string;
   txCount: number;
   extranonce: string;
   /** Header ohne Nonce, als Hex -- der Miner setzt nur die Nonce ein. */
@@ -164,7 +175,8 @@ export class MiningCoordinator {
       merkleRoot: toHex(h.merkleRoot),
       stateRoot: toHex(h.stateRoot),
       timestamp: h.timestamp.toString(),
-      difficulty: Number(h.difficulty),
+      difficulty: encodeDifficulty(h.difficulty, h.height),
+      difficultyWert: h.difficulty.toString(),
       txCount: h.txCount,
       extranonce: h.extranonce.toString(),
       header: toHex(serializeHeader({ ...h, nonce: 0n })),
@@ -297,7 +309,10 @@ export class MiningCoordinator {
 
     // Notfallregel: Nach langer Stille darf leichter gemint werden.
     const vergangen = zeitstempel > tip.blockTime ? zeitstempel - tip.blockTime : 0n;
-    const difficulty = effectiveDifficulty(regulaer, vergangen, this.params);
+    // Ab Konsensfassung 4 auf den naechsten darstellbaren Wert abrunden --
+    // genau wie validate es erwartet. Darunter aendert das nichts.
+    const difficulty = difficultyAtHeight(
+      effectiveDifficulty(regulaer, vergangen, this.params), tip.height + 1);
 
     return { difficulty, zeitstempel };
   }

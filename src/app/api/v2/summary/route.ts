@@ -37,6 +37,7 @@ export async function GET() {
       height: summary.height ?? null,
       nextHeight: summary.nextHeight ?? 0,
       difficulty: summary.difficulty ?? null,
+      difficultyWert: summary.difficultyWert ?? (summary.difficulty != null ? String(summary.difficulty) : null),
       hashrate: summary.hashrate ?? null,
       targetBlockTime: summary.targetBlockTime ?? null,
       tipHash: unprefix(summary.tipHash as string | undefined),

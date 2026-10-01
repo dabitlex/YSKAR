@@ -7,6 +7,7 @@ import { Zahl, Etikett, Karte, Kachel, Aktion, Pille, Kurve } from '@/components
 import { FARBE } from '@/components/Artikel';
 import { inhalte } from '@/content/entdecken';
 import { useT } from '@/i18n';
+import { hashrateTeile } from '@/lib/format/hashrate';
 import { telegramNutzer, type TgNutzer } from '@/lib/telegram/webapp';
 import type { Summary, Account } from '@/hooks/useMining';
 import type { HistoryEintrag } from '@/components/tabs/WalletTab';
@@ -21,9 +22,7 @@ import type { HistoryEintrag } from '@/components/tabs/WalletTab';
  */
 
 export function rate(h: number): { wert: string; einheit: string } {
-  if (h >= 1e6) return { wert: (h / 1e6).toFixed(2), einheit: 'MH/s' };
-  if (h >= 1e3) return { wert: (h / 1e3).toFixed(1), einheit: 'kH/s' };
-  return { wert: String(Math.round(h)), einheit: 'H/s' };
+  return hashrateTeile(h);
 }
 
 /** Eingaenge seit Mitternacht -- aus dem Verlauf, den das Konto mitbringt. */

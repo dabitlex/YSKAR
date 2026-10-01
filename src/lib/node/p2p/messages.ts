@@ -275,9 +275,15 @@ export interface Stats {
   adressen: Uint8Array[];
 }
 
+const U64_MAX = 0xffffffffffffffffn;
+
 export function encodeStats(s: Stats): Uint8Array {
   const liste = s.adressen.slice(0, MAX_STATS_ADRESSEN);
-  const w = new Writer().u64(s.knoten).u64(s.hashrate).u32(s.sessions).u16(liste.length);
+  // Anzeige, kein Konsens: Ueber 18,4 EH/s wird gedeckelt statt zu werfen.
+  // Ein Wurf hier liesse die Meldung alle 30 Sekunden scheitern.
+  const hashrate = s.hashrate < 0n ? 0n : s.hashrate > U64_MAX ? U64_MAX : s.hashrate;
+  const sessions = Math.min(Math.max(0, s.sessions), 0xffffffff);
+  const w = new Writer().u64(s.knoten).u64(hashrate).u32(sessions).u16(liste.length);
   for (const a of liste) {
     if (a.length !== 20) throw new Error('Adresse muss 20 Byte haben');
     w.bytes(a);

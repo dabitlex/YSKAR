@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { hashrateTeile } from '@/lib/format/hashrate';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -477,8 +478,4 @@ function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAd
   );
 }
 
-function rate(h: number): { wert: string; einheit: string } {
-  if (h >= 1e6) return { wert: (h / 1e6).toFixed(2), einheit: 'MH/s' };
-  if (h >= 1e3) return { wert: (h / 1e3).toFixed(1), einheit: 'kH/s' };
-  return { wert: String(Math.round(h)), einheit: 'H/s' };
-}
+const rate = hashrateTeile;
