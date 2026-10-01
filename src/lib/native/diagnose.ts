@@ -2,6 +2,7 @@
 
 import { istNativ, letzteFehler } from './plattform';
 import { protokollLesen } from '@/lib/miningProtokoll';
+import { nativMiningVerfuegbar, nativStatus } from './nativMining';
 
 /**
  * Diagnose der nativen Bruecke -- fuer die Einstellungen der Android-App.
@@ -20,6 +21,8 @@ export interface Diagnose {
   miningDienst: string;
   fehler: string[];
   mining: string[];
+  /** Natives Mining (APK ab 1.0.9): Zustand und Protokoll des Dienstes. */
+  nativ: string[];
 }
 
 async function probe(fn: () => Promise<unknown>): Promise<string> {
@@ -36,6 +39,7 @@ export async function diagnose(): Promise<Diagnose> {
     appInfo: '', biometrie: '', speicher: '', miningDienst: '',
     fehler: letzteFehler(),
     mining: protokollLesen(40),
+    nativ: [],
   };
   if (!istNativ()) return d;
   d.appInfo = await probe(async () => (await import('@capacitor/app')).App.getInfo());
@@ -48,5 +52,17 @@ export async function diagnose(): Promise<Diagnose> {
     const p = registerPlugin<{ ping(): Promise<{ ok: boolean; laeuft: boolean }> }>('MiningService');
     return await p.ping();
   });
+  if (nativMiningVerfuegbar()) {
+    const s = await nativStatus();
+    if (s) {
+      d.nativ = [
+        `laeuft ${s.laeuft} · dienst ${s.dienst} · ${s.threads ?? '?'} threads · ${s.duty ?? '?'} %`,
+        `rechenweg ${s.rechenweg ?? '?'} · ${s.messung ?? ''}`,
+        `hashrate ${Math.round(Number(s.hashrate ?? 0))} H/s · shares ${s.angenommen ?? 0} ok / ${s.abgelehnt ?? 0} abgelehnt · ziel ${s.ziel ?? '?'}`,
+        ...(s.fehler ? [`fehler ${s.fehlerArt}: ${s.fehler}${s.fehlerDetail ? ' (' + s.fehlerDetail + ')' : ''}`] : []),
+        ...(s.protokoll ?? []).slice(-50),
+      ];
+    }
+  }
   return d;
 }

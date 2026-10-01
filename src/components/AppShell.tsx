@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { hashrateTeile } from '@/lib/format/hashrate';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
+import { useMiningApp } from '@/hooks/useMiningApp';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useAutoSperre } from '@/hooks/useAutoSperre';
 import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
@@ -44,7 +45,7 @@ type Ansicht = null | 'senden' | 'scannen' | 'empfangen' | 'einstellungen' | 'be
 export default function AppShell({ platform }: { platform: string }) {
   const wallet = useWallet();
   const { t, sprache, locale, zahl } = useT();
-  const m = useMining(wallet.address, platform, t);
+  const m = useMiningApp(wallet.address, platform, t);
   // Ohne das schaltet das Display ab, die Plattform haelt den Worker an,
   // und das Mining endet mitten im Job -- ohne dass jemand etwas gedrueckt
   // haette.

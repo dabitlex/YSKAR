@@ -179,7 +179,7 @@ Biometrie:   ${diag.biometrie}
 Speicher:    ${diag.speicher}
 MiningDienst:${diag.miningDienst}
 Fehler:      ${diag.fehler.length ? '\n  ' + diag.fehler.join('\n  ') : 'keine'}
-Mining:      ${diag.mining.length ? '\n  ' + diag.mining.join('\n  ') : '—'}`}
+Mining:      ${diag.mining.length ? '\n  ' + diag.mining.join('\n  ') : '—'}${diag.nativ.length ? '\nNativ:       \n  ' + diag.nativ.join('\n  ') : ''}`}
         </pre>
       )}
 
