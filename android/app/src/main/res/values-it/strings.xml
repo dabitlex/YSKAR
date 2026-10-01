@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="mining_laeuft">Mining in corso</string>
+    <string name="mining_kanal">Mining</string>
+    <string name="mining_kanal_text">Indica che il tuo dispositivo sta calcolando per YSKAR.</string>
+    <string name="mining_stoppen">Ferma mining</string>
+    <string name="mining_titel">YSKAR sta calcolando</string>
+    <string name="widget_beschreibung">Saldo YSKAR e mining a colpo d\'occhio</string>
+    <string name="widget_holen">Aggiorna</string>
+    <string name="widget_keine_wallet">Nessun wallet ancora configurato</string>
+    <string name="widget_mining">Mining</string>
+    <string name="widget_gestoppt">fermo</string>
+    <string name="widget_shares">share</string>
+    <string name="widget_ziel">target</string>
+    <plurals name="widget_bloecke">
+        <item quantity="one">%s blocco trovato</item>
+        <item quantity="other">%s blocchi trovati</item>
+    </plurals>
+</resources>

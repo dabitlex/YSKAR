@@ -56,7 +56,7 @@ type Texte = {
   unterwegs: (b: string, sym: string) => string;
   vonNaechster: (von: string) => string;
 };
-const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt', Texte> = {
+const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl' | 'zh', Texte> = {
   de: {
     locale: 'de-DE',
     poolAnteil: h => `Pool-Anteil aus Block #${h}`,
@@ -116,6 +116,46 @@ const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt', Texte> = {
     vonBestaetigt: (von, h) => `De ${von} · confirmado no bloco #${h}`,
     unterwegs: (b, sym) => `${b} ${sym} a caminho`,
     vonNaechster: von => `De ${von} · chega com o próximo bloco`,
+  },
+  it: {
+    locale: 'it-IT',
+    poolAnteil: h => `Quota pool dal blocco #${h}`,
+    blockGefunden: h => `Blocco #${h} trovato`,
+    aufAdresse: (b, sym) => `+${b} ${sym} sono sul tuo indirizzo.`,
+    erhalten: (b, sym) => `${b} ${sym} ricevuti`,
+    vonBestaetigt: (von, h) => `Da ${von} · confermato nel blocco #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} in arrivo`,
+    vonNaechster: von => `Da ${von} · arriva con il prossimo blocco`,
+  },
+  fr: {
+    locale: 'fr-FR',
+    poolAnteil: h => `Part de pool du bloc #${h}`,
+    blockGefunden: h => `Bloc #${h} trouvé`,
+    aufAdresse: (b, sym) => `+${b} ${sym} sur ton adresse.`,
+    erhalten: (b, sym) => `Reçu : ${b} ${sym}`,
+    vonBestaetigt: (von, h) => `De ${von} · confirmé dans le bloc #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} en route`,
+    vonNaechster: von => `De ${von} · arrive avec le prochain bloc`,
+  },
+  pl: {
+    locale: 'pl-PL',
+    poolAnteil: h => `Udział w poolu z bloku #${h}`,
+    blockGefunden: h => `Znaleziono blok #${h}`,
+    aufAdresse: (b, sym) => `+${b} ${sym} jest już na Twoim adresie.`,
+    erhalten: (b, sym) => `Otrzymano ${b} ${sym}`,
+    vonBestaetigt: (von, h) => `Od ${von} · potwierdzono w bloku #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} w drodze`,
+    vonNaechster: von => `Od ${von} · dotrze z następnym blokiem`,
+  },
+  zh: {
+    locale: 'zh-CN',
+    poolAnteil: h => `来自区块 #${h} 的矿池分成`,
+    blockGefunden: h => `找到区块 #${h}`,
+    aufAdresse: (b, sym) => `+${b} ${sym} 已到账你的地址。`,
+    erhalten: (b, sym) => `已收到 ${b} ${sym}`,
+    vonBestaetigt: (von, h) => `来自 ${von} · 已在区块 #${h} 中确认`,
+    unterwegs: (b, sym) => `${b} ${sym} 正在途中`,
+    vonNaechster: von => `来自 ${von} · 将随下一个区块到账`,
   },
 };
 export function texteFuer(sprache?: string): Texte {

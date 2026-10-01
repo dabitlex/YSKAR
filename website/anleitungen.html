@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" class="i18n-wartet">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guides – YSKAR</title>
+<meta name="description" content="Step by step: mining with the Telegram Mini App, the Android app or the PC miner, creating a wallet and running a full node.">
+<meta name="theme-color" content="#0A101C">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/style.css">
+<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
+<script src="/assets/i18n/en.js"></script>
+<script src="/assets/site.js" defer></script>
+</head>
+<body data-seite="anleitungen">
+
+<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+
+<header class="kopf">
+<div class="wrap">
+<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/kristall.png" alt="" width="40" height="26"><span>YSKAR</span></a>
+<div style="display:flex;align-items:center;gap:12px">
+<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
+<a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
+<a href="/#wallet" data-t="nav.wallet">Wallet</a>
+<a href="/anleitungen" aria-current="page" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+<a href="https://yskar.vercel.app/explorer.html" data-t="nav.explorer">Explorer</a>
+<a class="knopf primaer klein" href="/#mitmachen" data-t="nav.minen">Start mining</a>
+</nav>
+<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
+<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+</button>
+</div>
+</div>
+</header>
+
+<main id="inhalt">
+<section class="seitenkopf">
+<div class="wrap">
+<p class="etikett" style="color:var(--blau-d)" data-t="an.etikett">Guides</p>
+<h1 data-t="an.titel">Step by step</h1>
+<p data-t="an.text">Everything you need to take part: mining, your wallet and your own node. Pick the way that suits you.</p>
+</div>
+</section>
+
+<div class="inhalt">
+<div class="wrap inhalt-raster">
+<nav class="toc" aria-label="On this page" data-ta="aria-label:an.tocLabel">
+<a href="#telegram" data-t="an.mini.titel">Telegram Mini App</a>
+<a href="#android" data-t="an.apk.titel">Android app with mining</a>
+<a href="#pc" data-t="an.pc.titel">PC miner</a>
+<a href="#wallet" data-t="an.wallet.titel">Your wallet</a>
+<a href="#fullnode" data-t="an.node.titel">Running a full node</a>
+</nav>
+
+<div class="text">
+
+<h2 id="telegram" data-t="an.mini.titel">Telegram Mini App</h2>
+<p data-t="an.mini.text">The fastest way in. The Mini App runs inside Telegram; there is nothing to install.</p>
+<ol>
+<li data-th="an.mini.s1">Open <a href="https://t.me/YSKAR_bot">@YSKAR_bot</a> in Telegram and start the app.</li>
+<li data-t="an.mini.s2">Tap “Create wallet”. The app shows you 12 words: write them down on paper, in order.</li>
+<li data-t="an.mini.s3">Confirm a few of the words and choose a PIN.</li>
+<li data-t="an.mini.s4">Open the Mining tab and tap “Start mining”. Keep the app open while it computes.</li>
+</ol>
+<div class="hinweisband"><p data-t="an.mini.hinweis">Tip: in the Mining tab you can choose between solo and pool. In the pool you receive smaller amounts more often; solo means rarer but whole blocks.</p></div>
+
+<h2 id="android" data-t="an.apk.titel">Android app with mining</h2>
+<p data-t="an.apk.text">The Android app can keep mining in the background and shows your status on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.</p>
+<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/latest" data-t="an.apk.knopf">Download the latest version</a></p>
+<h3 data-t="an.apk.inst">Installing</h3>
+<ol>
+<li data-th="an.apk.s1">On your phone, open the download page and tap the file <code>yskar-wallet-….apk</code>.</li>
+<li data-t="an.apk.s2">Android asks whether apps from this source (for example your browser) may be installed. Tap “Settings” and allow it for this source.</li>
+<li data-t="an.apk.s3">Go back and tap “Install”. Google Play Protect may show a warning; this is normal for apps from outside the Play Store.</li>
+<li data-t="an.apk.s4">Open the app, create a wallet or restore your existing one with your 12 words.</li>
+</ol>
+<h3 data-t="an.apk.hintergrund">Mining in the background</h3>
+<p data-t="an.apk.akku">Android stops background apps to save battery. For uninterrupted mining, set the app’s battery usage to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
+<h3 data-t="an.apk.pruefen">Checking the download (optional)</h3>
+<p data-th="an.apk.pruefenText">Every release also contains a file ending in <code>.sha256</code>. It holds the checksum of the APK. If the checksum of your download matches, the file is exactly the one we published.</p>
+
+<h2 id="pc" data-t="an.pc.titel">PC miner</h2>
+<p data-t="an.pc.text">The miner runs on Windows, macOS and Linux. It only needs an address – no private key, no wallet, no sign-up. You can safely run it on any computer.</p>
+<h3 data-t="an.pc.s1">1. Install Node.js</h3>
+<p data-th="an.pc.s1Text">The miner needs Node.js 20 or newer. Download the LTS version from <a href="https://nodejs.org">nodejs.org</a> and install it. On Windows, open a new command window afterwards.</p>
+<h3 data-t="an.pc.s2">2. Get the miner</h3>
+<pre><code>git clone https://github.com/dabitlex/YSKAR.git
+cd YSKAR/miner
+node src/selbsttest.mjs</code></pre>
+<p data-t="an.pc.s2Text">There is nothing else to install. The self-test checks that your computer computes hashes correctly.</p>
+<h3 data-t="an.pc.s3">3. Start mining</h3>
+<p data-t="an.pc.s3Text">Replace the address with your own YSKAR address (it starts with ysr1). With the pool:</p>
+<pre><code>node src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool</code></pre>
+<p data-t="an.pc.solo">Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.</p>
+<h3 data-t="an.pc.s4">4. Graphics card (optional)</h3>
+<p data-th="an.pc.s4Text">With an NVIDIA card, add <code>--gpu</code>. This needs the GPU program <code>yskar-cuda</code>; how to build it is described in the repository under <code>node-core/gpu</code>.</p>
+
+<h2 id="wallet" data-t="an.wallet.titel">Your wallet</h2>
+<p data-t="an.wallet.text">Your wallet is created on your device from 12 words. These words are your key: whoever has them can access the funds – on any device, in any YSKAR app.</p>
+<ul>
+<li data-t="an.wallet.p1">Write the words down on paper, in the right order. No screenshot, no cloud.</li>
+<li data-t="an.wallet.p2">Keep the paper safe. If you lose your phone, the words restore everything.</li>
+<li data-t="an.wallet.p3">The PIN only protects the app on this device. It cannot replace the words.</li>
+<li data-t="an.wallet.p4">To move to a new device, choose “I already have twelve words” and enter them.</li>
+</ul>
+<div class="warnung">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A4A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+<p data-th="wallet.warnung"><strong>Whoever has the 12 words has the funds.</strong> Never share them. Nobody from YSKAR will ever ask you for them.</p>
+</div>
+
+<h2 id="fullnode" data-t="an.node.titel">Running a full node</h2>
+<p data-t="an.node.text">A full node downloads the chain and checks every block itself – proof of work, signatures, balances. It needs Node.js 22 or newer and runs well on a Raspberry Pi.</p>
+<h3 data-t="an.node.s1">1. Build</h3>
+<pre><code>git clone https://github.com/dabitlex/YSKAR.git
+cd YSKAR/node
+npm install
+npm run build</code></pre>
+<p data-t="an.node.win">On Windows, use npm.cmd instead of npm.</p>
+<h3 data-t="an.node.s2">2. Start and connect to the network</h3>
+<pre><code>node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646</code></pre>
+<p data-t="an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional.</p>
+<h3 data-t="an.node.s3">3. Mine against your own node</h3>
+<pre><code>node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
+<h3 data-t="an.node.s4">4. Run a pool (optional)</h3>
+<p data-t="an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
+<pre><code>node dist/yskar-node.cjs mine --data ./knoten --pool my-pool-name \
+  --pool-fee 100 --pool-payout ysr1…</code></pre>
+<p data-t="an.node.s4Fuss">--pool-fee is in basis points: 100 = 1.00 %, at most 500.</p>
+<h3 data-t="an.node.s5">5. As a service on a Raspberry Pi</h3>
+<p data-th="an.node.s5Text">So the node starts on its own after a restart, set it up as a systemd service. The ready-made files and a guide are in the repository under <a href="https://github.com/dabitlex/YSKAR/tree/main/deploy"><code>deploy/</code></a>.</p>
+
+</div>
+</div>
+</div>
+</main>
+
+<footer class="fusszeile">
+<div class="wrap">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
+<a class="marke" href="/"><img src="/assets/img/kristall.png" alt="" width="40" height="26"><span style="font-size:18px">YSKAR</span></a>
+<p class="motto">proof, not promise</p>
+<p class="motto">© <span id="jahr">2026</span> YSKAR</p>
+</div>
+<div class="spalten">
+<div>
+<span class="kennung" data-t="fuss.netz">Network</span>
+<a href="https://yskar.vercel.app/explorer.html" data-t="nav.explorer">Explorer</a>
+<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
+<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.mitmachen">Take part</span>
+<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.rechtliches">Legal</span>
+<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
+<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>

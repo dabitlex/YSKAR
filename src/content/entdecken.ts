@@ -13,6 +13,10 @@ import inhalteRu from './entdecken.ru';
 import inhalteEs from './entdecken.es';
 import inhalteTr from './entdecken.tr';
 import inhaltePt from './entdecken.pt';
+import inhalteIt from './entdecken.it';
+import inhalteFr from './entdecken.fr';
+import inhaltePl from './entdecken.pl';
+import inhalteZh from './entdecken.zh';
 
 export type Baustein =
   | { art: 'absatz'; text: string }
@@ -39,7 +43,10 @@ export interface Neuigkeit { datum: string; titel: string; text: string; link?: 
 
 export interface Inhalte { ARTIKEL: Artikel[]; FAQ: Frage[]; NEUIGKEITEN: Neuigkeit[] }
 
-const FABRIKEN = { de: inhalteDe, en: inhalteEn, ru: inhalteRu, es: inhalteEs, tr: inhalteTr, pt: inhaltePt } as const;
+const FABRIKEN = {
+  de: inhalteDe, en: inhalteEn, ru: inhalteRu, es: inhalteEs, tr: inhalteTr, pt: inhaltePt,
+  it: inhalteIt, fr: inhalteFr, pl: inhaltePl, zh: inhalteZh,
+} as const;
 export type InhaltSprache = keyof typeof FABRIKEN;
 
 const cache = new Map<string, Inhalte>();
