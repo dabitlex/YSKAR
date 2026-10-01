@@ -124,7 +124,7 @@
   "nav.label": "Ana menü",
   "nav.menue": "Menü",
   "held.bildAlt": "Bakiye ve madencilik bilgisiyle YSKAR uygulamasının ana ekranı",
-  "wallet.bildAlt": "YSKAR uygulamasının cüzdan ekranı",
+  "wallet.bildAlt": "YSKAR Wallet’ın koyu moddaki açılış ekranı",
   "zahlen.diagrammAlt": "12.000 ile 96.000 arasındaki bloklardan sonra 10,5; 15,75; 18,38; 19,69; 20,34; 20,67; 20,84; 20,92 milyon YSR",
   "an.etikett": "Rehberler",
   "an.titel": "Adım adım",

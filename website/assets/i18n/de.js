@@ -124,7 +124,7 @@
   "nav.label": "Hauptnavigation",
   "nav.menue": "Menü",
   "held.bildAlt": "Startbildschirm der YSKAR App mit Guthaben und Mining",
-  "wallet.bildAlt": "Wallet-Bildschirm der YSKAR App",
+  "wallet.bildAlt": "Startbildschirm der YSKAR Wallet im Dunkelmodus",
   "zahlen.diagrammAlt": "10,5; 15,75; 18,38; 19,69; 20,34; 20,67; 20,84; 20,92 Millionen YSR nach den Blöcken 12.000 bis 96.000",
   "an.etikett": "Anleitungen",
   "an.titel": "Schritt für Schritt",

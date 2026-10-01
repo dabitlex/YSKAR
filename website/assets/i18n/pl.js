@@ -124,7 +124,7 @@
   "nav.label": "Główna",
   "nav.menue": "Menu",
   "held.bildAlt": "Ekran główny aplikacji YSKAR z saldem i miningiem",
-  "wallet.bildAlt": "Ekran portfela w aplikacji YSKAR",
+  "wallet.bildAlt": "Ekran startowy YSKAR Wallet w trybie ciemnym",
   "zahlen.diagrammAlt": "10,5; 15,75; 18,38; 19,69; 20,34; 20,67; 20,84; 20,92 mln YSR po blokach od 12 000 do 96 000",
   "an.etikett": "Poradniki",
   "an.titel": "Krok po kroku",
