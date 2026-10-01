@@ -146,18 +146,18 @@ button{font:inherit;color:inherit}
 */
 .eyebrow-zeile{position:relative;display:flex;align-items:center;gap:10px}
 .info-halter{display:inline-flex}
-.info-knopf{position:relative;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--kante-d);
-  background:rgba(255,255,255,.06);color:var(--dim-d);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-.info-knopf::after{content:'';position:absolute;inset:-9px}
-.info-knopf:hover{border-color:#4F82FF;color:#fff}
-.info-knopf.ok{background:rgba(46,190,133,.14);border-color:rgba(46,190,133,.45);color:#7EE0B8}
-.info-knopf.bad{background:rgba(240,97,107,.18);border-color:rgba(240,97,107,.6);color:#FFB3B9}
+.info-knopf{position:relative;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:none;
+  color:#C9D4E6;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.info-knopf::after{content:'';position:absolute;inset:-10px}
+.info-knopf:hover,.info-knopf[aria-expanded=true]{color:#fff}
+/* Nur der Fehlerfall bekommt Farbe. */
+.info-knopf.bad{color:#FF8E97}
 .info-blase{position:absolute;top:calc(100% + 10px);left:0;z-index:5;width:max-content;max-width:min(340px,100%);
   background:var(--karte-d);border:1px solid var(--kante-d);border-radius:14px;padding:12px 16px;
   font-size:13.5px;line-height:1.4;color:var(--text-d);box-shadow:0 18px 40px -18px rgba(0,0,0,.85)}
 .info-blase[hidden]{display:none}
 .info-blase b{display:block;font-weight:800}
-.info-blase.ok{border-color:rgba(46,190,133,.4)} .info-blase.ok b{color:#7EE0B8}
+.info-blase.ok b{color:#fff}
 .info-blase.bad{border-color:rgba(240,97,107,.5)} .info-blase.bad b{color:#FFB3B9}
 .info-blase small{display:block;font-size:12.5px;font-weight:600;color:var(--dim-d);margin-top:3px}
 .info-blase:not(.ok):not(.bad) small{display:none}
@@ -448,13 +448,13 @@ details.empf .tx{border-top:0}
     <div class="eyebrow-zeile">
       <span class="eyebrow">YSKAR Explorer</span>
       <!--
-        Das Ergebnis der Pruefung, hinter einem Info-Symbol: Antippen zeigt,
-        wie viele Bloecke hier nachgerechnet sind. Schlaegt eine Pruefung
-        fehl, wird es rot und klappt von selbst auf.
+        Das Ergebnis der Pruefung, hinter dem ueblichen Info-Zeichen (Kreis
+        mit i): Antippen zeigt, wie viele Bloecke hier nachgerechnet sind.
+        Schlaegt eine Pruefung fehl, wird es rot und klappt von selbst auf.
       -->
       <span class="info-halter">
         <button id="verdict" class="info-knopf" type="button" aria-expanded="false" aria-controls="verdictInfo">
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M10 9.4v5.2"/><circle cx="10" cy="5.4" r="1.35" fill="currentColor" stroke="none"/></svg>
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M12 11.2v5.6"/><circle cx="12" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg>
         </button>
         <span id="verdictInfo" class="info-blase" role="status" hidden><b id="verdictText"></b><small data-t="keinServer"></small></span>
       </span>
@@ -707,6 +707,7 @@ en:{
   blockWeiter:'Next block',minKurz:'min',navMitmachen:'Get started',navWallet:'Wallet',navAnleitungen:'Guides',
   navWhitepaper:'Whitepaper',navMinen:'Start mining',
   alleBloecke:(n,t)=>'all '+t+' blocks',
+  zielCa:m=>'Target ~ '+m+' min',
   navExplorer:'Explorer',
 },
 de:{
@@ -756,6 +757,7 @@ de:{
   blockWeiter:'Nächster Block',minKurz:'min',navMitmachen:'Mitmachen',navWallet:'Wallet',navAnleitungen:'Anleitungen',
   navWhitepaper:'Whitepaper',navMinen:'Jetzt minen',
   alleBloecke:(n,t)=>'alle '+t+' Blöcke',
+  zielCa:m=>'Ziel ~ '+m+' Min',
   navExplorer:'Explorer',
 },
 es:{
@@ -805,6 +807,7 @@ es:{
   blockWeiter:'Bloque siguiente',minKurz:'min',navMitmachen:'Empezar',navWallet:'Wallet',navAnleitungen:'Guías',
   navWhitepaper:'Whitepaper',navMinen:'Iniciar minería',
   alleBloecke:(n,t)=>'todos los '+t+' bloques',
+  zielCa:m=>'Objetivo ~ '+m+' min',
   navExplorer:'Explorador',
 },
 pt:{
@@ -854,6 +857,7 @@ pt:{
   blockWeiter:'Próximo bloco',minKurz:'min',navMitmachen:'Começar',navWallet:'Carteira',navAnleitungen:'Guias',
   navWhitepaper:'Whitepaper',navMinen:'Iniciar mineração',
   alleBloecke:(n,t)=>'todos os '+t+' blocos',
+  zielCa:m=>'Alvo ~ '+m+' min',
   navExplorer:'Explorer',
 },
 ru:{
@@ -905,6 +909,7 @@ ru:{
   blockZurueck:'Предыдущий блок',blockWeiter:'Следующий блок',minKurz:'мин',navMitmachen:'Участвовать',
   navWallet:'Кошелёк',navAnleitungen:'Инструкции',navWhitepaper:'Whitepaper',navMinen:'Начать майнинг',
   alleBloecke:(n,t)=>'все '+t+' '+ruPl(n,'блок','блока','блоков'),
+  zielCa:m=>'Цель ~ '+m+' мин',
   navExplorer:'Explorer',
 },
 tr:{
@@ -954,6 +959,7 @@ tr:{
   blockWeiter:'Sonraki blok',minKurz:'dk',navMitmachen:'Katıl',navWallet:'Cüzdan',navAnleitungen:'Rehberler',
   navWhitepaper:'Whitepaper',navMinen:'Madenciliği başlat',
   alleBloecke:(n,t)=>'tüm '+t+' blok',
+  zielCa:m=>'Hedef ~ '+m+' dk',
   navExplorer:'Gezgin',
 },
 fr:{
@@ -1003,6 +1009,7 @@ fr:{
   blockWeiter:'Bloc suivant',minKurz:'min',navMitmachen:'Commencer',navWallet:'Portefeuille',navAnleitungen:'Guides',
   navWhitepaper:'Livre blanc',navMinen:'Commencer à miner',
   alleBloecke:(n,t)=>'tous les '+t+' blocs',
+  zielCa:m=>'Cible ~ '+m+' min',
   navExplorer:'Explorateur',
 },
 it:{
@@ -1052,6 +1059,7 @@ it:{
   blockWeiter:'Blocco successivo',minKurz:'min',navMitmachen:'Inizia',navWallet:'Wallet',navAnleitungen:'Guide',
   navWhitepaper:'Whitepaper',navMinen:'Inizia a minare',
   alleBloecke:(n,t)=>'tutti i '+t+' blocchi',
+  zielCa:m=>'Obiettivo ~ '+m+' min',
   navExplorer:'Explorer',
 },
 pl:{
@@ -1103,6 +1111,7 @@ pl:{
   blockWeiter:'Następny blok',minKurz:'min',navMitmachen:'Dołącz',navWallet:'Portfel',navAnleitungen:'Poradniki',
   navWhitepaper:'Whitepaper',navMinen:'Zacznij mining',
   alleBloecke:(n,t)=>'wszystkie '+t+' '+plPl(n,'blok','bloki','bloków'),
+  zielCa:m=>'Cel ~ '+m+' min',
   navExplorer:'Explorer',
 },
 zh:{
@@ -1152,6 +1161,7 @@ zh:{
   blockWeiter:'下一个区块',minKurz:'分钟',navMitmachen:'开始参与',navWallet:'钱包',navAnleitungen:'教程',
   navWhitepaper:'白皮书',navMinen:'开始挖矿',
   alleBloecke:(n,t)=>'全部 '+t+' 个区块',
+  zielCa:m=>'目标约 '+m+' 分钟',
   navExplorer:'区块浏览器',
 },
 };
@@ -1239,7 +1249,9 @@ $('nav').addEventListener('click',e=>{
 // Identisch zu src/lib/core/params.ts.
 const MAX_TX=2000;      // MAX_TXS_PER_BLOCK
 const EPOCHE=12000;     // EPOCH_BLOCKS
-const N_STAT=30;        // so viele Bloecke fliessen in die Statistik
+const N_BLOCKZEIT=45;   // Blockzeit: so viele Abstaende -- das Fenster, ueber das auch die Difficulty rechnet (LWMA)
+const N_DIFF=50;        // Difficulty: so viele Bloecke im Verlauf
+const N_LADEN=Math.max(N_DIFF,N_BLOCKZEIT+1);   // 45 Abstaende brauchen 46 Bloecke; die Route gibt hoechstens 50
 
 const esc=t=>String(t).replace(/[&<>"']/g,c=>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1474,8 +1486,9 @@ function renderKette(){
 
 // --------------------------------------------------------------- Statistik
 /*
-  Kennzahlen und Verlauf -- alles aus den letzten N_STAT Bloecken, die ohnehin
-  geladen und hier nachgerechnet sind, plus /summary.
+  Kennzahlen und Verlauf -- aus den zuletzt geladenen Bloecken, die ohnehin
+  hier nachgerechnet sind, plus /summary. Blockzeit ueber die letzten
+  N_BLOCKZEIT Abstaende, Difficulty ueber die letzten N_DIFF Bloecke.
 */
 let dDaten=null;
 
@@ -1487,8 +1500,9 @@ function renderStats(){
 
   const hoehe=sum.height??0;
   const zielS=Number(sum.targetBlockTime)||600;
-  const n=Math.min(N_STAT,Math.max(0,blocks.length-1));
+  const n=Math.min(N_BLOCKZEIT,Math.max(0,blocks.length-1));
   const reihe=blocks.slice(0,n+1);
+  const nD=Math.min(N_DIFF,blocks.length);
 
   // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
   const bz=n>=2?(Number(reihe[0].timestamp)-Number(reihe[n].timestamp))/n:null;
@@ -1508,7 +1522,7 @@ function renderStats(){
     kpi(T.kHoehe,'#'+nf(hoehe),'',blocks[0]?alter(blocks[0].timestamp):'')+
     kpi(T.kNetz,hz,he,T.kMiner(sum.activeMiners??0))+
     kpi(T.difficulty,dz,de,dAend?dAend+' '+T.zumVorblock:'')+
-    kpi(T.kBlockzeit,bz!=null?dauer(bz):'—',bz!=null?T.minKurz:'',T.letzteN(n))+
+    kpi(T.kBlockzeit,bz!=null?dauer(bz):'—',bz!=null?T.minKurz:'',T.zielCa(nf(zielS/60)))+
     kpi(T.belohnung,ysr(sum.nextReward??0,0,2),sym,T.kHalbierung+' #'+nf(hoehe+bis))+
     kpi(T.wartend,nf(sum.mempool??0),'Tx',T.kMempool));
 
@@ -1521,7 +1535,7 @@ function renderStats(){
   // Pool oder Solo: ueber die ganze Kette, vom Server gezaehlt (/finder).
   // Kommt die Zaehlung nicht, bleibt der Ausschnitt der geladenen Bloecke --
   // und die Zeile darunter sagt, welcher von beiden es ist.
-  const letzte=reihe.slice(0,n);
+  const letzte=blocks.slice(0,nD);
   let pool, solo, werUnter;
   if(finderStat){
     pool=finderStat.pool; solo=finderStat.solo;
@@ -1545,7 +1559,7 @@ function renderStats(){
 
   setze($('charts'),`
     <div class="ch"><h3>${T.cBlockzeit(n)}</h3><p>${T.cBlockzeitUnter(nf(zielS/60))}</p>${chartBlockzeit(reihe,n,zielS)}</div>
-    <div class="ch"><h3>${T.difficulty}</h3><p>${T.cDifficulty(n)}</p>${chartDifficulty(reihe,n)}</div>
+    <div class="ch"><h3>${T.difficulty}</h3><p>${T.cDifficulty(nD)}</p>${chartDifficulty(blocks,nD)}</div>
     <div class="ch"><h3>${T.kUmlauf}</h3><p>${ysr(sum.totalSupply,0,0)} / ${ysr(sum.maxSupply,0,0)} ${sym}</p>
       <div class="fortschritt"><i style="width:${anteil.toFixed(2)}%"></i></div>
       <div class="zwei"><span>${T.erzeugt(p1(erzeugt))}</span><span>${T.offenP(p1(100-erzeugt))}</span></div>
@@ -1631,11 +1645,12 @@ function chartDifficulty(reihe,n){
   const zahl=Math.round((oben-unten)/schritt);
   // Achsenbeschriftung mit Einheit ("4,7 Mrd."), so knapp wie moeglich --
   // aber mit so vielen Stellen, dass keine zwei Marken gleich heissen.
+  // Keine Pflichtstellen: "1 Mio." und "800.000", nicht "800.000,0".
   const marken=[]; for(let k=0;k<=zahl;k++) marken.push(unten+k*schritt);
   let texte=marken.map(v=>String(v));
   for(let st=0;st<=3;st++){
     try{
-      const f=new Intl.NumberFormat(LOC,{notation:'compact',minimumFractionDigits:st,maximumFractionDigits:st});
+      const f=new Intl.NumberFormat(LOC,{notation:'compact',maximumFractionDigits:st});
       texte=marken.map(v=>f.format(v));
     }catch{ texte=marken.map(v=>nfGross(v)); break; }
     if(new Set(texte).size===texte.length) break;
@@ -2160,7 +2175,7 @@ async function pruefeAlle(){
 
 async function load(){
   try{
-    const [s,b]=await Promise.all([holen('/summary'),holen('/blocks?limit='+(N_STAT+1))]);
+    const [s,b]=await Promise.all([holen('/summary'),holen('/blocks?limit='+N_LADEN)]);
     if(s.error||b.error) throw new Error(s.detail||b.detail||s.error||b.error);
     sum=summeAus(s); blocks=bloeckeAus(b); $('err').textContent='';
     await pruefeAlle();
