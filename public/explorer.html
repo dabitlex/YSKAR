@@ -140,17 +140,27 @@ button{font:inherit;color:inherit}
   background:rgba(255,255,255,.07);color:#C9D4E6}
 .meldung:empty{display:none}
 .meldung.schlecht{background:rgba(240,97,107,.14);color:#FFB3B9}
-#verdict{display:flex;align-items:flex-start;gap:10px;border-radius:14px;padding:12px 16px;font-size:13.5px;
-  font-weight:700;line-height:1.4;max-width:340px;background:rgba(255,255,255,.06);
-  border:1px solid var(--kante-d);color:var(--dim-d)}
-#verdict:not(.ok):not(.bad) small{display:none}
-#verdict small{display:block;font-size:12px;font-weight:600;opacity:.85;margin-top:2px}
-#verdict .zeichen{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
-  justify-content:center;background:var(--kante-d);color:var(--nacht);margin-top:1px}
-#verdict.ok{background:rgba(46,190,133,.12);border-color:rgba(46,190,133,.35);color:#7EE0B8}
-#verdict.ok .zeichen{background:#2EBE85;color:#06281B}
-#verdict.bad{background:rgba(240,97,107,.14);border-color:rgba(240,97,107,.45);color:#FFB3B9}
-#verdict.bad .zeichen{background:#F0616B;color:#3A0A10}
+/*
+  Pruefergebnis hinter einem Info-Symbol. Die Blase haengt an der Zeile,
+  nicht am Symbol -- so beginnt sie am linken Rand und passt auch am Handy.
+*/
+.eyebrow-zeile{position:relative;display:flex;align-items:center;gap:10px}
+.info-halter{display:inline-flex}
+.info-knopf{position:relative;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--kante-d);
+  background:rgba(255,255,255,.06);color:var(--dim-d);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.info-knopf::after{content:'';position:absolute;inset:-9px}
+.info-knopf:hover{border-color:#4F82FF;color:#fff}
+.info-knopf.ok{background:rgba(46,190,133,.14);border-color:rgba(46,190,133,.45);color:#7EE0B8}
+.info-knopf.bad{background:rgba(240,97,107,.18);border-color:rgba(240,97,107,.6);color:#FFB3B9}
+.info-blase{position:absolute;top:calc(100% + 10px);left:0;z-index:5;width:max-content;max-width:min(340px,100%);
+  background:var(--karte-d);border:1px solid var(--kante-d);border-radius:14px;padding:12px 16px;
+  font-size:13.5px;line-height:1.4;color:var(--text-d);box-shadow:0 18px 40px -18px rgba(0,0,0,.85)}
+.info-blase[hidden]{display:none}
+.info-blase b{display:block;font-weight:800}
+.info-blase.ok{border-color:rgba(46,190,133,.4)} .info-blase.ok b{color:#7EE0B8}
+.info-blase.bad{border-color:rgba(240,97,107,.5)} .info-blase.bad b{color:#FFB3B9}
+.info-blase small{display:block;font-size:12.5px;font-weight:600;color:var(--dim-d);margin-top:3px}
+.info-blase:not(.ok):not(.bad) small{display:none}
 
 /* ------------------------------------------------------------- Abschnitte */
 .sek{padding-top:30px}
@@ -381,7 +391,6 @@ details.empf .tx{border-top:0}
   .held{padding:22px 0 24px}
   .held h1{font-size:23px;margin:6px 0 14px}
   .suche{padding:6px 6px 6px 14px}.suche input{font-size:14px}.suche button{padding:10px 14px}
-  #verdict{max-width:none;width:100%}
   .sek{padding-top:22px}
   .sek-kopf h2{font-size:17px}
   .blk{width:128px;height:128px}
@@ -436,7 +445,20 @@ details.empf .tx{border-top:0}
 
 <section class="held"><div class="wrap">
   <div class="held-links">
-    <div class="eyebrow">YSKAR Explorer</div>
+    <div class="eyebrow-zeile">
+      <span class="eyebrow">YSKAR Explorer</span>
+      <!--
+        Das Ergebnis der Pruefung, hinter einem Info-Symbol: Antippen zeigt,
+        wie viele Bloecke hier nachgerechnet sind. Schlaegt eine Pruefung
+        fehl, wird es rot und klappt von selbst auf.
+      -->
+      <span class="info-halter">
+        <button id="verdict" class="info-knopf" type="button" aria-expanded="false" aria-controls="verdictInfo">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M10 9.4v5.2"/><circle cx="10" cy="5.4" r="1.35" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <span id="verdictInfo" class="info-blase" role="status" hidden><b id="verdictText"></b><small data-t="keinServer"></small></span>
+      </span>
+    </div>
     <h1 data-t="hinweisTitel"></h1>
     <div class="suche" role="search">
       <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="" aria-label="Search">
@@ -444,10 +466,6 @@ details.empf .tx{border-top:0}
     </div>
     <div class="meldung" id="treffer" role="status"></div>
     <div class="meldung schlecht" id="err" role="alert"></div>
-  </div>
-  <div id="verdict" role="status">
-    <span class="zeichen" id="verdictZeichen" aria-hidden="true"></span>
-    <span><span id="verdictText"></span><small data-t="keinServer"></small></span>
   </div>
 </div></section>
 
@@ -688,6 +706,7 @@ en:{
   aeltereBew:'Load older activity',notiz:'Memo',inklGebuehr:x=>'incl. '+x+' in fees',blockZurueck:'Previous block',
   blockWeiter:'Next block',minKurz:'min',navMitmachen:'Get started',navWallet:'Wallet',navAnleitungen:'Guides',
   navWhitepaper:'Whitepaper',navMinen:'Start mining',
+  alleBloecke:(n,t)=>'all '+t+' blocks',
   navExplorer:'Explorer',
 },
 de:{
@@ -736,6 +755,7 @@ de:{
   aeltereBew:'Ältere Bewegungen laden',notiz:'Notiz',inklGebuehr:x=>'inkl. '+x+' Gebühren',blockZurueck:'Vorheriger Block',
   blockWeiter:'Nächster Block',minKurz:'min',navMitmachen:'Mitmachen',navWallet:'Wallet',navAnleitungen:'Anleitungen',
   navWhitepaper:'Whitepaper',navMinen:'Jetzt minen',
+  alleBloecke:(n,t)=>'alle '+t+' Blöcke',
   navExplorer:'Explorer',
 },
 es:{
@@ -784,6 +804,7 @@ es:{
   aeltereBew:'Cargar actividad anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' de comisiones',blockZurueck:'Bloque anterior',
   blockWeiter:'Bloque siguiente',minKurz:'min',navMitmachen:'Empezar',navWallet:'Wallet',navAnleitungen:'Guías',
   navWhitepaper:'Whitepaper',navMinen:'Iniciar minería',
+  alleBloecke:(n,t)=>'todos los '+t+' bloques',
   navExplorer:'Explorador',
 },
 pt:{
@@ -832,6 +853,7 @@ pt:{
   aeltereBew:'Carregar atividade anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' em taxas',blockZurueck:'Bloco anterior',
   blockWeiter:'Próximo bloco',minKurz:'min',navMitmachen:'Começar',navWallet:'Carteira',navAnleitungen:'Guias',
   navWhitepaper:'Whitepaper',navMinen:'Iniciar mineração',
+  alleBloecke:(n,t)=>'todos os '+t+' blocos',
   navExplorer:'Explorer',
 },
 ru:{
@@ -882,6 +904,7 @@ ru:{
   aeltereBew:'Загрузить более ранние операции',notiz:'Заметка',inklGebuehr:x=>'вкл. '+x+' комиссий',
   blockZurueck:'Предыдущий блок',blockWeiter:'Следующий блок',minKurz:'мин',navMitmachen:'Участвовать',
   navWallet:'Кошелёк',navAnleitungen:'Инструкции',navWhitepaper:'Whitepaper',navMinen:'Начать майнинг',
+  alleBloecke:(n,t)=>'все '+t+' '+ruPl(n,'блок','блока','блоков'),
   navExplorer:'Explorer',
 },
 tr:{
@@ -930,6 +953,7 @@ tr:{
   aeltereBew:'Eski hareketleri yükle',notiz:'Not',inklGebuehr:x=>x+' ücret dahil',blockZurueck:'Önceki blok',
   blockWeiter:'Sonraki blok',minKurz:'dk',navMitmachen:'Katıl',navWallet:'Cüzdan',navAnleitungen:'Rehberler',
   navWhitepaper:'Whitepaper',navMinen:'Madenciliği başlat',
+  alleBloecke:(n,t)=>'tüm '+t+' blok',
   navExplorer:'Gezgin',
 },
 fr:{
@@ -978,6 +1002,7 @@ fr:{
   aeltereBew:'Charger l’activité plus ancienne',notiz:'Note',inklGebuehr:x=>'dont '+x+' de frais',blockZurueck:'Bloc précédent',
   blockWeiter:'Bloc suivant',minKurz:'min',navMitmachen:'Commencer',navWallet:'Portefeuille',navAnleitungen:'Guides',
   navWhitepaper:'Livre blanc',navMinen:'Commencer à miner',
+  alleBloecke:(n,t)=>'tous les '+t+' blocs',
   navExplorer:'Explorateur',
 },
 it:{
@@ -1026,6 +1051,7 @@ it:{
   aeltereBew:'Carica movimenti precedenti',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' di commissioni',blockZurueck:'Blocco precedente',
   blockWeiter:'Blocco successivo',minKurz:'min',navMitmachen:'Inizia',navWallet:'Wallet',navAnleitungen:'Guide',
   navWhitepaper:'Whitepaper',navMinen:'Inizia a minare',
+  alleBloecke:(n,t)=>'tutti i '+t+' blocchi',
   navExplorer:'Explorer',
 },
 pl:{
@@ -1076,6 +1102,7 @@ pl:{
   aeltereBew:'Wczytaj starsze operacje',notiz:'Notatka',inklGebuehr:x=>'w tym '+x+' opłat',blockZurueck:'Poprzedni blok',
   blockWeiter:'Następny blok',minKurz:'min',navMitmachen:'Dołącz',navWallet:'Portfel',navAnleitungen:'Poradniki',
   navWhitepaper:'Whitepaper',navMinen:'Zacznij mining',
+  alleBloecke:(n,t)=>'wszystkie '+t+' '+plPl(n,'blok','bloki','bloków'),
   navExplorer:'Explorer',
 },
 zh:{
@@ -1124,6 +1151,7 @@ zh:{
   aeltereBew:'加载更早的动态',notiz:'备注',inklGebuehr:x=>'含手续费 '+x,blockZurueck:'上一个区块',
   blockWeiter:'下一个区块',minKurz:'分钟',navMitmachen:'开始参与',navWallet:'钱包',navAnleitungen:'教程',
   navWhitepaper:'白皮书',navMinen:'开始挖矿',
+  alleBloecke:(n,t)=>'全部 '+t+' 个区块',
   navExplorer:'区块浏览器',
 },
 };
@@ -1163,7 +1191,8 @@ function statischeTexte(){
   $('menue').setAttribute('aria-label',T.menue);
   const zurueck=T.zurApp.replace(/^←\s*/,'');
   $('appZurueck').setAttribute('aria-label',zurueck); $('appZurueck').title=zurueck;
-  if(!$('verdict').className) $('verdictText').textContent=T.laedt;
+  if(!urteilStand) $('verdictText').textContent=T.laedt;
+  $('verdict').setAttribute('aria-label',T.pruefung); $('verdict').title=T.pruefung;
   navBauen();
   const sel=$('sprache');
   if(!sel.options.length){
@@ -1489,16 +1518,26 @@ function renderStats(){
   const p1=n=>n.toLocaleString(LOC,{minimumFractionDigits:1,maximumFractionDigits:1});
   const erzeugt=Math.round(anteil*10)/10;
   const epoche=(hoehe%EPOCHE)/EPOCHE*100;
+  // Pool oder Solo: ueber die ganze Kette, vom Server gezaehlt (/finder).
+  // Kommt die Zaehlung nicht, bleibt der Ausschnitt der geladenen Bloecke --
+  // und die Zeile darunter sagt, welcher von beiden es ist.
   const letzte=reihe.slice(0,n);
-  const pool=letzte.filter(b=>(b.recipients??1)>1).length, solo=letzte.length-pool;
+  let pool, solo, werUnter;
+  if(finderStat){
+    pool=finderStat.pool; solo=finderStat.solo;
+    werUnter=T.alleBloecke(pool+solo,nf(pool+solo));
+  }else{
+    pool=letzte.filter(b=>(b.recipients??1)>1).length; solo=letzte.length-pool;
+    werUnter=T.letzteN(letzte.length);
+  }
 
   let wer='';
-  if(letzte.length){
-    const pp=pool/letzte.length*100;
+  if(pool+solo>0){
+    const pp=pool/(pool+solo)*100;
     const streifen=pool&&solo
       ? `<i class="pool" style="width:${pp.toFixed(2)}%"></i><i class="solo" style="flex:1"></i>`
       : `<i class="allein${pool?' pool':''}" style="width:100%"></i>`;
-    wer=`<h3 class="weiter">${T.werFindet}</h3><p>${T.letzteN(letzte.length)}</p>
+    wer=`<h3 class="weiter">${T.werFindet}</h3><p>${werUnter}</p>
       <div class="fortschritt">${streifen}</div>
       <div class="legende"><span><i style="background:var(--pool)"></i>${T.pool} · ${nf(pool)}</span>
         <span><i style="background:var(--work)"></i>${T.solo} · ${nf(solo)}</span></div>`;
@@ -1515,6 +1554,24 @@ function renderStats(){
       <div class="fortschritt"><i style="width:${epoche.toFixed(2)}%"></i></div>
       ${wer}
     </div>`);
+}
+
+/*
+  Pool/Solo ueber die ganze Kette.
+
+  Diese eine Zahl rechnet der Explorer nicht selbst nach -- dafuer muesste er
+  jeden Block der Kette laden. Sie kommt vom Server (Migration 00023) und
+  wird nach jedem neuen Block neu geholt.
+*/
+let finderStat=null;
+async function finderLaden(){
+  try{
+    const r=await holen('/finder');
+    const pool=Number(r&&r.pool), solo=Number(r&&r.solo);
+    if(!r||r.error||!Number.isInteger(pool)||!Number.isInteger(solo)||pool<0||solo<0||pool+solo<1) return;
+    finderStat={pool,solo};
+    if(sum) renderStats();
+  }catch{ /* dann bleibt die Zaehlung ueber die geladenen Bloecke */ }
 }
 
 /*
@@ -1647,13 +1704,31 @@ $('charts').addEventListener('pointerdown',chartZeiger);
 $('charts').addEventListener('pointerleave',tippWeg);
 window.addEventListener('scroll',tippWeg,{passive:true});
 
+/*
+  Das Pruefergebnis steht hinter dem Info-Symbol im Kopf: gruen, solange
+  alles stimmt. Eine fehlgeschlagene Pruefung darf sich aber nicht hinter
+  einem Symbol verstecken -- dann wird es rot und die Blase geht von selbst
+  auf.
+*/
+let urteilStand='';
+function infoZeigen(auf){
+  $('verdictInfo').hidden=!auf;
+  $('verdict').setAttribute('aria-expanded',auf?'true':'false');
+}
 function renderVerdict(){
   const n=Object.keys(checks).length;
   const kaputt=Object.values(checks).some(c=>zustand(c)==='bad');
-  $('verdict').className=kaputt?'bad':'ok';
-  $('verdictZeichen').innerHTML=kaputt?IC.x:IC.ok;
+  const neu=kaputt?'bad':'ok';
+  $('verdict').className='info-knopf '+neu;
+  $('verdictInfo').className='info-blase '+neu;
   $('verdictText').textContent=kaputt?T.urteilBad:T.urteilOk(n);
+  if(kaputt&&urteilStand!=='bad') infoZeigen(true);
+  urteilStand=neu;
 }
+$('verdict').addEventListener('click',()=>infoZeigen($('verdictInfo').hidden));
+document.addEventListener('click',e=>{
+  if(!$('verdictInfo').hidden&&!(e.target.closest&&e.target.closest('.info-halter'))) infoZeigen(false);
+});
 
 // ---------------------------------------------------------------- Fenster
 /*
@@ -2017,6 +2092,7 @@ async function zeigeTx(id){
 // -- Bedienung des Fensters
 $('fenster').addEventListener('click',e=>{ if(e.target===$('fenster')) schliesseFenster(); });
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('verdictInfo').hidden) infoZeigen(false);
   if($('fenster').hidden) return;
   if(e.key==='Escape'){ schliesseFenster(); return; }
   if(ansicht&&ansicht.art==='block'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName||'')){
@@ -2089,6 +2165,7 @@ async function load(){
     sum=summeAus(s); blocks=bloeckeAus(b); $('err').textContent='';
     await pruefeAlle();
     renderStats(); renderVerdict(); renderKette();
+    finderLaden();
   }catch(e){
     $('err').textContent=T.ladenFehl+e.message;
   }
@@ -2268,6 +2345,7 @@ async function auffrischen(){
     const bis=Date.now()+90_000;
     for(const b of neue) neuBis[b.height]=bis;
     renderStats(); renderVerdict(); renderKette();
+    finderLaden();
     // Nach der Animation das Kennzeichen wieder loeschen, sonst liefe sie
     // beim naechsten Zeichnen erneut.
     setTimeout(()=>{ frisch=new Set(); },1600);
