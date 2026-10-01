@@ -32,6 +32,8 @@ interface Job {
   difficulty: number;
   txCount: number;
   target: string;
+  /** Extranonce der Sitzung. Fehlt bei sehr alten Knoten -- dann gilt die aus init. */
+  extranonce?: string;
 }
 
 let mem: Uint8Array;
@@ -81,7 +83,20 @@ function loadJob(j: Job) {
   // regelmaessig neu und bekommt dabei oft denselben zurueck; ein Ruecksetzen
   // der Nonce liesse den Worker denselben Bereich erneut durchsuchen, und
   // alles Gefundene waere ein Duplikat.
-  const sameJob = job !== null && job.jobId === j.jobId;
+  /*
+    Extranonce aus dem Job uebernehmen. Sie gehoert zur Sitzung, und die
+    kann wechseln: Friert die App ein, verwirft der Knoten die Sitzung, und
+    useMining eroeffnet still eine neue -- mit neuer Extranonce. Rechnete
+    der Worker mit der alten weiter, baute der Knoten beim Pruefen einen
+    anderen Header, und jeder Share fiele als "low_difficulty" durch
+    (Diagnose 01.10.2026). Neue Extranonce = neuer Suchraum, also von vorn.
+  */
+  let neueExtranonce = false;
+  if (j.extranonce != null) {
+    const e = BigInt(j.extranonce);
+    if (e !== extranonce) { extranonce = e; neueExtranonce = true; }
+  }
+  const sameJob = job !== null && job.jobId === j.jobId && !neueExtranonce;
   job = j;
   if (!sameJob) {
     nonceHigh = slot * SLOT_STRIDE;
