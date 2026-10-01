@@ -6,6 +6,9 @@ import { Icon, Button } from '@/components/ui/Primitives';
 import { Zahl, Etikett, Karte, Segment, Identicon } from '@/components/ui/Bausteine';
 import type { Account, Wartend } from '@/hooks/useMining';
 import { useT } from '@/i18n';
+import { sucheAus } from '@/lib/api/suche';
+import { type Zeitraum, IMMER, grenzen } from '@/lib/wallet/zeitraum';
+import { SuchKnopf, SuchLeiste, FilterChips, ZeitraumBlatt, trefferGrund } from '@/components/wallet/VerlaufSuche';
 
 /**
  * Wallet.
@@ -72,11 +75,56 @@ export default function WalletTab({ account, symbol, decimals, address,
   const [laedt, setLaedt] = useState(false);
   const [ladeFehler, setLadeFehler] = useState(false);
 
+  // Suche und Zeitraum (components/wallet/VerlaufSuche.tsx). Ist einer
+  // davon aktiv, kommt die Liste ganz vom Server: Treffer aus dem GANZEN
+  // Verlauf, seitenweise wie sonst auch.
+  const [suchOffen, setSuchOffen] = useState(false);
+  const [eingabe, setEingabe] = useState('');
+  const [q, setQ] = useState('');
+  const [zeitraum, setZeitraum] = useState<Zeitraum>(IMMER);
+  const [blattOffen, setBlattOffen] = useState(false);
+  const [treffer, setTreffer] = useState<{ key: string; seite: Seite } | null>(null);
+  const [trefferFehler, setTrefferFehler] = useState(false);
+  // Erst suchen, wenn der Nutzer kurz aufhoert zu tippen.
+  useEffect(() => {
+    const id = setTimeout(() => setQ(eingabe.trim()), 350);
+    return () => clearTimeout(id);
+  }, [eingabe]);
+  const suche = useMemo(() => sucheAus(q), [q]);
+  const [vonZeit, bisZeit] = useMemo(() => grenzen(zeitraum), [zeitraum]);
+  const filterAktiv = suche !== null || vonZeit !== null || bisZeit !== null;
+  const filterKey = filterAktiv ? `${richtung}|${q}|${vonZeit ?? ''}|${bisZeit ?? ''}` : '';
+  const filterParameter = () => {
+    const p = new URLSearchParams();
+    if (suche) p.set('q', q);
+    if (vonZeit !== null) p.set('von', String(vonZeit));
+    if (bisZeit !== null) p.set('bis', String(bisZeit));
+    return p.toString();
+  };
+  const filterWeg = () => { setEingabe(''); setQ(''); setZeitraum(IMMER); };
+
   // Andere Wallet: alles Nachgeladene gehoert nicht mehr hierher.
   useEffect(() => {
     setKoepfe({ ein: null, aus: null });
     setAeltere({ alle: null, ein: null, aus: null });
+    setTreffer(null);
+    setEingabe(''); setQ(''); setZeitraum(IMMER); setSuchOffen(false);
   }, [address]);
+
+  // Erste Trefferseite, sobald sich ein Filter aendert.
+  useEffect(() => {
+    if (!address || !filterAktiv) return;
+    let abgebrochen = false;
+    setTrefferFehler(false);
+    fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&limit=40&${filterParameter()}`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then((seite: Seite) => { if (!abgebrochen) setTreffer({ key: filterKey, seite }); })
+      .catch(() => { if (!abgebrochen) setTrefferFehler(true); });
+    return () => { abgebrochen = true; };
+    // filterKey fasst richtung, q, von und bis zusammen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, filterKey]);
+  const trefferSeite = filterAktiv && treffer?.key === filterKey ? treffer.seite : null;
 
   // Erste gefilterte Seite holen -- beim Umschalten und wenn neue Eintraege
   // dazukommen (der neueste Eintrag des Kontos aendert sich).
@@ -100,18 +148,29 @@ export default function WalletTab({ account, symbol, decimals, address,
         weiter: null,
       };
   const nachgeladen = aeltere[richtung];
-  const verlauf = useMemo(() => zusammen(kopf.eintraege, (nachgeladen ?? LEER).eintraege),
+  const ungefiltert = useMemo(() => zusammen(kopf.eintraege, (nachgeladen ?? LEER).eintraege),
     [kopf.eintraege, nachgeladen]);
+  const verlauf = filterAktiv ? (trefferSeite?.eintraege ?? []) : ungefiltert;
   // Weiterblaettern: ab der letzten nachgeladenen Seite, sonst ab der ersten.
-  const cursor = nachgeladen ? nachgeladen.weiter : kopf.weiter;
+  const cursor = filterAktiv ? (trefferSeite?.weiter ?? null)
+    : nachgeladen ? nachgeladen.weiter : kopf.weiter;
 
   const mehrLaden = async () => {
     if (!address || !cursor || laedt) return;
     setLaedt(true); setLadeFehler(false);
     try {
-      const r = await fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&vor=${encodeURIComponent(cursor)}&limit=50`);
+      const filterJetzt = filterAktiv ? filterKey : '';
+      const r = await fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&vor=${encodeURIComponent(cursor)}&limit=50${
+        filterAktiv ? '&' + filterParameter() : ''}`);
       if (!r.ok) throw new Error(String(r.status));
       const s: Seite = await r.json();
+      if (filterJetzt) {
+        // Treffer anhaengen -- aber nur, wenn der Filter noch derselbe ist.
+        setTreffer(tr => tr && tr.key === filterJetzt
+          ? { key: tr.key, seite: { eintraege: zusammen(tr.seite.eintraege, s.eintraege), weiter: s.weiter } }
+          : tr);
+        return;
+      }
       // Beim ersten Nachladen die erste Seite mit festhalten: Kommt spaeter
       // ein neuer Eintrag dazu, rutscht der bisher letzte aus der ersten
       // Seite -- er darf dann nicht zwischen beiden Seiten verloren gehen.
@@ -124,7 +183,10 @@ export default function WalletTab({ account, symbol, decimals, address,
   };
 
   const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
-  const wartend = (account?.pending ?? []).filter(p => filter === 'alle' || p.kind === filter);
+  // Wartende haben noch keinen Block und keine Blockzeit -- bei aktiver
+  // Suche gehoeren sie nicht in die Trefferliste.
+  const wartend = filterAktiv ? []
+    : (account?.pending ?? []).filter(p => filter === 'alle' || p.kind === filter);
   const unterwegs = (account?.pending ?? []).filter(p => p.kind === 'out')
     .reduce((s, p) => s + Number(p.amount) + Number(p.fee), 0) / 10 ** decimals;
 
@@ -190,13 +252,50 @@ export default function WalletTab({ account, symbol, decimals, address,
       </div>
 
       <Karte className="rise rise-2 mt-5 px-[18px] pt-4 pb-1">
-        <div className="mb-1 flex items-center justify-between">
+        {/* Bei langen Beschriftungen (z. B. Polnisch) rutscht die Auswahl
+            unter den Titel, statt aus der Karte zu ragen. */}
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
           <span className="text-[15px] font-extrabold">{t.wallet.verlauf}</span>
-          <Segment label={t.wallet.verlauf} wert={filter} onChange={setFilter}
-                   werte={[{ v: 'alle', text: t.wallet.alle }, { v: 'in', text: t.wallet.eingaenge }, { v: 'out', text: t.wallet.ausgaenge }]} />
+          <div className="flex items-center gap-1.5">
+            <Segment label={t.wallet.verlauf} wert={filter} onChange={setFilter}
+                     werte={[{ v: 'alle', text: t.wallet.alle }, { v: 'in', text: t.wallet.eingaenge }, { v: 'out', text: t.wallet.ausgaenge }]} />
+            <SuchKnopf offen={suchOffen} aktiv={filterAktiv} onClick={() => setSuchOffen(o => !o)} />
+          </div>
         </div>
 
-        {verlauf.length === 0 && wartend.length === 0 ? (
+        {suchOffen ? (
+          <SuchLeiste eingabe={eingabe} onEingabe={setEingabe}
+                      zeitraum={zeitraum} onZeitraum={setZeitraum} onDatum={() => setBlattOffen(true)} />
+        ) : (
+          <FilterChips eingabe={suche ? eingabe : ''} zeitraum={zeitraum}
+                       onSucheWeg={() => { setEingabe(''); setQ(''); }}
+                       onZeitWeg={() => setZeitraum(IMMER)}
+                       onOeffnen={() => setSuchOffen(true)} />
+        )}
+
+        {filterAktiv && trefferSeite && trefferSeite.eintraege.length > 0 && (
+          <div className="flex items-center justify-between pt-2">
+            <Etikett>{t.wallet.treffer(trefferSeite.eintraege.length, !!trefferSeite.weiter)}</Etikett>
+            <button onClick={filterWeg} className="text-[12px] font-extrabold text-work">{t.wallet.zuruecksetzen}</button>
+          </div>
+        )}
+
+        {filterAktiv && !trefferSeite ? (
+          <p className={`py-6 text-center text-[13px] font-semibold ${trefferFehler ? 'text-risk' : 'text-faint'}`}>
+            {trefferFehler ? t.wallet.ladenFehler : t.wallet.laedtMehr}
+          </p>
+        ) : filterAktiv && verlauf.length === 0 ? (
+          <div className="px-2 pb-5 pt-6 text-center">
+            <span className="mb-2.5 inline-flex h-[46px] w-[46px] items-center justify-center rounded-[15px] bg-raised text-faint">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+            </span>
+            <p className="text-[14.5px] font-extrabold">{t.wallet.keineTreffer}</p>
+            <p className="mx-auto mb-3.5 mt-1 max-w-[280px] text-[12.5px] font-semibold leading-relaxed text-dim">{t.wallet.keineTrefferText}</p>
+            <button onClick={filterWeg} className="rounded-[12px] bg-raised px-4 py-2 text-[13px] font-extrabold text-text">
+              {t.wallet.filterZuruecksetzen}
+            </button>
+          </div>
+        ) : verlauf.length === 0 && wartend.length === 0 ? (
           <p className="py-6 text-center text-[13.5px] font-semibold leading-relaxed text-dim">{t.wallet.leer}</p>
         ) : (
           <ul>
@@ -223,9 +322,9 @@ export default function WalletTab({ account, symbol, decimals, address,
                         : e.kind === 'pool' ? t.wallet.poolAnteil(e.height)
                         : e.kind === 'in' ? t.wallet.von(kurz(e.counterparty, unb))
                         : t.wallet.an(kurz(e.counterparty, unb))}
-                      unten={vorZeit(e.timestamp) +
+                      unten={trefferGrund(e, q, suche, t) ?? (vorZeit(e.timestamp) +
                         (e.kind === 'out' && Number(e.fee) > 0
-                          ? ` · ${t.wallet.gebuehr((Number(e.fee) / 10 ** decimals).toFixed(4))}` : '')}
+                          ? ` · ${t.wallet.gebuehr((Number(e.fee) / 10 ** decimals).toFixed(4))}` : ''))}
                       betrag={`${e.kind === 'out' ? '−' : '+'}${
                         (Number(e.amount) / 10 ** decimals).toFixed(4)}`} symbol={symbol}
                       gut={e.kind !== 'out'} />
@@ -249,10 +348,14 @@ export default function WalletTab({ account, symbol, decimals, address,
           </div>
         ) : verlauf.length > 0 && (
           <p className="border-t border-line py-3 text-center text-[12px] font-semibold text-faint">
-            {t.wallet.alleGeladen}
+            {filterAktiv ? t.wallet.alleTreffer : t.wallet.alleGeladen}
           </p>
         )}
       </Karte>
+
+      <ZeitraumBlatt offen={blattOffen} zeitraum={zeitraum}
+                     onSchliessen={() => setBlattOffen(false)}
+                     onAnwenden={z => { setZeitraum(z); setBlattOffen(false); }} />
 
       {offen && (
         <Detail eintrag={offen} decimals={decimals} symbol={symbol}
@@ -324,7 +427,9 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
           {eintrag.kind === 'out' && gebuehr > 0 && (
             <Feld label={t.wallet.netzgebuehr} wert={`${gebuehr.toFixed(4)} ${symbol}`} />
           )}
-          {eintrag.memo && (
+          {/* Nur bei Ueberweisungen: Bei einer Coinbase stehen im Notizfeld
+              Bytes des Miners (Extranonce, Pool-Kennung), keine Notiz. */}
+          {eintrag.memo && (eintrag.kind === 'in' || eintrag.kind === 'out') && (
             <Feld label={t.wallet.notiz} wert={new TextDecoder().decode(
               Uint8Array.from(eintrag.memo.match(/../g) ?? [],
                               h => parseInt(h, 16)))} />
@@ -369,7 +474,7 @@ function Feld({ label, wert, mono, umbruch, onKopieren, kopiert }: {
 }
 
 function Eintrag({ art, adresse, titel, unten, betrag, symbol, gut, onClick }: {
-  art: 'in' | 'out' | 'wait'; adresse: string | null; titel: string; unten: string;
+  art: 'in' | 'out' | 'wait'; adresse: string | null; titel: string; unten: React.ReactNode;
   betrag: string; symbol: string; gut?: boolean; onClick?: () => void;
 }) {
   const { t } = useT();

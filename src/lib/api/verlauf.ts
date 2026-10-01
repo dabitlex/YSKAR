@@ -2,10 +2,12 @@ import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
 import { encodeAddress } from '@/lib/core/address';
 import { toHex, fromHex } from '@/lib/core/codec';
+import type { Suche } from '@/lib/api/suche';
 
 /**
- * Verlauf einer Adresse, seitenweise -- aus dem Spiegel (chain2.verlauf,
- * Migration 00021).
+ * Verlauf einer Adresse, seitenweise -- aus dem Spiegel
+ * (chain2.verlauf_suche, Migration 00022; ohne Filter dasselbe wie
+ * chain2.verlauf aus 00021).
  *
  * Eine Stelle fuer beide Routen: /api/v2/account liefert die erste Seite
  * gleich mit, /api/v2/account/:adresse/verlauf die weiteren.
@@ -54,16 +56,34 @@ interface Zeile {
   pool: boolean; empfaenger: number; block_time: number | string | null;
 }
 
+/** Optionale Filter: Suche und Zeitraum (Blockzeit, Unix-Sekunden, [von, bis)). */
+export interface VerlaufFilter {
+  suche?: Suche | null;
+  von?: number | null;
+  bis?: number | null;
+}
+
 export async function verlaufLaden(
   raw: Uint8Array, richtung: Richtung, vor: [number, number] | null, limit: number,
+  filter: VerlaufFilter = {},
 ): Promise<VerlaufSeite> {
   const n = Math.min(Math.max(Math.trunc(limit) || 40, 1), 200);
-  const { data, error } = await db().schema('chain2').rpc('verlauf', {
+  const s = filter.suche ?? null;
+  const hex = (h: string | null) => (h ? '\\x' + h : null);
+  const { data, error } = await db().schema('chain2').rpc('verlauf_suche', {
     p_addr: '\\x' + toHex(raw),
     p_richtung: richtung,
     p_vor_hoehe: vor ? vor[0] : null,
     p_vor_idx: vor ? vor[1] : null,
     p_limit: n,
+    p_von_zeit: filter.von ?? null,
+    p_bis_zeit: filter.bis ?? null,
+    p_hoehe: s?.hoehe ?? null,
+    p_tx_lo: hex(s?.txLo ?? null),
+    p_tx_hi: hex(s?.txHi ?? null),
+    p_gegen_lo: hex(s?.gegenLo ?? null),
+    p_gegen_hi: hex(s?.gegenHi ?? null),
+    p_memo: s?.memo ?? null,
   });
   if (error) throw new Error(error.message);
 

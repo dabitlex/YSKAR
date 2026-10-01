@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { decodeAddress } from '@/lib/core/address';
 import { verlaufLaden, richtungAus, cursorAus } from '@/lib/api/verlauf';
+import { sucheAus, zeitAus } from '@/lib/api/suche';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,9 +11,13 @@ export async function OPTIONS() { return new Response(null, { status: 204, heade
 
 /**
  * GET /api/v2/account/:address/verlauf?richtung=alle|ein|aus&vor=hoehe:idx&limit=50
+ *                                     &q=suche&von=unix&bis=unix
  *
  * Der vollstaendige Verlauf, seitenweise. Ohne "vor" die neueste Seite;
  * "weiter" in der Antwort ist der Cursor fuer die naechste, null am Ende.
+ *
+ * q: Blocknummer, TxID-Anfang, Adresse (oder ihr Anfang) oder Notiztext --
+ * siehe lib/api/suche.ts. von/bis: Blockzeit in Unix-Sekunden, [von, bis).
  */
 export async function GET(
   req: Request, { params }: { params: Promise<{ address: string }> },
@@ -29,6 +34,11 @@ export async function GET(
       richtungAus(url.searchParams.get('richtung')),
       cursorAus(url.searchParams.get('vor')),
       Number(url.searchParams.get('limit') ?? 50),
+      {
+        suche: sucheAus(url.searchParams.get('q')),
+        von: zeitAus(url.searchParams.get('von')),
+        bis: zeitAus(url.searchParams.get('bis')),
+      },
     );
     return NextResponse.json(seite, { headers: CORS });
   } catch (e) {
