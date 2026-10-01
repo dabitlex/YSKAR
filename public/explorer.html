@@ -43,270 +43,444 @@
 </style>
 <style>
 /*
-  Explorer im Gestaltungssystem „Eis" der App: heller Grund, weisse Karten,
-  ein blauer Akzent, Gruen nur fuer „von der Kette bestaetigt". Dieselben
-  Farbnamen wie in der App (src/app/globals.css), damit beides zusammenpasst.
+  Explorer im Stil der Website (website/assets/style.css): dunkle Kopfzeile
+  und dunkler Kopfbereich, darunter der Inhalt im Farbsystem der App --
+  hell oder dunkel, dieselben Farbnamen wie src/app/globals.css. Blau ist
+  der eine Akzent; Gruen heisst nur "hier nachgerechnet".
 */
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
   --ink:#F4F7FB; --sunk:#FFFFFF; --surface:#FFFFFF; --raised:#F1F4F9;
-  --line:#E6ECF4; --text:#0E1A2F; --dim:#5B6B84; --faint:#8E9AB0;
+  --line:#E6ECF4; --text:#0E1A2F; --lese:#2A3A55; --dim:#5B6B84; --faint:#8E9AB0;
   --work:#1F5BF0; --work-tint:#EAF0FE; --proof:#0B8A5C; --proof-tint:#E7F5EE;
   --risk:#D9404A; --risk-tint:#FBE9EA;
   --schatten:0 14px 34px -22px rgba(14,26,47,.28);
-  --bau:#B9CCF8; --hinweis-text:#1747B8;
+  --bau:#9DB4EA; --bau-a:#F6F9FF; --bau-b:#EDF2FD;
+  /* Diagramme: aeltere Balken zurueckgenommen, Pool als zweite Reihe. */
+  --balken:#9DB8F7; --pool:#0E9F8E; --netz:#E6ECF4;
+  --fuell-a:rgba(31,91,240,.18); --fuell-b:rgba(31,91,240,.34); --fuell-k:rgba(31,91,240,.45);
+  /* Kopf: immer dunkel, wie auf der Website. */
+  --nacht:#0A101C; --karte-d:#131C2E; --kante-d:#24324C; --text-d:#EAF0F8; --dim-d:#9EADC6;
 }
-/* Dunkel -- dieselben Werte wie in der App (globals.css). */
 :root[data-thema="dunkel"]{
   --ink:#0A101C; --sunk:#0F1728; --surface:#131C2E; --raised:#1C283E;
-  --line:#24324C; --text:#EAF0F8; --dim:#9EADC6; --faint:#6E7E9A;
+  --line:#24324C; --text:#EAF0F8; --lese:#D6DEEC; --dim:#9EADC6; --faint:#6E7E9A;
   --work:#4F82FF; --work-tint:#16244A; --proof:#2EBE85; --proof-tint:#12332A;
   --risk:#F0616B; --risk-tint:#3A1C22;
   --schatten:0 14px 34px -22px rgba(0,0,0,.7);
-  --bau:#2C4A8C; --hinweis-text:#9DB8FF;
+  --bau:#2C4A8C; --bau-a:#131C2E; --bau-b:#172340;
+  --balken:#36549A; --netz:#24324C;
+  --fuell-a:rgba(79,130,255,.20); --fuell-b:rgba(79,130,255,.38); --fuell-k:rgba(79,130,255,.55);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scrollbar-gutter:stable}
 body{margin:0;background:var(--ink);color:var(--text);
-  font-family:Manrope,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;
-  -webkit-font-smoothing:antialiased}
+  font-family:Manrope,system-ui,-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip}
+body.fenster-offen{overflow:hidden}
 .mono{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
 .tnum{font-variant-numeric:tabular-nums}
-.muted{color:var(--dim)}
-.faint{color:var(--faint)}
+.muted{color:var(--dim)} .faint{color:var(--faint)}
 a{color:var(--work);text-decoration:none;font-weight:700}
-a:hover{opacity:.8}
+a:hover{opacity:.85}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--work);outline-offset:2px;border-radius:8px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 40px}
 
 /* ------------------------------------------------------------- Kopfzeile */
-header{border-bottom:1px solid var(--line);background:var(--surface);padding:14px 32px;
-  display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.marke{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.12em;
-  font-size:15px;white-space:nowrap;color:var(--text)}
-.marke img{width:34px;height:22px;object-fit:contain}
-.marke small{font-size:13px;font-weight:700;letter-spacing:0;color:var(--faint)}
-.suche{flex:1;min-width:220px;max-width:560px;display:flex;align-items:center;gap:8px;
-  height:44px;padding:0 6px 0 14px;border:1px solid var(--line);border-radius:14px;
-  background:var(--sunk);transition:border-color .15s}
-.suche:focus-within{border-color:var(--work)}
-.suche input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);
-  font:inherit;font-size:13.5px;outline:none}
-.suche input::placeholder{color:var(--faint)}
-.suche button{padding:9px 14px;border:0;border-radius:10px;background:var(--work);
-  color:#fff;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
-.suche button:hover{background:#1747B8}
-.kopfrechts{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;
-  font-weight:700;color:var(--dim);white-space:nowrap}
-.kopfrechts b{color:var(--text);font-weight:500}
-#sprache{appearance:none;-webkit-appearance:none;border:1px solid var(--line);
-  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%235B6B84' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
-  color:var(--text);font:inherit;font-weight:700;font-size:12.5px;padding:7px 26px 7px 11px;
-  border-radius:99px;cursor:pointer}
-#sprache:focus{outline:none;border-color:var(--work)}
-#thema{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:99px;
-  border:1px solid var(--line);background:var(--surface);color:var(--dim);cursor:pointer}
-#thema:hover{color:var(--work);border-color:var(--work)}
+.kopf{position:sticky;top:0;z-index:20;background:rgba(10,16,28,.94);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #1C283E}
+.kopf .wrap{display:flex;align-items:center;justify-content:space-between;height:72px;gap:20px}
+.marke{display:flex;align-items:center;gap:12px;color:var(--text-d);font-size:20px;
+  font-weight:800;letter-spacing:.06em;white-space:nowrap}
+.marke img{width:38px;height:25px;object-fit:contain}
+.kopf-rechts{display:flex;align-items:center;gap:12px;min-width:0}
+.nav{display:flex;align-items:center;gap:26px;font-size:15px;font-weight:600}
+.nav a{color:#C9D4E6;font-weight:600;white-space:nowrap}
+.nav a:hover{color:#fff;opacity:1}
+.nav a[aria-current=page]{color:#fff;font-weight:700;position:relative}
+.nav a[aria-current=page]::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;
+  border-radius:2px;background:#4F82FF}
+.nav a.knopf{background:#1F5BF0;color:#fff;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:800}
+.nav a.knopf:hover{background:#3B6FF5}
+#sprache{appearance:none;-webkit-appearance:none;height:44px;padding:0 34px 0 14px;border-radius:12px;
+  border:1px solid var(--kante-d);color:var(--text-d);font:600 14px Manrope,sans-serif;cursor:pointer;
+  background:var(--karte-d) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239EADC6' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 13px center}
+#sprache option{color:#0E1A2F;background:#fff}
+.kopf-knopf{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;
+  border-radius:12px;border:1px solid var(--kante-d);background:var(--karte-d);color:var(--text-d);cursor:pointer}
+.kopf-knopf:hover{border-color:#4F82FF}
 #thema .sonne{display:none}
 :root[data-thema="dunkel"] #thema .mond{display:none}
 :root[data-thema="dunkel"] #thema .sonne{display:inline}
-/* Zustandsplakette: Farbe traegt Bedeutung */
-#verdict{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:6px 11px;
-  font-size:12px;font-weight:800;background:var(--raised);color:var(--dim)}
-#verdict::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}
-#verdict.ok{background:var(--proof-tint);color:var(--proof)}
-#verdict.bad{background:var(--risk-tint);color:var(--risk)}
+#menue,#appZurueck{display:none}
+.app-domain #menue{display:none!important}
+.kopf-links{display:flex;align-items:center;gap:10px;min-width:0}
 
-.wrap{padding:24px 32px 40px;max-width:1500px;margin:0 auto}
-.hinweis{display:flex;gap:12px;align-items:flex-start;background:var(--work-tint);
-  border-radius:16px;padding:13px 16px;font-size:13px;font-weight:600;color:var(--hinweis-text);
-  line-height:1.55;margin-bottom:22px}
-.hinweis svg{flex-shrink:0;margin-top:1px}
-.hinweis b{color:var(--text);font-weight:800}
-.err{background:var(--risk-tint);color:var(--risk);border-radius:14px;
-  padding:11px 14px;font-size:13px;font-weight:600;margin-bottom:16px}
-.err:empty{display:none}
+/* ------------------------------------------------------------- Kopfbereich */
+.held{background:radial-gradient(60% 130% at 50% 0%,rgba(31,91,240,.30),transparent 70%),var(--nacht);
+  color:var(--text-d);padding:38px 0 42px}
+.held .wrap{display:flex;justify-content:space-between;align-items:flex-end;gap:28px;flex-wrap:wrap}
+.held-links{flex:1 1 520px;min-width:0}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--dim-d);letter-spacing:.04em}
+.held h1{margin:8px 0 18px;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.suche{display:flex;gap:10px;align-items:center;background:var(--karte-d);border:1px solid var(--kante-d);
+  border-radius:16px;padding:7px 7px 7px 18px;max-width:760px;transition:border-color .15s}
+.suche:focus-within{border-color:#4F82FF}
+.suche input{flex:1;min-width:0;border:0;background:transparent;color:var(--text-d);font:inherit;
+  font-size:15px;font-weight:600;outline:none}
+.suche input::placeholder{color:var(--dim-d)}
+.suche button{flex:none;padding:11px 18px;border:0;border-radius:12px;background:#1F5BF0;color:#fff;
+  font-weight:800;font-size:14px;cursor:pointer}
+.suche button:hover{background:#3B6FF5}
+.meldung{margin-top:12px;max-width:760px;border-radius:12px;padding:10px 14px;font-size:13.5px;font-weight:600;
+  background:rgba(255,255,255,.07);color:#C9D4E6}
+.meldung:empty{display:none}
+.meldung.schlecht{background:rgba(240,97,107,.14);color:#FFB3B9}
+#verdict{display:flex;align-items:flex-start;gap:10px;border-radius:14px;padding:12px 16px;font-size:13.5px;
+  font-weight:700;line-height:1.4;max-width:340px;background:rgba(255,255,255,.06);
+  border:1px solid var(--kante-d);color:var(--dim-d)}
+#verdict:not(.ok):not(.bad) small{display:none}
+#verdict small{display:block;font-size:12px;font-weight:600;opacity:.85;margin-top:2px}
+#verdict .zeichen{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;background:var(--kante-d);color:var(--nacht);margin-top:1px}
+#verdict.ok{background:rgba(46,190,133,.12);border-color:rgba(46,190,133,.35);color:#7EE0B8}
+#verdict.ok .zeichen{background:#2EBE85;color:#06281B}
+#verdict.bad{background:rgba(240,97,107,.14);border-color:rgba(240,97,107,.45);color:#FFB3B9}
+#verdict.bad .zeichen{background:#F0616B;color:#3A0A10}
 
-/* ----------------------------------------------------------- Blockreihe */
-.reihenkopf{display:flex;align-items:baseline;justify-content:space-between;
-  gap:12px;margin:0 0 12px}
-.reihenkopf h2{margin:0;font-size:16px;font-weight:800;color:var(--text)}
-.kette{display:flex;align-items:flex-start;gap:6px;overflow-x:auto;padding-bottom:12px;
-  scrollbar-width:thin}
+/* ------------------------------------------------------------- Abschnitte */
+.sek{padding-top:30px}
+.sek-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.sek-kopf h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.sek-kopf span{font-size:12.5px;font-weight:600;color:var(--faint)}
+
+/* ------------------------------------------------------------- Die Kette */
+.kette{display:flex;align-items:center;overflow-x:auto;padding:8px 6px 14px;margin:0 -6px;scrollbar-width:thin}
 .kette::-webkit-scrollbar{height:8px}
 .kette::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
-.spalte{flex:0 0 auto;width:140px;display:flex;flex-direction:column;align-items:center}
-.k-kopf{height:26px;display:flex;align-items:center;font-size:12.5px}
-.k-kopf a{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;color:var(--work)}
-.wuerfel{width:132px;height:132px;border-radius:18px;padding:10px 8px;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  cursor:pointer;border:1px solid var(--line);font:inherit;color:inherit;position:relative;
-  background:var(--surface);transition:transform .12s,border-color .12s}
-.wuerfel:hover{border-color:var(--work)}
-.wuerfel:active{transform:scale(.98)}
-.w-bau{border:1.5px dashed var(--bau);color:var(--dim)}
-.w-block{box-shadow:var(--schatten)}
-.w-block.offen,.w-bau.offen{border:2px solid var(--work)}
-.w-zahl{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.w-klein{font-size:11px;font-weight:600;color:var(--dim);white-space:nowrap}
-.w-zeit{font-size:11px;font-weight:600;color:var(--faint);margin-top:2px}
-.w-punkt{position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:99px}
-.finder{height:20px;margin-top:8px;text-align:center;font-size:11.5px;font-weight:600;
-  color:var(--dim);width:132px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.glied{flex:none;width:18px;height:4px;border-radius:2px;background:var(--line)}
+.pfeil{flex:none;margin:0 6px;color:var(--work);font-size:20px;font-weight:800}
+.spalte{flex:none}
+.blk{display:block;width:136px;height:140px;border-radius:20px;background:var(--surface);
+  border:1px solid var(--line);position:relative;overflow:hidden;cursor:pointer;text-align:left;padding:0;
+  box-shadow:var(--schatten);transition:transform .12s,border-color .12s}
+a.blk{color:var(--text);font-weight:inherit}
+.blk:hover{border-color:var(--work);opacity:1}
+.blk:active{transform:scale(.98)}
+/* Fuellstand: wie ein Tank von unten. Hoehe = belegte Transaktionsplaetze. */
+.blk .fuell{position:absolute;left:0;right:0;bottom:0;pointer-events:none;
+  background:linear-gradient(0deg,var(--fuell-b),var(--fuell-a));box-shadow:0 -1px 0 var(--fuell-k)}
+.blk .in{position:absolute;inset:0;padding:12px 13px 11px;display:flex;flex-direction:column}
+.blk .h{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:15px}
+.blk .t{font-size:11.5px;font-weight:700;color:var(--dim);margin-top:2px}
+.blk .f{font-size:11px;font-weight:700;color:var(--faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk .f.poolname{color:var(--proof)}
+.blk .u{margin-top:auto;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;column-gap:6px;
+  font-size:11.5px;font-weight:800;white-space:nowrap}
+.blk .u span:first-child{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.blk .u span:last-child{flex:none;font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--lese)}
+.blk .punkt{position:absolute;top:13px;right:12px;width:9px;height:9px;border-radius:50%}
+.blk.offen{border:2px solid var(--work)}
+.blk.bau{background:repeating-linear-gradient(135deg,var(--bau-a) 0 10px,var(--bau-b) 10px 20px);
+  border:2px dashed var(--bau);box-shadow:none;animation:suchen 2.6s ease-in-out infinite}
+.blk.bau .h{color:var(--work)}
+.neu-marke{position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--work);color:#fff;
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;padding:2px 8px;border-radius:0 0 8px 8px;z-index:2}
 /*
-  Ein neuer Block schiebt sich von links herein und leuchtet kurz auf.
-  Von links, weil dort der Block "im Bau" steht -- genau der ist gerade
-  gefunden worden und wandert auf die rechte Seite der Trennlinie.
+  Ein neuer Block kommt aus dem Block "im Bau" heraus: Er startet dahinter,
+  schiebt sich nach rechts an die Kette und drueckt die aelteren weiter.
+  Der Versatz ist seine Breite plus das Kettenglied.
 */
-@keyframes einschieben{
-  from{width:0;opacity:0;transform:translateX(-26px)}
-  to  {width:140px;opacity:1;transform:translateX(0)}
-}
-@keyframes aufleuchten{
-  0%  {box-shadow:0 0 0 0 rgba(11,138,92,.55)}
-  35% {box-shadow:0 0 0 8px rgba(11,138,92,0)}
-  100%{box-shadow:var(--schatten)}
-}
+.spalte:first-child,.pfeil{position:relative;z-index:2}
+@keyframes einschieben{from{margin-left:-154px;opacity:0}to{margin-left:0;opacity:1}}
+@keyframes aufleuchten{0%{box-shadow:0 0 0 0 rgba(31,91,240,.55)}40%{box-shadow:0 0 0 10px rgba(31,91,240,0)}100%{box-shadow:var(--schatten)}}
+@keyframes suchen{0%,100%{border-color:var(--bau)}50%{border-color:var(--work)}}
 .spalte.frisch{animation:einschieben .55s cubic-bezier(.22,.9,.3,1)}
-.spalte.frisch .w-block{animation:aufleuchten 1.5s ease-out}
-/* Der Block im Bau pulst leise -- er wird gerade gesucht. */
-@keyframes suchen{
-  0%,100%{border-color:var(--bau)}
-  50%    {border-color:var(--work)}
-}
-.w-bau{animation:suchen 2.6s ease-in-out infinite}
-@media(prefers-reduced-motion:reduce){
-  .spalte.frisch,.spalte.frisch .w-block,.w-bau{animation:none}
-}
-.unbekannt{color:var(--faint)}
-.poolname{color:var(--proof);font-weight:700}
-.trenner{flex:0 0 auto;width:36px;align-self:stretch;display:flex;
-  align-items:center;justify-content:center}
-.trenner div{width:1px;height:150px;background:var(--line)}
-.mehr{flex:0 0 auto;align-self:center;margin-left:8px;height:44px;padding:0 16px;
-  border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--work);
-  font:inherit;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.spalte.frisch .blk{animation:aufleuchten 1.6s ease-out}
+/* Das Schild "NEU" bleibt laenger stehen als die Bewegung. */
+.spalte.neu .blk{border:2px solid var(--work)}
+.spalte.neu .blk .in{padding-top:20px}
+.spalte.neu .blk .punkt{top:20px}
+@media(prefers-reduced-motion:reduce){.spalte.frisch,.spalte.frisch .blk,.blk.bau{animation:none}}
+.mehr{flex:none;margin-left:14px;height:44px;padding:0 16px;border:1px solid var(--line);border-radius:14px;
+  background:var(--surface);color:var(--work);font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
 .mehr:hover{border-color:var(--work)}
 .mehr:disabled{opacity:.5;cursor:default}
 
-/* -------------------------------------------------------------- Detail */
-.detail{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:24px;
-  box-shadow:var(--schatten);overflow:hidden}
-.detail-kopf{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
-  align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
-.detail-kopf>div{min-width:0;flex:1 1 200px}
-.detail-kopf .muted{overflow-wrap:anywhere}
-.detail-kopf h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
-.zu{border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;
-  font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:10px;cursor:pointer}
-.zu:hover{border-color:var(--work);color:var(--work)}
-.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:0 28px;padding:6px 22px 14px}
-.kv .z{display:flex;justify-content:space-between;gap:14px;padding:9px 0;
-  border-bottom:1px solid var(--line);font-size:13.5px}
-.kv .z span:first-child{color:var(--dim);font-weight:600}
-.kv .z .v{font-family:'IBM Plex Mono',monospace;font-size:12.5px;
-  word-break:break-all;text-align:right}
-.ok{color:var(--proof);font-weight:800} .bad{color:var(--risk);font-weight:800} .offen{color:var(--faint)}
-.txkopf{padding:14px 22px 6px;font-size:11px;font-weight:800;text-transform:uppercase;
-  letter-spacing:.08em;color:var(--faint)}
-.tx{margin:0 22px 12px;background:var(--raised);border-radius:14px;padding:13px 14px}
-.tx-kopf{display:flex;justify-content:space-between;gap:12px;align-items:baseline;
-  flex-wrap:wrap}
-.marke-cb,.marke-tx{font-size:10.5px;font-weight:800;text-transform:uppercase;
-  letter-spacing:.07em;border-radius:99px;padding:3px 8px}
-.marke-cb{color:var(--proof);background:var(--proof-tint)}
-.marke-tx{color:var(--dim);background:var(--surface);border:1px solid var(--line)}
-.empf{margin-top:11px;display:flex;flex-direction:column;gap:7px}
-.empf .e{display:flex;justify-content:space-between;gap:12px;font-size:12.5px}
-.leer{padding:30px 16px;text-align:center;color:var(--faint);font-size:13px;font-weight:600}
+/* ------------------------------------------------------------- Statistik */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px;min-width:0}
+.kpi .l{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.kpi .w{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:23px;margin-top:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.kpi .w em{font-style:normal;font-size:13px;color:var(--faint);margin-left:5px}
+.kpi .d{font-size:12px;font-weight:700;color:var(--dim);margin-top:3px;line-height:1.4}
+.charts{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px;margin-top:14px}
+.ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 22px;min-width:0}
+.ch h3{margin:0;font-size:15px;font-weight:800}
+.ch h3+p,.ch .gross+p{margin:2px 0 0;font-size:12.5px;font-weight:600;color:var(--dim)}
+.ch h3.weiter{margin-top:20px}
+.ch .gross{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:22px;margin-top:8px}
+.ch .gross em{font-style:normal;font-size:13px;color:var(--faint);margin-left:5px}
+.ch svg{display:block;margin-top:12px;width:100%;height:auto;overflow:visible}
+.ax{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:var(--faint)}
+.gitter{stroke:var(--netz);stroke-width:1}
+.ziel{stroke:var(--dim);stroke-width:1.2}
+.c-balken,.c-linie,.c-flaeche,.c-punkt,.c-wert{pointer-events:none}
+.c-balken{fill:var(--balken)} .c-balken.aktuell{fill:var(--work)}
+.c-linie{fill:none;stroke:var(--work);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.c-flaeche{fill:var(--work);opacity:.10}
+.c-punkt{fill:var(--work);stroke:var(--surface);stroke-width:2}
+.c-wert{font:700 12px Manrope,sans-serif;fill:var(--text)}
+.c-treffer{fill:transparent;cursor:crosshair}
+.c-treffer:hover+.c-balken,.c-balken.hov{opacity:.8}
+.fortschritt{height:14px;border-radius:7px;background:var(--raised);overflow:hidden;margin-top:12px;display:flex;gap:2px}
+.fortschritt i{display:block;height:100%;min-width:4px;background:var(--work);border-radius:7px 4px 4px 7px}
+.fortschritt i.pool{background:var(--pool);border-radius:7px 0 0 7px}
+.fortschritt i.solo{border-radius:0 7px 7px 0}
+.fortschritt i.allein{border-radius:7px}
+.zwei{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700;color:var(--dim);margin-top:6px}
+.legende{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--lese);margin-top:10px}
+.legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+#tipp{position:fixed;z-index:60;pointer-events:none;background:var(--text);color:var(--ink);border-radius:10px;
+  padding:7px 10px;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap;
+  box-shadow:0 10px 24px -10px rgba(0,0,0,.5);transform:translate(-50%,-100%);margin-top:-10px}
+#tipp[hidden]{display:none}
+#tipp small{display:block;font-weight:600;opacity:.75}
 
-/* -------------------------------------------------------------- Karten */
-.karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:14px;margin-top:24px}
-.karte{background:var(--surface);border:1px solid var(--line);border-radius:24px;
-  padding:18px 20px;box-shadow:var(--schatten)}
-.karte .label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;
-  color:var(--faint)}
-.karte .wert{font-size:22px;font-weight:800;margin-top:6px;letter-spacing:-.01em;
-  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;
-  text-overflow:ellipsis}
-.karte .unter{font-size:12px;font-weight:600;color:var(--dim);margin-top:4px;line-height:1.5}
-.balken{height:4px;border-radius:99px;background:var(--raised);overflow:hidden;margin-top:10px}
-.balken i{display:block;height:100%;border-radius:99px;background:var(--work)}
+/* ------------------------------------------------------------- Fenster */
+#fenster{position:fixed;inset:0;z-index:40;background:rgba(10,16,28,.58);display:flex;
+  justify-content:center;align-items:flex-start;padding:34px 20px;overflow-y:auto;overscroll-behavior:contain;
+  animation:einblenden .16s ease-out}
+#fenster[hidden]{display:none}
+@keyframes einblenden{from{opacity:0}to{opacity:1}}
+@keyframes hochfahren{from{transform:translateY(18px);opacity:.6}to{transform:none;opacity:1}}
+.fenster{width:100%;max-width:780px;background:var(--surface);border:1px solid var(--line);border-radius:26px;margin:auto 0;
+  box-shadow:0 40px 90px -30px rgba(10,16,28,.75);animation:hochfahren .22s cubic-bezier(.22,.9,.3,1)}
+.griff{display:none}
+.fenster:focus{outline:none}
+.fk{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 26px 0}
+.fk h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
+.fk .unter{font-size:12.5px;font-weight:600;color:var(--dim);margin-top:3px;overflow-wrap:anywhere}
+.fk-knoepfe{display:flex;gap:8px;flex:none}
+.rk{width:38px;height:38px;border-radius:50%;border:0;background:var(--raised);display:flex;align-items:center;
+  justify-content:center;color:var(--dim);cursor:pointer;font-weight:800}
+.rk:hover{color:var(--work)}
+a.rk[aria-disabled=true]{opacity:.35;pointer-events:none}
+.badge{font-size:12px;font-weight:800;border-radius:999px;padding:5px 11px;display:inline-flex;align-items:center;
+  gap:6px;letter-spacing:0;white-space:nowrap}
+.badge.ok{color:var(--proof);background:var(--proof-tint)}
+.badge.bad{color:var(--risk);background:var(--risk-tint)}
+.badge.offen{color:var(--dim);background:var(--raised)}
+.fs{padding:18px 26px 26px}
+.fuellkasten{background:var(--ink);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.fuellkasten .zeile{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fuellkasten b{font-size:22px;font-weight:800}
+.fuellkasten span{font-size:12.5px;font-weight:700;color:var(--dim)}
+.meter{height:16px;border-radius:8px;background:var(--surface);border:1px solid var(--line);margin-top:10px;overflow:hidden}
+.meter i{display:block;height:100%;min-width:4px;background:var(--work);border-radius:0 4px 4px 0}
+.fakten{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:14px}
+.fakten>div{background:var(--surface);padding:14px 16px;min-width:0}
+.fakten .l,.ut{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.fakten .w{font-size:15px;font-weight:800;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fakten .w.mono{font-weight:500}
+.fakten .s{font-size:12px;font-weight:600;color:var(--dim);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ut{margin:22px 0 8px;font-size:11px}
+.ut b{color:var(--dim);letter-spacing:0;text-transform:none;font-weight:700}
+.pruef{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pruef div{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--lese);
+  border-radius:12px;padding:10px 12px;background:var(--raised)}
+.pruef div.ok{background:var(--proof-tint)} .pruef div.fail{background:var(--risk-tint);color:var(--risk)}
+.pruef div span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pruef i svg,.badge svg{display:block;flex:none}
+.pruef i{width:18px;height:18px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-size:11px;font-weight:800;background:var(--faint);color:var(--surface)}
+.pruef .ok i{background:var(--proof)} .pruef .fail i{background:var(--risk)}
+.pruef small{margin-left:auto;font-size:11.5px;font-weight:800;white-space:nowrap}
+.pruef .ok small{color:var(--proof)}
+.hz{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--line);
+  font-size:13px;font-weight:700}
+.hz:first-of-type{border-top:0}
+.hz>span:first-child{flex:none}
+.hz .wert{display:flex;align-items:center;gap:8px;min-width:0}
+.hz .mono{font-size:12px;color:var(--lese);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hz a.mono{color:var(--work)}
+.kop{flex:none;width:28px;height:28px;border-radius:9px;border:0;background:var(--raised);color:var(--dim);
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.kop:hover{color:var(--work)} .kop.ja{color:var(--proof)}
+/* Lange Kennungen: am Rechner ganz, am Handy Anfang und Ende. */
+.kurzf{display:none}
+.unter .wert{display:flex;align-items:center;gap:8px;min-width:0}
+.unter .mono{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tx{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.tx:first-of-type{border-top:0}
+a.tx{color:inherit;font-weight:inherit}
+a.tx:hover{opacity:1}
+a.tx:hover .a{color:var(--work)}
+.tx .ic{width:36px;height:36px;border-radius:12px;background:var(--work-tint);color:var(--work);display:flex;
+  align-items:center;justify-content:center;flex:none}
+.tx .m{flex:1;min-width:0}
+.tx .a{font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .b{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .r{flex:none;text-align:right;font-size:14px;font-weight:800;white-space:nowrap}
+.tx .r small{display:block;font-size:11px;font-weight:700;color:var(--faint)}
+details.empf{border-top:1px solid var(--line)}
+details.empf:first-of-type{border-top:0}
+details.empf>summary{list-style:none;cursor:pointer}
+details.empf>summary::-webkit-details-marker{display:none}
+details.empf .tx{border-top:0}
+.empf-liste{margin:0 0 12px 48px;background:var(--raised);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.empf-liste div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.empf-liste div>span:last-child{flex:none;white-space:nowrap}
+.empf-liste .mono:first-child{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.empf-liste a{font-weight:400}
+.empf-liste a:hover{color:var(--work);opacity:1}
+.leer{padding:26px 16px;text-align:center;color:var(--faint);font-size:13px;font-weight:600}
+.ff{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
+.ff a,.ff button{padding:10px 16px;border-radius:12px;border:0;background:var(--raised);font-size:13.5px;font-weight:800;
+  color:var(--lese);cursor:pointer}
+.ff .haupt{background:var(--work-tint);color:var(--work)}
+.ff a[aria-disabled=true]{opacity:.35;pointer-events:none}
+.ff button:disabled{opacity:.5;cursor:default}
+.fakten .w a{font-weight:800}
+.grosszahl{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:30px;margin-top:4px}
+.grosszahl em{font-style:normal;font-size:15px;color:var(--faint);margin-left:6px}
+.absatz{font-size:13px;font-weight:600;color:var(--dim);line-height:1.6;margin-top:14px}
 
-.fuss{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
-  display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;font-weight:600;color:var(--faint)}
+.fuss{margin-top:40px;padding:18px 0 34px;border-top:1px solid var(--line);display:flex;gap:18px;flex-wrap:wrap;
+  font-size:12.5px;font-weight:600;color:var(--faint)}
 .fuss span{margin-left:auto}
+
+@media(max-width:1080px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .charts{grid-template-columns:1fr 1fr}
+  .charts .ch:last-child{grid-column:1/-1}
+  .nav{gap:18px;font-size:14px}
+}
+@media(max-width:1040px){
+  #menue,.app-domain #appZurueck{display:inline-flex}
+  .nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;
+    background:var(--nacht);border-bottom:1px solid #1C283E;padding:8px 20px 18px}
+  .nav.offen{display:flex}
+  .app-domain .nav{display:none}
+  .nav a{padding:13px 4px;font-size:16px;border-bottom:1px solid #1C283E}
+  .nav a[aria-current=page]::after{display:none}
+  .nav a.knopf{margin-top:14px;text-align:center;border-bottom:0}
+}
 @media(max-width:640px){
-  .wrap{padding:16px 16px 34px}
-  header{padding:12px 16px;gap:10px}
-  .marke small{display:none}
-  .marke{order:1}
-  #sprache{order:2;margin-left:auto;padding:6px 22px 6px 9px;font-size:12px;background-position:right 8px center}
-  #thema{order:2}
-  .kopfrechts{order:3;font-size:12px;flex:1 1 100%;margin-left:0}
-  .suche{order:4}
-  .kopfrechts .hoehe{display:none}
-  .suche{flex-basis:100%;max-width:none}
-  .spalte{width:112px}
-  .wuerfel{width:104px;height:104px;padding:8px 6px}
-  .w-klein{font-size:10px}
-  .finder{width:104px}
-  .detail-kopf,.kv,.txkopf{padding-left:16px;padding-right:16px}
-  .tx{margin-left:16px;margin-right:16px}
+  .wrap{padding:0 16px}
+  .kopf .wrap{height:60px}
+  .marke{font-size:17px}.marke img{width:30px;height:20px}
+  #sprache,.kopf-knopf{height:40px}.kopf-knopf{width:40px}
+  #sprache{padding:0 28px 0 11px;font-size:13px;max-width:118px;background-position:right 10px center}
+  .held{padding:22px 0 24px}
+  .held h1{font-size:23px;margin:6px 0 14px}
+  .suche{padding:6px 6px 6px 14px}.suche input{font-size:14px}.suche button{padding:10px 14px}
+  #verdict{max-width:none;width:100%}
+  .sek{padding-top:22px}
+  .sek-kopf h2{font-size:17px}
+  .blk{width:128px;height:128px}
+  .blk .in{padding:11px 11px 10px}
+  @keyframes einschieben{from{margin-left:-140px;opacity:0}to{margin-left:0;opacity:1}}
+  .glied{width:12px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px 14px}.kpi .w{font-size:19px}
+  .charts{grid-template-columns:1fr;gap:10px;margin-top:10px}
+  .ch{padding:16px}
+  /* Fenster als Blatt von unten. */
+  #fenster{padding:0;align-items:flex-end}
+  .fenster{max-width:none;border-radius:28px 28px 0 0;margin:0;max-height:94dvh;overflow-y:auto;overscroll-behavior:contain;
+    padding-bottom:env(safe-area-inset-bottom,0px);animation:blatt .26s cubic-bezier(.22,.9,.3,1)}
+  @keyframes blatt{from{transform:translateY(100%)}to{transform:none}}
+  .griff{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:10px auto 0}
+  .fk{padding:12px 18px 0}.fk h2{font-size:21px;gap:8px}
+  .fs{padding:14px 18px 22px}
+  .fakten{grid-template-columns:1fr 1fr}
+  .fakten>div:last-child:nth-child(odd){grid-column:1/-1}
+  .grosszahl{font-size:22px;overflow-wrap:anywhere}.grosszahl em{font-size:13px}
+  .pruef{grid-template-columns:1fr}
+  .empf-liste{margin-left:0}
+  .lang{display:none}.kurzf{display:inline}
+  .tx .a{font-size:13px;white-space:normal;overflow-wrap:anywhere}.tx .r{font-size:13px}
+  .fakten .w,.fakten .s{white-space:normal;overflow-wrap:anywhere}
 }
 </style>
 </head>
 <body>
 
-<header>
-  <a class="marke" href="/"><img src="/marke/kristall.png" alt="">YSKAR<small>Explorer</small></a>
-  <div class="suche">
-    <input id="q" type="search" autocomplete="off" spellcheck="false"
-           placeholder="" aria-label="Search">
-    <button id="qgo" type="button" data-t="suchen"></button>
+<header class="kopf"><div class="wrap">
+  <div class="kopf-links">
+    <!-- Nur auf der App-Domain und nur am Handy: der Weg zurueck in die App. -->
+    <a id="appZurueck" class="kopf-knopf" href="/">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>
+    </a>
+    <a class="marke" id="marke" href="/" aria-label="YSKAR"><img src="/marke/kristall.png" alt="" width="38" height="25">YSKAR</a>
   </div>
-  <div class="kopfrechts">
-    <span class="hoehe"><span data-t="hoehe"></span> <b id="kopfHoehe" class="mono">—</b></span>
-    <span id="verdict"></span>
+  <div class="kopf-rechts">
+    <nav class="nav" id="nav" aria-label="Main"></nav>
+    <select id="sprache" aria-label="Language"></select>
+    <button id="thema" class="kopf-knopf" type="button" aria-label="Theme">
+      <svg class="mond" viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z"/></svg>
+      <svg class="sonne" viewBox="0 0 20 20" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>
+    </button>
+    <button id="menue" class="kopf-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6h13M3.5 10h13M3.5 14h13"/></svg>
+    </button>
   </div>
-  <select id="sprache" aria-label="Language"></select>
-  <button id="thema" type="button" aria-label="Theme">
-    <svg class="mond" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z"/></svg>
-    <svg class="sonne" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.6"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"/></svg>
-  </button>
-</header>
+</div></header>
 
-<div class="wrap">
-
-  <div class="hinweis">
-    <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8.5"/><path d="M7.5 11.5l2.3 2.3 4.7-5"/></svg>
-    <span><b data-t="hinweisTitel"></b> <span data-t="hinweisText"></span></span>
+<section class="held"><div class="wrap">
+  <div class="held-links">
+    <div class="eyebrow">YSKAR Explorer</div>
+    <h1 data-t="hinweisTitel"></h1>
+    <div class="suche" role="search">
+      <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="" aria-label="Search">
+      <button id="qgo" type="button" data-t="suchen"></button>
+    </div>
+    <div class="meldung" id="treffer" role="status"></div>
+    <div class="meldung schlecht" id="err" role="alert"></div>
   </div>
-
-  <div class="err" id="err"></div>
-  <div id="treffer"></div>
-
-  <div class="reihenkopf">
-    <h2 data-t="bloecke"></h2>
-    <span class="faint" style="font-size:11.5px" data-t="legende"></span>
+  <div id="verdict" role="status">
+    <span class="zeichen" id="verdictZeichen" aria-hidden="true"></span>
+    <span><span id="verdictText"></span><small data-t="keinServer"></small></span>
   </div>
-  <div class="kette" id="kette"></div>
+</div></section>
 
-  <div class="detail" id="detail">
-    <div class="leer" data-t="klickHinweis"></div>
-  </div>
+<main class="wrap">
+  <section class="sek">
+    <div class="sek-kopf"><h2 data-t="kette"></h2><span id="ketteLegende"></span></div>
+    <div class="kette" id="kette"></div>
+  </section>
 
-  <div class="karten" id="stats"></div>
+  <section class="sek">
+    <div class="sek-kopf"><h2 data-t="netzBlick"></h2><span data-t="netzBlickUnter"></span></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="charts" id="charts"></div>
+  </section>
 
-  <div class="fuss">
+  <footer class="fuss">
     <a href="/" data-t="zurApp"></a>
     <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer" data-t="quelltext"></a>
     <span id="engine"></span>
+  </footer>
+</main>
+
+<!--
+  Das Fenster. Block, Block im Bau, Adresse und Transaktion erscheinen alle
+  hier -- welches, sagt die Adresszeile (#block-N, #neu, #adr-…, #tx-…).
+-->
+<div id="fenster" hidden>
+  <div class="fenster" role="dialog" aria-modal="true" aria-labelledby="fensterTitel" tabindex="-1">
+    <div class="griff" aria-hidden="true"></div>
+    <div id="fensterInhalt"></div>
   </div>
 </div>
+<div id="tipp" role="tooltip" hidden></div>
 
 <script>
 // ---------------------------------------------------------------- Konfiguration
@@ -328,10 +502,6 @@ const API = PARAM || (HOSTED ? '' : ORIGIN) + '/api/v2';
 */
 const AUF_WEBSITE = /(^|\.)yskar\.app$/.test(location.hostname);
 const APP_LINK = (!HOSTED || AUF_WEBSITE) ? ORIGIN + '/' : '/';
-document.addEventListener('DOMContentLoaded', () => {
-  const a = document.querySelector('a[data-t="zurApp"]');
-  if (a) a.setAttribute('href', APP_LINK);
-});
 
 // ---------------------------------------------------------------- SHA-256
 // crypto.subtle gibt es nur in sicheren Kontexten. Damit die Datei auch von
@@ -450,7 +620,9 @@ async function verify(b,vorgaenger){
       serialisierung: b.header ? (toHex(gebaut)===b.header?'ok':'fail') : 'offen',
       hash: errechnet===b.hash?'ok':'fail',
       difficulty: toBig(digest)<=targetOf(diffWert(b))?'ok':'fail',
-      kette: !vorgaenger?'offen':(b.prevHash===vorgaenger.hash?'ok':'fail'),
+      // Nur ein Block genau eine Hoehe darunter ist ein Vorgaenger. Alles
+      // andere waere ein Vergleich mit dem falschen Block.
+      kette: (!vorgaenger||vorgaenger.height!==b.height-1)?'offen':(b.prevHash===vorgaenger.hash?'ok':'fail'),
       erreicht: achieved(digest),
     };
   }catch(e){ return {serialisierung:'fail',hash:'fail',difficulty:'fail',kette:'fail'}; }
@@ -504,6 +676,19 @@ en:{
   keineBewegungen:'No activity yet.',txNichtLesbar:'Transaction not readable.',transaktion:'Transaction',
   status:'Status',wartetAufBlock:'waiting for a block',inBlock:h=>'in block '+h,art:'Type',betrag:'Amount',
   zuBlock:h=>'Go to block '+h,geradeEben:'just now',vorMin:n=>n+' min ago',vorStd:n=>n+' h ago',vorTg:n=>n+' d ago',
+  keinServer:'None of these statements comes from the server.',neu:'NEW',voll:p=>p+'% full',
+  vonTx:(n,max)=>n+' of '+max+' transactions',kette:'The chain',fuellLegende:'fill = used transaction slots',
+  netzBlick:'Network at a glance',netzBlickUnter:'updates with every block',
+  cBlockzeit:n=>'Block time of the last '+n+' blocks',cBlockzeitUnter:m=>'Minutes between two blocks · line = target '+m+' min',
+  cDifficulty:n=>'Trend over the last '+n+' blocks',bisHalbierung:'Until the halving',werFindet:'Who finds the blocks',
+  letzteN:n=>'last '+n+' blocks',pool:'Pool',solo:'Solo',hierGeprueft:'verified here',gefunden:'Found',finderL:'Finder',
+  zumVorgaenger:'since the previous block',pruefung:'Checked in your browser',kennungen:'Identifiers',
+  merkle:'Merkle root',stateRoot:'State root',kopieren:'Copy',kopiert:'Copied',alleTx:n=>'Show all '+n+' transactions',
+  menue:'Menu',erzeugt:p=>p+'% mined',offenP:p=>p+'% remaining',zumVorblock:'vs. previous block',wartend:'Pending',
+  aeltereBew:'Load older activity',notiz:'Memo',inklGebuehr:x=>'incl. '+x+' in fees',blockZurueck:'Previous block',
+  blockWeiter:'Next block',minKurz:'min',navMitmachen:'Get started',navWallet:'Wallet',navAnleitungen:'Guides',
+  navWhitepaper:'Whitepaper',navMinen:'Start mining',
+  navExplorer:'Explorer',
 },
 de:{
   platzhalter:'Adresse, Transaktion, Blockhöhe oder Blockhash',suchen:'Suchen',hoehe:'Höhe',
@@ -539,6 +724,19 @@ de:{
   keineBewegungen:'Noch keine Bewegungen.',txNichtLesbar:'Transaktion nicht lesbar.',transaktion:'Transaktion',
   status:'Status',wartetAufBlock:'wartet auf einen Block',inBlock:h=>'in Block '+h,art:'Art',betrag:'Betrag',
   zuBlock:h=>'Zu Block '+h,geradeEben:'gerade eben',vorMin:n=>'vor '+n+' Min',vorStd:n=>'vor '+n+' Std',vorTg:n=>'vor '+n+' Tg',
+  keinServer:'Keine dieser Aussagen stammt vom Server.',neu:'NEU',voll:p=>p+' % voll',
+  vonTx:(n,max)=>n+' von '+max+' Transaktionen',kette:'Die Kette',fuellLegende:'Füllung = belegte Transaktionsplätze',
+  netzBlick:'Netz auf einen Blick',netzBlickUnter:'aktualisiert sich mit jedem Block',
+  cBlockzeit:n=>'Blockzeit der letzten '+n+' Blöcke',cBlockzeitUnter:m=>'Minuten zwischen zwei Blöcken · Linie = Ziel '+m+' Min.',
+  cDifficulty:n=>'Verlauf über die letzten '+n+' Blöcke',bisHalbierung:'Bis zur Halbierung',werFindet:'Wer findet die Blöcke',
+  letzteN:n=>'letzte '+n+' Blöcke',pool:'Pool',solo:'Solo',hierGeprueft:'hier geprüft',gefunden:'Gefunden',finderL:'Finder',
+  zumVorgaenger:'Abstand zum Vorgänger',pruefung:'Prüfung in deinem Browser',kennungen:'Kennungen',
+  merkle:'Merkle-Root',stateRoot:'State-Root',kopieren:'Kopieren',kopiert:'Kopiert',alleTx:n=>'Alle '+n+' Transaktionen zeigen',
+  menue:'Menü',erzeugt:p=>p+' % erzeugt',offenP:p=>p+' % offen',zumVorblock:'zum Vorblock',wartend:'Wartend',
+  aeltereBew:'Ältere Bewegungen laden',notiz:'Notiz',inklGebuehr:x=>'inkl. '+x+' Gebühren',blockZurueck:'Vorheriger Block',
+  blockWeiter:'Nächster Block',minKurz:'min',navMitmachen:'Mitmachen',navWallet:'Wallet',navAnleitungen:'Anleitungen',
+  navWhitepaper:'Whitepaper',navMinen:'Jetzt minen',
+  navExplorer:'Explorer',
 },
 es:{
   platzhalter:'Dirección, transacción, altura o hash de bloque',suchen:'Buscar',hoehe:'Altura',
@@ -574,6 +772,19 @@ es:{
   keineBewegungen:'Sin actividad todavía.',txNichtLesbar:'Transacción no legible.',transaktion:'Transacción',
   status:'Estado',wartetAufBlock:'esperando un bloque',inBlock:h=>'en el bloque '+h,art:'Tipo',betrag:'Importe',
   zuBlock:h=>'Ir al bloque '+h,geradeEben:'ahora mismo',vorMin:n=>'hace '+n+' min',vorStd:n=>'hace '+n+' h',vorTg:n=>'hace '+n+' d',
+  keinServer:'Ninguna de estas afirmaciones proviene del servidor.',neu:'NUEVO',voll:p=>p+' % lleno',
+  vonTx:(n,max)=>n+' de '+max+' transacciones',kette:'La cadena',fuellLegende:'relleno = espacios de transacción ocupados',
+  netzBlick:'La red de un vistazo',netzBlickUnter:'se actualiza con cada bloque',
+  cBlockzeit:n=>'Tiempo de bloque de los últimos '+n+' bloques',cBlockzeitUnter:m=>'Minutos entre dos bloques · línea = objetivo '+m+' min',
+  cDifficulty:n=>'Evolución en los últimos '+n+' bloques',bisHalbierung:'Hasta el halving',werFindet:'Quién encuentra los bloques',
+  letzteN:n=>'últimos '+n+' bloques',pool:'Pool',solo:'Solo',hierGeprueft:'verificado aquí',gefunden:'Encontrado',finderL:'Encontrado por',
+  zumVorgaenger:'desde el bloque anterior',pruefung:'Verificación en tu navegador',kennungen:'Identificadores',
+  merkle:'Raíz de Merkle',stateRoot:'Raíz de estado',kopieren:'Copiar',kopiert:'Copiado',alleTx:n=>'Mostrar las '+n+' transacciones',
+  menue:'Menú',erzeugt:p=>p+' % emitido',offenP:p=>p+' % pendiente',zumVorblock:'respecto al bloque anterior',wartend:'Pendientes',
+  aeltereBew:'Cargar actividad anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' de comisiones',blockZurueck:'Bloque anterior',
+  blockWeiter:'Bloque siguiente',minKurz:'min',navMitmachen:'Empezar',navWallet:'Wallet',navAnleitungen:'Guías',
+  navWhitepaper:'Whitepaper',navMinen:'Iniciar minería',
+  navExplorer:'Explorador',
 },
 pt:{
   platzhalter:'Endereço, transação, altura ou hash do bloco',suchen:'Buscar',hoehe:'Altura',
@@ -609,6 +820,19 @@ pt:{
   keineBewegungen:'Ainda sem atividade.',txNichtLesbar:'Transação ilegível.',transaktion:'Transação',
   status:'Status',wartetAufBlock:'aguardando um bloco',inBlock:h=>'no bloco '+h,art:'Tipo',betrag:'Valor',
   zuBlock:h=>'Ir ao bloco '+h,geradeEben:'agora mesmo',vorMin:n=>'há '+n+' min',vorStd:n=>'há '+n+' h',vorTg:n=>'há '+n+' d',
+  keinServer:'Nenhuma destas afirmações vem do servidor.',neu:'NOVO',voll:p=>p+'% cheio',
+  vonTx:(n,max)=>n+' de '+max+' transações',kette:'A cadeia',fuellLegende:'preenchimento = vagas de transação ocupadas',
+  netzBlick:'A rede em resumo',netzBlickUnter:'atualiza a cada bloco',
+  cBlockzeit:n=>'Tempo de bloco dos últimos '+n+' blocos',cBlockzeitUnter:m=>'Minutos entre dois blocos · linha = alvo '+m+' min',
+  cDifficulty:n=>'Evolução nos últimos '+n+' blocos',bisHalbierung:'Até o halving',werFindet:'Quem encontra os blocos',
+  letzteN:n=>'últimos '+n+' blocos',pool:'Pool',solo:'Solo',hierGeprueft:'verificado aqui',gefunden:'Encontrado',finderL:'Encontrado por',
+  zumVorgaenger:'desde o bloco anterior',pruefung:'Verificação no seu navegador',kennungen:'Identificadores',
+  merkle:'Raiz de Merkle',stateRoot:'Raiz de estado',kopieren:'Copiar',kopiert:'Copiado',alleTx:n=>'Mostrar todas as '+n+' transações',
+  menue:'Menu',erzeugt:p=>p+'% emitido',offenP:p=>p+'% restante',zumVorblock:'em relação ao bloco anterior',wartend:'Pendentes',
+  aeltereBew:'Carregar atividade anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' em taxas',blockZurueck:'Bloco anterior',
+  blockWeiter:'Próximo bloco',minKurz:'min',navMitmachen:'Começar',navWallet:'Carteira',navAnleitungen:'Guias',
+  navWhitepaper:'Whitepaper',navMinen:'Iniciar mineração',
+  navExplorer:'Explorer',
 },
 ru:{
   platzhalter:'Адрес, транзакция, высота или хеш блока',suchen:'Найти',hoehe:'Высота',
@@ -644,6 +868,21 @@ ru:{
   keineBewegungen:'Операций пока нет.',txNichtLesbar:'Транзакция нечитаема.',transaktion:'Транзакция',
   status:'Статус',wartetAufBlock:'ожидает блока',inBlock:h=>'в блоке '+h,art:'Тип',betrag:'Сумма',
   zuBlock:h=>'К блоку '+h,geradeEben:'только что',vorMin:n=>n+' мин назад',vorStd:n=>n+' ч назад',vorTg:n=>n+' дн назад',
+  keinServer:'Ни одно из этих утверждений не получено от сервера.',neu:'НОВЫЙ',voll:p=>p+'% занято',
+  vonTx:(n,max)=>n+' из '+max+' транзакций',kette:'Цепочка',fuellLegende:'заливка = занятые места для транзакций',
+  netzBlick:'Сеть в цифрах',netzBlickUnter:'обновляется с каждым блоком',
+  cBlockzeit:n=>'Время блока: последние '+n+' '+ruPl(n,'блок','блока','блоков'),
+  cBlockzeitUnter:m=>'Минуты между двумя блоками · линия = цель '+m+' мин',
+  cDifficulty:n=>'Динамика за последние '+n+' '+ruPl(n,'блок','блока','блоков'),bisHalbierung:'До халвинга',
+  werFindet:'Кто находит блоки',letzteN:n=>'последние '+n+' '+ruPl(n,'блок','блока','блоков'),pool:'Пул',solo:'Соло',
+  hierGeprueft:'проверено здесь',gefunden:'Найден',finderL:'Нашёл',zumVorgaenger:'после предыдущего блока',
+  pruefung:'Проверка в вашем браузере',kennungen:'Идентификаторы',merkle:'Корень Меркла',stateRoot:'Корень состояния',
+  kopieren:'Копировать',kopiert:'Скопировано',alleTx:n=>'Показать все транзакции ('+n+')',menue:'Меню',
+  erzeugt:p=>p+'% выпущено',offenP:p=>p+'% осталось',zumVorblock:'к предыдущему блоку',wartend:'В ожидании',
+  aeltereBew:'Загрузить более ранние операции',notiz:'Заметка',inklGebuehr:x=>'вкл. '+x+' комиссий',
+  blockZurueck:'Предыдущий блок',blockWeiter:'Следующий блок',minKurz:'мин',navMitmachen:'Участвовать',
+  navWallet:'Кошелёк',navAnleitungen:'Инструкции',navWhitepaper:'Whitepaper',navMinen:'Начать майнинг',
+  navExplorer:'Explorer',
 },
 tr:{
   platzhalter:'Adres, işlem, blok yüksekliği veya blok hash’i',suchen:'Ara',hoehe:'Yükseklik',
@@ -679,6 +918,19 @@ tr:{
   keineBewegungen:'Henüz hareket yok.',txNichtLesbar:'İşlem okunamıyor.',transaktion:'İşlem',
   status:'Durum',wartetAufBlock:'blok bekliyor',inBlock:h=>h+' numaralı blokta',art:'Tür',betrag:'Tutar',
   zuBlock:h=>h+' numaralı bloğa git',geradeEben:'az önce',vorMin:n=>n+' dk önce',vorStd:n=>n+' sa önce',vorTg:n=>n+' gün önce',
+  keinServer:'Bu ifadelerin hiçbiri sunucudan gelmez.',neu:'YENİ',voll:p=>'%'+p+' dolu',
+  vonTx:(n,max)=>max+' işlemden '+n,kette:'Zincir',fuellLegende:'dolgu = kullanılan işlem yeri',
+  netzBlick:'Bir bakışta ağ',netzBlickUnter:'her blokta güncellenir',
+  cBlockzeit:n=>'Son '+n+' bloğun blok süresi',cBlockzeitUnter:m=>'İki blok arasındaki dakika · çizgi = hedef '+m+' dk',
+  cDifficulty:n=>'Son '+n+' bloktaki seyir',bisHalbierung:'Yarılanmaya kadar',werFindet:'Blokları kim buluyor',
+  letzteN:n=>'son '+n+' blok',pool:'Havuz',solo:'Solo',hierGeprueft:'burada doğrulandı',gefunden:'Bulundu',finderL:'Bulan',
+  zumVorgaenger:'önceki bloktan itibaren',pruefung:'Tarayıcınızda doğrulama',kennungen:'Tanımlayıcılar',
+  merkle:'Merkle kökü',stateRoot:'Durum kökü',kopieren:'Kopyala',kopiert:'Kopyalandı',alleTx:n=>n+' işlemin tümünü göster',
+  menue:'Menü',erzeugt:p=>'%'+p+' üretildi',offenP:p=>'%'+p+' kaldı',zumVorblock:'önceki bloğa göre',wartend:'Bekleyen',
+  aeltereBew:'Eski hareketleri yükle',notiz:'Not',inklGebuehr:x=>x+' ücret dahil',blockZurueck:'Önceki blok',
+  blockWeiter:'Sonraki blok',minKurz:'dk',navMitmachen:'Katıl',navWallet:'Cüzdan',navAnleitungen:'Rehberler',
+  navWhitepaper:'Whitepaper',navMinen:'Madenciliği başlat',
+  navExplorer:'Gezgin',
 },
 fr:{
   platzhalter:'Adresse, transaction, hauteur ou hash de bloc',suchen:'Rechercher',hoehe:'Hauteur',
@@ -714,6 +966,19 @@ fr:{
   keineBewegungen:'Aucune activité pour l’instant.',txNichtLesbar:'Transaction illisible.',transaktion:'Transaction',
   status:'Statut',wartetAufBlock:'en attente d’un bloc',inBlock:h=>'dans le bloc '+h,art:'Type',betrag:'Montant',
   zuBlock:h=>'Aller au bloc '+h,geradeEben:'à l’instant',vorMin:n=>'il y a '+n+' min',vorStd:n=>'il y a '+n+' h',vorTg:n=>'il y a '+n+' j',
+  keinServer:'Aucune de ces affirmations ne vient du serveur.',neu:'NOUVEAU',voll:p=>p+' % plein',
+  vonTx:(n,max)=>n+' transactions sur '+max,kette:'La chaîne',fuellLegende:'remplissage = emplacements de transaction occupés',
+  netzBlick:'Le réseau en un coup d’œil',netzBlickUnter:'mis à jour à chaque bloc',
+  cBlockzeit:n=>'Temps de bloc des '+n+' derniers blocs',cBlockzeitUnter:m=>'Minutes entre deux blocs · ligne = cible '+m+' min',
+  cDifficulty:n=>'Évolution sur les '+n+' derniers blocs',bisHalbierung:'Jusqu’au halving',werFindet:'Qui trouve les blocs',
+  letzteN:n=>n+' derniers blocs',pool:'Pool',solo:'Solo',hierGeprueft:'vérifié ici',gefunden:'Trouvé',finderL:'Trouvé par',
+  zumVorgaenger:'depuis le bloc précédent',pruefung:'Vérification dans ton navigateur',kennungen:'Identifiants',
+  merkle:'Racine de Merkle',stateRoot:'Racine d’état',kopieren:'Copier',kopiert:'Copié',alleTx:n=>'Afficher les '+n+' transactions',
+  menue:'Menu',erzeugt:p=>p+' % émis',offenP:p=>p+' % restants',zumVorblock:'par rapport au bloc précédent',wartend:'En attente',
+  aeltereBew:'Charger l’activité plus ancienne',notiz:'Note',inklGebuehr:x=>'dont '+x+' de frais',blockZurueck:'Bloc précédent',
+  blockWeiter:'Bloc suivant',minKurz:'min',navMitmachen:'Commencer',navWallet:'Portefeuille',navAnleitungen:'Guides',
+  navWhitepaper:'Livre blanc',navMinen:'Commencer à miner',
+  navExplorer:'Explorateur',
 },
 it:{
   platzhalter:'Indirizzo, transazione, altezza o hash del blocco',suchen:'Cerca',hoehe:'Altezza',
@@ -749,6 +1014,19 @@ it:{
   keineBewegungen:'Ancora nessun movimento.',txNichtLesbar:'Transazione non leggibile.',transaktion:'Transazione',
   status:'Stato',wartetAufBlock:'in attesa di un blocco',inBlock:h=>'nel blocco '+h,art:'Tipo',betrag:'Importo',
   zuBlock:h=>'Vai al blocco '+h,geradeEben:'proprio ora',vorMin:n=>n+' min fa',vorStd:n=>n+' h fa',vorTg:n=>n+' g fa',
+  keinServer:'Nessuna di queste affermazioni proviene dal server.',neu:'NUOVO',voll:p=>p+'% pieno',
+  vonTx:(n,max)=>n+' di '+max+' transazioni',kette:'La catena',fuellLegende:'riempimento = posti transazione occupati',
+  netzBlick:'La rete in sintesi',netzBlickUnter:'si aggiorna a ogni blocco',
+  cBlockzeit:n=>'Tempo di blocco degli ultimi '+n+' blocchi',cBlockzeitUnter:m=>'Minuti tra due blocchi · linea = obiettivo '+m+' min',
+  cDifficulty:n=>'Andamento negli ultimi '+n+' blocchi',bisHalbierung:'Fino all’halving',werFindet:'Chi trova i blocchi',
+  letzteN:n=>'ultimi '+n+' blocchi',pool:'Pool',solo:'Solo',hierGeprueft:'verificato qui',gefunden:'Trovato',finderL:'Trovato da',
+  zumVorgaenger:'dal blocco precedente',pruefung:'Verifica nel tuo browser',kennungen:'Identificativi',
+  merkle:'Radice di Merkle',stateRoot:'Radice di stato',kopieren:'Copia',kopiert:'Copiato',alleTx:n=>'Mostra tutte le '+n+' transazioni',
+  menue:'Menu',erzeugt:p=>p+'% emesso',offenP:p=>p+'% rimanente',zumVorblock:'rispetto al blocco precedente',wartend:'In attesa',
+  aeltereBew:'Carica movimenti precedenti',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' di commissioni',blockZurueck:'Blocco precedente',
+  blockWeiter:'Blocco successivo',minKurz:'min',navMitmachen:'Inizia',navWallet:'Wallet',navAnleitungen:'Guide',
+  navWhitepaper:'Whitepaper',navMinen:'Inizia a minare',
+  navExplorer:'Explorer',
 },
 pl:{
   platzhalter:'Adres, transakcja, wysokość lub hash bloku',suchen:'Szukaj',hoehe:'Wysokość',
@@ -784,6 +1062,21 @@ pl:{
   keineBewegungen:'Na razie brak operacji.',txNichtLesbar:'Nie można odczytać transakcji.',transaktion:'Transakcja',
   status:'Status',wartetAufBlock:'czeka na blok',inBlock:h=>'w bloku '+h,art:'Typ',betrag:'Kwota',
   zuBlock:h=>'Przejdź do bloku '+h,geradeEben:'przed chwilą',vorMin:n=>n+' min temu',vorStd:n=>n+' godz. temu',vorTg:n=>n+' '+plPl(n,'dzień','dni','dni')+' temu',
+  keinServer:'Żadne z tych stwierdzeń nie pochodzi z serwera.',neu:'NOWY',voll:p=>p+'% pełny',
+  vonTx:(n,max)=>n+' z '+max+' transakcji',kette:'Łańcuch',fuellLegende:'wypełnienie = zajęte miejsca na transakcje',
+  netzBlick:'Sieć w skrócie',netzBlickUnter:'aktualizuje się z każdym blokiem',
+  cBlockzeit:n=>'Czas bloku: ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),
+  cBlockzeitUnter:m=>'Minuty między dwoma blokami · linia = cel '+m+' min',
+  cDifficulty:n=>'Przebieg: ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),bisHalbierung:'Do halvingu',
+  werFindet:'Kto znajduje bloki',letzteN:n=>'ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),pool:'Pool',solo:'Solo',
+  hierGeprueft:'zweryfikowano tutaj',gefunden:'Znaleziono',finderL:'Znalazca',zumVorgaenger:'od poprzedniego bloku',
+  pruefung:'Weryfikacja w Twojej przeglądarce',kennungen:'Identyfikatory',merkle:'Korzeń Merkle’a',stateRoot:'Korzeń stanu',
+  kopieren:'Kopiuj',kopiert:'Skopiowano',alleTx:n=>'Pokaż wszystkie transakcje ('+n+')',menue:'Menu',
+  erzeugt:p=>p+'% wyemitowano',offenP:p=>p+'% pozostało',zumVorblock:'względem poprzedniego bloku',wartend:'Oczekujące',
+  aeltereBew:'Wczytaj starsze operacje',notiz:'Notatka',inklGebuehr:x=>'w tym '+x+' opłat',blockZurueck:'Poprzedni blok',
+  blockWeiter:'Następny blok',minKurz:'min',navMitmachen:'Dołącz',navWallet:'Portfel',navAnleitungen:'Poradniki',
+  navWhitepaper:'Whitepaper',navMinen:'Zacznij mining',
+  navExplorer:'Explorer',
 },
 zh:{
   platzhalter:'地址、交易、区块高度或区块哈希',suchen:'搜索',hoehe:'高度',
@@ -819,6 +1112,19 @@ zh:{
   keineBewegungen:'暂无动态。',txNichtLesbar:'无法读取交易。',transaktion:'交易',
   status:'状态',wartetAufBlock:'等待打包进区块',inBlock:h=>'在区块 '+h+' 中',art:'类型',betrag:'金额',
   zuBlock:h=>'前往区块 '+h,geradeEben:'刚刚',vorMin:n=>n+' 分钟前',vorStd:n=>n+' 小时前',vorTg:n=>n+' 天前',
+  keinServer:'这些结论均非来自服务器。',neu:'新',voll:p=>'已用 '+p+'%',
+  vonTx:(n,max)=>n+' / '+max+' 笔交易',kette:'区块链',fuellLegende:'填充 = 已占用的交易位',
+  netzBlick:'网络概览',netzBlickUnter:'每出一个区块更新一次',
+  cBlockzeit:n=>'最近 '+n+' 个区块的出块时间',cBlockzeitUnter:m=>'相邻两个区块的间隔（分钟）· 横线 = 目标 '+m+' 分钟',
+  cDifficulty:n=>'最近 '+n+' 个区块的走势',bisHalbierung:'距离减半',werFindet:'谁发现了区块',
+  letzteN:n=>'最近 '+n+' 个区块',pool:'矿池',solo:'单独',hierGeprueft:'已在此验证',gefunden:'发现时间',finderL:'发现者',
+  zumVorgaenger:'距上一个区块',pruefung:'在你的浏览器中验证',kennungen:'标识',
+  merkle:'默克尔根',stateRoot:'状态根',kopieren:'复制',kopiert:'已复制',alleTx:n=>'显示全部 '+n+' 笔交易',
+  menue:'菜单',erzeugt:p=>'已发行 '+p+'%',offenP:p=>'剩余 '+p+'%',zumVorblock:'较上一区块',wartend:'待处理',
+  aeltereBew:'加载更早的动态',notiz:'备注',inklGebuehr:x=>'含手续费 '+x,blockZurueck:'上一个区块',
+  blockWeiter:'下一个区块',minKurz:'分钟',navMitmachen:'开始参与',navWallet:'钱包',navAnleitungen:'教程',
+  navWhitepaper:'白皮书',navMinen:'开始挖矿',
+  navExplorer:'区块浏览器',
 },
 };
 // Polnisch: 1 / 2–4 (ausser 12–14) / sonst. Anders als Russisch zaehlt 21 zu "viele".
@@ -845,14 +1151,20 @@ function spracheSetzen(k){
   try{ localStorage.setItem('yskar.sprache',k); }catch{}
   document.documentElement.lang=k;
   statischeTexte();
-  if(sum){ renderStats(); renderVerdict(); renderKette(); }
-  if(open==='bau') zeigeBau(); else if(open!==null) zeigeBlock(open); else if(sum) schliesse();
-  const q=$('q').value.trim(); if(q) suchen();
+  if(sum){ renderStats(); renderVerdict(); }
+  renderKette();
+  ausHash();
 }
 function statischeTexte(){
   document.querySelectorAll('[data-t]').forEach(e=>{ e.textContent=T[e.dataset.t]; });
   $('q').placeholder=T.platzhalter;
-  const v=$('verdict'); if(!v.className) v.textContent=T.laedt;
+  $('q').setAttribute('aria-label',T.suchen);
+  $('ketteLegende').textContent=T.legende+' · '+T.fuellLegende;
+  $('menue').setAttribute('aria-label',T.menue);
+  const zurueck=T.zurApp.replace(/^←\s*/,'');
+  $('appZurueck').setAttribute('aria-label',zurueck); $('appZurueck').title=zurueck;
+  if(!$('verdict').className) $('verdictText').textContent=T.laedt;
+  navBauen();
   const sel=$('sprache');
   if(!sel.options.length){
     for(const [k,name] of SPRACHEN){ const o=document.createElement('option'); o.value=k; o.textContent=name; sel.appendChild(o); }
@@ -861,11 +1173,92 @@ function statischeTexte(){
   sel.value=L;
 }
 
+// ---------------------------------------------------------------- Kopfzeile
+/*
+  Unter www.yskar.app (und von der Festplatte) traegt der Explorer das Menue
+  der Website -- er ist dort eine Seite unter mehreren. Auf der App-Domain
+  gibt es diese Seiten nicht; dort fuehrt die Kopfzeile nur zur App zurueck.
+*/
+const WEBSITE_NAV=AUF_WEBSITE||!HOSTED;
+const SITE=AUF_WEBSITE?'':'https://www.yskar.app';
+function navBauen(){
+  const n=$('nav');
+  if(WEBSITE_NAV){
+    n.innerHTML=
+      `<a href="${SITE}/#mitmachen">${T.navMitmachen}</a>`+
+      `<a href="${SITE}/#wallet">${T.navWallet}</a>`+
+      `<a href="${SITE}/anleitungen">${T.navAnleitungen}</a>`+
+      `<a href="${SITE}/whitepaper">${T.navWhitepaper}</a>`+
+      `<a href="${SITE}/explorer" aria-current="page">${T.navExplorer}</a>`+
+      `<a class="knopf" href="${SITE}/#mitmachen">${T.navMinen}</a>`;
+  }else{
+    n.innerHTML=`<a href="/">${T.zurApp}</a>`;
+  }
+}
+document.body.classList.toggle('app-domain',!WEBSITE_NAV);
+$('marke').setAttribute('href',WEBSITE_NAV?SITE+'/':'/');
+document.querySelector('a[data-t="zurApp"]').setAttribute('href',APP_LINK);
+$('menue').addEventListener('click',()=>{
+  const auf=$('nav').classList.toggle('offen');
+  $('menue').setAttribute('aria-expanded',auf?'true':'false');
+});
+$('nav').addEventListener('click',e=>{
+  if(e.target.closest('a')){ $('nav').classList.remove('offen'); $('menue').setAttribute('aria-expanded','false'); }
+});
+
+// ---------------------------------------------------------------- Helfer
+// Identisch zu src/lib/core/params.ts.
+const MAX_TX=2000;      // MAX_TXS_PER_BLOCK
+const EPOCHE=12000;     // EPOCH_BLOCKS
+const N_STAT=30;        // so viele Bloecke fliessen in die Statistik
+
 const esc=t=>String(t).replace(/[&<>"']/g,c=>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const holen=p=>fetch(API+p).then(r=>r.json());
+
+/*
+  Was vom Server kommt, wird an der Grenze in Form gebracht: Zahlen werden
+  Zahlen, und jede Zeichenkette laeuft vor der Anzeige durch esc().
+
+  Mit ?api=… laesst sich der Explorer auf einen fremden Server richten. Der
+  darf falsche Daten liefern -- die faellt beim Nachrechnen auf --, aber er
+  darf der Seite kein HTML unterschieben.
+*/
+function bloeckeAus(r){
+  return (r&&Array.isArray(r.blocks)?r.blocks:[]).map(b=>({...b,
+    height:Number(b.height),
+    txCount:Number(b.txCount)||0,
+    recipients:Math.max(1,Number(b.recipients)||1),
+    sizeBytes:b.sizeBytes==null?null:Number(b.sizeBytes),
+  })).filter(b=>Number.isInteger(b.height)&&b.height>=0);
+}
+function summeAus(s){
+  const zahl=v=>{ const n=Number(v); return Number.isFinite(n)?n:null; };
+  return {...s,
+    height:s.height==null?null:zahl(s.height),
+    mempool:zahl(s.mempool)||0,
+    activeMiners:zahl(s.activeMiners)||0,
+    hashrate:s.hashrate==null?null:zahl(s.hashrate),
+    targetBlockTime:zahl(s.targetBlockTime)||600,
+  };
+}
+
+const svg=(inhalt,g=14,extra='')=>`<svg viewBox="0 0 16 16" width="${g}" height="${g}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inhalt}</svg>`;
+const IC={
+  ok:svg('<path d="M3.2 8.6l3 3 6.4-7.2"/>',12,'stroke-width="2.4"'),
+  x:svg('<path d="M4 4l8 8M12 4l-8 8"/>',13),
+  links:svg('<path d="M10 3.5L5.5 8l4.5 4.5"/>'),
+  rechts:svg('<path d="M6 3.5L10.5 8 6 12.5"/>'),
+  kopie:svg('<rect x="5.5" y="5.5" width="8" height="8" rx="2"/><path d="M10.5 5.5v-1a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1"/>',14,'stroke-width="1.6"'),
+  stern:'<svg viewBox="0 0 20 20" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M10 2.2l2.3 5 5.4.6-4 3.7 1.1 5.3L10 14.1l-4.8 2.7 1.1-5.3-4-3.7 5.4-.6z"/></svg>',
+  pfeil:svg('<path d="M3 8h10M9 4l4 4-4 4"/>',16),
+  ein:svg('<path d="M8 3v10M4 9l4 4 4-4"/>',16),
+  aus:svg('<path d="M8 13V3M4 7l4-4 4 4"/>',16),
+};
 
 function hashrate(h){
   if(h===null||h===undefined)return '—';
+  h=Number(h); if(!Number.isFinite(h))return '—';
   if(h>=1e27)return h.toExponential(2)+' H/s';
   for(const [ab,e] of [[1e24,'YH/s'],[1e21,'ZH/s'],[1e18,'EH/s'],[1e15,'PH/s'],[1e12,'TH/s']])
     if(h>=ab)return (h/ab).toFixed(2)+' '+e;
@@ -873,6 +1266,13 @@ function hashrate(h){
   if(h>=1e6)return (h/1e6).toFixed(2)+' MH/s';
   if(h>=1e3)return (h/1e3).toFixed(1)+' kH/s';
   return Math.round(h)+' H/s';
+}
+/** Wie hashrate(), aber Zahl (in der Schreibweise der Sprache) und Einheit getrennt. */
+function hashTeile(h){
+  const s=hashrate(h), i=s.lastIndexOf(' ');
+  if(i<0) return [s,''];
+  const z=Number(s.slice(0,i));
+  return [Number.isFinite(z)?z.toLocaleString(LOC,{maximumFractionDigits:2}):s.slice(0,i), s.slice(i+1)];
 }
 function alter(ts){
   const d=Math.floor(Date.now()/1000)-Number(ts);
@@ -885,299 +1285,810 @@ function uhr(ts){
   return new Date(Number(ts)*1000).toLocaleString(LOC,
     {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
+/** Sekunden als "m:ss". */
+function dauer(s){
+  const g=Math.max(0,Math.round(s));
+  return Math.floor(g/60)+':'+String(g%60).padStart(2,'0');
+}
+const kurz=(s,v=10,h=6)=>{ s=String(s??'—'); return s.length>v+h+1?s.slice(0,v)+'…'+s.slice(-h):s; };
+/** Prozent ohne Zeichen: grosse Werte glatt, kleine genauer -- 14 / 2,1 / 0,05. */
+function prozent(p){
+  const st=p>=10?0:(p>=1?1:2);
+  return p.toLocaleString(LOC,{minimumFractionDigits:st,maximumFractionDigits:st});
+}
+function groesse(byte){
+  const n=byte==null?NaN:Number(byte);
+  if(!Number.isFinite(n)) return '';
+  if(n<1000) return nf(n)+' '+T.byte;
+  return (n/1000).toLocaleString(LOC,{minimumFractionDigits:1,maximumFractionDigits:1})+' kB';
+}
+/** Grosse Zahl als [Zahl, Einheit] -- "4,71" und "Mrd.". Kleine bleiben ausgeschrieben. */
+function kompakt(n){
+  const x=Number(n);
+  if(!Number.isFinite(x)) return ['—',''];
+  if(x<1e7) return [x.toLocaleString(LOC),''];
+  if(x>=1e15) return [nfGross(x),''];
+  try{
+    const teile=new Intl.NumberFormat(LOC,{notation:'compact',maximumFractionDigits:2}).formatToParts(x);
+    const einheit=teile.filter(t=>t.type==='compact').map(t=>t.value).join('');
+    const zahl=teile.filter(t=>t.type!=='compact'&&t.type!=='literal').map(t=>t.value).join('');
+    return [zahl,einheit];
+  }catch{ return [nfGross(x),'']; }
+}
+const kompaktText=n=>{ const [z,e]=kompakt(n); return e?z+' '+e:z; };
+/** Aenderung in Prozent, mit Vorzeichen, in der Schreibweise der Sprache. */
+function delta(neu,alt){
+  if(!(alt>0)) return '';
+  const q=(neu-alt)/alt;
+  try{ return new Intl.NumberFormat(LOC,{style:'percent',maximumFractionDigits:2,signDisplay:'exceptZero'}).format(q); }
+  catch{ return (q>0?'+':'')+(q*100).toFixed(2)+' %'; }
+}
+/**
+  Notiz einer Ueberweisung: Bytes als UTF-8. Nur anzeigen, wenn es sauberer
+  Text ist -- alles andere bleibt weg, statt Zeichensalat zu zeigen.
+*/
+function memoText(hex){
+  if(!hex) return null;
+  try{
+    const t=new TextDecoder('utf-8',{fatal:true}).decode(fromHex(hex));
+    if(!t.trim()||/[\u0000-\u001f\u007f]/.test(t)) return null;
+    return t;
+  }catch{ return null; }
+}
 
-let sum=null, blocks=[], checks={}, details={}, open=null, dec=8, sym='YSR';
+/** HTML nur ersetzen, wenn es sich geaendert hat -- sonst zuckt alle fuenf Sekunden die Seite. */
+function setze(el,html){ if(el.__html!==html){ el.innerHTML=html; el.__html=html; } }
+
+// ---------------------------------------------------------------- Zustand
+/*
+  blocks  die Kette ab der Spitze, lueckenlos, neueste zuerst. Die Reihe
+          oben und die Statistik lesen nur hier.
+  neben   einzelne Bloecke ausserhalb davon -- geholt, weil jemand sie
+          gesucht oder verlinkt hat. Sie erscheinen nur im Fenster.
+
+  Frueher ersetzte ein verlinkter alter Block die ganze Reihe; danach hing
+  jeder neue Block an einem falschen Vorgaenger, und die Kettenpruefung
+  schlug zu Unrecht fehl.
+*/
+let sum=null, blocks=[], neben={}, checks={}, details={}, dec=8, sym='YSR';
+/** Was das Fenster zeigt: null | {art:'block',h} | {art:'bau'} | {art:'adr',a} | {art:'tx',id} */
+let ansicht=null;
+let alleTx=false;
+let konten={}, txs={};
 
 /*
   Hoehen, die gerade neu dazugekommen sind.
 
-  Nur diese bekommen die Animation. Waere es ein Kennzeichen am Block
-  selbst, liefe sie bei jedem Neuzeichnen wieder -- und die ganze Reihe
-  zappelte.
+  frisch  bekommt die Animation -- nur einmal, sonst zappelte die Reihe bei
+          jedem Neuzeichnen.
+  neuBis  traegt das Schild "NEU", bis die Zeit darin abgelaufen ist.
 */
 let frisch=new Set();
+let neuBis={};
+
+const blockVon=h=>blocks.find(x=>x.height===h)||neben[h]||null;
+const istAnsicht=(art,wert)=>ansicht&&ansicht.art===art&&(art==='bau'||ansicht.h===wert||ansicht.a===wert||ansicht.id===wert);
+const ysr=(n,min=2,max=8)=>(Number(n)/10**dec).toLocaleString(LOC,{minimumFractionDigits:min,maximumFractionDigits:max});
+const fuellung=b=>Math.min(100,(Number(b.txCount)||0)/MAX_TX*100);
+/** ok = hier nachgerechnet, bad = eine Pruefung schlug fehl, offen = noch nicht geprueft. */
+function zustand(c){
+  if(!c) return 'offen';
+  if(c.hash==='fail'||c.difficulty==='fail'||c.kette==='fail'||c.serialisierung==='fail') return 'bad';
+  if(c.hash==='ok'&&c.difficulty==='ok') return 'ok';
+  return 'offen';
+}
 
 // ------------------------------------------------------------- Blockreihe
 /*
-  Links EIN Block im Bau, rechts die gefundenen.
+  Links EIN Block im Bau, rechts die gefundenen -- neueste zuerst.
 
   Nur einer links: YSKAR hat keinen Gebuehrenmarkt mit Bytepreisen, aus dem
-  sich mehrere Bloecke im Voraus schaetzen liessen. Acht Kaestchen
-  anzuzeigen, wie es Bitcoin-Explorer tun, waere hier erfunden.
+  sich mehrere Bloecke im Voraus schaetzen liessen.
 
-  Unter jedem Wuerfel steht, WER ihn gefunden hat -- der selbst gewaehlte
-  Name aus der Coinbase, sonst "Unbekannt". Die Adresse steht bewusst nicht
-  darunter; sie gehoert in die Einzelheiten.
+  Die Fuellung von unten zeigt, wie viele der 2.000 Transaktionsplaetze
+  belegt sind. Ein Block mit nur der Coinbase ist zu 0,05 % voll; damit man
+  ueberhaupt etwas sieht, ist der Strich mindestens 3 % hoch. Die Zahl
+  daneben ist die echte.
 */
 function renderKette(){
   const ziel=$('kette');
-  if(blocks.length===0){ ziel.innerHTML=''; return; }
+  if(blocks.length===0){ setze(ziel,''); return; }
 
   const naechste=(sum&&sum.height!=null)?sum.height+1:blocks[0].height+1;
   const wartend=(sum&&sum.mempool)||0;
+  const jetzt=Date.now();
 
   let html=`
     <div class="spalte">
-      <div class="k-kopf"><span class="faint" style="font-size:12px">${T.imBau}</span></div>
-      <button class="wuerfel w-bau${open==='bau'?' offen':''}" type="button"
-              onclick="zeigeBau()">
-        <div class="w-zahl" style="color:var(--work)">${nf(naechste)}</div>
-        <div class="w-klein">${T.tx(wartend)}</div>
-        <div class="w-zeit">${T.wirdGesucht}</div>
-      </button>
-      <div class="finder faint">—</div>
+      <a class="blk bau${ansicht&&ansicht.art==='bau'?' offen':''}" href="#neu" aria-label="${T.block} ${nf(naechste)} · ${T.imBau}">
+        <span class="in">
+          <span class="h">#${nf(naechste)}</span>
+          <span class="t">${T.wirdGesucht}</span>
+          <span class="u"><span>${T.imBau}</span><span>${nf(wartend)} Tx</span></span>
+        </span>
+      </a>
     </div>
-    <div class="trenner"><div></div></div>`;
+    <span class="pfeil" aria-hidden="true">→</span>`;
 
-  for(const b of blocks){
-    const c=checks[b.height];
-    const gut=c&&c.hash==='ok'&&c.difficulty==='ok'&&c.serialisierung!=='fail';
-    const schlecht=c&&(c.hash==='fail'||c.difficulty==='fail'
-      ||c.kette==='fail'||c.serialisierung==='fail');
-    const punkt=schlecht?'var(--risk)':(gut?'var(--proof)':'var(--faint)');
+  blocks.forEach((b,i)=>{
+    const z=zustand(checks[b.height]);
+    const punkt=z==='bad'?'var(--risk)':(z==='ok'?'var(--proof)':'var(--faint)');
+    const pool=(b.recipients??1)>1;
     const name=b.finder
-      ? `<span class="poolname" title="${T.selbstauskunft}">${esc(b.finder)}</span>`
-      : `<span class="unbekannt">${T.unbekannt}</span>`;
-    const lohn=b.reward!=null?(Number(b.reward)/10**dec).toFixed(0):'—';
+      ? `<span class="f poolname" title="${esc(T.selbstauskunft)}">${esc(b.finder)}</span>`
+      : `<span class="f">${pool?T.pool:T.solo}</span>`;
+    const p=fuellung(b);
+    const neu=neuBis[b.height]>jetzt;
+    const offen=ansicht&&ansicht.art==='block'&&ansicht.h===b.height;
 
-    html+=`
-      <div class="spalte${frisch.has(b.height)?' frisch':''}">
-        <div class="k-kopf"><a href="#block-${b.height}">${nf(b.height)}</a></div>
-        <button class="wuerfel w-block${open===b.height?' offen':''}" type="button"
-                onclick="location.hash='#block-${b.height}'">
-          <div class="w-punkt" style="background:${punkt}"></div>
-          <div class="w-zahl">${lohn}</div>
-          <div class="w-klein">${sym}</div>
-          <div class="w-klein">${T.tx(b.txCount)}</div>
-          <div class="w-zeit">${alter(b.timestamp)}</div>
-        </button>
-        <div class="finder">${name}</div>
+    html+=`${i?'<span class="glied" aria-hidden="true"></span>':''}
+      <div class="spalte${frisch.has(b.height)?' frisch':''}${neu?' neu':''}">
+        <a class="blk${offen?' offen':''}" href="#block-${b.height}" aria-label="${T.block} ${nf(b.height)}">
+          ${neu?`<span class="neu-marke">${T.neu}</span>`:''}
+          <span class="fuell" style="height:${Math.max(p,3).toFixed(2)}%"></span>
+          <span class="in">
+            <span class="h">#${nf(b.height)}</span>
+            <span class="t">${alter(b.timestamp)}</span>
+            ${name}
+            <span class="u"><span>${T.voll(prozent(p))}</span><span>${nf(b.txCount)} Tx</span></span>
+          </span>
+          <span class="punkt" style="background:${punkt}"></span>
+        </a>
       </div>`;
-  }
+  });
 
-  const aeltester=blocks[blocks.length-1].height;
-  if(aeltester>0){
+  if(blocks[blocks.length-1].height>0){
     html+=`<button class="mehr" id="mehr" type="button" onclick="mehrLaden()">${T.aeltere}</button>`;
   }
-  ziel.innerHTML=html;
+  setze(ziel,html);
 }
 
-// ---------------------------------------------------------------- Detail
+// --------------------------------------------------------------- Statistik
+/*
+  Kennzahlen und Verlauf -- alles aus den letzten N_STAT Bloecken, die ohnehin
+  geladen und hier nachgerechnet sind, plus /summary.
+*/
+let dDaten=null;
+
+function renderStats(){
+  if(!sum)return;
+  const d=Number(sum.token?.decimals??8);
+  dec=Number.isInteger(d)&&d>=0&&d<=18?d:8;
+  sym=String(sum.token?.token_symbol??'YSR').replace(/[^0-9A-Za-z._-]/g,'').slice(0,12)||'YSR';
+
+  const hoehe=sum.height??0;
+  const zielS=Number(sum.targetBlockTime)||600;
+  const n=Math.min(N_STAT,Math.max(0,blocks.length-1));
+  const reihe=blocks.slice(0,n+1);
+
+  // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
+  const bz=n>=2?(Number(reihe[0].timestamp)-Number(reihe[n].timestamp))/n:null;
+
+  const d0=Number(blocks[0]?.difficultyWert??blocks[0]?.difficulty);
+  const d1=Number(blocks[1]?.difficultyWert??blocks[1]?.difficulty);
+  const dAend=blocks.length>1?delta(d0,d1):'';
+
+  const bis=EPOCHE-(hoehe%EPOCHE);
+  const [hz,he]=hashTeile(sum.hashrate);
+  const [dz,de]=kompakt(sum.difficultyWert??sum.difficulty??0);
+
+  const kpi=(l,w,em,d)=>`<div class="kpi"><div class="l">${l}</div>
+    <div class="w">${w}${em?`<em>${em}</em>`:''}</div><div class="d">${d||'&nbsp;'}</div></div>`;
+
+  setze($('kpis'),
+    kpi(T.kHoehe,'#'+nf(hoehe),'',blocks[0]?alter(blocks[0].timestamp):'')+
+    kpi(T.kNetz,hz,he,T.kMiner(sum.activeMiners??0))+
+    kpi(T.difficulty,dz,de,dAend?dAend+' '+T.zumVorblock:'')+
+    kpi(T.kBlockzeit,bz!=null?dauer(bz):'—',bz!=null?T.minKurz:'',T.letzteN(n))+
+    kpi(T.belohnung,ysr(sum.nextReward??0,0,2),sym,T.kHalbierung+' #'+nf(hoehe+bis))+
+    kpi(T.wartend,nf(sum.mempool??0),'Tx',T.kMempool));
+
+  // -- Im Umlauf, Halbierung, Pool/Solo
+  const umlauf=Number(sum.totalSupply)/10**dec, max=Number(sum.maxSupply)/10**dec;
+  const anteil=max>0?Math.min(100,umlauf/max*100):0;
+  const p1=n=>n.toLocaleString(LOC,{minimumFractionDigits:1,maximumFractionDigits:1});
+  const erzeugt=Math.round(anteil*10)/10;
+  const epoche=(hoehe%EPOCHE)/EPOCHE*100;
+  const letzte=reihe.slice(0,n);
+  const pool=letzte.filter(b=>(b.recipients??1)>1).length, solo=letzte.length-pool;
+
+  let wer='';
+  if(letzte.length){
+    const pp=pool/letzte.length*100;
+    const streifen=pool&&solo
+      ? `<i class="pool" style="width:${pp.toFixed(2)}%"></i><i class="solo" style="flex:1"></i>`
+      : `<i class="allein${pool?' pool':''}" style="width:100%"></i>`;
+    wer=`<h3 class="weiter">${T.werFindet}</h3><p>${T.letzteN(letzte.length)}</p>
+      <div class="fortschritt">${streifen}</div>
+      <div class="legende"><span><i style="background:var(--pool)"></i>${T.pool} · ${nf(pool)}</span>
+        <span><i style="background:var(--work)"></i>${T.solo} · ${nf(solo)}</span></div>`;
+  }
+
+  setze($('charts'),`
+    <div class="ch"><h3>${T.cBlockzeit(n)}</h3><p>${T.cBlockzeitUnter(nf(zielS/60))}</p>${chartBlockzeit(reihe,n,zielS)}</div>
+    <div class="ch"><h3>${T.difficulty}</h3><p>${T.cDifficulty(n)}</p>${chartDifficulty(reihe,n)}</div>
+    <div class="ch"><h3>${T.kUmlauf}</h3><p>${ysr(sum.totalSupply,0,0)} / ${ysr(sum.maxSupply,0,0)} ${sym}</p>
+      <div class="fortschritt"><i style="width:${anteil.toFixed(2)}%"></i></div>
+      <div class="zwei"><span>${T.erzeugt(p1(erzeugt))}</span><span>${T.offenP(p1(100-erzeugt))}</span></div>
+      <h3 class="weiter">${T.bisHalbierung}</h3>
+      <p>${T.kHalbierungUnter(nf(bis),ysr(Number(sum.nextReward??0)/2,0,2),sym)}</p>
+      <div class="fortschritt"><i style="width:${epoche.toFixed(2)}%"></i></div>
+      ${wer}
+    </div>`);
+}
+
+/*
+  Blockzeit als Balken, aeltester links. Die Linie ist das Ziel. Kein
+  Balken wird gekappt: Ein Block, der 40 Minuten brauchte, soll so aussehen.
+*/
+function chartBlockzeit(reihe,n,zielS){
+  if(n<1) return `<div class="leer">—</div>`;
+  const w=[];
+  for(let i=n-1;i>=0;i--) w.push({h:reihe[i].height,ts:reihe[i].timestamp,
+    s:Number(reihe[i].timestamp)-Number(reihe[i+1].timestamp)});
+  const W=460,H=250,l=34,r=4,b=H-22,top=10;
+  const zielMin=zielS/60;
+  const maxMin=Math.max(zielMin*1.5,...w.map(x=>x.s/60));
+  const schritt=[5,10,20,30,60,120,240,480].find(s=>maxMin/s<=4)||Math.ceil(maxMin/240)*60;
+  const oben=Math.ceil(maxMin/schritt)*schritt;
+  const y=m=>b-(Math.min(oben,Math.max(0,m))/oben)*(b-top);
+  let s='';
+  for(let g=0;g<=oben;g+=schritt){
+    s+=`<line class="gitter" x1="${l}" x2="${W-r}" y1="${y(g)}" y2="${y(g)}"/>`
+      +`<text class="ax" x="${l-6}" y="${y(g)+3.5}" text-anchor="end">${g}</text>`;
+  }
+  const plaetze=Math.max(n,12), bw=(W-l-r)/plaetze, breite=Math.min(bw-2,11);
+  w.forEach((x,i)=>{
+    const hoehe=Math.max(1.5,b-y(x.s/60));
+    const x0=l+i*bw+(bw-breite)/2;
+    const rr=Math.min(4,breite/2,hoehe);
+    const t1='#'+nf(x.h)+' · '+dauer(x.s)+' '+T.minKurz;
+    s+=`<rect class="c-treffer" x="${(l+i*bw).toFixed(1)}" y="${top}" width="${bw.toFixed(1)}" height="${b-top}"
+          data-t1="${esc(t1)}" data-t2="${esc(uhr(x.ts))}" data-o="${((b-hoehe-top)/(b-top)).toFixed(3)}"/>`
+      +`<path class="c-balken${i===w.length-1?' aktuell':''}" d="M${x0.toFixed(1)},${b} v${-(hoehe-rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${-rr} h${(breite-2*rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${rr} v${(hoehe-rr).toFixed(1)} z"/>`;
+  });
+  s+=`<line class="ziel" x1="${l}" x2="${W-r}" y1="${y(zielMin)}" y2="${y(zielMin)}"/>`;
+  if(zielMin%schritt!==0&&zielMin/schritt>=.3)
+    s+=`<text class="ax" x="${l-6}" y="${y(zielMin)+3.5}" text-anchor="end">${zielMin}</text>`;
+  s+=`<text class="ax" x="${l}" y="${H-6}">#${nf(w[0].h)}</text>`
+    +`<text class="ax" x="${W-r}" y="${H-6}" text-anchor="end">#${nf(w[w.length-1].h)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.cBlockzeit(n))}">${s}</svg>`;
+}
+
+/*
+  Difficulty als Linie. Die Achse beginnt nicht bei null -- die Difficulty
+  aendert sich von Block zu Block nur um Bruchteile, bei einer Null-Achse
+  waere der Verlauf ein Strich. Die Zahlen an der Achse sagen, wo sie steht.
+*/
+function chartDifficulty(reihe,n){
+  dDaten=null;
+  if(n<1) return `<div class="leer">—</div>`;
+  const p=[];
+  for(let i=n-1;i>=0;i--) p.push({h:reihe[i].height,v:Number(reihe[i].difficultyWert??reihe[i].difficulty)});
+  const W=360,H=250,l=62,r=12,b=H-22,top=20;
+  let lo=Math.min(...p.map(x=>x.v)), hi=Math.max(...p.map(x=>x.v));
+  if(hi===lo){ const e=Math.max(1,Math.abs(hi)*.02); lo-=e; hi+=e; }
+  const roh=(hi-lo)/3, mag=10**Math.floor(Math.log10(roh));
+  const schritt=[1,2,2.5,5,10].find(m=>m*mag>=roh)*mag;
+  const unten=Math.floor(lo/schritt)*schritt, oben=Math.ceil(hi/schritt)*schritt;
+  const zahl=Math.round((oben-unten)/schritt);
+  // Achsenbeschriftung mit Einheit ("4,7 Mrd."), so knapp wie moeglich --
+  // aber mit so vielen Stellen, dass keine zwei Marken gleich heissen.
+  const marken=[]; for(let k=0;k<=zahl;k++) marken.push(unten+k*schritt);
+  let texte=marken.map(v=>String(v));
+  for(let st=0;st<=3;st++){
+    try{
+      const f=new Intl.NumberFormat(LOC,{notation:'compact',minimumFractionDigits:st,maximumFractionDigits:st});
+      texte=marken.map(v=>f.format(v));
+    }catch{ texte=marken.map(v=>nfGross(v)); break; }
+    if(new Set(texte).size===texte.length) break;
+  }
+  const dx=p.length>1?(W-l-r)/(p.length-1):0;
+  const x=i=>l+i*dx, y=v=>b-((v-unten)/(oben-unten))*(b-top);
+  let s='';
+  marken.forEach((g,k)=>{
+    s+=`<line class="gitter" x1="${l}" x2="${W-r}" y1="${y(g).toFixed(1)}" y2="${y(g).toFixed(1)}"/>`
+      +`<text class="ax" x="${l-6}" y="${(y(g)+3.5).toFixed(1)}" text-anchor="end">${esc(texte[k])}</text>`;
+  });
+  const letzter=p[p.length-1], ex=x(p.length-1), ey=y(letzter.v);
+  if(p.length>1){
+    const d=p.map((q,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(q.v).toFixed(1)).join(' ');
+    s+=`<path class="c-flaeche" d="${d} L${ex.toFixed(1)},${b} L${x(0).toFixed(1)},${b} Z"/><path class="c-linie" d="${d}"/>`;
+  }
+  // Der Zeiger liegt unter dem Endpunkt, damit der Endpunkt lesbar bleibt.
+  s+=`<line id="dKreuz" class="ziel" y1="${top}" y2="${b}" visibility="hidden"/>`
+    +`<circle class="c-punkt" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="5"/>`
+    +`<circle id="dPunkt" class="c-punkt" r="4" visibility="hidden"/>`;
+  // Der aktuelle Wert steht ueber dem Bild, rechts ueber dem Endpunkt --
+  // dort kann ihn die Linie nie kreuzen.
+  s+=`<text class="c-wert" x="${W-r+5}" y="${top-8}" text-anchor="end">${esc(kompaktText(letzter.v))}</text>`;
+  s+=`<text class="ax" x="${l}" y="${H-6}">#${nf(p[0].h)}</text>`
+    +`<text class="ax" x="${W-r}" y="${H-6}" text-anchor="end">#${nf(letzter.h)}</text>`;
+  s+=`<rect id="dTreffer" class="c-treffer" x="${l-4}" y="${top}" width="${W-l-r+8}" height="${b-top}"/>`;
+  dDaten={p,W,H,l,dx,x,y};
+  return `<svg id="c2" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.difficulty)}">${s}</svg>`;
+}
+
+// -- Hinweis am Zeiger
+const tipp=$('tipp');
+function tippZeigen(x,y,t1,t2){
+  tipp.innerHTML=esc(t1)+(t2?`<small>${esc(t2)}</small>`:'');
+  tipp.hidden=false;
+  const halb=tipp.offsetWidth/2;
+  tipp.style.left=Math.max(halb+8,Math.min(window.innerWidth-halb-8,x))+'px';
+  tipp.style.top=Math.max(tipp.offsetHeight+14,y)+'px';
+}
+function tippWeg(){
+  tipp.hidden=true;
+  const k=$('dKreuz'), q=$('dPunkt');
+  if(k) k.setAttribute('visibility','hidden');
+  if(q) q.setAttribute('visibility','hidden');
+}
+function chartZeiger(e){
+  const t=e.target;
+  if(!t.classList||!t.classList.contains('c-treffer')){ tippWeg(); return; }
+  if(t.id==='dTreffer'){
+    const D=dDaten, bild=$('c2'); if(!D||!bild) return;
+    const r=bild.getBoundingClientRect();
+    const vx=(e.clientX-r.left)/r.width*D.W;
+    const i=D.dx?Math.max(0,Math.min(D.p.length-1,Math.round((vx-D.l)/D.dx))):0;
+    const px=D.x(i), py=D.y(D.p[i].v);
+    const k=$('dKreuz'), q=$('dPunkt');
+    k.setAttribute('x1',px); k.setAttribute('x2',px); k.setAttribute('visibility','visible');
+    q.setAttribute('cx',px); q.setAttribute('cy',py); q.setAttribute('visibility','visible');
+    tippZeigen(r.left+px/D.W*r.width, r.top+py/D.H*r.height, '#'+nf(D.p[i].h), nfGross(D.p[i].v));
+    return;
+  }
+  const r=t.getBoundingClientRect();
+  tippZeigen(r.left+r.width/2, r.top+Number(t.dataset.o||0)*r.height, t.dataset.t1, t.dataset.t2);
+}
+$('charts').addEventListener('pointermove',chartZeiger);
+$('charts').addEventListener('pointerdown',chartZeiger);
+$('charts').addEventListener('pointerleave',tippWeg);
+window.addEventListener('scroll',tippWeg,{passive:true});
+
+function renderVerdict(){
+  const n=Object.keys(checks).length;
+  const kaputt=Object.values(checks).some(c=>zustand(c)==='bad');
+  $('verdict').className=kaputt?'bad':'ok';
+  $('verdictZeichen').innerHTML=kaputt?IC.x:IC.ok;
+  $('verdictText').textContent=kaputt?T.urteilBad:T.urteilOk(n);
+}
+
+// ---------------------------------------------------------------- Fenster
+/*
+  Ein Fenster fuer alles, was man oeffnen kann. Die Adresszeile fuehrt:
+  Jeder Inhalt hat seinen Anker, laesst sich also verlinken, und der
+  Zurueck-Knopf -- am Handy die Zurueck-Geste -- schliesst das Fenster,
+  statt die Seite zu verlassen.
+*/
+let fensterKennung=null, vorFokus=null;
+function fensterZeigen(kennung,html){
+  const f=$('fenster'), k=f.querySelector('.fenster');
+  setze($('fensterInhalt'),html);
+  if(f.hidden){
+    vorFokus=document.activeElement;
+    f.hidden=false;
+    document.body.classList.add('fenster-offen');
+    k.focus({preventScroll:true});
+  }
+  if(fensterKennung!==kennung){ f.scrollTop=0; k.scrollTop=0; fensterKennung=kennung; }
+}
+function fensterZu(){
+  const f=$('fenster');
+  if(f.hidden) return;
+  f.hidden=true; fensterKennung=null;
+  document.body.classList.remove('fenster-offen');
+  setze($('fensterInhalt'),'');
+  if(vorFokus&&vorFokus.focus&&document.contains(vorFokus)) vorFokus.focus({preventScroll:true});
+}
+/** Schliessen = Anker leeren. Ohne das "#" stehen zu lassen. */
+function schliesseFenster(){
+  try{ history.pushState(null,'',location.pathname+location.search); }
+  catch{ location.hash=''; return; }
+  ausHash();
+}
+const kopKnopf=wert=>`<button class="kop" type="button" data-kopie="${esc(wert)}" aria-label="${esc(T.kopieren)}" title="${esc(T.kopieren)}">${IC.kopie}</button>`;
+function kopfHtml(titel,o={}){
+  return `<div class="fk">
+    <div style="min-width:0"><h2 id="fensterTitel">${titel}${o.badge||''}</h2>${o.unter?`<div class="unter">${o.unter}</div>`:''}</div>
+    <div class="fk-knoepfe">${o.nav||''}<button class="rk" type="button" onclick="schliesseFenster()" aria-label="${esc(T.schliessen)}" title="${esc(T.schliessen)}">${IC.x}</button></div>
+  </div>`;
+}
+const hinweisHtml=(titel,text)=>kopfHtml(titel)+`<div class="fs"><div class="leer">${esc(text)}</div></div>`;
+/** Lange Kennung: am Rechner ganz, am Handy Anfang und Ende. */
+const lang=wert=>`<span class="lang">${esc(wert)}</span><span class="kurzf">${esc(kurz(wert,14,8))}</span>`;
+
+// ---------------------------------------------------------------- Block
+/*
+  Stellt sicher, dass Block h UND sein Vorgaenger da sind -- erst mit dem
+  Vorgaenger laesst sich die Verkettung pruefen und die Blockzeit nennen.
+*/
+async function sichere(h){
+  try{
+    if(!blockVon(h)){
+      const r=await holen(`/blocks?limit=2&before=${h+1}`);
+      for(const x of bloeckeAus(r)) if(!blockVon(x.height)) neben[x.height]=x;
+    }else if(h>0&&!blockVon(h-1)){
+      const r=await holen(`/blocks?limit=1&before=${h}`);
+      for(const x of bloeckeAus(r)) if(!blockVon(x.height)) neben[x.height]=x;
+    }
+    const b=blockVon(h);
+    if(b&&(!checks[h]||(checks[h].kette==='offen'&&h>0&&blockVon(h-1)))){
+      checks[h]=await verify(b,blockVon(h-1)||undefined);
+      renderVerdict(); renderKette();
+    }
+  }catch{ /* dann zeigt das Fenster, was da ist */ }
+}
+
+async function zeigeBlock(h){
+  if(!istAnsicht('block',h)) alleTx=false;
+  ansicht={art:'block',h};
+  renderKette();
+  const kennung='block-'+h, titel=T.block+' #'+nf(h);
+
+  if(!blockVon(h)||(h>0&&!blockVon(h-1))||!checks[h]){
+    if(!blockVon(h)) fensterZeigen(kennung,hinweisHtml(titel,T.laedt));
+    else zeichneBlock(blockVon(h));
+    await sichere(h);
+    if(!istAnsicht('block',h)) return;
+    if(!blockVon(h)){ fensterZeigen(kennung,hinweisHtml(titel,T.sNoBlock(nf(h)))); return; }
+  }
+  zeichneBlock(blockVon(h));
+
+  if(!details[h]){
+    holen(`/blocks/${h}`).then(x=>{
+      if(!x||Number(x.height)!==h||!Array.isArray(x.txs)) return;
+      details[h]=x;
+      if(istAnsicht('block',h)) zeichneBlock(blockVon(h));
+    }).catch(()=>{});
+  }
+}
+
+function txZeile(t){
+  if(t.type==='coinbase'){
+    const empf=Array.isArray(t.recipients)&&t.recipients.length?t.recipients:[{address:t.to,amount:t.amount}];
+    const pool=empf.length>1;
+    return `<details class="empf"${alleOffen?' open':''}><summary><div class="tx">
+        <div class="ic cb">${IC.stern}</div>
+        <div class="m"><div class="a">${T.blockreward}${pool?' · '+T.empfaenger(empf.length):''}</div>
+          <div class="b">${T.coinbase} · ${esc(kurz(t.txid,6,4))}</div></div>
+        <div class="r">${ysr(t.amount)} ${sym}<small>${pool?T.pool:T.solo}</small></div>
+      </div></summary>
+      <div class="empf-liste">${empf.map(e=>`<div>
+        ${e.address?`<a class="mono" href="#adr-${esc(e.address)}">${esc(e.address)}</a>`:'<span class="mono">—</span>'}
+        <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')}</div>
+    </details>`;
+  }
+  const memo=memoText(t.memo);
+  return `<a class="tx" href="#tx-${esc(t.txid)}">
+    <div class="ic">${IC.pfeil}</div>
+    <div class="m"><div class="a">${esc(kurz(t.from))} → ${esc(kurz(t.to))}</div>
+      <div class="b">${esc(kurz(t.txid,6,4))}${memo?' · '+T.notiz+' “'+esc(memo)+'”':''}</div></div>
+    <div class="r">${ysr(t.amount)} ${sym}<small>${T.gebuehr} ${ysr(t.fee)}</small></div>
+  </a>`;
+}
+let alleOffen=false;
+
 /*
   Einzelheiten eines Blocks -- samt Pruefergebnis.
 
   Die vier Aussagen stehen getrennt, nicht als Sammelnote: Serialisierung,
-  Hash, Difficulty, Verkettung. Eine Gesamtnote verstecke, WAS geprueft
+  Hash, Proof of Work, Verkettung. Eine Gesamtnote verstecke, WAS geprueft
   wurde -- und genau darum geht es hier.
 */
-function urteil(w){
-  if(w==='ok')return '<span class="ok">'+T.stimmt+'</span>';
-  if(w==='fail')return '<span class="bad">'+T.stimmtNicht+'</span>';
-  return '<span class="offen">'+T.offen+'</span>';
-}
+function zeichneBlock(b){
+  const h=b.height, c=checks[h]||{}, d=details[h], z=zustand(checks[h]);
+  const vor=blockVon(h-1);
+  const p=fuellung(b);
+  const pool=(b.recipients??1)>1;
+  const spitze=blocks[0]?blocks[0].height:h;
+  const weiter=h>=spitze?'#neu':'#block-'+(h+1);
 
-function zeigeBlock(h){
-  const b=blocks.find(x=>x.height===h);
-  if(!b){ return; }
-  const c=checks[h]||{};
-  const d=details[h];
-  const ysr=n=>(Number(n)/10**dec).toLocaleString(LOC,
-    {minimumFractionDigits:2,maximumFractionDigits:8});
+  const badge=z==='ok'?`<span class="badge ok">${IC.ok}${T.hierGeprueft}</span>`
+    :z==='bad'?`<span class="badge bad">${IC.x}${T.stimmtNicht}</span>`
+    :`<span class="badge offen">${T.offen}</span>`;
+  const nav=`<a class="rk" href="#block-${h-1}"${h===0?' aria-disabled="true" tabindex="-1"':''} aria-label="${esc(T.blockZurueck)}" title="${esc(T.blockZurueck)}">${IC.links}</a>`
+    +`<a class="rk" href="${weiter}" aria-label="${esc(T.blockWeiter)}" title="${esc(T.blockWeiter)}">${IC.rechts}</a>`;
 
-  const finder=b.finder
-    ? `<span class="poolname">${esc(b.finder)}</span>
-       <span class="faint" style="font-size:11px"> · ${T.selbstauskunft}</span>`
-    : `<span class="unbekannt">${T.unbekannt}</span>`;
+  // Gebuehren: Summe ueber die Ueberweisungen. Die Coinbase traegt Belohnung
+  // plus Gebuehren (src/lib/core/builder.ts).
+  let gebuehren=null;
+  if(d&&d.txs) gebuehren=d.txs.reduce((s,t)=>s+(t.type==='coinbase'?0:Number(t.fee)||0),0);
 
-  let txs=`<div class="leer">${T.txLaden}</div>`;
+  const abstand=vor?Number(b.timestamp)-Number(vor.timestamp):null;
+  const dAend=vor?delta(Number(b.difficultyWert??b.difficulty),Number(vor.difficultyWert??vor.difficulty)):'';
+
+  const fakt=(l,w,s,mono,titel)=>`<div><div class="l">${l}</div><div class="w${mono?' mono':''}"${titel?` title="${esc(titel)}"`:''}>${w}</div><div class="s">${s||'&nbsp;'}</div></div>`;
+  const finder=b.finder?esc(b.finder):T.unbekannt;
+
+  const pr=(label,w)=>`<div class="${w==='ok'?'ok':(w==='fail'?'fail':'')}"><i>${w==='ok'?IC.ok:(w==='fail'?IC.x:'')}</i><span>${label}</span><small>${
+    w==='ok'?T.stimmt:(w==='fail'?T.stimmtNicht:T.offen)}</small></div>`;
+
+  const hz=(label,wert,link)=>`<div class="hz"><span>${label}</span><span class="wert">${
+    link?`<a class="mono" href="${link}">${lang(wert)}</a>`:`<span class="mono">${lang(wert)}</span>`}${kopKnopf(wert)}</span></div>`;
+
+  let txHtml=`<div class="leer">${T.txLaden}</div>`, mehr='';
   if(d&&d.txs){
-    txs=d.txs.map(t=>{
-      const cb=t.type==='coinbase';
-      let inhalt;
-      if(cb&&t.recipients&&t.recipients.length){
-        inhalt=`<div class="faint" style="margin-top:9px;font-size:12px">${
-          T.empfaenger(t.recipients.length)}</div><div class="empf">`
-          +t.recipients.map(e=>`<div class="e">
-              <span class="mono faint" style="font-size:11.5px">${esc(e.address)}</span>
-              <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')
-          +`</div>`;
-      }else if(cb){
-        inhalt=`<div class="empf"><div class="e">
-          <span class="mono faint" style="font-size:11.5px">${esc(t.to||'—')}</span>
-          <span class="mono tnum">${ysr(t.amount)} ${sym}</span></div></div>`;
-      }else{
-        inhalt=`<div class="empf">
-          <div class="e"><span class="faint">${T.von}</span>
-            <span class="mono" style="font-size:11.5px">${esc(t.from||'—')}</span></div>
-          <div class="e"><span class="faint">${T.an}</span>
-            <span class="mono" style="font-size:11.5px">${esc(t.to||'—')}</span></div>
-          <div class="e"><span class="faint">${T.gebuehr}</span>
-            <span class="mono tnum">${ysr(t.fee)} ${sym}</span></div></div>`;
-      }
-      return `<div class="tx">
-        <div class="tx-kopf">
-          <span class="${cb?'marke-cb':'marke-tx'}">${cb?T.coinbase:T.ueberweisung}</span>
-          <span class="mono tnum" style="color:var(--proof)">${ysr(t.amount)} ${sym}</span>
-        </div>
-        <div class="mono faint" style="margin-top:7px;font-size:11px;word-break:break-all">${
-          esc(t.txid)}</div>
-        ${inhalt}
-      </div>`;
-    }).join('');
+    alleOffen=d.txs.length<=3;
+    const sicht=alleTx?d.txs:d.txs.slice(0,25);
+    txHtml=sicht.map(txZeile).join('');
+    if(d.txs.length>sicht.length)
+      mehr=`<button class="haupt" type="button" onclick="alleTxZeigen()">${T.alleTx(nf(d.txs.length))}</button>`;
   }
 
-  $('detail').innerHTML=`
-    <div class="detail-kopf">
-      <div>
-        <h2>${T.block} ${nf(b.height)}</h2>
-        <div class="muted" style="font-size:12.5px;margin-top:3px">
-          ${T.gefundenVon} ${finder} · ${uhr(b.timestamp)}</div>
+  fensterZeigen('block-'+h,kopfHtml(`${T.block} #${nf(h)} `,{badge,nav})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="zeile"><b>${T.voll(prozent(p))}</b><span>${T.vonTx(nf(b.txCount),nf(MAX_TX))}${groesse(b.sizeBytes)?' · '+groesse(b.sizeBytes):''}</span></div>
+        <div class="meter"><i style="width:${p.toFixed(2)}%"></i></div>
       </div>
-      <button class="zu" type="button" onclick="location.hash=''">${T.schliessen}</button>
-    </div>
-    <div class="kv">
-      <div class="z"><span>${T.hash}</span><span class="v">${esc(b.hash)}</span></div>
-      <div class="z"><span>${T.vorgaenger}</span><span class="v">${esc(b.prevHash||'—')}</span></div>
-      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nfGross(b.difficultyWert??b.difficulty)}</span></div>
-      <div class="z"><span>${T.erreicht}</span><span class="v tnum">${
-        c.erreicht!==undefined?nf(c.erreicht):'—'}</span></div>
-      <div class="z"><span>${T.groesse}</span><span class="v tnum">${b.sizeBytes} ${T.byte}</span></div>
-      <div class="z"><span>${T.transaktionen}</span><span class="v tnum">${b.txCount}</span></div>
-      <div class="z"><span>${T.nonce}</span><span class="v tnum">${esc(b.nonce||'—')}</span></div>
-      <div class="z"><span>${T.extranonce}</span><span class="v tnum">${esc(b.extranonce||'—')}</span></div>
-      <div class="z"><span>${T.belohnung}</span><span class="v tnum">${ysr(b.reward)} ${sym}</span></div>
-      <div class="z"><span>${T.serialisierung}</span><span class="v">${urteil(c.serialisierung)}</span></div>
-      <div class="z"><span>${T.hashGeprueft}</span><span class="v">${urteil(c.hash)}</span></div>
-      <div class="z"><span>${T.pow}</span><span class="v">${urteil(c.difficulty)}</span></div>
-      <div class="z"><span>${T.verkettung}</span><span class="v">${urteil(c.kette)}</span></div>
-    </div>
-    <div class="txkopf">${T.transaktionen}</div>
-    ${txs}`;
-
-  if(!d){
-    fetch(`${API}/blocks/${h}`).then(r=>r.json())
-      .then(x=>{ if(x.height!==undefined){ details[x.height]=x;
-        if(open===h) zeigeBlock(h); } })
-      .catch(()=>{});
-  }
+      <div class="fakten">
+        ${fakt(T.gefunden,uhr(b.timestamp),alter(b.timestamp))}
+        ${fakt(T.finderL,finder,pool?T.pool+' · '+T.empfaenger(b.recipients):T.solo,false,b.finder?b.finder+' · '+T.selbstauskunft:'')}
+        ${fakt(T.belohnung,b.reward!=null?ysr(b.reward,0,8)+' '+sym:'—',gebuehren?T.inklGebuehr(ysr(gebuehren,0,8)+' '+sym):'')}
+        ${fakt(T.kBlockzeit,abstand!=null?dauer(abstand)+' '+T.minKurz:'—',T.zumVorgaenger)}
+        ${fakt(T.difficulty,nfGross(b.difficultyWert??b.difficulty),c.erreicht!==undefined?T.erreicht+' '+nfGross(c.erreicht):dAend)}
+        ${fakt(T.nonce,esc(b.nonce??'—'),T.extranonce+' '+esc(b.extranonce??'—'),true,String(b.nonce??''))}
+      </div>
+      <div class="ut">${T.pruefung}</div>
+      <div class="pruef">
+        ${pr(T.serialisierung,c.serialisierung)}${pr(T.hashGeprueft,c.hash)}
+        ${pr(T.pow,c.difficulty)}${pr(T.verkettung+(h>0?' · #'+nf(h-1):''),c.kette)}
+      </div>
+      <div class="absatz">${T.hinweisText}</div>
+      <div class="ut">${T.kennungen}</div>
+      ${hz(T.hash,b.hash)}
+      ${h>0&&b.prevHash?hz(T.vorgaenger,b.prevHash,'#block-'+(h-1)):''}
+      ${hz(T.merkle,b.merkleRoot)}
+      ${hz(T.stateRoot,b.stateRoot)}
+      <div class="ut">${T.transaktionen} <b>· ${nf(b.txCount)}</b></div>
+      ${txHtml}
+      <div class="ff">
+        <a href="#block-${h-1}"${h===0?' aria-disabled="true" tabindex="-1"':''}>‹ ${T.block} #${nf(Math.max(0,h-1))}</a>
+        ${mehr}
+        <a href="${weiter}">${T.block} #${nf(h+1)} ›</a>
+      </div>
+    </div>`);
+}
+function alleTxZeigen(){
+  alleTx=true;
+  if(ansicht&&ansicht.art==='block'&&blockVon(ansicht.h)) zeichneBlock(blockVon(ansicht.h));
 }
 
+/*
+  Der Block, an dem gerade gearbeitet wird. Hier steht nur, was feststeht:
+  Vorgaenger, Belohnung, wartende Zahlungen. Seine Difficulty rechnet das
+  Netz erst mit dem Block aus -- sie steht deshalb nicht da.
+*/
 function zeigeBau(){
-  open='bau'; renderKette();
-  const naechste=(sum&&sum.height!=null)?sum.height+1:'—';
-  $('detail').innerHTML=`
-    <div class="detail-kopf">
-      <div>
-        <h2>${T.block} ${nf(naechste)}</h2>
-        <div class="muted" style="font-size:12.5px;margin-top:3px">${T.wirdGeradeGesucht}</div>
+  ansicht={art:'bau'};
+  renderKette();
+  const hoehe=sum&&sum.height!=null?sum.height:(blocks[0]?blocks[0].height:null);
+  const wartend=(sum&&sum.mempool)||0;
+  const titel=T.block+' #'+(hoehe!=null?nf(hoehe+1):'—');
+  const fakt=(l,w)=>`<div><div class="l">${l}</div><div class="w">${w}</div><div class="s">&nbsp;</div></div>`;
+  fensterZeigen('bau',kopfHtml(titel+' ',{
+      badge:`<span class="badge offen">${T.imBau}</span>`,unter:T.wirdGeradeGesucht,
+      nav:hoehe!=null?`<a class="rk" href="#block-${hoehe}" aria-label="${esc(T.blockZurueck)}" title="${esc(T.blockZurueck)}">${IC.links}</a>`:''})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="zeile"><b>${T.voll(prozent(Math.min(100,(wartend+1)/MAX_TX*100)))}</b><span>${T.wartendeTx}: ${nf(wartend)}</span></div>
+        <div class="meter"><i style="width:${Math.min(100,(wartend+1)/MAX_TX*100).toFixed(2)}%"></i></div>
       </div>
-      <button class="zu" type="button" onclick="location.hash=''">${T.schliessen}</button>
-    </div>
-    <div class="kv">
-      <div class="z"><span>${T.vorgaenger}</span><span class="v tnum">${nf(sum?.height??0)}</span></div>
-      <div class="z"><span>${T.difficulty}</span><span class="v tnum">${nfGross(sum?.difficultyWert??sum?.difficulty??0)}</span></div>
-      <div class="z"><span>${T.wartendeTx}</span><span class="v tnum">${
-        sum?.mempool??0}</span></div>
-      <div class="z"><span>${T.belohnung}</span><span class="v tnum">${
-        ((Number(sum?.nextReward??0))/10**dec).toFixed(2)} ${sym}</span></div>
-    </div>
-    <div style="padding:4px 16px 18px;font-size:12.5px;color:var(--dim);line-height:1.6">
-      ${(sum?.mempool??0)===0
-        ? T.bauLeer : T.bauVoll}
-      ${T.bauWer}
-    </div>`;
+      <div class="fakten">
+        ${fakt(T.vorgaenger,hoehe!=null?`<a href="#block-${hoehe}">#${nf(hoehe)}</a>`:'—')}
+        ${fakt(T.belohnung,ysr(sum?.nextReward??0,0,8)+' '+sym)}
+        ${fakt(T.wartendeTx,nf(wartend))}
+      </div>
+      <div class="absatz">${wartend===0?T.bauLeer:T.bauVoll} ${T.bauWer}</div>
+    </div>`);
 }
 
-function schliesse(){
-  open=null; renderKette();
-  $('detail').innerHTML=`<div class="leer">${T.klickHinweis}</div>`;
-}
-
-// --------------------------------------------------------------- Karten
-function renderStats(){
-  if(!sum)return;
-  dec=sum.token?.decimals??8; sym=sum.token?.token_symbol??'YSR';
-  $('kopfHoehe').textContent='#'+nf(sum.height??0);
-
-  const ysr=n=>(Number(n)/10**dec).toLocaleString(LOC,
-    {minimumFractionDigits:0,maximumFractionDigits:0});
-  const ysrGenau=n=>(Number(n)/10**dec).toLocaleString(LOC,
-    {minimumFractionDigits:0,maximumFractionDigits:2});
-  const prozent=n=>n.toLocaleString(LOC,
-    {minimumFractionDigits:2,maximumFractionDigits:2});
-
-  const umlauf=Number(sum.totalSupply)/10**dec, max=Number(sum.maxSupply)/10**dec;
-  const anteil=max>0?umlauf/max*100:0;
-  const hoehe=sum.height??0;
-  const bis=12000-(hoehe%12000);
-
-  // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
-  let bz=null;
-  if(blocks.length>=3){
-    const spanne=Number(blocks[0].timestamp)-Number(blocks[blocks.length-1].timestamp);
-    if(spanne>0) bz=spanne/(blocks.length-1);
+// ---------------------------------------------------------------- Adresse
+async function zeigeAdresse(a){
+  ansicht={art:'adr',a};
+  renderKette();
+  const kennung='adr-'+a;
+  if(konten[a]) zeichneAdresse(a);
+  else fensterZeigen(kennung,hinweisHtml(T.adresse,T.laedt));
+  try{
+    const r=await holen('/account/'+a);
+    if(r.error) throw new Error(r.error==='bad_address'?T.sBadAddress:(r.detail||r.error));
+    // Schon nachgeladene aeltere Seiten behalten, wenn sich vorn nichts getan hat.
+    const alt=konten[a];
+    const gleich=alt&&alt.eintraege.length&&r.history&&r.history.length&&alt.eintraege[0].txid===r.history[0].txid;
+    const liste=Array.isArray(r.history)?r.history:[];
+    konten[a]=gleich?{...r,eintraege:alt.eintraege,weiter:alt.weiter}:{...r,eintraege:liste,weiter:r.historyWeiter??null};
+  }catch(e){
+    if(istAnsicht('adr',a)&&!konten[a]) fensterZeigen(kennung,hinweisHtml(T.adresse,T.sucheFehl+e.message));
+    return;
   }
+  if(istAnsicht('adr',a)) zeichneAdresse(a);
+}
+function zeichneAdresse(a){
+  const k=konten[a];
+  const art={reward:T.blockreward,pool:T.poolAnteil,in:T.eingang,out:T.ausgang};
+  const zeile=e=>{
+    const memo=(e.kind==='in'||e.kind==='out')?memoText(e.memo):null;
+    const belohnung=e.kind==='reward'||e.kind==='pool';
+    return `<a class="tx" href="#tx-${esc(e.txid)}">
+      <div class="ic${belohnung?' cb':''}">${belohnung?IC.stern:(e.kind==='in'?IC.ein:IC.aus)}</div>
+      <div class="m"><div class="a">${art[e.kind]||esc(e.kind)}${e.counterparty?' · '+esc(kurz(e.counterparty)):''}</div>
+        <div class="b">#${nf(e.height)}${e.timestamp?' · '+alter(e.timestamp):''}${memo?' · “'+esc(memo)+'”':''}</div></div>
+      <div class="r">${e.kind==='out'?'−':'+'}${ysr(e.amount)} ${sym}${
+        e.kind==='out'&&Number(e.fee)>0?`<small>${T.gebuehr} ${ysr(e.fee)}</small>`:''}</div>
+    </a>`;
+  };
+  const wartend=(Array.isArray(k.pending)?k.pending:[]).map(p=>`<a class="tx" href="#tx-${esc(p.txid)}">
+      <div class="ic">${p.kind==='in'?IC.ein:IC.aus}</div>
+      <div class="m"><div class="a">${p.kind==='in'?T.eingang:T.ausgang} · ${esc(kurz(p.kind==='in'?p.from:p.to))}</div>
+        <div class="b">${T.wartetAufBlock}</div></div>
+      <div class="r">${p.kind==='out'?'−':'+'}${ysr(p.amount)} ${sym}</div>
+    </a>`).join('');
+  const fakt=(l,w)=>`<div><div class="l">${l}</div><div class="w">${w}</div></div>`;
 
-  const karten=[
-    {label:T.kHoehe,wert:'#'+nf(hoehe),
-     unter:T.kHoeheUnter(nf(sum.stateHeight))},
-    {label:T.difficulty,wert:nfGross(sum.difficultyWert??sum.difficulty??0),
-     unter:T.kDifficultyUnter},
-    {label:T.kNetz,wert:hashrate(sum.hashrate),
-     unter:T.kNetzUnter},
-    {label:T.kLive,wert:hashrate(sum.minerHashrate),
-     unter:T.kMiner(sum.activeMiners??0)},
-    {label:T.kBlockzeit,
-     wert:bz!=null?T.minS(Math.floor(bz/60),Math.round(bz%60)):'—',
-     unter:T.kBlockzeitUnter(Math.max(0,blocks.length-1)),
-     balken:bz!=null?Math.min(100,bz/600*100):null},
-    {label:T.kMempool,wert:nf(sum.mempool??0),
-     unter:(sum.mempool??0)===0?T.kMempoolLeer:T.kMempoolVoll},
-    {label:T.kUmlauf,wert:ysr(sum.totalSupply),
-     unter:T.kUmlaufUnter(ysr(sum.maxSupply),sym,prozent(anteil)),
-     balken:anteil},
-    {label:T.kHalbierung,wert:T.block+' '+nf(hoehe+bis),
-     unter:T.kHalbierungUnter(nf(bis),ysrGenau(Number(sum.nextReward)/2),sym)},
-  ];
-
-  $('stats').innerHTML=karten.map(k=>`
-    <div class="karte">
-      <div class="label">${k.label}</div>
-      <div class="wert">${k.wert}</div>
-      <div class="unter">${k.unter}</div>
-      ${k.balken!=null?`<div class="balken"><i style="width:${
-        k.balken.toFixed(2)}%"></i></div>`:''}
-    </div>`).join('');
+  fensterZeigen('adr-'+a,kopfHtml(T.adresse,{
+      unter:`<span class="wert"><span class="mono">${lang(a)}</span>${kopKnopf(a)}</span>`})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="ut" style="margin:0">${T.guthaben}</div>
+        <div class="grosszahl">${ysr(k.balance||'0')}<em>${sym}</em></div>
+      </div>
+      <div class="fakten">
+        ${fakt(T.gefundeneBloecke,nf(k.blocksFound??0))}
+        ${fakt(T.poolAnteile,nf(k.poolRewards??0))}
+        ${fakt(T.nonce,esc(k.nonce??'0'))}
+      </div>
+      <div class="ut">${T.letzteBewegungen}</div>
+      ${wartend}
+      ${k.eintraege.length?k.eintraege.map(zeile).join(''):(wartend?'':`<div class="leer">${T.keineBewegungen}</div>`)}
+      ${k.weiter?`<div class="ff" style="justify-content:center"><button class="haupt" id="bewMehr" type="button" onclick="bewegungenLaden()">${T.aeltereBew}</button></div>`:''}
+    </div>`);
+}
+let bewLaedt=false;
+async function bewegungenLaden(){
+  if(bewLaedt||!ansicht||ansicht.art!=='adr') return;
+  const a=ansicht.a, k=konten[a];
+  if(!k||!k.weiter) return;
+  bewLaedt=true;
+  const knopf=$('bewMehr');
+  if(knopf){ knopf.disabled=true; knopf.textContent=T.laedtKurz; }
+  try{
+    const r=await holen(`/account/${a}/verlauf?limit=40&vor=${encodeURIComponent(k.weiter)}`);
+    if(r.error) throw new Error(r.detail||r.error);
+    k.eintraege=k.eintraege.concat(Array.isArray(r.eintraege)?r.eintraege:[]);
+    k.weiter=r.weiter??null;
+  }catch{
+    /* Der Knopf bleibt, ein zweiter Versuch ist moeglich. */
+  }finally{
+    bewLaedt=false;
+    if(istAnsicht('adr',a)) zeichneAdresse(a);
+  }
 }
 
-function renderVerdict(){
-  const n=Object.keys(checks).length;
-  const kaputt=Object.values(checks).some(c=>
-    c.hash==='fail'||c.difficulty==='fail'||c.kette==='fail'||c.serialisierung==='fail');
-  const e=$('verdict');
-  if(kaputt){ e.className='bad'; e.textContent=T.urteilBad; }
-  else{ e.className='ok'; e.textContent=T.urteilOk(n); }
+// ------------------------------------------------------------ Transaktion
+async function zeigeTx(id){
+  ansicht={art:'tx',id};
+  renderKette();
+  const kennung='tx-'+id;
+  let t=txs[id];
+  if(!t){
+    fensterZeigen(kennung,hinweisHtml(T.transaktion,T.laedt));
+    try{ t=await holen('/tx/'+id); }catch(e){ t={error:e.message}; }
+    if(!t.error&&t.status!=='pending') txs[id]=t;
+    if(!istAnsicht('tx',id)) return;
+  }
+  if(!t||t.error||typeof t.txid!=='string'){ fensterZeigen(kennung,hinweisHtml(T.transaktion,T.txNichtLesbar)); return; }
+
+  const cb=t.type==='coinbase';
+  const memo=cb?null:memoText(t.memo);
+  const empf=Array.isArray(t.recipients)?t.recipients:[];
+  const fakt=(l,w,s)=>`<div><div class="l">${l}</div><div class="w">${w}</div><div class="s">${s||'&nbsp;'}</div></div>`;
+  const adr=(label,a)=>a?`<div class="hz"><span>${label}</span><span class="wert"><a class="mono" href="#adr-${esc(a)}">${lang(a)}</a>${kopKnopf(a)}</span></div>`:'';
+  // Bewusst grau: Gruen heisst im Explorer "hier nachgerechnet", und das ist
+  // eine Transaktion nicht.
+  const status=t.status==='pending'?T.wartetAufBlock:T.inBlock(nf(t.height));
+
+  fensterZeigen(kennung,kopfHtml(T.transaktion+' ',{
+      badge:`<span class="badge offen">${status}</span>`,
+      unter:`<span class="wert"><span class="mono">${lang(t.txid)}</span>${kopKnopf(t.txid)}</span>`})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="ut" style="margin:0">${T.betrag}</div>
+        <div class="grosszahl">${ysr(t.amount)}<em>${sym}</em></div>
+      </div>
+      <div class="fakten">
+        ${fakt(T.art,cb?T.blockreward:T.ueberweisung,cb&&empf.length?T.empfaenger(empf.length):'')}
+        ${fakt(T.status,status,t.timestamp?uhr(t.timestamp):'')}
+        ${fakt(T.gebuehr,ysr(t.fee||0)+' '+sym,'')}
+      </div>
+      ${(t.from||t.to||memo)?`<div class="ut">${T.kennungen}</div>`:''}
+      ${adr(T.von,t.from)}${adr(T.an,t.to)}
+      ${memo?`<div class="hz"><span>${T.notiz}</span><span class="wert"><span>${esc(memo)}</span></span></div>`:''}
+      ${empf.length?`<div class="ut">${T.empfaenger(empf.length)}</div>
+        <div class="empf-liste" style="margin-left:0">${empf.map(e=>`<div>
+          ${e.address?`<a class="mono" href="#adr-${esc(e.address)}">${esc(e.address)}</a>`:'<span class="mono">—</span>'}
+          <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')}</div>`:''}
+      ${Number.isInteger(Number(t.height))&&t.height!=null?`<div class="ff"><a class="haupt" href="#block-${Number(t.height)}">${T.zuBlock(nf(t.height))}</a></div>`:''}
+    </div>`);
 }
+
+// -- Bedienung des Fensters
+$('fenster').addEventListener('click',e=>{ if(e.target===$('fenster')) schliesseFenster(); });
+document.addEventListener('keydown',e=>{
+  if($('fenster').hidden) return;
+  if(e.key==='Escape'){ schliesseFenster(); return; }
+  if(ansicht&&ansicht.art==='block'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName||'')){
+    if(e.key==='ArrowLeft'&&ansicht.h>0) location.hash='#block-'+(ansicht.h-1);
+    if(e.key==='ArrowRight') location.hash=(blocks[0]&&ansicht.h>=blocks[0].height)?'#neu':'#block-'+(ansicht.h+1);
+  }
+});
+// Kopieren. Ohne sicheren Kontext (Datei von der Festplatte) gibt es
+// navigator.clipboard nicht -- dann ueber ein unsichtbares Textfeld.
+document.addEventListener('click',async e=>{
+  const k=e.target.closest&&e.target.closest('[data-kopie]');
+  if(!k) return;
+  e.preventDefault();
+  const text=k.dataset.kopie;
+  let ok=false;
+  try{ await navigator.clipboard.writeText(text); ok=true; }
+  catch{
+    try{
+      const f=document.createElement('textarea');
+      f.value=text; f.setAttribute('readonly',''); f.style.cssText='position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(f); f.select(); ok=document.execCommand('copy'); f.remove();
+    }catch{ ok=false; }
+  }
+  if(!ok) return;
+  k.classList.add('ja'); k.innerHTML=IC.ok; k.title=T.kopiert;
+  setTimeout(()=>{ k.classList.remove('ja'); k.innerHTML=IC.kopie; k.title=T.kopieren; },1400);
+});
+// Am Handy ist das Fenster ein Blatt von unten: am Griff nach unten ziehen
+// schliesst es.
+(function(){
+  const k=$('fenster').querySelector('.fenster');
+  let y0=null, dy=0;
+  k.addEventListener('touchstart',e=>{
+    if(!window.matchMedia('(max-width:640px)').matches||k.scrollTop>0) return;
+    if(!e.target.closest('.griff,.fk')||e.target.closest('a,button')) return;
+    y0=e.touches[0].clientY; dy=0; k.style.transition='none';
+  },{passive:true});
+  k.addEventListener('touchmove',e=>{
+    if(y0===null) return;
+    dy=Math.max(0,e.touches[0].clientY-y0);
+    k.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  const ende=()=>{
+    if(y0===null) return;
+    y0=null;
+    k.style.transition='transform .18s ease-out';
+    if(dy>90){
+      k.style.transform='translateY(100%)';
+      setTimeout(()=>{ k.style.transform=''; k.style.transition=''; schliesseFenster(); },170);
+    }else{
+      k.style.transform='';
+      setTimeout(()=>{ k.style.transition=''; },200);
+    }
+  };
+  k.addEventListener('touchend',ende);
+  k.addEventListener('touchcancel',ende);
+})();
+
 // ---------------------------------------------------------------- Laden
 async function pruefeAlle(){
-  const neu={};
   for(let i=0;i<blocks.length;i++){
-    neu[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+    checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
   }
-  checks=neu;
 }
 
 async function load(){
   try{
-    const [s,b]=await Promise.all([
-      fetch(`${API}/summary`).then(r=>r.json()),
-      fetch(`${API}/blocks?limit=12`).then(r=>r.json()),
-    ]);
+    const [s,b]=await Promise.all([holen('/summary'),holen('/blocks?limit='+(N_STAT+1))]);
     if(s.error||b.error) throw new Error(s.detail||b.detail||s.error||b.error);
-    sum=s; blocks=b.blocks||[]; $('err').textContent='';
+    sum=summeAus(s); blocks=bloeckeAus(b); $('err').textContent='';
     await pruefeAlle();
     renderStats(); renderVerdict(); renderKette();
-    if(open!==null&&open!=='bau') zeigeBlock(open);
   }catch(e){
     $('err').textContent=T.ladenFehl+e.message;
   }
@@ -1198,133 +2109,77 @@ async function mehrLaden(){
   if(knopf){ knopf.disabled=true; knopf.textContent=T.laedtKurz; }
   try{
     const aeltester=blocks[blocks.length-1].height;
-    const r=await fetch(`${API}/blocks?limit=12&before=${aeltester}`).then(r=>r.json());
+    const r=await holen(`/blocks?limit=20&before=${aeltester}`);
     if(r.error) throw new Error(r.detail||r.error);
-    const neu=r.blocks||[];
-    if(neu.length===0){ if(knopf) knopf.remove(); return; }
-    const vorher=blocks.length;
-    blocks=blocks.concat(neu);
-    for(let i=vorher-1;i<blocks.length;i++){
-      checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+    const neu=bloeckeAus(r).filter(b=>b.height<aeltester);
+    if(neu.length){
+      const vorher=blocks.length;
+      blocks=blocks.concat(neu);
+      for(let i=vorher-1;i<blocks.length;i++){
+        checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+      }
     }
-    renderVerdict(); renderKette();
+    $('err').textContent='';
   }catch(e){
     $('err').textContent=T.nachladenFehl+e.message;
   }finally{
     laedt=false;
+    $('kette').__html=null;       // der Knopf soll auf jeden Fall zurueckkommen
+    renderVerdict(); renderKette();
   }
 }
 
 // ---------------------------------------------------------------- Suche
 /*
-  Die Route sagt nur, WAS gefunden wurde. Die Einzelheiten holt der Explorer
-  bei der zustaendigen Route -- so gibt es die Aufbereitung nur einmal, und
-  die Suche laeuft nicht mit ihr auseinander.
+  Die Route sagt nur, WAS gefunden wurde. Der Explorer springt dann zum
+  passenden Anker; die Einzelheiten holt das Fenster bei der zustaendigen
+  Route -- so gibt es die Aufbereitung nur einmal.
 */
 async function suchen(){
   const q=$('q').value.trim();
   const ziel=$('treffer');
-  if(!q){ ziel.innerHTML=''; return; }
-  ziel.innerHTML=`<div class="detail"><div class="leer">${T.sucheLaeuft}</div></div>`;
+  ziel.className='meldung';
+  if(!q){ ziel.textContent=''; return; }
+  ziel.textContent=T.sucheLaeuft;
   try{
-    const r=await fetch(`${API}/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
-
-    if(r.kind==='nichts'||r.kind==='leer'){
+    const r=await holen('/search?q='+encodeURIComponent(q));
+    let anker=null;
+    if(r.kind==='block') anker='#block-'+Number(r.height);
+    else if(r.kind==='address') anker='#adr-'+r.address;
+    else if(r.kind==='tx') anker='#tx-'+r.txid;
+    if(!anker){
       const codes={bad_address:T.sBadAddress,bad_height:T.sBadHeight,no_hash:T.sNoHash,empty:T.sEmpty};
-      const text=r.code==='no_block'?T.sNoBlock(nf(r.height??q)):(codes[r.code]||r.hinweis||T.nichtsGefunden);
-      ziel.innerHTML=`<div class="detail"><div class="leer">${esc(text)}</div></div>`;
+      ziel.textContent=r.code==='no_block'?T.sNoBlock(nf(r.height??q)):(codes[r.code]||T.nichtsGefunden);
       return;
     }
-    if(r.kind==='block'){
-      ziel.innerHTML=''; $('q').value='';
-      location.hash='#block-'+r.height;
-      return;
-    }
-
-    const ysr=n=>(Number(n)/10**dec).toLocaleString(LOC,
-      {minimumFractionDigits:2,maximumFractionDigits:8});
-
-    if(r.kind==='address'){
-      const a=await fetch(`${API}/account/${r.address}`).then(x=>x.json());
-      ziel.innerHTML=`<div class="detail">
-        <div class="detail-kopf"><div><h2>${T.adresse}</h2>
-          <div class="mono muted" style="font-size:12px;margin-top:3px;word-break:break-all">${
-            esc(r.address)}</div></div>
-          <button class="zu" type="button" onclick="leereSuche()">${T.schliessen}</button></div>
-        <div class="kv">
-          <div class="z"><span>${T.guthaben}</span><span class="v tnum">${ysr(a.balance||'0')} ${sym}</span></div>
-          <div class="z"><span>${T.gefundeneBloecke}</span><span class="v tnum">${a.blocksFound??0}</span></div>
-          ${a.poolRewards?`<div class="z"><span>${T.poolAnteile}</span><span class="v tnum">${a.poolRewards}</span></div>`:''}
-          <div class="z"><span>${T.nonce}</span><span class="v tnum">${a.nonce??'0'}</span></div>
-        </div>
-        ${(a.history&&a.history.length)?`<div class="txkopf">${T.letzteBewegungen}</div>`
-          +a.history.slice(0,12).map(h=>`<div class="tx"><div class="tx-kopf">
-              <span class="marke-tx">${h.kind==='reward'?T.blockreward:
-                h.kind==='pool'?T.poolAnteil:h.kind==='in'?T.eingang:T.ausgang}${
-                h.height!=null?' · '+T.block+' '+nf(h.height):''}</span>
-              <span class="mono tnum" style="color:var(--proof)">${ysr(h.amount)} ${sym}</span>
-            </div></div>`).join('')
-          :`<div class="leer">${T.keineBewegungen}</div>`}
-      </div>`;
-      return;
-    }
-
-    if(r.kind==='tx'){
-      const t=await fetch(`${API}/tx/${r.txid}`).then(x=>x.json());
-      if(t.error){ ziel.innerHTML=`<div class="detail"><div class="leer">${T.txNichtLesbar}</div></div>`; return; }
-      ziel.innerHTML=`<div class="detail">
-        <div class="detail-kopf"><div><h2>${T.transaktion}</h2>
-          <div class="mono muted" style="font-size:11.5px;margin-top:3px;word-break:break-all">${
-            esc(t.txid)}</div></div>
-          <button class="zu" type="button" onclick="leereSuche()">${T.schliessen}</button></div>
-        <div class="kv">
-          <div class="z"><span>${T.status}</span><span class="v">${
-            t.status==='pending'?T.wartetAufBlock:T.inBlock(nf(t.height))}</span></div>
-          <div class="z"><span>${T.art}</span><span class="v">${
-            t.type==='coinbase'?T.blockreward:T.ueberweisung}</span></div>
-          ${t.from?`<div class="z"><span>${T.von}</span><span class="v">${esc(t.from)}</span></div>`:''}
-          ${t.to?`<div class="z"><span>${T.an}</span><span class="v">${esc(t.to)}</span></div>`:''}
-          <div class="z"><span>${T.betrag}</span><span class="v tnum">${ysr(t.amount)} ${sym}</span></div>
-          ${Number(t.fee)>0?`<div class="z"><span>${T.gebuehr}</span><span class="v tnum">${
-            ysr(t.fee)} ${sym}</span></div>`:''}
-        </div>
-        ${t.recipients?`<div class="txkopf">${T.empfaenger(t.recipients.length)}</div>
-          <div class="tx"><div class="empf">`+t.recipients.map(e=>`<div class="e">
-            <span class="mono faint" style="font-size:11.5px">${esc(e.address)}</span>
-            <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')
-          +`</div></div>`:''}
-        ${t.height!=null?`<div style="padding:4px 16px 16px">
-          <a href="#block-${t.height}">${T.zuBlock(nf(t.height))}</a></div>`:''}
-      </div>`;
-    }
+    ziel.textContent=''; $('q').value=''; $('q').blur();
+    if(location.hash===anker) ausHash(); else location.hash=anker;
   }catch(e){
-    ziel.innerHTML=`<div class="detail"><div class="leer">${T.sucheFehl}${
-      esc(e.message)}</div></div>`;
+    ziel.className='meldung schlecht';
+    ziel.textContent=T.sucheFehl+e.message;
   }
 }
-function leereSuche(){ $('treffer').innerHTML=''; $('q').value=''; }
 
 // ----------------------------------------------------------- Navigation
 /*
-  Die Adresszeile fuehrt. So laesst sich ein Block verlinken, und der
+  Die Adresszeile fuehrt. So laesst sich alles verlinken, und der
   Zurueck-Knopf des Browsers tut, was man erwartet.
-*/
-async function ausHash(){
-  const m=location.hash.match(/^#block-(\d+)$/);
-  if(!m){ if(open!==null) schliesse(); return; }
-  const ziel=Number(m[1]);
 
-  // Noch nicht geladen? Dann den Ausschnitt um diesen Block holen.
-  if(!blocks.some(b=>b.height===ziel)){
-    try{
-      const b=await fetch(`${API}/blocks?limit=12&before=${ziel+1}`).then(r=>r.json());
-      if(b.blocks&&b.blocks.length){ blocks=b.blocks; await pruefeAlle(); renderVerdict(); }
-    }catch{ /* dann bleibt die Reihe, wie sie ist */ }
-  }
-  open=ziel;
-  renderKette();
-  zeigeBlock(ziel);
-  $('detail').scrollIntoView({block:'nearest',behavior:'smooth'});
+    #block-3013   ein Block
+    #neu          der Block im Bau
+    #adr-ysr1…    eine Adresse
+    #tx-…         eine Transaktion
+*/
+function ausHash(){
+  let h=location.hash||'';
+  try{ h=decodeURIComponent(h); }catch{ /* dann eben roh */ }
+  let m;
+  if((m=h.match(/^#block-(\d{1,9})$/))) return zeigeBlock(Number(m[1]));
+  if(h==='#neu') return zeigeBau();
+  if((m=h.match(/^#adr-(ysr1[0-9a-z]{6,120})$/i))) return zeigeAdresse(m[1].toLowerCase());
+  if((m=h.match(/^#tx-([0-9a-f]{64})$/i))) return zeigeTx(m[1].toLowerCase());
+  if(ansicht!==null){ ansicht=null; renderKette(); }
+  fensterZu();
 }
 
 $('qgo').addEventListener('click',suchen);
@@ -1338,21 +2193,15 @@ statischeTexte();
 load().then(ausHash);
 
 /*
-  Auffrischen alle zehn Sekunden -- aber nicht, solange ein Block geoeffnet
-  ist. Sonst klappt er zu, waehrend man liest. Und nicht, solange mehr als
-  zwoelf Bloecke geladen sind: load() setzt die Reihe auf die neuesten
-  zwoelf zurueck, und alles Nachgeladene waere weg.
-*/
-/*
   Live nachfuehren.
 
   Nicht neu laden, sondern NACHTRAGEN: Nur die Bloecke, die seit dem letzten
   Blick dazugekommen sind, werden geholt und vorn angehaengt.
 
   Der Unterschied ist wesentlich. Ein vollstaendiges Neuladen wuerde alles
-  wegwerfen, was ueber "Aeltere laden" dazugekommen ist, ein geoeffnetes
-  Detail schliessen -- und die Animation haette nichts, woran sie ansetzen
-  koennte, weil jeder Block als neu erschiene.
+  wegwerfen, was ueber "Aeltere laden" dazugekommen ist -- und die Animation
+  haette nichts, woran sie ansetzen koennte, weil jeder Block als neu
+  erschiene.
 
   Faellt der Server aus, passiert nichts: Der naechste Takt versucht es
   wieder, und die Seite bleibt stehen statt zu leeren.
@@ -1366,11 +2215,13 @@ async function auffrischen(){
   if(document.hidden) return;
   laeuftAuffrischen=true;
   try{
-    const s=await fetch(`${API}/summary`).then(r=>r.json());
-    if(s.error) return;
+    const roh=await holen('/summary');
+    if(roh.error) return;
+    const s=summeAus(roh);
     const alteHoehe=sum?.height ?? null;
     sum=s;
     renderStats();
+    if(ansicht&&ansicht.art==='bau') zeigeBau();
 
     if(blocks.length===0){ await load(); return; }
     if(s.height==null || alteHoehe===null || s.height<=alteHoehe){
@@ -1389,16 +2240,20 @@ async function auffrischen(){
     const fehlend=s.height-alteHoehe;
     if(fehlend>12){ await load(); return; }
 
-    const r=await fetch(`${API}/blocks?limit=${fehlend}`).then(r=>r.json());
-    if(r.error || !r.blocks || r.blocks.length===0) return;
+    const r=await holen(`/blocks?limit=${fehlend}`);
+    if(r.error) return;
 
-    // Nur wirklich neue, und in der richtigen Reihenfolge (neueste zuerst).
-    const bekannt=new Set(blocks.map(b=>b.height));
-    const neue=r.blocks.filter(b=>!bekannt.has(b.height))
-                       .sort((a,b)=>b.height-a.height);
+    // Nur wirklich neue, in der richtigen Reihenfolge (neueste zuerst) --
+    // und nur, wenn sie lueckenlos an die Reihe anschliessen. blocks muss
+    // eine zusammenhaengende Kette bleiben, sonst prueft die Verkettung
+    // gegen den falschen Vorgaenger.
+    const spitze=blocks[0].height;
+    const neue=bloeckeAus(r).filter(b=>b.height>spitze).sort((a,b)=>b.height-a.height);
     if(neue.length===0) return;
+    if(neue[neue.length-1].height!==spitze+1){ await load(); return; }
 
     blocks=neue.concat(blocks);
+    for(const b of neue) delete neben[b.height];
 
     /*
       Die neuen pruefen -- und den bisher juengsten NOCHMALS: Erst mit
@@ -1410,14 +2265,16 @@ async function auffrischen(){
     }
 
     frisch=new Set(neue.map(b=>b.height));
-    renderVerdict();
-    renderKette();
+    const bis=Date.now()+90_000;
+    for(const b of neue) neuBis[b.height]=bis;
+    renderStats(); renderVerdict(); renderKette();
     // Nach der Animation das Kennzeichen wieder loeschen, sonst liefe sie
     // beim naechsten Zeichnen erneut.
     setTimeout(()=>{ frisch=new Set(); },1600);
 
-    // Ein geoeffnetes Detail bleibt offen -- nur die Reihe hat sich
-    // geaendert, der Block darin nicht.
+    // Ein geoeffneter Block bleibt offen. Nur sein "naechster Block" zeigt
+    // jetzt auf einen gefundenen statt auf den im Bau.
+    if(ansicht&&ansicht.art==='block'&&blockVon(ansicht.h)) zeichneBlock(blockVon(ansicht.h));
   }catch{
     /* Netzaussetzer: beim naechsten Takt wieder. Die Seite bleibt stehen. */
   }finally{
