@@ -445,7 +445,9 @@ export class MiningServer {
       merkleRoot: job.merkleRoot,
       stateRoot: job.stateRoot,
       timestamp: job.timestamp,
+      // Rohes Header-Feld -- aeltere Miner schreiben es so in den Header.
       difficulty: job.difficulty,
+      difficultyWert: job.difficultyWert,
       txCount: job.txCount,
       extranonce: job.extranonce,
       // Der Miner rechnet gegen das SHARE-Ziel, nicht gegen das Blockziel.
@@ -747,6 +749,7 @@ export class MiningServer {
       height: tip ? tip.height : null,
       nextHeight: hoehe + 1,
       difficulty: tip ? Number(tip.difficulty) : null,
+      difficultyWert: tip ? tip.difficulty.toString() : null,
       hashrate: this.gesamtHashrate() || null,
       targetBlockTime: Number(TARGET_BLOCK_TIME),
       tipHash: tip ? toHex(tip.hash) : null,
@@ -768,6 +771,7 @@ export class MiningServer {
       bestBlock: tip ? toHex(tip.hash) : null,
       chainWork: tip ? tip.chainWork.toString() : '0',
       difficulty: tip ? Number(tip.difficulty) : null,
+      difficultyWert: tip ? tip.difficulty.toString() : null,
       blocksStored: this.store.count(),
       tips: this.store.tips().length,
       mempool: this.pool.size(),

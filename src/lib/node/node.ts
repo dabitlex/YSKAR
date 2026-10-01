@@ -8,7 +8,9 @@ import { headerHash, serializeHeader, withNonce, deserializeHeader } from '../co
 import { deserializeTx, checkTransfer, txid, transferBytes, TX_TRANSFER, type Transfer } from '../core/tx.ts';
 import { applyBlock, cloneState, getAccount, stateRoot, type State } from '../core/state.ts';
 import { decodeAddress } from '../core/address.ts';
-import { GENESIS_DIFFICULTY, LWMA_WINDOW, FEE_V3_HEIGHT, RELAY_FEE_RATE } from '../core/params.ts';
+import { GENESIS_DIFFICULTY, LWMA_WINDOW, FEE_V3_HEIGHT, RELAY_FEE_RATE, difficultyAtHeight,
+  encodeDifficulty }
+  from '../core/params.ts';
 import { sha256dTargetBytes } from './target-helpers.ts';
 import { serializeBlock } from '../core/block.ts';
 import { toHex, fromHex } from '../core/codec.ts';
@@ -35,6 +37,7 @@ export interface JobView {
   stateRoot: string;
   timestamp: string;
   difficulty: number;
+  difficultyWert: string;
   txCount: number;
   target: string;
   shareDifficulty: string;
@@ -68,7 +71,8 @@ export async function createJob(sessionId: string): Promise<JobView> {
   const now = BigInt(Math.floor(Date.now() / 1000));
   const elapsed = now > tip.header.timestamp ? now - tip.header.timestamp : 0n;
   const regular = timings.length === 0 ? GENESIS_DIFFICULTY : expectedDifficulty(timings);
-  const difficulty = effectiveDifficulty(regular, elapsed);
+  // Konsensfassung 4: auf den naechsten darstellbaren Wert abrunden.
+  const difficulty = difficultyAtHeight(effectiveDifficulty(regular, elapsed), tip.height + 1);
 
   const built = buildBlock({
     height: tip.height + 1,
@@ -114,7 +118,9 @@ export async function createJob(sessionId: string): Promise<JobView> {
     merkleRoot: toHex(h.merkleRoot),
     stateRoot: toHex(h.stateRoot),
     timestamp: h.timestamp.toString(),
-    difficulty: Number(h.difficulty),
+    // Rohes Header-Feld fuer aeltere Miner; der Wert steht in difficultyWert.
+    difficulty: encodeDifficulty(h.difficulty, h.height),
+    difficultyWert: h.difficulty.toString(),
     txCount: h.txCount,
     // Der Client mint gegen sein SHARE-Target, nicht gegen das Block-Target.
     target: toHex(sha256dTargetBytes(BigInt(session.share_difficulty))),

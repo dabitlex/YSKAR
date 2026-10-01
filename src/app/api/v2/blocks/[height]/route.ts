@@ -31,7 +31,7 @@ export async function GET(
   type BlockZeile = {
     height: number; hash: string; version: number;
     prev_hash: string; merkle_root: string; state_root: string;
-    block_time: string; difficulty: number; tx_count: number;
+    block_time: string; difficulty: string; tx_count: number;
     extranonce: string; nonce: string;
     header: string; size_bytes: number; received_at: string;
   };
@@ -51,7 +51,7 @@ export async function GET(
     */
     sb.from('blocks')
       .select('height, hash, version, prev_hash, merkle_root, state_root, '
-        + 'block_time, difficulty, tx_count, extranonce::text, nonce::text, '
+        + 'block_time, difficulty::text, tx_count, extranonce::text, nonce::text, '
         + 'header, size_bytes, received_at')
       .eq('height', height).maybeSingle(),
     sb.from('transactions').select('*').eq('block_height', height).order('idx'),
@@ -80,6 +80,7 @@ export async function GET(
     stateRoot: unprefix(block.state_root),
     timestamp: String(block.block_time),
     difficulty: Number(block.difficulty),
+    difficultyWert: String(block.difficulty),
     txCount: block.tx_count,
     extranonce: String(block.extranonce),
     nonce: String(block.nonce),

@@ -3,7 +3,7 @@ import { MAINNET, type ConsensusParams } from './networks.ts';
 import { type State, cloneState, applyBlock, stateRoot } from './state.ts';
 import { txMerkleRoot } from './block.ts';
 import { nextDifficulty, effectiveDifficulty, checkTimestamp, type BlockTiming } from './difficulty.ts';
-import { GENESIS_DIFFICULTY, MIN_DIFFICULTY } from './params.ts';
+import { GENESIS_DIFFICULTY, MIN_DIFFICULTY, difficultyAtHeight } from './params.ts';
 import { toHex } from './codec.ts';
 
 /**
@@ -66,6 +66,37 @@ export function expectedDifficulty(
   return nextDifficulty(timings, params);
 }
 
+/**
+ * Liegt die Difficulty im Header im zulaessigen Bereich?
+ *
+ * Zulaessig ist alles zwischen der gelockerten Untergrenze und dem
+ * regulaeren Wert -- schwerer als noetig darf ein Miner gern arbeiten.
+ *
+ * Ab Konsensfassung 4 werden BEIDE Grenzen auf den naechsten darstellbaren
+ * Wert abgerundet (params.ts, floorDifficulty). Weil die Abrundung monoton
+ * ist, bleibt der Bereich nie leer. Unter 2^31 rundet sie nichts -- dort
+ * ist die Regel exakt dieselbe wie vorher.
+ *
+ * Eigene Funktion, damit sie sich ohne Proof of Work pruefen laesst: Ein
+ * echter Block mit Difficulty 2^40 ist in keinem Test zu rechnen.
+ */
+export function checkDifficulty(
+  h: BlockHeader,
+  previous: BlockHeader,
+  recentTimings: BlockTiming[],
+  params: ConsensusParams = MAINNET,
+): string | null {
+  const roh = expectedDifficulty(recentTimings, params);
+  const elapsed = h.timestamp > previous.timestamp ? h.timestamp - previous.timestamp : 0n;
+  const regular = difficultyAtHeight(roh, h.height);
+  const eased = difficultyAtHeight(effectiveDifficulty(roh, elapsed, params), h.height);
+  if (h.difficulty > regular || h.difficulty < eased) {
+    return `${h.difficulty} liegt nicht zwischen ${eased} und ${regular}`;
+  }
+  if (h.difficulty < params.minDifficulty) return `unter der Untergrenze ${params.minDifficulty}`;
+  return null;
+}
+
 export function validateBlock(block: Block, ctx: Context): ValidationError | null {
   // --- billig: Aufbau, Merkle, Proof of Work ---
   const structural = checkBlockStructure(block);
@@ -97,22 +128,8 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
 
   // --- Difficulty ---
   if (ctx.previous !== null) {
-    const regular = expectedDifficulty(ctx.recentTimings, ctx.params ?? MAINNET);
-    const elapsed = h.timestamp > ctx.previous.timestamp
-      ? h.timestamp - ctx.previous.timestamp : 0n;
-    const eased = effectiveDifficulty(regular, elapsed, ctx.params ?? MAINNET);
-    // Zulaessig ist alles zwischen der gelockerten Untergrenze und dem
-    // regulaeren Wert. Schwerer als noetig darf ein Miner gern arbeiten.
-    if (h.difficulty > regular || h.difficulty < eased) {
-      return {
-        code: 'difficulty',
-        detail: `${h.difficulty} liegt nicht zwischen ${eased} und ${regular}`,
-      };
-    }
-    const untergrenze = (ctx.params ?? MAINNET).minDifficulty;
-    if (h.difficulty < untergrenze) {
-      return { code: 'difficulty', detail: `unter der Untergrenze ${untergrenze}` };
-    }
+    const fehler = checkDifficulty(h, ctx.previous, ctx.recentTimings, ctx.params ?? MAINNET);
+    if (fehler) return { code: 'difficulty', detail: fehler };
   }
 
   // --- teuer: Zustand anwenden ---

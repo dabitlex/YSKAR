@@ -517,11 +517,18 @@ async function main() {
       const job = await api(arg.api, `/job?session=${session.sessionId}`);
       if (job.jobId === zustand.jobId) return;
       const neueHoehe = job.height !== k.hoehe;
-      const neueDiff = job.difficulty !== k.netzDifficulty;
+      /*
+        job.difficulty ist das ROHE Header-Feld (Konsensfassung 4): Es geht
+        unveraendert in den Header. Fuer Anzeige und Erwartungswerte zaehlt
+        der echte Wert -- difficultyWert. Aeltere Knoten schicken ihn nicht;
+        dort sind Feld und Wert ohnehin gleich.
+      */
+      const wert = Number(job.difficultyWert ?? job.difficulty);
+      const neueDiff = wert !== k.netzDifficulty;
       zustand.jobId = job.jobId;
       zustand.shareDifficulty = Number(job.shareDifficulty);
       k.hoehe = job.height;
-      k.netzDifficulty = job.difficulty;
+      k.netzDifficulty = wert;
       arbeiter.forEach(w => w.postMessage({ t: 'job', job }));
       /*
         Die Karte rechnet gegen dasselbe Share-Ziel wie die Threads -- und
@@ -540,7 +547,7 @@ async function main() {
       // auch wenn gerade kein eigener Share faellt.
       if (neueHoehe || neueDiff) {
         ereignis(`${grau('[' + uhr() + ']')} ${grau('neue Arbeit · Block')} ` +
-          `${job.height}${grau(' · Difficulty ')}${zahl2(job.difficulty)}`);
+          `${job.height}${grau(' · Difficulty ')}${zahl2(wert)}`);
       }
     } catch (e) {
       ereignis(grau(`[${uhr()}] Job holen fehlgeschlagen: ${e.message}`));

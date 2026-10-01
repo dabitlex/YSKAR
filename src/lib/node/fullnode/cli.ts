@@ -513,7 +513,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     const l = server.lokaleStatistik();
     const nutzlast = encodeStats({
       knoten: statistik.eigeneKennung,
-      hashrate: BigInt(Math.max(0, Math.round(l.hashrate))),
+      hashrate: Number.isFinite(l.hashrate) ? BigInt(Math.max(0, Math.round(l.hashrate))) : 0n,
       sessions: l.sessions,
       adressen: l.adressen.map(h => fromHex(h)),
     });

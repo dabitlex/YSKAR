@@ -20,7 +20,7 @@ Weitere: **proof, not promise**.
 | Tests | 297, keine Typfehler |
 | Knoten | Server unter `/api/v2/*` **und** eigenstaendiger Full Node |
 | Oberflaeche | Wallet, Senden, Empfangen, Mining, Kalibrierung |
-| Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000; Fassung 3 (Gebuehr je Byte, Staubgrenze) ab Hoehe 4000 -- docs/CONSENSUS_V3.md |
+| Konsens | Fassung 2 (Coinbase mit mehreren Empfaengern) ab Hoehe 2000; Fassung 3 (Gebuehr je Byte, Staubgrenze) ab Hoehe 4000 -- docs/CONSENSUS_V3.md; Fassung 4 (Difficulty ohne Obergrenze) ab Hoehe 6000 -- docs/CONSENSUS_V4.md |
 | Pool | Abrechnung gebaut und geprueft, noch nicht angeschlossen |
 
 ## Aufbau
@@ -140,6 +140,7 @@ baut aber nichts. Fuer einen Raspberry Pi gedacht.
 |---|---|
 | `docs/CHAIN.md` | Kettenregeln, Header, Difficulty, Zustand |
 | `docs/CONSENSUS_V2.md` | Coinbase mit mehreren Empfaengern, Aktivierung |
+| `docs/CONSENSUS_V4.md` | Difficulty ohne Obergrenze ab Hoehe 6000 |
 | `docs/FULLNODE.md` | Full Node, Chain Work, Forks, Reorg, Testnetz |
 | `docs/POOL_MINING.md` | PPLNS, Abrechnung, Gebuehr |
 | `docs/POOL_BETRIEB.md` | einen Pool betreiben, beitreten |
