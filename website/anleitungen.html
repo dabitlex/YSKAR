@@ -69,7 +69,7 @@
 <div class="hinweisband"><p data-t="an.mini.hinweis">Tip: in the Mining tab you can choose between solo and pool. In the pool you receive smaller amounts more often; solo means rarer but whole blocks.</p></div>
 
 <h2 id="android" data-t="an.apk.titel">Android app with mining</h2>
-<p data-t="an.apk.text">The Android app can keep mining in the background and shows your status on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.</p>
+<p data-t="an.apk.text">The Android app keeps mining in the background, even with the screen locked, and shows your mining in a widget on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.</p>
 <p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/latest" data-t="an.apk.knopf">Download the latest version</a></p>
 <h3 data-t="an.apk.inst">Installing</h3>
 <ol>
@@ -78,8 +78,23 @@
 <li data-t="an.apk.s3">Go back and tap “Install”. Google Play Protect may show a warning; this is normal for apps from outside the Play Store.</li>
 <li data-t="an.apk.s4">Open the app, create a wallet or restore your existing one with your 12 words.</li>
 </ol>
+<h3 data-t="an.apk.start">Starting mining</h3>
+<ol>
+<li data-t="an.apk.m1">Open the Mining tab and scroll to “Controls”.</li>
+<li data-th="an.apk.m2">Choose the mode: Solo or Pool. For the pool, enter <code class="ganz">yskar-main.dynv6.net</code> as the pool address.</li>
+<li data-t="an.apk.m3">Set “Workers” and “Duty cycle”. Workers are the processor cores that compute; the duty cycle sets how hard they work (25 to 100 %).</li>
+<li data-t="an.apk.m4">Tap “Start mining”. If Android asks about notifications, allow them: that is how you see that mining is running, and you can stop it from there.</li>
+</ol>
+<div class="hinweisband"><p data-t="an.apk.tipp">Our recommendation: all workers, duty cycle 25 %, in the pool. That is easy on battery and temperature, and in the pool smaller amounts arrive more regularly. “Calibrate device” finds the best number of workers for your phone.</p></div>
 <h3 data-t="an.apk.hintergrund">Mining in the background</h3>
-<p data-t="an.apk.akku">Android stops background apps to save battery. For uninterrupted mining, set the app’s battery usage to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
+<p data-t="an.apk.dienst">Since version 1.0.9 a dedicated service inside the app does the computing. Mining continues when you leave the app or lock the screen. While it runs, Android shows a notification with your hashrate; “Stop mining” ends it right there.</p>
+<p data-t="an.apk.akku">Some devices still close background apps to save battery. If mining stops on its own, set the app’s battery usage to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
+<h3 data-t="an.apk.widget">Widget on the home screen</h3>
+<p data-t="an.apk.w1">Press and hold an empty spot on the home screen, choose “Widgets” and drag “YSKAR Wallet” onto the screen.</p>
+<p data-t="an.apk.w2">While mining runs, the widget shows what you have earned in this session, plus hashrate, runtime and accepted shares. “Stop” ends mining straight from the home screen. When mining is stopped, you see the current block, the network hashrate and the block reward.</p>
+<p data-t="an.apk.w3">“Earned this session” counts the block rewards and pool payouts credited to your address since you started; the value changes when a new block is found. Choose light or dark in the app under Settings → App → Widget. The widget in this form is available from version 1.0.10.</p>
+<h3 data-t="an.apk.update">Updating the app</h3>
+<p data-t="an.apk.updateText">When a new version is available, the app shows a notice when you open it. Tap “Download”: the app fetches the update, then Android asks whether to install it. Your wallet is kept. To check by hand, go to Settings → App → Updates in the app.</p>
 <h3 data-t="an.apk.pruefen">Checking the download (optional)</h3>
 <p data-th="an.apk.pruefenText">Every release also contains a file ending in <code>.sha256</code>. It holds the checksum of the APK. If the checksum of your download matches, the file is exactly the one we published.</p>
 

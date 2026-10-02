@@ -236,6 +236,8 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
 .text ul,.text ol{margin:0 0 16px;padding-left:22px}
 .text li{margin-bottom:6px}
 .text code{font-family:var(--mono);font-size:.9em;background:#E8EEFE;color:#1C2B47;padding:2px 6px;border-radius:6px;overflow-wrap:anywhere}
+/* Eine Adresse zum Abtippen bleibt in einer Zeile. */
+.text code.ganz{white-space:nowrap}
 .text pre{background:var(--text);color:#D6DEEC;border-radius:16px;padding:20px 22px;font-family:var(--mono);font-size:14px;line-height:1.7;overflow-x:auto;margin:0 0 20px}
 .text pre code{background:none;color:inherit;padding:0;font-size:inherit}
 .text table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:15px;background:var(--weiss);border-radius:14px;overflow:hidden}
