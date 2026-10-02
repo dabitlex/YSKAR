@@ -29,6 +29,14 @@ Ein neuer Text braucht drei Dinge: ein Element mit `data-t="schluessel"`
 im HTML, den englischen Text in `assets/i18n/en.js` und die Übersetzung in
 den anderen Dateien. Fehlt eine Übersetzung, erscheint Englisch.
 
+Sprachdateien, `site.js` und `style.css` darf der Browser nicht auf Vorrat
+behalten (`vercel.json`: `max-age=0, must-revalidate`) — sonst zeigt er nach
+einer Textänderung die neue Seite mit alten Texten, und neue Abschnitte
+erscheinen auf Englisch. Zusätzlich tragen die Adressen im HTML ein `?v=…`,
+das `site.js` an die Sprachdateien weitergibt. Erhöhen muss man es nur, wenn
+Besucher eine Änderung sofort sehen sollen, obwohl ihr Browser noch eine
+ältere Fassung mit längerer Haltbarkeit gespeichert hat.
+
 Das Whitepaper gibt es auf Deutsch und Englisch; alle anderen Sprachen
 sehen die englische Fassung mit einem Hinweis. Impressum und Datenschutz
 sind nach deutschem Recht auf Deutsch.

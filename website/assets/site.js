@@ -28,6 +28,20 @@
   var API = 'https://yskar.vercel.app/api/v2';
   var EPOCHE = 12000;
 
+  /*
+    Stand der Dateien: das ?v=… aus der eigenen Adresse (im HTML gesetzt).
+    Die Woerterbuecher werden mit demselben Stand geholt. So passen Seite,
+    Skript und Texte immer zusammen -- auch wenn ein Browser noch eine
+    aeltere Fassung einer Sprachdatei im Zwischenspeicher hat.
+  */
+  var STAND = (function () {
+    try {
+      var el = document.currentScript || document.querySelector('script[src*="/assets/site.js"]');
+      var m = el && /[?&]v=([\w.-]+)/.exec(el.getAttribute('src') || '');
+      return m ? m[1] : '';
+    } catch (e) { return ''; }
+  })();
+
   var texte = window.YSKAR_TEXTE = window.YSKAR_TEXTE || {};
   var sprache = 'en';
 
@@ -104,7 +118,7 @@
   function laden(s, fertig) {
     if (texte[s] || s === 'en') { fertig(); return; }
     var sk = document.createElement('script');
-    sk.src = '/assets/i18n/' + s + '.js';
+    sk.src = '/assets/i18n/' + s + '.js' + (STAND ? '?v=' + STAND : '');
     sk.onload = fertig;
     sk.onerror = fertig;     // dann eben Englisch
     document.head.appendChild(sk);
