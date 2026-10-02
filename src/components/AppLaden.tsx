@@ -5,6 +5,7 @@ import { plattform } from '@/lib/native/plattform';
 import { neuesteApk, RELEASE_SEITE, type Apk } from '@/lib/native/update';
 import { useT } from '@/i18n';
 import { Button } from '@/components/ui/Primitives';
+import { useScrollSperre } from '@/lib/ui/scrollSperre';
 
 /**
  * Hinweis auf die Android-App -- fuer Nutzer, die YSKAR in Telegram oder im
@@ -63,6 +64,8 @@ export function AppLaden({ onSchliessen, auto = false }: { onSchliessen: () => v
   const { t } = useT();
   const [apk, setApk] = useState<Apk | null | undefined>(undefined);
   useEffect(() => { neuesteApk().then(setApk); }, []);
+  // Die Seite dahinter steht still, solange der Hinweis offen ist.
+  useScrollSperre(true);
 
   const quelle = plattform() === 'telegram' ? 'Telegram' : 'Chrome';
   const url = apk?.url ?? RELEASE_SEITE;
@@ -74,7 +77,7 @@ export function AppLaden({ onSchliessen, auto = false }: { onSchliessen: () => v
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(15,27,46,.45)] p-3 sm:items-center"
          role="dialog" aria-modal="true" aria-labelledby="apk-titel"
          onClick={auto ? spaeter : onSchliessen}>
-      <div className="rise max-h-[92vh] w-full max-w-[440px] overflow-y-auto rounded-[24px] bg-surface p-5 shadow-[0_18px_50px_rgba(15,27,46,.25)]"
+      <div className="rise max-h-[92vh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-[24px] bg-surface p-5 shadow-[0_18px_50px_rgba(15,27,46,.25)]"
            onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-3">
           <img src="/marke/kristall.png" alt="" width={52} height={34} style={{ objectFit: 'contain' }} />

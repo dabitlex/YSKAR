@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '@/i18n';
+import { useScrollSperre } from '@/lib/ui/scrollSperre';
 
 /**
  * Bausteine der zweiten Generation.
@@ -194,6 +195,8 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts, grund = 's
   const { t } = useT();
   const [sichtbar, setSichtbar] = useState(offen);
   useEffect(() => { if (offen) setSichtbar(true); else { const id = setTimeout(() => setSichtbar(false), 220); return () => clearTimeout(id); } }, [offen]);
+  // Die Seite dahinter steht still, solange das Blatt offen ist.
+  useScrollSperre(offen);
   if (!sichtbar || typeof document === 'undefined') return null;
   // Kein transform und kein filter auf dem Blatt: beides macht es zum
   // Bezugsrahmen fuer fixierte Nachfahren -- der Scanner (fixed inset-0)
@@ -202,7 +205,7 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts, grund = 's
     <div className={`fixed inset-0 z-40 flex flex-col justify-end transition-opacity duration-200 ${offen ? 'opacity-100' : 'opacity-0'}`}
          style={{ background: 'rgb(var(--edge) / .45)' }}
          onClick={onSchliessen} role="dialog" aria-modal="true">
-      <div className={`mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-[30px] px-5 pt-2.5
+      <div className={`mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-[30px] px-5 pt-2.5
                        pb-[calc(24px+var(--unten))] shadow-[0_-20px_60px_-20px_rgba(0,0,0,.35)] ${
                          grund === 'ink' ? 'bg-ink' : 'bg-surface'}`}
            onClick={e => e.stopPropagation()}>
