@@ -8,6 +8,7 @@ import { inhalte, type Neuigkeit } from '@/content/entdecken';
 import { useT } from '@/i18n';
 import { EPOCH_BLOCKS, SEASON_BLOCKS, INITIAL_REWARD } from '@/lib/core/params';
 import type { Summary } from '@/hooks/useMining';
+import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
 
 /**
  * Entdecken.
@@ -132,8 +133,8 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
       <GroupTitle>{t.entdecken.mehr}</GroupTitle>
       <Panel className="!p-0">
         <ul className="divide-y divide-line">
-          <li><a href="/explorer.html" className="flex items-center justify-between px-4 py-3.5 text-[14px] font-bold">
-            {t.entdecken.explorer} <span className="text-faint">›</span></a></li>
+          <li><ExternLink href={EXPLORER_URL} className="flex items-center justify-between px-4 py-3.5 text-[14px] font-bold">
+            {t.entdecken.explorer} <span className="text-faint">›</span></ExternLink></li>
           <li><a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer"
                  className="flex items-center justify-between px-4 py-3.5 text-[14px] font-bold">
             {t.entdecken.github} <span className="text-faint">›</span></a></li>

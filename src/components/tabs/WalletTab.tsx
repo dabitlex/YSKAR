@@ -9,6 +9,7 @@ import { useT } from '@/i18n';
 import { sucheAus } from '@/lib/api/suche';
 import { type Zeitraum, IMMER, grenzen } from '@/lib/wallet/zeitraum';
 import { SuchKnopf, SuchLeiste, FilterChips, ZeitraumBlatt, trefferGrund } from '@/components/wallet/VerlaufSuche';
+import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
 
 /**
  * Wallet.
@@ -440,11 +441,11 @@ function Detail({ eintrag, decimals, symbol, onSchliessen }: {
         </dl>
 
         <div className="mt-6 space-y-3">
-          <a href={`/explorer.html#block-${eintrag.height}`}
+          <ExternLink href={`${EXPLORER_URL}#block-${eintrag.height}`}
              className="block rounded-[14px] border border-line bg-surface py-3.5
                         text-center text-[15px] font-bold">
             {t.wallet.imExplorer}
-          </a>
+          </ExternLink>
           <Button variant="quiet" onClick={onSchliessen}>{t.allgemein.schliessen}</Button>
         </div>
       </div>

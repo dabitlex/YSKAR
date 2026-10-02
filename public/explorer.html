@@ -483,7 +483,6 @@ details.empf .tx{border-top:0}
   </section>
 
   <footer class="fuss">
-    <a href="/" data-t="zurApp"></a>
     <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer" data-t="quelltext"></a>
     <span id="engine"></span>
   </footer>
@@ -514,13 +513,11 @@ const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
 const ORIGIN = 'https://yskar.vercel.app';
 const API = PARAM || (HOSTED ? '' : ORIGIN) + '/api/v2';
 /*
-  "Zur App": Unter www.yskar.app/explorer (die Website reicht den Explorer
-  durch, website/vercel.json) waere "/" die Startseite der Website, nicht die
-  App. Dort -- und von der Festplatte geoeffnet -- fuehrt der Link deshalb
-  ausdruecklich zur App. Auf der App-Domain bleibt er relativ.
+  Unter www.yskar.app/explorer reicht die Website den Explorer durch
+  (website/vercel.json). Dort ist er eine Seite der Website und traegt deren
+  Menue; auf der App-Domain fuehrt die Kopfzeile zurueck zur App.
 */
 const AUF_WEBSITE = /(^|\.)yskar\.app$/.test(location.hostname);
-const APP_LINK = (!HOSTED || AUF_WEBSITE) ? ORIGIN + '/' : '/';
 
 // ---------------------------------------------------------------- SHA-256
 // crypto.subtle gibt es nur in sicheren Kontexten. Damit die Datei auch von
@@ -1237,7 +1234,6 @@ function navBauen(){
 }
 document.body.classList.toggle('app-domain',!WEBSITE_NAV);
 $('marke').setAttribute('href',WEBSITE_NAV?SITE+'/':'/');
-document.querySelector('a[data-t="zurApp"]').setAttribute('href',APP_LINK);
 $('menue').addEventListener('click',()=>{
   const auf=$('nav').classList.toggle('offen');
   $('menue').setAttribute('aria-expanded',auf?'true':'false');
