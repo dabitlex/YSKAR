@@ -508,6 +508,7 @@ const de = {
     aktuell: 'aktuell',
     laden: (v: string) => `${v} laden`,
     jetztPruefen: 'Jetzt prüfen',
+    widget: 'Widget',
     diagnose: 'Diagnose',
     bruecke: 'Native Brücke prüfen',
     prueft: 'prüft…',

@@ -5,17 +5,22 @@
     <string name="mining_kanal_text">Показывает, что устройство сейчас вычисляет для YSKAR.</string>
     <string name="mining_stoppen">Остановить майнинг</string>
     <string name="mining_titel">YSKAR вычисляет</string>
-    <string name="widget_beschreibung">Баланс и майнинг YSKAR одним взглядом</string>
+    <string name="widget_beschreibung">Майнинг YSKAR одним взглядом</string>
     <string name="widget_holen">Обновить</string>
     <string name="widget_keine_wallet">Кошелёк ещё не создан</string>
-    <string name="widget_mining">Майнинг</string>
+    <string name="widget_titel">YSKAR Майнинг</string>
+    <string name="widget_laeuft">идёт</string>
     <string name="widget_gestoppt">остановлен</string>
-    <string name="widget_shares">shares</string>
-    <string name="widget_ziel">цель</string>
-    <plurals name="widget_bloecke">
-        <item quantity="one">Найден %s блок</item>
-        <item quantity="few">Найдено %s блока</item>
-        <item quantity="many">Найдено %s блоков</item>
-        <item quantity="other">Найдено %s блока</item>
-    </plurals>
+    <string name="widget_sitzung">заработано за эту сессию</string>
+    <string name="widget_stopp">Стоп</string>
+    <string name="widget_hashrate">Хешрейт</string>
+    <string name="widget_laufzeit">Время</string>
+    <string name="widget_f_shares">Shares</string>
+    <string name="widget_mining_gestoppt">Майнинг остановлен</string>
+    <string name="widget_tippen">Нажмите, чтобы открыть</string>
+    <string name="widget_block">Блок</string>
+    <string name="widget_netzrate">Сеть</string>
+    <string name="widget_belohnung">Награда</string>
+    <string name="widget_std">%1$d:%2$02d ч</string>
+    <string name="widget_min">%1$d мин</string>
 </resources>

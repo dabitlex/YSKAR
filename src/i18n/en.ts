@@ -504,6 +504,7 @@ const en = {
     aktuell: 'up to date',
     laden: (v: string) => `Get ${v}`,
     jetztPruefen: 'Check now',
+    widget: 'Widget',
     diagnose: 'Diagnostics',
     bruecke: 'Check native bridge',
     prueft: 'checking…',

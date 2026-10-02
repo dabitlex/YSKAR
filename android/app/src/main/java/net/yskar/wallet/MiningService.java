@@ -66,6 +66,59 @@ public class MiningService extends Service {
     private final Runnable anzeigeTakt = new Runnable() {
         @Override public void run() { nativAnzeigen(); }
     };
+    /*
+      "Verdient in dieser Sitzung" fuers Widget: der Verlauf der Adresse seit
+      Sitzungsbeginn, vom Server.
+
+      Der Verdienst aendert sich nur, wenn ein Block gefunden wurde. Das sieht
+      der Miner daran, dass die Hoehe seines Jobs wechselt. Also wird nicht
+      stur jede Minute gefragt, sondern nach einem Blockwechsel -- zweimal im
+      Abstand von 30 s, falls der Spiegel der Kette den Block beim ersten Mal
+      noch nicht hat -- und sonst zur Sicherheit alle zehn Minuten. Scheitert
+      eine Abfrage, kommt die naechste schon mit dem naechsten Takt.
+
+      Geholt wird im Hintergrund-Thread: Der Takt selbst laeuft auf dem
+      Haupt-Thread und darf nicht blockieren. Die drei Merker unten fasst nur
+      der Haupt-Thread an.
+    */
+    private final java.util.concurrent.atomic.AtomicBoolean sitzungLaedt = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final java.util.concurrent.atomic.AtomicBoolean sitzungNochmal = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private long sitzungHoehe = -1;
+    private int sitzungOffen = 0;
+    private long sitzungZuletzt = 0;
+    private final Runnable sitzungTakt = new Runnable() {
+        @Override public void run() {
+            if (!laeuft) return;
+            NativMiner m = miner;
+            long hoehe = m != null ? m.jobHoehe() : 0;
+            long jetzt = System.currentTimeMillis();
+            if (hoehe > 0) {
+                if (sitzungHoehe < 0) sitzungHoehe = hoehe;            // erster Blick: nur merken
+                else if (hoehe != sitzungHoehe) { sitzungHoehe = hoehe; sitzungOffen = 2; }
+            }
+            if (sitzungNochmal.getAndSet(false) && sitzungOffen == 0) sitzungOffen = 1;
+            if (sitzungOffen > 0 || jetzt - sitzungZuletzt >= 10 * 60_000) {
+                if (sitzungOffen > 0) sitzungOffen--;
+                sitzungZuletzt = jetzt;
+                if (sitzungLaedt.compareAndSet(false, true)) {
+                    final Context app = getApplicationContext();
+                    try {
+                        new Thread(() -> {
+                            try {
+                                if (WidgetDaten.sitzungHolen(app)) YskarWidget.rendern(app);
+                                else sitzungNochmal.set(true);
+                            } finally {
+                                sitzungLaedt.set(false);
+                            }
+                        }, "sitzung").start();
+                    } catch (Throwable t) {
+                        sitzungLaedt.set(false);
+                    }
+                }
+            }
+            takt.postDelayed(this, 30_000);
+        }
+    };
 
     private PowerManager.WakeLock wakeLock;
     /** Fuer die Diagnose in der Oberflaeche. */
@@ -142,9 +195,15 @@ public class MiningService extends Service {
         laeuft = false;
         takt.removeCallbacks(schlag);
         takt.removeCallbacks(anzeigeTakt);
+        takt.removeCallbacks(sitzungTakt);
         NativMiner m = miner;
         if (m != null && m.laeuft()) m.stoppen("dienst beendet");
-        widgetMining(false, null, 0, null);
+        widgetMining(false, null, 0, null, 0);
+        // Sitzung zu Ende: Beim naechsten Start zaehlt das Widget wieder ab null.
+        try { WidgetDaten.ablage(this).edit().putLong(WidgetDaten.K_SEIT, 0).putString(WidgetDaten.K_SITZUNG, "0").apply(); }
+        catch (Exception ignored) { }
+        // Gestoppt zeigt das Widget den Stand des Netzes -- gleich frisch holen.
+        YskarWidget.holenImHintergrund(this);
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
         stopForeground(STOP_FOREGROUND_REMOVE);
@@ -155,10 +214,13 @@ public class MiningService extends Service {
     public void onDestroy() {
         laeuft = false;
         takt.removeCallbacks(anzeigeTakt);
+        takt.removeCallbacks(sitzungTakt);
         NativMiner m = miner;
         if (m != null && m.laeuft()) m.stoppen("dienst zerstoert");
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
+        // Beendet Android den Dienst selbst, soll das Widget nicht bei "laeuft" stehen bleiben.
+        YskarWidget.rendern(this);
         super.onDestroy();
     }
 
@@ -195,6 +257,21 @@ public class MiningService extends Service {
         m.starten();
         takt.removeCallbacks(anzeigeTakt);
         takt.postDelayed(anzeigeTakt, 2_000);
+
+        // Neue Sitzung fuers Widget: Beginn merken, Verdienst auf null.
+        try {
+            android.content.SharedPreferences.Editor ed = WidgetDaten.ablage(this).edit();
+            ed.putLong(WidgetDaten.K_SEIT, System.currentTimeMillis());
+            ed.putString(WidgetDaten.K_SITZUNG, "0");
+            if (e.adresse != null && !e.adresse.isEmpty()) ed.putString(WidgetDaten.K_ADRESSE, e.adresse);
+            ed.apply();
+        } catch (Exception ignored) { }
+        sitzungHoehe = -1;
+        sitzungOffen = 0;
+        sitzungNochmal.set(false);
+        sitzungZuletzt = System.currentTimeMillis();
+        takt.removeCallbacks(sitzungTakt);
+        takt.postDelayed(sitzungTakt, 30_000);
     }
 
     private void startForeground2(Notification n) {
@@ -221,7 +298,7 @@ public class MiningService extends Service {
         letzteMeldung = System.currentTimeMillis();
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(MELDUNG_ID, meldung(vorlage.replace("{rate}", rate + " · " + m.duty() + " %")));
-        widgetMining(true, rate, m.angenommen(), m.shareDifficulty());
+        widgetMining(true, rate, m.angenommen(), m.shareDifficulty(), m.hashrate());
         takt.postDelayed(anzeigeTakt, 4_000);
     }
 
@@ -234,11 +311,12 @@ public class MiningService extends Service {
         return String.format(java.util.Locale.ROOT, i == 0 ? "%.0f %s" : "%.2f %s", h, e[i]);
     }
 
-    private void widgetMining(boolean an, String rate, long shares, String ziel) {
+    private void widgetMining(boolean an, String rate, long shares, String ziel, double hashrate) {
         try {
             android.content.SharedPreferences.Editor ed = WidgetDaten.ablage(this).edit();
             ed.putBoolean(WidgetDaten.K_MINING, an);
             if (rate != null) ed.putString(WidgetDaten.K_RATE, rate);
+            if (an) WidgetDaten.putDouble(ed, WidgetDaten.K_HASHRATE, hashrate);
             if (an) ed.putInt(WidgetDaten.K_SHARES, (int) Math.min(Integer.MAX_VALUE, shares));
             if (ziel != null) {
                 try { WidgetDaten.putDouble(ed, WidgetDaten.K_ZIEL, Double.parseDouble(ziel)); } catch (NumberFormatException ignored) { }

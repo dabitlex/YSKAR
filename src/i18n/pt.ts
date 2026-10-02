@@ -504,6 +504,7 @@ const pt = {
     aktuell: 'atualizado',
     laden: (v: string) => `Baixar ${v}`,
     jetztPruefen: 'Verificar agora',
+    widget: 'Widget',
     diagnose: 'Diagnóstico',
     bruecke: 'Verificar ponte nativa',
     prueft: 'verificando…',

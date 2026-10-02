@@ -504,6 +504,7 @@ const ru = {
     aktuell: 'актуально',
     laden: (v: string) => `Загрузить ${v}`,
     jetztPruefen: 'Проверить сейчас',
+    widget: 'Виджет',
     diagnose: 'Диагностика',
     bruecke: 'Проверить нативный мост',
     prueft: 'проверка…',

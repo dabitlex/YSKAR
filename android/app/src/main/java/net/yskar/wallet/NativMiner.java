@@ -493,6 +493,8 @@ final class NativMiner {
     }
 
     long angenommen() { return angenommen; }
+    /** Hoehe des Blocks, an dem gerade gerechnet wird; 0 = noch kein Job. Wechselt sie, wurde ein Block gefunden. */
+    long jobHoehe() { return jobHoehe; }
     long abgelehnt() { return abgelehnt; }
     /** Nur fuer die Pruefung auf dem Rechner (android/pruefung). */
     String sitzungFuerPruefung() { return sessionId; }

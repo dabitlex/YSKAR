@@ -5,16 +5,22 @@
     <string name="mining_kanal_text">Indique que ton appareil calcule en ce moment pour YSKAR.</string>
     <string name="mining_stoppen">Arrêter le minage</string>
     <string name="mining_titel">YSKAR calcule</string>
-    <string name="widget_beschreibung">Solde YSKAR et minage en un coup d\'œil</string>
+    <string name="widget_beschreibung">Le minage YSKAR en un coup d\'œil</string>
     <string name="widget_holen">Actualiser</string>
     <string name="widget_keine_wallet">Aucun portefeuille configuré</string>
-    <string name="widget_mining">Minage</string>
+    <string name="widget_titel">YSKAR Minage</string>
+    <string name="widget_laeuft">en cours</string>
     <string name="widget_gestoppt">arrêté</string>
-    <string name="widget_shares">shares</string>
-    <string name="widget_ziel">cible</string>
-    <plurals name="widget_bloecke">
-        <item quantity="one">%s bloc trouvé</item>
-        <item quantity="many">%s blocs trouvés</item>
-        <item quantity="other">%s blocs trouvés</item>
-    </plurals>
+    <string name="widget_sitzung">gagné pendant cette session</string>
+    <string name="widget_stopp">Stop</string>
+    <string name="widget_hashrate">Hashrate</string>
+    <string name="widget_laufzeit">Durée</string>
+    <string name="widget_f_shares">Shares</string>
+    <string name="widget_mining_gestoppt">Minage arrêté</string>
+    <string name="widget_tippen">Touche pour ouvrir l\'app</string>
+    <string name="widget_block">Bloc</string>
+    <string name="widget_netzrate">Réseau</string>
+    <string name="widget_belohnung">Récompense</string>
+    <string name="widget_std">%1$d:%2$02d h</string>
+    <string name="widget_min">%1$d min</string>
 </resources>
