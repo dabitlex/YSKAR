@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import * as vault from '@/lib/wallet/vault';
+import { kontakteLeeren } from '@/lib/wallet/kontakte';
 import {
   createMnemonic, keypairFromMnemonic, isValidMnemonic, normalizeMnemonic,
   type Keypair,
@@ -132,6 +133,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     vault.wipe();
     // Android-Widget zeigt sonst weiter das alte Guthaben.
     import('@/lib/native/widget').then(w => w.widgetLeeren()).catch(() => {});
+    // Kontakte gehoeren zur Wallet: Wer sie vom Geraet entfernt, will nicht,
+    // dass die Namen seiner Gegenueber dort liegen bleiben.
+    kontakteLeeren();
     setKeypair(null);
     setAddress(null);
     setFreshMnemonic(null);

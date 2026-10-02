@@ -185,9 +185,11 @@ export function Identicon({ adresse, size = 40, className = '' }: { adresse: str
  * Blatt von unten (Bottom-Sheet). Legt sich ueber den Reiter, der Rahmen
  * bleibt. Tipp auf den Grund oder Wischen am Griff schliesst.
  */
-export function Blatt({ offen, onSchliessen, children, titel, rechts }: {
+export function Blatt({ offen, onSchliessen, children, titel, rechts, grund = 'surface' }: {
   offen: boolean; onSchliessen: () => void; children: React.ReactNode;
   titel?: React.ReactNode; rechts?: React.ReactNode;
+  /** 'ink': Blatt auf dem Seitengrund, der Inhalt sitzt auf Karten (Wallet). */
+  grund?: 'surface' | 'ink';
 }) {
   const { t } = useT();
   const [sichtbar, setSichtbar] = useState(offen);
@@ -200,8 +202,9 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts }: {
     <div className={`fixed inset-0 z-40 flex flex-col justify-end transition-opacity duration-200 ${offen ? 'opacity-100' : 'opacity-0'}`}
          style={{ background: 'rgb(var(--edge) / .45)' }}
          onClick={onSchliessen} role="dialog" aria-modal="true">
-      <div className="mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-[30px] bg-surface px-5 pt-2.5
-                       pb-[calc(24px+var(--unten))] shadow-[0_-20px_60px_-20px_rgba(0,0,0,.35)]"
+      <div className={`mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-t-[30px] px-5 pt-2.5
+                       pb-[calc(24px+var(--unten))] shadow-[0_-20px_60px_-20px_rgba(0,0,0,.35)] ${
+                         grund === 'ink' ? 'bg-ink' : 'bg-surface'}`}
            onClick={e => e.stopPropagation()}>
         <div className="mx-auto mb-4 h-[5px] w-10 rounded-full bg-line" />
         {(titel || rechts) && (

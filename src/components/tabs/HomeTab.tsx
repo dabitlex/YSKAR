@@ -7,6 +7,10 @@ import { Zahl, Etikett, Karte, Kachel, Aktion, Pille, Kurve } from '@/components
 import { FARBE } from '@/components/Artikel';
 import { inhalte } from '@/content/entdecken';
 import { useT } from '@/i18n';
+import { useGuthabenVerborgen } from '@/lib/wallet/verborgen';
+import { useEinnahmen, heuteDazu } from '@/lib/wallet/useEinnahmen';
+import { betragZahl } from '@/lib/wallet/betrag';
+import { Zeichen } from '@/components/wallet/Teile';
 import { hashrateTeile } from '@/lib/format/hashrate';
 import { telegramNutzer, type TgNutzer } from '@/lib/telegram/webapp';
 import type { Summary, Account } from '@/hooks/useMining';
@@ -48,10 +52,18 @@ export default function HomeTab({ account, summary, mining, hashrate, hashVerlau
   const [nutzer, setNutzer] = useState<TgNutzer | null>(null);
   useEffect(() => { setNutzer(telegramNutzer()); }, []);
   const { t, sprache, locale, zahl, betrag } = useT();
+  // "Guthaben verbergen" aus der Wallet gilt auch hier -- sonst stuende die
+  // Zahl, die man verbergen wollte, gross auf dem ersten Bildschirm.
+  const [verborgen, verbergen] = useGuthabenVerborgen();
 
   const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
   const r = rate(hashrate);
-  const heute = heuteEingang(account?.history, decimals);
+  // Heute dazugekommen. Genau vom Server (alle Eingaenge des Tages); bis die
+  // Antwort da ist, aus dem Verlauf, den das Konto mitbringt -- der fasst
+  // aber nur 40 Eintraege und zaehlte bei vielen Pool-Anteilen zu wenig.
+  const genau = heuteDazu(useEinnahmen(account?.address ?? null,
+    account?.history?.[0] ? `${account.history[0].txid}:${account.history[0].kind}` : ''));
+  const heute = genau !== null ? betragZahl(genau, decimals) : heuteEingang(account?.history, decimals);
 
   const stunde = new Date().getHours();
   const gruss = stunde < 11 ? t.home.morgen : stunde < 18 ? t.home.tag : t.home.abend;
@@ -86,14 +98,21 @@ export default function HomeTab({ account, summary, mining, hashrate, hashVerlau
       </header>
 
       <section className="relative rise px-0.5">
-        <Etikett>{t.home.guthaben}</Etikett>
+        <div className="flex items-center gap-0.5">
+          <Etikett>{t.home.guthaben}</Etikett>
+          <button type="button" onClick={verbergen} aria-pressed={verborgen}
+                  aria-label={verborgen ? t.wallet.zeigen : t.wallet.verbergen}
+                  className="-my-3 flex h-10 w-10 items-center justify-center text-faint active:scale-95">
+            {verborgen ? Zeichen.AugeZu(17) : Zeichen.Auge(17)}
+          </button>
+        </div>
         <div className="mt-1.5">
-          {account
-            ? <Zahl ganz={g.ganz} bruch={g.bruch} trenner={g.trenner} einheit={symbol} size={52} />
-            : <Zahl ganz="—" einheit={symbol} size={52} />}
+          {!account ? <Zahl ganz="—" einheit={symbol} size={52} />
+            : verborgen ? <Zahl ganz="••••••" einheit={symbol} size={52} />
+            : <Zahl ganz={g.ganz} bruch={g.bruch} trenner={g.trenner} einheit={symbol} size={52} />}
         </div>
         <p className="mt-2 flex items-center gap-2 text-[13px] font-bold text-dim">
-          {heute > 0 && <><span className="text-proof">{t.home.heute(heute.toFixed(2), symbol)}</span><span className="text-faint">·</span></>}
+          {heute > 0 && !verborgen && <><span className="text-proof">{t.home.heute(zahl(heute, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), symbol)}</span><span className="text-faint">·</span></>}
           <span>{t.home.bloecke(account?.blocksFound ?? 0)}</span>
         </p>
       </section>

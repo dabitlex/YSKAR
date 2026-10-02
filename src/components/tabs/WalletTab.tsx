@@ -1,15 +1,23 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Icon, Button } from '@/components/ui/Primitives';
-import { Zahl, Etikett, Karte, Segment, Identicon } from '@/components/ui/Bausteine';
+import { Icon } from '@/components/ui/Primitives';
 import type { Account, Wartend } from '@/hooks/useMining';
 import { useT } from '@/i18n';
 import { sucheAus } from '@/lib/api/suche';
 import { type Zeitraum, IMMER, grenzen } from '@/lib/wallet/zeitraum';
 import { SuchKnopf, SuchLeiste, FilterChips, ZeitraumBlatt, trefferGrund } from '@/components/wallet/VerlaufSuche';
 import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
+import { betragText, betragZahl } from '@/lib/wallet/betrag';
+import { kurzAdresse } from '@/lib/wallet/adresse';
+import { notizAusHex } from '@/lib/wallet/notiz';
+import { gruppiere, tagSchluessel, type Zeile } from '@/lib/wallet/verlaufGruppen';
+import { useKontakte } from '@/lib/wallet/kontakte';
+import { useGuthabenVerborgen } from '@/lib/wallet/verborgen';
+import { useEinnahmen, heuteDazu } from '@/lib/wallet/useEinnahmen';
+import Einnahmen from '@/components/wallet/Einnahmen';
+import Detail from '@/components/wallet/Detail';
+import { Gegenkachel, Kappe, MiningKachel, PUNKTE, Zeichen } from '@/components/wallet/Teile';
 
 /**
  * Wallet.
@@ -19,6 +27,9 @@ import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
  * Verlauf. Wer die App oeffnet, will genau in dieser Reihenfolge wissen,
  * was los ist.
  *
+ * Der Verlauf ist nach Tagen gegliedert. Mining-Ertraege eines Tages stehen
+ * in EINER Zeile (lib/wallet/verlaufGruppen.ts) -- sonst gehen zwischen
+ * zwanzig Pool-Anteilen die zwei Ueberweisungen unter, um die es geht.
  */
 
 export interface HistoryEintrag {
@@ -43,6 +54,11 @@ type Richtung = 'alle' | 'ein' | 'aus';
 interface Seite { eintraege: HistoryEintrag[]; weiter: string | null }
 const LEER: Seite = { eintraege: [], weiter: null };
 const schluessel = (e: HistoryEintrag) => `${e.txid}:${e.kind}`;
+const istMining = (e: HistoryEintrag) => e.kind === 'reward' || e.kind === 'pool';
+/** So viele Ertraege zeigt ein aufgeklapptes Buendel, bevor "weitere" kommt. */
+const BUENDEL_ERSTE = 3;
+/** Rest eines Tages: mehr Bloecke hat ein Tag nicht (144 bei 10 Minuten). */
+const REST_LIMIT = 200;
 
 /** Zusammenfuehren ohne Doppel, neueste zuerst -- nach Block, dann Position im Block. */
 function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
@@ -51,21 +67,23 @@ function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
   return [...m.values()].sort((a, b) => b.height - a.height || (b.idx ?? 0) - (a.idx ?? 0));
 }
 
-const kurz = (a: string | null, sonst: string) => a ? `${a.slice(0, 10)}…${a.slice(-4)}` : sonst;
-
-export default function WalletTab({ account, symbol, decimals, address,
-                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onExplorer }: {
+export default function WalletTab({ account, symbol, decimals, address, hoehe,
+                                    onSenden, onScannen, onEmpfangen, onEinstellungen }: {
   account: (Account & { history?: HistoryEintrag[]; historyWeiter?: string | null; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
+  /** Aktuelle Hoehe der Kette -- fuer "n Bloecke danach" in den Einzelheiten. */
+  hoehe: number | null;
   onSenden: () => void; onScannen: () => void; onEmpfangen: () => void;
-  onEinstellungen: () => void; onExplorer: () => void;
+  onEinstellungen: () => void;
 }) {
-  // Ausgewaehlte Transaktion. Als Ueberlagerung und nicht als eigene Seite:
-  // Man will danach wieder in derselben Liste stehen, an derselben Stelle.
+  // Ausgewaehlte Transaktion. Als Blatt und nicht als eigene Seite: Man
+  // will danach wieder in derselben Liste stehen, an derselben Stelle.
   const [offen, setOffen] = useState<HistoryEintrag | null>(null);
   const [filter, setFilter] = useState<'alle' | 'in' | 'out'>('alle');
   const [kopiert, setKopiert] = useState(false);
-  const { t, betrag, vorZeit, locale } = useT();
+  const [verborgen, verbergen] = useGuthabenVerborgen();
+  const { t, betrag, vorZeit, locale, zahl } = useT();
+  const { name } = useKontakte();
   const unb = t.allgemein.unbekannt;
 
   const richtung: Richtung = filter === 'alle' ? 'alle' : filter === 'in' ? 'ein' : 'aus';
@@ -104,11 +122,29 @@ export default function WalletTab({ account, symbol, decimals, address,
   };
   const filterWeg = () => { setEingabe(''); setQ(''); setZeitraum(IMMER); };
 
+  // Aufgeklappte Mining-Buendel (je Tag) und solche, die alle Ertraege zeigen.
+  const [aufgeklappt, setAufgeklappt] = useState<Set<string>>(() => new Set());
+  const [ganz, setGanz] = useState<Set<string>>(() => new Set());
+  const umschalten = (menge: Set<string>, k: string) => {
+    const neu = new Set(menge);
+    if (neu.has(k)) neu.delete(k); else neu.add(k);
+    return neu;
+  };
+
+  // Rest des aeltesten geladenen Tages -- siehe unten.
+  const [rest, setRest] = useState<{
+    basis: string; key: string;
+    /** Der Eintrag, hinter dem der Rest beginnt, und der davor -- siehe restGilt. */
+    anker: string; vorAnker: string;
+    eintraege: HistoryEintrag[]; voll: boolean;
+  } | null>(null);
+
   // Andere Wallet: alles Nachgeladene gehoert nicht mehr hierher.
   useEffect(() => {
     setKoepfe({ ein: null, aus: null });
     setAeltere({ alle: null, ein: null, aus: null });
-    setTreffer(null);
+    setTreffer(null); setRest(null);
+    setAufgeklappt(new Set()); setGanz(new Set());
     setEingabe(''); setQ(''); setZeitraum(IMMER); setSuchOffen(false);
   }, [address]);
 
@@ -140,21 +176,94 @@ export default function WalletTab({ account, symbol, decimals, address,
     return () => { abgebrochen = true; };
   }, [address, richtung, neuester]);
 
+  // Bis der Server antwortet, steht unter "Eingaenge"/"Ausgaenge" das
+  // Passende aus der Kontoliste -- vorlaeufig: Es kann mehr geben.
+  const vorlaeufig = !filterAktiv && richtung !== 'alle' && !koepfe[richtung];
   const kopf: Seite = richtung === 'alle'
     ? { eintraege: account?.history ?? [], weiter: account?.historyWeiter ?? null }
     : koepfe[richtung] ?? {
-        // Bis der Server antwortet: das Passende aus der Kontoliste, ohne
-        // "Aeltere laden" -- der Cursor waere einer fuer alle Richtungen.
+        // Ohne "Aeltere laden" -- der Cursor waere einer fuer alle Richtungen.
         eintraege: (account?.history ?? []).filter(e => richtung === 'aus' ? e.kind === 'out' : e.kind !== 'out'),
         weiter: null,
       };
   const nachgeladen = aeltere[richtung];
   const ungefiltert = useMemo(() => zusammen(kopf.eintraege, (nachgeladen ?? LEER).eintraege),
     [kopf.eintraege, nachgeladen]);
-  const verlauf = filterAktiv ? (trefferSeite?.eintraege ?? []) : ungefiltert;
-  // Weiterblaettern: ab der letzten nachgeladenen Seite, sonst ab der ersten.
-  const cursor = filterAktiv ? (trefferSeite?.weiter ?? null)
+  // Gibt es aeltere Seiten? (Ab der letzten nachgeladenen, sonst ab der ersten.)
+  const mehrDa = filterAktiv ? (trefferSeite?.weiter ?? null)
     : nachgeladen ? nachgeladen.weiter : kopf.weiter;
+
+  /*
+    Der aelteste geladene Tag ist fast immer angeschnitten: Die Seite endet
+    nach 40 Eintraegen, nicht um Mitternacht. Ein Mining-Buendel dieses
+    Tages zeigte dann eine Summe, die nur ein Teil ist. Deshalb wird der
+    Rest GENAU dieses Tages nachgeholt (ein Abruf, begrenzt auf den Tag);
+    bis er da ist, ist das Buendel als unvollstaendig gekennzeichnet.
+
+    Nur noetig, wenn der Tag ueberhaupt Mining-Ertraege zeigt, und nicht
+    bei aktiver Suche -- dort wird nicht gebuendelt.
+
+    Der Rest ERGAENZT die Liste nur. Geblaettert wird immer mit dem Cursor
+    des Servers (mehrDa), nie ab dem Ende des Rests: Der Rest ist nach
+    Blockzeit begrenzt, der Cursor zaehlt nach Hoehe -- und Blockzeiten
+    laufen nicht streng aufwaerts. Ein Block, der zwischen beiden liegt,
+    kaeme sonst nie.
+  */
+  const basis = `${address ?? ''}|${richtung}`;
+  const letzter = !filterAktiv && !vorlaeufig && mehrDa && richtung !== 'aus'
+    ? ungefiltert[ungefiltert.length - 1] : undefined;
+  const vorLetzter = letzter ? ungefiltert[ungefiltert.length - 2] : undefined;
+  const letzterTag = letzter ? tagSchluessel(letzter.timestamp) : '';
+  const brauchtRest = !!letzter && letzter.idx != null && !!letzterTag
+    && ungefiltert.some(e => istMining(e) && tagSchluessel(e.timestamp) === letzterTag);
+  const restKey = brauchtRest && letzter ? `${basis}|${letzter.height}:${letzter.idx}` : '';
+  useEffect(() => {
+    if (!address || !restKey || !letzter) return;
+    let abgebrochen = false;
+    const beginn = new Date(Number(letzter.timestamp) * 1000);
+    beginn.setHours(0, 0, 0, 0);
+    fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&vor=${letzter.height}:${letzter.idx}` +
+          `&von=${Math.floor(beginn.getTime() / 1000)}&limit=${REST_LIMIT}`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then((s: Seite) => {
+        // Der letzte Eintrag der Seite gehoert dazu: Kommt ein neuer Block,
+        // rutscht er aus der ersten Seite und fehlte sonst kurz.
+        if (!abgebrochen) setRest({
+          basis, key: restKey,
+          anker: schluessel(letzter), vorAnker: vorLetzter ? schluessel(vorLetzter) : '',
+          eintraege: [letzter, ...s.eintraege], voll: s.eintraege.length >= REST_LIMIT,
+        });
+      })
+      .catch(() => { /* das Buendel bleibt als unvollstaendig gekennzeichnet */ });
+    return () => { abgebrochen = true; };
+    // restKey fasst Adresse, Richtung und den letzten Eintrag zusammen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restKey]);
+  /*
+    Der Rest gilt nur, solange er lueckenlos an die Liste anschliesst: wenn
+    die Liste noch mit demselben Eintrag endet wie beim Abruf (anker), oder
+    mit dem davor -- dann ist genau ein neuer Eintrag dazugekommen und der
+    Anker, der aus der ersten Seite gerutscht ist, steht im Rest. Bei
+    allem anderen (zwei neue auf einmal, aeltere Seite nachgeladen) wird er
+    nicht mehr gezeigt, bis der neue da ist.
+  */
+  const restGilt = !filterAktiv && !!rest && !!letzter && rest.basis === basis
+    && (schluessel(letzter) === rest.anker || schluessel(letzter) === rest.vorAnker);
+  const restEintraege = restGilt && rest ? rest.eintraege : null;
+
+  const verlauf = useMemo(
+    () => filterAktiv ? (trefferSeite?.eintraege ?? [])
+      : restEintraege ? zusammen(ungefiltert, restEintraege) : ungefiltert,
+    [filterAktiv, trefferSeite, ungefiltert, restEintraege]);
+  // Weiterblaettern: immer mit dem Cursor des Servers. Was der Rest schon
+  // gebracht hat, kommt dabei noch einmal -- zusammen() nimmt es heraus.
+  const cursor = mehrDa;
+  // Tag, dessen Mining-Summe (noch) nicht vollstaendig ist.
+  const aeltester = verlauf[verlauf.length - 1];
+  const teilTag = filterAktiv ? null
+    : vorlaeufig ? (aeltester ? tagSchluessel(aeltester.timestamp) : null)
+    : brauchtRest && (!restGilt || !!rest?.voll) ? letzterTag
+    : null;
 
   const mehrLaden = async () => {
     if (!address || !cursor || laedt) return;
@@ -183,85 +292,272 @@ export default function WalletTab({ account, symbol, decimals, address,
     finally { setLaedt(false); }
   };
 
-  const g = betrag(Number(account?.balance ?? 0) / 10 ** decimals);
-  // Wartende haben noch keinen Block und keine Blockzeit -- bei aktiver
-  // Suche gehoeren sie nicht in die Trefferliste.
-  const wartend = filterAktiv ? []
-    : (account?.pending ?? []).filter(p => filter === 'alle' || p.kind === filter);
-  const unterwegs = (account?.pending ?? []).filter(p => p.kind === 'out')
-    .reduce((s, p) => s + Number(p.amount) + Number(p.fee), 0) / 10 ** decimals;
+  // ------------------------------------------------------------- Zahlen
+  const zeigen = (wert: bigint | string | number) => verborgen ? PUNKTE : betragText(wert, locale, decimals);
+  // Abgeschnitten, nie gerundet: Die Karte verspricht nicht mehr, als da ist.
+  const g = betrag(betragZahl(account?.balance ?? 0, decimals));
+  const zeichen = g.ganz.length + g.bruch.length + g.trenner.length;
+  const guthabenGroesse = Math.max(24, Math.min(46, Math.floor(270 / (zeichen * 0.58))));
 
-  // Nach Tagen gruppieren: Heute, Gestern, Frueher.
-  const heute = new Date(); heute.setHours(0, 0, 0, 0);
-  const gestern = new Date(heute); gestern.setDate(gestern.getDate() - 1);
-  // Aeltere Eintraege nach Datum, damit ein langer Verlauf lesbar bleibt.
-  const tagFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
-  const gruppe = (ts: string | null) => {
-    if (!ts) return t.wallet.frueher;
-    const d = new Date(Number(ts) * 1000);
-    return d >= heute ? t.wallet.heute : d >= gestern ? t.wallet.gestern : tagFormat.format(d);
+  const pending = account?.pending ?? [];
+  // Was gerade das Konto verlaesst -- die Betraege, wie sie auch in der Karte
+  // darunter stehen. (Senden rechnet zusaetzlich die Gebuehren ab.)
+  const unterwegs = pending.filter(p => p.kind === 'out')
+    .reduce((s, p) => { try { return s + BigInt(p.amount); } catch { return s; } }, 0n);
+
+  const einnahmen = useEinnahmen(address, neuester);
+  const heute = tagSchluessel(Math.floor(Date.now() / 1000));
+  // Heute dazugekommen: Mining und empfangene Ueberweisungen -- dieselbe
+  // Zahl wie auf Home.
+  const heuteWert = heuteDazu(einnahmen) ?? 0n;
+  const hatEinnahmen = !!einnahmen && einnahmen.some(x => x.summe !== '0');
+
+  // ------------------------------------------------------------- Verlauf
+  const tage = useMemo(() => gruppiere(verlauf, tagSchluessel, !filterAktiv), [verlauf, filterAktiv]);
+  const gesternDatum = new Date(); gesternDatum.setDate(gesternDatum.getDate() - 1);
+  const gestern = tagSchluessel(Math.floor(gesternDatum.getTime() / 1000));
+  const jahr = String(new Date().getFullYear());
+  const tagOhneJahr = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' });
+  const tagMitJahr = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  const uhr = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
+  const tagTitel = (k: string) => {
+    if (!k) return t.wallet.frueher;
+    const [j, m, d] = k.split('-').map(Number);
+    const datum = new Date(j, m - 1, d, 12);
+    const text = (k.startsWith(jahr) ? tagOhneJahr : tagMitJahr).format(datum);
+    return k === heute ? t.wallet.tagHeute(text) : k === gestern ? t.wallet.tagGestern(text) : text;
   };
-  const gruppen: { name: string; eintraege: HistoryEintrag[] }[] = [];
-  for (const e of verlauf) {
-    const n = gruppe(e.timestamp);
-    const letzte = gruppen[gruppen.length - 1];
-    if (letzte && letzte.name === n) letzte.eintraege.push(e); else gruppen.push({ name: n, eintraege: [e] });
-  }
+  // Heute "vor 10 min", an frueheren Tagen die Uhrzeit -- der Tag steht darueber.
+  const wann = (e: HistoryEintrag) => !e.timestamp ? ''
+    : tagSchluessel(e.timestamp) === heute ? vorZeit(e.timestamp)
+    : uhr.format(new Date(Number(e.timestamp) * 1000));
+  const wer = (a: string | null | undefined) => name(a) ?? kurzAdresse(a, unb);
 
   const kopiere = async () => {
     if (!address) return;
     try { await navigator.clipboard.writeText(address); setKopiert(true); setTimeout(() => setKopiert(false), 1600); } catch { /* egal */ }
   };
 
+  const zeile = (e: HistoryEintrag) => {
+    const mining = istMining(e);
+    const kontakt = mining ? null : name(e.counterparty);
+    const notiz = mining ? '' : notizAusHex(e.memo);
+    const grund = trefferGrund(e, q, suche, t);
+    return (
+      <li key={schluessel(e)}>
+        <button type="button" onClick={() => setOffen(e)}
+                className="flex min-h-[66px] w-full items-center gap-3 border-t border-line py-2.5 text-left active:opacity-70">
+          {mining ? <MiningKachel /> : <Gegenkachel adresse={e.counterparty} richtung={e.kind === 'out' ? 'aus' : 'ein'} />}
+          <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+            {mining ? (
+              <span className="truncate text-[14.5px] font-extrabold">
+                {e.kind === 'pool' ? t.wallet.poolBlock(zahl(e.height)) : t.wallet.rewardBlock(zahl(e.height))}
+              </span>
+            ) : kontakt ? (
+              <span className="truncate text-[14.5px] font-extrabold">{kontakt}</span>
+            ) : (
+              <span className="truncate font-mono text-[13.5px] font-medium">{kurzAdresse(e.counterparty, unb)}</span>
+            )}
+            <span className="truncate text-[12.5px] font-semibold text-dim">
+              {grund ?? <>
+                {wann(e)}
+                {notiz && ` · ${t.wallet.zitat(notiz)}`}
+                {e.kind === 'pool' && (e.shares ?? 0) > 1 && ` · ${t.wallet.aufgeteilt(e.shares!)}`}
+              </>}
+            </span>
+          </span>
+          <span className={`tnum whitespace-nowrap text-[15px] font-extrabold ${e.kind === 'out' ? 'text-text' : 'text-proof'}`}>
+            {e.kind === 'out' ? '−' : '+'}{zeigen(e.amount)}
+          </span>
+        </button>
+      </li>
+    );
+  };
+
+  const buendel = (z: Extract<Zeile<HistoryEintrag>, { art: 'mining' }>, tag: string) => {
+    const auf = aufgeklappt.has(z.schluessel);
+    const alle = ganz.has(z.schluessel);
+    const teil = tag === teilTag;
+    const sichtbar = alle ? z.eintraege : z.eintraege.slice(0, BUENDEL_ERSTE);
+    const uebrig = z.eintraege.length - sichtbar.length;
+    const art = z.pool > 0 && z.solo > 0 ? t.wallet.miningBeides : z.pool > 0 ? t.wallet.miningPool : t.wallet.miningSolo;
+    return (
+      <li key={z.schluessel}>
+        <button type="button" aria-expanded={auf}
+                onClick={() => setAufgeklappt(m => umschalten(m, z.schluessel))}
+                className="flex min-h-[66px] w-full items-center gap-3 border-t border-line py-2.5 text-left active:opacity-70">
+          <MiningKachel />
+          <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+            <span className="truncate text-[14.5px] font-extrabold">{t.wallet.miningErtraege}</span>
+            <span className="truncate text-[12.5px] font-semibold text-dim">
+              {teil ? t.wallet.miningLaedt(z.eintraege.length) : `${t.wallet.miningBloecke(z.eintraege.length)} · ${art}`}
+            </span>
+          </span>
+          <span className={`tnum whitespace-nowrap text-[15px] font-extrabold ${teil ? 'text-faint' : 'text-proof'}`}>
+            +{zeigen(z.summe)}
+          </span>
+          <span className="shrink-0 text-dim">{auf ? Zeichen.Unten() : Zeichen.Rechts()}</span>
+        </button>
+        {auf && (
+          <ul className="mb-2.5 ml-[22px] flex flex-col border-l-2 border-line py-0.5 pl-4">
+            {sichtbar.map(e => (
+              <li key={schluessel(e)}>
+                <button type="button" onClick={() => setOffen(e)}
+                        className="flex min-h-[48px] w-full items-center justify-between gap-3 py-1.5 text-left active:opacity-70">
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate text-[13.5px] font-bold">
+                      {e.kind === 'pool' ? t.wallet.poolBlock(zahl(e.height)) : t.wallet.rewardBlock(zahl(e.height))}
+                    </span>
+                    <span className="truncate text-[12px] font-semibold text-dim">
+                      {e.timestamp ? uhr.format(new Date(Number(e.timestamp) * 1000)) : ''}
+                      {e.kind === 'pool' && (e.shares ?? 0) > 1 && ` · ${t.wallet.aufgeteilt(e.shares!)}`}
+                    </span>
+                  </span>
+                  <span className="tnum whitespace-nowrap text-[14px] font-extrabold text-proof">+{zeigen(e.amount)}</span>
+                </button>
+              </li>
+            ))}
+            {(uebrig > 0 || alle) && z.eintraege.length > BUENDEL_ERSTE && (
+              <li>
+                <button type="button" onClick={() => setGanz(m => umschalten(m, z.schluessel))}
+                        className="min-h-[44px] w-full text-left text-[13px] font-extrabold text-work">
+                  {alle ? t.wallet.weniger : t.wallet.weitere(uebrig)}
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
+      </li>
+    );
+  };
+
+  const chip = (an: boolean) => `h-10 shrink-0 rounded-[13px] px-4 text-[13px] font-extrabold transition-colors ${
+    an ? 'bg-text text-surface' : 'bg-raised text-dim'}`;
+
   return (
     <>
       <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
-      <header className="relative mb-5 flex items-center justify-between">
+      <header className="relative mb-3.5 flex items-center justify-between">
         <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.wallet.titel}</h1>
         <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
                 className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text">{Icon.Zahnrad}</button>
       </header>
 
-      <section className="relative rise flex flex-col items-center gap-2.5 text-center">
-        <Identicon adresse={address} size={64} />
-        <div className="mt-1">
-          {account
-            ? <Zahl ganz={g.ganz} bruch={g.bruch} trenner={g.trenner} einheit={symbol} size={46} className="justify-center" />
-            : <Zahl ganz="—" einheit={symbol} size={46} className="justify-center" />}
+      {/* Kristallkarte: das Guthaben, die Adresse und was gerade in Bewegung ist. */}
+      <section aria-label={t.wallet.guthaben}
+               className="hero rise relative overflow-hidden px-5 pb-5 pt-3.5 shadow-[0_22px_40px_-26px_rgba(20,48,95,.85)]"
+               style={{ borderRadius: 28 }}>
+        <div aria-hidden="true" className="absolute -bottom-6 -right-[38px] h-[172px] w-[264px]">
+          <div className="absolute inset-0 bg-white/[.07]" style={{ clipPath: 'polygon(27% 33%, 39% 60%, 18% 99%, 0.5% 99%)' }} />
+          <div className="absolute inset-0 bg-white/[.12]" style={{ clipPath: 'polygon(49.5% 1%, 64% 37%, 55.5% 54%, 43% 55%, 34.7% 37%)' }} />
+          <div className="absolute inset-0 bg-white/[.05]" style={{ clipPath: 'polygon(49.5% 48%, 75% 99%, 23.5% 99%)' }} />
+          <div className="absolute inset-0 bg-white/[.09]" style={{ clipPath: 'polygon(72.4% 31.5%, 99.5% 99%, 80% 99%, 59.4% 58.5%)' }} />
         </div>
-        {address && (
-          <button onClick={kopiere}
-                  className="panel inline-flex items-center gap-2 !rounded-full py-[7px] pl-3.5 pr-3 text-dim">
-            <span className="font-mono text-[12.5px]">{kopiert ? t.allgemein.kopiert : kurz(address, unb)}</span>
-            <span className="text-work">{Icon.Kopieren}</span>
-          </button>
-        )}
-        {unterwegs > 0 && (
-          <p className="tnum text-[12px] font-bold warte-text">
-            {t.wallet.unterwegs(unterwegs.toFixed(4), symbol)}
-          </p>
+        <div className="relative flex items-center justify-between gap-2.5">
+          <div className="flex min-w-0 items-center gap-0.5">
+            <span className="truncate text-[11.5px] font-bold uppercase tracking-[.08em] text-white/[.78]">{t.wallet.guthaben}</span>
+            <button type="button" onClick={verbergen} aria-pressed={verborgen}
+                    aria-label={verborgen ? t.wallet.zeigen : t.wallet.verbergen}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center text-white/[.78] active:scale-95">
+              {verborgen ? Zeichen.AugeZu() : Zeichen.Auge()}
+            </button>
+          </div>
+          {address && (
+            <button type="button" onClick={kopiere} aria-label={t.wallet.adresseKopieren}
+                    className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-white/[.14] pl-3.5 pr-3 text-white active:scale-[.98]">
+              <span className="font-mono text-[12.5px]">{kopiert ? t.allgemein.kopiert : kurzAdresse(address, unb)}</span>
+              {kopiert ? Zeichen.Haken(17, 2.2) : Zeichen.Kopieren()}
+            </button>
+          )}
+        </div>
+        <p className="tnum relative mt-1.5 flex flex-wrap items-baseline gap-x-2">
+          <span className="font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: verborgen ? 40 : guthabenGroesse }}>
+            {!account ? '—' : verborgen ? '••••••' : <>
+              {g.ganz}<span className="font-bold text-white/[.62]">{g.trenner}{g.bruch}</span>
+            </>}
+          </span>
+          <span className="text-[15px] font-extrabold text-white/[.78]">{symbol}</span>
+        </p>
+        {(heuteWert > 0n || unterwegs > 0n) && (
+          <div className="relative mt-4 flex flex-wrap gap-2">
+            {heuteWert > 0n && (
+              <span className="tnum inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[9px] pr-3 text-[12.5px] font-extrabold"
+                    style={{ background: 'rgba(46, 190, 133, .24)', color: '#9BF3CF' }}>
+                {Zeichen.Hoch()}{t.wallet.chipHeute(zeigen(heuteWert))}
+              </span>
+            )}
+            {unterwegs > 0n && (
+              <span className="tnum inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[9px] pr-3 text-[12.5px] font-extrabold"
+                    style={{ background: 'rgba(242, 178, 92, .24)', color: '#FFD596' }}>
+                {Zeichen.Uhr()}{t.wallet.chipUnterwegs(zeigen(unterwegs))}
+              </span>
+            )}
+          </div>
         )}
       </section>
 
-      <div className="rise rise-1 mt-5 grid grid-cols-2 gap-2.5">
-        <Button onClick={onSenden}>{Icon.Senden}{t.wallet.senden}</Button>
-        <Button variant="quiet" onClick={onEmpfangen}>{Icon.Empfangen}{t.wallet.empfangen}</Button>
-      </div>
-      <div className="rise rise-1 mt-2.5 grid grid-cols-2 gap-2.5">
-        <button onClick={onScannen} className="panel flex items-center justify-center gap-2 !rounded-[16px] py-2.5 text-[13px] font-extrabold text-dim">{Icon.Scan}{t.wallet.scannen}</button>
-        <button onClick={onExplorer} className="panel flex items-center justify-center gap-2 !rounded-[16px] py-2.5 text-[13px] font-extrabold text-dim">{Icon.Verlauf}{t.wallet.explorer}</button>
+      <div className="rise rise-1 mt-3.5 flex items-center gap-2.5">
+        <button type="button" onClick={onSenden}
+                className="flex h-[54px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] bg-work text-[15px] font-extrabold text-white shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)] active:scale-[.985]">
+          {Zeichen.Hoch(20, 2.1)}<span className="truncate">{t.wallet.senden}</span>
+        </button>
+        <button type="button" onClick={onScannen} aria-label={t.senden.scanAria}
+                className="panel flex h-[54px] w-[54px] shrink-0 items-center justify-center !rounded-full text-work active:scale-95">
+          {Zeichen.Scan()}
+        </button>
+        <button type="button" onClick={onEmpfangen}
+                className="panel flex h-[54px] min-w-0 flex-1 items-center justify-center gap-2 !rounded-[18px] text-[15px] font-extrabold active:scale-[.985]">
+          {Zeichen.Runter(20, 2.1)}<span className="truncate">{t.wallet.empfangen}</span>
+        </button>
       </div>
 
-      <Karte className="rise rise-2 mt-5 px-[18px] pt-4 pb-1">
-        {/* Bei langen Beschriftungen (z. B. Polnisch) rutscht die Auswahl
-            unter den Titel, statt aus der Karte zu ragen. */}
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-          <span className="text-[15px] font-extrabold">{t.wallet.verlauf}</span>
-          <div className="flex items-center gap-1.5">
-            <Segment label={t.wallet.verlauf} wert={filter} onChange={setFilter}
-                     werte={[{ v: 'alle', text: t.wallet.alle }, { v: 'in', text: t.wallet.eingaenge }, { v: 'out', text: t.wallet.ausgaenge }]} />
+      {hatEinnahmen && einnahmen && (
+        <Einnahmen tage={einnahmen} symbol={symbol} decimals={decimals} verborgen={verborgen} />
+      )}
+
+      {pending.length > 0 && (
+        <section aria-label={t.wallet.unterwegsTitel(pending.length)}
+                 className="warte rise rise-2 mt-3.5 flex items-center gap-3 rounded-[20px] px-4 py-[13px]">
+          <span aria-hidden="true" className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-surface">
+            {Zeichen.Uhr(19, 2)}
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[14px] font-extrabold">{t.wallet.unterwegsTitel(pending.length)}</span>
+            {pending.slice(0, 3).map(p => (
+              <span key={p.txid} className="tnum text-[12.5px] font-semibold leading-[1.4] text-text">
+                {p.kind === 'out'
+                  ? t.wallet.unterwegsAn(zeigen(p.amount), symbol, wer(p.to))
+                  : t.wallet.unterwegsVon(zeigen(p.amount), symbol, wer(p.from))}
+                {pending.length === 1 && ` · ${t.wallet.unterwegsBlock(1)}`}
+              </span>
+            ))}
+            {pending.length > 1 && (
+              <span className="text-[12.5px] font-semibold leading-[1.4] text-text">
+                {pending.length > 3 && `${t.wallet.unterwegsMehr(pending.length - 3)} · `}{t.wallet.unterwegsBlock(pending.length)}
+              </span>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section aria-label={t.wallet.verlauf} className="panel rise rise-2 mt-3.5 !rounded-[24px] px-[18px] pb-1.5 pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[17px] font-extrabold tracking-[-0.01em]">{t.wallet.verlauf}</h2>
+          <div className="flex items-center gap-1">
+            <ExternLink href={address ? `${EXPLORER_URL}#adr-${address}` : EXPLORER_URL}
+                        className="inline-flex h-11 items-center gap-1.5 px-2 text-[13px] font-extrabold text-work">
+              {t.wallet.explorer}{Zeichen.Extern()}
+            </ExternLink>
             <SuchKnopf offen={suchOffen} aktiv={filterAktiv} onClick={() => setSuchOffen(o => !o)} />
           </div>
+        </div>
+        <div role="group" aria-label={t.wallet.filter}
+             className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 [scrollbar-width:none]">
+          {([['alle', t.wallet.alle], ['in', t.wallet.eingaenge], ['out', t.wallet.ausgaenge]] as const).map(([v, text]) => (
+            <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)} className={chip(filter === v)}>
+              {text}
+            </button>
+          ))}
         </div>
 
         {suchOffen ? (
@@ -276,7 +572,7 @@ export default function WalletTab({ account, symbol, decimals, address,
 
         {filterAktiv && trefferSeite && trefferSeite.eintraege.length > 0 && (
           <div className="flex items-center justify-between pt-2">
-            <Etikett>{t.wallet.treffer(trefferSeite.eintraege.length, !!trefferSeite.weiter)}</Etikett>
+            <Kappe>{t.wallet.treffer(trefferSeite.eintraege.length, !!trefferSeite.weiter)}</Kappe>
             <button onClick={filterWeg} className="text-[12px] font-extrabold text-work">{t.wallet.zuruecksetzen}</button>
           </div>
         )}
@@ -296,209 +592,47 @@ export default function WalletTab({ account, symbol, decimals, address,
               {t.wallet.filterZuruecksetzen}
             </button>
           </div>
-        ) : verlauf.length === 0 && wartend.length === 0 ? (
+        ) : verlauf.length === 0 ? (
           <p className="py-6 text-center text-[13.5px] font-semibold leading-relaxed text-dim">{t.wallet.leer}</p>
         ) : (
-          <ul>
-            {wartend.length > 0 && <Etikett className="block pb-1 pt-3">{t.wallet.wartet(wartend.length)}</Etikett>}
-            {wartend.map(p => (
-              <Eintrag key={p.txid} art="wait" adresse={p.kind === 'out' ? p.to : p.from}
-                titel={p.kind === 'out' ? t.wallet.an(kurz(p.to, unb)) : t.wallet.von(kurz(p.from, unb))}
-                unten={p.kind === 'out'
-                  ? t.wallet.wartetGebuehr((Number(p.fee) / 10 ** decimals).toFixed(4))
-                  : t.wallet.wartetBlock}
-                betrag={`${p.kind === 'out' ? '−' : '+'}${(Number(p.amount) / 10 ** decimals).toFixed(4)}`} symbol={symbol} />
-            ))}
-            {gruppen.map(gr => (
-              <li key={gr.name}>
-                <Etikett className="block pb-1 pt-3">{gr.name}</Etikett>
+          <div>
+            {tage.map((tag, i) => (
+              // Blockzeiten laufen nicht streng aufwaerts: Um Mitternacht kann
+              // ein Tag zweimal vorkommen. Die Position macht den Schluessel eindeutig.
+              <section key={`${tag.schluessel}#${tage.length - i}`}>
+                <Kappe als="h3" className={`mb-0.5 block ${i === 0 ? 'mt-[18px]' : 'mt-3.5'}`}>{tagTitel(tag.schluessel)}</Kappe>
                 <ul>
-                  {gr.eintraege.map(e => (
-                    <Eintrag key={schluessel(e)}
-                      onClick={() => setOffen(e)}
-                      art={e.kind === 'out' ? 'out' : 'in'}
-                      adresse={e.kind === 'reward' ? `reward-${e.height}`
-                        : e.kind === 'pool' ? `pool-${e.height}` : e.counterparty}
-                      titel={e.kind === 'reward' ? t.wallet.blockreward(e.height)
-                        : e.kind === 'pool' ? t.wallet.poolAnteil(e.height)
-                        : e.kind === 'in' ? t.wallet.von(kurz(e.counterparty, unb))
-                        : t.wallet.an(kurz(e.counterparty, unb))}
-                      unten={trefferGrund(e, q, suche, t) ?? (vorZeit(e.timestamp) +
-                        (e.kind === 'out' && Number(e.fee) > 0
-                          ? ` · ${t.wallet.gebuehr((Number(e.fee) / 10 ** decimals).toFixed(4))}` : ''))}
-                      betrag={`${e.kind === 'out' ? '−' : '+'}${
-                        (Number(e.amount) / 10 ** decimals).toFixed(4)}`} symbol={symbol}
-                      gut={e.kind !== 'out'} />
-                  ))}
+                  {tag.zeilen.map(z => z.art === 'mining' ? buendel(z, tag.schluessel) : zeile(z.eintrag))}
                 </ul>
-              </li>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
 
         {/* Weiterblaettern bis zum allerersten Eintrag. */}
         {cursor ? (
-          <div className="border-t border-line py-3">
+          <div className="border-t border-line">
             <button onClick={mehrLaden} disabled={laedt}
-                    className="w-full rounded-[14px] py-2.5 text-[13.5px] font-extrabold text-work disabled:opacity-60">
+                    className="h-[50px] w-full text-[13.5px] font-extrabold text-work disabled:opacity-60">
               {laedt ? t.wallet.laedtMehr : t.wallet.aeltereLaden}
             </button>
             {ladeFehler && (
-              <p className="pt-1 text-center text-[12px] font-semibold text-risk">{t.wallet.ladenFehler}</p>
+              <p className="pb-2 text-center text-[12px] font-semibold text-risk">{t.wallet.ladenFehler}</p>
             )}
           </div>
         ) : verlauf.length > 0 && (
-          <p className="border-t border-line py-3 text-center text-[12px] font-semibold text-faint">
-            {filterAktiv ? t.wallet.alleTreffer : t.wallet.alleGeladen}
+          <p className="border-t border-line py-3.5 text-center text-[12px] font-semibold text-faint">
+            {vorlaeufig ? t.wallet.laedtMehr : filterAktiv ? t.wallet.alleTreffer : t.wallet.alleGeladen}
           </p>
         )}
-      </Karte>
+      </section>
 
       <ZeitraumBlatt offen={blattOffen} zeitraum={zeitraum}
                      onSchliessen={() => setBlattOffen(false)}
                      onAnwenden={z => { setZeitraum(z); setBlattOffen(false); }} />
 
-      {offen && (
-        <Detail eintrag={offen} decimals={decimals} symbol={symbol}
-                onSchliessen={() => setOffen(null)} />
-      )}
+      <Detail eintrag={offen} decimals={decimals} symbol={symbol} hoehe={hoehe}
+              onSchliessen={() => setOffen(null)} />
     </>
-  );
-}
-
-/**
- * Einzelheiten zu einer Transaktion.
- *
- * Zeigt die vollstaendige Kennung und die vollstaendige Gegenadresse, nicht
- * die gekuerzte Fassung aus der Liste. Wer pruefen will, ob das Geld bei der
- * richtigen Adresse gelandet ist, muss alle Zeichen sehen -- gekuerzte
- * Adressen lassen sich faelschen, indem man Anfang und Ende trifft.
- */
-function Detail({ eintrag, decimals, symbol, onSchliessen }: {
-  eintrag: HistoryEintrag; decimals: number; symbol: string;
-  onSchliessen: () => void;
-}) {
-  const [kopiert, setKopiert] = useState<string | null>(null);
-  const { t, datum } = useT();
-  const betrag = Number(eintrag.amount) / 10 ** decimals;
-  const gebuehr = Number(eintrag.fee) / 10 ** decimals;
-  const eingang = eintrag.kind !== 'out';
-
-  const kopiere = async (was: string, text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setKopiert(was);
-      setTimeout(() => setKopiert(null), 1600);
-    } catch { /* nicht ueberall erlaubt */ }
-  };
-
-  const titel = eintrag.kind === 'reward' ? t.wallet.dBlockreward
-    : eintrag.kind === 'pool' ? t.wallet.dPoolAnteil
-    : eintrag.kind === 'in' ? t.wallet.dEmpfangen : t.wallet.dGesendet;
-
-  if (typeof document === 'undefined') return null;
-  return createPortal(
-    <div className="fixed inset-0 z-40 flex flex-col justify-end bg-text/40"
-         onClick={onSchliessen}>
-      <div className="rise max-h-[85dvh] overflow-y-auto rounded-t-[24px] bg-surface p-5
-                      pb-[calc(20px+var(--unten))]"
-           onClick={e => e.stopPropagation()}>
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-line" />
-
-        <p className="label">{titel}</p>
-        <div className="mt-1 flex items-baseline gap-2 leading-none">
-          <span className={`tnum text-[32px] font-extrabold tracking-[-0.03em] ${
-            eingang ? 'text-proof' : 'text-text'}`}>
-            {eingang ? '+' : '−'}{betrag.toFixed(4)}
-          </span>
-          <span className="text-[15px] text-dim">{symbol}</span>
-        </div>
-
-        <dl className="mt-6">
-          <Feld label={t.wallet.status} wert={
-            <span className="text-proof">{t.wallet.bestaetigt(eintrag.height)}</span>} />
-          <Feld label={t.wallet.zeitpunkt} wert={eintrag.timestamp ? datum(eintrag.timestamp) : '—'} />
-          {(eintrag.kind === 'in' || eintrag.kind === 'out') && (
-            <Feld label={eingang ? t.wallet.dVon : t.wallet.dAn} mono umbruch
-                  wert={eintrag.counterparty ?? t.allgemein.unbekannt}
-                  onKopieren={eintrag.counterparty
-                    ? () => kopiere('adresse', eintrag.counterparty!) : undefined}
-                  kopiert={kopiert === 'adresse'} />
-          )}
-          {eintrag.kind === 'out' && gebuehr > 0 && (
-            <Feld label={t.wallet.netzgebuehr} wert={`${gebuehr.toFixed(4)} ${symbol}`} />
-          )}
-          {/* Nur bei Ueberweisungen: Bei einer Coinbase stehen im Notizfeld
-              Bytes des Miners (Extranonce, Pool-Kennung), keine Notiz. */}
-          {eintrag.memo && (eintrag.kind === 'in' || eintrag.kind === 'out') && (
-            <Feld label={t.wallet.notiz} wert={new TextDecoder().decode(
-              Uint8Array.from(eintrag.memo.match(/../g) ?? [],
-                              h => parseInt(h, 16)))} />
-          )}
-          <Feld label={t.wallet.transaktion} mono umbruch wert={eintrag.txid}
-                onKopieren={() => kopiere('txid', eintrag.txid)}
-                kopiert={kopiert === 'txid'} />
-        </dl>
-
-        <div className="mt-6 space-y-3">
-          <ExternLink href={`${EXPLORER_URL}#block-${eintrag.height}`}
-             className="block rounded-[14px] border border-line bg-surface py-3.5
-                        text-center text-[15px] font-bold">
-            {t.wallet.imExplorer}
-          </ExternLink>
-          <Button variant="quiet" onClick={onSchliessen}>{t.allgemein.schliessen}</Button>
-        </div>
-      </div>
-    </div>
-  , document.body);
-}
-
-function Feld({ label, wert, mono, umbruch, onKopieren, kopiert }: {
-  label: string; wert: React.ReactNode; mono?: boolean; umbruch?: boolean;
-  onKopieren?: () => void; kopiert?: boolean;
-}) {
-  const { t } = useT();
-  return (
-    <div className="border-b border-line py-3 last:border-0">
-      <dt className="flex items-baseline justify-between text-[12px] font-semibold text-faint">
-        {label}
-        {onKopieren && (
-          <button onClick={onKopieren} className="font-bold text-work">
-            {kopiert ? t.allgemein.kopiert : t.allgemein.kopieren}
-          </button>
-        )}
-      </dt>
-      <dd className={`mt-1 text-[13.5px] ${mono ? 'font-mono' : ''} ${
-        umbruch ? 'break-all' : ''}`}>{wert}</dd>
-    </div>
-  );
-}
-
-function Eintrag({ art, adresse, titel, unten, betrag, symbol, gut, onClick }: {
-  art: 'in' | 'out' | 'wait'; adresse: string | null; titel: string; unten: React.ReactNode;
-  betrag: string; symbol: string; gut?: boolean; onClick?: () => void;
-}) {
-  const { t } = useT();
-  const Zeile = onClick ? 'button' : 'div';
-  return (
-    <li>
-    <Zeile onClick={onClick}
-      className={`flex w-full items-center gap-3 border-t border-line py-3 text-left ${
-        onClick ? 'active:opacity-70' : ''}`}>
-      <Identicon adresse={adresse} size={40} />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex items-center gap-1.5 truncate text-[14px] font-extrabold">
-          {titel}
-          {art === 'wait' && <span className="warte rounded-full px-1.5 py-0.5 text-[10px] font-extrabold">{t.wallet.wartetKurz}</span>}
-        </span>
-        <span className="truncate font-mono text-[11.5px] text-faint">{unten}</span>
-      </span>
-      <span className="flex flex-col items-end gap-0.5">
-        <span className={`tnum whitespace-nowrap text-[14.5px] font-extrabold ${
-          art === 'wait' ? 'text-faint' : gut ? 'text-proof' : 'text-text'}`}>{betrag}</span>
-        <span className="text-[11px] font-bold text-faint">{symbol}</span>
-      </span>
-    </Zeile>
-    </li>
   );
 }
