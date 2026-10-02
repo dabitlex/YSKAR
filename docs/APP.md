@@ -196,6 +196,44 @@ Passt nicht alles in die Höhe (kleine Launcher-Raster, große Systemschrift),
 lässt `YskarWidget.einpassen` erst die Unterzeile, dann die Beschriftung der
 Felder, dann die Felder weg. Das Widget lässt sich auch in der Höhe ziehen.
 
+## Wallet
+
+Aufbau: Guthabenkarte, Aktionen (Senden, Scannen, Empfangen), Kachel
+„Mining-Einnahmen", wartende Zahlungen, Verlauf.
+
+- **Verlauf:** nach Tagen gegliedert. Mining-Erträge eines Tages stehen in
+  *einer* Zeile mit Anzahl und Summe, aufklappbar bis zum einzelnen Block
+  (`lib/wallet/verlaufGruppen.ts`). Der älteste geladene Tag ist fast immer
+  angeschnitten — die Seite endet nach 40 Einträgen, nicht um Mitternacht.
+  Deshalb holt die Liste den Rest genau dieses Tages nach (`von=` auf der
+  Verlaufs-Schnittstelle), bevor sie eine Summe zeigt. Bei aktiver Suche
+  wird nicht gebündelt.
+- **Mining-Einnahmen / „heute":** `/api/v2/account/<adresse>/einnahmen`
+  (`?tage=30&tz=Europe/Berlin`) liefert je Kalendertag in der Zeitzone des
+  Geräts die Mining-Einnahmen (`summe`, `bloecke`) und daneben die
+  empfangenen Überweisungen (`eingaenge`) — aus `chain2.einnahmen_tage` und
+  `chain2.eingaenge_tage`, Migration 00024. Die Kachel zeigt nur das Mining;
+  „heute" auf der Karte und auf Home ist beides zusammen.
+- **Senden** in vier Schritten: Empfänger, Betrag (eigenes Ziffernfeld,
+  `lib/wallet/ziffern.ts`), Prüfen, Gesendet. Der Prüfschritt zeigt die
+  Adresse vollständig in Vierergruppen und sagt, ob schon einmal dorthin
+  gesendet wurde — sonst steht dort „Neue Adresse". Gebaut und signiert
+  wird wie zuvor auf dem Gerät.
+- **Kontakte:** Namen für Adressen, nur auf dem Gerät (`localStorage`,
+  `lib/wallet/kontakte.ts`). Kein Server kennt sie; sie wandern nicht mit,
+  wenn die Wallet woanders wiederhergestellt wird, und werden mit der Wallet
+  vom Gerät gelöscht.
+- **Betrag anfordern:** Der QR-Code trägt dann
+  `yskar:<adresse>?amount=25.5&memo=…` (`lib/wallet/qr.ts`). Ältere
+  Fassungen der App lesen daraus die Adresse und lassen den Rest weg. Betrag
+  und Notiz sind ein Vorschlag — gesendet wird erst nach dem Prüfschritt.
+- **Guthaben verbergen:** das Auge neben dem Guthaben ersetzt alle Beträge
+  in der Wallet und auf Home durch Punkte, bis man es wieder antippt. Kein
+  Schutz gegen jemanden mit dem Telefon in der Hand — dafür ist die Sperre da.
+- **Beträge:** zwei bis vier Nachkommastellen in der Schreibweise der
+  Sprache, abgeschnitten statt gerundet (`lib/wallet/betrag.ts`); im
+  Prüfschritt jede Stelle bis zur letzten.
+
 ## Gestaltung, zweite Generation
 
 Bausteine in `src/components/ui/Bausteine.tsx`: `Zahl` (grosse Zahl,

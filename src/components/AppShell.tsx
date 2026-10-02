@@ -146,8 +146,8 @@ export default function AppShell({ platform }: { platform: string }) {
                      onSenden={() => setAnsicht('senden')}
                      onScannen={() => setAnsicht('scannen')}
                      onEmpfangen={() => setAnsicht('empfangen')}
-                     onEinstellungen={() => setAnsicht('einstellungen')}
-                     onExplorer={() => setTab('netz')} />
+                     hoehe={m.summary?.height ?? null}
+                     onEinstellungen={() => setAnsicht('einstellungen')} />
         ) : tab === 'netz' ? (
           <NetzTab summary={m.summary} meineAdresse={wallet.address}
                    decimals={dec} symbol={sym} />
@@ -163,7 +163,7 @@ export default function AppShell({ platform }: { platform: string }) {
 
       {/* Senden und Empfangen sind Blaetter ueber dem Reiter -- der Rahmen
           bleibt stehen, man kommt genau dorthin zurueck, wo man war. */}
-      <Blatt offen={ansicht === 'senden' || ansicht === 'scannen'} onSchliessen={() => setAnsicht(null)}>
+      <Blatt offen={ansicht === 'senden' || ansicht === 'scannen'} onSchliessen={() => setAnsicht(null)} grund="ink">
         {(ansicht === 'senden' || ansicht === 'scannen') && (
           <Send account={m.account} decimals={dec} symbol={sym}
                 scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}
@@ -171,9 +171,9 @@ export default function AppShell({ platform }: { platform: string }) {
                 onAbbruch={() => setAnsicht(null)} />
         )}
       </Blatt>
-      <Blatt offen={ansicht === 'empfangen'} onSchliessen={() => setAnsicht(null)}>
+      <Blatt offen={ansicht === 'empfangen'} onSchliessen={() => setAnsicht(null)} grund="ink">
         {ansicht === 'empfangen' && wallet.address && (
-          <Receive address={wallet.address} onZurueck={() => setAnsicht(null)} />
+          <Receive address={wallet.address} symbol={sym} decimals={dec} onZurueck={() => setAnsicht(null)} />
         )}
       </Blatt>
 

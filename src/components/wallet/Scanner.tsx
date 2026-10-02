@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { adresseAusCode } from '@/lib/wallet/qr';
+import { zahlungAusCode, zahlungAusText, type Zahlung } from '@/lib/wallet/qr';
 import { telegramScan } from '@/lib/telegram/webapp';
 import { istTelegram } from '@/lib/native/plattform';
 import { Icon } from '@/components/ui/Primitives';
@@ -24,12 +24,16 @@ import { useT } from '@/i18n';
  * Erkannt wird nur, was eine gueltige YSKAR-Adresse ist. Ein fremder Code
  * wird gemeldet, nicht uebernommen: Wer die Adresse eines Bitcoin-Zettels
  * scannt, soll das sofort sehen.
+ *
+ * Ein Code aus "Empfangen -> Betrag anfordern" traegt zusaetzlich Betrag
+ * und Notiz (lib/wallet/qr.ts). Beides wird mit uebergeben -- als
+ * Vorschlag: Senden traegt es ein, gesendet wird erst nach dem Pruefen.
  */
 
 type Zustand = 'start' | 'kamera' | 'verweigert' | 'fehlt';
 
 export default function Scanner({ onErgebnis, onAbbruch }: {
-  onErgebnis: (adresse: string) => void; onAbbruch: () => void;
+  onErgebnis: (adresse: string, zahlung: Zahlung) => void; onAbbruch: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [zustand, setZustand] = useState<Zustand>('start');
@@ -39,13 +43,15 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
   const { t } = useT();
 
   // Erkennung abschliessen: kurz zeigen, was gelesen wurde, dann uebergeben.
-  const gefunden = (text: string) => {
+  // `frei`: Text aus der Zwischenablage -- dort darf um die Adresse herum
+  // noch etwas stehen (eine ganze Nachricht).
+  const gefunden = (text: string, frei = false) => {
     if (fertig.current) return;
-    const adr = adresseAusCode(text);
-    if (!adr) { setFremd(text.slice(0, 40)); return; }
+    const z = frei ? zahlungAusText(text) : zahlungAusCode(text);
+    if (!z) { setFremd(text.slice(0, 40)); return; }
     fertig.current = true;
-    setTreffer(adr);
-    setTimeout(() => onErgebnis(adr), 650);
+    setTreffer(z.adresse);
+    setTimeout(() => onErgebnis(z.adresse, z), 650);
   };
 
   // Weg 1: Telegram.
@@ -56,8 +62,8 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
     p.then(text => {
       if (!lebt) return;
       if (text == null) { onAbbruch(); return; }
-      const adr = adresseAusCode(text);
-      if (adr) { onErgebnis(adr); return; }
+      const z = zahlungAusCode(text);
+      if (z) { onErgebnis(z.adresse, z); return; }
       // Telegram hat etwas gelesen, das keine Adresse ist: eigene Kamera
       // mit Meldung, statt stumm zurueck zum Formular.
       setFremd(text.slice(0, 40));
@@ -143,7 +149,7 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
   const einfuegen = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      gefunden(text);
+      gefunden(text, true);
     } catch { setFremd(t.scanner.zwischenablage); }
   };
 

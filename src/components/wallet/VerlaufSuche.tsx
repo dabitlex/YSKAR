@@ -39,11 +39,11 @@ export function SuchKnopf({ offen, aktiv, onClick }: { offen: boolean; aktiv: bo
   const { t } = useT();
   return (
     <button onClick={onClick} aria-label={t.wallet.suchen} aria-expanded={offen}
-            className={`relative flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] transition-colors ${
-              offen ? 'bg-work/10 text-work' : 'bg-raised text-dim'}`}>
-      <Lupe />
+            className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
+              offen ? 'bg-work/10 text-work' : 'bg-raised text-text'}`}>
+      <Lupe g={19} />
       {aktiv && !offen && (
-        <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full bg-work ring-2 ring-surface" />
+        <span className="absolute right-[9px] top-[9px] h-[8px] w-[8px] rounded-full bg-work ring-2 ring-surface" />
       )}
     </button>
   );
