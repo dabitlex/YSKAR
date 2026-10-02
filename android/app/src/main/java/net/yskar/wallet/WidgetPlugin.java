@@ -17,6 +17,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * Jedes Feld ist optional; was fehlt, bleibt wie es war. So kann der
  * Kontotakt nur Konto und Kette melden und der Mining-Takt nur die
  * Mining-Zeile.
+ *
+ *   thema({ thema?: "hell" | "dunkel" })  ->  { thema }
+ *
+ * Darstellung des Widgets. Ohne Angabe nur lesen. Aeltere Huellen kennen
+ * die Methode nicht -- daran erkennt die Oberflaeche, ob sie die Auswahl
+ * ueberhaupt anbieten soll.
  */
 @CapacitorPlugin(name = "Widget")
 public class WidgetPlugin extends Plugin {
@@ -36,13 +42,34 @@ public class WidgetPlugin extends Plugin {
         e.putLong(WidgetDaten.K_STAND, System.currentTimeMillis());
         e.apply();
         YskarWidget.rendern(getContext());
+        // Den Stand des Netzes (fuer das gestoppte Widget) holt das Widget
+        // selbst -- hoechstens alle fuenf Minuten.
+        YskarWidget.netzNachziehen(getContext());
         call.resolve(new JSObject());
     }
 
-    /** Wallet entfernt: Widget leeren. */
+    /** Hell oder Dunkel -- setzen und/oder lesen. */
+    @PluginMethod
+    public void thema(PluginCall call) {
+        SharedPreferences p = WidgetDaten.ablage(getContext());
+        if (call.hasOption("thema")) {
+            String t = "dunkel".equals(call.getString("thema")) ? "dunkel" : "hell";
+            p.edit().putString(WidgetDaten.K_THEMA, t).apply();
+            YskarWidget.rendern(getContext());
+        }
+        JSObject r = new JSObject();
+        r.put("thema", p.getString(WidgetDaten.K_THEMA, "hell"));
+        call.resolve(r);
+    }
+
+    /** Wallet entfernt: Widget leeren. Die Wahl Hell/Dunkel bleibt. */
     @PluginMethod
     public void leeren(PluginCall call) {
-        WidgetDaten.ablage(getContext()).edit().clear().apply();
+        SharedPreferences p = WidgetDaten.ablage(getContext());
+        String thema = p.getString(WidgetDaten.K_THEMA, null);
+        SharedPreferences.Editor e = p.edit().clear();
+        if (thema != null) e.putString(WidgetDaten.K_THEMA, thema);
+        e.apply();
         YskarWidget.rendern(getContext());
         call.resolve();
     }

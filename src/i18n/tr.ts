@@ -504,6 +504,7 @@ const tr = {
     aktuell: 'güncel',
     laden: (v: string) => `${v} indir`,
     jetztPruefen: 'Şimdi kontrol et',
+    widget: 'Widget',
     diagnose: 'Tanılama',
     bruecke: 'Yerel köprüyü kontrol et',
     prueft: 'kontrol ediliyor…',

@@ -164,16 +164,37 @@ weiter die Meldungen aus dem Code.
 
 ## Widget
 
-Homescreen-Widget (4×2): Guthaben, gefundene Blöcke und Blockhöhe, darunter
-die Mining-Zeile (Hashrate · Shares · Share-Ziel) oder „gestoppt". Tipp auf
-die Fläche öffnet die App, der Pfeil holt sofort vom Server.
+Homescreen-Widget (4×2, ab APK 1.0.10): eine Mining-Übersicht. Das
+Wallet-Guthaben zeigt es bewusst nicht.
 
-Zwei Quellen: Die Oberfläche meldet über das Plugin `Widget` (`stand({...})`),
-was sie weiß — Konto und Kette bei jedem Takt, die Mining-Werte alle vier
-Sekunden, solange gemint wird. Ist die App zu, holt das Widget alle 30
-Minuten selbst `/api/v2/account/<adresse>` und `/api/v2/summary`
-(`YskarWidget`, `WidgetDaten`). Die Mining-Werte gibt es nur aus der App;
-sie entstehen im WebView.
+- **Mining läuft:** „verdient in dieser Sitzung", Stopp-Knopf, darunter
+  Hashrate · Laufzeit · angenommene Shares.
+- **Mining gestoppt:** Stand des Netzes — Block · Netz-Hashrate · Belohnung.
+
+Tipp auf die Fläche öffnet die App, der Pfeil holt sofort vom Server, „Stopp"
+beendet das Mining (derselbe Weg wie „Stoppen" in der Benachrichtigung). Hell
+oder Dunkel wählt der Nutzer unter Einstellungen → App → Widget
+(`WidgetPlugin.thema`, je Darstellung ein Layout: `widget.xml`,
+`widget_dunkel.xml` — gleicher Aufbau, gleiche Kennungen, Änderungen immer
+in beiden).
+
+Quellen (`YskarWidget`, `WidgetDaten`):
+
+- **Mining-Werte** schreibt der `MiningService` alle vier Sekunden in die
+  Ablage; er merkt sich auch den Beginn der Sitzung.
+- **Verdienst der Sitzung:** `/api/v2/account/<adresse>/verlauf` ab
+  Sitzungsbeginn, gezählt werden Blockbelohnungen und Pool-Anteile. Gefragt
+  wird nach einem Blockwechsel (der Miner sieht ihn an der Höhe seines Jobs)
+  und sonst alle zehn Minuten. Die Kette weiß nicht, welches Gerät gerechnet
+  hat: Mint dieselbe Adresse gleichzeitig woanders, zählt das mit.
+- **Stand des Netzes:** `/api/v2/summary` — alle 30 Minuten (`onUpdate`),
+  beim Pfeil, nach dem Stopp, und höchstens alle fünf Minuten, solange die
+  App offen ist.
+- Die Oberfläche liefert über das Plugin `Widget` die Adresse.
+
+Passt nicht alles in die Höhe (kleine Launcher-Raster, große Systemschrift),
+lässt `YskarWidget.einpassen` erst die Unterzeile, dann die Beschriftung der
+Felder, dann die Felder weg. Das Widget lässt sich auch in der Höhe ziehen.
 
 ## Gestaltung, zweite Generation
 

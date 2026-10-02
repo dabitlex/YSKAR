@@ -504,6 +504,7 @@ const es = {
     aktuell: 'actualizada',
     laden: (v: string) => `Descargar ${v}`,
     jetztPruefen: 'Comprobar ahora',
+    widget: 'Widget',
     diagnose: 'Diagnóstico',
     bruecke: 'Comprobar puente nativo',
     prueft: 'comprobando…',

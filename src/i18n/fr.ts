@@ -508,6 +508,7 @@ const fr = {
     aktuell: 'à jour',
     laden: (v: string) => `Obtenir ${v}`,
     jetztPruefen: 'Vérifier',
+    widget: 'Widget',
     diagnose: 'Diagnostic',
     bruecke: 'Vérifier le pont natif',
     prueft: 'vérification…',

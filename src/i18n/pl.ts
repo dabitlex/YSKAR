@@ -512,6 +512,7 @@ const pl = {
     aktuell: 'aktualna',
     laden: (v: string) => `Pobierz ${v}`,
     jetztPruefen: 'Sprawdź teraz',
+    widget: 'Widżet',
     diagnose: 'Diagnostyka',
     bruecke: 'Sprawdź natywny most',
     prueft: 'sprawdzanie…',

@@ -10,15 +10,22 @@
     <string name="mining_kanal_text">Shows that your device is currently computing for YSKAR.</string>
     <string name="mining_stoppen">Stop mining</string>
     <string name="mining_titel">YSKAR is computing</string>
-    <string name="widget_beschreibung">YSKAR balance and mining at a glance</string>
+    <string name="widget_beschreibung">YSKAR mining at a glance</string>
     <string name="widget_holen">Refresh</string>
     <string name="widget_keine_wallet">No wallet set up yet</string>
-    <string name="widget_mining">Mining</string>
+    <string name="widget_titel">YSKAR Mining</string>
+    <string name="widget_laeuft">running</string>
     <string name="widget_gestoppt">stopped</string>
-    <string name="widget_shares">shares</string>
-    <string name="widget_ziel">target</string>
-    <plurals name="widget_bloecke">
-        <item quantity="one">%s block found</item>
-        <item quantity="other">%s blocks found</item>
-    </plurals>
+    <string name="widget_sitzung">earned this session</string>
+    <string name="widget_stopp">Stop</string>
+    <string name="widget_hashrate">Hashrate</string>
+    <string name="widget_laufzeit">Runtime</string>
+    <string name="widget_f_shares">Shares</string>
+    <string name="widget_mining_gestoppt">Mining stopped</string>
+    <string name="widget_tippen">Tap to open the app</string>
+    <string name="widget_block">Block</string>
+    <string name="widget_netzrate">Network</string>
+    <string name="widget_belohnung">Reward</string>
+    <string name="widget_std">%1$d:%2$02d h</string>
+    <string name="widget_min">%1$d min</string>
 </resources>

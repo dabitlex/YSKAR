@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Widget 4x2, helle Darstellung: die Mining-Uebersicht.
+  Widget 4x2, dunkle Darstellung: die Mining-Uebersicht.
 
   Nur Elemente, die RemoteViews kennt (LinearLayout, FrameLayout, TextView,
   ImageView). Die Texte hier sind der Zustand "gestoppt": So sieht das
   Widget in der Auswahl des Launchers aus; danach setzt YskarWidget alles.
 
-  widget_dunkel.xml ist derselbe Aufbau mit anderen Farben und Flaechen.
+  widget.xml (hell) ist derselbe Aufbau mit anderen Farben und Flaechen.
   Aenderungen immer in beiden Dateien, die Kennungen muessen gleich bleiben.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -14,7 +14,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_hintergrund"
+    android:background="@drawable/widget_hintergrund_dunkel"
     android:paddingStart="16dp" android:paddingEnd="14dp"
     android:paddingTop="10dp" android:paddingBottom="12dp">
 
@@ -37,7 +37,7 @@
             <TextView
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="@string/widget_titel"
-                android:textColor="#0E1A2F" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#EAF0F8" android:textSize="12sp" android:textStyle="bold"
                 android:letterSpacing="0.06"
                 android:maxLines="1" />
             <LinearLayout
@@ -46,20 +46,20 @@
                 android:layout_marginStart="7dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:background="@drawable/widget_pille"
+                android:background="@drawable/widget_pille_dunkel"
                 android:paddingStart="7dp" android:paddingEnd="8dp"
                 android:paddingTop="2dp" android:paddingBottom="2dp">
                 <ImageView
                     android:id="@+id/w_punkt"
                     android:layout_width="7dp" android:layout_height="7dp"
-                    android:src="@drawable/widget_punkt_aus"
+                    android:src="@drawable/widget_punkt_aus_dunkel"
                     android:contentDescription="@null" />
                 <TextView
                     android:id="@+id/w_status"
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
                     android:text="@string/widget_gestoppt"
-                    android:textColor="#5B6B84" android:textSize="11sp" android:textStyle="bold"
+                    android:textColor="#9EADC6" android:textSize="11sp" android:textStyle="bold"
                     android:maxLines="1" android:ellipsize="end" />
             </LinearLayout>
         </LinearLayout>
@@ -67,14 +67,14 @@
             android:id="@+id/w_stand"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textColor="#8E9AB0" android:textSize="11sp"
+            android:textColor="#6E7E9A" android:textSize="11sp"
             android:maxLines="1" />
         <ImageView
             android:id="@+id/w_holen"
             android:layout_width="32dp" android:layout_height="32dp"
             android:layout_marginEnd="-6dp"
             android:padding="7dp"
-            android:src="@drawable/ic_widget_holen"
+            android:src="@drawable/ic_widget_holen_dunkel"
             android:contentDescription="@string/widget_holen" />
     </LinearLayout>
 
@@ -96,14 +96,14 @@
                 android:id="@+id/w_gross"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_mining_gestoppt"
-                android:textColor="#5B6B84" android:textSize="20sp" android:textStyle="bold"
+                android:textColor="#9EADC6" android:textSize="20sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"
                 android:fontFamily="sans-serif" />
             <TextView
                 android:id="@+id/w_unter"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_tippen"
-                android:textColor="#5B6B84" android:textSize="12.5sp"
+                android:textColor="#9EADC6" android:textSize="12.5sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
         <LinearLayout
@@ -112,20 +112,20 @@
             android:layout_marginStart="10dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@drawable/widget_stopp_grund"
+            android:background="@drawable/widget_stopp_grund_dunkel"
             android:paddingStart="12dp" android:paddingEnd="12dp"
             android:paddingTop="10dp" android:paddingBottom="10dp"
             android:visibility="gone">
             <ImageView
                 android:layout_width="9dp" android:layout_height="9dp"
-                android:src="@drawable/widget_stopp_zeichen"
+                android:src="@drawable/widget_stopp_zeichen_dunkel"
                 android:contentDescription="@null" />
             <TextView
                 android:id="@+id/w_stopp_text"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="@string/widget_stopp"
-                android:textColor="#D9404A" android:textSize="12.5sp" android:textStyle="bold"
+                android:textColor="#F0616B" android:textSize="12.5sp" android:textStyle="bold"
                 android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>
@@ -144,60 +144,60 @@
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:orientation="vertical"
-            android:background="@drawable/widget_feld"
+            android:background="@drawable/widget_feld_dunkel"
             android:paddingStart="9dp" android:paddingEnd="9dp"
             android:paddingTop="6dp" android:paddingBottom="6dp">
             <TextView
                 android:id="@+id/w_f1"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#0E1A2F" android:textSize="13sp" android:textStyle="bold"
+                android:textColor="#EAF0F8" android:textSize="13sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_f1t"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_block"
-                android:textColor="#5B6B84" android:textSize="10.5sp"
+                android:textColor="#9EADC6" android:textSize="10.5sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:layout_marginStart="6dp"
             android:orientation="vertical"
-            android:background="@drawable/widget_feld"
+            android:background="@drawable/widget_feld_dunkel"
             android:paddingStart="9dp" android:paddingEnd="9dp"
             android:paddingTop="6dp" android:paddingBottom="6dp">
             <TextView
                 android:id="@+id/w_f2"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#0E1A2F" android:textSize="13sp" android:textStyle="bold"
+                android:textColor="#EAF0F8" android:textSize="13sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_f2t"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_netzrate"
-                android:textColor="#5B6B84" android:textSize="10.5sp"
+                android:textColor="#9EADC6" android:textSize="10.5sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:layout_marginStart="6dp"
             android:orientation="vertical"
-            android:background="@drawable/widget_feld"
+            android:background="@drawable/widget_feld_dunkel"
             android:paddingStart="9dp" android:paddingEnd="9dp"
             android:paddingTop="6dp" android:paddingBottom="6dp">
             <TextView
                 android:id="@+id/w_f3"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#0E1A2F" android:textSize="13sp" android:textStyle="bold"
+                android:textColor="#EAF0F8" android:textSize="13sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_f3t"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_belohnung"
-                android:textColor="#5B6B84" android:textSize="10.5sp"
+                android:textColor="#9EADC6" android:textSize="10.5sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
     </LinearLayout>

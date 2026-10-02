@@ -504,6 +504,7 @@ const it = {
     aktuell: 'aggiornata',
     laden: (v: string) => `Scarica ${v}`,
     jetztPruefen: 'Controlla ora',
+    widget: 'Widget',
     diagnose: 'Diagnostica',
     bruecke: 'Verifica bridge nativo',
     prueft: 'controllo…',

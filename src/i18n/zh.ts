@@ -504,6 +504,7 @@ const zh = {
     aktuell: '已是最新',
     laden: (v: string) => `获取 ${v}`,
     jetztPruefen: '立即检查',
+    widget: '小组件',
     diagnose: '诊断',
     bruecke: '检查原生桥接',
     prueft: '检查中…',
