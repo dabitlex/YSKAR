@@ -236,7 +236,8 @@ a.blk{color:var(--text);font-weight:inherit}
 .ch h3.weiter{margin-top:20px}
 .ch .gross{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:22px;margin-top:8px}
 .ch .gross em{font-style:normal;font-size:13px;color:var(--faint);margin-left:5px}
-.ch svg{display:block;margin-top:12px;width:100%;height:auto;overflow:visible}
+.bild{position:relative;margin-top:12px}
+.ch svg{display:block;width:100%;height:auto;overflow:visible}
 .ax{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:var(--faint)}
 .gitter{stroke:var(--netz);stroke-width:1}
 .ziel{stroke:var(--dim);stroke-width:1.2}
@@ -256,7 +257,7 @@ a.blk{color:var(--text);font-weight:inherit}
 .zwei{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700;color:var(--dim);margin-top:6px}
 .legende{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--lese);margin-top:10px}
 .legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
-#tipp{position:fixed;z-index:60;pointer-events:none;background:var(--text);color:var(--ink);border-radius:10px;
+#tipp{position:absolute;z-index:6;pointer-events:none;background:var(--text);color:var(--ink);border-radius:10px;
   padding:7px 10px;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap;
   box-shadow:0 10px 24px -10px rgba(0,0,0,.5);transform:translate(-50%,-100%);margin-top:-10px}
 #tipp[hidden]{display:none}
@@ -418,6 +419,26 @@ details.empf .tx{border-top:0}
   .tx .a{font-size:13px;white-space:normal;overflow-wrap:anywhere}.tx .r{font-size:13px}
   .fakten .w,.fakten .s{white-space:normal;overflow-wrap:anywhere}
 }
+
+/*
+  Grosse Bildschirme.
+
+  Der Inhalt ist auf 1280 px begrenzt. Auf einem 4K- oder Ultrabreit-Monitor
+  war das ein schmaler Streifen in der Mitte mit kleiner Schrift. Statt nur
+  die Spalte zu verbreitern, waechst ab hier die ganze Seite proportional --
+  Schrift, Kacheln und Diagramme zusammen.
+
+  Die Hoehe zaehlt mit: Auf einem Ultrabreit-Monitor (viel Breite, wenig
+  Hoehe) bliebe sonst kaum etwas untereinander auf dem Schirm.
+
+  Dieselben Stufen wie auf der Website (website/assets/style.css).
+*/
+@media screen and (min-width:1900px) and (min-height:850px){html{zoom:1.15}}
+@media screen and (min-width:2200px) and (min-height:1000px){html{zoom:1.3}}
+@media screen and (min-width:2560px) and (min-height:1150px){html{zoom:1.5}}
+@media screen and (min-width:3000px) and (min-height:1350px){html{zoom:1.75}}
+@media screen and (min-width:3400px) and (min-height:1550px){html{zoom:2}}
+@media screen and (min-width:3800px) and (min-height:1750px){html{zoom:2.25}}
 </style>
 </head>
 <body>
@@ -1615,7 +1636,7 @@ function chartBlockzeit(reihe,n,zielS){
     const rr=Math.min(4,breite/2,hoehe);
     const t1='#'+nf(x.h)+' · '+dauer(x.s)+' '+T.minKurz;
     s+=`<rect class="c-treffer" x="${(l+i*bw).toFixed(1)}" y="${top}" width="${bw.toFixed(1)}" height="${b-top}"
-          data-t1="${esc(t1)}" data-t2="${esc(uhr(x.ts))}" data-o="${((b-hoehe-top)/(b-top)).toFixed(3)}"/>`
+          data-t1="${esc(t1)}" data-t2="${esc(uhr(x.ts))}" data-x="${(l+i*bw+bw/2).toFixed(1)}" data-y="${(b-hoehe).toFixed(1)}"/>`
       +`<path class="c-balken${i===w.length-1?' aktuell':''}" d="M${x0.toFixed(1)},${b} v${-(hoehe-rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${-rr} h${(breite-2*rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${rr} v${(hoehe-rr).toFixed(1)} z"/>`;
   });
   s+=`<line class="ziel" x1="${l}" x2="${W-r}" y1="${y(zielMin)}" y2="${y(zielMin)}"/>`;
@@ -1623,7 +1644,7 @@ function chartBlockzeit(reihe,n,zielS){
     s+=`<text class="ax" x="${l-6}" y="${y(zielMin)+3.5}" text-anchor="end">${zielMin}</text>`;
   s+=`<text class="ax" x="${l}" y="${H-6}">#${nf(w[0].h)}</text>`
     +`<text class="ax" x="${W-r}" y="${H-6}" text-anchor="end">#${nf(w[w.length-1].h)}</text>`;
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.cBlockzeit(n))}">${s}</svg>`;
+  return `<div class="bild" data-w="${W}" data-h="${H}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.cBlockzeit(n))}">${s}</svg></div>`;
 }
 
 /*
@@ -1678,17 +1699,26 @@ function chartDifficulty(reihe,n){
     +`<text class="ax" x="${W-r}" y="${H-6}" text-anchor="end">#${nf(letzter.h)}</text>`;
   s+=`<rect id="dTreffer" class="c-treffer" x="${l-4}" y="${top}" width="${W-l-r+8}" height="${b-top}"/>`;
   dDaten={p,W,H,l,dx,x,y};
-  return `<svg id="c2" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.difficulty)}">${s}</svg>`;
+  return `<div class="bild" data-w="${W}" data-h="${H}"><svg id="c2" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.difficulty)}">${s}</svg></div>`;
 }
 
 // -- Hinweis am Zeiger
+/*
+  Der Hinweis haengt IM Bild des Diagramms und wird in dessen eigenen Massen
+  gesetzt -- (vx, vy) sind Koordinaten der Zeichnung. So stimmt die Stelle
+  auch, wenn die Seite auf grossen Bildschirmen vergroessert ist (zoom);
+  Bildschirmkoordinaten und Stilmasse laufen dort auseinander.
+*/
 const tipp=$('tipp');
-function tippZeigen(x,y,t1,t2){
+function tippZeigen(bild,vx,vy,t1,t2){
+  if(!bild) return;
+  if(tipp.parentNode!==bild) bild.appendChild(tipp);
   tipp.innerHTML=esc(t1)+(t2?`<small>${esc(t2)}</small>`:'');
   tipp.hidden=false;
-  const halb=tipp.offsetWidth/2;
-  tipp.style.left=Math.max(halb+8,Math.min(window.innerWidth-halb-8,x))+'px';
-  tipp.style.top=Math.max(tipp.offsetHeight+14,y)+'px';
+  const W=Number(bild.dataset.w)||1, H=Number(bild.dataset.h)||1;
+  const breit=bild.offsetWidth, halb=tipp.offsetWidth/2, luft=14;
+  tipp.style.left=Math.max(halb-luft,Math.min(breit-halb+luft,vx/W*breit))+'px';
+  tipp.style.top=(vy/H*bild.offsetHeight)+'px';
 }
 function tippWeg(){
   tipp.hidden=true;
@@ -1708,15 +1738,19 @@ function chartZeiger(e){
     const k=$('dKreuz'), q=$('dPunkt');
     k.setAttribute('x1',px); k.setAttribute('x2',px); k.setAttribute('visibility','visible');
     q.setAttribute('cx',px); q.setAttribute('cy',py); q.setAttribute('visibility','visible');
-    tippZeigen(r.left+px/D.W*r.width, r.top+py/D.H*r.height, '#'+nf(D.p[i].h), nfGross(D.p[i].v));
+    tippZeigen(bild.parentNode, px, py, '#'+nf(D.p[i].h), nfGross(D.p[i].v));
     return;
   }
-  const r=t.getBoundingClientRect();
-  tippZeigen(r.left+r.width/2, r.top+Number(t.dataset.o||0)*r.height, t.dataset.t1, t.dataset.t2);
+  tippZeigen(t.closest('.bild'), Number(t.dataset.x), Number(t.dataset.y), t.dataset.t1, t.dataset.t2);
 }
 $('charts').addEventListener('pointermove',chartZeiger);
 $('charts').addEventListener('pointerdown',chartZeiger);
-$('charts').addEventListener('pointerleave',tippWeg);
+// Am Handy endet der "Zeiger" mit dem Loslassen -- dort soll der Hinweis
+// stehen bleiben, bis man woanders hintippt oder scrollt.
+$('charts').addEventListener('pointerleave',e=>{ if(e.pointerType!=='touch') tippWeg(); });
+document.addEventListener('pointerdown',e=>{
+  if(!tipp.hidden&&!(e.target.closest&&e.target.closest('#charts'))) tippWeg();
+});
 window.addEventListener('scroll',tippWeg,{passive:true});
 
 /*
