@@ -7,8 +7,8 @@ Vercel liefert die Dateien so aus, wie sie hier liegen.
 index.html          Startseite
 anleitungen.html    Mining, Android-App, PC-Miner, Wallet, Fullnode
 whitepaper.html     Whitepaper (Deutsch und Englisch, druckbar als PDF)
-impressum.html      Vorlage – vor der Veröffentlichung ausfüllen
-datenschutz.html    Entwurf – vor der Veröffentlichung prüfen lassen
+impressum.html      Community-Projekt, kein einzelner Verantwortlicher
+datenschutz.html    was die Website technisch tut; Community-Projekt
 assets/style.css    alle Stile
 assets/site.js      Sprache, Menü, Live-Werte
 assets/i18n/*.js    Texte je Sprache (en ist Vorgabe und Rückfall)
