@@ -10,6 +10,7 @@ import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
 import { plattform, fehlerspeicherInstallieren } from '@/lib/native/plattform';
 import { SpracheProvider, useT } from '@/i18n';
+import { EXPLORER_URL } from '@/components/ui/ExternLink';
 import { vorladen } from '@/lib/vorladen';
 import { ThemaProvider } from '@/lib/useThema';
 
@@ -67,7 +68,7 @@ function Router() {
         <div className="mt-16">
           <Title>{t.browser.titel}</Title>
           <Body>{t.browser.text}</Body>
-          <a href="/explorer.html" className="mt-4 inline-block font-bold text-work underline">{t.browser.explorer}</a>
+          <a href={EXPLORER_URL} className="mt-4 inline-block font-bold text-work underline">{t.browser.explorer}</a>
         </div>
       </Screen>
     );

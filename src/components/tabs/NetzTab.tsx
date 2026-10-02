@@ -6,6 +6,7 @@ import { Panel, GroupTitle, Empty } from '@/components/ui/Primitives';
 import type { Summary } from '@/hooks/useMining';
 import { useT } from '@/i18n';
 import { Zahl, Etikett, Kachel, Pille, Ring } from '@/components/ui/Bausteine';
+import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
 
 /**
  * Netz.
@@ -85,7 +86,7 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
                 wert={`${zahl(Number(summary?.totalSupply ?? 0) / 10 ** decimals, { maximumFractionDigits: 0 })} ${symbol}`} />
       </div>
 
-      <GroupTitle aside={<a href="/explorer.html" className="font-bold text-work">{t.netz.explorer}</a>}>
+      <GroupTitle aside={<ExternLink href={EXPLORER_URL} className="font-bold text-work">{t.netz.explorer}</ExternLink>}>
         {t.netz.letzte}
       </GroupTitle>
 
