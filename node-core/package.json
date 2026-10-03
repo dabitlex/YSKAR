@@ -1,6 +1,6 @@
 {
   "name": "yskar-node-core-app",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "YSKAR Node Core native Windows desktop application",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "node build.mjs",
     "start": "electron .",
-    "dist": "npm run build && electron-builder --win nsis",
+    "dist": "npm run build && electron-builder --win nsis --publish never",
     "build:gpu": "powershell -ExecutionPolicy Bypass -File gpu/build-gpu.ps1",
     "build:gpu-emu": "g++ -std=c++17 -O2 -o gpu/bin/yskar-cuda-emu gpu/yskar_host.cpp gpu/yskar_cpu.cpp -pthread",
     "test": "node --experimental-strip-types --test test/*.test.ts",

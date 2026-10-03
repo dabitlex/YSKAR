@@ -1,0 +1,277 @@
+name: Node Core bauen und veröffentlichen
+
+# Baut den Windows-Installer des YSKAR Node Core.
+#
+#   Tag node-core-v1.2.3   Tests, GPU-Miner, Installer -- und ein ENTWURF
+#                          einer Veröffentlichung mit dem Installer daran.
+#                          Veröffentlicht wird er erst von Hand, nachdem der
+#                          Installer auf einem echten PC ausprobiert wurde.
+#   von Hand / Arbeitszweig dasselbe ohne Veröffentlichung; der Installer
+#                          hängt als Artefakt am Lauf.
+#
+# Die Nummer im Tag muss zu node-core/package.json passen -- sonst bricht der
+# Bau ab. Nach genau diesen Tags sucht das Programm auch, wenn es nach einer
+# neuen Version sieht (node-core/src/Programm.ts).
+#
+# Was hier geprüft wird und was nicht:
+#   - Die Tests laufen auf Linux gegen die echte Anwendungsklasse.
+#   - Der fertige Installer wird nicht installiert. Gestartet wird das
+#     ausgepackte Programm: Es muss seine Oberfläche ausliefern, die Hülle
+#     muss sich anmelden, ein zweiter Start darf kein zweites Programm
+#     ergeben, und es muss sich wieder beenden.
+#   - Eine Grafikkarte gibt es hier nicht. Dass der GPU-Miner RECHNET, kann
+#     nur ein PC mit NVIDIA-Karte zeigen.
+
+on:
+  push:
+    tags: ['node-core-v*']
+    branches: ['node-core-voll']
+    paths:
+      - 'node-core/**'
+      - 'src/lib/**'
+      - 'miner/**'
+      - '.github/workflows/node-core-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: node-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Typen prüfen
+        run: npx tsc -p node-core/tsconfig.json --noEmit
+
+      - name: GPU-Nachbildung bauen
+        working-directory: node-core
+        run: npm run build:gpu-emu
+
+      - name: Tests des Node Core
+        working-directory: node-core
+        run: node --experimental-strip-types --no-warnings --test test/*.test.ts
+
+      - name: Tests der Mining-Schnittstelle
+        run: node --experimental-strip-types --no-warnings --test tests/miningserver-haertung.test.ts tests/miningserver.test.ts tests/pool-server.test.ts tests/pool-plaetze.test.ts tests/netz-statistik.test.ts
+
+  gpu:
+    name: GPU-Miner (CUDA)
+    runs-on: windows-2022
+    # Auf dem Arbeitszweig darf dieser Teil scheitern -- der Installer entsteht
+    # dann ohne GPU-Miner. Eine Veröffentlichung braucht ihn.
+    continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Nur was der Bau braucht: Compiler und Laufzeit. Kein Treiber, keine
+      # Bibliotheken -- das Programm wird statisch gegen die Laufzeit gelinkt.
+      - name: CUDA Toolkit 11.8 (nvcc, Laufzeit)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://developer.download.nvidia.com/compute/cuda/11.8.0/network_installers/cuda_11.8.0_windows_network.exe'
+          $exe = Join-Path $env:RUNNER_TEMP 'cuda.exe'
+          Invoke-WebRequest $url -OutFile $exe
+          $lauf = Start-Process -FilePath $exe -ArgumentList '-s', 'nvcc_11.8', 'cudart_11.8' -Wait -PassThru
+          if ($lauf.ExitCode -ne 0) { throw "Der CUDA-Installer endet mit $($lauf.ExitCode)." }
+          $pfad = 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8'
+          if (-not (Test-Path (Join-Path $pfad 'bin\nvcc.exe'))) { throw 'nvcc.exe fehlt nach der Installation.' }
+          "CUDA_PATH=$pfad" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          (Join-Path $pfad 'bin') | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: yskar-cuda.exe bauen
+        working-directory: node-core
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File gpu\build-gpu.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Der Bau des GPU-Miners ist gescheitert.' }
+          if (-not (Test-Path gpu\bin\yskar-cuda.exe)) { throw 'gpu\bin\yskar-cuda.exe fehlt.' }
+
+      # Ohne Karte kann das Programm nicht rechnen -- aber es muss starten und
+      # sagen, dass es keine findet. Stürzt es hier ab, fehlt ihm etwas.
+      - name: Startet das Programm?
+        working-directory: node-core
+        shell: pwsh
+        run: |
+          $aus = & gpu\bin\yskar-cuda.exe --probe 2>&1 | Out-String
+          Write-Host $aus
+          Write-Host "Ende mit $LASTEXITCODE"
+          Get-FileHash gpu\bin\yskar-cuda.exe -Algorithm SHA256 | Format-List
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yskar-cuda
+          path: node-core/gpu/bin/yskar-cuda.exe
+          if-no-files-found: error
+
+  installer:
+    name: Installer
+    needs: [pruefen, gpu]
+    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu.result == 'success' || !startsWith(github.ref, 'refs/tags/')) }}
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: node-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: node-core/package-lock.json
+
+      - name: Version
+        id: version
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $paket = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF -like 'refs/tags/node-core-v*') {
+            $tag = $env:GITHUB_REF -replace '^refs/tags/node-core-v', ''
+            if ($tag -ne $paket) { throw "Der Tag sagt $tag, node-core/package.json sagt $paket." }
+          }
+          $quelle = (Select-String -Path src\main.ts -Pattern "export const VERSION = '([^']+)'").Matches[0].Groups[1].Value
+          if ($quelle -ne $paket) { throw "src/main.ts sagt $quelle, package.json sagt $paket." }
+          "version=$paket" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Node Core $paket"
+
+      - name: GPU-Miner holen
+        if: ${{ needs.gpu.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: yskar-cuda
+          path: node-core/gpu/bin
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Bundle und Installer
+        run: npm run dist
+        env:
+          # Nichts veröffentlichen -- das macht der letzte Schritt, und nur als Entwurf.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Was im Paket liegt
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Get-ChildItem release -File | Format-Table Name, Length
+          $res = 'release\win-unpacked\resources'
+          Get-ChildItem $res | Format-Table Name, Length
+          if (-not (Test-Path "$res\app.asar")) { throw 'app.asar fehlt.' }
+          if (-not (Test-Path "$res\icon.ico")) { throw 'icon.ico fehlt neben dem Programm.' }
+          $gpu = Test-Path "$res\yskar-cuda.exe"
+          Write-Host "GPU-Miner im Paket: $gpu"
+          if ('${{ needs.gpu.result }}' -eq 'success' -and -not $gpu) { throw 'Der GPU-Miner wurde gebaut, liegt aber nicht im Paket.' }
+
+      # Das ausgepackte Programm wirklich starten. Hier laufen die Teile, die
+      # sich nirgends sonst prüfen lassen: die Hülle, das Laden aus dem
+      # Programmarchiv, das Symbol, der zweite Start, das Beenden.
+      - name: Probelauf des Programms
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Get-ChildItem 'release\win-unpacked' -Filter '*.exe' | Where-Object { $_.Name -like 'YSKAR*' } | Select-Object -First 1
+          if (-not $exe) { throw 'Das Programm fehlt in release\win-unpacked.' }
+          Write-Host "Starte $($exe.FullName)"
+          $p = Start-Process -FilePath $exe.FullName -PassThru
+
+          $seite = $null
+          for ($i = 0; $i -lt 90; $i++) {
+            try { $seite = Invoke-WebRequest 'http://127.0.0.1:8650/' -UseBasicParsing -TimeoutSec 3; break } catch { Start-Sleep -Seconds 1 }
+            if ($p.HasExited) { throw "Das Programm endet sofort wieder (Code $($p.ExitCode))." }
+          }
+          if (-not $seite) { throw 'Die Oberfläche antwortet nicht.' }
+          if ($seite.Content -notmatch 'name="yskar-zugang" content="([0-9a-f]{64})"') { throw 'Die Seite enthält keinen Zugangsschlüssel.' }
+          $kopf = @{ 'x-yskar-token' = $Matches[1] }
+          $ruf = { param($pfad, $rumpf) Invoke-RestMethod "http://127.0.0.1:8650$pfad" -Method Post -Headers $kopf -ContentType 'application/json' -Body $rumpf -TimeoutSec 30 }
+
+          $s = Invoke-RestMethod 'http://127.0.0.1:8650/api/status' -Headers $kopf
+          Write-Host "Version $($s.version) · Netz $($s.network) · Hülle $($s.huelle | ConvertTo-Json -Compress)"
+          if ($s.version -ne '${{ steps.version.outputs.version }}') { throw "Das Programm meldet Version $($s.version)." }
+          if ($s.network -ne 'yskar-main-1') { throw "Das Programm läuft nicht auf dem Mainnet: $($s.network)" }
+          if (-not $s.huelle.vorhanden) { throw 'Die Hülle hat sich nicht angemeldet.' }
+          Write-Host "Symbol im Infobereich: $($s.huelle.infobereich)"
+
+          foreach ($datei in '/ui/app.css', '/ui/js/main.js', '/ui/fonts/manrope-latin-wght-normal.woff2') {
+            $r = Invoke-WebRequest "http://127.0.0.1:8650$datei" -UseBasicParsing
+            if ($r.StatusCode -ne 200) { throw "$datei fehlt im Paket." }
+          }
+
+          # Start mit Windows: setzen, lesen, wieder löschen.
+          $an = & $ruf '/api/huelle/autostart' '{"an":true}'
+          Write-Host "Start mit Windows nach dem Einschalten: $($an.autostart)"
+          $aus = & $ruf '/api/huelle/autostart' '{"an":false}'
+          if (-not $an.autostart) { throw 'Start mit Windows ließ sich nicht einschalten.' }
+          if ($aus.autostart) { throw 'Start mit Windows ließ sich nicht ausschalten.' }
+
+          # Der GPU-Miner: Ohne Karte findet er nichts -- aber das Programm muss ihn finden.
+          $m = & $ruf '/api/mining/detect' '{}'
+          Write-Host "GPU-Erkennung: $($m.gpuErkennung | ConvertTo-Json -Compress)"
+          if ((Test-Path 'release\win-unpacked\resources\yskar-cuda.exe') -and -not $m.gpuErkennung.programm) {
+            throw 'Der GPU-Miner liegt im Paket, wird vom Programm aber nicht gefunden.'
+          }
+
+          # Ein zweiter Start darf kein zweites Programm ergeben.
+          $p2 = Start-Process -FilePath $exe.FullName -PassThru
+          if (-not $p2.WaitForExit(20000)) { Stop-Process -Id $p2.Id -Force; throw 'Ein zweiter Start bleibt als zweites Programm stehen.' }
+          $s2 = Invoke-RestMethod 'http://127.0.0.1:8650/api/status' -Headers $kopf
+          Write-Host "Nach dem zweiten Start läuft weiter das erste (Version $($s2.version))."
+
+          # Beenden über die Oberfläche: Der Prozess muss wirklich enden.
+          & $ruf '/api/shutdown' '{}' | Out-Null
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; throw 'Das Programm beendet sich nicht.' }
+          Write-Host "Beendet mit Code $($p.ExitCode)."
+
+          $log = Join-Path $env:LOCALAPPDATA 'YSKAR\Node Core\protokoll.log'
+          if (Test-Path $log) { Write-Host '--- protokoll.log'; Get-Content $log -Tail 30 }
+
+      - name: Prüfsumme
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $datei = "release\YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe"
+          if (-not (Test-Path $datei)) { throw "$datei fehlt." }
+          $hash = (Get-FileHash $datei -Algorithm SHA256).Hash.ToLower()
+          "$hash  YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe" | Out-File -FilePath "$datei.sha256" -Encoding ascii
+          Write-Host "SHA-256: $hash"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}
+          path: |
+            node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe
+            node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
+          if-no-files-found: error
+
+      # Ein ENTWURF. Sichtbar wird die Veröffentlichung erst, wenn sie von
+      # Hand freigegeben wird -- und erst dann findet das Programm sie auch
+      # bei seiner Suche nach einer neuen Version.
+      - name: Entwurf der Veröffentlichung
+        if: startsWith(github.ref, 'refs/tags/node-core-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: YSKAR Node Core ${{ steps.version.outputs.version }}
+          generate_release_notes: false
+          body: |
+            Windows-Installer des YSKAR Node Core ${{ steps.version.outputs.version }}.
+
+            Installer und Prüfsumme (SHA-256) hängen an dieser Veröffentlichung.
+            Was sich geändert hat, steht in `node-core/README.md`.
+          files: |
+            node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe
+            node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256

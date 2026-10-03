@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-Write-Host 'YSKAR Node Core 0.4.0 - Native Desktop Build' -ForegroundColor Cyan
+Write-Host 'YSKAR Node Core 0.5.0 - Native Desktop Build' -ForegroundColor Cyan
 Write-Host ''
 node --version
 npm --version
@@ -21,4 +21,4 @@ Write-Host 'YSKAR Node Core Desktop erfolgreich gebaut' -ForegroundColor Green
 Write-Host '========================================' -ForegroundColor Green
 Write-Host ''
 Write-Host 'Installer:' -ForegroundColor Cyan
-Write-Host (Join-Path $PSScriptRoot 'release\YSKAR-Node-Core-Setup-0.4.0.exe')
+Write-Host (Join-Path $PSScriptRoot 'release\YSKAR-Node-Core-Setup-0.5.0.exe')
