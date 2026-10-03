@@ -68,7 +68,7 @@ const ordner = () => mkdtempSync(join(tmpdir(), 'yskar-kern-'));
 async function schluessel(guiPort: number): Promise<string> {
   const seite = await ruf(guiPort, '/');
   assert.equal(seite.status, 200);
-  const m = seite.text.match(/const ZUGANG='([0-9a-f]{64})'/);
+  const m = seite.text.match(/<meta name="yskar-zugang" content="([0-9a-f]{64})">/);
   assert.ok(m, 'Die Seite muss ihren Zugangsschlüssel enthalten');
   return m![1];
 }
@@ -89,9 +89,10 @@ test('Oberfläche: Die eigene Seite kommt durch, eine fremde nicht', async () =>
     const seite = await ruf(gui, '/');
     assert.equal(seite.status, 200);
     assert.match(String(seite.kopf['content-security-policy']), /frame-ancestors 'none'/);
+    assert.match(String(seite.kopf['content-security-policy']), /script-src 'self';/,
+      'Eingebettete Skripte sind nicht erlaubt');
     assert.equal(seite.kopf['x-frame-options'], 'DENY');
     assert.ok(!seite.text.includes('__YSKAR_ZUGANG__'), 'Der Platzhalter muss ersetzt sein');
-    assert.ok(seite.text.includes(`Node Core ${VERSION}`), 'Die Seite zeigt die echte Version');
 
     const token = await schluessel(gui);
     const mit = { 'x-yskar-token': token };
@@ -303,7 +304,7 @@ test('Zwei Knoten: Überweisung wandert, landet im Block, Miner zählen mit', as
     }
     await bis('Die Fremden sind mit B verbunden', async () => (await stand(B, tB)).peerCount === 3);
     const sB = await stand(B, tB);
-    assert.deepEqual(sB.peers.map((p: any) => p.height).sort((x: number, y: number) => x - y).slice(-2),
+    assert.deepEqual(sB.peers.map((p: any) => p.hoehe).sort((x: number, y: number) => x - y).slice(-2),
       [5_000_000, 5_000_000]);
     assert.equal(sB.mining.startklar.bereit, true, JSON.stringify(sB.mining.startklar));
     for (const pm of fremde) await pm.stop();

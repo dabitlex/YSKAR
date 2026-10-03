@@ -57,6 +57,39 @@ console.log('Node-Core-Bundle erstellt: dist/node-core.cjs');
 }
 
 /*
+ * Die Oberflaeche neben das Bundle legen.
+ *
+ * Der Server liefert sie als Dateien aus dist/ui aus. Die Schriften sind
+ * dieselben wie auf der Webseite und liegen im Repository nur einmal --
+ * unter website/assets/fonts. Hier werden sie dazukopiert.
+ */
+{
+  const { cpSync, rmSync, readdirSync, copyFileSync } = await import('node:fs');
+  const ui = resolve(here, 'ui');
+  const ziel = resolve(out, 'ui');
+  if (!existsSync(join(ui, 'index.html'))) {
+    console.error(`Oberflaeche fehlt: ${ui}`);
+    process.exit(1);
+  }
+  rmSync(ziel, { recursive: true, force: true });
+  cpSync(ui, ziel, { recursive: true });
+  const schriften = resolve(here, '..', 'website', 'assets', 'fonts');
+  if (!existsSync(schriften)) {
+    console.error(`Schriften fehlen: ${schriften}`);
+    process.exit(1);
+  }
+  mkdirSync(join(ziel, 'fonts'), { recursive: true });
+  let n = 0;
+  for (const f of readdirSync(schriften)) {
+    // Nur was die Oberflaeche wirklich laedt, dazu die Lizenztexte.
+    if (/^(manrope-latin(-ext)?-wght-normal|ibm-plex-mono-latin-(400|500)-normal)\.woff2$/.test(f) || f.startsWith('LICENSE')) {
+      copyFileSync(join(schriften, f), join(ziel, 'fonts', f)); n++;
+    }
+  }
+  console.log(`Oberflaeche kopiert: dist/ui (${n} Schrift- und Lizenzdateien)`);
+}
+
+/*
  * Der GPU-Miner ist ein eigenes Programm und wird NICHT hier gebaut -- dafuer
  * braucht es CUDA, und ohne CUDA soll der Node Core trotzdem bauen. Siehe
  * gpu/build-gpu.ps1. Liegt gpu/bin/yskar-cuda.exe vor, nimmt der Installer

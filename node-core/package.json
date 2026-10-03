@@ -24,7 +24,8 @@
     "files": [
       "src/electron-main.mjs",
       "dist/node-core.cjs",
-      "dist/miner.wasm"
+      "dist/miner.wasm",
+      "dist/ui/**/*"
     ],
     "asar": true,
     "win": {
