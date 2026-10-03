@@ -9,6 +9,24 @@ anbietet, steht er in einer Liste im Repository — siehe
 trotzdem erreichbar: über „Eigene Adresse“ in der App und über `--api` im
 Kommandozeilen-Miner.
 
+## Mit dem Node Core (Windows)
+
+Im Node Core gibt es dafür die Ansicht **Pool betreiben**: Name eintragen,
+Gebühr und Plätze einstellen, einschalten. Mehr braucht es nicht — es ist
+derselbe Pool wie beim Kommandozeilen-Knoten unten, nur mit Oberfläche.
+
+| | |
+|---|---|
+| Gebühr | geht an die Wallet dieses PCs; 0 bis 5 % in Schritten von 0,25 % |
+| Eigener Miner | rechnet mit, wenn du im Mining „Pool“ wählst — dein Pool steht dort zuerst |
+| Geräte im Heimnetz | Schalter „Im Heimnetz freigeben“; andere PCs verbinden sich mit `http://<Adresse dieses PCs>:8645` |
+| App und Mini App | nur über HTTPS mit eigenem Namen und Zertifikat — das richtet der Node Core nicht ein, siehe [Wie ein Miner beitritt](#wie-ein-miner-beitritt) und `docs/UMSTELLUNG.md` |
+| Fenster | wird gesichert und beim nächsten Start wieder geladen |
+
+Der Anschluss 8645 antwortet dabei nur dem eigenen PC und dem eigenen Netz.
+Wer den Pool ins Internet stellen will, setzt einen eigenen Webserver mit
+Zertifikat davor (auf demselben PC oder im selben Netz).
+
 ## Starten
 
 ```bash
@@ -273,7 +291,7 @@ Pool erst, wenn er unter einem Namen mit Zertifikat läuft — siehe
 der Knoten führt darüber kein eigenes Buch. Für die Anzeige „deine letzte
 Auszahlung" bräuchte es eine Tabelle.
 
-**Neustartfest.** `PoolCoordinator` kann sein Fenster exportieren und laden
-(`exportieren()` / `laden()`), aber der Knoten tut es noch nicht. Nach einem
-Neustart beginnt das Fenster leer — die Arbeit der letzten Stunde wäre
-verloren.
+**Neustartfest (Kommandozeilen-Knoten).** `PoolCoordinator` kann sein
+Fenster exportieren und laden (`exportieren()` / `laden()`). Der Node Core
+tut das; der Kommandozeilen-Knoten noch nicht — dort beginnt das Fenster
+nach einem Neustart leer, und die Arbeit der letzten Stunde wäre verloren.
