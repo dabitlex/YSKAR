@@ -69,13 +69,14 @@ function baueGeruest() {
   const standName = el('span');
   const standZeile = el('span');
   const inhalt = el('main.inhalt');
+  const neueVersion = el('a.leiste-neu', { href: '#/einstellungen', hidden: true });
   fuelle(wurzel, el('div.app',
     el('aside.leiste',
       el('div.marke', kristall(), el('div', el('b', 'YSKAR'), el('span', 'Node Core ' + (stand?.version ?? '')))),
       nav,
-      el('div.leiste-stand', el('b', standPunkt, standName), standZeile)),
+      el('div.leiste-fuss', neueVersion, el('div.leiste-stand', el('b', standPunkt, standName), standZeile))),
     inhalt));
-  geruest = { nav, inhalt, standPunkt, standName, standZeile };
+  geruest = { nav, inhalt, standPunkt, standName, standZeile, neueVersion };
 }
 
 function aktualisiereGeruest() {
@@ -84,6 +85,8 @@ function aktualisiereGeruest() {
   geruest.standPunkt.className = 'punkt ' + (laeuft ? (stand.syncing ? 'gelb' : 'gruen') : '');
   text(geruest.standName, laeuft ? (stand.syncing ? t('leiste.sync') : t('leiste.laeuft')) : t('leiste.gestoppt'));
   text(geruest.standZeile, t('leiste.zeile', netzName(stand.network), stand.height === null ? '—' : zahl(stand.height), stand.peerCount));
+  geruest.neueVersion.hidden = !stand.update?.neuer;
+  if (stand.update?.neuer) text(geruest.neueVersion, t('leiste.neueVersion', stand.update.neueste));
 }
 
 function zeige() {
@@ -146,6 +149,17 @@ function regung() {
 }
 window.addEventListener('pointerdown', regung, { passive: true });
 window.addEventListener('keydown', regung, { passive: true });
+
+/*
+ * Links nach draußen. Im installierten Programm öffnet sie der Browser des
+ * Nutzers -- das Fenster selbst lädt nie eine fremde Seite.
+ */
+document.addEventListener('click', e => {
+  const a = e.target instanceof Element ? e.target.closest('a[target=_blank]') : null;
+  if (!a || !stand?.huelle?.vorhanden) return;
+  e.preventDefault();
+  sende('/api/huelle/link', { url: a.href }).catch(err => melde(err.message, true));
+});
 
 // Der Assistent ruft das, wenn er fertig ist.
 ctx.eingerichtet = async () => { stand = await hole('/api/status'); location.hash = '#/uebersicht'; zeige(); };

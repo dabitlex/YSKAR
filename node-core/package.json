@@ -25,11 +25,13 @@
       "src/electron-main.mjs",
       "dist/node-core.cjs",
       "dist/miner.wasm",
-      "dist/ui/**/*"
+      "dist/ui/**/*",
+      "build/icon.ico"
     ],
     "asar": true,
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,

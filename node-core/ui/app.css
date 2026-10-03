@@ -38,7 +38,9 @@ a:hover{color:#B7CCFF}
 .nav a{display:flex;align-items:center;gap:11px;height:44px;padding:0 12px;border-radius:10px;color:var(--dim);font-size:14px;font-weight:600}
 .nav a:hover{background:#121C30;color:var(--text)}
 .nav a[aria-current=page]{background:var(--aktiv);color:#fff;font-weight:700}
-.leiste-stand{margin-top:auto;border:1px solid var(--linie);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.leiste-fuss{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.leiste-neu{display:block;border:1px solid #2B4686;background:#12203F;border-radius:12px;padding:10px 14px;font-size:12.5px;font-weight:700;color:var(--blau-hell)}
+.leiste-stand{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .leiste-stand b{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
 .leiste-stand span{font-size:12px;font-weight:500;color:var(--blass)}
 .inhalt{flex:1 1 auto;min-width:0;padding:26px 32px 36px;display:flex;flex-direction:column;gap:18px}
@@ -214,7 +216,7 @@ pre.protokoll{margin:0;border:1px solid var(--linie);background:var(--tief);bord
 /* ----------------------------------------------------------- Schmaler */
 @media(max-width:900px){
   .leiste{width:64px;padding:18px 8px}
-  .marke div,.nav a span,.leiste-stand{display:none}
+  .marke div,.nav a span,.leiste-stand,.leiste-neu{display:none}
   .marke{justify-content:center;padding:0}
   .nav a{justify-content:center;padding:0}
   .inhalt{padding:20px 18px 28px}
