@@ -95,6 +95,9 @@ export class WalletDienst {
     this.lade();
   }
 
+  /** Laufende Entschluesselung -- siehe oeffne(). */
+  private oeffnend: Promise<void> = Promise.resolve();
+
   private lade(): void {
     const v = liesJson<Partial<Vault> | null>(this.pfad, null);
     this.tresor = v && v.version === 1 && typeof v.ciphertext === 'string' && typeof v.salt === 'string'
@@ -103,6 +106,9 @@ export class WalletDienst {
     const k = liesJson<unknown>(this.kontaktPfad, []);
     this.kontakte_ = Array.isArray(k)
       ? k.filter((x): x is Kontakt => !!x && typeof x.name === 'string' && typeof x.adresse === 'string' && isValidAddress(x.adresse))
+          // Dieselben Regeln wie beim Speichern -- die Datei koennte von Hand geaendert sein.
+          .map(x => ({ name: x.name.replace(/[\u0000-\u001f\u007f]/g, ' ').trim(), adresse: x.adresse.toLowerCase() }))
+          .filter(x => x.name !== '' && [...x.name].length <= KONTAKT_NAME_MAX)
           .slice(0, KONTAKTE_MAX)
       : [];
   }
@@ -168,8 +174,23 @@ export class WalletDienst {
    * Pause. Das haelt niemanden auf, der die Datei hat -- aber jemanden, der
    * am offenen Programm sitzt und raet.
    */
-  private async oeffne(passwort: unknown): Promise<string> {
+  /*
+   * Die Woerter mit dem Passwort oeffnen.
+   *
+   * EINER NACH DEM ANDEREN. Das Entschluesseln dauert, und in dieser Zeit
+   * kaeme die naechste Anfrage herein. Liefen sie nebeneinander, pruefte jede
+   * die Pause, bevor die vorige ihren Fehlversuch gezaehlt hat -- hundert
+   * Versuche auf einmal waeren hundert Versuche, nicht fuenf.
+   */
+  private oeffne(passwort: unknown): Promise<string> {
+    const lauf = this.oeffnend.then(() => this.oeffneEinzeln(passwort));
+    this.oeffnend = lauf.then(() => {}, () => {});
+    return lauf;
+  }
+
+  private async oeffneEinzeln(passwort: unknown): Promise<string> {
     if (!this.tresor) throw new WalletFehler('keine_wallet', 'Es ist noch keine Wallet eingerichtet.');
+    const tresor = this.tresor;
     const jetzt = this.uhr();
     if (jetzt < this.pauseBis) {
       throw new WalletFehler('pause', `Zu viele falsche Versuche. Bitte ${Math.ceil((this.pauseBis - jetzt) / 1000)} Sekunden warten.`);
@@ -177,13 +198,22 @@ export class WalletDienst {
     if (typeof passwort !== 'string' || passwort.length === 0 || passwort.length > 256) {
       throw new WalletFehler('passwort_falsch', 'Das Passwort stimmt nicht.');
     }
-    const r = await unseal(this.tresor, passwort);
+    const r = await unseal(tresor, passwort);
     if (!r.ok) {
       this.fehlversuche++;
       if (this.fehlversuche >= VERSUCHE_BIS_PAUSE) { this.pauseBis = this.uhr() + PAUSE_MS; this.fehlversuche = 0; }
       throw new WalletFehler('passwort_falsch', 'Das Passwort stimmt nicht.');
     }
     this.fehlversuche = 0;
+    /*
+      Die Adresse steht unverschluesselt in der Datei, damit sie auch gesperrt
+      zu sehen ist. Wer die Datei aendern kann, koennte dort eine fremde
+      eintragen -- und Empfangen, Mining und Pool-Gebuehr gingen dorthin.
+      Deshalb: Passt sie nicht zu den Woertern, ist die Datei beschaedigt.
+    */
+    if (keypairFromMnemonic(r.mnemonic).address !== tresor.address) {
+      throw new WalletFehler('datei_beschaedigt', 'Die Wallet-Datei passt nicht zu ihren Wörtern. Sie wurde verändert oder ist beschädigt.');
+    }
     return r.mnemonic;
   }
 

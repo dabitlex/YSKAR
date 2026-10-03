@@ -296,6 +296,24 @@ class KernServer extends MiningServer {
   }
 }
 
+/**
+ * Kommt die Verbindung vom eigenen PC oder aus dem eigenen Netz?
+ * Private Bereiche nach RFC 1918, die eigene Schleife, Adressen ohne Router
+ * (169.254/16, fe80::/10) und eigene IPv6-Netze (fc00::/7).
+ */
+export function istPrivateQuelle(adresse: string | undefined): boolean {
+  if (!adresse) return false;
+  let a = adresse.toLowerCase();
+  if (a.startsWith('::ffff:')) a = a.slice(7);
+  if (a === '::1') return true;
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(a);
+  if (m) {
+    const x = Number(m[1]), y = Number(m[2]);
+    return x === 127 || x === 10 || (x === 172 && y >= 16 && y <= 31) || (x === 192 && y === 168) || (x === 169 && y === 254);
+  }
+  return /^fe[89ab][0-9a-f]:/.test(a) || /^f[cd][0-9a-f]{2}:/.test(a);
+}
+
 /** Mittlerer Wert -- ein einzelner Peer mit falscher Angabe verschiebt ihn nicht. */
 function median(werte: number[]): number {
   const s = [...werte].sort((a, b) => a - b);
@@ -434,6 +452,8 @@ export class NodeCoreApp {
   private betriebFehler: string | null = null;
   private fensterTakt: ReturnType<typeof setInterval> | null = null;
   private fensterGesichert = '';
+  /** Zaehlt die Sicherungen des Fensters -- eine aeltere ueberschreibt nie eine neuere. */
+  private fensterFolge = 0;
   /** Worauf die Schnittstelle des Knotens gerade lauscht. */
   private lauscht = '127.0.0.1';
   /** Leistung ueber die Zeit, seit dem letzten Start. */
@@ -500,12 +520,24 @@ export class NodeCoreApp {
     };
     if (existsSync(this.configPath)) {
       try {
-        const saved = JSON.parse(readFileSync(this.configPath, 'utf8'));
-        this.config = { ...this.config, ...saved };
-        this.config.dataDir = String(this.config.dataDir || defaultDataDir());
-        this.config.nodePort = Number(this.config.nodePort || DEFAULT_NODE_PORT);
-        this.config.p2pPort = Number(this.config.p2pPort || DEFAULT_P2P_PORT);
-        this.config.seed = String(this.config.seed || '');
+        // Feld fuer Feld, mit denselben Grenzen wie beim Speichern. Was nicht
+        // passt, faellt auf die Vorgabe zurueck -- eine von Hand veraenderte
+        // Datei soll keinen Knoten auf Port 80 oder in "[object Object]" starten.
+        const saved: unknown = JSON.parse(readFileSync(this.configPath, 'utf8'));
+        if (saved === null || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('kein Objekt');
+        const r = saved as Record<string, unknown>;
+        const port = (x: unknown, vorgabe: number) =>
+          typeof x === 'number' && Number.isInteger(x) && x >= 1024 && x <= 65535 ? x : vorgabe;
+        if (typeof r.dataDir === 'string' && r.dataDir.trim() !== '') this.config.dataDir = r.dataDir.trim();
+        this.config.nodePort = port(r.nodePort, DEFAULT_NODE_PORT);
+        this.config.p2pPort = port(r.p2pPort, DEFAULT_P2P_PORT);
+        if (this.config.nodePort === this.config.p2pPort) {
+          this.config.nodePort = DEFAULT_NODE_PORT; this.config.p2pPort = DEFAULT_P2P_PORT;
+        }
+        if (typeof r.seed === 'string') {
+          const seed = r.seed.trim();
+          try { if (seed) this.parseSeed(seed); this.config.seed = seed; } catch { /* Vorgabe bleibt */ }
+        }
         this.configured = true;
       } catch {
         this.log('Konfiguration konnte nicht gelesen werden. Standardwerte werden verwendet.');
@@ -872,10 +904,19 @@ export class NodeCoreApp {
 
   // --------------------------------------------------------- Pool betreiben
 
-  /** Difficulty, an der gerade gearbeitet wird -- sie bestimmt die Groesse des Fensters. */
-  private netzDifficulty(): bigint {
-    const d = this.mining?.aktuelleArbeit()?.difficulty ?? this.chain?.tip()?.difficulty ?? 1n;
-    return d > 0n ? d : 1n;
+  /*
+   * Die Difficulty, die die Groesse des Fensters bestimmt: die des letzten
+   * Blocks -- dieselbe, mit der die Auszahlung rechnet (MiningServer.job).
+   *
+   * NICHT die des offenen Jobs. Die sinkt, wenn lange kein Block kam
+   * (Notfallregel), und ein danach bemessenes Fenster waere voruebergehend
+   * viel kleiner. Wuerde in so einem Moment aufgeraeumt, fiele Arbeit weg,
+   * die bei der naechsten Auszahlung noch zaehlt. null: Es gibt noch keinen
+   * Block -- dann wird nichts bemessen.
+   */
+  private netzDifficulty(): bigint | null {
+    const d = this.chain?.tip()?.difficulty;
+    return d !== undefined && d > 0n ? d : null;
   }
 
   /*
@@ -890,6 +931,7 @@ export class NodeCoreApp {
     try {
       const name = pruefePoolName(this.betrieb.name);
       const stand = leseFenster(this.fensterPfad, this.params.network);
+      if (stand.hinweis) this.log(`Fenster des Pools: ${stand.hinweis}`);
       const adresse = this.wallet.stand().adresse;
       const auszahlung = adresse ? decodeAddress(adresse) : null;
       if (this.betrieb.feeBps > 0 && !auszahlung) {
@@ -925,7 +967,14 @@ export class NodeCoreApp {
 
   /** Das Fenster kuerzen, wenn es weit ueber das hinausgewachsen ist, was zaehlen kann. */
   private pflegeFenster(pk: PoolCoordinator): void {
-    const behalten = fensterGroesse(this.netzDifficulty()) * 3n;
+    const d = this.netzDifficulty();
+    // Nur mit einer Kette, die auf dem Stand ist: Waehrend des Aufholens gehoert
+    // die Difficulty zu einem alten Block und sagt nichts ueber das Fenster von heute.
+    const peers = this.peers?.info() ?? [];
+    const hoehe = this.chain?.tip()?.height ?? -1;
+    const holtAuf = peers.some(p => p.height > hoehe) || (this.sync?.fehlendeBloecke() ?? 0) > 1;
+    if (d === null || holtAuf) return;
+    const behalten = fensterGroesse(d) * 3n;
     if (pk.arbeitGesamt() > behalten * 2n) pk.laden(kuerze(pk.exportieren(), behalten));
   }
 
@@ -936,9 +985,12 @@ export class NodeCoreApp {
     const fee = pk.einstellungen().feeBps;
     const stand = `${pk.eintraege()}:${pk.arbeitGesamt()}:${fee}`;
     if (stand === this.fensterGesichert) return;
+    const folge = ++this.fensterFolge;
     try {
-      await schreibeFenster(this.fensterPfad, this.params.network, fee, pk.exportieren());
-      this.fensterGesichert = stand;
+      // Nur umbenennen, wenn inzwischen niemand einen neueren Stand geschrieben hat.
+      const geschrieben = await schreibeFenster(this.fensterPfad, this.params.network, fee, pk.exportieren(),
+        () => folge === this.fensterFolge);
+      if (geschrieben) this.fensterGesichert = stand;
     } catch (e) { this.log(`Fenster des Pools nicht gesichert: ${(e as Error).message}`); }
   }
 
@@ -955,6 +1007,7 @@ export class NodeCoreApp {
     this.fensterTakt = null;
     this.betriebLaeuft = null;
     if (!server || !pk) return;
+    this.fensterFolge++;
     try { schreibeFensterSofort(this.fensterPfad, this.params.network, pk.einstellungen().feeBps, pk.exportieren()); }
     catch (e) { this.log(`Fenster des Pools nicht gesichert: ${(e as Error).message}`); }
     const n = server.beendePoolSitzungen();
@@ -971,6 +1024,31 @@ export class NodeCoreApp {
    * bleiben davon unberuehrt -- sie haengen an einem anderen Anschluss, der
    * nie nach aussen zeigt.
    */
+  /*
+   * Wer die Schnittstelle des Knotens (Port 8645) benutzen darf.
+   *
+   * OHNE POOL ist sie nur fuer diesen PC da -- fuer einen Miner, der hier
+   * ueber den eigenen Knoten rechnet. Eine Webseite im Browser hat dort
+   * nichts verloren: Sie koennte sonst Sitzungen oeffnen und den Knoten
+   * beschaeftigen. Deshalb: nur der eigene Rechnername (gegen umgebogene
+   * Namen) und keine Anfrage, die von einer fremden Seite stammt.
+   *
+   * MIT POOL ist sie ein Angebot an andere: App und Mini App laufen im
+   * Browser und kommen ueber die eigene Adresse des Betreibers herein. Dann
+   * gilt nur noch eine Schranke: Die Anfrage muss vom eigenen PC oder aus
+   * dem eigenen Netz kommen -- auch dann, wenn der Anschluss auf allen
+   * Netzkarten lauscht und eine davon ins Internet zeigt.
+   */
+  private schnittstelleErlaubt(req: IncomingMessage): boolean {
+    if (!istPrivateQuelle(req.socket.remoteAddress)) return false;
+    if (this.miningServer?.poolKoordinator) return true;
+    const eigen = [`127.0.0.1:${this.config.nodePort}`, `localhost:${this.config.nodePort}`];
+    if (!eigen.includes(String(req.headers.host ?? '').toLowerCase())) return false;
+    if (req.headers.origin !== undefined) return false;
+    const site = req.headers['sec-fetch-site'];
+    return site === undefined || site === 'same-origin' || site === 'none';
+  }
+
   private lauschZiel(): string {
     return this.betrieb.heimnetz && !!this.miningServer?.poolKoordinator ? '0.0.0.0' : '127.0.0.1';
   }
@@ -1042,6 +1120,15 @@ export class NodeCoreApp {
     return this.betriebStatus();
   }
 
+  /** Wer im Fenster steht -- neu gerechnet nur, wenn sich etwas geaendert hat. */
+  private fensterMerker: { stand: string; anteile: ReturnType<PoolCoordinator['fenster']> } | null = null;
+  private fensterAnteile(pk: PoolCoordinator): ReturnType<PoolCoordinator['fenster']> {
+    const d = this.netzDifficulty() ?? 1n;
+    const stand = `${pk.eintraege()}:${pk.arbeitGesamt()}:${d}`;
+    if (this.fensterMerker?.stand !== stand) this.fensterMerker = { stand, anteile: pk.fenster(d) };
+    return this.fensterMerker.anteile;
+  }
+
   /** Stand des eigenen Pools fuer die Oberflaeche. */
   private betriebStatus() {
     const server = this.miningServer;
@@ -1072,7 +1159,7 @@ export class NodeCoreApp {
     const funde = namen?.get(e.name) ?? null;
 
     // Wer im Fenster steht und wer gerade verbunden ist -- je Adresse eine Zeile.
-    const fenster = pk.fenster(this.netzDifficulty());
+    const fenster = this.fensterAnteile(pk);
     let gesamt = 0n;
     for (const f of fenster) gesamt += f.work;
     // hashrate bleibt null, bis der Pool sie messen konnte -- dafuer braucht er ein paar Shares.
@@ -1137,7 +1224,23 @@ export class NodeCoreApp {
    * Solo kommt die Arbeit vom eigenen Knoten, im Pool vom Pool-Knoten
    * (PoolQuelle.ts). Die Miner selbst sind in beiden Faellen dieselben.
    */
-  private async startMining(body: Record<string, unknown>) {
+  /*
+   * Start und Stopp laufen NACHEINANDER, nie ineinander. Beide warten
+   * zwischendurch -- auf den Pool, auf den Selbsttest der Grafikkarte. Kaeme
+   * in dieser Zeit ein Stopp dazwischen, liefe der Start danach weiter und
+   * setzte fort, was eben gestoppt wurde; zwei Starts zugleich hoben sich
+   * gegenseitig auf.
+   */
+  private miningFolge: Promise<unknown> = Promise.resolve();
+  private nacheinander<T>(tun: () => Promise<T>): Promise<T> {
+    const lauf = this.miningFolge.then(tun, tun);
+    this.miningFolge = lauf.then(() => {}, () => {});
+    return lauf;
+  }
+  private startMining(body: Record<string, unknown>) { return this.nacheinander(() => this.starteMining(body)); }
+  private stopMining() { return this.nacheinander(() => this.stoppeMining()); }
+
+  private async starteMining(body: Record<string, unknown>) {
     if (!this.running || !this.cpuMiner || !this.gpuMiner) {
       throw new Error('Zuerst den Full Node starten.');
     }
@@ -1255,7 +1358,7 @@ export class NodeCoreApp {
       }
     } catch (e) {
       // Ein halber Start bleibt nicht stehen.
-      await this.stopMining();
+      await this.stoppeMining();
       throw e;
     }
 
@@ -1283,7 +1386,7 @@ export class NodeCoreApp {
     return { ok: true, hinweise, status: this.miningStatus() };
   }
 
-  private async stopMining() {
+  private async stoppeMining() {
     if (this.leistungTakt) clearInterval(this.leistungTakt);
     this.leistungTakt = null;
     await this.cpuMiner?.stop();
@@ -1348,7 +1451,8 @@ export class NodeCoreApp {
     if (pfad === '/api/huelle/ordner-oeffnen') {
       // Nur die beiden eigenen Ordner -- kein Pfad aus der Anfrage.
       const ziel = body.welcher === 'daten' ? resolve(this.config.dataDir) : this.basis;
-      if (!existsSync(ziel)) throw new Error('Den Ordner gibt es noch nicht.');
+      // Nur ein ORDNER: Eine Datei wuerde Windows an dieser Stelle ausfuehren.
+      if (!existsSync(ziel) || !statSync(ziel).isDirectory()) throw new Error('Den Ordner gibt es noch nicht.');
       await h.oeffneOrdner(ziel);
       return { ok: true };
     }
@@ -1450,7 +1554,11 @@ export class NodeCoreApp {
     this.updateTakt = null;
     await this.stopNode();
     if (this.guiServer.listening) {
-      await new Promise<void>(resolveGui => this.guiServer.close(() => resolveGui()));
+      await new Promise<void>(resolveGui => {
+        this.guiServer.close(() => resolveGui());
+        // Das Fenster fragt alle zwei Sekunden und haelt seine Verbindung offen -- darauf wird nicht gewartet.
+        this.guiServer.closeAllConnections();
+      });
     }
   }
 
@@ -1466,8 +1574,11 @@ export class NodeCoreApp {
     if (seed) this.parseSeed(seed);
     // Der Assistent prueft seine Eingaben, bevor er sie festschreibt.
     if (body.nurPruefen === true) return;
-    this.config = { dataDir, nodePort, p2pPort, seed };
+    // Erst anlegen, dann uebernehmen: Scheitert das Anlegen -- etwa weil der
+    // Pfad eine Datei ist --, bleibt die bisherige Einstellung stehen.
     mkdirSync(dataDir, { recursive: true });
+    if (!statSync(dataDir).isDirectory()) throw new Error('Der Datenordner ist kein Ordner.');
+    this.config = { dataDir, nodePort, p2pPort, seed };
     writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
     this.configured = true;
     this.log(`Konfiguration gespeichert. Daten: ${dataDir}`);
@@ -1510,6 +1621,7 @@ export class NodeCoreApp {
       host: '127.0.0.1', port: this.config.nodePort, params,
     });
     this.miningServer.intern = () => this.interneStatistik();
+    this.miningServer.zulassen = req => this.schnittstelleErlaubt(req);
 
     /*
      * Eine ueber die lokale Schnittstelle eingereichte Ueberweisung den
@@ -1583,7 +1695,7 @@ export class NodeCoreApp {
       },
       onMessage: (p, frame) => {
         if (frame.command === 'stats') {
-          try { this.statistik?.aufnehmen(decodeStats(frame.payload)); }
+          try { this.statistik?.aufnehmen(decodeStats(frame.payload), `v:${p.id}`); }
           catch (e) { p.close(`stats_unlesbar:${(e as Error).message}`); }
           return;
         }
@@ -1652,11 +1764,8 @@ export class NodeCoreApp {
     // Miner zuerst: Sie brauchen den Koordinator, und der haengt an der
     // Kette, die gleich geschlossen wird. Worker und GPU-Prozess sollen
     // nicht als Waisen weiterlaufen.
-    try { await this.cpuMiner?.stop(); } catch { /* lief nicht */ }
-    try { await this.gpuMiner?.stop(); } catch { /* lief nicht */ }
-    try { await this.beendePool(); } catch { /* war in keinem Pool */ }
-    if (this.leistungTakt) clearInterval(this.leistungTakt);
-    this.leistungTakt = null;
+    // In der Reihe mit Start und Stopp: Ein Start, der gerade laeuft, ist vorher zu Ende.
+    try { await this.stopMining(); } catch { /* lief nicht */ }
     if (this.statsTakt) clearInterval(this.statsTakt);
     this.statsTakt = null;
     this.sync?.stop();

@@ -13,7 +13,7 @@
  * seit dem letzten Fund dabei waren.
  */
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
-import { writeFile, rename } from 'node:fs/promises';
+import { writeFile, rename, unlink } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 
 import { MAX_COINBASE_OUTPUTS } from '../../src/lib/core/params.ts';
@@ -131,6 +131,8 @@ export function kuerze(eintraege: ShareEintrag[], behalten: bigint): ShareEintra
 export interface FensterStand {
   eintraege: ShareEintrag[];
   feeBps: number | null;
+  /** Was beim Lesen auffiel -- fuer das Protokoll. */
+  hinweis?: string;
 }
 
 function alsText(netz: string, feeBps: number, eintraege: ShareEintrag[]): string {
@@ -146,45 +148,72 @@ function alsText(netz: string, feeBps: number, eintraege: ShareEintrag[]): strin
   return JSON.stringify({ fassung: 1, netz, feeBps, eintraege: zeilen });
 }
 
-/** Das Fenster sichern. Erst daneben schreiben, dann umbenennen. */
-export async function schreibeFenster(pfad: string, netz: string, feeBps: number, eintraege: ShareEintrag[]): Promise<void> {
+/**
+ * Das Fenster sichern. Erst daneben schreiben, dann umbenennen.
+ *
+ * `gilt` wird unmittelbar vor dem Umbenennen gefragt: Hat inzwischen jemand
+ * einen neueren Stand geschrieben (beim Anhalten des Pools geschieht das in
+ * einem Zug), bleibt der liegen und diese Sicherung wird verworfen.
+ *
+ * @returns ob die Datei ersetzt wurde
+ */
+export async function schreibeFenster(pfad: string, netz: string, feeBps: number, eintraege: ShareEintrag[],
+                                      gilt: () => boolean = () => true): Promise<boolean> {
+  // Eigene Zwischendatei -- nie dieselbe wie schreibeFensterSofort().
   const neben = pfad + '.neu';
-  await writeFile(neben, alsText(netz, feeBps, eintraege));
+  await writeFile(neben, alsText(netz, feeBps, neueste(eintraege)));
+  if (!gilt()) { try { await unlink(neben); } catch { /* schon weg */ } return false; }
   await rename(neben, pfad);
+  return true;
 }
 
-/** Dasselbe in einem Zug -- beim Beenden, wenn nichts mehr warten kann. */
+/** Dasselbe in einem Zug -- beim Anhalten, wenn nichts mehr warten kann. */
 export function schreibeFensterSofort(pfad: string, netz: string, feeBps: number, eintraege: ShareEintrag[]): void {
-  const neben = pfad + '.neu';
-  writeFileSync(neben, alsText(netz, feeBps, eintraege));
+  const neben = pfad + '.ende';
+  writeFileSync(neben, alsText(netz, feeBps, neueste(eintraege)));
   renameSync(neben, pfad);
 }
 
+/** Hoechstens EINTRAEGE_MAX -- und zwar die juengsten: Sie zaehlen zuerst. */
+function neueste(eintraege: ShareEintrag[]): ShareEintrag[] {
+  return eintraege.length > EINTRAEGE_MAX ? eintraege.slice(eintraege.length - EINTRAEGE_MAX) : eintraege;
+}
+
 /**
- * Das gesicherte Fenster lesen. Alles Unlesbare wird verworfen -- lieber ein
- * leeres Fenster als eines mit erfundener Arbeit. Ein Fenster aus einem
- * anderen Netz gilt nicht.
+ * Das gesicherte Fenster lesen. Ein Fenster aus einem anderen Netz gilt nicht.
+ *
+ * Laesst sich die Datei nicht lesen, bleibt das Fenster leer -- lieber das
+ * als eines mit erfundener Arbeit. Die Datei wird dann NICHT ueberschrieben,
+ * sondern beiseitegelegt (".unlesbar"), und der Grund steht im Protokoll.
  */
 export function leseFenster(pfad: string, netz: string): FensterStand {
   const leer: FensterStand = { eintraege: [], feeBps: null };
   if (!existsSync(pfad)) return leer;
+  const verwirf = (grund: string): FensterStand => {
+    try { renameSync(pfad, pfad + '.unlesbar'); } catch { /* bleibt liegen */ }
+    return { ...leer, hinweis: `gesicherte Arbeit nicht übernommen (${grund}); die Datei liegt als pool-fenster.json.unlesbar daneben.` };
+  };
   try {
     const d = JSON.parse(readFileSync(pfad, 'utf8')) as { fassung?: unknown; netz?: unknown; feeBps?: unknown; eintraege?: unknown };
-    if (d.fassung !== 1 || d.netz !== netz || !Array.isArray(d.eintraege)) return leer;
+    if (d === null || typeof d !== 'object') return verwirf('kein gültiger Inhalt');
+    if (d.fassung !== 1 || !Array.isArray(d.eintraege)) return verwirf('unbekannte Fassung');
+    // Ein anderes Netz ist kein Schaden an der Datei -- sie gehoert nur nicht hierher.
+    if (d.netz !== netz) return leer;
     const aus: ShareEintrag[] = [];
     for (const z of d.eintraege) {
-      if (!Array.isArray(z) || typeof z[0] !== 'string' || !/^[0-9a-f]{40}$/.test(z[0]) || !Array.isArray(z[1])) return leer;
+      if (!Array.isArray(z) || typeof z[0] !== 'string' || !/^[0-9a-f]{40}$/.test(z[0]) || !Array.isArray(z[1])) return verwirf('unlesbarer Eintrag');
       const to = Uint8Array.from(Buffer.from(z[0], 'hex'));
       for (const w of z[1]) {
-        if (typeof w !== 'string' || !/^[1-9]\d{0,29}$/.test(w)) return leer;
+        if (typeof w !== 'string' || !/^[1-9]\d{0,29}$/.test(w)) return verwirf('unlesbarer Eintrag');
         aus.push({ to, work: BigInt(w) });
-        if (aus.length > EINTRAEGE_MAX) return leer;
       }
     }
     const fee = typeof d.feeBps === 'number' && Number.isInteger(d.feeBps) && d.feeBps >= 0 && d.feeBps <= MAX_FEE_BPS
       ? d.feeBps : null;
-    return { eintraege: aus, feeBps: fee };
-  } catch { return leer; }
+    return aus.length > EINTRAEGE_MAX
+      ? { eintraege: neueste(aus), feeBps: fee, hinweis: `nur die jüngsten ${EINTRAEGE_MAX} Einträge übernommen.` }
+      : { eintraege: aus, feeBps: fee };
+  } catch { return verwirf('kein gültiger Inhalt'); }
 }
 
 // ---------------------------------------------------------------- Heimnetz

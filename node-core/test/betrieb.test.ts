@@ -17,7 +17,7 @@ import { encodeAddress } from '../../src/lib/core/address.ts';
 import { keypairFromMnemonic } from '../../src/lib/core/wallet.ts';
 import { NodeCoreApp } from '../src/main.ts';
 import {
-  pruefeBetrieb, VORGABE_BETRIEB, kuerze, leseFenster, schreibeFensterSofort, platzGrenze,
+  pruefeBetrieb, VORGABE_BETRIEB, kuerze, leseFenster, schreibeFenster, schreibeFensterSofort, platzGrenze,
 } from '../src/PoolBetrieb.ts';
 
 const WORTE = 'abandon abandon abandon abandon abandon abandon abandon abandon '
@@ -95,7 +95,7 @@ test('Einstellungen: Feld für Feld geprüft', () => {
   assert.equal(platzGrenze(25), 63);
 });
 
-test('Fenster: sichern, lesen, kürzen -- und nichts Erfundenes annehmen', () => {
+test('Fenster: sichern, lesen, kürzen -- und nichts Erfundenes annehmen', async () => {
   const pfad = join(ordner(), 'pool-fenster.json');
   const a = new Uint8Array(20).fill(1), b = new Uint8Array(20).fill(2);
   const e = [{ to: a, work: 128n }, { to: a, work: 128n }, { to: b, work: 512n }, { to: a, work: 2000n }];
@@ -105,6 +105,7 @@ test('Fenster: sichern, lesen, kürzen -- und nichts Erfundenes annehmen', () =>
   assert.deepEqual(g.eintraege.map(x => [Buffer.from(x.to).toString('hex').slice(0, 2), x.work]),
     [['01', 128n], ['01', 128n], ['02', 512n], ['01', 2000n]], 'Reihenfolge und Arbeit bleiben');
   assert.deepEqual(leseFenster(pfad, 'yskar-main-1').eintraege, [], 'Ein Fenster aus einem anderen Netz gilt nicht');
+  assert.equal(existsSync(pfad), true, 'Es bleibt liegen -- es gehört nur nicht hierher');
 
   // Von hinten so viel, bis genug Arbeit beisammen ist.
   assert.deepEqual(kuerze(e, 2000n).map(x => x.work), [2000n]);
@@ -120,8 +121,30 @@ test('Fenster: sichern, lesen, kürzen -- und nichts Erfundenes annehmen', () =>
     'kein json',
   ]) {
     writeFileSync(pfad, kaputt);
-    assert.deepEqual(leseFenster(pfad, 'yskar-regtest'), { eintraege: [], feeBps: null }, kaputt.slice(0, 60));
+    const r = leseFenster(pfad, 'yskar-regtest');
+    assert.deepEqual([r.eintraege, r.feeBps], [[], null], kaputt.slice(0, 60));
+    // Nicht still: Der Grund steht da, und die Datei liegt beiseite statt ueberschrieben zu werden.
+    assert.match(String(r.hinweis), /nicht übernommen/);
+    assert.equal(existsSync(pfad), false);
+    assert.equal(readFileSync(pfad + '.unlesbar', 'utf8'), kaputt);
   }
+
+  // Mehr Eintraege als die Grenze: die juengsten bleiben, nichts geht still verloren.
+  const viele = Array.from({ length: 500_010 }, (_, i) => ({ to: i < 10 ? a : b, work: 1n }));
+  schreibeFensterSofort(pfad, 'yskar-regtest', 0, viele);
+  const gekuerzt = leseFenster(pfad, 'yskar-regtest');
+  assert.equal(gekuerzt.eintraege.length, 500_000);
+  assert.ok(gekuerzt.eintraege.every(e => e.to[0] === 2), 'Die ältesten fallen weg, nicht die jüngsten');
+
+  // Zwei Sicherungen zugleich: Die ältere überschreibt die neuere nicht.
+  let gilt = true;
+  const langsam = schreibeFenster(pfad, 'yskar-regtest', 100, [{ to: a, work: 1n }], () => gilt);
+  schreibeFensterSofort(pfad, 'yskar-regtest', 250, [{ to: b, work: 7n }]);
+  gilt = false;
+  assert.equal(await langsam, false);
+  const danach = leseFenster(pfad, 'yskar-regtest');
+  assert.equal(danach.feeBps, 250);
+  assert.deepEqual(danach.eintraege.map(e => e.work), [7n]);
 });
 
 test('Pool betreiben: einschalten, Miner aufnehmen, Gebühr, abschalten -- und das Fenster bleibt', async () => {

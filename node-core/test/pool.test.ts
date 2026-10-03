@@ -333,7 +333,7 @@ const guterJob = {
   jobId: 'a'.repeat(32), height: 5, version: 1,
   prevHash: '11'.repeat(32), merkleRoot: '22'.repeat(32), stateRoot: '33'.repeat(32),
   timestamp: '1700000000', difficulty: 7, difficultyWert: '7', txCount: 1, extranonce: '9',
-  target: '00' + 'ff'.repeat(31), shareDifficulty: '128',
+  target: '0000' + 'ff'.repeat(30), shareDifficulty: '128',
 };
 
 test('PoolQuelle: Der Header entsteht aus den Feldern, Byte für Byte', async () => {
@@ -365,6 +365,9 @@ test('PoolQuelle: Unlesbare Arbeit kommt nicht bis zum Miner', async () => {
   const kaputt: Record<string, unknown>[] = [
     { ...guterJob, target: 'ff'.repeat(4000) },                 // viel zu lang
     { ...guterJob, target: 'zz'.repeat(32) },                   // kein Hex
+    { ...guterJob, target: 'ff'.repeat(32) },                   // jeder Hash waere ein Treffer
+    { ...guterJob, target: '00' + 'ff'.repeat(31) },            // leichter als Difficulty 1
+    { ...guterJob, target: '00'.repeat(32) },                   // nichts waere je ein Treffer
     { ...guterJob, prevHash: '11'.repeat(31) },                 // zu kurz
     { ...guterJob, height: -1 },
     { ...guterJob, height: 2 ** 40 },
