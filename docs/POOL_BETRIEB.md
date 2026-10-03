@@ -31,6 +31,7 @@ Zertifikat davor (auf demselben PC oder im selben Netz).
 
 ```bash
 node dist/yskar-node.cjs mine --data ./knoten \
+  --seed yskar-main.dynv6.net:8646 --no-upstream \
   --pool pool.yskar.net \
   --pool-fee 100 \
   --pool-payout ysr1…
@@ -38,6 +39,8 @@ node dist/yskar-node.cjs mine --data ./knoten \
 
 | | |
 |---|---|
+| `--seed <host:port>` | ein bekannter Knoten -- über ihn lädt der Pool die Kette und gibt seine Blöcke ins Netz |
+| `--no-upstream` | Blöcke gehen nur an andere Knoten, nicht an den Spiegel unter yskar.vercel.app (den beschreibt allein der Hauptknoten) |
 | `--pool <name>` | Name, der in jeden Pool-Block kommt |
 | `--pool-fee <bp>` | Basispunkte: `100` = 1,00 %, höchstens `500` |
 | `--pool-payout <a>` | Adresse für die Gebühr — **Pflicht ab Gebühr > 0** |

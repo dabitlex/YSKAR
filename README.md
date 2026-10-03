@@ -85,7 +85,8 @@ Full Node:
 
 ```bash
 cd node && npm install && npm run build
-node dist/yskar-node.cjs mine --data ./knoten
+node dist/yskar-node.cjs mine --data ./knoten \
+  --seed yskar-main.dynv6.net:8646 --no-upstream
 ```
 
 Miner gegen den eigenen Knoten:

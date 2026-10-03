@@ -196,7 +196,7 @@
   "an.node.s1": "1. Build",
   "an.node.win": "On Windows, use npm.cmd instead of npm.",
   "an.node.s2": "2. Start and connect to the network",
-  "an.node.s2Text": "The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional.",
+  "an.node.s2Text": "The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.",
   "an.node.s3": "3. Mine against your own node",
   "an.node.s4": "4. Run a pool (optional)",
   "an.node.s4Text": "Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.",

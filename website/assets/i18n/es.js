@@ -196,7 +196,7 @@
   "an.node.s1": "1. Compilar",
   "an.node.win": "En Windows, usa npm.cmd en lugar de npm.",
   "an.node.s2": "2. Iniciar y conectar a la red",
-  "an.node.s2Text": "El nodo se conecta a otro nodo (el seed), descarga la cadena y la verifica bloque a bloque. Otros nodos pueden llegar al tuyo por el puerto 8646 si lo abres en tu router; es opcional.",
+  "an.node.s2Text": "El nodo se conecta a otro nodo (el seed), descarga la cadena y la verifica bloque a bloque. Otros nodos pueden llegar al tuyo por el puerto 8646 si lo abres en tu router; es opcional. Con --no-upstream tu nodo solo pasa los bloques a otros nodos, no al servidor web del proyecto.",
   "an.node.s3": "3. Minar con tu propio nodo",
   "an.node.s4": "4. Operar un pool (opcional)",
   "an.node.s4Text": "Cualquier nodo puede ser un pool, sin registro. El propio bloque paga a todos los participantes; nunca retienes el saldo de nadie.",
