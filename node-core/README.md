@@ -1,6 +1,19 @@
-# YSKAR Node Core 0.4.0
+# YSKAR Node Core 0.4.1
 
 Native Windows desktop application for the YSKAR Full Node.
+
+## What changed in 0.4.1
+
+Three fixes in the node's interface (port 8645), found in an independent
+review. They are the only changes compared to 0.4.0:
+
+- A request for the path `//` ended the whole program. A web page open in a
+  browser on the same PC could trigger that. It now costs only that request.
+- Reports about miners from other nodes (`stats`) could fill the memory when
+  a peer sent them with an ever-changing identifier. One report per
+  connection is kept now.
+- In pool operation (command-line node) the same share could be credited
+  repeatedly. A share now counts once per job.
 
 ## What changed in 0.4.0
 
@@ -110,7 +123,7 @@ powershell -ExecutionPolicy Bypass -File .\build-desktop.ps1
 
 The finished installer is created under:
 
-`node-core\release\YSKAR-Node-Core-Setup-0.4.0.exe`
+`node-core\release\YSKAR-Node-Core-Setup-0.4.1.exe`
 
 ## Tests
 

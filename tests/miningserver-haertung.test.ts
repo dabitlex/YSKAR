@@ -86,7 +86,7 @@ test('Anfragen ohne JSON-Objekt: 400, kein interner Fehler', async () => {
     // Die Angabe "platform" wird nicht in beliebiger Laenge aufgehoben.
     const s = await hole(k.url, '/session', { address: A, mode: 'pool', platform: 'x'.repeat(50_000) });
     assert.equal(s.status, 200);
-    assert.ok(k.server.poolSitzungen().every(x => (x.platform ?? '').length <= 64));
+    assert.ok([...((k.server as any).sessions as Map<string, { platform: string | null }>).values()].every(x => (x.platform ?? '').length <= 64));
   } finally { await k.zu(); }
 });
 
