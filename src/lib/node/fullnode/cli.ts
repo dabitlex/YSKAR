@@ -69,6 +69,8 @@ interface Optionen {
   poolFee: number;
   /** Wohin die Gebuehr geht. Pflicht, sobald poolFee > 0. */
   poolAuszahlung: string;
+  /** Hoechstzahl der Adressen im Pool. null = Grenze der Kette (64 bzw. 63). */
+  poolMax: number | null;
   /** Wohin gefundene Bloecke gehen. Leer heisst: nirgends. */
   upstream?: string;
 }
@@ -80,7 +82,7 @@ function argumente(argv: string[]): Optionen {
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false,
-    poolName: '', poolFee: 0, poolAuszahlung: '',
+    poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -102,6 +104,7 @@ function argumente(argv: string[]): Optionen {
       case '--pool': o.poolName = nimm(); break;
       case '--pool-fee': o.poolFee = Number(nimm()); break;
       case '--pool-payout': o.poolAuszahlung = nimm(); break;
+      case '--pool-max': o.poolMax = Number(nimm()); break;
       case '--help': case '-h': o.help = true; break;
     }
   }
@@ -145,6 +148,8 @@ Spiegel nachziehen
       --pool <name>     Pool betreiben, Name steht im Block
       --pool-fee <bp>   Gebühr in Basispunkten (100 = 1,00 %, höchstens 500)
       --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
+      --pool-max <n>    höchstens so viele Adressen aufnehmen (Vorgabe: 64,
+                        mit Gebühr 63 -- mehr zahlt ein Block nicht aus)
 
 Pool betreiben
   yskar-node mine --data ./knoten --pool pool.yskar.net --pool-fee 100 \
@@ -152,6 +157,9 @@ Pool betreiben
 
   Miner melden sich dann mit mode=pool an. Der Block selbst zahlt alle
   Beteiligten aus — der Betreiber hält zu keinem Zeitpunkt fremdes Guthaben.
+
+  Ein voller Pool lehnt neue Adressen ab; wer schon dabei ist, darf weitere
+  Geräte anmelden. Stand für alle lesbar unter /api/v2/pool.
 
 Mit anderen Knoten verbinden
   yskar-node mine --data ./knoten --seed 203.0.113.5:8646
@@ -624,6 +632,9 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     try {
       server.poolKoordinator = new PoolCoordinator({
         name: opt.poolName, feeBps: opt.poolFee, payoutAddress: auszahlung,
+        // Unsinn ("--pool-max abc") landet als NaN hier und laesst den Start
+        // scheitern -- besser als stillschweigend ohne Grenze zu laufen.
+        ...(opt.poolMax !== null ? { maxMiner: opt.poolMax } : {}),
       });
       server.blockName = nameToExtra(opt.poolName);
     } catch (e) {
@@ -643,7 +654,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   console.log(`  Blöcke   ${nachOben ? '→ ' + nachOben : 'bleiben lokal'}`);
   console.log(`  Sync     ${nachOben ? 'alle 30 s von ' + opt.api : 'aus'}`);
   console.log(`  Pool     ${opt.poolName
-    ? `${opt.poolName} · Gebühr ${(opt.poolFee / 100).toFixed(2)} %`
+    ? `${opt.poolName} · Gebühr ${(opt.poolFee / 100).toFixed(2)} % · ${
+        server.poolKoordinator?.plaetze() ?? '?'} Plätze`
     : 'aus (nur Solo-Mining)'}`);
   console.log(`  Knoten   ${netz
     ? (opt.p2pPort > 0 ? `lauscht auf ${opt.p2pPort}` : 'nur ausgehend') +

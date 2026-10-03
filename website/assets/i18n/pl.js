@@ -149,7 +149,7 @@
   "an.apk.s4": "Otwórz aplikację, utwórz portfel albo przywróć istniejący za pomocą 12 słów.",
   "an.apk.start": "Uruchamianie miningu",
   "an.apk.m1": "Otwórz zakładkę Mining i przewiń do sekcji „Sterowanie”.",
-  "an.apk.m2": "Wybierz tryb: Solo albo Pool. Dla poola wpisz <code class=\"ganz\">yskar-main.dynv6.net</code> jako adres poola.",
+  "an.apk.m2": "Wybierz tryb: Solo albo Pool. W trybie Pool aplikacja proponuje otwarty pool; po stuknięciu „Zmień” zobaczysz wszystkie poole z liczbą minerów, mocą obliczeniową, znalezionymi blokami i opłatą. Pełnego poola nie da się wybrać.",
   "an.apk.m3": "Ustaw „Workery” i „Obciążenie”. Workery to rdzenie procesora, które liczą; obciążenie określa, jak mocno pracują (od 25 do 100 %).",
   "an.apk.m4": "Stuknij „Uruchom mining”. Jeśli Android zapyta o powiadomienia, zezwól na nie: dzięki temu widzisz, że mining działa, i możesz go stamtąd zatrzymać.",
   "an.apk.tipp": "Nasza rada: wszystkie workery, obciążenie 25 %, w poolu. To oszczędza baterię i mniej nagrzewa telefon, a w poolu mniejsze kwoty przychodzą regularniej. „Skalibruj urządzenie” znajdzie najlepszą liczbę workerów dla Twojego telefonu.",

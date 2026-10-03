@@ -149,7 +149,7 @@
   "an.apk.s4": "Abre la app y crea una wallet o restaura la que ya tienes con tus 12 palabras.",
   "an.apk.start": "Empezar a minar",
   "an.apk.m1": "Abre la pestaña «Minería» y baja hasta «Control».",
-  "an.apk.m2": "Elige el modo: Solo o Pool. Para el pool, escribe <code class=\"ganz\">yskar-main.dynv6.net</code> como dirección del pool.",
+  "an.apk.m2": "Elige el modo: Solo o Pool. En el modo Pool, la app propone un pool abierto; con «Cambiar» ves todos los pools con sus mineros, potencia, bloques encontrados y comisión. Un pool lleno no se puede elegir.",
   "an.apk.m3": "Ajusta «Workers» y «Carga de cálculo». Los workers son los núcleos del procesador que calculan; la carga de cálculo indica cuánto se les exige (del 25 al 100 %).",
   "an.apk.m4": "Toca «Iniciar minería». Si Android pregunta por las notificaciones, permítelas: así ves que se está minando y puedes detenerlo desde ahí.",
   "an.apk.tipp": "Nuestra recomendación: todos los workers, carga de cálculo al 25 %, en el pool. Así cuidas la batería y la temperatura, y en el pool llegan importes más pequeños con más regularidad. «Calibrar dispositivo» encuentra el mejor número de workers para tu teléfono.",

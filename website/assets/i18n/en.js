@@ -149,7 +149,7 @@
   "an.apk.s4": "Open the app, create a wallet or restore your existing one with your 12 words.",
   "an.apk.start": "Starting mining",
   "an.apk.m1": "Open the Mining tab and scroll to “Controls”.",
-  "an.apk.m2": "Choose the mode: Solo or Pool. For the pool, enter <code class=\"ganz\">yskar-main.dynv6.net</code> as the pool address.",
+  "an.apk.m2": "Choose the mode: Solo or Pool. In pool mode the app suggests an open pool; tap “Change” to see all pools with their miners, hash power, blocks found and fee. A full pool cannot be selected.",
   "an.apk.m3": "Set “Workers” and “Duty cycle”. Workers are the processor cores that compute; the duty cycle sets how hard they work (25 to 100 %).",
   "an.apk.m4": "Tap “Start mining”. If Android asks about notifications, allow them: that is how you see that mining is running, and you can stop it from there.",
   "an.apk.tipp": "Our recommendation: all workers, duty cycle 25 %, in the pool. That is easy on battery and temperature, and in the pool smaller amounts arrive more regularly. “Calibrate device” finds the best number of workers for your phone.",

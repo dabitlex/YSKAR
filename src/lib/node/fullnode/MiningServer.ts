@@ -44,6 +44,40 @@ const SHARE_ZIEL_SEKUNDEN = 30;
 const SHARE_START = 128n;
 /** Eine Session gilt als tot, wenn so lange nichts kam. */
 const SESSION_TIMEOUT_MS = 300_000;
+/**
+ * So lange bleibt der Platz im Pool einer Adresse vorgemerkt, deren letzte
+ * Sitzung ABGELAUFEN ist (nicht: abgemeldet wurde).
+ *
+ * Ein Telefon, das die App einfriert, meldet sich nicht ab -- es verstummt,
+ * und nach fuenf Minuten ist die Sitzung weg. Kommt die App zurueck,
+ * eroeffnet der Miner still eine neue. Waere der Platz dann schon vergeben,
+ * staende er vor einem vollen Pool, obwohl er nie gegangen ist.
+ *
+ * Wer sich ordentlich abmeldet, gibt den Platz sofort frei. Vorgemerkt wird
+ * auch nur, wer gearbeitet hat: Eine Sitzung ohne einen einzigen angenommenen
+ * Share hinterlaesst nichts.
+ */
+const PLATZ_VORGEMERKT_MS = 900_000;
+/**
+ * Ein Platz gehoert, wer arbeitet: So lange haelt eine offene Pool-Sitzung
+ * ihren Platz, ohne dass ein Share von ihr angenommen wurde -- gerechnet ab
+ * der Anmeldung bzw. ab dem letzten angenommenen Share.
+ *
+ * Ohne diese Frist liesse sich ein Pool mit einer Handvoll Anmeldungen
+ * zustellen, die nur alle paar Minuten einen Job abholen und nie rechnen.
+ *
+ * Wer arbeitet, liefert rund alle 30 Sekunden einen Share (SHARE_ZIEL_SEKUNDEN);
+ * zehn Minuten ohne einen einzigen sind kein Pech mehr. Die Sitzung wird
+ * dabei NICHT beendet -- sie zaehlt nur nicht mehr als belegter Platz, und
+ * ein anderer kann ihn bekommen. Liefert sie wieder, zaehlt sie wieder.
+ */
+const PLATZ_OHNE_ARBEIT_MS = 600_000;
+/**
+ * So meldet sich der Miner der Android-App (NativMiner.java). Er behandelt
+ * eine Ablehnung nur dann als endgueltig, wenn sie mit HTTP 200 kommt --
+ * siehe session().
+ */
+const NATIV_MINER = /^YSKAR-Wallet-Nativ\//;
 
 interface Session {
   id: string;
@@ -127,27 +161,81 @@ export class MiningServer {
       ?? { knoten: 1, miner: lokal.adressen.length, hashrate: lokal.hashrate, sessions: lokal.sessions };
   }
 
-  /** Was die App ueber diesen Pool wissen muss -- gemessen, nicht gemeldet. */
-  private poolInfo(): Record<string, unknown> | null {
-    const pk = this.poolKoordinator;
-    if (!pk) return null;
-    const e = pk.einstellungen();
+  /**
+   * Wer im Pool einen Platz belegt.
+   *
+   * Gezaehlt werden ADRESSEN, nicht Geraete: Die Coinbase zahlt jede Adresse
+   * genau einmal aus, egal wie viele Geraete fuer sie rechnen. Wer mit drei
+   * Telefonen auf dieselbe Adresse mint, belegt einen Platz.
+   *
+   * Ein Platz ist belegt durch eine offene Pool-Sitzung, die arbeitet
+   * (PLATZ_OHNE_ARBEIT_MS) -- oder durch eine, die gearbeitet hat und gerade
+   * erst abgelaufen ist (PLATZ_VORGEMERKT_MS).
+   *
+   * `verbunden` sind dagegen ALLE Adressen mit offener Pool-Sitzung. Die
+   * Zahl kann ueber `belegt` liegen: Wer angemeldet ist und nicht rechnet,
+   * ist verbunden, haelt aber keinen Platz.
+   *
+   * BEWUSST NICHT gezaehlt wird, wer nur noch Arbeit im PPLNS-Fenster hat.
+   * Das Fenster kennt keine Uhr: Steht der Pool eine Nacht still, laegen
+   * dort am Morgen noch alle Adressen von gestern -- und ein voller Pool
+   * bliebe voll, obwohl niemand mehr da ist.
+   */
+  private poolBelegung(): { verbunden: Set<string>; belegt: Set<string>; hashrate: number } {
+    this.aufraeumen();
+    const verbunden = new Set<string>();
+    const belegt = new Set<string>();
+    const frist = Date.now() - PLATZ_OHNE_ARBEIT_MS;
     let hashrate = 0;
-    const adressen = new Set<string>();
     for (const x of this.sessions.values()) {
       if (x.modus !== 'pool') continue;
-      adressen.add(x.addressHex);
+      verbunden.add(x.addressHex);
+      if ((x.letzterShare ?? x.gestartet) > frist) belegt.add(x.addressHex);
       const r = this.sessionHashrate(x);
       if (r) hashrate += r;
     }
+    for (const v of this.vorgemerkt.values()) belegt.add(v.addressHex);
+    return { verbunden, belegt, hashrate };
+  }
+
+  /**
+   * Was die App ueber diesen Pool wissen muss -- gemessen, nicht gemeldet.
+   *
+   * Mit `addressHex` sagt die Antwort zusaetzlich, ob diese Adresse schon
+   * einen Platz hat (`dabei`). Dann darf sie auch in einen vollen Pool:
+   * Ein zweites Geraet braucht keinen zweiten Platz.
+   */
+  private poolInfo(addressHex?: string): Record<string, unknown> | null {
+    const pk = this.poolKoordinator;
+    if (!pk) return null;
+    const e = pk.einstellungen();
+    const { verbunden, belegt, hashrate } = this.poolBelegung();
+    const plaetze = pk.plaetze();
     return {
       name: e.name, feeBps: e.feeBps,
-      miner: adressen.size, hashrate,
+      feeBpsNext: e.feeBpsAbNaechstem,
+      // `miner` hiess schon immer "Adressen mit offener Pool-Sitzung" und
+      // bleibt das -- aeltere Fassungen der App zeigen genau diese Zahl.
+      miner: verbunden.size, hashrate,
+      plaetze,
+      belegt: belegt.size,
+      frei: Math.max(0, plaetze - belegt.size),
+      voll: belegt.size >= plaetze,
+      ...(addressHex === undefined ? {} : { dabei: belegt.has(addressHex) }),
       eintraege: pk.eintraege(),
       arbeitGesamt: pk.arbeitGesamt().toString(),
     };
   }
   private sessions = new Map<string, Session>();
+  /**
+   * Abgelaufene Pool-Sitzungen, deren Platz noch vorgemerkt ist.
+   *
+   * Je SITZUNG, nicht je Adresse: Friert Geraet 2 ein und meldet sich
+   * Geraet 1 derselben Adresse ordentlich ab, darf das die Vormerkung von
+   * Geraet 2 nicht mitnehmen -- und umgekehrt soll ein "Stopp" nach dem
+   * Ablauf der eigenen Sitzung genau deren Vormerkung loeschen.
+   */
+  private vorgemerkt = new Map<string, { addressHex: string; bis: number }>();
   private naechsteExtranonce = 1n;
   private server = createServer((req, res) => this.behandle(req, res));
 
@@ -240,12 +328,42 @@ export class MiningServer {
 
     try {
       if (req.method === 'POST' && pfad === '/session') {
-        return this.json(res, await this.session(req));
+        const s = await this.session(req);
+        return this.json(res, s.body, s.status);
       }
       if (req.method === 'POST' && pfad === '/session/stop') {
         const b = await this.body(req);
+        // Abgemeldet heisst: Der Platz im Pool ist frei -- sofort, sofern
+        // nicht ein anderes Geraet derselben Adresse weiterrechnet. Das gilt
+        // auch, wenn die Sitzung inzwischen abgelaufen und nur noch
+        // vorgemerkt war (App kam aus dem Hintergrund zurueck: "Stopp").
         this.sessions.delete(String(b.sessionId));
+        this.vorgemerkt.delete(String(b.sessionId));
         return this.json(res, { stopped: true });
+      }
+      /*
+        Der Pool dieses Knotens, fuer jeden lesbar.
+
+        Bisher erfuhr man Gebuehr und Minerzahl erst NACH dem Anmelden --
+        also zu spaet, um sich zwischen zwei Pools zu entscheiden. Mit
+        ?address= sagt die Antwort auch, ob diese Adresse schon dabei ist.
+
+        Ein Knoten ohne Pool antwortet mit 404. Aeltere Knoten kennen die
+        Route gar nicht und antworten mit 404 "not_found" -- daran erkennt
+        die App, dass sie hier keine Platzzahl bekommt.
+      */
+      if (req.method === 'GET' && pfad === '/pool') {
+        let hex: string | undefined;
+        const adr = url.searchParams.get('address');
+        if (adr) {
+          try { hex = toHex(decodeAddress(adr)); }
+          catch { return this.json(res, { error: 'bad_address' }, 400); }
+        }
+        const info = this.poolInfo(hex);
+        return info
+          ? this.json(res, info)
+          : this.json(res, { error: 'pool_unavailable',
+                             detail: 'Dieser Knoten betreibt keinen Pool.' }, 404);
       }
       if (req.method === 'GET' && pfad === '/job') {
         return this.json(res, this.job(url.searchParams.get('session')));
@@ -329,13 +447,15 @@ export class MiningServer {
 
   // ----------------------------------------------------------------- Session
 
-  private async session(req: IncomingMessage): Promise<Record<string, unknown>> {
+  private async session(req: IncomingMessage):
+      Promise<{ status: number; body: Record<string, unknown> }> {
+    const ok = (body: Record<string, unknown>) => ({ status: 200, body });
     const b = await this.body(req);
-    if (typeof b.address !== 'string') return { error: 'missing_address' };
+    if (typeof b.address !== 'string') return ok({ error: 'missing_address' });
 
     let roh: Uint8Array;
     try { roh = decodeAddress(b.address); }
-    catch { return { error: 'bad_address' }; }
+    catch { return ok({ error: 'bad_address' }); }
 
     /*
       Solo oder Pool -- die Sitzung legt das beim Anmelden fest und behaelt
@@ -348,15 +468,56 @@ export class MiningServer {
     */
     const modus: MiningModus = b.mode === 'pool' ? 'pool' : 'solo';
     if (modus === 'pool' && !this.poolKoordinator) {
-      return { error: 'pool_unavailable',
-               detail: 'Dieser Knoten betreibt keinen Pool.' };
+      return ok({ error: 'pool_unavailable',
+                  detail: 'Dieser Knoten betreibt keinen Pool.' });
     }
 
     this.aufraeumen();
+    const addressHex = toHex(roh);
+
+    /*
+      Ein voller Pool nimmt keine NEUE Adresse mehr an.
+
+      Die Kette zahlt je Block hoechstens 64 Adressen aus (63, wenn der
+      Betreiber eine Gebuehr nimmt). Wer als 65. dazukaeme, minte mit und
+      fiele bei der Abrechnung heraus, solange er zu den Kleinsten gehoert
+      -- also genau der Neue. Lieber hier ehrlich ablehnen.
+
+      Wer schon einen Platz hat, darf weitere Geraete anmelden: Sie rechnen
+      fuer dieselbe Adresse und brauchen keinen zweiten Platz.
+
+      HTTP 409, nicht 200: Die Web-App behandelt jede Antwort mit 200 als
+      gelungene Anmeldung und meldete sonst "Dieser Knoten betreibt keinen
+      Pool" -- das Falsche; der Kommandozeilen-Miner minte mit einer
+      Sitzung weiter, die es nicht gibt. Bei 409 zeigen beide den Text aus
+      `detail`. Das Kuerzel "pool_full" steht absichtlich auch IM Text:
+      Daran erkennt die Oberflaeche den Fall und zeigt ihn in der Sprache
+      des Nutzers.
+
+      AUSNAHME: der Miner der Android-App in seiner heutigen Fassung
+      (NativMiner.java, meldet sich als "YSKAR-Wallet-Nativ/1"). Fuer ihn ist
+      alles ab 400 ein Netzfehler -- er versuchte es endlos weiter und liesse
+      das Telefon dabei rechnen, ohne dass etwas gutgeschrieben wird. Eine
+      Ablehnung nimmt er nur aus einer 200-Antwort mit `error` an und haelt
+      dann sauber an. Er bekommt deshalb dieselbe Auskunft mit 200.
+    */
+    if (modus === 'pool' && this.poolKoordinator) {
+      const { belegt } = this.poolBelegung();
+      const plaetze = this.poolKoordinator.plaetze();
+      if (!belegt.has(addressHex) && belegt.size >= plaetze) {
+        const nativ = NATIV_MINER.test(String(req.headers['user-agent'] ?? ''));
+        return { status: nativ ? 200 : 409, body: {
+          error: 'pool_full',
+          detail: `Pool voll: alle ${plaetze} Plätze sind belegt (pool_full).`,
+          plaetze, belegt: belegt.size,
+        } };
+      }
+    }
+
     const s: Session = {
       id: randomUUID(),
       address: roh,
-      addressHex: toHex(roh),
+      addressHex,
       // Eindeutig je Session: Sie trennt die Nonce-Raeume. Zwei Miner
       // koennen denselben Treffer dadurch gar nicht finden.
       extranonce: this.naechsteExtranonce++,
@@ -374,15 +535,15 @@ export class MiningServer {
     const gleiche = [...this.sessions.values()]
       .filter(x => x.addressHex === s.addressHex).length;
 
-    return {
+    return ok({
       sessionId: s.id,
       extranonce: s.extranonce.toString(),
       mode: s.modus,
-      pool: s.modus === 'pool' && this.poolKoordinator ? this.poolInfo() : null,
+      pool: s.modus === 'pool' && this.poolKoordinator ? this.poolInfo(s.addressHex) : null,
       shareDifficulty: s.shareDifficulty.toString(),
       address: b.address,
       concurrentSessions: gleiche,
-    };
+    });
   }
 
   // --------------------------------------------------------------------- Job
@@ -710,9 +871,23 @@ export class MiningServer {
   }
 
   private aufraeumen(): void {
-    const grenze = Date.now() - SESSION_TIMEOUT_MS;
+    const jetzt = Date.now();
+    const grenze = jetzt - SESSION_TIMEOUT_MS;
     for (const [id, s] of this.sessions) {
-      if (s.zuletzt < grenze) this.sessions.delete(id);
+      if (s.zuletzt >= grenze) continue;
+      this.sessions.delete(id);
+      // Abgelaufen, nicht abgemeldet: Der Platz im Pool bleibt eine Weile
+      // vorgemerkt (siehe PLATZ_VORGEMERKT_MS) -- aber nur fuer jemanden,
+      // der auch gearbeitet hat.
+      if (s.modus === 'pool' && s.angenommen > 0) {
+        this.vorgemerkt.set(id, {
+          addressHex: s.addressHex,
+          bis: s.zuletzt + SESSION_TIMEOUT_MS + PLATZ_VORGEMERKT_MS,
+        });
+      }
+    }
+    for (const [id, v] of this.vorgemerkt) {
+      if (v.bis <= jetzt) this.vorgemerkt.delete(id);
     }
   }
 

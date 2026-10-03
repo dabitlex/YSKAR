@@ -3,6 +3,12 @@
 Ein Pool ist **kein Eintrag irgendwo**, sondern ein Full Node, der seine
 Coinbase aufteilt. Keine Registrierung, keine Erlaubnis.
 
+Die Kette kennt kein Pool-Register. Damit die App einen Pool zur Auswahl
+anbietet, steht er in einer Liste im Repository — siehe
+[In der App erscheinen](#in-der-app-erscheinen). Wer nicht darauf steht, ist
+trotzdem erreichbar: über „Eigene Adresse“ in der App und über `--api` im
+Kommandozeilen-Miner.
+
 ## Starten
 
 ```bash
@@ -17,6 +23,7 @@ node dist/yskar-node.cjs mine --data ./knoten \
 | `--pool <name>` | Name, der in jeden Pool-Block kommt |
 | `--pool-fee <bp>` | Basispunkte: `100` = 1,00 %, höchstens `500` |
 | `--pool-payout <a>` | Adresse für die Gebühr — **Pflicht ab Gebühr > 0** |
+| `--pool-max <n>` | höchstens so viele Adressen aufnehmen (Vorgabe: 64, mit Gebühr 63) |
 
 Ohne `--pool` läuft der Knoten wie bisher: reines Solo-Mining.
 
@@ -44,11 +51,133 @@ suchen.
 yskar-miner --address ysr1… --api https://pool.yskar.net --mode pool
 ```
 
-In der Mini App: Modus auf **Pool**, Adresse eintragen, starten.
+In der App: Modus auf **Pool**. Die App schlägt den ersten offenen Pool der
+Liste vor; „Wechseln“ zeigt alle mit Minern und Plätzen, Leistung, gefundenen
+Blöcken und Gebühr. Ein Pool, der nicht in der Liste steht, lässt sich über
+„Eigene Adresse“ eintragen.
 
 Ein Knoten **ohne** Pool lehnt eine Pool-Anmeldung ab (`pool_unavailable`),
 statt sie stillschweigend als Solo zu führen. Sonst minte jemand im Glauben,
 seine Arbeit werde geteilt, und bekäme nichts.
+
+## Plätze
+
+Ein Pool nimmt so viele **Adressen** auf, wie ein Block auszahlen kann:
+
+```
+64   ohne Gebühr
+63   mit Gebühr (ein Empfänger ist der Betreiber)
+```
+
+Mit `--pool-max` kann der Betreiber weniger anbieten, nicht mehr. Eine
+angekündigte Gebühr zählt schon vor dem Block mit, ab dem sie gilt.
+
+Gezählt werden Adressen, nicht Geräte. Wer mit drei Telefonen auf dieselbe
+Adresse mint, belegt einen Platz — die Coinbase zahlt jede Adresse ohnehin
+nur einmal aus.
+
+**Voll heißt gesperrt.** Meldet sich eine neue Adresse an einem vollen Pool
+an, antwortet der Knoten mit HTTP 409:
+
+```json
+{ "error": "pool_full", "detail": "Pool voll: alle 64 Plätze sind belegt (pool_full).",
+  "plaetze": 64, "belegt": 64 }
+```
+
+Wer schon einen Platz hat, darf weitere Geräte anmelden. Solo-Mining am
+selben Knoten bleibt unberührt.
+
+Die übrigen Ablehnungen (`missing_address`, `bad_address`,
+`pool_unavailable`) kommen wie bisher mit HTTP 200 und `error`. Der Miner
+der Android-App (`User-Agent: YSKAR-Wallet-Nativ/…`) bekommt auch
+`pool_full` mit 200: Er hält alles ab 400 für einen Netzfehler und versuchte
+es sonst endlos weiter, statt anzuhalten.
+
+**Wann ein Platz frei wird:**
+
+| | |
+|---|---|
+| Miner stoppt (meldet sich ab) | sofort — sofern kein zweites Gerät derselben Adresse weiterrechnet |
+| Miner verstummt (App eingefroren, Absturz, Netz weg) | Sitzung läuft nach 5 Minuten ab, der Platz bleibt weitere 15 Minuten vorgemerkt |
+| Angemeldet, aber nie einen Share geliefert, dann verstummt | nach 5 Minuten — ohne Vormerkung |
+| Angemeldet, holt weiter Jobs, liefert aber 10 Minuten lang keinen Share | nach diesen 10 Minuten — die Sitzung bleibt, zählt aber nicht mehr als Platz |
+
+**Ein Platz gehört, wer arbeitet.** Wer rechnet, liefert rund alle 30
+Sekunden einen Share. Eine Sitzung, die zehn Minuten lang keinen einzigen
+angenommenen Share hatte, wird nicht beendet — sie hält nur keinen Platz
+mehr, und ein anderer kann ihn bekommen. Liefert sie wieder, zählt sie
+wieder. `miner` (verbunden) kann deshalb über `belegt` liegen.
+
+Die Vormerkung ist für Telefone da: Eine eingefrorene App meldet sich nicht
+ab. Kommt sie nach zehn Minuten zurück, eröffnet der Miner still eine neue
+Sitzung — und stünde sonst vor einem vollen Pool, obwohl er nie gegangen ist.
+Vorgemerkt wird je Sitzung: Meldet sich ein zweites Gerät derselben Adresse
+ab, bleibt die Vormerkung des eingefrorenen stehen; ein „Stopp“ für die
+abgelaufene Sitzung selbst löscht sie. Hat das Gerät nach dem Aufwachen eine
+neue Sitzung eröffnet und stoppt diese, bleibt die alte Vormerkung bis zu
+ihrem Ablauf stehen — der Platz wird dann bis zu 15 Minuten später frei. Der
+Knoten kann nicht wissen, ob die neue Sitzung vom selben Gerät kommt.
+
+**Der Stand ist für jeden lesbar:**
+
+```bash
+curl https://pool.yskar.net/api/v2/pool
+curl "https://pool.yskar.net/api/v2/pool?address=ysr1…"   # zusätzlich: dabei
+```
+
+```json
+{ "name": "pool.yskar.net", "feeBps": 100, "feeBpsNext": null,
+  "miner": 5, "hashrate": 146000000,
+  "plaetze": 63, "belegt": 5, "frei": 58, "voll": false,
+  "eintraege": 412, "arbeitGesamt": "1930112" }
+```
+
+`miner` sind Adressen mit offener Pool-Sitzung. `belegt` sind die, die
+einen Platz halten: arbeitende Sitzungen und Vormerkungen. Ein Knoten ohne
+Pool antwortet mit 404 `pool_unavailable`.
+
+**Was das nicht leistet — ehrlich:**
+
+- **Plätze lassen sich besetzen.** Ohne Arbeit hält eine Anmeldung ihren
+  Platz zehn Minuten; danach kostet er einen angenommenen Share je Adresse
+  alle zehn Minuten. Das ist wenig. Wer es darauf anlegt, kann einen Pool
+  mit vielen Adressen und wenig Rechenleistung füllen — der Knoten kennt
+  keine Personen, nur Adressen. Dagegen hilft derzeit nur eine Begrenzung im
+  vorgeschalteten Webserver. (Vor dieser Grenze gab es nichts zu besetzen —
+  dafür minte der 65. Miner ohne Auszahlung.)
+- Die Grenze gilt für die **Aufnahme**, nicht für das PPLNS-Fenster. Wer
+  gegangen ist, hat noch eine Weile Arbeit im Fenster. Liegen dort deshalb
+  mehr Adressen, als ein Block auszahlt, bekommen die mit der meisten Arbeit
+  ihren Anteil; die Kleinsten gehen in diesem Block leer aus (siehe
+  „Grenzen aus dem Code“). Mit der Aufnahmegrenze betrifft das nur noch
+  Reste von Minern, die schon weg sind, oder jemanden in seinen ersten
+  Minuten.
+
+## In der App erscheinen
+
+Die Liste steht in `src/lib/pool/verzeichnis.ts`:
+
+```ts
+export const POOLS: PoolEintrag[] = [
+  { host: 'yskar-main.dynv6.net', name: 'YSKAR Main', kette: 'yskar-main.dynv6.net' },
+];
+```
+
+`host` ist die Adresse des Knotens, `name` der Anzeigename, `kette` der Name
+aus `--pool` (nur nötig, solange der Knoten ihn nicht selbst meldet). Ein
+neuer Eintrag ist eine Zeile; `tests/pool-verzeichnis.test.ts` prüft sie.
+
+Voraussetzungen für einen Eintrag:
+
+- erreichbar über **HTTPS** mit den CORS-Kopfzeilen aus
+  `docs/UMSTELLUNG.md`, Schritt 4 — die App fragt den Pool direkt
+- ein Knoten mit `/api/v2/pool` (ab diesem Stand). Ältere Knoten erscheinen
+  als „Erreichbar“ ohne Zahlen und ohne Sperre
+
+Die Liste ist keine Prüfung und keine Empfehlung. Miner, Leistung und Gebühr
+meldet der Pool selbst; nur die gefundenen Blöcke zählt der Server aus der
+Kette — über den Namen im Block, also ebenfalls nach Selbstauskunft
+(`/api/v2/pools`, Migration 00025).
 
 ## Solo und Pool nebeneinander
 
@@ -99,9 +228,12 @@ Bitcoin. Vertrauensarm, nicht vertrauensfrei.
 5 %  höchste Gebühr
 ```
 
-Bei mehr als 63 Minern zahlt nicht jeder in jedem Block. Die Abrechnung
-trägt die Arbeit derer, die nicht hineinpassen, in die nächste Runde vor —
-sie geht nicht verloren, sie wartet.
+Liegen mehr Adressen im Fenster, als ein Block auszahlt, bekommen die mit
+der meisten Arbeit ihren Anteil. Die Arbeit der übrigen bleibt im Fenster
+und zählt beim nächsten Block wieder mit — ein eigenes Guthaben führt der
+Knoten für sie aber **nicht**. Wer dauerhaft zu den Kleinsten jenseits der
+Grenze gehörte, ginge also leer aus. Deshalb nimmt der Pool gar nicht erst
+mehr Adressen auf, als er auszahlen kann (siehe [Plätze](#plätze)).
 
 ## Das PPLNS-Fenster
 

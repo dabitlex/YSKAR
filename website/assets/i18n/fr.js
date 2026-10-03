@@ -149,7 +149,7 @@
   "an.apk.s4": "Ouvre l’app, crée un portefeuille ou restaure celui que tu as déjà avec tes 12 mots.",
   "an.apk.start": "Lancer le minage",
   "an.apk.m1": "Ouvre l’onglet Minage et descends jusqu’à « Commandes ».",
-  "an.apk.m2": "Choisis le mode : Solo ou Pool. Pour le pool, saisis <code class=\"ganz\">yskar-main.dynv6.net</code> comme adresse du pool.",
+  "an.apk.m2": "Choisis le mode : Solo ou Pool. En mode Pool, l’app propose un pool ouvert ; avec « Changer », tu vois tous les pools avec leurs mineurs, leur puissance de hash, leurs blocs trouvés et leurs frais. Un pool complet ne peut pas être choisi.",
   "an.apk.m3": "Règle « Workers » et « Charge ». Les workers sont les cœurs du processeur qui calculent ; la charge indique à quel point ils sont sollicités (de 25 à 100 %).",
   "an.apk.m4": "Touche « Lancer le minage ». Si Android demande l’autorisation des notifications, accepte : tu vois ainsi que le minage tourne et tu peux l’arrêter depuis là.",
   "an.apk.tipp": "Notre recommandation : tous les workers, charge à 25 %, en pool. Cela ménage la batterie et la température, et en pool de plus petits montants arrivent plus régulièrement. « Calibrer l’appareil » trouve le meilleur nombre de workers pour ton téléphone.",

@@ -149,7 +149,7 @@
   "an.apk.s4": "Öffne die App, erstelle eine Wallet oder übernimm deine bestehende mit deinen 12 Wörtern.",
   "an.apk.start": "Mining starten",
   "an.apk.m1": "Öffne den Bereich „Mining“ und scroll zu „Steuerung“.",
-  "an.apk.m2": "Wähle den Modus: Solo oder Pool. Für den Pool trägst du als Pool-Adresse <code class=\"ganz\">yskar-main.dynv6.net</code> ein.",
+  "an.apk.m2": "Wähle den Modus: Solo oder Pool. Im Pool-Modus schlägt die App einen offenen Pool vor; über „Wechseln“ siehst du alle Pools mit Minern, Leistung, gefundenen Blöcken und Gebühr. Ein voller Pool lässt sich nicht wählen.",
   "an.apk.m3": "Stell „Worker“ und „Rechenanteil“ ein. Worker sind die Prozessorkerne, die mitrechnen; der Rechenanteil legt fest, wie stark sie ausgelastet werden (25 bis 100 %).",
   "an.apk.m4": "Tippe auf „Mining starten“. Fragt Android nach Benachrichtigungen, erlaube sie: So siehst du, dass gemint wird, und kannst es dort auch stoppen.",
   "an.apk.tipp": "Unsere Empfehlung: alle Worker, Rechenanteil 25 %, im Pool. Das schont Akku und Temperatur, und im Pool kommen kleinere Beträge regelmäßiger. „Gerät kalibrieren“ ermittelt die beste Worker-Zahl für dein Telefon.",

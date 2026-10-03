@@ -234,6 +234,37 @@ Aufbau: Guthabenkarte, Aktionen (Senden, Scannen, Empfangen), Kachel
   Sprache, abgeschnitten statt gerundet (`lib/wallet/betrag.ts`); im
   Prüfschritt jede Stelle bis zur letzten.
 
+## Pool-Auswahl
+
+Im Mining-Reiter wird der Pool aus einer Liste gewählt, nicht mehr als
+Adresse eingetippt.
+
+- **Liste:** `/api/v2/pools` — der Server fragt jeden Pool aus
+  `lib/pool/verzeichnis.ts` nach seinem Stand (`GET <pool>/api/v2/pool`) und
+  zählt die gefundenen Blöcke aus der Kette (Migration 00025). Rund
+  20 Sekunden alt, höchstens. Zustände: offen, voll, „Erreichbar“ (älterer
+  Knoten ohne Platzzahl), kein Pool, nicht erreichbar. Sagt die Liste „voll“
+  oder „nicht erreichbar“, fragt die App den Pool selbst noch einmal — seine
+  Antwort gilt.
+- **Vorschlag:** Ohne gemerkte Wahl steht der erste offene Pool der Liste im
+  Feld. Gemerkt wird, was man wählt oder womit man startet
+  (`localStorage`: `yskar.pool`, `yskar.mining.modus`).
+- **Vor dem Start** fragt die App den Pool direkt, mit der eigenen Adresse
+  (`hooks/usePoolAuswahl.ts`). Voll und nicht dabei: kein Start, Hinweis in
+  der Sprache der App. Antwortet der Pool nicht oder kennt er die Frage
+  nicht, startet es wie bisher — die eigentliche Sperre sitzt im Knoten.
+- **Voll, aber dabei:** Wer schon einen Platz hat (zweites Gerät), kann den
+  Pool weiter wählen. Dafür fragt die App den Pool mit der eigenen Adresse —
+  aber nur den gewählten Pool und, solange die Liste aufgeklappt ist, die
+  vollen. Im Hintergrund bekommt kein anderer Pool die Adresse.
+- **Fällt `/api/v2/pools` aus,** fragt die App die Pools der letzten Liste
+  selbst; der gemerkte Pool bleibt nutzbar.
+- **Eigene Adresse:** für Pools außerhalb der Liste.
+- `useMining.ts` und der Worker sind davon unberührt; das Mining bekommt wie
+  zuvor nur die Adresse des Pool-Knotens.
+
+Betrieb, Plätze und die Liste selbst: `docs/POOL_BETRIEB.md`.
+
 ## Gestaltung, zweite Generation
 
 Bausteine in `src/components/ui/Bausteine.tsx`: `Zahl` (grosse Zahl,
