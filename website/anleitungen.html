@@ -293,7 +293,7 @@ npm run build</code></pre>
 <h3 data-t="an.pool.ort">At home or on a rented server?</h3>
 <ul>
 <li data-th="an.pool.o1"><strong>At home:</strong> no extra cost. But your IP address becomes publicly known, you need a port forwarding, and your connection carries the load.</li>
-<li data-th="an.pool.o2"><strong>Rented server:</strong> your home address stays out of it, and no keys are stored on the server – only the address for the fee. Read the provider’s terms first: many forbid mining or anything related to it. Get the permission in writing.</li>
+<li data-th="an.pool.o2"><strong>Rented server:</strong> your home IP address stays out of it, and no keys are stored on the server – only the address for the fee. Read the provider’s terms first: many forbid mining or anything related to it. Get the permission in writing.</li>
 </ul>
 <h3 data-t="an.pool.regeln">Rules for every pool</h3>
 <ul>
@@ -303,7 +303,7 @@ npm run build</code></pre>
 <li data-th="an.pool.g4"><strong>No foreign money:</strong> the block pays everyone directly. You never hold funds of your miners.</li>
 </ul>
 <h3 data-t="an.pool.beitritt">How miners join</h3>
-<p data-t="an.pool.beitrittText">In the app choose “Pool” and enter your name under “Custom address”; in Node Core under “Your own pool address”. With the PC miner:</p>
+<p data-t="an.pool.beitrittText">In the app choose “Pool” and enter the address of your pool under “Custom address”; in Node Core under “Your own pool address”. With the PC miner:</p>
 <pre><code>node src/cli.mjs --address ysr1… --api https://pool.example.org --mode pool</code></pre>
 <h3 data-t="an.pool.liste">Getting into the pool list</h3>
 <p data-th="an.pool.listeText">The app and Node Core show a maintained list of pools. For an entry your pool must be reachable over HTTPS and answer <code>/api/v2/pool</code>. Ask for it on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. The list is neither a check nor a recommendation: a pool reports its miners, power and fee itself.</p>
