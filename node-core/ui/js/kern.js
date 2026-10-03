@@ -283,3 +283,27 @@ export function kopf(titel, unterzeile, ...rechts) {
     el('div.kopf-links', el('h1', titel), unterzeile ? el('p.sub', unterzeile) : null),
     rechts.length ? el('div.kopf-rechts', rechts) : null);
 }
+
+/** Adresse in Vierergruppen -- so vergleicht man sie Zeichen für Zeichen. */
+export const vierer = a => (a.match(/.{1,4}/g) ?? []).join(' ');
+
+/** Kalendertag "JJJJ-MM-TT" in der Zeitzone dieses PCs. */
+export function tagSchluessel(sekunden) {
+  const d = new Date(Number(sekunden) * 1000), z = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+}
+
+/** "Heute", "Gestern" oder das Datum. */
+export function tagName(schluesselTag) {
+  const jetzt = Date.now() / 1000;
+  if (schluesselTag === tagSchluessel(jetzt)) return t('zeit.heute');
+  if (schluesselTag === tagSchluessel(jetzt - 86400)) return t('zeit.gestern');
+  const [j, m, d] = schluesselTag.split('-').map(Number);
+  return new Date(j, m - 1, d).toLocaleDateString(ort(), { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/** Kurzer Wochentag zu einem Tagesschlüssel. */
+export function wochentag(schluesselTag) {
+  const [j, m, d] = schluesselTag.split('-').map(Number);
+  return new Date(j, m - 1, d).toLocaleDateString(ort(), { weekday: 'short' });
+}

@@ -1,0 +1,110 @@
+/*
+ * Was die Kette ueber eine Adresse sagt -- fuer die Wallet-Ansicht.
+ *
+ * Die Leseschnittstelle des Knotens (ReadApi.account) zeigt 40 Eintraege und
+ * zaehlt jede Pool-Auszahlung einzeln. Wer im Pool mint, bekommt mit fast
+ * jedem Block einen Anteil -- nach wenigen Stunden bestuende der Verlauf nur
+ * noch daraus, und die eigenen Ueberweisungen waeren hinausgeschoben. Hier
+ * werden Mining-Einnahmen deshalb je TAG zusammengefasst und Ueberweisungen
+ * einzeln gefuehrt.
+ *
+ * Es gibt keinen Index nach Adresse; gelesen wird die Kette rueckwaerts bis
+ * zur Tiefe VERLAUF_TIEFE. Das Ergebnis haelt der Aufrufer fest, bis ein
+ * neuer Block kommt.
+ */
+import { deserializeBlock } from '../../src/lib/core/block.ts';
+import { TX_COINBASE, txid } from '../../src/lib/core/tx.ts';
+import { encodeAddress } from '../../src/lib/core/address.ts';
+import { toHex } from '../../src/lib/core/codec.ts';
+import { notizAusHex } from '../../src/lib/wallet/notiz.ts';
+import { VERLAUF_TIEFE } from '../../src/lib/node/fullnode/ReadApi.ts';
+import type { ChainStore } from '../../src/lib/node/fullnode/ChainStore.ts';
+
+/** Mehr einzelne Ueberweisungen zeigt die Ansicht nicht. */
+export const UEBERWEISUNGEN_MAX = 200;
+
+export interface Ueberweisung {
+  txid: string;
+  hoehe: number;
+  zeit: number;            // Sekunden seit 1970
+  art: 'ein' | 'aus';
+  gegen: string;           // Adresse der Gegenseite
+  betrag: string;
+  gebuehr: string;
+  notiz: string;
+}
+
+export interface MiningTag {
+  /** Kalendertag in der Zeitzone dieses PCs, JJJJ-MM-TT. */
+  tag: string;
+  solo: number;
+  pool: number;
+  summe: string;
+  letzteHoehe: number;
+  letzteZeit: number;
+}
+
+export interface KettenVerlauf {
+  ueberweisungen: Ueberweisung[];
+  mining: MiningTag[];
+  /** An diese Adressen ging schon einmal etwas -- fuer die Warnung "neue Adresse". */
+  gesendetAn: string[];
+  durchsucht: number;
+}
+
+/** Kalendertag in der Zeitzone des PCs. */
+export function tagVon(sekunden: number): string {
+  const d = new Date(sekunden * 1000);
+  const zwei = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}`;
+}
+
+export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
+                            tiefe: number = VERLAUF_TIEFE): KettenVerlauf {
+  const ueberweisungen: Ueberweisung[] = [];
+  const tage = new Map<string, { solo: number; pool: number; summe: bigint; letzteHoehe: number; letzteZeit: number }>();
+  const gesendetAn = new Set<string>();
+  const bis = Math.max(0, kopf - tiefe);
+  let durchsucht = 0;
+
+  for (let h = kopf; h >= bis; h--) {
+    const b = store.mainAt(h);
+    if (!b) continue;
+    durchsucht++;
+    const zeit = Number(b.blockTime);
+    for (const t of deserializeBlock(b.body).txs) {
+      if (t.type === TX_COINBASE) {
+        const meiner = t.outputs.find(o => toHex(o.to) === adresseHex);
+        if (!meiner) continue;
+        const tag = tagVon(zeit);
+        let e = tage.get(tag);
+        if (!e) { e = { solo: 0, pool: 0, summe: 0n, letzteHoehe: h, letzteZeit: zeit }; tage.set(tag, e); }
+        if (t.outputs.length === 1) e.solo++; else e.pool++;
+        e.summe += meiner.amount;
+        continue;
+      }
+      const ein = toHex(t.to) === adresseHex;
+      const aus = toHex(t.from) === adresseHex;
+      if (!ein && !aus) continue;
+      if (aus) gesendetAn.add(encodeAddress(t.to));
+      if (ueberweisungen.length >= UEBERWEISUNGEN_MAX) continue;
+      ueberweisungen.push({
+        txid: toHex(txid(t)), hoehe: h, zeit,
+        art: aus ? 'aus' : 'ein',
+        gegen: encodeAddress(aus ? t.to : t.from),
+        betrag: t.amount.toString(), gebuehr: t.fee.toString(),
+        notiz: notizAusHex(toHex(t.memo)),
+      });
+    }
+  }
+
+  return {
+    ueberweisungen,
+    mining: [...tage.entries()].map(([tag, e]) => ({
+      tag, solo: e.solo, pool: e.pool, summe: e.summe.toString(),
+      letzteHoehe: e.letzteHoehe, letzteZeit: e.letzteZeit,
+    })),
+    gesendetAn: [...gesendetAn],
+    durchsucht,
+  };
+}

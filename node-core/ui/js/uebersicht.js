@@ -1,5 +1,5 @@
 /* Übersicht: Stand des Knotens auf einen Blick. */
-import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, kurzHash8, uhrzeit, dauer, vor, finder } from './kern.js';
+import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, kurzHash8, uhrzeit, dauer, vor, finder, zeichen } from './kern.js';
 import { t } from './i18n.js';
 
 export function baue(ctx) {
@@ -25,6 +25,7 @@ export function baue(ctx) {
   const m = { leistung: el('span.gross', '—'), chip: el('span'), geraet: el('span'), ziel: el('span') };
   const bloecke = el('tbody');
   let letzteHoehe = -2;
+  const wal = { karte: el('section.karte', { style: 'flex:1 1 320px', 'aria-label': t('nav.wallet') }), bild: '' };
 
   const wurzel = el('div.stapel',
     kopf(t('ueb.titel'), t('ueb.sub'), zustand, schalt),
@@ -38,16 +39,48 @@ export function baue(ctx) {
         el('div.zeilen',
           zeile(t('ueb.geprueft'), z.geprueft), zeile(t('ueb.wartend'), z.wartend),
           zeile(t('ueb.difficulty'), z.diff), zeile(t('ueb.wurzel'), z.wurzel), zeile(t('ueb.seit'), z.seit))),
+      wal.karte),
+    el('div.spalten.gleich',
       el('section.karte', { style: 'flex:1 1 320px', 'aria-label': t('nav.mining') },
         el('div.karte-kopf', el('h2', t('nav.mining')), m.chip),
         el('div.betrag', m.leistung),
         el('div.zeilen', zeile(t('min.geraet'), m.geraet), zeile(t('min.ziel'), m.ziel)),
-        el('a.knopf', { href: '#/mining', style: 'margin-top:auto' }, t('ueb.zumMining')))),
-    el('section.karte', { 'aria-label': t('ueb.letzte') },
+        el('a.knopf', { href: '#/mining', style: 'margin-top:auto' }, t('ueb.zumMining'))),
+      el('section.karte', { style: 'flex:2 1 480px', 'aria-label': t('ueb.letzte') },
       el('div.karte-kopf', el('h2', t('ueb.letzte')), el('a', { href: '#/blockchain' }, t('ueb.alle'))),
       el('div.tab-huelle', el('table.tab',
         el('thead', el('tr', el('th', t('kette.hoehe')), el('th', t('kette.zeit')), el('th', t('kette.gefunden')), el('th.r', t('kette.ueberweisungen')))),
-        bloecke))));
+        bloecke)))));
+
+  /** Die Wallet-Karte: je nach Zustand etwas anderes. */
+  async function zeigeWallet(s) {
+    const w = s.wallet;
+    const neu = JSON.stringify([w.vorhanden, w.gesperrt, s.height, s.mempool, s.running]);
+    if (neu === wal.bild) return;
+    wal.bild = neu;
+    const kopfzeile = el('div.karte-kopf', el('h2', t('nav.wallet')), el('a', { href: '#/wallet' }, t('ueb.oeffnen')));
+    if (!w.vorhanden) {
+      fuelle(wal.karte, el('div.karte-kopf', el('h2', t('nav.wallet'))), el('p.p', t('ueb.walletFehlt')),
+        el('a.knopf.haupt', { href: '#/wallet', style: 'margin-top:auto' }, t('wal.einrichten')));
+      return;
+    }
+    if (w.gesperrt) {
+      fuelle(wal.karte, kopfzeile, el('div', chip('gelb', [zeichen('schloss', 14), t('wal.gesperrt')])), el('p.p', t('ueb.walletGesperrt')),
+        el('a.knopf', { href: '#/wallet', style: 'margin-top:auto' }, t('wal.entsperren')));
+      return;
+    }
+    try {
+      const d = await hole('/api/wallet/uebersicht');
+      fuelle(wal.karte, kopfzeile,
+        el('div.betrag', el('span.gross', ysr(d.guthaben)), el('small', 'YSR')),
+        el('div.reihe.umbrechen', { style: 'gap:8px' },
+          BigInt(d.heute) > 0n ? chip('gruen', '+' + ysr(d.heute, 2) + ' ' + t('wal.heute')) : null,
+          BigInt(d.unterwegs) > 0n ? chip('gelb', ysr(d.unterwegs, 2) + ' ' + t('wal.unterwegs')) : null),
+        el('div.reihe', { style: 'margin-top:auto' },
+          el('a.knopf.haupt.voll', { href: '#/wallet/senden' }, t('wal.rSenden')),
+          el('a.knopf.voll', { href: '#/wallet/empfangen' }, t('wal.empfangen'))));
+    } catch { wal.bild = ''; }
+  }
 
   async function ladeBloecke() {
     try {
@@ -87,6 +120,8 @@ export function baue(ctx) {
     text(z.diff, s.difficulty ? zahl(BigInt(s.difficulty)) : '—');
     text(z.wurzel, kurzHash8(s.stateRoot));
     text(z.seit, laeuft ? dauer(s.uptimeSeconds) : '—');
+
+    zeigeWallet(s);
 
     const mi = s.mining;
     fuelle(m.chip, mi.running ? chip('blau', t('min.laeuft'), true) : chip('', t('min.aus')));

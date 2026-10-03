@@ -102,7 +102,8 @@ export function baue(ctx) {
 
   /** Eine Adresse, kurz, mit Sprung zur Kontoansicht. */
   function adresse(a) {
-    return el('a.mono', { href: '#/blockchain', title: a, onclick: e => { e.preventDefault(); zeigeKonto(a); } }, kurzAdresse(a));
+    const link = el('a.mono', { href: '#/blockchain', title: a, onclick: e => { e.preventDefault(); zeigeKonto(a); } }, kurzAdresse(a));
+    return a === ctx.stand()?.wallet?.adresse ? el('span', link, el('span.gut', { style: 'font-family:Manrope,sans-serif;font-weight:700' }, ' · ' + t('kette.du'))) : link;
   }
 
   async function zeigeKonto(a) {
