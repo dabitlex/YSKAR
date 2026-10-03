@@ -100,7 +100,7 @@ button{font:inherit;color:inherit}
   font-weight:800;letter-spacing:.06em;white-space:nowrap}
 .marke img{width:38px;height:25px;object-fit:contain}
 .kopf-rechts{display:flex;align-items:center;gap:12px;min-width:0}
-.nav{display:flex;align-items:center;gap:26px;font-size:15px;font-weight:600}
+.nav{display:flex;align-items:center;gap:22px;font-size:15px;font-weight:600}
 .nav a{color:#C9D4E6;font-weight:600;white-space:nowrap}
 .nav a:hover{color:#fff;opacity:1}
 .nav a[aria-current=page]{color:#fff;font-weight:700;position:relative}
@@ -369,11 +369,19 @@ details.empf .tx{border-top:0}
   font-size:12.5px;font-weight:600;color:var(--faint)}
 .fuss span{margin-left:auto}
 
+/* Das Menue der Website hat sieben Eintraege. Damit es in jeder Sprache in
+   eine Zeile passt, rueckt es erst zusammen; darunter entfaellt der Knopf
+   am Ende -- er fuehrt an dieselbe Stelle wie der erste Eintrag. */
+@media(max-width:1299px){
+  .nav{gap:18px;font-size:14px}
+}
+@media(max-width:1240px){
+  .nav a.knopf{display:none}
+}
 @media(max-width:1080px){
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
   .charts{grid-template-columns:1fr 1fr}
   .charts .ch:last-child{grid-column:1/-1}
-  .nav{gap:18px;font-size:14px}
 }
 @media(max-width:1040px){
   #menue,.app-domain #appZurueck{display:inline-flex}
@@ -383,7 +391,7 @@ details.empf .tx{border-top:0}
   .app-domain .nav{display:none}
   .nav a{padding:13px 4px;font-size:16px;border-bottom:1px solid #1C283E}
   .nav a[aria-current=page]::after{display:none}
-  .nav a.knopf{margin-top:14px;text-align:center;border-bottom:0}
+  .nav a.knopf{display:block;margin-top:14px;text-align:center;border-bottom:0}
 }
 @media(max-width:640px){
   .wrap{padding:0 16px}
@@ -1226,6 +1234,7 @@ function navBauen(){
     n.innerHTML=
       `<a href="${SITE}/#mitmachen">${T.navMitmachen}</a>`+
       `<a href="${SITE}/#wallet">${T.navWallet}</a>`+
+      `<a href="${SITE}/#nodecore">Node Core</a>`+
       `<a href="${SITE}/anleitungen">${T.navAnleitungen}</a>`+
       `<a href="${SITE}/whitepaper">${T.navWhitepaper}</a>`+
       `<a href="${SITE}/explorer" aria-current="page">${T.navExplorer}</a>`+
