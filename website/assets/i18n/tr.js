@@ -149,7 +149,7 @@
   "an.apk.s4": "Uygulamayı aç, bir cüzdan oluştur ya da mevcut cüzdanını 12 kelimenle geri yükle.",
   "an.apk.start": "Madenciliği başlatma",
   "an.apk.m1": "Madencilik sekmesini aç ve “Kontrol” bölümüne in.",
-  "an.apk.m2": "Modu seç: Solo veya Havuz. Havuz için havuz adresi olarak <code class=\"ganz\">yskar-main.dynv6.net</code> yaz.",
+  "an.apk.m2": "Modu seç: Solo veya Havuz. Havuz modunda uygulama açık bir havuz önerir; “Değiştir”e dokununca tüm havuzları madenci sayısı, hash gücü, bulunan bloklar ve ücretle birlikte görürsün. Dolu bir havuz seçilemez.",
   "an.apk.m3": "“Worker” ve “Çalışma oranı”nı ayarla. Worker’lar hesaplama yapan işlemci çekirdekleridir; çalışma oranı bunların ne kadar yükleneceğini belirler (%25 ile %100 arası).",
   "an.apk.m4": "“Madenciliği başlat”a dokun. Android bildirim izni sorarsa izin ver: Böylece madenciliğin çalıştığını görürsün ve oradan durdurabilirsin.",
   "an.apk.tipp": "Önerimiz: tüm worker’lar, çalışma oranı %25, havuzda. Bu, pili korur ve telefonu daha az ısıtır; havuzda ise daha küçük tutarlar daha düzenli gelir. “Cihazı kalibre et” telefonun için en iyi worker sayısını bulur.",

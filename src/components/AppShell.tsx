@@ -5,6 +5,8 @@ import { hashrateTeile } from '@/lib/format/hashrate';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { useMining } from '@/hooks/useMining';
 import { useMiningApp } from '@/hooks/useMiningApp';
+import { usePoolAuswahl, type PoolAuswahl } from '@/hooks/usePoolAuswahl';
+import { PoolFeld, PoolBlatt } from '@/components/mining/PoolWahl';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useAutoSperre } from '@/hooks/useAutoSperre';
 import { BottomNav, TopBar, type Tab } from '@/components/ui/Chrome';
@@ -62,14 +64,17 @@ export default function AppShell({ platform }: { platform: string }) {
     viele Kerne das Geraet hat. Ein Telefon mit acht Kernen nutzte ein
     Viertel davon.
   */
-  const [modus, setModus] = useState<'solo' | 'pool'>('solo');
   /*
-    Adresse des Pool-Knotens.
+    Solo oder Pool, und welcher Pool.
 
-    Bleibt in der App, nicht in der Kette: Ein Pool ist kein Eintrag
-    irgendwo, sondern ein Knoten, den man erreichen kann.
+    Der Pool wird aus einer Liste gewaehlt (usePoolAuswahl); Modus und Wahl
+    bleiben im Geraet gemerkt. An das Mining geht davon wie bisher nur die
+    Adresse des Pool-Knotens.
   */
-  const [poolAdresse, setPoolAdresse] = useState('');
+  const pool = usePoolAuswahl({
+    address: wallet.address, sichtbar: tab === 'mining' && ansicht === null,
+    mining: m.mining, fehler: m.fehler, stop: m.stop,
+  });
   const kerne = typeof navigator !== 'undefined'
     ? (navigator.hardwareConcurrency || null) : null;
   const workerStufen = useMemo(() => {
@@ -135,8 +140,7 @@ export default function AppShell({ platform }: { platform: string }) {
                    onEinstellungen={() => setAnsicht('einstellungen')} />
         ) : tab === 'mining' ? (
           <MiningTab m={m} dec={dec} sym={sym} wach={wach} t={t} zahl={zahl} locale={locale}
-                     modus={modus} setModus={setModus}
-                     poolAdresse={poolAdresse} setPoolAdresse={setPoolAdresse}
+                     pool={pool}
                      worker={worker} setWorker={setWorker}
                      kerne={kerne} workerStufen={workerStufen}
                      bench={bench} setAnsicht={setAnsicht} />
@@ -219,16 +223,13 @@ export default function AppShell({ platform }: { platform: string }) {
  * Der Hash darunter ist die Quittung und erscheint erst, wenn der Server
  * einen Share angenommen hat.
  */
-function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAdresse, setPoolAdresse,
+function MiningTab({ m, dec, sym, wach, t, zahl, locale, pool,
                      worker, setWorker,
                      kerne, workerStufen, bench, setAnsicht }: {
   m: ReturnType<typeof useMining>; dec: number; sym: string;
   t: Woerterbuch; zahl: (n: number) => string; locale: string;
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
-  modus: 'solo' | 'pool';
-  setModus: (v: 'solo' | 'pool') => void;
-  poolAdresse: string;
-  setPoolAdresse: (v: string) => void;
+  pool: PoolAuswahl;
   worker: number;
   setWorker: (v: number) => void;
   kerne: number | null;
@@ -244,6 +245,26 @@ function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAd
   const anteil = blockDiff > 0 ? Math.min(1, bester / blockDiff) : 0;
   const schnitt = m.hashVerlauf.length ? m.hashVerlauf.reduce((a, b) => a + b, 0) / m.hashVerlauf.length : 0;
   const aktiv = [...m.shares].slice(-4).reverse();
+  const { modus, setModus } = pool;
+  // Der gewaehlte Pool mit seinem laufenden Stand -- fuer die Anzeige beim Minen.
+  const ps = pool.gewaehlt?.stand ?? null;
+  // Ein voller Pool lehnt mit dem Kuerzel "pool_full" ab (Web: Text des
+  // Knotens, Android: Fehler des Dienstes). Gezeigt wird die eigene Sprache.
+  // Steht der Hinweis schon am Pool-Feld, waere derselbe Satz hier unten
+  // doppelt. Meldet der Pool seit der Ablehnung wieder freie Plaetze, ist er
+  // ueberholt.
+  const vollGezeigt = pool.hinweis === 'voll' || (!!ps && ps.status === 'voll' && !ps.dabei);
+  // Im Solo-Modus hat eine Ablehnung des Pools von vorhin nichts verloren.
+  const erledigt = modus === 'solo' || vollGezeigt
+    || (pool.ueberholt === m.fehler && ps?.status === 'offen');
+  const fehler = m.fehler && /pool_full/.test(m.fehler)
+    ? (!m.mining && erledigt ? null : t.pool.vollText)
+    // Hat die App angehalten, weil die Sitzung weg und der Pool voll ist,
+    // erklaert der Hinweis am Pool-Feld, was los ist. "Share abgelehnt:
+    // session_inactive" sagt nach dem Anhalten nichts mehr -- die Sitzung,
+    // um die es ging, gibt es nicht mehr.
+    : m.fehler && !m.mining && modus === 'pool' && /session_inactive/.test(m.fehler) ? null
+    : m.fehler;
   return (
     <>
       <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
@@ -322,19 +343,22 @@ function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAd
           Ihn ohne Kennzeichnung anzubieten waere ein Versprechen, das die
           Beim Minen gesperrt: Ein Wechsel mitten im Lauf liesse Arbeit im
           PPLNS-Fenster in der Schwebe. Wer wechseln will, stoppt zuerst.
+          Gesperrt auch in den Sekunden zwischen "Starten" und dem Start
+          (pool.prueft): Sonst liesse sich der Modus noch umlegen, waehrend das
+          Pool-Mining schon unterwegs ist.
         */}
         <div className="mb-4 flex items-center justify-between">
           <span className="text-[13.5px] font-semibold text-dim">{t.mining.modus}</span>
           <div className="flex overflow-hidden rounded-full bg-raised p-0.5">
             <button onClick={() => setModus('solo')} aria-pressed={modus === 'solo'}
-                    disabled={m.mining}
+                    disabled={m.mining || pool.prueft}
                     className={`min-w-[64px] rounded-full py-1.5 text-[12.5px] font-bold
                                 transition-colors disabled:opacity-60 ${
                       modus === 'solo' ? 'bg-work text-white' : 'text-dim'}`}>
               {t.mining.solo}
             </button>
             <button onClick={() => setModus('pool')} aria-pressed={modus === 'pool'}
-                    disabled={m.mining}
+                    disabled={m.mining || pool.prueft}
                     className={`min-w-[64px] rounded-full py-1.5 text-[12.5px] font-bold
                                 transition-colors disabled:opacity-60 ${
                       modus === 'pool' ? 'bg-work text-white' : 'text-dim'}`}>
@@ -384,59 +408,87 @@ function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAd
         </div>
 
         {/*
-          Pool-Adresse.
+          Der Pool.
 
           Ein Pool ist ein Full Node -- nur er kann Jobs mit der Aufteilung
-          bauen. Deshalb braucht es eine Adresse; der eigene Server betreibt
-          keinen Pool.
+          bauen; der eigene Server betreibt keinen. Gewaehlt wird er aus einer
+          Liste, nicht mehr per abgetippter Adresse. Ein Tipp auf das Feld
+          oeffnet sie.
         */}
         {modus === 'pool' && !m.mining && (
-          <div className="mb-4">
-            <label htmlFor="pooladr" className="text-[13.5px] font-semibold text-dim">{t.mining.poolAdresse}</label>
-            <input id="pooladr" type="text" inputMode="url" spellCheck={false}
-                   value={poolAdresse} onChange={e => setPoolAdresse(e.target.value)}
-                   placeholder="pool.yskar.net"
-                   className="sunk mt-2 w-full px-3 py-3 font-mono text-[13.5px]
-                              text-text outline-none focus:border-work placeholder:text-faint" />
-            <p className="mt-2 text-[12px] font-medium leading-relaxed text-faint">
-              {t.mining.poolHinweis}
-            </p>
-          </div>
+          <PoolFeld pool={pool} onOeffnen={() => pool.setBlatt(true)} />
         )}
 
-        {/* Was der Pool über sich meldet, sobald die Sitzung steht. */}
-        {modus === 'pool' && m.poolInfo && (
-          <div className="mb-4 rounded-[12px] bg-raised px-3.5 py-3">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-proof" />
-              <span className="text-[12.5px] text-proof">{m.poolInfo.name}</span>
-            </div>
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              <div className="flex justify-between text-[12.5px]">
-                <span className="text-dim">{t.mining.poolLeistung}</span>
-                <span className="mono">{rate(m.poolInfo.hashrate).wert} {rate(m.poolInfo.hashrate).einheit}</span>
-              </div>
-              <div className="flex justify-between text-[12.5px]">
-                <span className="text-dim">{t.mining.poolMiner}</span>
-                <span className="mono">{m.poolInfo.miner}</span>
-              </div>
-              <div className="flex justify-between text-[12.5px]">
-                <span className="text-dim">{t.mining.poolGebuehr}</span>
-                <span className="mono">
-                  {zahl(m.poolInfo.feeBps / 100)} %
+        {/*
+          Was der Pool über sich meldet, sobald die Sitzung steht.
+
+          Die Sitzung liefert den Stand vom Moment der Anmeldung. Wo die Liste
+          einen laufenden Stand hat, gilt der -- samt Plaetzen und gefundenen
+          Bloecken, die die Sitzung nicht kennt.
+
+          Nur waehrend des Minings: Steht es, zeigt das Pool-Feld darueber
+          denselben Pool -- und zwar mit dem Stand von jetzt.
+        */}
+        {modus === 'pool' && m.mining && m.poolInfo && (() => {
+          const info = m.poolInfo;
+          const live = ps && ps.belegt !== null && ps.plaetze !== null ? ps : null;
+          const leistung = rate(live?.hashrate ?? info.hashrate);
+          return (
+            <div className="mb-4 rounded-[12px] bg-raised px-3.5 py-3">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-proof" />
+                <span className="text-[12.5px] text-proof">
+                  {pool.gewaehlt && !pool.gewaehlt.eigen ? pool.gewaehlt.name : info.name}
                 </span>
               </div>
+              <div className="mt-2.5 flex flex-col gap-1.5">
+                <div className="flex justify-between text-[12.5px]">
+                  <span className="text-dim">{t.mining.poolLeistung}</span>
+                  <span className="mono">{leistung.wert} {leistung.einheit}</span>
+                </div>
+                <div className="flex justify-between text-[12.5px]">
+                  <span className="text-dim">{t.mining.poolMiner}</span>
+                  <span className="mono">
+                    {live ? `${live.belegt} / ${live.plaetze}` : info.miner}
+                  </span>
+                </div>
+                {ps && ps.bloecke !== null && (
+                  <div className="flex justify-between text-[12.5px]">
+                    <span className="text-dim">{t.pool.gefunden}</span>
+                    <span className="mono">{zahl(ps.bloecke)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-[12.5px]">
+                  <span className="text-dim">{t.mining.poolGebuehr}</span>
+                  <span className="mono">
+                    {zahl((live?.feeBps ?? info.feeBps) / 100)} %
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
-        <Button onClick={() => (m.mining
-                  ? m.stop()
-                  : m.start(worker, modus, poolAdresse))}
-                disabled={modus === 'pool' && !m.mining && poolAdresse.trim() === ''}
+        {/*
+          Starten.
+
+          Im Pool wird unmittelbar vorher am Pool selbst nachgefragt, ob noch
+          Platz ist (pool.pruefen). Antwortet er nicht oder kennt die Frage
+          nicht, startet es wie bisher -- und der Pool entscheidet beim
+          Anmelden.
+        */}
+        <Button onClick={async () => {
+                  if (m.mining) { m.stop(); return; }
+                  if (modus === 'solo') { m.start(worker, 'solo', ''); return; }
+                  const ziel = pool.gewaehlt?.host;
+                  if (ziel && await pool.pruefen()) m.start(worker, 'pool', ziel);
+                }}
+                disabled={!m.mining && modus === 'pool'
+                          && (!pool.gewaehlt || pool.gesperrt || pool.prueft)}
                 variant={m.mining ? 'quiet' : 'primary'}>
           {m.mining ? t.mining.stoppen : t.mining.starten}
         </Button>
+        <PoolBlatt pool={pool} offen={pool.blatt} onSchliessen={() => pool.setBlatt(false)} />
 
         {!m.mining && (
           <button onClick={() => setAnsicht('benchmark')}
@@ -474,7 +526,7 @@ function MiningTab({ m, dec, sym, wach, t, zahl, locale, modus, setModus, poolAd
             </div>
           </div>
         )}
-        {m.fehler && <div className="mt-4"><Notice tone="risk">{m.fehler}</Notice></div>}
+        {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
       </Panel>
     </>
   );

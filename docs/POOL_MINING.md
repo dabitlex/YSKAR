@@ -57,10 +57,14 @@ mit dem größten Bruchteil. Bei gleichem Rest entscheidet die kleinere
 Adresse — ohne diesen zweiten Schlüssel hinge das Ergebnis von der
 Eingabereihenfolge ab.
 
-**Übertrag:** Die Coinbase fasst 64 Empfänger, mit Gebühr bleiben 63. Wer
-nicht hineinpasst, behält seine Arbeit für die nächste Runde. Sie verfallen
-zu lassen wäre Diebstahl an den Kleinsten — also an denen, für die ein Pool
-überhaupt gebaut wird.
+**Grenze:** Die Coinbase fasst 64 Empfänger, mit Gebühr bleiben 63. Liegen
+mehr Adressen im Fenster, bekommen die mit der meisten Arbeit ihren Anteil.
+Die Arbeit der übrigen bleibt im Fenster und zählt beim nächsten Block
+erneut mit; ein eigenes Guthaben führt der Knoten für sie nicht (`uebertrag`
+in `settlement.ts` wird nur zurückgegeben, nicht verbucht). Damit das die
+Kleinsten nicht trifft — also die, für die ein Pool überhaupt gebaut wird —,
+nimmt der Pool nicht mehr Adressen auf, als ein Block auszahlt: siehe
+„Plätze“ in `docs/POOL_BETRIEB.md`.
 
 ## Gebühr
 
@@ -92,6 +96,9 @@ Modi laufen am selben Knoten nebeneinander.
 Seit dem Umbau läuft der Pool im Knoten: Modus je Sitzung, Shares in den
 Pool, Coinbase mit Aufteilung. Betrieb und Grenzen stehen in
 `docs/POOL_BETRIEB.md`.
+
+In der App wird der Pool aus einer Liste gewählt; jeder Pool meldet seinen
+Stand unter `/api/v2/pool`, und ein voller Pool nimmt keine neue Adresse an.
 
 ## Was noch fehlt
 

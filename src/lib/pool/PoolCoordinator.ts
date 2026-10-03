@@ -14,7 +14,8 @@ import { toHex } from '../core/codec.ts';
 import { buildCoinbaseV2 } from '../core/builder.ts';
 import { rewardAt } from '../core/params.ts';
 import type { Coinbase } from '../core/tx.ts';
-import { abrechnen, MAX_FEE_BPS, type Abrechnung } from './settlement.ts';
+import { MAX_COINBASE_OUTPUTS } from '../core/params.ts';
+import { abrechnen, MAX_FEE_BPS, MAX_MINERS_JE_BLOCK, type Abrechnung } from './settlement.ts';
 import { ShareLog, fensterGroesse, PPLNS_FAKTOR, type ShareEintrag } from './pplns.ts';
 
 export type MiningModus = 'solo' | 'pool';
@@ -28,6 +29,12 @@ export interface PoolEinstellungen {
   payoutAddress: Uint8Array | null;
   /** Fenstergroesse als Vielfaches der Netz-Difficulty. */
   pplnsFaktor?: bigint;
+  /**
+   * Wie viele Adressen der Betreiber hoechstens aufnimmt. Ohne Angabe gilt
+   * die Grenze der Kette (siehe plaetze()). Mehr als die Kette auszahlen
+   * kann, laesst sich nicht einstellen -- nur weniger.
+   */
+  maxMiner?: number;
 }
 
 export interface BlockAbrechnung extends Abrechnung {
@@ -44,6 +51,7 @@ export class PoolCoordinator {
   private feeBps: number;
   private payoutAddress: Uint8Array | null;
   private faktor: bigint;
+  private maxMiner: number | null;
 
   /**
    * Gebuehr, die ab dem naechsten Block gilt.
@@ -60,9 +68,29 @@ export class PoolCoordinator {
     this.feeBps = pruefeGebuehr(e.feeBps);
     this.payoutAddress = e.payoutAddress;
     this.faktor = e.pplnsFaktor ?? PPLNS_FAKTOR;
+    this.maxMiner = e.maxMiner === undefined ? null : pruefePlaetze(e.maxMiner);
     if (this.feeBps > 0 && !this.payoutAddress) {
       throw new Error('Gebuehr ohne Auszahlungsadresse des Betreibers');
     }
+  }
+
+  /**
+   * Wie viele Adressen dieser Pool aufnimmt.
+   *
+   * Die Grenze kommt aus der Kette, nicht aus einer Vorliebe: Eine Coinbase
+   * hat hoechstens 64 Empfaenger. Nimmt der Pool eine Gebuehr, braucht der
+   * Betreiber einen davon -- dann sind es 63. Wer darueber hinaus mitmint,
+   * faellt bei der Abrechnung heraus, sobald er zu den Kleinsten gehoert
+   * (settlement.ts, `uebertrag`). Deshalb nimmt der Pool gar nicht erst
+   * mehr Adressen an, als er auszahlen kann.
+   *
+   * Eine angekuendigte Gebuehr zaehlt schon mit: Sonst waere der Pool mit
+   * dem naechsten Block um einen Platz ueberbucht.
+   */
+  plaetze(): number {
+    const mitGebuehr = this.feeBps > 0 || (this.feeBpsNaechster ?? 0) > 0;
+    const grenze = mitGebuehr ? MAX_MINERS_JE_BLOCK : MAX_COINBASE_OUTPUTS;
+    return this.maxMiner === null ? grenze : Math.min(this.maxMiner, grenze);
   }
 
   einstellungen(): { name: string; feeBps: number; faktor: bigint;
@@ -168,6 +196,14 @@ function pruefeGebuehr(feeBps: number): number {
       `(0,00 % bis 5,00 %)`);
   }
   return feeBps;
+}
+
+function pruefePlaetze(n: number): number {
+  if (!Number.isInteger(n) || n < 1 || n > MAX_COINBASE_OUTPUTS) {
+    throw new Error(
+      `Platzzahl ${n} liegt nicht zwischen 1 und ${MAX_COINBASE_OUTPUTS}`);
+  }
+  return n;
 }
 
 /** Gebuehr als Prozenttext, fuer Anzeigen. */
