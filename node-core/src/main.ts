@@ -59,7 +59,7 @@ interface MiningEinstellung {
   blockName: string;
 }
 
-export const VERSION = '0.4.0';
+export const VERSION = '0.4.1';
 const GUI_PORT = 8650;
 /** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
 const STATS_TAKT_MS = 30_000;
@@ -675,7 +675,7 @@ export class NodeCoreApp {
       },
       onMessage: (p, frame) => {
         if (frame.command === 'stats') {
-          try { this.statistik?.aufnehmen(decodeStats(frame.payload)); }
+          try { this.statistik?.aufnehmen(decodeStats(frame.payload), `v:${p.id}`); }
           catch (e) { p.close(`stats_unlesbar:${(e as Error).message}`); }
           return;
         }
