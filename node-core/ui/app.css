@@ -137,6 +137,25 @@ table.tab{width:100%;border-collapse:collapse;font-size:13.5px}
 .box{border:1px solid var(--linie);background:var(--tief);border-radius:12px;padding:12px 14px;min-width:0}
 .box.wahl{display:flex;align-items:center;gap:10px;cursor:pointer}
 .box.gewaehlt{border-color:var(--blau)}
+.box.pool{display:flex;flex-direction:column;gap:10px;cursor:pointer;position:relative}
+.box.pool.aus{cursor:default}
+.box.pool:focus-within{outline:2px solid var(--blau-hell);outline-offset:2px}
+.pool-name{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;min-width:0;overflow-wrap:anywhere}
+.pool-name .punkt{width:8px;height:8px}
+.pool-zahlen{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px}
+.verlauf{display:flex;gap:10px}
+.verlauf-achse{flex:none;display:flex;flex-direction:column;justify-content:space-between;height:140px;padding:3px 0;font-family:var(--mono);font-size:11.5px;color:var(--blass);text-align:right}
+.verlauf-flaeche{position:relative;flex:1 1 auto;min-width:0;height:140px}
+.verlauf-flaeche svg{display:block;width:100%;height:140px}
+.verlauf-flaeche .gitter{stroke:var(--linie);stroke-width:1}
+.verlauf-flaeche .grund{stroke:var(--linie2);stroke-width:1}
+.verlauf-flaeche .linie{fill:none;stroke:#6F95FF;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.verlauf-flaeche .faden{stroke:var(--blass);stroke-width:1}
+.verlauf-punkt{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#6F95FF;box-shadow:0 0 0 2px var(--karte);pointer-events:none}
+.verlauf-wert{position:absolute;top:4px;display:flex;flex-direction:column;gap:2px;padding:7px 10px;border-radius:10px;border:1px solid var(--linie2);background:#1A2947;font-size:12px;white-space:nowrap;pointer-events:none}
+.verlauf-wert b{font-family:var(--mono);font-size:13px;font-weight:500}
+.verlauf-wert span{color:var(--dim)}
+.verlauf-zeiten{display:flex;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--blass)}
 .notiz,.warnung{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:500;line-height:1.5}
 .notiz{border:1px solid #2B4686;background:#12203F;color:var(--label)}
 .notiz svg{color:var(--blau-hell);margin-top:2px}

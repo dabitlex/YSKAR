@@ -30,7 +30,9 @@ import { zahlungsCode } from '../../src/lib/wallet/qr.ts';
 // @ts-ignore -- nur der Kern der Bibliothek, ohne Bildausgabe
 import qrKern from 'qrcode/lib/core/qrcode.js';
 import { WalletDienst, WalletFehler } from './Wallet.ts';
-import { leseVerlauf, tagVon, type KettenVerlauf } from './WalletKette.ts';
+import { leseVerlauf, tagVon, NamenZaehler, type KettenVerlauf } from './WalletKette.ts';
+import { PoolQuelle, PoolEndgueltig, fragePool, poolSchnittstelle } from './PoolQuelle.ts';
+import { POOLS, hostAusEingabe, waehlbar, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
 import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
@@ -52,8 +54,14 @@ import { nameToExtra, finderName, MAX_FINDER_BYTES } from '../../src/lib/chain/f
  * ein Fehler hier kann den Knotenstart nicht verhindern.
  */
 type MiningModus = 'cpu' | 'gpu' | 'beide';
+/** Solo: an eigenen Bloecken rechnen. Pool: mit anderen teilen. */
+type MiningZiel = 'solo' | 'pool';
 interface MiningEinstellung {
   address: string;
+  /** Fehlt das Feld in einer aelteren Datei, gilt "solo". */
+  ziel: MiningZiel;
+  /** Der gewaehlte Pool -- Adresse des Pool-Knotens, wie hostAusEingabe() sie liefert. */
+  poolHost: string;
   mode: MiningModus;
   cpuWorkers: number;
   cpuIntensity: number;
@@ -98,6 +106,21 @@ const TOKEN_PLATZ = '__YSKAR_ZUGANG__';
 const DEFAULT_NODE_PORT = 8645;
 const DEFAULT_P2P_PORT = 8646;
 const DEFAULT_SEED = 'yskar-main.dynv6.net:8646';
+/** So meldet sich das Programm bei einem Pool. */
+const POOL_AGENT = `yskar-node-core/${VERSION}`;
+/** So lange gilt die Antwort eines Pools, bevor er neu gefragt wird. */
+const POOL_STAND_GILT_MS = 10_000;
+/** Abstand, in dem der Pool befragt wird, in dem gerade gemint wird. */
+const POOL_TAKT_MS = 20_000;
+/** Abstand der Messpunkte fuer den Verlauf der Leistung, und wie viele bleiben. */
+const LEISTUNG_TAKT_MS = 15_000;
+const LEISTUNG_PUNKTE = 240;
+
+/** Fehler mit Kuerzel -- die Oberflaeche zeigt ihn in ihrer Sprache. */
+class KernFehler extends Error {
+  code: string;
+  constructor(code: string, text: string) { super(text); this.code = code; }
+}
 
 function defaultDataDir(): string {
   if (process.platform === 'win32') {
@@ -335,7 +358,20 @@ export class NodeCoreApp {
   private einstellungenPfad: string;
   private wallet: WalletDienst;
   /** Verlauf der Wallet aus der Kette -- gilt, bis ein neuer Block kommt. */
-  private verlaufMerker: { schluessel: string; wert: KettenVerlauf } | null = null;
+  private verlaufMerker: { kopf: string; je: Map<string, KettenVerlauf> } | null = null;
+  /** Bloecke je Name in der eigenen Kette -- fuer die Pool-Liste. */
+  private namen = new NamenZaehler();
+  /** Die Sitzungen beim Pool: je Geraet eine. */
+  private poolQuellen: { cpu: PoolQuelle | null; gpu: PoolQuelle | null } = { cpu: null, gpu: null };
+  /** Der Pool, in dem gerade gemint wird. null = solo oder gestoppt. */
+  private poolAktiv: { eintrag: PoolEintrag; stand: PoolStand } | null = null;
+  private poolTakt: ReturnType<typeof setInterval> | null = null;
+  /** Warum das Mining im Pool von selbst geendet hat. */
+  private poolEnde: { code: string; text: string; zeit: number; pool: string } | null = null;
+  private poolMerker = new Map<string, { bis: number; stand: PoolStand }>();
+  /** Leistung ueber die Zeit, seit dem letzten Start. */
+  private leistung: { zeit: number; hashrate: number }[] = [];
+  private leistungTakt: ReturnType<typeof setInterval> | null = null;
   /*
    * Zugangsschluessel der Oberflaeche. Entsteht bei jedem Start neu und
    * steht nur in der Seite, die dieser Server selbst ausliefert. Eine fremde
@@ -353,7 +389,7 @@ export class NodeCoreApp {
   private gpuSucheLaeuft = false;
   private miningPfad = '';
   private mining_: MiningEinstellung = {
-    address: '', mode: 'cpu',
+    address: '', ziel: 'solo', poolHost: '', mode: 'cpu',
     cpuWorkers: Math.max(1, cpus().length - 1),
     cpuIntensity: 100, gpuDevice: 0, blockName: '',
   };
@@ -423,6 +459,8 @@ export class NodeCoreApp {
       const kerne = cpus().length;
       if (typeof d.address === 'string' && isValidAddress(d.address)) this.mining_.address = d.address;
       if (d.mode === 'cpu' || d.mode === 'gpu' || d.mode === 'beide') this.mining_.mode = d.mode;
+      if (d.ziel === 'solo' || d.ziel === 'pool') this.mining_.ziel = d.ziel;
+      if (typeof d.poolHost === 'string') this.mining_.poolHost = hostAusEingabe(d.poolHost) ?? '';
       if (Number.isInteger(d.cpuWorkers)) this.mining_.cpuWorkers = Math.max(1, Math.min(kerne, Number(d.cpuWorkers)));
       if (Number.isFinite(d.cpuIntensity)) this.mining_.cpuIntensity = Math.max(10, Math.min(100, Number(d.cpuIntensity)));
       if (Number.isInteger(d.gpuDevice) && Number(d.gpuDevice) >= 0) this.mining_.gpuDevice = Number(d.gpuDevice);
@@ -474,6 +512,11 @@ export class NodeCoreApp {
 
   /** Ein intern gefundener Block: ins Netz geben und alle Miner umstellen. */
   private eigenerBlock(quelle: string, height: number, hash: string): void {
+    if (this.poolAktiv) {
+      // Der Block liegt beim Pool-Knoten, nicht hier -- er gibt ihn ins Netz.
+      this.log(`BLOCK IM POOL GEFUNDEN (${quelle}) #${height} · ${this.poolAnzeige(this.poolAktiv.eintrag, this.poolAktiv.stand)}`);
+      return;
+    }
     this.log(`BLOCK GEFUNDEN (${quelle}) #${height} · ${hash.slice(0, 32)}…`);
     const n = this.sync?.kuendigeAn(this.hexToBytes(hash)) ?? 0;
     if (n > 0) this.log(`  an ${n} Peer${n > 1 ? 's' : ''} gemeldet`);
@@ -482,6 +525,8 @@ export class NodeCoreApp {
 
   /** Was die eingebauten Miner gerade leisten -- fuer die Statistik. */
   private interneStatistik(): LokaleStatistik | null {
+    // Im Pool zaehlt der Pool-Knoten diese Miner -- hier noch einmal waere doppelt.
+    if (this.poolAktiv) return null;
     const laufend = [this.cpuMiner?.status(), this.gpuMiner?.status()]
       .filter(m => m?.running);
     if (laufend.length === 0 || !isValidAddress(this.mining_.address)) return null;
@@ -602,7 +647,143 @@ export class NodeCoreApp {
       running: !!(cpu?.running || gpu?.running),
       // Ob ein Start gerade Sinn hat -- siehe miningBereit().
       startklar: this.running ? this.miningBereit() : { bereit: false, grund: 'Zuerst den Full Node starten.' },
+      pool: this.poolStatus(),
+      poolEnde: this.poolEnde,
+      // Welche Adressen in der gepflegten Liste stehen -- alles andere ist von Hand eingetragen.
+      poolListe: POOLS.map(p => p.host),
+      poolName: this.mining_.poolHost ? this.poolNameZuletzt(this.mining_.poolHost) : null,
+      verlauf: this.leistung,
     };
+  }
+
+  // ------------------------------------------------------------------- Pool
+
+  /** Ein Eintrag der Liste oder eine eigene Adresse. */
+  private poolEintrag(host: string): PoolEintrag {
+    return POOLS.find(p => p.host === host) ?? { host, name: host };
+  }
+
+  /*
+   * Wie ein Pool in der Oberflaeche heisst. Die Pools der Liste tragen den
+   * Namen aus der Liste. Eine von Hand eingetragene Adresse hat dort keinen;
+   * dann gilt der Name, den der Pool in seine Bloecke schreibt -- eine
+   * Selbstauskunft, deshalb steht die Adresse immer daneben.
+   */
+  private poolAnzeige(eintrag: PoolEintrag, stand: PoolStand): string {
+    return POOLS.some(p => p.host === eintrag.host) ? eintrag.name : (stand.kette ?? eintrag.name);
+  }
+
+  /** Einen Pool fragen -- die Antwort gilt POOL_STAND_GILT_MS lang. */
+  private async poolStandVon(eintrag: PoolEintrag, adresse?: string): Promise<PoolStand> {
+    const schluessel = eintrag.host + ' ' + (adresse ?? '');
+    const m = this.poolMerker.get(schluessel);
+    if (m && m.bis > Date.now()) return m.stand;
+    const stand = await fragePool(eintrag, POOL_AGENT, { address: adresse ?? null });
+    if (this.poolMerker.size > 32) this.poolMerker.clear();
+    this.poolMerker.set(schluessel, { bis: Date.now() + POOL_STAND_GILT_MS, stand });
+    return stand;
+  }
+
+  /** Name des gewaehlten Pools, soweit er schon einmal geantwortet hat. */
+  private poolNameZuletzt(host: string): string {
+    const eintrag = this.poolEintrag(host);
+    for (const [schluessel, m] of this.poolMerker) {
+      if (schluessel.startsWith(host + ' ')) return this.poolAnzeige(eintrag, m.stand);
+    }
+    return eintrag.name;
+  }
+
+  /** Gefundene Bloecke je Pool -- aus der eigenen Kette, ueber den Namen im Block. */
+  private mitBloecken(stand: PoolStand): PoolStand {
+    if (!this.store || !this.chain || !this.running || !stand.kette) return stand;
+    const chain = this.chain;
+    const z = this.namen.zahlen(this.store, () => chain.tip()?.height ?? null);
+    return z ? { ...stand, bloecke: z.get(stand.kette) ?? 0 } : stand;
+  }
+
+  /*
+   * Die Pools zur Auswahl: die gepflegte Liste und, wenn angegeben, eine
+   * eigene Adresse.
+   *
+   * Gefragt wird OHNE die Mining-Adresse. Sie geht erst beim Start an einen
+   * Pool -- und dann nur an den gewaehlten.
+   */
+  private async poolListe(eigen: string | null) {
+    const eintraege: (PoolEintrag & { eigen?: boolean })[] = [...POOLS];
+    let eigenFehler: string | null = null;
+    if (eigen !== null && eigen.trim() !== '') {
+      const host = hostAusEingabe(eigen);
+      if (!host) eigenFehler = 'Das ist keine Adresse eines Pools.';
+      else if (!eintraege.some(e => e.host === host)) eintraege.push({ host, name: host, eigen: true });
+    }
+    const pools = await Promise.all(eintraege.map(async e => {
+      const stand = this.mitBloecken(await this.poolStandVon(e));
+      return { ...stand, anzeige: this.poolAnzeige(e, stand), eigen: e.eigen === true };
+    }));
+    return { pools, eigenFehler };
+  }
+
+  /** Stand der Verbindung zum Pool, in dem gerade gemint wird. */
+  private poolStatus() {
+    const a = this.poolAktiv;
+    if (!a) return null;
+    const q = [this.poolQuellen.cpu, this.poolQuellen.gpu].filter((x): x is PoolQuelle => x !== null).map(x => x.stand());
+    const summe = (f: (s: ReturnType<PoolQuelle['stand']>) => number) => q.reduce((n, s) => n + f(s), 0);
+    const zuletzt = q.map(s => s.letzterShare).filter((x): x is number => x !== null);
+    // Die letzte Auszahlung steht in der Kette -- nicht beim Pool erfragt.
+    let auszahlung = null;
+    if (isValidAddress(this.mining_.address)) {
+      const l = this.kettenVerlauf(this.mining_.address).letztePool;
+      if (l && (!a.stand.kette || l.name === a.stand.kette)) auszahlung = l;
+    }
+    return {
+      host: a.eintrag.host,
+      name: this.poolAnzeige(a.eintrag, a.stand),
+      stand: this.mitBloecken(a.stand),
+      // Verbunden heisst: angemeldet, und der letzte Austausch ging gut.
+      verbunden: q.length > 0 && q.every(s => s.angemeldet && s.fehler === null),
+      fehler: q.find(s => s.fehler !== null)?.fehler ?? null,
+      angenommen: summe(s => s.angenommen),
+      abgelehnt: summe(s => s.abgelehnt),
+      bloecke: summe(s => s.bloecke),
+      letzterShare: zuletzt.length ? Math.max(...zuletzt) : null,
+      shareDifficulty: {
+        cpu: this.poolQuellen.cpu?.stand().shareDifficulty ?? null,
+        gpu: this.poolQuellen.gpu?.stand().shareDifficulty ?? null,
+      },
+      auszahlung,
+    };
+  }
+
+  /** Beim Pool abmelden -- die Plaetze werden sofort frei. */
+  private async beendePool(): Promise<void> {
+    if (this.poolTakt) clearInterval(this.poolTakt);
+    this.poolTakt = null;
+    const q = [this.poolQuellen.cpu, this.poolQuellen.gpu];
+    this.poolQuellen = { cpu: null, gpu: null };
+    this.poolAktiv = null;
+    await Promise.all(q.map(x => x?.beenden()));
+  }
+
+  /*
+   * Der Pool nimmt diesen Miner nicht mehr: voll, oder er betreibt keinen
+   * Pool mehr. Dann stoppt das Mining und sagt warum. Es rechnet NIE
+   * stillschweigend solo weiter -- wer "Pool" gewaehlt hat, will teilen.
+   */
+  private poolAbbruch(e: PoolEndgueltig): void {
+    const a = this.poolAktiv;
+    if (!a) return;
+    this.poolEnde = { code: e.code, text: e.message, zeit: Date.now(), pool: this.poolAnzeige(a.eintrag, a.stand) };
+    this.log(`Mining im Pool beendet: ${e.message}`);
+    void this.stopMining().catch(() => {});
+  }
+
+  private merkeLeistung(): void {
+    const cpu = this.cpuMiner?.status(), gpu = this.gpuMiner?.status();
+    if (!cpu?.running && !gpu?.running) return;
+    const h = (cpu?.running ? cpu.hashrate : 0) + (gpu?.running ? gpu.hashrate : 0);
+    this.leistung.push({ zeit: Date.now(), hashrate: Number.isFinite(h) ? Math.max(0, Math.round(h)) : 0 });
+    if (this.leistung.length > LEISTUNG_PUNKTE) this.leistung.shift();
   }
 
   /*
@@ -611,16 +792,42 @@ export class NodeCoreApp {
    * Adresse ueber die bestehende Pruefung aus core/address.ts -- keine
    * eigene Adresslogik. Im Modus "beide" startet die CPU auch dann, wenn die
    * GPU nicht verfuegbar ist; der Grund steht in der Antwort.
+   *
+   * Solo kommt die Arbeit vom eigenen Knoten, im Pool vom Pool-Knoten
+   * (PoolQuelle.ts). Die Miner selbst sind in beiden Faellen dieselben.
    */
   private async startMining(body: Record<string, unknown>) {
     if (!this.running || !this.cpuMiner || !this.gpuMiner) {
       throw new Error('Zuerst den Full Node starten.');
     }
+    const cpuMiner = this.cpuMiner, gpuMiner = this.gpuMiner;
     const address = String(body.address ?? this.mining_.address).trim().toLowerCase();
     if (!isValidAddress(address)) throw new Error('Ungültige YSKAR-Adresse.');
 
-    const stand = this.miningBereit();
-    if (!stand.bereit) throw new Error(stand.grund ?? 'Der Knoten ist noch nicht bereit.');
+    const ziel: MiningZiel = body.ziel === 'pool' || body.ziel === 'solo' ? body.ziel : this.mining_.ziel;
+    let poolHost = this.mining_.poolHost;
+    let pool: { eintrag: PoolEintrag; stand: PoolStand } | null = null;
+
+    if (ziel === 'pool') {
+      /*
+        Im Pool rechnet der Miner an der Kette des POOL-Knotens. Ob der
+        eigene Knoten schon auf dem Stand des Netzes ist, spielt dafuer
+        keine Rolle -- gefragt wird stattdessen der Pool: Gibt es ihn, und
+        hat er einen Platz fuer diese Adresse?
+      */
+      const host = hostAusEingabe(String(body.poolHost ?? this.mining_.poolHost ?? ''));
+      if (!host) throw new KernFehler('pool_fehlt', 'Bitte zuerst einen Pool wählen.');
+      poolHost = host;
+      const eintrag = this.poolEintrag(host);
+      const stand = await fragePool(eintrag, POOL_AGENT, { address });
+      if (stand.status === 'aus') throw new KernFehler('pool_aus', 'Der Pool antwortet nicht.');
+      if (stand.status === 'keinPool') throw new KernFehler('pool_unavailable', 'Unter dieser Adresse läuft kein Pool.');
+      if (!waehlbar(stand)) throw new KernFehler('pool_full', 'Der Pool ist voll: Alle Plätze sind belegt.');
+      pool = { eintrag, stand };
+    } else {
+      const stand = this.miningBereit();
+      if (!stand.bereit) throw new Error(stand.grund ?? 'Der Knoten ist noch nicht bereit.');
+    }
 
     const mode = body.mode === 'gpu' || body.mode === 'beide' ? body.mode : 'cpu';
     const kerne = cpus().length;
@@ -630,49 +837,113 @@ export class NodeCoreApp {
 
     /*
       Name im Block. Wird hier geprueft, nicht erst beim Bauen: Was einmal
-      in einem Block steht, steht dort fuer immer.
+      in einem Block steht, steht dort fuer immer. Im Pool traegt der Block
+      den Namen des Pools -- der eigene bleibt fuer Solo gespeichert.
     */
     const blockName = String(body.blockName ?? this.mining_.blockName ?? '').trim();
     let extra: Uint8Array;
     try { extra = nameToExtra(blockName); }
     catch (e) { throw new Error(`Name im Block: ${(e as Error).message}`); }
 
-    this.mining_ = { address, mode, cpuWorkers, cpuIntensity, gpuDevice, blockName };
+    // Erst alles anhalten: Die Quelle der Arbeit laesst sich nur im Stillstand wechseln.
+    await cpuMiner.stop();
+    await gpuMiner.stop();
+    await this.beendePool();
+    this.poolEnde = null;
+
+    this.mining_ = { address, ziel, poolHost, mode, cpuWorkers, cpuIntensity, gpuDevice, blockName };
     this.speichereMining();
 
-    this.cpuMiner.setExtra(extra);
-    this.gpuMiner.setExtra(extra);
+    cpuMiner.setExtra(extra);
+    gpuMiner.setExtra(extra);
 
     const hinweise: string[] = [];
+    const adresse = decodeAddress(address);
 
-    if (mode === 'cpu' || mode === 'beide') {
-      await this.cpuMiner.stop();
-      await this.cpuMiner.start(address, cpuWorkers, cpuIntensity);
-    } else {
-      await this.cpuMiner.stop();
-    }
-
-    if (mode === 'gpu' || mode === 'beide') {
-      const e = this.gpuErkennung ?? await this.sucheGpu();
-      const geraet = e.geraete.find(g => g.id === gpuDevice) ?? e.geraete[0];
-      if (!e.verfuegbar || !geraet) {
-        const grund = e.grund ?? 'Keine GPU gefunden.';
-        if (mode === 'gpu') throw new Error(`GPU-Mining nicht möglich: ${grund}`);
-        hinweise.push(`GPU nicht gestartet: ${grund}`);
-      } else {
-        await this.gpuMiner.stop();
-        await this.gpuMiner.start(decodeAddress(address), geraet);
+    /*
+      Im Pool bekommt jedes Geraet eine eigene Sitzung. Angemeldet wird
+      HIER, vor dem Start des Rechnens: Lehnt der Pool ab, steht der Grund
+      in der Antwort -- und nichts rechnet.
+    */
+    const quelle = async (geraet: 'cpu' | 'gpu'): Promise<PoolQuelle | null> => {
+      if (!pool) return null;
+      const q = new PoolQuelle(poolSchnittstelle(pool.eintrag.host), POOL_AGENT);
+      this.poolQuellen[geraet] = q;
+      try { await q.anmelden(adresse); }
+      catch (e) {
+        if (e instanceof PoolEndgueltig) throw new KernFehler(e.code, e.message);
+        throw new KernFehler('pool_aus', `Anmeldung beim Pool gescheitert: ${(e as Error).message}`);
       }
-    } else {
-      await this.gpuMiner.stop();
+      q.onEndgueltig = fehler => this.poolAbbruch(fehler);
+      return q;
+    };
+
+    try {
+      this.poolAktiv = pool;
+
+      if (mode === 'cpu' || mode === 'beide') {
+        cpuMiner.setzeQuelle(await quelle('cpu'));
+        await cpuMiner.start(address, cpuWorkers, cpuIntensity);
+      }
+
+      if (mode === 'gpu' || mode === 'beide') {
+        const e = this.gpuErkennung ?? await this.sucheGpu();
+        const geraet = e.geraete.find(g => g.id === gpuDevice) ?? e.geraete[0];
+        if (!e.verfuegbar || !geraet) {
+          const grund = e.grund ?? 'Keine GPU gefunden.';
+          if (mode === 'gpu') throw new Error(`GPU-Mining nicht möglich: ${grund}`);
+          hinweise.push(`GPU nicht gestartet: ${grund}`);
+        } else {
+          try {
+            gpuMiner.setzeQuelle(await quelle('gpu'));
+            await gpuMiner.start(adresse, geraet);
+          } catch (fehler) {
+            // Mit beiden Geraeten gewaehlt: Der Prozessor rechnet weiter.
+            if (mode === 'gpu') throw fehler;
+            await this.poolQuellen.gpu?.beenden();
+            this.poolQuellen.gpu = null;
+            hinweise.push(`GPU nicht gestartet: ${(fehler as Error).message}`);
+          }
+        }
+      }
+    } catch (e) {
+      // Ein halber Start bleibt nicht stehen.
+      await this.stopMining();
+      throw e;
     }
+
+    if (pool) {
+      const name = this.poolAnzeige(pool.eintrag, pool.stand);
+      this.log(`Mining im Pool ${name}${name === pool.eintrag.host ? '' : ` (${pool.eintrag.host})`}`);
+      // Nebenher fragen, wie es um den Pool steht -- Miner, Leistung, Gebuehr.
+      this.poolTakt = setInterval(() => {
+        const a = this.poolAktiv;
+        if (!a) return;
+        void fragePool(a.eintrag, POOL_AGENT, { address: this.mining_.address }).then(stand => {
+          // Antwortet er gerade nicht, bleiben die letzten Zahlen stehen.
+          if (this.poolAktiv === a && stand.status !== 'aus') a.stand = stand;
+        });
+      }, POOL_TAKT_MS);
+      this.poolTakt.unref?.();
+    }
+
+    this.leistung = [];
+    if (this.leistungTakt) clearInterval(this.leistungTakt);
+    this.leistungTakt = setInterval(() => this.merkeLeistung(), LEISTUNG_TAKT_MS);
+    this.leistungTakt.unref?.();
 
     return { ok: true, hinweise, status: this.miningStatus() };
   }
 
   private async stopMining() {
+    if (this.leistungTakt) clearInterval(this.leistungTakt);
+    this.leistungTakt = null;
     await this.cpuMiner?.stop();
     await this.gpuMiner?.stop();
+    await this.beendePool();
+    // Zurueck zum eigenen Knoten -- der naechste Start entscheidet neu.
+    this.cpuMiner?.setzeQuelle(null);
+    this.gpuMiner?.setzeQuelle(null);
     return { ok: true, status: this.miningStatus() };
   }
 
@@ -770,6 +1041,8 @@ export class NodeCoreApp {
       knoten: () => netz().knoten,
     });
     this.txGesehen.clear();
+    this.namen = new NamenZaehler();
+    this.verlaufMerker = null;
     void this.findeSeedIp();
 
     this.miningServer.onBlock = (height, hash, address) => {
@@ -884,6 +1157,9 @@ export class NodeCoreApp {
     // nicht als Waisen weiterlaufen.
     try { await this.cpuMiner?.stop(); } catch { /* lief nicht */ }
     try { await this.gpuMiner?.stop(); } catch { /* lief nicht */ }
+    try { await this.beendePool(); } catch { /* war in keinem Pool */ }
+    if (this.leistungTakt) clearInterval(this.leistungTakt);
+    this.leistungTakt = null;
     if (this.statsTakt) clearInterval(this.statsTakt);
     this.statsTakt = null;
     this.sync?.stop();
@@ -1022,14 +1298,23 @@ export class NodeCoreApp {
   /** Sperrt die Wallet -- auch von aussen, etwa wenn Windows gesperrt wird. */
   sperreWallet(): void { this.wallet.sperren(); }
 
+  /** Was die Kette ueber eine Adresse sagt -- gilt, bis ein neuer Block kommt. */
   private kettenVerlauf(adresse: string): KettenVerlauf {
     const tip = this.chain?.tip();
-    if (!tip || !this.store || !this.running) return { ueberweisungen: [], mining: [], gesendetAn: [], durchsucht: 0 };
-    const schluessel = toHex(tip.hash) + adresse;
-    if (this.verlaufMerker?.schluessel !== schluessel) {
-      this.verlaufMerker = { schluessel, wert: leseVerlauf(this.store, tip.height, toHex(decodeAddress(adresse))) };
+    if (!tip || !this.store || !this.running) {
+      return { ueberweisungen: [], mining: [], letztePool: null, gesendetAn: [], durchsucht: 0 };
     }
-    return this.verlaufMerker.wert;
+    const kopf = toHex(tip.hash);
+    if (this.verlaufMerker?.kopf !== kopf) this.verlaufMerker = { kopf, je: new Map() };
+    const je = this.verlaufMerker.je;
+    let v = je.get(adresse);
+    if (!v) {
+      // Wallet und Mining fragen oft nach verschiedenen Adressen -- beide bleiben.
+      if (je.size >= 4) je.clear();
+      v = leseVerlauf(this.store, tip.height, toHex(decodeAddress(adresse)));
+      je.set(adresse, v);
+    }
+    return v;
   }
 
   /** Was von dieser Adresse im Mempool wartet -- in beide Richtungen. */
@@ -1336,6 +1621,7 @@ export class NodeCoreApp {
       if (GET && pfad === '/api/mining/status') return json(res, this.miningStatus());
       if (POST && pfad === '/api/mining/start') return json(res, await this.startMining(await readBody(req)));
       if (POST && pfad === '/api/mining/stop') return json(res, await this.stopMining());
+      if (GET && pfad === '/api/pool/liste') return json(res, await this.poolListe(url.searchParams.get('eigen')));
       if (POST && pfad === '/api/mining/detect') {
         this.gpuErkennung = null;
         await this.sucheGpu();
@@ -1356,7 +1642,7 @@ export class NodeCoreApp {
       }
       json(res, { error: 'not_found' }, 404);
     } catch (e) {
-      const code = e instanceof WalletFehler ? e.code : undefined;
+      const code = e instanceof WalletFehler || e instanceof KernFehler ? e.code : undefined;
       json(res, { error: (e as Error).message, ...(code ? { code } : {}) }, 400);
     }
   }

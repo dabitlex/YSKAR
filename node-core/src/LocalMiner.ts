@@ -7,6 +7,7 @@ import { cpus } from 'node:os';
 
 import { decodeAddress, isValidAddress } from '../../src/lib/core/address.ts';
 import type { MiningCoordinator, MiningJob } from '../../src/lib/node/fullnode/MiningCoordinator.ts';
+import type { Arbeitsquelle, Einreichung } from './PoolQuelle.ts';
 
 const STRIDE = 4096;
 const DEFAULT_INTENSITY = 100;
@@ -24,6 +25,14 @@ const DEFAULT_INTENSITY = 100;
  * Zeitstempel im Header frisch.
  */
 export const JOB_REFRESH_MS = 30_000;
+/** Gibt eine Quelle im Netz gerade keine Arbeit, wird es so bald wieder versucht. */
+const JOB_NOCHMAL_MS = 5_000;
+/**
+ * So viele Treffer warten hoechstens auf ihre Einreichung. Im Pool geht jede
+ * ueber das Netz; solange das Share-Ziel noch nicht eingeregelt ist, findet
+ * ein schneller Rechner mehr Treffer, als sich einzeln verschicken lassen.
+ */
+const TREFFER_WARTEND_MAX = 8;
 
 export interface LocalMinerStatus { running:boolean; address:string; workers:number; readyWorkers:number; intensity:number; hashrate:number; hashes:number; shares:number; blocks:number; errors:number; jobId:string|null; height:number|null; uptimeSeconds:number; }
 export interface LocalMinerOptions { mining:MiningCoordinator; defaultAddress?:string; onBlock?:(height:number,hash:string,address:string)=>void; onLog?:(text:string)=>void; }
@@ -31,22 +40,112 @@ interface WorkerState { worker:Worker; slot:number; ready:boolean; hashes:number
 
 /** Lokaler CPU-Miner: Node erzeugt den Job, dieselbe WASM-SHA256d-Engine rechnet die Nonces. */
 export class LocalMiner {
-  private readonly mining:MiningCoordinator; private readonly onBlock?:LocalMinerOptions['onBlock']; private readonly onLog?:LocalMinerOptions['onLog'];
+  private readonly mining:MiningCoordinator; private quelle:Arbeitsquelle; private jobLaeuft=false; private jobNochmal=false; private jobSpaeter:NodeJS.Timeout|null=null; private jobFehler:string|null=null; private lauf=0; private wartend:{jobId:string;nonce:string}[]=[]; private reichtEin=false; private readonly onBlock?:LocalMinerOptions['onBlock']; private readonly onLog?:LocalMinerOptions['onLog'];
   private workers:WorkerState[]=[]; private running=false; private address=''; private addressBytes:Uint8Array|null=null; private intensity=DEFAULT_INTENSITY; private job:MiningJob|null=null; private extranonce=randomNonce(); private hashes=0; private shares=0; private blocks=0; private errors=0; private rateTimer:NodeJS.Timeout|null=null; private refreshTimer:NodeJS.Timeout|null=null; private extra:Uint8Array=new Uint8Array(0); private hashrate=0; private startedAt=0;
-  constructor(opt:LocalMinerOptions){this.mining=opt.mining;this.address=opt.defaultAddress??'';this.onBlock=opt.onBlock;this.onLog=opt.onLog;}
+  constructor(opt:LocalMinerOptions){this.mining=opt.mining;this.quelle=opt.mining;this.address=opt.defaultAddress??'';this.onBlock=opt.onBlock;this.onLog=opt.onLog;}
   status():LocalMinerStatus{return{running:this.running,address:this.address,workers:this.workers.length,readyWorkers:this.workers.filter(w=>w.ready).length,intensity:this.intensity,hashrate:this.hashrate,hashes:this.hashes,shares:this.shares,blocks:this.blocks,errors:this.errors,jobId:this.job?.jobId??null,height:this.job?.height??null,uptimeSeconds:this.running&&this.startedAt?Math.floor((Date.now()-this.startedAt)/1000):0};}
   setAddress(address:string):void{const clean=String(address||'').trim();if(!isValidAddress(clean))throw new Error('Ungueltige YSKAR-Adresse.');this.address=clean;this.addressBytes=decodeAddress(clean);if(this.running)this.neuerJob();}
   setIntensity(value:number):void{if(!Number.isFinite(value)||value<1||value>100)throw new Error('Mining-Intensitaet muss zwischen 1 und 100 liegen.');this.intensity=Math.round(value);for(const w of this.workers)w.worker.postMessage({t:'duty',value:this.intensity});}
+  /**
+   * Woher die Arbeit kommt: vom eigenen Knoten (ohne Angabe) oder von einem
+   * Pool. Nur im Stillstand zu wechseln -- ein laufender Miner haelt Arbeit
+   * der alten Quelle.
+   */
+  setzeQuelle(q:Arbeitsquelle|null):void{if(this.running)throw new Error('Die Quelle laesst sich nur im Stillstand wechseln.');this.quelle=q??this.mining;}
   /** Inhalt des extra-Felds -- der Name, mit dem dieser Knoten in seinen Bloecken steht. */
   setExtra(e:Uint8Array):void{this.extra=e;if(this.running)this.neuerJob();}
 
-  async start(address?:string,workers?:number,intensity?:number):Promise<void>{if(address!==undefined)this.setAddress(address);if(!this.addressBytes){if(!this.address||!isValidAddress(this.address))throw new Error('Zum Mining wird eine YSKAR-Adresse benoetigt.');this.addressBytes=decodeAddress(this.address);}if(intensity!==undefined)this.setIntensity(intensity);if(this.running)return;const count=Number.isInteger(workers)&&(workers as number)>0?Math.min(256,workers as number):Math.max(1,cpus().length-1);const wasm=loadMinerWasm();this.running=true;this.extranonce=randomNonce();this.hashes=0;this.shares=0;this.blocks=0;this.errors=0;this.hashrate=0;for(let slot=0;slot<count;slot++)this.spawnWorker(wasm,slot,count);this.rateTimer=setInterval(()=>this.updateRate(),1000);this.rateTimer.unref?.();this.refreshTimer=setInterval(()=>this.neuerJob(),JOB_REFRESH_MS);this.refreshTimer.unref?.();this.startedAt=Date.now();this.log(`Lokaler Miner gestartet · ${count} Worker · ${this.intensity}%`);this.neuerJob();}
-  async stop():Promise<void>{this.running=false;if(this.rateTimer)clearInterval(this.rateTimer);this.rateTimer=null;if(this.refreshTimer)clearInterval(this.refreshTimer);this.refreshTimer=null;this.job=null;const workers=this.workers.splice(0);await Promise.all(workers.map(async s=>{try{s.worker.postMessage({t:'stop'});}catch{}try{await s.worker.terminate();}catch{}}));this.hashrate=0;this.log('Lokaler Miner gestoppt.');}
+  async start(address?:string,workers?:number,intensity?:number):Promise<void>{if(address!==undefined)this.setAddress(address);if(!this.addressBytes){if(!this.address||!isValidAddress(this.address))throw new Error('Zum Mining wird eine YSKAR-Adresse benoetigt.');this.addressBytes=decodeAddress(this.address);}if(intensity!==undefined)this.setIntensity(intensity);if(this.running)return;const count=Number.isInteger(workers)&&(workers as number)>0?Math.min(256,workers as number):Math.max(1,cpus().length-1);const wasm=loadMinerWasm();this.running=true;this.lauf++;this.wartend=[];this.jobFehler=null;this.extranonce=randomNonce();this.hashes=0;this.shares=0;this.blocks=0;this.errors=0;this.hashrate=0;for(let slot=0;slot<count;slot++)this.spawnWorker(wasm,slot,count);this.rateTimer=setInterval(()=>this.updateRate(),1000);this.rateTimer.unref?.();this.refreshTimer=setInterval(()=>this.neuerJob(),JOB_REFRESH_MS);this.refreshTimer.unref?.();this.startedAt=Date.now();this.log(`Lokaler Miner gestartet · ${count} Worker · ${this.intensity}%`);this.neuerJob();}
+  async stop():Promise<void>{this.running=false;this.lauf++;this.wartend=[];if(this.jobSpaeter)clearTimeout(this.jobSpaeter);this.jobSpaeter=null;if(this.rateTimer)clearInterval(this.rateTimer);this.rateTimer=null;if(this.refreshTimer)clearInterval(this.refreshTimer);this.refreshTimer=null;this.job=null;const workers=this.workers.splice(0);await Promise.all(workers.map(async s=>{try{s.worker.postMessage({t:'stop'});}catch{}try{await s.worker.terminate();}catch{}}));this.hashrate=0;this.log('Lokaler Miner gestoppt.');}
   notifyChainChanged():void{if(this.running)this.neuerJob();}
   private spawnWorker(wasm:Uint8Array,slot:number,count:number):void{const worker=new Worker(WORKER_SOURCE,{eval:true,workerData:{wasm,slot,stride:STRIDE,workers:count,intensity:this.intensity}});const state:WorkerState={worker,slot,ready:false,hashes:0,lastAt:Date.now(),lastHashes:0};this.workers.push(state);worker.on('message',m=>this.workerMessage(state,m));worker.on('error',e=>{this.errors++;this.log(`Miner-Worker ${slot}: ${e.message}`);});worker.on('exit',code=>{if(this.running&&code!==0){this.errors++;this.log(`Miner-Worker ${slot} beendet (${code}).`);}});}
-  private workerMessage(state:WorkerState,m:any):void{if(m.t==='ready'){state.ready=true;if(this.job)state.worker.postMessage({t:'job',job:this.job});return;}if(m.t==='progress'){const n=Number(m.hashes)||0;state.hashes+=n;this.hashes+=n;return;}if(m.t==='found'){this.shares++;void this.submit(m);return;}if(m.t==='error'){this.errors++;this.log(`Miner-Worker ${state.slot}: ${m.message}`);}}
-  private async submit(m:{jobId:string;nonce:string}):Promise<void>{if(!this.running)return;const result=this.mining.submitNonce(m.jobId,BigInt(m.nonce));if(!result.ok){if(result.grund==='stale_job'||result.grund==='job_unknown'||result.grund==='job_expired')this.neuerJob();else this.log(`Mining-Share abgelehnt: ${result.grund}`);return;}if(!result.block)return;this.blocks++;this.log(`BLOCK GEFUNDEN #${result.height} · ${result.hash.slice(0,32)}... · Reward ${result.reward}`);this.onBlock?.(result.height,result.hash,this.address);this.neuerJob();}
-  private neuerJob():void{if(!this.running||!this.addressBytes)return;try{this.job=this.mining.createJob(this.addressBytes,this.extranonce,this.extra);for(const w of this.workers)if(w.ready)w.worker.postMessage({t:'job',job:this.job});}catch(e){this.errors++;this.log(`Mining-Job konnte nicht gebaut werden: ${(e as Error).message}`);}}
+  private workerMessage(state:WorkerState,m:any):void{if(m.t==='ready'){state.ready=true;if(this.job)state.worker.postMessage({t:'job',job:this.job});return;}if(m.t==='progress'){const n=Number(m.hashes)||0;state.hashes+=n;this.hashes+=n;return;}if(m.t==='found'){this.shares++;this.einreichen(m);return;}if(m.t==='error'){this.errors++;this.log(`Miner-Worker ${state.slot}: ${m.message}`);}}
+  /*
+   * Treffer einreichen -- einer nach dem anderen.
+   *
+   * Beim eigenen Knoten kommt die Antwort sofort, und alles laeuft wie
+   * bisher in einem Zug. Bei einem Pool geht jeder Treffer ueber das Netz;
+   * dann wartet der naechste, bis die Antwort da ist.
+   */
+  private einreichen(m:{jobId:string;nonce:string}):void{
+    if(!this.running)return;
+    if(this.wartend.length>=TREFFER_WARTEND_MAX)return;
+    this.wartend.push(m);
+    if(!this.reichtEin)this.leere();
+  }
+  private leere():void{
+    while(this.running&&this.wartend.length>0){
+      const m=this.wartend.shift()!;
+      let r:Einreichung|Promise<Einreichung>;
+      try{r=this.quelle.submitNonce(m.jobId,BigInt(m.nonce));}
+      catch(e){this.errors++;this.log(`Treffer nicht eingereicht: ${(e as Error).message}`);continue;}
+      if(r instanceof Promise){
+        const lauf=this.lauf;
+        this.reichtEin=true;
+        r.then(x=>{if(lauf===this.lauf)this.nachEinreichung(x);},
+               e=>{if(lauf===this.lauf){this.errors++;this.log(`Treffer nicht eingereicht: ${(e as Error).message}`);}})
+         .finally(()=>{this.reichtEin=false;this.leere();});
+        return;
+      }
+      this.nachEinreichung(r);
+    }
+  }
+  private nachEinreichung(result:Einreichung):void{
+    if(!this.running)return;
+    if(!result.ok){
+      // Der Job wurde inzwischen durch einen neueren ersetzt -- der laeuft schon.
+      if(result.grund==='job_ersetzt')return;
+      if(result.grund==='stale_job'||result.grund==='job_unknown'||result.grund==='job_expired')this.neuerJob();
+      else this.log(`Mining-Share abgelehnt: ${result.grund}`);
+      return;
+    }
+    if(!result.block){
+      // Im Pool: Das Share-Ziel hat sich geaendert -- Arbeit mit dem neuen Ziel holen.
+      if(result.neuerJob){this.wartend=[];this.neuerJob();}
+      return;
+    }
+    this.blocks++;
+    // Im Pool gehoert der Block allen, die mitgerechnet haben -- das meldet der Aufrufer.
+    if(this.quelle===this.mining)this.log(`BLOCK GEFUNDEN #${result.height} · ${result.hash.slice(0,32)}... · Reward ${result.reward}`);
+    this.onBlock?.(result.height,result.hash,this.address);
+    this.wartend=[];
+    this.neuerJob();
+  }
+  /*
+   * Frische Arbeit holen.
+   *
+   * Der eigene Knoten antwortet sofort -- dann ist der Job gesetzt, bevor
+   * diese Methode zurueckkehrt, genau wie bisher. Ein Pool antwortet ueber
+   * das Netz. Dann laeuft immer nur EINE Anfrage: Jede Anfrage ersetzt beim
+   * Pool den vorigen Job, und kaemen zwei Antworten in vertauschter
+   * Reihenfolge an, rechnete der Miner auf einem Job, den der Pool schon
+   * nicht mehr kennt.
+   */
+  private neuerJob():void{
+    if(!this.running||!this.addressBytes)return;
+    if(this.jobLaeuft){this.jobNochmal=true;return;}
+    let r:MiningJob|Promise<MiningJob>;
+    try{r=this.quelle.createJob(this.addressBytes,this.extranonce,this.extra);}
+    catch(e){this.jobGescheitert(e as Error,false);return;}
+    if(!(r instanceof Promise)){this.setzeJob(r);return;}
+    const lauf=this.lauf;
+    this.jobLaeuft=true;
+    r.then(job=>{if(lauf===this.lauf&&this.running)this.setzeJob(job);},
+           e=>{if(lauf===this.lauf&&this.running)this.jobGescheitert(e as Error,true);})
+     .finally(()=>{this.jobLaeuft=false;if(this.jobNochmal){this.jobNochmal=false;this.neuerJob();}});
+  }
+  private setzeJob(job:MiningJob):void{
+    this.job=job;this.jobFehler=null;
+    for(const w of this.workers)if(w.ready)w.worker.postMessage({t:'job',job});
+  }
+  private jobGescheitert(e:Error,spaeter:boolean):void{
+    this.errors++;
+    // Dieselbe Meldung nicht alle paar Sekunden wiederholen.
+    if(this.jobFehler!==e.message){this.jobFehler=e.message;this.log(`Mining-Job konnte nicht geholt werden: ${e.message}`);}
+    if(!spaeter||this.jobSpaeter)return;
+    this.jobSpaeter=setTimeout(()=>{this.jobSpaeter=null;this.neuerJob();},JOB_NOCHMAL_MS);
+    this.jobSpaeter.unref?.();
+  }
   private updateRate():void{let total=0;const now=Date.now();for(const w of this.workers){const dt=Math.max(1,now-w.lastAt);total+=((w.hashes-w.lastHashes)*1000)/dt;w.lastAt=now;w.lastHashes=w.hashes;}this.hashrate=total;}
   private log(text:string):void{this.onLog?.(text);}
 }
