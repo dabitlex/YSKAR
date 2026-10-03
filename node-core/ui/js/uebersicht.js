@@ -127,7 +127,8 @@ export function baue(ctx) {
     fuelle(m.chip, mi.running ? chip('blau', t('min.laeuft'), true) : chip('', t('min.aus')));
     text(m.leistung, mi.running ? leistung(mi.totalHashrate) : '—');
     text(m.geraet, t('min.modus.' + mi.config.mode));
-    text(m.ziel, t('min.solo'));
+    const imPool = mi.running ? !!mi.pool : mi.config.ziel === 'pool';
+    text(m.ziel, imPool ? t('pool.pool') + ' · ' + (mi.pool?.name ?? mi.poolName ?? '—') : t('min.solo'));
 
     if (s.height !== letzteHoehe || !laeuft) { letzteHoehe = laeuft ? s.height : -2; if (laeuft) ladeBloecke(); else fuelle(bloecke, el('tr', el('td.leer', { colspan: 4 }, t('kette.keine')))); }
   }

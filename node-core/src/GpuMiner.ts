@@ -29,11 +29,16 @@ import { randomBytes } from 'node:crypto';
 import { createInterface } from 'node:readline';
 
 import type { MiningCoordinator, MiningJob } from '../../src/lib/node/fullnode/MiningCoordinator.ts';
+import type { Arbeitsquelle, Einreichung } from './PoolQuelle.ts';
 
 /** Wie LocalMiner: sicher unter den 90 Sekunden, nach denen Jobs verfallen. */
 export const GPU_JOB_REFRESH_MS = 30_000;
 /** Wie lange die Geraeteerkennung dauern darf. */
 export const PROBE_TIMEOUT_MS = 15_000;
+/** Gibt eine Quelle im Netz gerade keine Arbeit, wird es so bald wieder versucht. */
+const JOB_NOCHMAL_MS = 5_000;
+/** So viele Treffer warten hoechstens auf ihre Einreichung -- siehe LocalMiner. */
+const TREFFER_WARTEND_MAX = 8;
 
 export interface GpuGeraet {
   id: number;
@@ -220,6 +225,16 @@ export function pruefeGpu(programm: string, geraet: number): Promise<GpuSelbstte
 
 export class GpuMiner {
   private mining: MiningCoordinator;
+  /** Woher die Arbeit kommt -- der eigene Knoten oder ein Pool. */
+  private quelle: Arbeitsquelle;
+  private jobLaeuft = false;
+  private jobNochmal = false;
+  private jobSpaeter: NodeJS.Timeout | null = null;
+  private jobFehler: string | null = null;
+  /** Zaehlt Starts und Stopps: Antworten eines frueheren Laufs gelten nicht mehr. */
+  private lauf = 0;
+  private wartend: { jobId: string; nonce: bigint }[] = [];
+  private reichtEin = false;
   private programm: string | null;
   private onBlock?: GpuMinerOptionen['onBlock'];
   private onLog?: GpuMinerOptionen['onLog'];
@@ -251,12 +266,19 @@ export class GpuMiner {
 
   constructor(o: GpuMinerOptionen) {
     this.mining = o.mining;
+    this.quelle = o.mining;
     this.programm = findeProgramm(o.programm);
     this.onBlock = o.onBlock;
     this.onLog = o.onLog;
   }
 
   private log(t: string) { this.onLog?.(t); }
+
+  /** Arbeit vom eigenen Knoten (ohne Angabe) oder von einem Pool. Nur im Stillstand. */
+  setzeQuelle(q: Arbeitsquelle | null): void {
+    if (this.running) throw new Error('Die Quelle laesst sich nur im Stillstand wechseln.');
+    this.quelle = q ?? this.mining;
+  }
 
   status(): GpuMinerStatus {
     return {
@@ -303,6 +325,8 @@ export class GpuMiner {
     this.hashes = this.shares = this.blocks = this.errors = 0;
     this.hashrate = 0; this.lastError = null;
     this.running = true;
+    this.lauf++;
+    this.wartend = [];
     this.bereit = false;
     this.startedAt = Date.now();
 
@@ -334,7 +358,10 @@ export class GpuMiner {
   async stop(): Promise<void> {
     if (!this.running && !this.kind) return;
     this.running = false;
+    this.lauf++;
+    this.wartend = [];
     this.bereit = false;
+    if (this.jobSpaeter) { clearTimeout(this.jobSpaeter); this.jobSpaeter = null; }
     if (this.erneuern) { clearInterval(this.erneuern); this.erneuern = null; }
     if (this.rateTakt) { clearInterval(this.rateTakt); this.rateTakt = null; }
 
@@ -393,13 +420,44 @@ export class GpuMiner {
     }
   }
 
+  /*
+   * Treffer einreichen -- einer nach dem anderen (siehe LocalMiner).
+   *
+   * Beim eigenen Knoten kommt die Antwort sofort. Bei einem Pool geht jeder
+   * Treffer ueber das Netz; dann wartet der naechste auf die Antwort.
+   */
   private einreichen(jobId: string, nonce: string): void {
     if (!this.running) return;
     let n: bigint;
     try { n = BigInt(nonce); } catch { this.errors++; return; }
+    if (this.wartend.length >= TREFFER_WARTEND_MAX) return;
+    this.wartend.push({ jobId, nonce: n });
+    if (!this.reichtEin) this.leere();
+  }
 
-    const r = this.mining.submitNonce(jobId, n);
+  private leere(): void {
+    while (this.running && this.wartend.length > 0) {
+      const m = this.wartend.shift()!;
+      let r: Einreichung | Promise<Einreichung>;
+      try { r = this.quelle.submitNonce(m.jobId, m.nonce); }
+      catch (e) { this.errors++; this.log(`GPU-Treffer nicht eingereicht: ${(e as Error).message}`); continue; }
+      if (r instanceof Promise) {
+        const lauf = this.lauf;
+        this.reichtEin = true;
+        r.then(x => { if (lauf === this.lauf) this.nachEinreichung(x); },
+               e => { if (lauf === this.lauf) { this.errors++; this.log(`GPU-Treffer nicht eingereicht: ${(e as Error).message}`); } })
+          .finally(() => { this.reichtEin = false; this.leere(); });
+        return;
+      }
+      this.nachEinreichung(r);
+    }
+  }
+
+  private nachEinreichung(r: Einreichung): void {
+    if (!this.running) return;
     if (!r.ok) {
+      // Der Job wurde inzwischen durch einen neueren ersetzt -- der laeuft schon.
+      if (r.grund === 'job_ersetzt') return;
       if (r.grund === 'stale_job' || r.grund === 'job_unknown' || r.grund === 'job_expired') {
         this.neuerJob();
       } else {
@@ -407,26 +465,60 @@ export class GpuMiner {
       }
       return;
     }
-    if (!r.block) return;
+    if (!r.block) {
+      // Im Pool: Das Share-Ziel hat sich geaendert -- Arbeit mit dem neuen Ziel holen.
+      if (r.neuerJob) { this.wartend = []; this.neuerJob(); }
+      return;
+    }
 
     this.blocks++;
-    this.log(`BLOCK GEFUNDEN (GPU) #${r.height} · ${r.hash.slice(0, 32)}…`);
+    if (this.quelle === this.mining) this.log(`BLOCK GEFUNDEN (GPU) #${r.height} · ${r.hash.slice(0, 32)}…`);
     this.onBlock?.(r.height, r.hash);
+    this.wartend = [];
     this.neuerJob();
   }
 
+  /*
+   * Frische Arbeit holen. Der eigene Knoten antwortet sofort; bei einem Pool
+   * laeuft immer nur EINE Anfrage -- jede ersetzt dort den vorigen Job.
+   */
   private neuerJob(): void {
     if (!this.running || !this.bereit || !this.adresse || !this.kind?.stdin) return;
+    if (this.jobLaeuft) { this.jobNochmal = true; return; }
+    let r: MiningJob | Promise<MiningJob>;
+    try { r = this.quelle.createJob(this.adresse, this.extranonce, this.extra); }
+    catch (e) { this.jobGescheitert(e as Error, false); return; }
+    if (!(r instanceof Promise)) { this.setzeJob(r); return; }
+    const lauf = this.lauf;
+    this.jobLaeuft = true;
+    r.then(job => { if (lauf === this.lauf && this.running) this.setzeJob(job); },
+           e => { if (lauf === this.lauf && this.running) this.jobGescheitert(e as Error, true); })
+      .finally(() => {
+        this.jobLaeuft = false;
+        if (this.jobNochmal) { this.jobNochmal = false; this.neuerJob(); }
+      });
+  }
+
+  private setzeJob(job: MiningJob): void {
+    if (!this.kind?.stdin) return;
     try {
-      this.job = this.mining.createJob(this.adresse, this.extranonce, this.extra);
+      this.job = job;
+      this.jobFehler = null;
       this.kind.stdin.write(JSON.stringify({
-        t: 'job', jobId: this.job.jobId, header: this.job.header, target: this.job.target,
+        t: 'job', jobId: job.jobId, header: job.header, target: job.target,
       }) + '\n');
-    } catch (e) {
-      this.errors++;
-      this.lastError = (e as Error).message;
-      this.log(`GPU-Job konnte nicht gebaut werden: ${this.lastError}`);
-    }
+    } catch (e) { this.jobGescheitert(e as Error, false); }
+  }
+
+  private jobGescheitert(e: Error, spaeter: boolean): void {
+    this.errors++;
+    // Dieselbe Meldung nicht alle paar Sekunden wiederholen.
+    if (this.jobFehler !== e.message) this.log(`GPU-Job konnte nicht geholt werden: ${e.message}`);
+    this.jobFehler = e.message;
+    this.lastError = e.message;
+    if (!spaeter || this.jobSpaeter) return;
+    this.jobSpaeter = setTimeout(() => { this.jobSpaeter = null; this.neuerJob(); }, JOB_NOCHMAL_MS);
+    this.jobSpaeter.unref?.();
   }
 
   /**
@@ -452,8 +544,11 @@ export class GpuMiner {
     // Kein automatischer Neustart: Ein Treiberfehler wiederholt sich sonst
     // in einer Schleife. Die GUI zeigt den Grund, und der Nutzer entscheidet.
     this.running = false;
+    this.lauf++;
+    this.wartend = [];
     this.bereit = false;
     this.hashrate = 0;
+    if (this.jobSpaeter) { clearTimeout(this.jobSpaeter); this.jobSpaeter = null; }
     if (this.erneuern) { clearInterval(this.erneuern); this.erneuern = null; }
     if (this.rateTakt) { clearInterval(this.rateTakt); this.rateTakt = null; }
     this.kind = null;
