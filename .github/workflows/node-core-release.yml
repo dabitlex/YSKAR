@@ -60,7 +60,7 @@ jobs:
 
       - name: GPU-Nachbildung bauen
         working-directory: node-core
-        run: npm run build:gpu-emu
+        run: mkdir -p gpu/bin && npm run build:gpu-emu
 
       - name: Tests des Node Core
         working-directory: node-core
@@ -109,9 +109,13 @@ jobs:
         shell: pwsh
         run: |
           $aus = & gpu\bin\yskar-cuda.exe --probe 2>&1 | Out-String
+          $ende = $LASTEXITCODE
           Write-Host $aus
-          Write-Host "Ende mit $LASTEXITCODE"
-          Get-FileHash gpu\bin\yskar-cuda.exe -Algorithm SHA256 | Format-List
+          $groesse = (Get-Item gpu\bin\yskar-cuda.exe).Length
+          $hash = (Get-FileHash gpu\bin\yskar-cuda.exe -Algorithm SHA256).Hash.ToLower()
+          # Ohne NVIDIA-Treiber endet das Programm mit einem Fehler -- das ist hier zu erwarten.
+          Write-Host "::notice title=GPU-Miner::yskar-cuda.exe gebaut ($groesse Byte, sha256 $($hash.Substring(0, 16))). --probe endet hier mit $ende: $($aus.Trim() -replace '\s+', ' ')"
+          $global:LASTEXITCODE = 0
 
       - uses: actions/upload-artifact@v4
         with:
@@ -161,6 +165,10 @@ jobs:
       - name: Abhängigkeiten
         run: npm ci
 
+      # Der Installer nimmt den GPU-Miner aus diesem Ordner mit -- es muss ihn geben, auch leer.
+      - name: Ordner für den GPU-Miner
+        run: New-Item -ItemType Directory -Force gpu\bin | Out-Null
+
       - name: Bundle und Installer
         run: npm run dist
         env:
@@ -201,7 +209,7 @@ jobs:
           $ruf = { param($pfad, $rumpf) Invoke-RestMethod "http://127.0.0.1:8650$pfad" -Method Post -Headers $kopf -ContentType 'application/json' -Body $rumpf -TimeoutSec 30 }
 
           $s = Invoke-RestMethod 'http://127.0.0.1:8650/api/status' -Headers $kopf
-          Write-Host "Version $($s.version) · Netz $($s.network) · Hülle $($s.huelle | ConvertTo-Json -Compress)"
+          Write-Host "::notice title=Probelauf::Version $($s.version), Netz $($s.network), Hülle $($s.huelle | ConvertTo-Json -Compress)"
           if ($s.version -ne '${{ steps.version.outputs.version }}') { throw "Das Programm meldet Version $($s.version)." }
           if ($s.network -ne 'yskar-main-1') { throw "Das Programm läuft nicht auf dem Mainnet: $($s.network)" }
           if (-not $s.huelle.vorhanden) { throw 'Die Hülle hat sich nicht angemeldet.' }
@@ -214,14 +222,14 @@ jobs:
 
           # Start mit Windows: setzen, lesen, wieder löschen.
           $an = & $ruf '/api/huelle/autostart' '{"an":true}'
-          Write-Host "Start mit Windows nach dem Einschalten: $($an.autostart)"
           $aus = & $ruf '/api/huelle/autostart' '{"an":false}'
+          Write-Host "::notice title=Start mit Windows::nach dem Einschalten $($an.autostart), nach dem Ausschalten $($aus.autostart)"
           if (-not $an.autostart) { throw 'Start mit Windows ließ sich nicht einschalten.' }
           if ($aus.autostart) { throw 'Start mit Windows ließ sich nicht ausschalten.' }
 
           # Der GPU-Miner: Ohne Karte findet er nichts -- aber das Programm muss ihn finden.
           $m = & $ruf '/api/mining/detect' '{}'
-          Write-Host "GPU-Erkennung: $($m.gpuErkennung | ConvertTo-Json -Compress)"
+          Write-Host "::notice title=GPU-Erkennung::$($m.gpuErkennung | ConvertTo-Json -Compress)"
           if ((Test-Path 'release\win-unpacked\resources\yskar-cuda.exe') -and -not $m.gpuErkennung.programm) {
             throw 'Der GPU-Miner liegt im Paket, wird vom Programm aber nicht gefunden.'
           }
@@ -235,7 +243,7 @@ jobs:
           # Beenden über die Oberfläche: Der Prozess muss wirklich enden.
           & $ruf '/api/shutdown' '{}' | Out-Null
           if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; throw 'Das Programm beendet sich nicht.' }
-          Write-Host "Beendet mit Code $($p.ExitCode)."
+          Write-Host "::notice title=Beenden::Zweiter Start endete mit $($p2.ExitCode); das Programm beendete sich mit $($p.ExitCode)."
 
           $log = Join-Path $env:LOCALAPPDATA 'YSKAR\Node Core\protokoll.log'
           if (Test-Path $log) { Write-Host '--- protokoll.log'; Get-Content $log -Tail 30 }
@@ -247,7 +255,7 @@ jobs:
           if (-not (Test-Path $datei)) { throw "$datei fehlt." }
           $hash = (Get-FileHash $datei -Algorithm SHA256).Hash.ToLower()
           "$hash  YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe" | Out-File -FilePath "$datei.sha256" -Encoding ascii
-          Write-Host "SHA-256: $hash"
+          Write-Host "::notice title=Installer::$((Get-Item $datei).Length) Byte, SHA-256 $hash"
 
       - uses: actions/upload-artifact@v4
         with:
