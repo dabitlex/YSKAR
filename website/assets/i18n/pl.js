@@ -196,7 +196,7 @@
   "an.node.s1": "1. Zbuduj",
   "an.node.win": "Na Windowsie użyj npm.cmd zamiast npm.",
   "an.node.s2": "2. Uruchom i połącz z siecią",
-  "an.node.s2Text": "Węzeł łączy się z innym węzłem (seedem), pobiera łańcuch i sprawdza go blok po bloku. Inne węzły mogą połączyć się z Twoim na porcie 8646, jeśli otworzysz go w routerze; to opcjonalne.",
+  "an.node.s2Text": "Węzeł łączy się z innym węzłem (seedem), pobiera łańcuch i sprawdza go blok po bloku. Inne węzły mogą połączyć się z Twoim na porcie 8646, jeśli otworzysz go w routerze; to opcjonalne. Z opcją --no-upstream Twój węzeł przekazuje bloki tylko innym węzłom, a nie serwerowi WWW projektu.",
   "an.node.s3": "3. Kop na własnym węźle",
   "an.node.s4": "4. Uruchom pool (opcjonalnie)",
   "an.node.s4Text": "Każdy węzeł może być poolem, bez rejestracji. Sam blok wypłaca wszystkim uczestnikom; nigdy nie trzymasz cudzych środków.",

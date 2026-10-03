@@ -196,7 +196,7 @@
   "an.node.s1": "1. Compila",
   "an.node.win": "Su Windows usa npm.cmd invece di npm.",
   "an.node.s2": "2. Avvia e collegati alla rete",
-  "an.node.s2Text": "Il nodo si collega a un altro nodo (il seed), carica la catena e la controlla blocco per blocco. Gli altri nodi possono raggiungere il tuo sulla porta 8646 se la apri nel router; è facoltativo.",
+  "an.node.s2Text": "Il nodo si collega a un altro nodo (il seed), carica la catena e la controlla blocco per blocco. Gli altri nodi possono raggiungere il tuo sulla porta 8646 se la apri nel router; è facoltativo. Con --no-upstream il tuo nodo passa i blocchi solo agli altri nodi, non al server web del progetto.",
   "an.node.s3": "3. Mina sul tuo nodo",
   "an.node.s4": "4. Gestisci un pool (facoltativo)",
   "an.node.s4Text": "Qualsiasi nodo può essere un pool, senza registrazione. È il blocco stesso a pagare tutti i partecipanti; non custodisci mai i fondi di altri.",

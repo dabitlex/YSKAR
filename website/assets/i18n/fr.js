@@ -196,7 +196,7 @@
   "an.node.s1": "1. Compiler",
   "an.node.win": "Sous Windows, utilise npm.cmd au lieu de npm.",
   "an.node.s2": "2. Démarrer et se connecter au réseau",
-  "an.node.s2Text": "Le nœud se connecte à un autre nœud (le seed), charge la chaîne et la vérifie bloc par bloc. D’autres nœuds peuvent joindre le tien sur le port 8646 si tu l’ouvres dans ton routeur ; c’est facultatif.",
+  "an.node.s2Text": "Le nœud se connecte à un autre nœud (le seed), charge la chaîne et la vérifie bloc par bloc. D’autres nœuds peuvent joindre le tien sur le port 8646 si tu l’ouvres dans ton routeur ; c’est facultatif. Avec --no-upstream, ton nœud ne transmet les blocs qu’aux autres nœuds, pas au serveur web du projet.",
   "an.node.s3": "3. Miner sur ton propre nœud",
   "an.node.s4": "4. Gérer un pool (facultatif)",
   "an.node.s4Text": "N’importe quel nœud peut être un pool, sans inscription. C’est le bloc lui-même qui paie tous les participants ; tu ne détiens jamais les fonds des autres.",

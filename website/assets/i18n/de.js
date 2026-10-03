@@ -196,7 +196,7 @@
   "an.node.s1": "1. Bauen",
   "an.node.win": "Unter Windows npm.cmd statt npm verwenden.",
   "an.node.s2": "2. Starten und mit dem Netz verbinden",
-  "an.node.s2Text": "Der Knoten verbindet sich mit einem anderen Knoten (dem Seed), lädt die Kette und prüft sie Block für Block. Andere Knoten erreichen deinen über Port 8646, wenn du ihn im Router freigibst; das ist optional.",
+  "an.node.s2Text": "Der Knoten verbindet sich mit einem anderen Knoten (dem Seed), lädt die Kette und prüft sie Block für Block. Andere Knoten erreichen deinen über Port 8646, wenn du ihn im Router freigibst; das ist optional. Mit --no-upstream gibt dein Knoten Blöcke nur an andere Knoten weiter, nicht an den Webserver des Projekts.",
   "an.node.s3": "3. Gegen den eigenen Knoten minen",
   "an.node.s4": "4. Einen Pool betreiben (optional)",
   "an.node.s4Text": "Jeder Knoten kann ein Pool sein, ohne Anmeldung. Der Block selbst zahlt alle Beteiligten aus; du hältst nie fremdes Guthaben.",

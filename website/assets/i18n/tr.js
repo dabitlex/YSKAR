@@ -196,7 +196,7 @@
   "an.node.s1": "1. Derle",
   "an.node.win": "Windows’ta npm yerine npm.cmd kullan.",
   "an.node.s2": "2. Başlat ve ağa bağlan",
-  "an.node.s2Text": "Düğüm başka bir düğüme (seed) bağlanır, zinciri yükler ve blok blok kontrol eder. 8646 numaralı portu modeminde açarsan diğer düğümler seninkine ulaşabilir; bu isteğe bağlıdır.",
+  "an.node.s2Text": "Düğüm başka bir düğüme (seed) bağlanır, zinciri yükler ve blok blok kontrol eder. 8646 numaralı portu modeminde açarsan diğer düğümler seninkine ulaşabilir; bu isteğe bağlıdır. --no-upstream ile düğümün blokları yalnızca diğer düğümlere iletir, projenin web sunucusuna değil.",
   "an.node.s3": "3. Kendi düğümünle madencilik",
   "an.node.s4": "4. Havuz çalıştır (isteğe bağlı)",
   "an.node.s4Text": "Her düğüm kayıt olmadan havuz olabilir. Ödemeyi bloğun kendisi tüm katılımcılara yapar; sen hiçbir zaman başkasının parasını tutmazsın.",
