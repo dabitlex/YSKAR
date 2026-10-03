@@ -1,5 +1,5 @@
 /* Mining: mit Prozessor und Grafikkarte an neuen Blöcken rechnen. */
-import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, dauer, tagOderZeit, zeichen, segment } from './kern.js';
+import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, dauer, tagOderZeit, zeichen, segment, kurzAdresse } from './kern.js';
 import { t } from './i18n.js';
 
 /** Dieselbe Regel wie im Knoten und im Explorer: druckbares ASCII, 3 bis 32 Zeichen. */
@@ -36,6 +36,18 @@ export function baue(ctx) {
     el('div.feldgruppe', el('label', { for: 'm-gpu' }, t('min.karte')), gpuWahl),
     gpuGrund,
     el('div', knopf(t('min.gpuSuchen'), async () => { try { await sende('/api/mining/detect'); await ctx.neuLaden(); } catch (e) { melde(e.message, true); } }, 'klein')));
+  const walletAdr = el('span.mono.dim', { style: 'font-size:12.5px' });
+  const rWallet = el('input', { type: 'radio', name: 'm-ziel', id: 'm-ziel-wallet' });
+  const rAndere = el('input', { type: 'radio', name: 'm-ziel', id: 'm-ziel-andere' });
+  const wahlWallet = el('label.box.wahl', rWallet, el('span.stapel', { style: 'gap:2px' }, el('span', { style: 'font-size:13.5px;font-weight:700' }, t('min.meineWallet')), walletAdr));
+  const wahlAndere = el('label.box.wahl', rAndere, el('span', { style: 'font-size:13.5px;font-weight:700' }, t('min.andere')));
+  const setzeZiel = an => {
+    zielWallet = an; rWallet.checked = an; rAndere.checked = !an;
+    wahlWallet.classList.toggle('gewaehlt', an); wahlAndere.classList.toggle('gewaehlt', !an);
+    adresse.hidden = an;
+  };
+  rWallet.addEventListener('change', () => setzeZiel(true));
+  rAndere.addEventListener('change', () => { setzeZiel(false); adresse.focus(); });
   const name = el('input.feld', { id: 'm-name', type: 'text', maxlength: 32, spellcheck: 'false', autocomplete: 'off' });
   const nameHinweis = el('p.hinweis');
   const gesperrt = el('p.hinweis', { hidden: true }, t('min.gesperrt'));
@@ -49,6 +61,7 @@ export function baue(ctx) {
 
   let gefuellt = false;
   let beschaeftigt = false;
+  let zielWallet = false;      // Belohnung an die eigene Wallet?
   let fundeFuer = '';
   let fundeHoehe = -2;
 
@@ -73,7 +86,7 @@ export function baue(ctx) {
       if (laeuft) { await sende('/api/mining/stop'); }
       else {
         const r = await sende('/api/mining/start', {
-          address: adresse.value.trim(), mode: modus,
+          address: zielWallet ? ctx.stand().wallet.adresse : adresse.value.trim(), mode: modus,
           cpuWorkers: Number(kerne.value), cpuIntensity: Number(last.value),
           gpuDevice: Number(gpuWahl.value || 0), blockName: name.value.trim(),
         });
@@ -88,7 +101,8 @@ export function baue(ctx) {
     kopf(t('min.titel'), t('min.sub'), zustand, start),
     el('div.spalten',
       el('section.karte', { style: 'flex:1 1 440px;gap:18px', 'aria-label': t('min.einstellungen') },
-        el('div.feldgruppe', el('label', { for: 'm-adresse' }, t('min.gehtAn')), adresse, el('p.hinweis', t('min.gehtAnHinweis'))),
+        el('fieldset.feldgruppe', { style: 'border:0;margin:0;padding:0' }, el('legend.feldname', { style: 'padding:0;margin-bottom:6px' }, t('min.gehtAn')),
+          wahlWallet, wahlAndere, adresse, el('p.hinweis', t('min.gehtAnHinweis'))),
         el('div.feldgruppe', el('span.feldname', t('min.geraet')), geraet),
         cpuKasten, gpuKasten,
         el('div.feldgruppe', el('label', { for: 'm-name' }, t('min.name'), ' ', el('small', '· ' + t('allg.freiwillig'))), name, nameHinweis),
@@ -125,6 +139,8 @@ export function baue(ctx) {
     const m = s.mining;
     if (!gefuellt) {
       adresse.value = m.config.address || '';
+      // Mit eigener Wallet ist sie die Vorgabe -- außer es wurde bewusst eine andere Adresse eingetragen.
+      setzeZiel(!!s.wallet.adresse && (!m.config.address || m.config.address === s.wallet.adresse));
       modus = m.config.mode; geraet.setze(modus);
       kerne.max = m.cores; kerne.value = Math.min(m.cores, m.config.cpuWorkers);
       last.value = m.config.cpuIntensity;
@@ -143,7 +159,11 @@ export function baue(ctx) {
     start.title = !m.running && s.running && !bereit && m.startklar?.grund ? m.startklar.grund : '';
 
     // Während das Mining läuft, bleiben die Einstellungen stehen.
-    for (const f of [adresse, kerne, last, name, gpuWahl]) f.disabled = m.running;
+    for (const f of [adresse, kerne, last, name, gpuWahl, rWallet, rAndere]) f.disabled = m.running;
+    // Ohne Wallet gibt es nur das Adressfeld.
+    wahlWallet.hidden = !s.wallet.adresse; wahlAndere.hidden = !s.wallet.adresse;
+    if (!s.wallet.adresse && zielWallet) setzeZiel(false);
+    text(walletAdr, kurzAdresse(s.wallet.adresse));
     for (const b of geraet.children) b.disabled = m.running || (b.dataset.wert !== 'cpu' && !m.gpuErkennung?.verfuegbar);
     gesperrt.hidden = !m.running;
 

@@ -20,9 +20,17 @@ import { MiningCoordinator } from '../../src/lib/node/fullnode/MiningCoordinator
 import { MiningServer } from '../../src/lib/node/fullnode/MiningServer.ts';
 import { NetzStatistik, type LokaleStatistik } from '../../src/lib/node/fullnode/NetzStatistik.ts';
 import { ReadApi } from '../../src/lib/node/fullnode/ReadApi.ts';
-import { EPOCH_BLOCKS, rewardAt } from '../../src/lib/core/params.ts';
-import { txid } from '../../src/lib/core/tx.ts';
+import { EPOCH_BLOCKS, rewardAt, DUST_LIMIT, FEE_V3_HEIGHT } from '../../src/lib/core/params.ts';
+import { txid, buildTransfer, transferBytes } from '../../src/lib/core/tx.ts';
 import { encodeAddress } from '../../src/lib/core/address.ts';
+import { getAccount } from '../../src/lib/core/state.ts';
+import { notizKuerzen, notizAusHex } from '../../src/lib/wallet/notiz.ts';
+import { eingabeEinheiten } from '../../src/lib/wallet/betrag.ts';
+import { zahlungsCode } from '../../src/lib/wallet/qr.ts';
+// @ts-ignore -- nur der Kern der Bibliothek, ohne Bildausgabe
+import qrKern from 'qrcode/lib/core/qrcode.js';
+import { WalletDienst, WalletFehler } from './Wallet.ts';
+import { leseVerlauf, tagVon, type KettenVerlauf } from './WalletKette.ts';
 import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
@@ -262,9 +270,12 @@ export interface Einstellungen {
   sprache: 'de' | 'en';
   /** Den Knoten beim Oeffnen des Programms sofort starten. */
   knotenSofort: boolean;
+  /** Minuten ohne Regung, nach denen sich die Wallet sperrt. 0 = nie. */
+  sperreMinuten: number;
 }
 
-const VORGABE_EINSTELLUNGEN: Einstellungen = { sprache: 'de', knotenSofort: true };
+const SPERRE_WAHL = [0, 5, 10, 30];
+const VORGABE_EINSTELLUNGEN: Einstellungen = { sprache: 'de', knotenSofort: true, sperreMinuten: 10 };
 
 function pruefeEinstellungen(roh: unknown, basis: Einstellungen): Einstellungen {
   const e = { ...basis };
@@ -272,6 +283,7 @@ function pruefeEinstellungen(roh: unknown, basis: Einstellungen): Einstellungen 
   const r = roh as Record<string, unknown>;
   if (r.sprache === 'de' || r.sprache === 'en') e.sprache = r.sprache;
   if (typeof r.knotenSofort === 'boolean') e.knotenSofort = r.knotenSofort;
+  if (typeof r.sperreMinuten === 'number' && SPERRE_WAHL.includes(r.sperreMinuten)) e.sperreMinuten = r.sperreMinuten;
   return e;
 }
 
@@ -321,6 +333,9 @@ export class NodeCoreApp {
   private seedIp: string | null = null;
   private einstellungen: Einstellungen;
   private einstellungenPfad: string;
+  private wallet: WalletDienst;
+  /** Verlauf der Wallet aus der Kette -- gilt, bis ein neuer Block kommt. */
+  private verlaufMerker: { schluessel: string; wert: KettenVerlauf } | null = null;
   /*
    * Zugangsschluessel der Oberflaeche. Entsteht bei jedem Start neu und
    * steht nur in der Seite, die dieser Server selbst ausliefert. Eine fremde
@@ -363,6 +378,8 @@ export class NodeCoreApp {
     this.miningPfad = join(base, 'mining.json');
     this.einstellungenPfad = join(base, 'einstellungen.json');
     this.einstellungen = ladeEinstellungen(this.einstellungenPfad);
+    this.wallet = new WalletDienst(base);
+    this.wallet.sperreMinuten = this.einstellungen.sperreMinuten;
     this.ladeMining();
     this.config = {
       dataDir: defaultDataDir(),
@@ -922,6 +939,7 @@ export class NodeCoreApp {
       zielBlockzeit: Number(this.params.targetBlockTime),
       guiPort: this.guiPort,
       konsensfassung: KONSENSFASSUNG,
+      wallet: this.wallet.stand(),
       uptimeSeconds: this.startedAt ? Math.floor((Date.now() - this.startedAt) / 1000) : 0,
     };
   }
@@ -993,9 +1011,209 @@ export class NodeCoreApp {
 
   private setzeEinstellungen(body: Record<string, unknown>) {
     this.einstellungen = pruefeEinstellungen(body, this.einstellungen);
+    this.wallet.sperreMinuten = this.einstellungen.sperreMinuten;
     try { writeFileSync(this.einstellungenPfad, JSON.stringify(this.einstellungen, null, 2)); }
     catch (e) { this.log(`einstellungen.json nicht gespeichert: ${(e as Error).message}`); }
     return this.einstellungen;
+  }
+
+  // ----------------------------------------------------------------- Wallet
+
+  /** Sperrt die Wallet -- auch von aussen, etwa wenn Windows gesperrt wird. */
+  sperreWallet(): void { this.wallet.sperren(); }
+
+  private kettenVerlauf(adresse: string): KettenVerlauf {
+    const tip = this.chain?.tip();
+    if (!tip || !this.store || !this.running) return { ueberweisungen: [], mining: [], gesendetAn: [], durchsucht: 0 };
+    const schluessel = toHex(tip.hash) + adresse;
+    if (this.verlaufMerker?.schluessel !== schluessel) {
+      this.verlaufMerker = { schluessel, wert: leseVerlauf(this.store, tip.height, toHex(decodeAddress(adresse))) };
+    }
+    return this.verlaufMerker.wert;
+  }
+
+  /** Was von dieser Adresse im Mempool wartet -- in beide Richtungen. */
+  private walletWartend(adresse: string) {
+    const hex = toHex(decodeAddress(adresse));
+    const gesehen = new Map(this.mempoolListe().wartend.map(w => [w.txid, w.seit]));
+    return (this.pool?.alle() ?? [])
+      .filter(t => toHex(t.from) === hex || toHex(t.to) === hex)
+      .map(t => {
+        const id = toHex(txid(t));
+        const aus = toHex(t.from) === hex;
+        const gegen = encodeAddress(aus ? t.to : t.from);
+        return {
+          txid: id, art: aus ? 'aus' as const : 'ein' as const, gegen,
+          name: this.wallet.kontaktName(gegen),
+          betrag: t.amount.toString(), gebuehr: t.fee.toString(),
+          notiz: notizAusHex(toHex(t.memo)), seit: gesehen.get(id) ?? Date.now(),
+        };
+      });
+  }
+
+  /** Guthaben und was davon frei ist: Wartende eigene Zahlungen zaehlen schon ab. */
+  private walletKonto(adresse: string) {
+    const konto = this.chain && this.running
+      ? getAccount(this.chain.state(), decodeAddress(adresse))
+      : { balance: 0n, nonce: 0n };
+    const wartend = this.walletWartend(adresse);
+    const gebunden = wartend.filter(w => w.art === 'aus')
+      .reduce((summe, w) => summe + BigInt(w.betrag) + BigInt(w.gebuehr), 0n);
+    const verfuegbar = konto.balance > gebunden ? konto.balance - gebunden : 0n;
+    return { konto, wartend, gebunden, verfuegbar,
+             naechsteNonce: konto.nonce + BigInt(wartend.filter(w => w.art === 'aus').length) };
+  }
+
+  private walletUebersicht() {
+    const adresse = this.wallet.verlangeOffen();
+    const { konto, wartend, gebunden, verfuegbar } = this.walletKonto(adresse);
+    const v = this.kettenVerlauf(adresse);
+    const heute = tagVon(Date.now() / 1000);
+
+    // Die letzten sieben Kalendertage, aeltester zuerst.
+    const jeTag = new Map(v.mining.map(m => [m.tag, m]));
+    const sieben = [];
+    for (let i = 6; i >= 0; i--) {
+      const tag = tagVon(Date.now() / 1000 - i * 86400);
+      const m = jeTag.get(tag);
+      sieben.push({ tag, summe: m?.summe ?? '0', bloecke: (m?.solo ?? 0) + (m?.pool ?? 0) });
+    }
+    const heuteEin = v.ueberweisungen.filter(u => u.art === 'ein' && tagVon(u.zeit) === heute)
+      .reduce((summe, u) => summe + BigInt(u.betrag), 0n) + BigInt(jeTag.get(heute)?.summe ?? '0');
+
+    return {
+      knotenLaeuft: this.running,
+      adresse,
+      guthaben: konto.balance.toString(),
+      verfuegbar: verfuegbar.toString(),
+      unterwegs: gebunden.toString(),
+      heute: heuteEin.toString(),
+      wartend,
+      ueberweisungen: v.ueberweisungen.map(u => ({ ...u, name: this.wallet.kontaktName(u.gegen) })),
+      mining: v.mining,
+      sieben,
+      kontakte: this.wallet.kontakte(),
+      datei: this.wallet.datei(),
+      durchsucht: v.durchsucht,
+    };
+  }
+
+  /*
+   * Eine Zahlung durchrechnen -- ohne Passwort, ohne etwas zu senden.
+   *
+   * Dieselbe Rechnung wie in der App (Send.tsx): Die Stufe kommt aus der
+   * gemessenen Marktlage des Knotens, liegt aber nie unter dem Satz je Byte
+   * fuer die tatsaechliche Groesse -- die Notiz macht die Ueberweisung
+   * laenger.
+   */
+  private walletRechne(body: Record<string, unknown>) {
+    const adresse = this.wallet.verlangeOffen();
+    if (!this.running || !this.chain || !this.pool || !this.lesen) {
+      throw new WalletFehler('knoten_aus', 'Zum Senden muss der Knoten laufen.');
+    }
+    const an = String(body.an ?? '').trim().toLowerCase();
+    if (!isValidAddress(an)) throw new WalletFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
+    if (an === adresse) throw new WalletFehler('eigene_adresse', 'Das ist deine eigene Adresse.');
+
+    const notiz = notizKuerzen(String(body.notiz ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim());
+    const memo = new TextEncoder().encode(notiz);
+    const stufe = body.stufe === 'langsam' || body.stufe === 'schnell' ? body.stufe : 'normal';
+
+    const hoehe = this.chain.height() + 1;
+    const markt = this.lesen.fees(new URLSearchParams());
+    let gebuehr = BigInt(markt.stufen[stufe].fee);
+    const jeByte = markt.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(transferBytes(memo.length)) : 0n;
+    if (jeByte > gebuehr) gebuehr = jeByte;
+    const boden = this.pool.mindestGebuehr(hoehe, memo.length);
+    if (boden > gebuehr) gebuehr = boden;
+
+    const { verfuegbar, wartend, naechsteNonce } = this.walletKonto(adresse);
+    let betrag: bigint;
+    if (body.alles === true) {
+      betrag = verfuegbar - gebuehr;
+      if (betrag <= 0n) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+    } else {
+      betrag = eingabeEinheiten(String(body.betrag ?? ''));
+      if (betrag <= 0n) throw new WalletFehler('betrag_falsch', 'Gib einen Betrag ein.');
+    }
+    if (hoehe >= (this.params.feeV3Height ?? FEE_V3_HEIGHT) && betrag < DUST_LIMIT) {
+      throw new WalletFehler('betrag_staub', 'Der Betrag ist zu klein. Mindestens 0,000001 YSR.');
+    }
+    if (betrag + gebuehr > verfuegbar) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+
+    const v = this.kettenVerlauf(adresse);
+    const bekannt = this.wallet.kontaktName(an) !== null || v.gesendetAn.includes(an)
+      || wartend.some(w => w.art === 'aus' && w.gegen === an);
+
+    return {
+      an, name: this.wallet.kontaktName(an), neu: !bekannt,
+      betrag, gebuehr, notiz, memo, stufe, naechsteNonce,
+      gesamt: betrag + gebuehr, verfuegbar, danach: verfuegbar - betrag - gebuehr,
+      zielBlock: markt.stufen[stufe].block, andrang: markt.andrang,
+    };
+  }
+
+  private walletVorschau(body: Record<string, unknown>) {
+    const r = this.walletRechne(body);
+    this.wallet.regung();
+    return {
+      an: r.an, name: r.name, neu: r.neu, notiz: r.notiz, stufe: r.stufe,
+      betrag: r.betrag.toString(), gebuehr: r.gebuehr.toString(), gesamt: r.gesamt.toString(),
+      verfuegbar: r.verfuegbar.toString(), danach: r.danach.toString(),
+      zielBlock: r.zielBlock, andrang: r.andrang,
+    };
+  }
+
+  /** Unterschreiben und ins Netz geben. Verlangt das Passwort -- jedes Mal. */
+  private async walletSenden(body: Record<string, unknown>) {
+    const r = this.walletRechne(body);
+    const paar = await this.wallet.schluessel(body.passwort);
+    const tx = buildTransfer({
+      chainId: this.params.chainId,
+      from: paar.addressRaw, to: decodeAddress(r.an),
+      amount: r.betrag, fee: r.gebuehr, nonce: r.naechsteNonce, memo: r.memo,
+      publicKey: paar.publicKey, privateKey: paar.privateKey,
+    });
+    paar.privateKey.fill(0);
+
+    const aufnahme = this.pool!.add(tx, this.chain!.state(), this.chain!.height() + 1);
+    if (!aufnahme.ok) {
+      const text: Record<string, string> = {
+        insufficient_funds: 'Dafür reicht das Guthaben nicht.',
+        fee_too_low: 'Die Gebühr ist dem Knoten zu niedrig.',
+        nonce_gap: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
+        nonce_too_low: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
+        unknown_account: 'Auf dieser Wallet liegt noch kein Guthaben.',
+        sender_limit: 'Von dieser Wallet warten schon zu viele Überweisungen.',
+        pool_full: 'Die Warteschlange des Knotens ist voll. Bitte später noch einmal versuchen.',
+        duplicate: 'Diese Überweisung wurde schon eingereicht.',
+      };
+      throw new WalletFehler('abgelehnt_' + aufnahme.reason,
+        text[aufnahme.reason] ?? `Der Knoten hat die Überweisung abgelehnt (${aufnahme.reason}).`);
+    }
+    const n = this.sync?.kuendigeAnTx(txid(tx)) ?? 0;
+    this.log(`Überweisung ${aufnahme.txid.slice(0, 16)}… eingereicht, an ${n} Peer${n === 1 ? '' : 's'} gemeldet`);
+    return {
+      txid: aufnahme.txid, an: r.an, name: r.name,
+      betrag: r.betrag.toString(), gebuehr: r.gebuehr.toString(),
+      peers: n,
+    };
+  }
+
+  /** QR-Code der Adresse, auf Wunsch mit Betrag und Notiz -- im Format der App. */
+  private walletQr(such: URLSearchParams) {
+    const adresse = this.wallet.verlangeOffen();
+    const betrag = eingabeEinheiten(such.get('betrag') ?? '');
+    const code = zahlungsCode(adresse, betrag > 0n ? betrag : null, such.get('notiz'));
+    const q = qrKern.create(code, { errorCorrectionLevel: 'M' });
+    const n: number = q.modules.size;
+    const zeilen: string[] = [];
+    for (let y = 0; y < n; y++) {
+      let z = '';
+      for (let x = 0; x < n; x++) z += q.modules.data[y * n + x] ? '1' : '0';
+      zeilen.push(z);
+    }
+    return { code, groesse: n, zeilen };
   }
 
   /*
@@ -1090,6 +1308,31 @@ export class NodeCoreApp {
       if (POST && pfad === '/api/peers/verbinden') return json(res, this.verbindePeer(await readBody(req)));
       if (POST && pfad === '/api/peers/trennen') return json(res, this.trennePeer(await readBody(req)));
 
+      // Wallet
+      if (pfad === '/api/wallet' || pfad.startsWith('/api/wallet/')) {
+        const w = this.wallet;
+        if (GET && pfad === '/api/wallet') return json(res, w.stand());
+        if (GET && pfad === '/api/wallet/uebersicht') return json(res, this.walletUebersicht());
+        if (GET && pfad === '/api/wallet/qr') return json(res, this.walletQr(url.searchParams));
+        if (POST) {
+          const b = await readBody(req);
+          if (pfad === '/api/wallet/neu') return json(res, { woerter: w.neueWoerter() });
+          if (pfad === '/api/wallet/anlegen') return json(res, await w.anlegen(b.woerter, b.passwort));
+          if (pfad === '/api/wallet/entsperren') return json(res, await w.entsperren(b.passwort));
+          if (pfad === '/api/wallet/zuruecksetzen') return json(res, await w.neuesPasswortMitWoertern(b.woerter, b.passwort));
+          if (pfad === '/api/wallet/sperren') { w.sperren(); return json(res, w.stand()); }
+          if (pfad === '/api/wallet/regung') { w.regung(); return json(res, w.stand()); }
+          if (pfad === '/api/wallet/pruefen') return json(res, this.walletVorschau(b));
+          if (pfad === '/api/wallet/senden') return json(res, await this.walletSenden(b));
+          if (pfad === '/api/wallet/woerter') return json(res, { woerter: await w.woerter(b.passwort) });
+          if (pfad === '/api/wallet/passwort') { await w.passwortAendern(b.alt, b.neu); return json(res, { ok: true }); }
+          if (pfad === '/api/wallet/entfernen') { await w.entfernen(b.passwort); return json(res, w.stand()); }
+          if (pfad === '/api/wallet/kontakt') return json(res, { kontakte: w.setzeKontakt(b.name, b.adresse) });
+          if (pfad === '/api/wallet/kontakt/entfernen') return json(res, { kontakte: w.entferneKontakt(b.adresse) });
+        }
+        return json(res, { error: 'not_found' }, 404);
+      }
+
       if (GET && pfad === '/api/mining/status') return json(res, this.miningStatus());
       if (POST && pfad === '/api/mining/start') return json(res, await this.startMining(await readBody(req)));
       if (POST && pfad === '/api/mining/stop') return json(res, await this.stopMining());
@@ -1113,7 +1356,8 @@ export class NodeCoreApp {
       }
       json(res, { error: 'not_found' }, 404);
     } catch (e) {
-      json(res, { error: (e as Error).message }, 400);
+      const code = e instanceof WalletFehler ? e.code : undefined;
+      json(res, { error: (e as Error).message, ...(code ? { code } : {}) }, 400);
     }
   }
 }

@@ -1,6 +1,7 @@
 /* Erster Start: den Knoten einrichten und starten. */
-import { sende, el, fuelle, knopf, melde, kristall, zeichen, zeile, netzName } from './kern.js';
+import { sende, el, fuelle, knopf, melde, kristall, zeichen, zeile, netzName, kurzAdresse } from './kern.js';
 import { t } from './i18n.js';
+import { baueEinrichten } from './walletEinrichten.js';
 
 export function baue(ctx) {
   const s = ctx.stand();
@@ -13,7 +14,7 @@ export function baue(ctx) {
   const fehler = el('div.fehler', { hidden: true, role: 'alert' });
   const schritte = el('ol.schritte', { 'aria-label': t('einr.schritte') });
   const karte = el('section.karte');
-  const NAMEN = ['einr.s1', 'einr.s3'];
+  const NAMEN = ['einr.s1', 'einr.s2', 'einr.s3'];
 
   function zeigeSchritte(nr) {
     fuelle(schritte, NAMEN.map((n, i) => i < nr
@@ -40,12 +41,31 @@ export function baue(ctx) {
     fehler.hidden = true;
     try {
       await sende('/api/configure', { dataDir: f.ordner.value.trim(), nodePort: Number(f.api.value), p2pPort: Number(f.p2p.value), seed: f.seed.value.trim(), nurPruefen: true });
-      schritt2();
+      schrittWallet();
     } catch (e) { fehler.textContent = e.message; fehler.hidden = false; }
   }
 
-  function schritt2() {
+  /** Schritt 2: Wallet anlegen, wiederherstellen oder später. */
+  async function schrittWallet() {
     zeigeSchritte(1);
+    fehler.hidden = true;
+    await ctx.neuLaden();
+    if (ctx.stand().wallet.vorhanden) {
+      // Es gibt schon eine -- etwa aus einer früheren Installation.
+      fuelle(karte,
+        el('div.stapel', { style: 'gap:8px' }, el('h1', t('wal.einrichten')), el('p.einleitung', t('einr.walletDa'))),
+        el('div.box.zeilen', { style: 'padding:4px 14px' }, zeile(t('kette.adresse'), el('span.mono.umbruch', ctx.stand().wallet.adresse))),
+        el('div.reihe', { style: 'justify-content:space-between' }, knopf(t('allg.zurueck'), schritt1), knopf(t('allg.weiter'), schritt2, 'haupt')));
+      return;
+    }
+    const e = baueEinrichten({ fertig: async () => { await ctx.neuLaden(); schritt2(); }, spaeter: schritt2, zurueck: schritt1 });
+    fuelle(karte,
+      el('div.stapel', { style: 'gap:6px' }, el('h1', { style: 'font-size:26px' }, t('wal.einrichten')), el('p.einleitung', { style: 'font-size:14.5px' }, t('wal.einrichtenText'))),
+      e.wurzel);
+  }
+
+  function schritt2() {
+    zeigeSchritte(2);
     fehler.hidden = true;
     const los = knopf(t('einr.starten'), async () => {
       los.disabled = true; fehler.hidden = true;
@@ -61,9 +81,10 @@ export function baue(ctx) {
       el('div.box.zeilen', { style: 'padding:4px 14px' },
         zeile(t('einst.ordner'), el('span.mono.umbruch', f.ordner.value.trim())),
         zeile(t('einst.p2pPort'), f.p2p.value, true),
-        zeile('Seed', f.seed.value.trim() || '—', true)),
+        zeile('Seed', f.seed.value.trim() || '—', true),
+        zeile(t('nav.wallet'), ctx.stand().wallet.vorhanden ? el('span.mono', kurzAdresse(ctx.stand().wallet.adresse)) : t('einr.walletSpaeter'))),
       fehler,
-      el('div.reihe', { style: 'justify-content:space-between' }, knopf(t('allg.zurueck'), schritt1), los));
+      el('div.reihe', { style: 'justify-content:space-between' }, knopf(t('allg.zurueck'), schrittWallet), los));
   }
 
   const wurzel = el('div.einrichtung', el('div',

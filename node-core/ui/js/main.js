@@ -9,6 +9,7 @@ import { hole, sende, el, fuelle, zeichen, kristall, melde, text, zahl, netzName
 import { t, setzeSprache } from './i18n.js';
 import * as einrichtung from './einrichtung.js';
 import * as uebersicht from './uebersicht.js';
+import * as wallet from './wallet.js';
 import * as mining from './mining.js';
 import * as blockchain from './blockchain.js';
 import * as peers from './peers.js';
@@ -16,6 +17,7 @@ import * as einstellungen from './einstellungen.js';
 
 const ANSICHTEN = [
   { id: 'uebersicht', zeichen: 'uebersicht', modul: uebersicht },
+  { id: 'wallet', zeichen: 'wallet', modul: wallet },
   { id: 'mining', zeichen: 'blitz', modul: mining },
   { id: 'blockchain', zeichen: 'wuerfel', modul: blockchain },
   { id: 'peers', zeichen: 'netz', modul: peers },
@@ -40,6 +42,8 @@ const ctx = {
   neuLaden: () => lies(),
   /** Alles neu aufbauen -- nach einem Sprachwechsel. */
   neuAufbauen: () => { geruest = null; aktiv = null; zeige(); },
+  /** Die aktuelle Ansicht neu aufbauen -- etwa wenn die Wallet gesperrt wurde. */
+  zeigeNeu: () => zeige(),
   ort,
 };
 
@@ -125,6 +129,21 @@ async function start() {
   clearInterval(takt);
   takt = setInterval(lies, 2000);
 }
+
+/*
+ * Die Wallet sperrt sich nach einer Weile ohne Regung von selbst. Als Regung
+ * zählt, dass jemand das Programm bedient -- nicht, dass es offen ist.
+ */
+let letzteRegung = 0;
+function regung() {
+  if (!stand?.wallet?.vorhanden || stand.wallet.gesperrt) return;
+  const jetzt = Date.now();
+  if (jetzt - letzteRegung < 20000) return;
+  letzteRegung = jetzt;
+  sende('/api/wallet/regung').catch(() => {});
+}
+window.addEventListener('pointerdown', regung, { passive: true });
+window.addEventListener('keydown', regung, { passive: true });
 
 // Der Assistent ruft das, wenn er fertig ist.
 ctx.eingerichtet = async () => { stand = await hole('/api/status'); location.hash = '#/uebersicht'; zeige(); };
