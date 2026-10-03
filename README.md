@@ -13,6 +13,8 @@ Telegram.
 | **Node Core fuer Windows** | Knoten, Wallet und Mining in einem Programm | [Installer 0.5.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.5.0/YSKAR-Node-Core-Setup-0.5.0.exe) · [Hinweise und Pruefsumme](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.5.0) |
 | **Telegram Mini App** | Ohne Installation | [@YSKAR_bot](https://t.me/YSKAR_bot) |
 | **Website** | Anleitungen, Whitepaper, Explorer | [www.yskar.app](https://www.yskar.app) |
+| **Telegram-Kanal** | Veroeffentlichungen und Neuigkeiten, auf Englisch | [@yskar_official](https://t.me/yskar_official) |
+| **Community-Chat** | Fragen und Austausch | [Telegram-Gruppe](https://t.me/+GxAmtTMeG1w1M2Yy) |
 
 **Kein Wert wird simuliert.** Das Geraet rechnet echte SHA-256d-Hashes, jeder
 Knoten rechnet jeden Share selbst nach, und der Kontostand ist allein aus den
