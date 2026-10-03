@@ -190,8 +190,12 @@ The finished installer is created under:
 `node-core\release\YSKAR-Node-Core-Setup-0.5.0.exe`
 
 A release build on GitHub is described in
-`.github/workflows/node-core-release.yml`: a tag `node-core-vX.Y.Z` builds
-the installer and attaches it to a **draft** release.
+`.github/workflows/node-core-release.yml`: setting the branch
+`node-core-release` to a commit builds the installer for the version in
+`package.json` and attaches it to a **draft** release with the text from
+`RELEASE_NOTES.md`. Publishing the draft by hand creates the tag
+`node-core-vX.Y.Z`. The Android app stays the repository's "latest" release
+(`.github/workflows/neueste-veroeffentlichung.yml`).
 
 ## Tests
 

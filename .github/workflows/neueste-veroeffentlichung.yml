@@ -1,0 +1,46 @@
+name: Neueste Veröffentlichung bleibt die App
+
+# In diesem Repository erscheinen zwei Dinge als "Release": die Android-App
+# (Tags app-v1.2.3) und der Node Core für Windows (Tags node-core-v1.2.3).
+#
+# GitHub kennt aber nur EINE "neueste" Veröffentlichung -- und auf genau die
+# zeigen die Anleitung auf der Webseite und der Ausweich-Link der App
+# (…/releases/latest), wenn sie zur APK führen. Würde ein Node Core zur
+# neuesten Veröffentlichung, landete dort, wer die App sucht, beim
+# Windows-Installer.
+#
+# Deshalb: Sobald ein Node Core veröffentlicht wird, wird die neueste
+# App-Veröffentlichung wieder als "neueste" gesetzt. Am Node Core selbst
+# ändert das nichts; er steht weiter auf der Seite der Veröffentlichungen,
+# und das Programm findet ihn über seinen Tag.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  neueste:
+    name: App als neueste Veröffentlichung setzen
+    if: startsWith(github.event.release.tag_name, 'node-core-v')
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          app=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '
+            [.[] | select(.draft | not) | select(.prerelease | not)
+                 | select(.tag_name | test("^app-v[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+            | sort_by(.tag_name | ltrimstr("app-v") | split(".") | map(tonumber))
+            | last | .tag_name // empty')
+          if [ -z "$app" ]; then
+            echo "::notice title=Neueste Veröffentlichung::Es gibt keine App-Veröffentlichung -- nichts zu tun."
+            exit 0
+          fi
+          gh release edit "$app" --repo "$GITHUB_REPOSITORY" --latest
+          jetzt=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          echo "::notice title=Neueste Veröffentlichung::$jetzt (veröffentlicht wurde ${{ github.event.release.tag_name }})"
+          [ "$jetzt" = "$app" ] || { echo "::error::Neueste Veröffentlichung ist $jetzt statt $app."; exit 1; }

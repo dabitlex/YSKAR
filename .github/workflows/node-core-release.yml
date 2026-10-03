@@ -2,16 +2,23 @@ name: Node Core bauen und veröffentlichen
 
 # Baut den Windows-Installer des YSKAR Node Core.
 #
-#   Tag node-core-v1.2.3   Tests, GPU-Miner, Installer -- und ein ENTWURF
-#                          einer Veröffentlichung mit dem Installer daran.
-#                          Veröffentlicht wird er erst von Hand, nachdem der
-#                          Installer auf einem echten PC ausprobiert wurde.
-#   von Hand / Arbeitszweig dasselbe ohne Veröffentlichung; der Installer
-#                          hängt als Artefakt am Lauf.
+#   Zweig node-core-release  Tests, GPU-Miner, Installer -- und ein ENTWURF
+#                            einer Veröffentlichung mit dem Installer daran.
+#                            Wer diesen Zweig auf einen Stand setzt, bekommt
+#                            den Entwurf für die Version aus package.json.
+#   von Hand, mit Haken      dasselbe, vom gewählten Zweig aus.
+#   Arbeitszweig / von Hand  dasselbe ohne Veröffentlichung; der Installer
+#                            hängt als Artefakt am Lauf.
 #
-# Die Nummer im Tag muss zu node-core/package.json passen -- sonst bricht der
-# Bau ab. Nach genau diesen Tags sucht das Programm auch, wenn es nach einer
-# neuen Version sieht (node-core/src/Programm.ts).
+# Veröffentlicht wird der Entwurf von Hand auf der Seite "Releases" -- erst
+# dann ist er sichtbar, und erst dann legt GitHub den Tag node-core-vX.Y.Z an,
+# auf genau dem Stand, aus dem gebaut wurde. Nach diesen Tags sucht das
+# Programm, wenn es nach einer neuen Version sieht (node-core/src/Programm.ts).
+#
+# Einen Tag von Hand zu setzen löst nichts aus. Eine Version, die schon
+# veröffentlicht ist, wird nicht noch einmal gebaut: Der Installer an einer
+# Veröffentlichung ändert sich nie. Für einen neuen Installer zählt die
+# Versionsnummer hoch.
 #
 # Was hier geprüft wird und was nicht:
 #   - Die Tests laufen auf Linux gegen die echte Anwendungsklasse.
@@ -24,14 +31,13 @@ name: Node Core bauen und veröffentlichen
 
 on:
   push:
-    tags: ['node-core-v*']
-    branches: ['node-core-voll']
-    paths:
-      - 'node-core/**'
-      - 'src/lib/**'
-      - 'miner/**'
-      - '.github/workflows/node-core-release.yml'
+    branches: ['node-core-release', 'node-core-voll']
   workflow_dispatch:
+    inputs:
+      entwurf:
+        description: 'Entwurf einer Veröffentlichung anlegen'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -39,6 +45,10 @@ permissions:
 concurrency:
   group: node-core-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  # 'true', wenn dieser Lauf einen Entwurf einer Veröffentlichung anlegt.
+  RELEASE: ${{ github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true') }}
 
 jobs:
   pruefen:
@@ -51,6 +61,26 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      # Vor allem anderen: Gehört der Text zur Version, und ist sie noch frei?
+      - name: Darf diese Version veröffentlicht werden?
+        if: env.RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          v=$(node -p "require('./node-core/package.json').version")
+          if ! grep -qF "YSKAR Node Core $v" node-core/RELEASE_NOTES.md; then
+            echo "::error::node-core/RELEASE_NOTES.md beschreibt nicht die Version $v."; exit 1
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/node-core-v$v")
+          case "$code" in
+            404) echo "::notice title=Version::Node Core $v ist noch nicht veröffentlicht -- der Entwurf wird angelegt." ;;
+            200) echo "::error::Node Core $v ist schon veröffentlicht. Für einen neuen Installer die Versionsnummer hochzählen."; exit 1 ;;
+            *)   echo "::error::Ob Node Core $v schon veröffentlicht ist, ließ sich nicht prüfen (HTTP $code)."; exit 1 ;;
+          esac
 
       - name: Abhängigkeiten
         run: npm ci
@@ -74,7 +104,7 @@ jobs:
     runs-on: windows-2022
     # Auf dem Arbeitszweig darf dieser Teil scheitern -- der Installer entsteht
     # dann ohne GPU-Miner. Eine Veröffentlichung braucht ihn.
-    continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    continue-on-error: ${{ !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
     outputs:
       gebaut: ${{ steps.fertig.outputs.gebaut }}
     steps:
@@ -140,7 +170,7 @@ jobs:
   installer:
     name: Installer
     needs: [pruefen, gpu]
-    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu.outputs.gebaut == 'true' || !startsWith(github.ref, 'refs/tags/')) }}
+    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
     runs-on: windows-2022
     defaults:
       run:
@@ -160,14 +190,6 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $paket = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          if ($env:GITHUB_REF -like 'refs/tags/node-core-v*') {
-            $tag = $env:GITHUB_REF -replace '^refs/tags/node-core-v', ''
-            if ($tag -ne $paket) { throw "Der Tag sagt $tag, node-core/package.json sagt $paket." }
-            # Der Text der Veröffentlichung muss zu dieser Version gehören.
-            if (-not (Select-String -Path RELEASE_NOTES.md -SimpleMatch "YSKAR Node Core $paket" -Quiet)) {
-              throw "node-core/RELEASE_NOTES.md beschreibt nicht die Version $paket."
-            }
-          }
           $quelle = (Select-String -Path src\main.ts -Pattern "export const VERSION = '([^']+)'").Matches[0].Groups[1].Value
           if ($quelle -ne $paket) { throw "src/main.ts sagt $quelle, package.json sagt $paket." }
           "version=$paket" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -285,15 +307,27 @@ jobs:
 
       # Ein ENTWURF. Sichtbar wird die Veröffentlichung erst, wenn sie von
       # Hand freigegeben wird -- und erst dann findet das Programm sie auch
-      # bei seiner Suche nach einer neuen Version.
+      # bei seiner Suche nach einer neuen Version. Den Tag gibt es bis dahin
+      # nicht; GitHub legt ihn beim Freigeben auf diesem Stand an.
       - name: Entwurf der Veröffentlichung
-        if: startsWith(github.ref, 'refs/tags/node-core-v')
+        id: entwurf
+        if: env.RELEASE == 'true'
         uses: softprops/action-gh-release@v2
         with:
           draft: true
+          # "Neueste" Veröffentlichung bleibt die App -- auf sie zeigen die
+          # Links zur APK. Siehe neueste-veroeffentlichung.yml.
+          make_latest: 'false'
+          tag_name: node-core-v${{ steps.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           name: YSKAR Node Core ${{ steps.version.outputs.version }}
           generate_release_notes: false
           body_path: node-core/RELEASE_NOTES.md
+          fail_on_unmatched_files: true
           files: |
             node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe
             node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
+
+      - name: Wo der Entwurf liegt
+        if: env.RELEASE == 'true'
+        run: Write-Host "::notice title=Entwurf::node-core-v${{ steps.version.outputs.version }} auf ${{ github.sha }} -- ${{ steps.entwurf.outputs.url }}"
