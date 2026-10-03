@@ -39,6 +39,10 @@ export const PROBE_TIMEOUT_MS = 15_000;
 const JOB_NOCHMAL_MS = 5_000;
 /** So viele Treffer warten hoechstens auf ihre Einreichung -- siehe LocalMiner. */
 const TREFFER_WARTEND_MAX = 8;
+/** Ohne frische Arbeit aus dem Netz gilt die alte nach dieser Zeit als tot -- siehe LocalMiner. */
+const JOB_TOT_MS = 90_000;
+/** Nach einem neuen Block noch einmal nachfragen -- siehe LocalMiner. */
+const NACHFRAGE_MS = 2_000;
 
 export interface GpuGeraet {
   id: number;
@@ -88,6 +92,22 @@ export interface GpuMinerOptionen {
  */
 export function findeProgramm(ausdruecklich?: string): string | null {
   const name = process.platform === 'win32' ? 'yskar-cuda.exe' : 'yskar-cuda';
+  /*
+    Im installierten Programm gibt es genau EINEN Ort: den Ordner "resources"
+    neben der Anwendung, wohin der Installer das Programm legt. Weder das
+    Arbeitsverzeichnis noch eine Umgebungsvariable zaehlen dort -- sonst
+    fuehrte Node Core aus, was jemand in den Ordner gelegt hat, aus dem das
+    Programm gestartet wurde.
+  */
+  const p = process as NodeJS.Process & { resourcesPath?: string; defaultApp?: boolean };
+  if (typeof p.resourcesPath === 'string' && !p.defaultApp && !ausdruecklich) {
+    const installiert = [
+      join(p.resourcesPath, name),
+      join(dirname(process.execPath), 'resources', name),
+      join(dirname(process.execPath), name),
+    ];
+    return installiert.find(existsSync) ?? null;
+  }
   const hier = typeof __dirname !== 'undefined'
     ? __dirname : dirname(fileURLToPath(import.meta.url));
   const kandidaten = [
@@ -97,9 +117,6 @@ export function findeProgramm(ausdruecklich?: string): string | null {
     join(hier, 'gpu', name),
     join(hier, '..', 'gpu', 'bin', name),
     resolve(process.cwd(), 'gpu', 'bin', name),
-    // Electron: neben der ausfuehrbaren Datei, ausserhalb des asar-Archivs
-    join(dirname(process.execPath), name),
-    join(dirname(process.execPath), 'resources', name),
   ].filter((x): x is string => !!x);
   return kandidaten.find(existsSync) ?? null;
 }
@@ -231,6 +248,9 @@ export class GpuMiner {
   private jobNochmal = false;
   private jobSpaeter: NodeJS.Timeout | null = null;
   private jobFehler: string | null = null;
+  private jobZeit = 0;
+  private pausiert = false;
+  private nachfrage: NodeJS.Timeout | null = null;
   /** Zaehlt Starts und Stopps: Antworten eines frueheren Laufs gelten nicht mehr. */
   private lauf = 0;
   private wartend: { jobId: string; nonce: bigint }[] = [];
@@ -306,6 +326,13 @@ export class GpuMiner {
   async start(adresse: Uint8Array, geraet: GpuGeraet): Promise<void> {
     if (this.running) return;
     if (!this.programm) throw new Error('GPU-Miner nicht installiert (yskar-cuda fehlt).');
+    /*
+      Der Selbsttest dauert. Kommt in dieser Zeit ein Stopp (oder ein zweiter
+      Start), darf DIESER Start danach nicht doch noch loslaufen -- sonst
+      rechnete die Karte weiter, obwohl gestoppt wurde, und zwar mit der
+      Quelle, die der Stopp inzwischen eingestellt hat.
+    */
+    const anlauf = ++this.lauf;
 
     // Erst pruefen, dann minen. Einmal je Geraet und Sitzung.
     if (!this.geprueft.has(geraet.id)) {
@@ -317,6 +344,7 @@ export class GpuMiner {
       }
       this.geprueft.add(geraet.id);
       this.log('GPU-Selbsttest bestanden: Genesis-Hash bitgenau.');
+      if (anlauf !== this.lauf) throw new Error('Mining wurde gestoppt.');
     }
 
     this.adresse = adresse;
@@ -325,8 +353,9 @@ export class GpuMiner {
     this.hashes = this.shares = this.blocks = this.errors = 0;
     this.hashrate = 0; this.lastError = null;
     this.running = true;
-    this.lauf++;
     this.wartend = [];
+    this.jobLaeuft = false; this.jobNochmal = false; this.reichtEin = false;
+    this.pausiert = false; this.jobZeit = Date.now();
     this.bereit = false;
     this.startedAt = Date.now();
 
@@ -356,9 +385,11 @@ export class GpuMiner {
   }
 
   async stop(): Promise<void> {
+    // Immer: Ein Start, der noch im Selbsttest steckt, gilt damit als abgebrochen.
+    this.lauf++;
+    if (this.nachfrage) { clearTimeout(this.nachfrage); this.nachfrage = null; }
     if (!this.running && !this.kind) return;
     this.running = false;
-    this.lauf++;
     this.wartend = [];
     this.bereit = false;
     if (this.jobSpaeter) { clearTimeout(this.jobSpaeter); this.jobSpaeter = null; }
@@ -387,7 +418,15 @@ export class GpuMiner {
   setExtra(e: Uint8Array): void { this.extra = e; if (this.running) this.neuerJob(); }
 
   /** Neue Kette -- der alte Job ist wertlos. */
-  notifyChainChanged(): void { if (this.running) this.neuerJob(); }
+  notifyChainChanged(): void {
+    if (!this.running) return;
+    this.neuerJob();
+    // Arbeit aus dem Netz: Der Pool kennt den neuen Block vielleicht noch nicht.
+    if (this.quelle !== this.mining && !this.nachfrage) {
+      this.nachfrage = setTimeout(() => { this.nachfrage = null; if (this.running) this.neuerJob(); }, NACHFRAGE_MS);
+      this.nachfrage.unref?.();
+    }
+  }
 
   // ------------------------------------------------------------- Innereien
 
@@ -446,7 +485,7 @@ export class GpuMiner {
         this.reichtEin = true;
         r.then(x => { if (lauf === this.lauf) this.nachEinreichung(x); },
                e => { if (lauf === this.lauf) { this.errors++; this.log(`GPU-Treffer nicht eingereicht: ${(e as Error).message}`); } })
-          .finally(() => { this.reichtEin = false; this.leere(); });
+          .finally(() => { if (lauf !== this.lauf) return; this.reichtEin = false; this.leere(); });
         return;
       }
       this.nachEinreichung(r);
@@ -494,6 +533,7 @@ export class GpuMiner {
     r.then(job => { if (lauf === this.lauf && this.running) this.setzeJob(job); },
            e => { if (lauf === this.lauf && this.running) this.jobGescheitert(e as Error, true); })
       .finally(() => {
+        if (lauf !== this.lauf) return;
         this.jobLaeuft = false;
         if (this.jobNochmal) { this.jobNochmal = false; this.neuerJob(); }
       });
@@ -504,6 +544,8 @@ export class GpuMiner {
     try {
       this.job = job;
       this.jobFehler = null;
+      this.jobZeit = Date.now();
+      if (this.pausiert) { this.pausiert = false; this.log('Der Pool gibt wieder Arbeit -- die GPU rechnet weiter.'); }
       this.kind.stdin.write(JSON.stringify({
         t: 'job', jobId: job.jobId, header: job.header, target: job.target,
       }) + '\n');
@@ -516,6 +558,13 @@ export class GpuMiner {
     if (this.jobFehler !== e.message) this.log(`GPU-Job konnte nicht geholt werden: ${e.message}`);
     this.jobFehler = e.message;
     this.lastError = e.message;
+    // Zu lange ohne frische Arbeit: Die alte nimmt niemand mehr an.
+    if (spaeter && !this.pausiert && Date.now() - this.jobZeit > JOB_TOT_MS) {
+      this.pausiert = true;
+      this.job = null;
+      try { this.kind?.stdin?.write('{"t":"stop"}\n'); } catch { /* Programm schon weg */ }
+      this.log('Keine frische Arbeit vom Pool -- die GPU pausiert, bis er wieder antwortet.');
+    }
     if (!spaeter || this.jobSpaeter) return;
     this.jobSpaeter = setTimeout(() => { this.jobSpaeter = null; this.neuerJob(); }, JOB_NOCHMAL_MS);
     this.jobSpaeter.unref?.();
@@ -548,6 +597,7 @@ export class GpuMiner {
     this.wartend = [];
     this.bereit = false;
     this.hashrate = 0;
+    if (this.nachfrage) { clearTimeout(this.nachfrage); this.nachfrage = null; }
     if (this.jobSpaeter) { clearTimeout(this.jobSpaeter); this.jobSpaeter = null; }
     if (this.erneuern) { clearInterval(this.erneuern); this.erneuern = null; }
     if (this.rateTakt) { clearInterval(this.rateTakt); this.rateTakt = null; }

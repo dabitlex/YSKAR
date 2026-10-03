@@ -72,6 +72,19 @@ export interface UpdateStand {
   fehler: string | null;
 }
 
+/**
+ * Nur eine Seite unter den Veroeffentlichungen dieses Projekts -- nach dem
+ * Aufloesen von "..": Ein Pfad, der mit dem richtigen Anfang beginnt und
+ * dann hinausklettert, zaehlt nicht.
+ */
+function releaseSeite(roh: unknown): string | null {
+  const url = linkErlaubt(roh);
+  if (!url) return null;
+  const u = new URL(url);
+  return u.hostname === 'github.com' && u.pathname.startsWith('/dabitlex/YSKAR/releases/') && !u.search && !u.hash
+    ? u.href : null;
+}
+
 function teile(v: string): number[] | null {
   const m = /^(\d{1,4})\.(\d{1,4})\.(\d{1,4})$/.exec(v);
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
@@ -125,8 +138,7 @@ export async function sucheUpdate(installiert: string, quelle: string, agent: st
       if (stand.neueste !== null && vergleiche(version, stand.neueste) <= 0) continue;
       stand.neueste = version;
       // Nur eine Adresse auf der Seite der Veroeffentlichungen dieses Projekts.
-      stand.url = typeof r.html_url === 'string' && r.html_url.startsWith(RELEASES_SEITE + '/') && r.html_url.length < 200
-        ? r.html_url : RELEASES_SEITE;
+      stand.url = releaseSeite(r.html_url) ?? RELEASES_SEITE;
     }
     stand.neuer = stand.neueste !== null && vergleiche(stand.neueste, installiert) > 0;
     if (!stand.neuer) stand.url = RELEASES_SEITE;

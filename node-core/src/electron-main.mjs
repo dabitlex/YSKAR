@@ -19,7 +19,16 @@ const require = createRequire(import.meta.url);
 const { NodeCoreApp } = require('../dist/node-core.cjs');
 
 const SEITE = 'http://127.0.0.1:8650';
-const SYMBOL = join(here, '..', 'build', 'icon.ico');
+/** Dieselbe Kennung wie im Installer (appId) -- unter ihr fuehrt Windows das Programm. */
+const KENNUNG = 'app.yskar.nodecore';
+/**
+ * Das Programmsymbol. Zuerst neben der Anwendung (resources), dann im
+ * Programmarchiv -- je nachdem, was Windows an dieser Stelle laden kann.
+ */
+const SYMBOLE = [
+  ...(process.resourcesPath ? [join(process.resourcesPath, 'icon.ico')] : []),
+  join(here, '..', 'build', 'icon.ico'),
+];
 /** So startet Windows das Programm beim Anmelden -- dann ohne Fenster. */
 const AUTOSTART_ARG = '--versteckt';
 const VERSTECKT_GESTARTET = process.argv.includes(AUTOSTART_ARG);
@@ -52,12 +61,13 @@ function beende() {
  * Programm, statt unsichtbar weiterzulaufen.
  */
 function ladeSymbol() {
-  try {
-    const bild = nativeImage.createFromPath(SYMBOL);
-    return bild.isEmpty() ? null : bild;
-  } catch {
-    return null;
+  for (const pfad of SYMBOLE) {
+    try {
+      const bild = nativeImage.createFromPath(pfad);
+      if (!bild.isEmpty()) return bild;
+    } catch { /* naechster Ort */ }
   }
+  return null;
 }
 
 function baueTray(bild) {
@@ -95,9 +105,12 @@ const huelle = {
     await shell.openExternal(url);
   },
   autostart() {
+    // Aus dem Quellbaum gestartet gibt es keinen Eintrag, der dieses Programm meint.
+    if (!app.isPackaged) return false;
     return app.getLoginItemSettings({ args: [AUTOSTART_ARG] }).openAtLogin === true;
   },
   setzeAutostart(an) {
+    if (!app.isPackaged) throw new Error('Den Start mit Windows gibt es nur im installierten Programm.');
     app.setLoginItemSettings({ openAtLogin: an, args: [AUTOSTART_ARG] });
   },
   infobereich() {
@@ -159,7 +172,7 @@ async function createMainWindow() {
    */
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     const erlaubt = core?.linkErlaubt(url);
-    if (erlaubt) void shell.openExternal(erlaubt);
+    if (erlaubt) shell.openExternal(erlaubt).catch(() => { /* kein Browser -- dann eben nicht */ });
     return { action: 'deny' };
   });
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -197,6 +210,13 @@ async function createMainWindow() {
     }
   });
 
+  // Windows faehrt herunter oder meldet ab: Dann kommt kein "before-quit".
+  // Der Knoten soll trotzdem ordentlich schliessen, soweit die Zeit reicht.
+  mainWindow.on('session-end', () => {
+    quitting = true;
+    void shutdownCore();
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
 
@@ -227,24 +247,38 @@ async function createMainWindow() {
   }
 }
 
-async function shutdownCore() {
-  if (tray) {
-    try { tray.destroy(); } catch { /* schon weg */ }
-    tray = null;
-  }
+/*
+ * Das Programm herunterfahren -- EINMAL, auch wenn mehrere Wege gleichzeitig
+ * hierher fuehren (Fenster zu, "Beenden" im Infobereich, Knopf in der
+ * Oberflaeche). Jeder Aufrufer wartet auf dasselbe Ende.
+ *
+ * Mit Zeitgrenze: Haengt etwas, beendet sich das Programm trotzdem. Sonst
+ * bliebe ein unsichtbarer Rest zurueck, der den naechsten Start blockiert.
+ */
+let shutdownLauf = null;
 
-  if (!core) {
-    return;
-  }
+function shutdownCore() {
+  if (shutdownLauf) return shutdownLauf;
+  shutdownLauf = (async () => {
+    if (tray) {
+      try { tray.destroy(); } catch { /* schon weg */ }
+      tray = null;
+    }
 
-  const current = core;
-  core = null;
+    const current = core;
+    core = null;
+    if (!current) return;
 
-  try {
-    await current.shutdown();
-  } catch (error) {
-    console.error('[Electron] Fehler beim Beenden:', error);
-  }
+    try {
+      await Promise.race([
+        current.shutdown(),
+        new Promise(weiter => setTimeout(weiter, 10_000)),
+      ]);
+    } catch (error) {
+      console.error('[Electron] Fehler beim Beenden:', error);
+    }
+  })();
+  return shutdownLauf;
 }
 
 /*
@@ -257,7 +291,9 @@ const einzig = app.requestSingleInstanceLock();
 if (!einzig) {
   app.quit();
 } else {
-  app.on('second-instance', zeigeFenster);
+  // Vor allem anderen: Unter dieser Kennung legt Windows auch den Start beim Anmelden ab.
+  app.setAppUserModelId(KENNUNG);
+  app.on('second-instance', () => zeigeFenster());
 
   app.whenReady()
     .then(async () => {

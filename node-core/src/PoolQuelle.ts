@@ -25,6 +25,7 @@
  * nicht: Er bekommt die Adresse und Nonces, sonst nichts.
  */
 import { encodeAddress } from '../../src/lib/core/address.ts';
+import { targetFromDifficulty } from '../../src/lib/core/params.ts';
 import { standAusAntwort, poolBasis, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
 import type { MiningJob, SubmitResult } from '../../src/lib/node/fullnode/MiningCoordinator.ts';
 
@@ -41,6 +42,7 @@ const WARTEN_MS = 10_000;
 /** Mehr liest der Miner von keiner Antwort eines Pools. */
 const ANTWORT_MAX = 64 * 1024;
 const HEADER_BYTES = 136;
+const LEICHTESTES_ZIEL = targetFromDifficulty(1n);
 
 /** Der Pool nimmt diesen Miner nicht (mehr) -- weiterversuchen hat keinen Sinn. */
 export class PoolEndgueltig extends Error {
@@ -171,6 +173,13 @@ function baueJob(j: Record<string, unknown>): MiningJob {
   const txCount = ganz(j.txCount, 0xffff_ffff);
   const extranonce = gross(j.extranonce);
   const target = hex(j.target, 64);
+  /*
+    Leichter als Difficulty 1 gibt kein Pool ein Ziel aus. Ein Ziel wie
+    "ff..ff" machte JEDEN Hash zum Treffer: Die Worker meldeten Hunderttausende
+    je Sekunde, und das Programm kaeme zu nichts anderem mehr.
+  */
+  const ziel = BigInt('0x' + target);
+  if (ziel === 0n || ziel > LEICHTESTES_ZIEL) throw new Error('Der Pool schickt unlesbare Arbeit.');
 
   const header = new Uint8Array(HEADER_BYTES);
   const v = new DataView(header.buffer);
@@ -315,9 +324,10 @@ export class PoolQuelle implements Arbeitsquelle {
     // aelteren wuerde abgewiesen -- den Weg ueber das Netz kann er sich sparen.
     if (!this.sitzung || this.aktuell?.jobId !== jobId) return { ok: false, grund: 'job_ersetzt' };
     const gegen = this.aktuell;
+    const sitzung = this.sitzung;
     let r: Antwort;
     try {
-      r = await this.ruf('/share', { sessionId: this.sitzung, jobId, nonce: nonce.toString() });
+      r = await this.ruf('/share', { sessionId: sitzung, jobId, nonce: nonce.toString() });
     } catch (e) {
       // Nicht angekommen oder Antwort verloren: Der Treffer ist weg, die
       // Arbeit geht weiter. Kein neuer Job -- der alte gilt noch.
@@ -327,7 +337,8 @@ export class PoolQuelle implements Arbeitsquelle {
     const b = r.body;
     if (b.accepted !== true) {
       const grund = typeof b.reason === 'string' ? b.reason.slice(0, 40) : `http_${r.status}`;
-      if (grund === 'session_inactive') this.sitzung = null;
+      // Nur die Sitzung vergessen, mit der dieser Treffer hinausging -- inzwischen kann es eine neue geben.
+      if (grund === 'session_inactive' && this.sitzung === sitzung) this.sitzung = null;
       const veraltet = ['session_inactive', 'job_foreign', 'stale_job', 'job_unknown', 'job_expired'].includes(grund);
       if (!veraltet) { this.abgelehnt++; return { ok: false, grund }; }
       // Veraltete Arbeit ist kein Fehler des Miners. Ist neue schon da oder

@@ -50,6 +50,10 @@
         "filter": [
           "yskar-cuda.exe"
         ]
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
       }
     ]
   },
