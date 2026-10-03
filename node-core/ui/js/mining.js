@@ -283,6 +283,7 @@ export function baue(ctx) {
         el('span.reihe', { style: 'gap:6px' }, chips)),
       // Eine eigene Adresse nennt sich selbst -- deshalb steht sie immer dabei.
       p.eigen ? el('span.hinweis', t('pool.eigenKurz'), p.anzeige !== p.host ? [' · ', el('span.mono', p.host)] : null) : null,
+      p.hier ? el('span.hinweis', t('pool.hier')) : null,
       zahlen, balken);
   }
 

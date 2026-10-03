@@ -11,6 +11,7 @@ import * as einrichtung from './einrichtung.js';
 import * as uebersicht from './uebersicht.js';
 import * as wallet from './wallet.js';
 import * as mining from './mining.js';
+import * as poolBetrieb from './poolBetrieb.js';
 import * as blockchain from './blockchain.js';
 import * as peers from './peers.js';
 import * as einstellungen from './einstellungen.js';
@@ -19,6 +20,7 @@ const ANSICHTEN = [
   { id: 'uebersicht', zeichen: 'uebersicht', modul: uebersicht },
   { id: 'wallet', zeichen: 'wallet', modul: wallet },
   { id: 'mining', zeichen: 'blitz', modul: mining },
+  { id: 'pool', zeichen: 'leute', modul: poolBetrieb },
   { id: 'blockchain', zeichen: 'wuerfel', modul: blockchain },
   { id: 'peers', zeichen: 'netz', modul: peers },
   { id: 'einstellungen', zeichen: 'regler', modul: einstellungen },

@@ -320,6 +320,59 @@ export class MiningServer {
     return summe;
   }
 
+  // ------------------------------------------------- Auskunft fuer Betreiber
+
+  /**
+   * Der Pool dieses Knotens in Zahlen -- dieselben wie unter GET /pool.
+   * null, wenn der Knoten keinen Pool betreibt.
+   */
+  poolAuskunft(addressHex?: string): Record<string, unknown> | null {
+    return this.poolInfo(addressHex);
+  }
+
+  /**
+   * Die offenen Pool-Sitzungen, eine Zeile je Sitzung.
+   *
+   * Fuer die Anzeige beim Betreiber (Node Core). Nach aussen gibt es diese
+   * Liste nicht: GET /pool nennt Zahlen, keine Adressen.
+   */
+  poolSitzungen(): { addressHex: string; hashrate: number | null;
+                     letzterShare: number | null; angenommen: number;
+                     platform: string | null }[] {
+    this.aufraeumen();
+    return [...this.sessions.values()]
+      .filter(s => s.modus === 'pool')
+      .map(s => ({
+        addressHex: s.addressHex,
+        hashrate: this.sessionHashrate(s),
+        letzterShare: s.letzterShare,
+        angenommen: s.angenommen,
+        platform: s.platform,
+      }));
+  }
+
+  /**
+   * Alle Pool-Sitzungen beenden und vorgemerkte Plaetze loeschen.
+   *
+   * Fuer den Fall, dass der Betreiber den Pool abschaltet. Ohne diesen
+   * Schritt liefen die Sitzungen weiter -- und weil es keinen Pool mehr
+   * gibt, bekaemen sie Arbeit mit einer Coinbase an EINE Adresse: Der Miner
+   * glaubte zu teilen und minte solo. Mit beendeter Sitzung meldet sich
+   * sein Miner neu an, erfaehrt "pool_unavailable" und haelt an.
+   *
+   * @returns wie viele Sitzungen beendet wurden
+   */
+  beendePoolSitzungen(): number {
+    let n = 0;
+    for (const [id, s] of this.sessions) {
+      if (s.modus !== 'pool') continue;
+      this.sessions.delete(id);
+      n++;
+    }
+    this.vorgemerkt.clear();
+    return n;
+  }
+
   // ------------------------------------------------------------ Weiterleitung
 
   private async behandle(req: IncomingMessage, res: ServerResponse): Promise<void> {
