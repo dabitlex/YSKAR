@@ -33,6 +33,12 @@ import { WalletDienst, WalletFehler } from './Wallet.ts';
 import { leseVerlauf, tagVon, NamenZaehler, type KettenVerlauf } from './WalletKette.ts';
 import { PoolQuelle, PoolEndgueltig, fragePool, poolSchnittstelle } from './PoolQuelle.ts';
 import { POOLS, hostAusEingabe, waehlbar, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
+import { PoolCoordinator } from '../../src/lib/pool/PoolCoordinator.ts';
+import { fensterGroesse } from '../../src/lib/pool/pplns.ts';
+import {
+  ladeBetrieb, speichereBetrieb, pruefeBetrieb, pruefePoolName, platzGrenze, leseFenster,
+  schreibeFenster, schreibeFensterSofort, kuerze, heimnetzAdressen, type BetriebEinstellung,
+} from './PoolBetrieb.ts';
 import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
@@ -115,6 +121,10 @@ const POOL_TAKT_MS = 20_000;
 /** Abstand der Messpunkte fuer den Verlauf der Leistung, und wie viele bleiben. */
 const LEISTUNG_TAKT_MS = 15_000;
 const LEISTUNG_PUNKTE = 240;
+/** So oft wird das Fenster des eigenen Pools gesichert. */
+const FENSTER_TAKT_MS = 120_000;
+/** Mehr Zeilen zeigt die Liste "Miner im Pool" nicht. */
+const POOL_MINER_ZEILEN = 64;
 
 /** Fehler mit Kuerzel -- die Oberflaeche zeigt ihn in ihrer Sprache. */
 class KernFehler extends Error {
@@ -369,6 +379,18 @@ export class NodeCoreApp {
   /** Warum das Mining im Pool von selbst geendet hat. */
   private poolEnde: { code: string; text: string; zeit: number; pool: string } | null = null;
   private poolMerker = new Map<string, { bis: number; stand: PoolStand }>();
+  /** Der eigene Pool: Einstellungen, und was davon gerade laeuft. */
+  private betrieb: BetriebEinstellung;
+  private betriebPfad: string;
+  private fensterPfad: string;
+  /** Name und Plaetze des laufenden Pools -- sie gelten bis zu seinem naechsten Start. */
+  private betriebLaeuft: { name: string; plaetze: number } | null = null;
+  /** Warum der Pool nicht laeuft, obwohl er eingeschaltet ist. */
+  private betriebFehler: string | null = null;
+  private fensterTakt: ReturnType<typeof setInterval> | null = null;
+  private fensterGesichert = '';
+  /** Worauf die Schnittstelle des Knotens gerade lauscht. */
+  private lauscht = '127.0.0.1';
   /** Leistung ueber die Zeit, seit dem letzten Start. */
   private leistung: { zeit: number; hashrate: number }[] = [];
   private leistungTakt: ReturnType<typeof setInterval> | null = null;
@@ -413,6 +435,9 @@ export class NodeCoreApp {
     this.configPath = join(base, 'config.json');
     this.miningPfad = join(base, 'mining.json');
     this.einstellungenPfad = join(base, 'einstellungen.json');
+    this.betriebPfad = join(base, 'pool.json');
+    this.fensterPfad = join(base, 'pool-fenster.json');
+    this.betrieb = ladeBetrieb(this.betriebPfad);
     this.einstellungen = ladeEinstellungen(this.einstellungenPfad);
     this.wallet = new WalletDienst(base);
     this.wallet.sperreMinuten = this.einstellungen.sperreMinuten;
@@ -660,7 +685,15 @@ export class NodeCoreApp {
 
   /** Ein Eintrag der Liste oder eine eigene Adresse. */
   private poolEintrag(host: string): PoolEintrag {
+    if (host === this.eigenerPoolHost() && this.betriebLaeuft) {
+      return { host, name: this.betriebLaeuft.name, kette: this.betriebLaeuft.name };
+    }
     return POOLS.find(p => p.host === host) ?? { host, name: host };
+  }
+
+  /** Unter dieser Adresse erreichen die eigenen Miner den eigenen Pool. */
+  private eigenerPoolHost(): string {
+    return `http://127.0.0.1:${this.config.nodePort}`;
   }
 
   /*
@@ -670,6 +703,7 @@ export class NodeCoreApp {
    * Selbstauskunft, deshalb steht die Adresse immer daneben.
    */
   private poolAnzeige(eintrag: PoolEintrag, stand: PoolStand): string {
+    if (eintrag.host === this.eigenerPoolHost() && this.betriebLaeuft) return this.betriebLaeuft.name;
     return POOLS.some(p => p.host === eintrag.host) ? eintrag.name : (stand.kette ?? eintrag.name);
   }
 
@@ -698,7 +732,7 @@ export class NodeCoreApp {
     if (!this.store || !this.chain || !this.running || !stand.kette) return stand;
     const chain = this.chain;
     const z = this.namen.zahlen(this.store, () => chain.tip()?.height ?? null);
-    return z ? { ...stand, bloecke: z.get(stand.kette) ?? 0 } : stand;
+    return z ? { ...stand, bloecke: z.get(stand.kette)?.zahl ?? 0 } : stand;
   }
 
   /*
@@ -709,7 +743,11 @@ export class NodeCoreApp {
    * Pool -- und dann nur an den gewaehlten.
    */
   private async poolListe(eigen: string | null) {
-    const eintraege: (PoolEintrag & { eigen?: boolean })[] = [...POOLS];
+    const eintraege: (PoolEintrag & { eigen?: boolean; hier?: boolean })[] = [...POOLS];
+    // Der eigene Pool steht zuerst -- solange er laeuft.
+    if (this.miningServer?.poolKoordinator && this.betriebLaeuft) {
+      eintraege.unshift({ ...this.poolEintrag(this.eigenerPoolHost()), hier: true });
+    }
     let eigenFehler: string | null = null;
     if (eigen !== null && eigen.trim() !== '') {
       const host = hostAusEingabe(eigen);
@@ -718,7 +756,7 @@ export class NodeCoreApp {
     }
     const pools = await Promise.all(eintraege.map(async e => {
       const stand = this.mitBloecken(await this.poolStandVon(e));
-      return { ...stand, anzeige: this.poolAnzeige(e, stand), eigen: e.eigen === true };
+      return { ...stand, anzeige: this.poolAnzeige(e, stand), eigen: e.eigen === true, hier: e.hier === true };
     }));
     return { pools, eigenFehler };
   }
@@ -778,6 +816,255 @@ export class NodeCoreApp {
     void this.stopMining().catch(() => {});
   }
 
+  // --------------------------------------------------------- Pool betreiben
+
+  /** Difficulty, an der gerade gearbeitet wird -- sie bestimmt die Groesse des Fensters. */
+  private netzDifficulty(): bigint {
+    const d = this.mining?.aktuelleArbeit()?.difficulty ?? this.chain?.tip()?.difficulty ?? 1n;
+    return d > 0n ? d : 1n;
+  }
+
+  /*
+   * Den eigenen Pool starten -- wenn er eingeschaltet ist und der Knoten
+   * laeuft. Scheitert das (kein Name, keine Wallet fuer die Gebuehr), laeuft
+   * der Knoten ohne Pool weiter, und der Grund steht in der Oberflaeche.
+   */
+  private starteBetrieb(): void {
+    const server = this.miningServer;
+    this.betriebFehler = null;
+    if (!server || !this.betrieb.aktiv || server.poolKoordinator) return;
+    try {
+      const name = pruefePoolName(this.betrieb.name);
+      const stand = leseFenster(this.fensterPfad, this.params.network);
+      const adresse = this.wallet.stand().adresse;
+      const auszahlung = adresse ? decodeAddress(adresse) : null;
+      if (this.betrieb.feeBps > 0 && !auszahlung) {
+        throw new Error('Für eine Gebühr braucht der Pool eine Wallet, an die sie geht.');
+      }
+      /*
+        Liegt noch Arbeit im Fenster, gilt fuer sie die Gebuehr von damals --
+        die neue erst ab dem naechsten Block, wie im laufenden Betrieb.
+      */
+      let fee = this.betrieb.feeBps;
+      if (stand.eintraege.length > 0 && stand.feeBps !== null && stand.feeBps !== fee) {
+        fee = stand.feeBps > 0 && !auszahlung ? 0 : stand.feeBps;
+      }
+      const pk = new PoolCoordinator({
+        name, feeBps: fee, payoutAddress: auszahlung,
+        maxMiner: Math.min(this.betrieb.plaetze, platzGrenze(Math.max(fee, this.betrieb.feeBps))),
+      });
+      if (fee !== this.betrieb.feeBps) pk.setzeGebuehr(this.betrieb.feeBps, auszahlung);
+      pk.laden(stand.eintraege);
+      server.poolKoordinator = pk;
+      server.blockName = nameToExtra(name);
+      this.betriebLaeuft = { name, plaetze: this.betrieb.plaetze };
+      this.fensterGesichert = '';
+      this.fensterTakt = setInterval(() => { void this.sichereFenster(); }, FENSTER_TAKT_MS);
+      this.fensterTakt.unref?.();
+      this.log(`Pool gestartet: ${name} · Gebühr ${(fee / 100).toFixed(2)} % · ${pk.plaetze()} Plätze`
+        + (stand.eintraege.length ? ` · ${stand.eintraege.length} Shares aus dem letzten Lauf` : ''));
+    } catch (e) {
+      this.betriebFehler = (e as Error).message;
+      this.log(`Pool nicht gestartet: ${this.betriebFehler}`);
+    }
+  }
+
+  /** Das Fenster kuerzen, wenn es weit ueber das hinausgewachsen ist, was zaehlen kann. */
+  private pflegeFenster(pk: PoolCoordinator): void {
+    const behalten = fensterGroesse(this.netzDifficulty()) * 3n;
+    if (pk.arbeitGesamt() > behalten * 2n) pk.laden(kuerze(pk.exportieren(), behalten));
+  }
+
+  private async sichereFenster(): Promise<void> {
+    const pk = this.miningServer?.poolKoordinator;
+    if (!pk) return;
+    this.pflegeFenster(pk);
+    const fee = pk.einstellungen().feeBps;
+    const stand = `${pk.eintraege()}:${pk.arbeitGesamt()}:${fee}`;
+    if (stand === this.fensterGesichert) return;
+    try {
+      await schreibeFenster(this.fensterPfad, this.params.network, fee, pk.exportieren());
+      this.fensterGesichert = stand;
+    } catch (e) { this.log(`Fenster des Pools nicht gesichert: ${(e as Error).message}`); }
+  }
+
+  /*
+   * Den eigenen Pool anhalten. Die Sitzungen der Miner enden -- sonst
+   * bekaemen sie weiter Arbeit, aber ohne Pool mit einer Coinbase an eine
+   * einzige Adresse. Das Fenster bleibt gesichert: Die Arbeit darin wurde
+   * geleistet und zaehlt, wenn der Pool wieder laeuft.
+   */
+  private stoppeBetrieb(): void {
+    const server = this.miningServer;
+    const pk = server?.poolKoordinator;
+    if (this.fensterTakt) clearInterval(this.fensterTakt);
+    this.fensterTakt = null;
+    this.betriebLaeuft = null;
+    if (!server || !pk) return;
+    try { schreibeFensterSofort(this.fensterPfad, this.params.network, pk.einstellungen().feeBps, pk.exportieren()); }
+    catch (e) { this.log(`Fenster des Pools nicht gesichert: ${(e as Error).message}`); }
+    const n = server.beendePoolSitzungen();
+    server.poolKoordinator = null;
+    server.blockName = new Uint8Array(0);
+    this.log(`Pool angehalten${n ? ` · ${n} Sitzung${n > 1 ? 'en' : ''} beendet` : ''}`);
+  }
+
+  /*
+   * Worauf die Schnittstelle des Knotens lauscht.
+   *
+   * Vorgabe: nur dieser PC. Mit laufendem Pool und "Im Heimnetz freigeben"
+   * auch die anderen Geraete im eigenen Netz. Die Oberflaeche und die Wallet
+   * bleiben davon unberuehrt -- sie haengen an einem anderen Anschluss, der
+   * nie nach aussen zeigt.
+   */
+  private lauschZiel(): string {
+    return this.betrieb.heimnetz && !!this.miningServer?.poolKoordinator ? '0.0.0.0' : '127.0.0.1';
+  }
+
+  private async richteLauschen(): Promise<void> {
+    const server = this.miningServer;
+    const ziel = this.lauschZiel();
+    if (!server || !this.running || ziel === this.lauscht) return;
+    await server.close();
+    try {
+      await server.listen(ziel, this.config.nodePort);
+      this.lauscht = ziel;
+      this.log(ziel === '0.0.0.0' ? `Schnittstelle im Heimnetz freigegeben · Port ${this.config.nodePort}` : 'Schnittstelle wieder nur für diesen PC');
+    } catch (e) {
+      // Zurueck auf den eigenen PC -- ohne Schnittstelle kaemen auch die eigenen Miner nicht mehr an den Pool.
+      await server.listen('127.0.0.1', this.config.nodePort);
+      this.lauscht = '127.0.0.1';
+      throw new Error(`Freigabe im Heimnetz nicht möglich: ${(e as Error).message}`);
+    }
+  }
+
+  /*
+   * Die Wallet wurde angelegt oder entfernt, waehrend der Pool laeuft.
+   *
+   * Die Gebuehr geht an die Wallet dieses PCs. Gibt es eine andere, geht sie
+   * ab dem naechsten Block dorthin. Gibt es keine mehr, kann ein Pool mit
+   * Gebuehr nicht weiterlaufen -- er haelt an und sagt warum.
+   */
+  private walletGeaendert(): void {
+    const pk = this.miningServer?.poolKoordinator;
+    if (!pk) { if (this.betrieb.aktiv && this.running) { this.starteBetrieb(); void this.richteLauschen().catch(() => {}); } return; }
+    const adresse = this.wallet.stand().adresse;
+    const e = pk.einstellungen();
+    if (adresse) { pk.setzeGebuehr(e.feeBpsAbNaechstem ?? e.feeBps, decodeAddress(adresse)); return; }
+    if (e.feeBps > 0 || (e.feeBpsAbNaechstem ?? 0) > 0) {
+      this.stoppeBetrieb();
+      this.betriebFehler = 'Für eine Gebühr braucht der Pool eine Wallet, an die sie geht.';
+      void this.richteLauschen().catch(() => {});
+    }
+  }
+
+  /** Einstellungen des eigenen Pools aendern -- und anwenden, soweit der Knoten laeuft. */
+  private async setzeBetrieb(body: Record<string, unknown>) {
+    const neu = pruefeBetrieb(body, this.betrieb, true);
+    if (neu.aktiv) {
+      neu.name = pruefePoolName(neu.name);
+      if (neu.feeBps > 0 && !this.wallet.stand().adresse) {
+        throw new KernFehler('wallet_fehlt', 'Für eine Gebühr braucht der Pool eine Wallet, an die sie geht.');
+      }
+    }
+    const vorher = this.betrieb;
+    this.betrieb = neu;
+    try { speichereBetrieb(this.betriebPfad, neu); }
+    catch (e) { this.log(`pool.json nicht gespeichert: ${(e as Error).message}`); }
+
+    const server = this.miningServer;
+    if (server && this.running) {
+      const pk = server.poolKoordinator;
+      if (neu.aktiv && !pk) this.starteBetrieb();
+      else if (!neu.aktiv && pk) this.stoppeBetrieb();
+      else if (pk && neu.feeBps !== vorher.feeBps) {
+        // Wirkt ab dem naechsten Block -- die Arbeit bis dahin lief unter der alten Gebuehr.
+        const adresse = this.wallet.stand().adresse;
+        pk.setzeGebuehr(neu.feeBps, adresse ? decodeAddress(adresse) : null);
+        this.log(`Pool: Gebühr ab dem nächsten Block ${(neu.feeBps / 100).toFixed(2)} %`);
+      }
+      await this.richteLauschen();
+    }
+    return this.betriebStatus();
+  }
+
+  /** Stand des eigenen Pools fuer die Oberflaeche. */
+  private betriebStatus() {
+    const server = this.miningServer;
+    const pk = this.running ? server?.poolKoordinator ?? null : null;
+    const wallet = this.wallet.stand().adresse;
+    const grenze = platzGrenze(this.betrieb.feeBps);
+    const basis = {
+      config: this.betrieb,
+      laeuft: !!pk,
+      fehler: pk ? null : this.betriebFehler,
+      grenze,
+      auszahlung: wallet,
+      heimnetz: {
+        offen: this.lauscht === '0.0.0.0',
+        adressen: heimnetzAdressen().map(ip => `http://${ip}:${this.config.nodePort}`),
+      },
+      eigenerHost: this.eigenerPoolHost(),
+    };
+    if (!pk || !server) {
+      return { ...basis, angewandt: null, neustartNoetig: false, auskunft: null, bloecke: null, letzterBlock: null,
+               eigenerMiner: false, miner: [] as unknown[], weitere: 0 };
+    }
+
+    const e = pk.einstellungen();
+    const a = server.poolAuskunft() ?? {};
+    const chain = this.chain;
+    const namen = this.store && chain ? this.namen.zahlen(this.store, () => chain.tip()?.height ?? null) : null;
+    const funde = namen?.get(e.name) ?? null;
+
+    // Wer im Fenster steht und wer gerade verbunden ist -- je Adresse eine Zeile.
+    const fenster = pk.fenster(this.netzDifficulty());
+    let gesamt = 0n;
+    for (const f of fenster) gesamt += f.work;
+    // hashrate bleibt null, bis der Pool sie messen konnte -- dafuer braucht er ein paar Shares.
+    const je = new Map<string, { work: bigint; hashrate: number | null; letzterShare: number | null; sitzungen: number }>();
+    for (const f of fenster) je.set(toHex(f.to), { work: f.work, hashrate: null, letzterShare: null, sitzungen: 0 });
+    for (const x of server.poolSitzungen()) {
+      const z = je.get(x.addressHex) ?? { work: 0n, hashrate: null, letzterShare: null, sitzungen: 0 };
+      if (x.hashrate !== null) z.hashrate = (z.hashrate ?? 0) + x.hashrate;
+      z.sitzungen++;
+      if (x.letzterShare !== null && (z.letzterShare === null || x.letzterShare > z.letzterShare)) z.letzterShare = x.letzterShare;
+      je.set(x.addressHex, z);
+    }
+    const eigene = new Set([wallet, isValidAddress(this.mining_.address) ? this.mining_.address : null]);
+    const alle = [...je.entries()]
+      .sort((x, y) => (y[1].work > x[1].work ? 1 : y[1].work < x[1].work ? -1 : (y[1].hashrate ?? 0) - (x[1].hashrate ?? 0)));
+    const miner = alle.slice(0, POOL_MINER_ZEILEN).map(([hex, z]) => {
+      const adresse = encodeAddress(this.hexToBytes(hex));
+      return {
+        adresse,
+        du: eigene.has(adresse),
+        hashrate: z.hashrate,
+        // Anteil an der Arbeit im Fenster, in Zehntausendsteln.
+        anteil: gesamt > 0n ? Number((z.work * 10_000n) / gesamt) / 10_000 : 0,
+        letzterShare: z.letzterShare,
+        verbunden: z.sitzungen > 0,
+      };
+    });
+
+    return {
+      ...basis,
+      angewandt: { name: e.name, plaetze: this.betriebLaeuft?.plaetze ?? pk.plaetze(), feeBps: e.feeBps, feeBpsNaechster: e.feeBpsAbNaechstem },
+      // Name und Plaetze gelten erst nach einem Neustart des Pools.
+      neustartNoetig: !!this.betriebLaeuft
+        && (this.betriebLaeuft.name !== this.betrieb.name.trim() || this.betriebLaeuft.plaetze !== this.betrieb.plaetze),
+      auskunft: {
+        miner: Number(a.miner ?? 0), belegt: Number(a.belegt ?? 0), plaetze: Number(a.plaetze ?? pk.plaetze()),
+        frei: Number(a.frei ?? 0), hashrate: Number(a.hashrate ?? 0),
+      },
+      bloecke: funde ? funde.zahl : namen ? 0 : null,
+      letzterBlock: funde ? funde.letzte : null,
+      eigenerMiner: this.poolAktiv?.eintrag.host === this.eigenerPoolHost(),
+      miner,
+      weitere: Math.max(0, alle.length - miner.length),
+    };
+  }
+
   private merkeLeistung(): void {
     const cpu = this.cpuMiner?.status(), gpu = this.gpuMiner?.status();
     if (!cpu?.running && !gpu?.running) return;
@@ -823,6 +1110,12 @@ export class NodeCoreApp {
       if (stand.status === 'aus') throw new KernFehler('pool_aus', 'Der Pool antwortet nicht.');
       if (stand.status === 'keinPool') throw new KernFehler('pool_unavailable', 'Unter dieser Adresse läuft kein Pool.');
       if (!waehlbar(stand)) throw new KernFehler('pool_full', 'Der Pool ist voll: Alle Plätze sind belegt.');
+      if (host === this.eigenerPoolHost()) {
+        // Der eigene Pool baut auf der EIGENEN Kette -- dann gilt dieselbe
+        // Pruefung wie solo.
+        const bereit = this.miningBereit();
+        if (!bereit.bereit) throw new Error(bereit.grund ?? 'Der Knoten ist noch nicht bereit.');
+      }
       pool = { eintrag, stand };
     } else {
       const stand = this.miningBereit();
@@ -1123,7 +1416,9 @@ export class NodeCoreApp {
     this.sync.start();
     this.statsTakt = setInterval(() => this.meldeStats(), this.statsTaktMs);
     this.statsTakt.unref?.();
-    await this.miningServer.listen('127.0.0.1', this.config.nodePort);
+    this.starteBetrieb();
+    this.lauscht = this.lauschZiel();
+    await this.miningServer.listen(this.lauscht, this.config.nodePort);
     this.running = true;
     this.startedAt = Date.now();
     this.fortschritt = this.startedAt;
@@ -1164,7 +1459,9 @@ export class NodeCoreApp {
     this.statsTakt = null;
     this.sync?.stop();
     await this.peers?.stop();
+    try { this.stoppeBetrieb(); } catch { /* lief nicht */ }
     await this.miningServer?.close();
+    this.lauscht = '127.0.0.1';
     this.running = false;
   }
 
@@ -1576,7 +1873,7 @@ export class NodeCoreApp {
       }
 
       if (GET && pfad === '/api/status') {
-        return json(res, { ...this.status(), mining: this.miningStatus(), einstellungen: this.einstellungen });
+        return json(res, { ...this.status(), mining: this.miningStatus(), betrieb: this.betriebStatus(), einstellungen: this.einstellungen });
       }
       if (GET && pfad === '/api/einstellungen') return json(res, this.einstellungen);
       if (POST && pfad === '/api/einstellungen') return json(res, this.setzeEinstellungen(await readBody(req)));
@@ -1602,7 +1899,7 @@ export class NodeCoreApp {
         if (POST) {
           const b = await readBody(req);
           if (pfad === '/api/wallet/neu') return json(res, { woerter: w.neueWoerter() });
-          if (pfad === '/api/wallet/anlegen') return json(res, await w.anlegen(b.woerter, b.passwort));
+          if (pfad === '/api/wallet/anlegen') { const r = await w.anlegen(b.woerter, b.passwort); this.walletGeaendert(); return json(res, r); }
           if (pfad === '/api/wallet/entsperren') return json(res, await w.entsperren(b.passwort));
           if (pfad === '/api/wallet/zuruecksetzen') return json(res, await w.neuesPasswortMitWoertern(b.woerter, b.passwort));
           if (pfad === '/api/wallet/sperren') { w.sperren(); return json(res, w.stand()); }
@@ -1611,7 +1908,7 @@ export class NodeCoreApp {
           if (pfad === '/api/wallet/senden') return json(res, await this.walletSenden(b));
           if (pfad === '/api/wallet/woerter') return json(res, { woerter: await w.woerter(b.passwort) });
           if (pfad === '/api/wallet/passwort') { await w.passwortAendern(b.alt, b.neu); return json(res, { ok: true }); }
-          if (pfad === '/api/wallet/entfernen') { await w.entfernen(b.passwort); return json(res, w.stand()); }
+          if (pfad === '/api/wallet/entfernen') { await w.entfernen(b.passwort); this.walletGeaendert(); return json(res, w.stand()); }
           if (pfad === '/api/wallet/kontakt') return json(res, { kontakte: w.setzeKontakt(b.name, b.adresse) });
           if (pfad === '/api/wallet/kontakt/entfernen') return json(res, { kontakte: w.entferneKontakt(b.adresse) });
         }
@@ -1621,6 +1918,7 @@ export class NodeCoreApp {
       if (GET && pfad === '/api/mining/status') return json(res, this.miningStatus());
       if (POST && pfad === '/api/mining/start') return json(res, await this.startMining(await readBody(req)));
       if (POST && pfad === '/api/mining/stop') return json(res, await this.stopMining());
+      if (POST && pfad === '/api/pool/betrieb') return json(res, await this.setzeBetrieb(await readBody(req)));
       if (GET && pfad === '/api/pool/liste') return json(res, await this.poolListe(url.searchParams.get('eigen')));
       if (POST && pfad === '/api/mining/detect') {
         this.gpuErkennung = null;

@@ -143,6 +143,15 @@ table.tab{width:100%;border-collapse:collapse;font-size:13.5px}
 .pool-name{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;min-width:0;overflow-wrap:anywhere}
 .pool-name .punkt{width:8px;height:8px}
 .pool-zahlen{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px}
+.skala{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--blass)}
+.mitmachen{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--linie)}
+.mitmachen:last-child{border-bottom:0}
+.mitmachen-bild{flex:none;align-self:flex-start;width:34px;height:34px;border-radius:10px;background:#1A2740;color:var(--label);display:inline-flex;align-items:center;justify-content:center}
+.mitmachen-bild.gruen{background:rgba(60,203,149,.14);color:var(--gruen-hell)}
+.mitmachen-bild.gelb{background:rgba(240,185,90,.14);color:var(--gelb-hell)}
+.mitmachen-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mitmachen-text b{font-size:14px;font-weight:700}
+.mitmachen>.chip,.mitmachen>.knopf,.mitmachen>.schalter,.mitmachen>span:last-child{flex:none}
 .verlauf{display:flex;gap:10px}
 .verlauf-achse{flex:none;display:flex;flex-direction:column;justify-content:space-between;height:140px;padding:3px 0;font-family:var(--mono);font-size:11.5px;color:var(--blass);text-align:right}
 .verlauf-flaeche{position:relative;flex:1 1 auto;min-width:0;height:140px}

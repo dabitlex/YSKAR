@@ -140,11 +140,18 @@ const FRISCH = 20;
 /** So viele Bloecke je Durchgang -- der Knoten soll dabei nicht stocken. */
 const JE_DURCHGANG = 400;
 
+export interface NamenZahl {
+  zahl: number;
+  /** Hoehe des juengsten Blocks mit diesem Namen. */
+  letzte: number;
+}
+
 export class NamenZaehler {
-  private fest = new Map<string, number>();
+  private fest = new Map<string, NamenZahl>();
   /** Bis zu dieser Hoehe (einschliesslich) ist `fest` gezaehlt. */
   private bis = -1;
   private laeuft: Promise<void> | null = null;
+  private merker: { kopf: number; bis: number; z: Map<string, NamenZahl> } | null = null;
 
   private static name(store: ChainStore, h: number): string | null {
     const b = store.mainAt(h);
@@ -165,7 +172,7 @@ export class NamenZaehler {
           const ende = Math.min(ziel, this.bis + JE_DURCHGANG);
           for (let h = this.bis + 1; h <= ende; h++) {
             const n = NamenZaehler.name(store, h);
-            if (n) this.fest.set(n, (this.fest.get(n) ?? 0) + 1);
+            if (n) this.fest.set(n, { zahl: (this.fest.get(n)?.zahl ?? 0) + 1, letzte: h });
           }
           this.bis = ende;
           await new Promise<void>(auf => setImmediate(auf));
@@ -180,15 +187,18 @@ export class NamenZaehler {
    * Zahlen je Name. `null`, solange noch gezaehlt wird -- eine halbe Zahl
    * saehe aus wie eine ganze.
    */
-  zahlen(store: ChainStore, kopf: () => number | null): Map<string, number> | null {
+  zahlen(store: ChainStore, kopf: () => number | null): Map<string, NamenZahl> | null {
     const k = kopf();
     if (k === null) return null;
     if (this.bis < k - FRISCH) { void this.nachfuehren(store, kopf); return null; }
+    // Die Oberflaeche fragt alle paar Sekunden -- dafuer nicht jedes Mal lesen.
+    if (this.merker && this.merker.kopf === k && this.merker.bis > Date.now()) return this.merker.z;
     const z = new Map(this.fest);
     for (let h = Math.max(0, this.bis + 1); h <= k; h++) {
       const n = NamenZaehler.name(store, h);
-      if (n) z.set(n, (z.get(n) ?? 0) + 1);
+      if (n) z.set(n, { zahl: (z.get(n)?.zahl ?? 0) + 1, letzte: h });
     }
+    this.merker = { kopf: k, bis: Date.now() + 5_000, z };
     return z;
   }
 
