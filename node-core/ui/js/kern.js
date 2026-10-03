@@ -10,7 +10,18 @@ import { t, sprache } from './i18n.js';
 
 const ZUGANG = document.querySelector('meta[name="yskar-zugang"]')?.content ?? '';
 
-/** Fehler mit dem Text, den der Knoten geliefert hat. */
+/**
+ * Text zu einem Kürzel des Knotens, in der Sprache der Oberfläche.
+ * Kennt die Oberfläche das Kürzel nicht, bleibt der Text des Knotens.
+ */
+export function knotenText(code, werte, sonst) {
+  if (!code) return sonst;
+  const schluessel = 'srv.' + code;
+  const eigen = t(schluessel, ...(Array.isArray(werte) ? werte : []));
+  return eigen !== schluessel ? eigen : sonst;
+}
+
+/** Fehler des Knotens -- mit Text in der Sprache der Oberfläche, wenn sie das Kürzel kennt. */
 export class ApiFehler extends Error {
   constructor(text, status, code) { super(text); this.status = status; this.code = code ?? null; }
 }
@@ -23,7 +34,8 @@ export async function api(pfad, opt = {}) {
   let daten = null;
   try { daten = await antwort.json(); } catch { /* keine JSON-Antwort */ }
   if (!antwort.ok || (daten && daten.error)) {
-    throw new ApiFehler((daten && daten.error) || t('fehler.allgemein'), antwort.status, daten && daten.code);
+    const text = (daten && daten.error) || t('fehler.allgemein');
+    throw new ApiFehler(knotenText(daten && daten.code, daten && daten.werte, text), antwort.status, daten && daten.code);
   }
   return daten;
 }

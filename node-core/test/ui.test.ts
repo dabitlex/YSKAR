@@ -44,7 +44,7 @@ test('Texte: Jeder verwendete Schlüssel ist vorhanden', () => {
       if (!(m[1] in de)) fehlend.push(`${f}: ${m[1]}`);
     }
     // Schluessel, die als Text in einer Liste stehen: ['einr.s1', ...]
-    for (const m of text.matchAll(/(?<!el\()'((?:allg|fehler|zeit|nav|leiste|ueb|kette|peers|min|einst|einr|wal|pool|betr)\.[a-zA-Z0-9_.]+)'/g)) {
+    for (const m of text.matchAll(/(?<!el\()'((?:allg|fehler|zeit|nav|leiste|ueb|kette|peers|min|einst|einr|wal|pool|betr|srv)\.[a-zA-Z0-9_.]+)'/g)) {
       if (!m[1].endsWith('.') && !(m[1] in de)) fehlend.push(`${f}: ${m[1]}`);
     }
   }
@@ -53,6 +53,30 @@ test('Texte: Jeder verwendete Schlüssel ist vorhanden', () => {
   for (const v of new Set(vorsilben)) {
     assert.ok(Object.keys(de).some(k => k.startsWith(v)), `Kein Text beginnt mit ${v}`);
   }
+});
+
+test('Texte: Zu jedem Kürzel des Knotens gibt es einen Text in beiden Sprachen', () => {
+  const SRC = join(HIER, '..', 'src');
+  const kuerzel = new Set<string>();
+  for (const f of readdirSync(SRC).filter(x => x.endsWith('.ts'))) {
+    const text = readFileSync(join(SRC, f), 'utf8');
+    for (const m of text.matchAll(/new (?:KernFehler|WalletFehler|PoolEndgueltig)\('([a-z0-9_]+)'/g)) kuerzel.add(m[1]);
+    for (const m of text.matchAll(/\bnein\('([a-z_]+)'/g)) kuerzel.add(m[1]);
+    for (const m of text.matchAll(/\b(?:code|grundCode)(?:\s*=|:)\s*'([a-z_]+)'/g)) kuerzel.add(m[1]);
+    for (const m of text.matchAll(/fertig\([^\n]*,\s*'(gpu_[a-z_]+)'\)/g)) kuerzel.add(m[1]);
+    // Gruende, aus denen der Knoten eine Ueberweisung ablehnt.
+    const abgelehnt = text.match(/const text: Record<string, string> = \{([\s\S]*?)\};/);
+    if (abgelehnt) for (const m of abgelehnt[1].matchAll(/^\s*([a-z_]+):/gm)) kuerzel.add('abgelehnt_' + m[1]);
+  }
+  kuerzel.delete('abgelehnt_');     // der Anfang des zusammengesetzten Kuerzels
+  assert.ok(kuerzel.size > 40, `Nur ${kuerzel.size} Kürzel gefunden -- sucht der Test noch richtig?`);
+  const ohne = [...kuerzel].filter(k => !(('srv.' + k) in de) || !(('srv.' + k) in en)).sort();
+  assert.deepEqual(ohne, [], 'Kürzel ohne Text');
+  // Und umgekehrt: kein Text fuer ein Kuerzel, das es nicht mehr gibt.
+  const quellen = readdirSync(SRC).filter(x => x.endsWith('.ts')).map(f => readFileSync(join(SRC, f), 'utf8')).join('\n');
+  const verwaist = Object.keys(de)
+    .filter(k => k.startsWith('srv.') && !kuerzel.has(k.slice(4)) && !quellen.includes(`'${k.slice(4)}'`)).sort();
+  assert.deepEqual(verwaist, [], 'Texte ohne Kürzel');
 });
 
 function ruf(port: number, pfad: string, kopf: Record<string, string> = {}):

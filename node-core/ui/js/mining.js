@@ -1,5 +1,5 @@
 /* Mining: mit Prozessor und Grafikkarte an neuen Blöcken rechnen -- solo oder im Pool. */
-import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, dauer, tagOderZeit, zeichen, segment, kurzAdresse } from './kern.js';
+import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, dauer, tagOderZeit, zeichen, segment, kurzAdresse, knotenText } from './kern.js';
 import { t, sprache } from './i18n.js';
 
 /** Dieselbe Regel wie im Knoten und im Explorer: druckbares ASCII, 3 bis 32 Zeichen. */
@@ -325,7 +325,7 @@ export function baue(ctx) {
           cpuWorkers: Number(kerne.value), cpuIntensity: Number(last.value),
           gpuDevice: Number(gpuWahl.value || 0), blockName: name.value.trim(),
         });
-        if (r.hinweise?.length) melde(r.hinweise.join(' '));
+        if (r.hinweise?.length) melde(r.hinweise.map((h, i) => knotenText(r.hinweisCodes?.[i]?.code, r.hinweisCodes?.[i]?.werte, h)).join(' '));
       }
       await ctx.neuLaden();
     } catch (e) { melde(fehlerText(e), true); if (ziel === 'pool') { pools = null; ladeListe(); } }
@@ -466,7 +466,8 @@ export function baue(ctx) {
     fuelle(start, m.running ? t('min.stoppen') : [zeichen('blitz'), t('min.starten')]);
     start.className = 'knopf' + (m.running ? '' : ' haupt');
     start.disabled = beschaeftigt || (!s.running && !m.running) || (!m.running && poolFehlt);
-    start.title = m.running || !s.running ? '' : poolFehlt ? t('pool.fehler.pool_fehlt') : !bereit && m.startklar?.grund ? m.startklar.grund : '';
+    start.title = m.running || !s.running ? '' : poolFehlt ? t('pool.fehler.pool_fehlt')
+      : !bereit && m.startklar?.grund ? knotenText(m.startklar.code, m.startklar.werte, m.startklar.grund) : '';
 
     // Während das Mining läuft, bleiben die Einstellungen stehen.
     for (const f of [adresse, kerne, last, name, gpuWahl, rWallet, rAndere, eigen]) f.disabled = m.running;
@@ -489,7 +490,7 @@ export function baue(ctx) {
         g.name + (g.vram ? ' · ' + (g.vram / 1073741824).toFixed(0) + ' GB' : '') + (g.emulation ? ' · ' + t('min.nachbildung') : '')))
         : el('option', { value: 0 }, t('min.keineKarte')));
     }
-    text(gpuGrund, e && !e.verfuegbar && e.grund ? e.grund : (m.gpu?.lastError ? t('min.letzterFehler', m.gpu.lastError) : t('min.gpuHinweis')));
+    text(gpuGrund, e && !e.verfuegbar && e.grund ? knotenText(e.grundCode, [], e.grund) : (m.gpu?.lastError ? t('min.letzterFehler', m.gpu.lastError) : t('min.gpuHinweis')));
     if (!e?.verfuegbar && modus !== 'cpu' && !m.running) { modus = 'cpu'; geraet.setze('cpu'); zeigeKaesten(); }
 
     if (pool) return zeigePool(s);

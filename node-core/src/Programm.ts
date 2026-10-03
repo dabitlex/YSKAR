@@ -7,6 +7,19 @@ import { existsSync, readdirSync, renameSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
+ * Fehler mit Kuerzel. Der Text ist deutsch; die Oberflaeche zeigt zu einem
+ * bekannten Kuerzel ihren eigenen Text in der gewaehlten Sprache und setzt
+ * `werte` in die Platzhalter ein.
+ */
+export class KernFehler extends Error {
+  code: string;
+  werte: (string | number)[];
+  constructor(code: string, text: string, werte: (string | number)[] = []) {
+    super(text); this.code = code; this.werte = werte;
+  }
+}
+
+/**
  * Was nur die Desktop-Huelle (Electron) kann: Dialoge von Windows, den
  * Explorer oeffnen, den Start mit Windows einrichten.
  *

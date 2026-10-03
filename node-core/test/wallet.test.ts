@@ -150,7 +150,7 @@ test('Wallet: eine beschädigte Datei wird nicht überschrieben', async () => {
   writeFileSync(join(dir, 'wallet.json'), '{"version":1,"salt":"x"');
   const w = new WalletDienst(dir);
   assert.equal(w.stand().vorhanden, false);
-  await wirft(() => w.anlegen(WORTE, PW), 'datei_beschaedigt');
+  await wirft(() => w.anlegen(WORTE, PW), 'datei_unlesbar');
   assert.equal(readFileSync(join(dir, 'wallet.json'), 'utf8'), '{"version":1,"salt":"x"');
 });
 
@@ -160,7 +160,7 @@ test('Wallet: Kontakte', async () => {
   await w.anlegen(WORTE, PW);
   const A = encodeAddress(new Uint8Array(20).fill(1)), B = encodeAddress(new Uint8Array(20).fill(2));
   await wirft(() => w.setzeKontakt('', A), 'kontakt_name');
-  await wirft(() => w.setzeKontakt('x'.repeat(25), A), 'kontakt_name');
+  await wirft(() => w.setzeKontakt('x'.repeat(25), A), 'kontakt_name_lang');
   await wirft(() => w.setzeKontakt('Mara', 'ysr1unsinn'), 'adresse_falsch');
   w.setzeKontakt('  Mara ', A.toUpperCase());
   w.setzeKontakt('Jonas', B);
