@@ -122,7 +122,7 @@ jobs:
           $groesse = (Get-Item gpu\bin\yskar-cuda.exe).Length
           $hash = (Get-FileHash gpu\bin\yskar-cuda.exe -Algorithm SHA256).Hash.ToLower()
           # Ohne NVIDIA-Treiber endet das Programm mit einem Fehler -- das ist hier zu erwarten.
-          Write-Host "::notice title=GPU-Miner::yskar-cuda.exe gebaut ($groesse Byte, sha256 $($hash.Substring(0, 16))). --probe endet hier mit $ende: $($aus.Trim() -replace '\s+', ' ')"
+          Write-Host "::notice title=GPU-Miner::yskar-cuda.exe gebaut ($groesse Byte, sha256 $($hash.Substring(0, 16))). --probe endet hier mit ${ende}: $($aus.Trim() -replace '\s+', ' ')"
           $global:LASTEXITCODE = 0
 
       - uses: actions/upload-artifact@v4
