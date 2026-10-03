@@ -13,7 +13,7 @@ assets/style.css    alle Stile
 assets/site.js      Sprache, Menü, Live-Werte
 assets/i18n/*.js    Texte je Sprache (en ist Vorgabe und Rückfall)
 assets/fonts/       Manrope und IBM Plex Mono, selbst gehostet (OFL)
-assets/img/         Logo und App-Bilder
+assets/img/         Logo, App-Bilder, Node Core (echte Oberfläche mit Beispielzahlen)
 vercel.json         saubere URLs, Header, Build nur bei Änderungen hier
 ```
 
@@ -64,3 +64,14 @@ python3 -m http.server 8080
 
 Dann `http://localhost:8080/index.html` öffnen. Saubere URLs wie
 `/anleitungen` funktionieren erst bei Vercel.
+
+## Node Core
+
+Der Abschnitt „YSKAR Node Core“ auf der Startseite verlinkt den Installer
+einer bestimmten Version direkt bei GitHub. Nach jeder neuen
+Veröffentlichung des Node Core sind dort der Link, der Link zu den
+Versionshinweisen und die Versionsnummer anzupassen (ebenso im Block
+„Download“ der `README.md` im Hauptordner).
+
+Die Seite fragt GitHub nicht selbst ab, welche Version die neueste ist: Das
+wäre ein Aufruf bei einem Dritten aus dem Browser jedes Besuchers.

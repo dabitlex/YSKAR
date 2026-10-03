@@ -197,6 +197,11 @@ A release build on GitHub is described in
 `node-core-vX.Y.Z`. The Android app stays the repository's "latest" release
 (`.github/workflows/neueste-veroeffentlichung.yml`).
 
+After publishing a new version, the download link and the version number
+have to be updated in two places: the section "YSKAR Node Core" in
+`website/index.html` and the block "Download" in the repository's
+`README.md`. The same workflow warns if they still point to the old version.
+
 ## Tests
 
 ```

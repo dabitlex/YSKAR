@@ -67,7 +67,7 @@ a:hover{color:var(--blau-hell)}
 .marke img{width:40px;height:26px;object-fit:contain}
 .marke span{font-size:20px;font-weight:800;letter-spacing:.06em}
 .nav{display:flex;align-items:center;gap:28px;font-size:15px;font-weight:600}
-.nav a{color:#C9D4E6}
+.nav a{color:#C9D4E6;white-space:nowrap}
 .nav a:hover,.nav a[aria-current=page]{color:#FFFFFF}
 .sprache{position:relative}
 .sprache select{appearance:none;-webkit-appearance:none;height:44px;padding:0 36px 0 14px;border-radius:12px;border:1px solid var(--kante-d);background:var(--karte-d);color:var(--text-d);font:600 14px var(--sans);cursor:pointer}
@@ -169,6 +169,25 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
 .haken{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px;font-size:16px;color:#D6DEEC}
 .haken li{display:flex;gap:12px}
 .haken li::before{content:'✓';color:var(--gruen-d)}
+.abschnitt.weiss .haken,.abschnitt.hell .haken{color:var(--lese)}
+.abschnitt.weiss .haken li::before,.abschnitt.hell .haken li::before{color:var(--gruen);font-weight:700}
+
+/* Node Core */
+.nc-raster{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:64px;align-items:center}
+.nc-laden{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-top:6px}
+.nc-meta{margin:0;font-family:var(--mono);font-size:13px;color:var(--dim)}
+.spalte>p.leise a{color:var(--blau);font-weight:600}
+.fenster{margin:0;border-radius:18px;background:#0B0F14;border:1px solid #1C283E;box-shadow:0 44px 80px -36px rgba(14,26,47,.6);overflow:hidden}
+.fenster-leiste{display:flex;align-items:center;gap:18px;height:40px;padding:0 16px;background:#0F1728;border-bottom:1px solid #1C283E;color:#9EADC6;font-size:13px;font-weight:600}
+.fenster-leiste span{margin-right:auto}
+.fenster-leiste i{width:11px;height:11px;border:1.5px solid #5B6B84;border-radius:2px}
+.fenster-leiste i:nth-of-type(1){height:0;border-width:1.5px 0 0;border-radius:0;align-self:center}
+.fenster-leiste i:nth-of-type(3){border:0;background:linear-gradient(45deg,transparent 44%,#5B6B84 44%,#5B6B84 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,#5B6B84 44%,#5B6B84 56%,transparent 56%);width:12px;height:12px}
+.fenster img{display:block;width:100%;height:auto}
+.fenster figcaption{padding:10px 16px;background:#0F1728;border-top:1px solid #1C283E;color:#9EADC6;font-size:12.5px}
+.weg-link{font-size:14.5px;font-weight:600;color:var(--blau);text-align:center}
+.weg .weg-link{margin-top:auto}
+.weg .weg-link+.knopf{margin-top:0}
 
 /* ------------------------------------------------------------ Kennzahlen */
 .zahlen{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -270,6 +289,14 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
   .live-raster>div:nth-child(2){border-right:0}
   .live-raster>div:nth-child(-n+2){border-bottom:1px solid var(--kante-d)}
 }
+/* Das Menue klappt frueher ein: Mit "Node Core" passen die Eintraege erst ab 1120px in eine Zeile. */
+@media (max-width:1120px){
+  .menue-knopf{display:inline-flex}
+  .nav{display:none;position:absolute;top:76px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;padding:12px 40px 20px;background:var(--nacht);border-bottom:1px solid var(--kante-d2)}
+  .nav.offen{display:flex}
+  .nav a{padding:12px 0;font-size:17px}
+  .nav .knopf{margin-top:8px}
+}
 @media (max-width:960px){
   .wrap{padding:0 24px}
   .menue-knopf{display:inline-flex}
@@ -278,7 +305,8 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
   .nav a{padding:12px 0;font-size:17px}
   .nav .knopf{margin-top:8px}
   .held{padding:56px 0 48px}
-  .held-raster,.wallet-raster,.raster-2,.inhalt-raster{grid-template-columns:minmax(0,1fr)}
+  .held-raster,.wallet-raster,.nc-raster,.raster-2,.inhalt-raster{grid-template-columns:minmax(0,1fr)}
+  .nc-raster{gap:44px}
   .held-raster{gap:48px}
   .raster-3{grid-template-columns:minmax(0,1fr)}
   .abschnitt{padding:72px 0}
