@@ -9,18 +9,21 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { homedir, platform } from 'node:os';
+import { join, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 
 import { ChainStore } from '../../src/lib/node/fullnode/ChainStore.ts';
 import { ChainManager } from '../../src/lib/node/fullnode/ChainManager.ts';
 import { TxPool } from '../../src/lib/node/fullnode/TxPool.ts';
 import { MiningCoordinator } from '../../src/lib/node/fullnode/MiningCoordinator.ts';
 import { MiningServer } from '../../src/lib/node/fullnode/MiningServer.ts';
+import { NetzStatistik, type LokaleStatistik } from '../../src/lib/node/fullnode/NetzStatistik.ts';
 import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
+import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
-import { MAINNET } from '../../src/lib/core/networks.ts';
-import { NETWORK } from '../../src/lib/core/params.ts';
+import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
+import { MAINNET, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { stateRoot, totalSupply } from '../../src/lib/core/state.ts';
 import { toHex } from '../../src/lib/core/codec.ts';
 import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
@@ -56,9 +59,25 @@ interface MiningEinstellung {
   blockName: string;
 }
 
-const VERSION = '0.3.1';
-const APP_NAME = 'YSKAR Node Core';
+export const VERSION = '0.4.0';
 const GUI_PORT = 8650;
+/** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
+const STATS_TAKT_MS = 30_000;
+/**
+ * So lange gilt eine Angabe der Peers, der Knoten liege zurueck, ohne dass
+ * ein Block ankommt. Danach zaehlt sie nicht mehr -- siehe miningBereit().
+ */
+const SYNC_GEDULD_MS = 120_000;
+/**
+ * Eine neue ausgehende Verbindung zaehlt hoechstens so oft als Fortschritt.
+ * Sonst hielte ein Peer, der die Verbindung immer wieder abreissen laesst,
+ * die Geduld beliebig lange wach.
+ */
+const AUSGEHEND_ZAEHLT_ALLE_MS = 600_000;
+/** Name des Kopffelds, in dem die Oberflaeche ihren Zugangsschluessel schickt. */
+const TOKEN_KOPF = 'x-yskar-token';
+/** Platzhalter in der ausgelieferten Seite -- wird je Start ersetzt. */
+const TOKEN_PLATZ = '__YSKAR_ZUGANG__';
 const DEFAULT_NODE_PORT = 8645;
 const DEFAULT_P2P_PORT = 8646;
 const DEFAULT_SEED = 'yskar-main.dynv6.net:8646';
@@ -85,12 +104,28 @@ function html(res: ServerResponse, body: string): void {
     'content-type': 'text/html; charset=utf-8',
     'content-length': Buffer.byteLength(body),
     'cache-control': 'no-store',
+    // Die Oberflaeche darf in keine fremde Seite eingebettet werden und laedt
+    // selbst nichts von aussen. Skripte und Stile stehen in der Seite.
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'no-referrer',
+    'content-security-policy':
+      "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
+      "connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; " +
+      "frame-ancestors 'none'",
   });
   res.end(body);
 }
 
+/*
+ * Rumpf einer Anfrage lesen.
+ *
+ * Ein Rumpf muss als JSON ausgewiesen sein. Ein Formular oder ein
+ * "text/plain"-Aufruf aus einer fremden Webseite kommt ohne Vorabfrage des
+ * Browsers an -- genau diese Aufrufe sollen hier nicht als Befehl gelten.
+ */
 function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolveBody, reject) => {
+    const typ = String(req.headers['content-type'] ?? '').toLowerCase();
     let raw = '';
     req.on('data', c => {
       raw += c;
@@ -100,21 +135,92 @@ function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
       }
     });
     req.on('end', () => {
-      try { resolveBody(raw ? JSON.parse(raw) : {}); }
+      if (raw && !typ.startsWith('application/json')) {
+        reject(new Error('Inhaltstyp muss application/json sein.'));
+        return;
+      }
+      try {
+        const wert: unknown = raw ? JSON.parse(raw) : {};
+        if (wert === null || typeof wert !== 'object' || Array.isArray(wert)) {
+          reject(new Error('Ungültiges JSON'));
+          return;
+        }
+        resolveBody(wert as Record<string, unknown>);
+      }
       catch { reject(new Error('Ungültiges JSON')); }
     });
     req.on('error', reject);
   });
 }
 
+/**
+ * Mining-Schnittstelle des Node Core.
+ *
+ * Die eingebauten Miner haengen an keiner Sitzung der Schnittstelle -- sie
+ * holen ihre Arbeit direkt beim Koordinator. Ohne diese Ergaenzung fehlten
+ * sie in der Statistik: Weder dieser Knoten noch seine Peers wuessten, dass
+ * hier jemand mint.
+ */
+class KernServer extends MiningServer {
+  intern: (() => LokaleStatistik | null) | null = null;
+
+  lokaleStatistik(): LokaleStatistik {
+    const l = super.lokaleStatistik();
+    const i = this.intern?.() ?? null;
+    if (!i) return l;
+    return {
+      adressen: [...new Set([...l.adressen, ...i.adressen])],
+      hashrate: l.hashrate + i.hashrate,
+      sessions: l.sessions + i.sessions,
+    };
+  }
+}
+
+/** Mittlerer Wert -- ein einzelner Peer mit falscher Angabe verschiebt ihn nicht. */
+function median(werte: number[]): number {
+  const s = [...werte].sort((a, b) => a - b);
+  return s[Math.floor((s.length - 1) / 2)];
+}
+
+/**
+ * Nur fuer Tests. Die ausgelieferte Anwendung ruft `new NodeCoreApp()` ohne
+ * Angaben auf und laeuft damit immer auf dem Mainnet, mit den festen Ports
+ * und den Ordnern unter %LOCALAPPDATA%.
+ */
+export interface NodeCoreOptionen {
+  params?: ConsensusParams;
+  guiPort?: number;
+  /** Ordner fuer config.json und mining.json. */
+  basis?: string;
+  /** Uhr fuer die Zeitstempel neuer Bloecke, in Sekunden. */
+  uhr?: () => bigint;
+  /** Abstand der Statistik-Meldungen an die Peers. */
+  statsTaktMs?: number;
+}
+
 export class NodeCoreApp {
+  private params: ConsensusParams;
+  private guiPort: number;
+  private uhr: (() => bigint) | undefined;
+  private statsTaktMs: number;
+  /** Wann zuletzt etwas geschah, das einen Rueckstand belegt oder abbaut. */
+  private fortschritt = 0;
+  private letzterAusgehend = 0;
   private store: ChainStore | null = null;
   private chain: ChainManager | null = null;
   private pool: TxPool | null = null;
   private mining: MiningCoordinator | null = null;
-  private miningServer: MiningServer | null = null;
+  private miningServer: KernServer | null = null;
   private peers: PeerManager | null = null;
   private sync: SyncManager | null = null;
+  private statistik: NetzStatistik | null = null;
+  private statsTakt: ReturnType<typeof setInterval> | null = null;
+  /*
+   * Zugangsschluessel der Oberflaeche. Entsteht bei jedem Start neu und
+   * steht nur in der Seite, die dieser Server selbst ausliefert. Eine fremde
+   * Webseite kann die Seite nicht lesen und kennt ihn deshalb nicht.
+   */
+  private zugang = randomBytes(32).toString('hex');
   private guiServer = createServer((req, res) => this.handleGui(req, res));
   private configured = false;
   private running = false;
@@ -138,10 +244,14 @@ export class NodeCoreApp {
     seed: string;
   };
 
-  constructor() {
-    const base = process.platform === 'win32'
+  constructor(opt: NodeCoreOptionen = {}) {
+    this.params = opt.params ?? MAINNET;
+    this.guiPort = opt.guiPort ?? GUI_PORT;
+    this.uhr = opt.uhr;
+    this.statsTaktMs = opt.statsTaktMs ?? STATS_TAKT_MS;
+    const base = opt.basis ?? (process.platform === 'win32'
       ? join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), 'YSKAR', 'Node Core')
-      : join(homedir(), '.yskar', 'node-core');
+      : join(homedir(), '.yskar', 'node-core'));
     mkdirSync(base, { recursive: true });
     this.configPath = join(base, 'config.json');
     this.miningPfad = join(base, 'mining.json');
@@ -245,6 +355,108 @@ export class NodeCoreApp {
     this.minerNeuAusrichten();
   }
 
+  /** Was die eingebauten Miner gerade leisten -- fuer die Statistik. */
+  private interneStatistik(): LokaleStatistik | null {
+    const laufend = [this.cpuMiner?.status(), this.gpuMiner?.status()]
+      .filter(m => m?.running);
+    if (laufend.length === 0 || !isValidAddress(this.mining_.address)) return null;
+    const hashrate = laufend.reduce(
+      (summe, m) => summe + (Number.isFinite(m!.hashrate) ? Math.max(0, m!.hashrate) : 0), 0);
+    return {
+      adressen: [toHex(decodeAddress(this.mining_.address))],
+      hashrate,
+      sessions: laufend.length,
+    };
+  }
+
+  /*
+   * Den Peers melden, wer hier mint (NetzStatistik.ts).
+   *
+   * Gesendet wird NUR an Peers, deren Kennung "+stats" traegt. Ein Knoten
+   * aelterer Fassung kennt den Befehl nicht und wuerde die Verbindung
+   * trennen.
+   */
+  private meldeStats(an?: PeerConnection): void {
+    if (!this.peers || !this.statistik || !this.miningServer) return;
+    const l = this.miningServer.lokaleStatistik();
+    const nutzlast = encodeStats({
+      knoten: this.statistik.eigeneKennung,
+      hashrate: Number.isFinite(l.hashrate) ? BigInt(Math.max(0, Math.round(l.hashrate))) : 0n,
+      sessions: l.sessions,
+      adressen: l.adressen.map(h => this.hexToBytes(h)),
+    });
+    for (const p of an ? [an] : this.peers.bereite()) {
+      if (p.info().agent.includes(STATS_FAEHIG)) p.send('stats', nutzlast);
+    }
+  }
+
+  /*
+   * Darf das Mining starten?
+   *
+   * Der Miner rechnet auf dem Kopf der EIGENEN Kette. Holt der Knoten noch
+   * auf, ist das ein alter Stand, und ein Treffer dort waere wertlos. Ohne
+   * jeden Peer gilt dasselbe: Niemand erfuehre von dem Block.
+   *
+   * Ob der Knoten zurueckliegt, sagen ihm nur seine Peers -- und die koennen
+   * luegen. Eine Sperre, die sich auf ihr Wort verlaesst, liesse sich von
+   * aussen dauerhaft ausloesen. Deshalb drei Vorkehrungen:
+   *
+   *   1. Verglichen wird mit dem MITTLEREN Stand, nicht mit dem hoechsten.
+   *   2. Gibt es ausgehende Verbindungen, zaehlen nur sie. Die hat dieser
+   *      Knoten selbst gewaehlt; eingehende kann jeder beliebig oft oeffnen.
+   *   3. Die Angabe "du liegst zurueck" gilt nur, solange auch Bloecke
+   *      kommen. Bleibt SYNC_GEDULD_MS lang jeder Fortschritt aus, war sie
+   *      nicht gedeckt, und das Mining darf starten. Als Fortschritt zaehlen
+   *      der Knotenstart, ein angenommener Block und -- hoechstens alle
+   *      AUSGEHEND_ZAEHLT_ALLE_MS -- eine neue AUSGEHENDE Verbindung. Nichts
+   *      davon kann ein Fremder nach Belieben ausloesen.
+   *
+   * Dasselbe gilt fuer die Warteschlange des Abgleichs: Angekuendigte
+   * Bloecke, die nie geliefert werden, sperren nicht fuer immer.
+   *
+   * DER PREIS, ausdruecklich: Stockt ein echter Abgleich laenger als
+   * SYNC_GEDULD_MS, oeffnet die Sperre, obwohl der Knoten zurueckliegt. Dann
+   * rechnet der Miner bis zum naechsten Block auf einem alten Stand -- das
+   * kostet eigene Rechenzeit und sonst nichts. Die andere Richtung waere
+   * schlimmer: eine Sperre, die Fremde geschlossen halten koennen.
+   *
+   * Ein Block Abstand ist erlaubt: Der letzte Block ist oft noch unterwegs.
+   */
+  private miningBereit(jetzt: number = Date.now()): { bereit: boolean; grund: string | null } {
+    const peers = this.peers?.info() ?? [];
+    if (peers.length === 0) {
+      return { bereit: false, grund: 'Noch kein Peer verbunden. Ohne Verbindung zum Netz wäre ein gefundener Block wertlos. Bitte kurz warten.' };
+    }
+    const ausgehend = peers.filter(p => p.richtung === 'aus');
+    const massgeblich = ausgehend.length > 0 ? ausgehend : peers;
+
+    const hoehe = this.chain?.tip()?.height ?? -1;
+    const ziel = median(massgeblich.map(p => p.height));
+    const offen = this.sync?.fehlendeBloecke() ?? 0;
+
+    let grund: string | null = null;
+    if (hoehe < ziel - 1) {
+      grund = `Der Knoten synchronisiert noch (Höhe ${Math.max(0, hoehe)} von ${ziel}). Das Mining startet erst, wenn er auf dem Stand des Netzes ist.`;
+    } else if (offen > 1) {
+      // Die Hoehe der Peers stammt vom Verbindungsaufbau und kann Stunden
+      // alt sein. Dann zaehlt, was der Abgleich gerade nachlaedt. Ein
+      // einzelner Block in der Warteschlange ist bei jedem neuen Block normal.
+      grund = `Der Knoten synchronisiert noch (${offen} Blöcke fehlen). Das Mining startet erst, wenn er auf dem Stand des Netzes ist.`;
+    }
+    if (grund === null) return { bereit: true, grund: null };
+
+    // Rueckstand behauptet, aber seit einer Weile kommt nichts: nicht gedeckt.
+    if (jetzt - this.fortschritt > SYNC_GEDULD_MS) return { bereit: true, grund: null };
+    return { bereit: false, grund };
+  }
+
+  /** Eine selbst aufgebaute Verbindung bringt einen frischen Stand mit. */
+  private ausgehendVerbunden(jetzt: number = Date.now()): void {
+    if (jetzt - this.letzterAusgehend < AUSGEHEND_ZAEHLT_ALLE_MS) return;
+    this.letzterAusgehend = jetzt;
+    this.fortschritt = jetzt;
+  }
+
   /** Stand fuer GUI und API. */
   private miningStatus() {
     const cpu = this.cpuMiner?.status() ?? null;
@@ -263,6 +475,8 @@ export class NodeCoreApp {
         Buffer.from(this.mining_.blockName, 'utf8').toString('hex')),
       maxBlockName: MAX_FINDER_BYTES,
       running: !!(cpu?.running || gpu?.running),
+      // Ob ein Start gerade Sinn hat -- siehe miningBereit().
+      startklar: this.running ? this.miningBereit() : { bereit: false, grund: 'Zuerst den Full Node starten.' },
     };
   }
 
@@ -279,6 +493,9 @@ export class NodeCoreApp {
     }
     const address = String(body.address ?? this.mining_.address).trim().toLowerCase();
     if (!isValidAddress(address)) throw new Error('Ungültige YSKAR-Adresse.');
+
+    const stand = this.miningBereit();
+    if (!stand.bereit) throw new Error(stand.grund ?? 'Der Knoten ist noch nicht bereit.');
 
     const mode = body.mode === 'gpu' || body.mode === 'beide' ? body.mode : 'cpu';
     const kerne = cpus().length;
@@ -337,9 +554,9 @@ export class NodeCoreApp {
   async startGui(): Promise<void> {
     await new Promise<void>((resolveGui, reject) => {
       this.guiServer.once('error', reject);
-      this.guiServer.listen(GUI_PORT, '127.0.0.1', resolveGui);
+      this.guiServer.listen(this.guiPort, '127.0.0.1', resolveGui);
     });
-    this.log(`GUI-Server gestartet · 127.0.0.1:${GUI_PORT}`);
+    this.log(`GUI-Server gestartet · 127.0.0.1:${this.guiPort}`);
   }
 
   async shutdown(): Promise<void> {
@@ -365,18 +582,53 @@ export class NodeCoreApp {
     this.log(`Konfiguration gespeichert. Daten: ${dataDir}`);
   }
 
+  /*
+   * Knoten starten.
+   *
+   * Scheitert der Start mittendrin -- etwa weil ein Port belegt ist --,
+   * wird alles wieder abgebaut, was schon lief. Sonst bliebe der P2P-Port
+   * gebunden, waehrend der Knoten als "gestoppt" gilt, und jeder weitere
+   * Startversuch scheiterte an genau diesem Port.
+   */
   async startNode(): Promise<void> {
     if (this.running) return;
     if (!this.configured) throw new Error('Assistent noch nicht abgeschlossen.');
+    try {
+      await this.baueAuf();
+    } catch (e) {
+      await this.baueAb();
+      // Die eben geoeffnete Ablage gehoert zu einem Knoten, den es nicht gibt.
+      try { this.store?.close(); } catch { /* war nie offen */ }
+      this.store = null; this.chain = null; this.pool = null; this.mining = null;
+      this.miningServer = null; this.peers = null; this.sync = null;
+      this.statistik = null; this.cpuMiner = null; this.gpuMiner = null;
+      this.log(`Full Node nicht gestartet: ${(e as Error).message}`);
+      throw e;
+    }
+  }
 
+  private async baueAuf(): Promise<void> {
+    const params = this.params;
     const db = join(resolve(this.config.dataDir), 'chain.db');
-    this.store = new ChainStore(db);
-    this.chain = new ChainManager(this.store, MAINNET);
-    this.pool = new TxPool();
-    this.mining = new MiningCoordinator(this.chain, this.store, this.pool, MAINNET);
-    this.miningServer = new MiningServer({ chain: this.chain, store: this.store, pool: this.pool, mining: this.mining }, {
-      host: '127.0.0.1', port: this.config.nodePort, params: MAINNET,
+    this.store = new ChainStore(db, { network: params.network, chainId: params.chainId });
+    this.chain = new ChainManager(this.store, params);
+    this.pool = new TxPool(params);
+    this.mining = new MiningCoordinator(this.chain, this.store, this.pool, params, this.uhr);
+    this.miningServer = new KernServer({ chain: this.chain, store: this.store, pool: this.pool, mining: this.mining }, {
+      host: '127.0.0.1', port: this.config.nodePort, params,
     });
+    this.miningServer.intern = () => this.interneStatistik();
+
+    /*
+     * Eine ueber die lokale Schnittstelle eingereichte Ueberweisung den
+     * Peers ankuendigen. Ohne das kennte sie nur dieser Knoten, und sie
+     * kaeme erst in einen Block, wenn er selbst einen findet.
+     */
+    this.miningServer.onNeueTx = hash => { this.sync?.kuendigeAnTx(hash); };
+
+    // Miner und Leistung ueber die Knoten hinweg (NetzStatistik.ts).
+    this.statistik = new NetzStatistik(randomBytes(8).readBigUInt64BE());
+    this.miningServer.netzStatistik = this.statistik;
 
     this.miningServer.onBlock = (height, hash, address) => {
       this.log(`BLOCK GEFUNDEN #${height} · ${hash.slice(0, 32)}… · ${address.slice(0, 16)}…`);
@@ -407,8 +659,8 @@ export class NodeCoreApp {
     this.miningServer.onUpstream = result => this.log(result.ok ? `Block weitergegeben: Höhe ${result.hoehe}` : `Block nicht weitergegeben: ${result.grund}`);
 
     this.peers = new PeerManager({
-      params: MAINNET,
-      agent: `yskar-node-core/${VERSION}`,
+      params,
+      agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG}`,
       listenPort: this.config.p2pPort,
       seeds: this.config.seed ? [this.parseSeed(this.config.seed)] : [],
       kette: () => {
@@ -417,19 +669,35 @@ export class NodeCoreApp {
       },
       onReady: p => {
         this.log(`Peer verbunden: ${p.host}:${p.port} · Höhe ${p.fremdeHoehe()}`);
+        if (p.richtung === 'aus') this.ausgehendVerbunden();
         this.sync?.aufPeer(p);
+        this.meldeStats(p);
       },
-      onMessage: (p, frame) => this.sync?.aufNachricht(p, frame),
+      onMessage: (p, frame) => {
+        if (frame.command === 'stats') {
+          try { this.statistik?.aufnehmen(decodeStats(frame.payload)); }
+          catch (e) { p.close(`stats_unlesbar:${(e as Error).message}`); }
+          return;
+        }
+        this.sync?.aufNachricht(p, frame);
+      },
       onClose: (p, reason) => this.log(`Peer getrennt: ${p.host}:${p.port} · ${reason}`),
       onLog: text => this.log(text),
     });
 
+    /*
+     * Mit Warteschlange: Der Knoten nimmt Ueberweisungen seiner Peers an,
+     * gibt sie weiter und baut sie in seine Bloecke ein. Ohne `pool`
+     * enthielten die Bloecke dieses Knotens nur die Belohnung.
+     */
     this.sync = new SyncManager({
       chain: this.chain,
       store: this.store,
       peers: this.peers,
-      params: MAINNET,
+      params,
+      pool: this.pool,
       onBlock: (height, hash, from) => {
+        this.fortschritt = Date.now();
         this.minerNeuAusrichten();
         this.log(`Block #${height} von ${from} · ${hash.slice(0, 32)}…`);
       },
@@ -438,10 +706,13 @@ export class NodeCoreApp {
 
     await this.peers.start();
     this.sync.start();
+    this.statsTakt = setInterval(() => this.meldeStats(), this.statsTaktMs);
+    this.statsTakt.unref?.();
     await this.miningServer.listen('127.0.0.1', this.config.nodePort);
     this.running = true;
     this.startedAt = Date.now();
-    this.log(`Full Node gestartet · ${NETWORK} · P2P :${this.config.p2pPort} · API :${this.config.nodePort}`);
+    this.fortschritt = this.startedAt;
+    this.log(`Full Node gestartet · ${params.network} · P2P :${this.config.p2pPort} · API :${this.config.nodePort}`);
   }
 
   private parseSeed(seed: string): { host: string; port: number } {
@@ -460,16 +731,23 @@ export class NodeCoreApp {
 
   async stopNode(): Promise<void> {
     if (!this.running) return;
+    await this.baueAb();
+    this.log('Full Node gestoppt.');
+  }
+
+  /** Alles anhalten, was laeuft -- auch nach einem halben Start. */
+  private async baueAb(): Promise<void> {
     // Miner zuerst: Sie brauchen den Koordinator, und der haengt an der
     // Kette, die gleich geschlossen wird. Worker und GPU-Prozess sollen
     // nicht als Waisen weiterlaufen.
-    await this.cpuMiner?.stop();
-    await this.gpuMiner?.stop();
+    try { await this.cpuMiner?.stop(); } catch { /* lief nicht */ }
+    try { await this.gpuMiner?.stop(); } catch { /* lief nicht */ }
+    if (this.statsTakt) clearInterval(this.statsTakt);
+    this.statsTakt = null;
     this.sync?.stop();
     await this.peers?.stop();
     await this.miningServer?.close();
     this.running = false;
-    this.log('Full Node gestoppt.');
   }
 
   private status() {
@@ -484,7 +762,7 @@ export class NodeCoreApp {
       : null;
     return {
       version: VERSION,
-      network: NETWORK,
+      network: this.params.network,
       running: this.running,
       configured: this.configured,
       dataDir: this.config.dataDir,
@@ -510,6 +788,7 @@ export class NodeCoreApp {
       peerBook: this.peers?.buchGroesse() ?? 0,
       syncPending: this.sync?.fehlendeBloecke() ?? 0,
       syncRequests: this.sync?.offeneAnfragen() ?? 0,
+      mempool: this.pool?.size() ?? 0,
       uptimeSeconds: this.startedAt ? Math.floor((Date.now() - this.startedAt) / 1000) : 0,
     };
   }
@@ -533,11 +812,65 @@ export class NodeCoreApp {
     return out;
   }
 
+  /*
+   * Wer darf mit der Oberflaeche sprechen?
+   *
+   * Der Server lauscht nur auf 127.0.0.1 -- aber jede Webseite, die im
+   * Browser dieses PCs offen ist, kann Anfragen an 127.0.0.1 schicken. Ohne
+   * Pruefung koennte eine fremde Seite die Auszahlungsadresse des Minings
+   * aendern oder den Knoten beenden. Drei Schranken, jede fuer sich:
+   *
+   *   1. Host: nur die eigene Adresse. Verhindert, dass ein fremder Name auf
+   *      127.0.0.1 umgebogen wird und die Seite dann als "gleiche Herkunft"
+   *      gilt (DNS-Rebinding).
+   *   2. Herkunft: Schickt der Browser eine, muss es die eigene sein.
+   *   3. Zugangsschluessel fuer alles unter /api/. Er steht nur in der Seite,
+   *      die dieser Server ausliefert; eine fremde Seite kann sie nicht lesen.
+   *
+   * Das schuetzt vor Webseiten. Vor einem Schadprogramm, das auf dem PC
+   * selbst laeuft, schuetzt es nicht -- das kann die Seite abrufen wie die
+   * Anwendung auch.
+   */
+  private abgewiesen(req: IncomingMessage, pfad: string): { status: number; error: string } | null {
+    const eigen = [`127.0.0.1:${this.guiPort}`, `localhost:${this.guiPort}`];
+
+    const host = String(req.headers.host ?? '').toLowerCase();
+    if (!eigen.includes(host)) {
+      return { status: 403, error: 'Zugriff verweigert: fremder Host.' };
+    }
+
+    const origin = req.headers.origin;
+    if (origin !== undefined && !eigen.some(h => origin === `http://${h}`)) {
+      return { status: 403, error: 'Zugriff verweigert: fremde Herkunft.' };
+    }
+    const site = req.headers['sec-fetch-site'];
+    if (site !== undefined && site !== 'same-origin' && site !== 'none') {
+      return { status: 403, error: 'Zugriff verweigert: fremde Herkunft.' };
+    }
+
+    if (pfad.startsWith('/api/')) {
+      const kopf = req.headers[TOKEN_KOPF];
+      const a = Buffer.from(typeof kopf === 'string' ? kopf : '');
+      const b = Buffer.from(this.zugang);
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        return { status: 401, error: 'Zugriff verweigert: Zugangsschlüssel fehlt.' };
+      }
+    }
+    return null;
+  }
+
+  /** Die Seite mit dem Zugangsschluessel dieses Starts. */
+  private seite(vorlage: string): string {
+    return vorlage.split(TOKEN_PLATZ).join(this.zugang);
+  }
+
   private async handleGui(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
       const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-      if (req.method === 'GET' && url.pathname === '/') return html(res, UI);
-      if (req.method === 'GET' && url.pathname === '/wizard/2') return html(res, UI_WIZARD_2);
+      const nein = this.abgewiesen(req, url.pathname);
+      if (nein) return json(res, { error: nein.error }, nein.status);
+      if (req.method === 'GET' && url.pathname === '/') return html(res, this.seite(UI));
+      if (req.method === 'GET' && url.pathname === '/wizard/2') return html(res, this.seite(UI_WIZARD_2));
       if (req.method === 'GET' && url.pathname === '/api/status') {
         return json(res, { ...this.status(), mining: this.miningStatus() });
       }
@@ -606,7 +939,7 @@ const UI = `<!doctype html>
 <section id="w3" class="hidden"><h1>Bereit für den Start</h1><p>Der Node startet auf YSKAR Mainnet, öffnet den P2P-Port und synchronisiert die Blockchain.</p><div class="confirm"><div class="small">Datenordner</div><div id="confirmData" class="mono" style="margin-top:6px;word-break:break-all"></div></div><div style="display:flex;gap:7px;margin-top:13px"><span class="pill">Mainnet</span><span class="pill">P2P 8646</span></div><div class="wizardActions"><button class="btn" id="backConfigButton">Zurück</button><button class="btn primary" id="startButton">Full Node starten</button></div></section>
 </div></div>
 <div id="app" class="app hidden">
-<aside class="sidebar"><div class="brand"><div class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 19 7v10l-7 4-7-4V7l7-4Z"/><path d="m8 10 4-2 4 2-4 2-4-2Zm0 4 4 2 4-2"/></svg></div><div><div class="brandname">YSKAR</div><div class="version">Node Core 0.2.2</div></div></div><nav class="nav"><button class="active" data-view="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg><span>Übersicht</span></button><button data-view="blocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="3" cy="7" r=".7" fill="currentColor"/><circle cx="3" cy="12" r=".7" fill="currentColor"/><circle cx="3" cy="17" r=".7" fill="currentColor"/></svg><span>Blockchain</span></button><button data-view="peers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="m10.5 10.5 3 3"/></svg><span>Peers</span></button><button data-view="mining"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg><span>Mining</span></button><button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m4 13-1-1 1-1 1-2-1-1 2-2 1 1 2-1 1-2h2l1 2 2 1 1-1 2 2-1 1 1 2 2 1v2l-2 1-1 2 1 1-2 2-1-1-2 1-1 2h-2l-1-2-2-1-1 1-2-2 1-1-1-2-2-1v-2Z"/></svg><span>Einstellungen</span></button></nav><div class="sidebottom">YSKAR Mainnet<br>Full Node · P2P</div></aside>
+<aside class="sidebar"><div class="brand"><div class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 19 7v10l-7 4-7-4V7l7-4Z"/><path d="m8 10 4-2 4 2-4 2-4-2Zm0 4 4 2 4-2"/></svg></div><div><div class="brandname">YSKAR</div><div class="version">Node Core ${VERSION}</div></div></div><nav class="nav"><button class="active" data-view="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg><span>Übersicht</span></button><button data-view="blocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="3" cy="7" r=".7" fill="currentColor"/><circle cx="3" cy="12" r=".7" fill="currentColor"/><circle cx="3" cy="17" r=".7" fill="currentColor"/></svg><span>Blockchain</span></button><button data-view="peers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="m10.5 10.5 3 3"/></svg><span>Peers</span></button><button data-view="mining"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg><span>Mining</span></button><button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m4 13-1-1 1-1 1-2-1-1 2-2 1 1 2-1 1-2h2l1 2 2 1 1-1 2 2-1 1 1 2 2 1v2l-2 1-1 2 1 1-2 2-1-1-2 1-1 2h-2l-1-2-2-1-1 1-2-2 1-1-1-2-2-1v-2Z"/></svg><span>Einstellungen</span></button></nav><div class="sidebottom">YSKAR Mainnet<br>Full Node · P2P</div></aside>
 <main class="main"><header class="topbar"><div><div id="pageTitle" class="pageTitle">Übersicht</div><div id="pageSub" class="pageSub">Netzwerkstatus und Synchronisation</div></div><div id="status" class="status"><i class="dot"></i><span>Nicht gestartet</span></div></header>
 <div class="content">
 <section id="view-overview" class="view active"><div class="toolbar"><div><h1>Netzwerkübersicht</h1><p>Lokaler YSKAR Full Node</p></div><div class="actions"><button class="btn" id="refreshButton">Aktualisieren</button><button class="btn" id="stopButton">Node stoppen</button><button class="btn danger" id="shutdownButton">Beenden</button></div></div><div class="card section" style="margin-bottom:10px"><div class="sectionhead"><h2>Synchronisation</h2><span id="syncText" class="small">Warte auf Status…</span></div><div class="progress"><i id="progressBar"></i></div><div class="syncrow"><span id="syncLeft">Warte auf Peer</span><span id="syncPct">—</span></div></div><div class="grid"><div class="card stat"><div class="label">Blockhöhe</div><div id="height" class="value">—</div></div><div class="card stat"><div class="label">Netzwerkziel</div><div id="target" class="value">—</div></div><div class="card stat"><div class="label">Peers</div><div id="peers" class="value">—</div></div><div class="card stat"><div class="label">Gespeicherte Blöcke</div><div id="blocks" class="value">—</div></div><div class="card stat"><div class="label">Chain Work</div><div id="work" class="value">—</div></div><div class="card stat"><div class="label">Difficulty</div><div id="difficulty" class="value">—</div></div><div class="card stat"><div class="label">P2P</div><div id="p2p" class="value">—</div></div><div class="card stat"><div class="label">Uptime</div><div id="uptime" class="value">—</div></div><div class="card section half"><div class="sectionhead"><h2>Verbindungen</h2><span id="peerMeta" class="small"></span></div><div id="peerList" class="muted">Keine verbundenen Peers.</div></div><div class="card section half"><div class="sectionhead"><h2>Lokaler Node</h2><span class="small">Konfiguration</span></div><div class="kv"><div class="k">Node API</div><div id="api" class="mono">—</div><div class="k">Datenordner</div><div id="dataPath" class="mono" style="word-break:break-all">—</div><div class="k">Seed</div><div id="seedView" class="mono">—</div></div></div></div></section>
@@ -616,7 +949,8 @@ const UI = `<!doctype html>
 </div></main></div>
 <script>
 const $=id=>document.getElementById(id);let timer=null,lastStatus=null;
-async function api(path,opt){const r=await fetch(path,opt);const b=await r.json();if(!r.ok||b.error)throw new Error(b.error||'Fehler');return b}
+const ZUGANG='__YSKAR_ZUGANG__';
+async function api(path,opt){opt=opt||{};opt.headers=Object.assign({},opt.headers||{},{'x-yskar-token':ZUGANG});const r=await fetch(path,opt);const b=await r.json();if(!r.ok||b.error)throw new Error(b.error||'Fehler');return b}
 function fmt(n){return n===null||n===undefined?'—':Number(n).toLocaleString('de-DE')}
 function duration(sec){sec=Number(sec||0);const d=Math.floor(sec/86400);sec%=86400;const h=Math.floor(sec/3600);sec%=3600;const m=Math.floor(sec/60);const s=sec%60;return(d?d+'T ':'')+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
 function showStep(n){[1,2,3].forEach(i=>$('w'+i).classList.toggle('hidden',i!==n));document.querySelectorAll('.steps .step').forEach((x,i)=>x.classList.toggle('on',i<n))}
@@ -637,7 +971,7 @@ function renderMining(m){if(!m)return;
  if(!mFormGefuellt){$('mAddress').value=m.config.address||'';$('mWorkers').value=m.config.cpuWorkers;$('mIntensity').value=m.config.cpuIntensity;$('mBlockName').value=m.config.blockName||'';setMode(m.config.mode);mFormGefuellt=true}
  $('mWorkers').max=m.cores;$('mCores').textContent='(von '+m.cores+' Kernen)';
  const c=m.cpu,g=m.gpu,e=m.gpuErkennung;
- $('mState').textContent=!m.nodeRunning?'Node gestoppt':(m.running?'Läuft':'Gestoppt');
+ $('mState').textContent=!m.nodeRunning?'Node gestoppt':(m.running?'Läuft':((m.startklar&&!m.startklar.bereit)?'Noch nicht bereit':'Gestoppt'));
  $('mTotal').textContent=rate(m.totalHashrate);
  $('mCpuRate').textContent=c&&c.running?rate(c.hashrate):'—';
  $('mGpuRate').textContent=g&&g.running?rate(g.hashrate):'—';
