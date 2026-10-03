@@ -51,6 +51,10 @@ import { cpus } from 'node:os';
 import { LocalMiner } from './LocalMiner.ts';
 import { GpuMiner, erkenneGpu, type GpuErkennung } from './GpuMiner.ts';
 import { nameToExtra, finderName, MAX_FINDER_BYTES } from '../../src/lib/chain/finderName.ts';
+import {
+  linkErlaubt, sucheUpdate, Protokoll, ordnerBytes, RELEASES_ABFRAGE, RELEASES_SEITE,
+  type Huelle, type UpdateStand,
+} from './Programm.ts';
 
 /**
  * Mining-Einstellungen.
@@ -83,6 +87,12 @@ interface MiningEinstellung {
    * ihre Bloecke gehoeren nicht diesem Knoten.
    */
   blockName: string;
+  /**
+   * Lief das Mining, als das Programm zuletzt endete? Nur dann wird es nach
+   * dem Start fortgesetzt (Einstellung "Mining nach dem Start fortsetzen").
+   * Wer selbst stoppt, will nicht, dass es von allein wieder anfaengt.
+   */
+  lief: boolean;
 }
 
 export const VERSION = '0.4.0';
@@ -305,10 +315,24 @@ export interface Einstellungen {
   knotenSofort: boolean;
   /** Minuten ohne Regung, nach denen sich die Wallet sperrt. 0 = nie. */
   sperreMinuten: number;
+  /** Beim Schliessen des Fensters weiterlaufen (Infobereich neben der Uhr). */
+  imHintergrund: boolean;
+  /** Mining nach dem Start fortsetzen, wenn es beim Beenden lief. */
+  miningFortsetzen: boolean;
+  /** Beim Start bei GitHub nachsehen, ob es eine neuere Version gibt. */
+  updatesSuchen: boolean;
 }
 
 const SPERRE_WAHL = [0, 5, 10, 30];
-const VORGABE_EINSTELLUNGEN: Einstellungen = { sprache: 'de', knotenSofort: true, sperreMinuten: 10 };
+const VORGABE_EINSTELLUNGEN: Einstellungen = {
+  sprache: 'de', knotenSofort: true, sperreMinuten: 10,
+  imHintergrund: false, miningFortsetzen: false, updatesSuchen: true,
+};
+/** So lange wird nach dem Start versucht, das Mining fortzusetzen -- der Knoten muss erst aufholen. */
+const FORTSETZEN_TAKT_MS = 5_000;
+const FORTSETZEN_VERSUCHE = 720;
+/** Abstand, in dem ein laufendes Programm erneut nach einer neuen Version sieht. */
+const UPDATE_TAKT_MS = 24 * 3600_000;
 
 function pruefeEinstellungen(roh: unknown, basis: Einstellungen): Einstellungen {
   const e = { ...basis };
@@ -317,6 +341,9 @@ function pruefeEinstellungen(roh: unknown, basis: Einstellungen): Einstellungen 
   if (r.sprache === 'de' || r.sprache === 'en') e.sprache = r.sprache;
   if (typeof r.knotenSofort === 'boolean') e.knotenSofort = r.knotenSofort;
   if (typeof r.sperreMinuten === 'number' && SPERRE_WAHL.includes(r.sperreMinuten)) e.sperreMinuten = r.sperreMinuten;
+  if (typeof r.imHintergrund === 'boolean') e.imHintergrund = r.imHintergrund;
+  if (typeof r.miningFortsetzen === 'boolean') e.miningFortsetzen = r.miningFortsetzen;
+  if (typeof r.updatesSuchen === 'boolean') e.updatesSuchen = r.updatesSuchen;
   return e;
 }
 
@@ -340,7 +367,13 @@ export interface NodeCoreOptionen {
   uhr?: () => bigint;
   /** Abstand der Statistik-Meldungen an die Peers. */
   statsTaktMs?: number;
+  /** Wo nach einer neuen Version gesucht wird. In Tests: ein eigener Server. */
+  updateQuelle?: string;
+  /** Abstand der Versuche, das Mining nach dem Start fortzusetzen. */
+  fortsetzenTaktMs?: number;
 }
+
+export type { Huelle } from './Programm.ts';
 
 export class NodeCoreApp {
   private params: ConsensusParams;
@@ -379,6 +412,18 @@ export class NodeCoreApp {
   /** Warum das Mining im Pool von selbst geendet hat. */
   private poolEnde: { code: string; text: string; zeit: number; pool: string } | null = null;
   private poolMerker = new Map<string, { bis: number; stand: PoolStand }>();
+  /** Verbindung zur Desktop-Huelle; null, wenn das Programm ohne sie laeuft. */
+  private huelle: Huelle | null = null;
+  private basis: string;
+  private protokoll: Protokoll | null = null;
+  /** Wo nach einer neuen Version gesucht wird; null = gar nicht (Tests). */
+  private updateQuelle: string | null;
+  private update: UpdateStand = { geprueft: null, neueste: null, neuer: false, url: RELEASES_SEITE, fehler: null };
+  private updateLaeuft: Promise<UpdateStand> | null = null;
+  private updateTakt: ReturnType<typeof setInterval> | null = null;
+  private fortsetzenTakt: ReturnType<typeof setInterval> | null = null;
+  private fortsetzenTaktMs: number;
+  private ordnerMerker: { pfad: string; bis: number; bytes: number | null } | null = null;
   /** Der eigene Pool: Einstellungen, und was davon gerade laeuft. */
   private betrieb: BetriebEinstellung;
   private betriebPfad: string;
@@ -413,7 +458,7 @@ export class NodeCoreApp {
   private mining_: MiningEinstellung = {
     address: '', ziel: 'solo', poolHost: '', mode: 'cpu',
     cpuWorkers: Math.max(1, cpus().length - 1),
-    cpuIntensity: 100, gpuDevice: 0, blockName: '',
+    cpuIntensity: 100, gpuDevice: 0, blockName: '', lief: false,
   };
   private configPath: string;
   private config: {
@@ -432,6 +477,11 @@ export class NodeCoreApp {
       ? join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), 'YSKAR', 'Node Core')
       : join(homedir(), '.yskar', 'node-core'));
     mkdirSync(base, { recursive: true });
+    this.basis = base;
+    this.protokoll = new Protokoll(join(base, 'protokoll.log'));
+    // In Tests wird nicht bei GitHub gesucht -- ausser der Test nennt eine eigene Quelle.
+    this.updateQuelle = opt.updateQuelle ?? (opt.params ? null : RELEASES_ABFRAGE);
+    this.fortsetzenTaktMs = opt.fortsetzenTaktMs ?? FORTSETZEN_TAKT_MS;
     this.configPath = join(base, 'config.json');
     this.miningPfad = join(base, 'mining.json');
     this.einstellungenPfad = join(base, 'einstellungen.json');
@@ -467,6 +517,7 @@ export class NodeCoreApp {
     const line = `[${new Date().toLocaleTimeString('de-DE')}] ${text}`;
     this.logs.push(line);
     if (this.logs.length > 200) this.logs.shift();
+    this.protokoll?.schreibe(text);
     console.log(line);
   }
 
@@ -486,6 +537,7 @@ export class NodeCoreApp {
       if (d.mode === 'cpu' || d.mode === 'gpu' || d.mode === 'beide') this.mining_.mode = d.mode;
       if (d.ziel === 'solo' || d.ziel === 'pool') this.mining_.ziel = d.ziel;
       if (typeof d.poolHost === 'string') this.mining_.poolHost = hostAusEingabe(d.poolHost) ?? '';
+      if (typeof d.lief === 'boolean') this.mining_.lief = d.lief;
       if (Number.isInteger(d.cpuWorkers)) this.mining_.cpuWorkers = Math.max(1, Math.min(kerne, Number(d.cpuWorkers)));
       if (Number.isFinite(d.cpuIntensity)) this.mining_.cpuIntensity = Math.max(10, Math.min(100, Number(d.cpuIntensity)));
       if (Number.isInteger(d.gpuDevice) && Number(d.gpuDevice) >= 0) this.mining_.gpuDevice = Number(d.gpuDevice);
@@ -813,6 +865,8 @@ export class NodeCoreApp {
     if (!a) return;
     this.poolEnde = { code: e.code, text: e.message, zeit: Date.now(), pool: this.poolAnzeige(a.eintrag, a.stand) };
     this.log(`Mining im Pool beendet: ${e.message}`);
+    // Der Pool hat abgelehnt -- das soll sich nach dem naechsten Start nicht von selbst wiederholen.
+    this.merkeLief(false);
     void this.stopMining().catch(() => {});
   }
 
@@ -1144,7 +1198,7 @@ export class NodeCoreApp {
     await this.beendePool();
     this.poolEnde = null;
 
-    this.mining_ = { address, ziel, poolHost, mode, cpuWorkers, cpuIntensity, gpuDevice, blockName };
+    this.mining_ = { address, ziel, poolHost, mode, cpuWorkers, cpuIntensity, gpuDevice, blockName, lief: this.mining_.lief };
     this.speichereMining();
 
     cpuMiner.setExtra(extra);
@@ -1220,6 +1274,7 @@ export class NodeCoreApp {
       this.poolTakt.unref?.();
     }
 
+    this.merkeLief(true);
     this.leistung = [];
     if (this.leistungTakt) clearInterval(this.leistungTakt);
     this.leistungTakt = setInterval(() => this.merkeLeistung(), LEISTUNG_TAKT_MS);
@@ -1246,9 +1301,153 @@ export class NodeCoreApp {
       this.guiServer.listen(this.guiPort, '127.0.0.1', resolveGui);
     });
     this.log(`GUI-Server gestartet · 127.0.0.1:${this.guiPort}`);
+    if (this.einstellungen.updatesSuchen && this.updateQuelle) {
+      // Nebenher, mit etwas Abstand -- der Start soll davon nichts merken.
+      setTimeout(() => { void this.pruefeUpdate(); }, 4_000).unref();
+    }
+    this.updateTakt = setInterval(() => {
+      if (this.einstellungen.updatesSuchen) void this.pruefeUpdate();
+    }, UPDATE_TAKT_MS);
+    this.updateTakt.unref?.();
+  }
+
+  // ----------------------------------------------------------------- Huelle
+
+  /** Die Desktop-Huelle meldet sich an. Ohne sie fehlen Dialoge, Infobereich und Autostart. */
+  setzeHuelle(h: Huelle | null): void { this.huelle = h; }
+
+  /** Soll das Programm weiterlaufen, wenn das Fenster geschlossen wird? */
+  imHintergrund(): boolean { return this.einstellungen.imHintergrund; }
+
+  sprache(): 'de' | 'en' { return this.einstellungen.sprache; }
+
+  /** Darf diese Adresse im Browser geoeffnet werden? Liefert sie dann zurueck, sonst null. */
+  linkErlaubt(url: unknown): string | null { return linkErlaubt(url); }
+
+  private huelleStatus() {
+    const h = this.huelle;
+    let autostart: boolean | null = null;
+    let infobereich = false;
+    if (h) {
+      try { autostart = h.autostart(); } catch { /* Windows gibt keine Auskunft */ }
+      try { infobereich = h.infobereich(); } catch { /* dann eben nicht */ }
+    }
+    return { vorhanden: h !== null, autostart, infobereich };
+  }
+
+  private verlangeHuelle(): Huelle {
+    if (!this.huelle) throw new KernFehler('ohne_huelle', 'Das geht nur im installierten Programm.');
+    return this.huelle;
+  }
+
+  private async huelleAufruf(pfad: string, body: Record<string, unknown>) {
+    const h = this.verlangeHuelle();
+    if (pfad === '/api/huelle/ordner-waehlen') {
+      return { pfad: await h.waehleOrdner(String(body.start ?? this.config.dataDir)) };
+    }
+    if (pfad === '/api/huelle/ordner-oeffnen') {
+      // Nur die beiden eigenen Ordner -- kein Pfad aus der Anfrage.
+      const ziel = body.welcher === 'daten' ? resolve(this.config.dataDir) : this.basis;
+      if (!existsSync(ziel)) throw new Error('Den Ordner gibt es noch nicht.');
+      await h.oeffneOrdner(ziel);
+      return { ok: true };
+    }
+    if (pfad === '/api/huelle/link') {
+      const url = linkErlaubt(body.url);
+      if (!url) throw new Error('Diese Adresse öffnet das Programm nicht.');
+      await h.oeffneLink(url);
+      return { ok: true };
+    }
+    if (pfad === '/api/huelle/autostart') {
+      if (typeof body.an !== 'boolean') throw new Error('an fehlt.');
+      h.setzeAutostart(body.an);
+      return this.huelleStatus();
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------- Updates
+
+  /** Bei GitHub nachsehen. Laeuft schon eine Suche, wird auf sie gewartet. */
+  private pruefeUpdate(): Promise<UpdateStand> {
+    if (!this.updateQuelle) {
+      return Promise.resolve({ ...this.update, fehler: 'Die Suche ist hier nicht eingerichtet.' });
+    }
+    const quelle = this.updateQuelle;
+    this.updateLaeuft ??= sucheUpdate(VERSION, quelle, `yskar-node-core/${VERSION}`)
+      .then(stand => {
+        const bekannt = this.update.neuer ? this.update.neueste : null;
+        // Ein Fehlschlag loescht nicht, was eine fruehere Suche gefunden hat.
+        this.update = stand.fehler && this.update.neueste
+          ? { ...this.update, geprueft: stand.geprueft, fehler: stand.fehler } : stand;
+        if (stand.neuer && stand.neueste !== bekannt) this.log(`Neue Version verfügbar: ${stand.neueste}`);
+        return this.update;
+      })
+      .finally(() => { this.updateLaeuft = null; });
+    return this.updateLaeuft;
+  }
+
+  // ------------------------------------------------------ Mining fortsetzen
+
+  private merkeLief(lief: boolean): void {
+    if (this.mining_.lief === lief) return;
+    this.mining_.lief = lief;
+    this.speichereMining();
+  }
+
+  private beendeFortsetzen(): void {
+    if (this.fortsetzenTakt) clearInterval(this.fortsetzenTakt);
+    this.fortsetzenTakt = null;
+  }
+
+  /*
+   * Nach dem Start des Knotens das Mining wieder aufnehmen -- wenn es so
+   * eingestellt ist und das Mining beim letzten Beenden lief.
+   *
+   * Der Knoten muss erst aufholen; bis dahin lehnt startMining() ab, und es
+   * wird in kurzen Abstaenden wieder versucht. Greift der Nutzer selbst ein
+   * (starten oder stoppen), endet das Versuchen.
+   */
+  private planeFortsetzen(): void {
+    this.beendeFortsetzen();
+    if (!this.einstellungen.miningFortsetzen || !this.mining_.lief || !isValidAddress(this.mining_.address)) return;
+    let versuche = 0;
+    let letzterGrund = '';
+    let laeuft = false;
+    this.log('Mining wird fortgesetzt, sobald der Knoten bereit ist.');
+    this.fortsetzenTakt = setInterval(async () => {
+      if (laeuft) return;
+      const rechnet = !!(this.cpuMiner?.status().running || this.gpuMiner?.status().running);
+      if (!this.running || rechnet || ++versuche > FORTSETZEN_VERSUCHE) {
+        if (versuche > FORTSETZEN_VERSUCHE) this.log('Mining nicht fortgesetzt: Der Knoten wurde nicht rechtzeitig bereit.');
+        return this.beendeFortsetzen();
+      }
+      laeuft = true;
+      try {
+        await this.startMining({});
+        this.log('Mining fortgesetzt.');
+        this.beendeFortsetzen();
+      } catch (e) {
+        const grund = (e as Error).message;
+        if (grund !== letzterGrund) { letzterGrund = grund; this.log(`Mining noch nicht fortgesetzt: ${grund}`); }
+      } finally { laeuft = false; }
+    }, this.fortsetzenTaktMs);
+    this.fortsetzenTakt.unref?.();
+  }
+
+  /** Wie viel Platz der Datenordner belegt -- alle halbe Minute neu gezaehlt. */
+  private datenBytes(): number | null {
+    const pfad = resolve(this.config.dataDir);
+    const m = this.ordnerMerker;
+    if (m && m.pfad === pfad && m.bis > Date.now()) return m.bytes;
+    const bytes = ordnerBytes(pfad);
+    this.ordnerMerker = { pfad, bis: Date.now() + 30_000, bytes };
+    return bytes;
   }
 
   async shutdown(): Promise<void> {
+    if (this.updateTakt) clearInterval(this.updateTakt);
+    this.updateTakt = null;
     await this.stopNode();
     if (this.guiServer.listening) {
       await new Promise<void>(resolveGui => this.guiServer.close(() => resolveGui()));
@@ -1336,6 +1535,7 @@ export class NodeCoreApp {
     this.txGesehen.clear();
     this.namen = new NamenZaehler();
     this.verlaufMerker = null;
+    this.ordnerMerker = null;
     void this.findeSeedIp();
 
     this.miningServer.onBlock = (height, hash, address) => {
@@ -1423,6 +1623,7 @@ export class NodeCoreApp {
     this.startedAt = Date.now();
     this.fortschritt = this.startedAt;
     this.log(`Full Node gestartet · ${params.network} · P2P :${this.config.p2pPort} · API :${this.config.nodePort}`);
+    this.planeFortsetzen();
   }
 
   private parseSeed(seed: string): { host: string; port: number } {
@@ -1447,6 +1648,7 @@ export class NodeCoreApp {
 
   /** Alles anhalten, was laeuft -- auch nach einem halben Start. */
   private async baueAb(): Promise<void> {
+    this.beendeFortsetzen();
     // Miner zuerst: Sie brauchen den Koordinator, und der haengt an der
     // Kette, die gleich geschlossen wird. Worker und GPU-Prozess sollen
     // nicht als Waisen weiterlaufen.
@@ -1512,6 +1714,10 @@ export class NodeCoreApp {
       zielBlockzeit: Number(this.params.targetBlockTime),
       guiPort: this.guiPort,
       konsensfassung: KONSENSFASSUNG,
+      dataDirBytes: this.datenBytes(),
+      programmOrdner: this.basis,
+      huelle: this.huelleStatus(),
+      update: this.update,
       wallet: this.wallet.stand(),
       uptimeSeconds: this.startedAt ? Math.floor((Date.now() - this.startedAt) / 1000) : 0,
     };
@@ -1916,8 +2122,21 @@ export class NodeCoreApp {
       }
 
       if (GET && pfad === '/api/mining/status') return json(res, this.miningStatus());
-      if (POST && pfad === '/api/mining/start') return json(res, await this.startMining(await readBody(req)));
-      if (POST && pfad === '/api/mining/stop') return json(res, await this.stopMining());
+      if (POST && pfad === '/api/mining/start') {
+        this.beendeFortsetzen();
+        return json(res, await this.startMining(await readBody(req)));
+      }
+      if (POST && pfad === '/api/mining/stop') {
+        // Von Hand gestoppt: nicht von selbst wieder anfangen.
+        this.beendeFortsetzen();
+        this.merkeLief(false);
+        return json(res, await this.stopMining());
+      }
+      if (POST && pfad.startsWith('/api/huelle/')) {
+        const r = await this.huelleAufruf(pfad, await readBody(req));
+        return r ? json(res, r) : json(res, { error: 'not_found' }, 404);
+      }
+      if (POST && pfad === '/api/update/suchen') return json(res, await this.pruefeUpdate());
       if (POST && pfad === '/api/pool/betrieb') return json(res, await this.setzeBetrieb(await readBody(req)));
       if (GET && pfad === '/api/pool/liste') return json(res, await this.poolListe(url.searchParams.get('eigen')));
       if (POST && pfad === '/api/mining/detect') {
@@ -1935,6 +2154,8 @@ export class NodeCoreApp {
       if (POST && pfad === '/api/stop') { await this.stopNode(); return json(res, { ok: true }); }
       if (POST && pfad === '/api/shutdown') {
         json(res, { ok: true });
+        // Mit Huelle beendet sie das Programm -- samt Fenster und Infobereich.
+        if (this.huelle) { const h = this.huelle; setTimeout(() => h.beenden(), 50).unref(); return; }
         setTimeout(async () => { await this.stopNode(); this.guiServer.close(); process.exit(0); }, 50).unref();
         return;
       }
