@@ -73,6 +73,19 @@ const PLATZ_VORGEMERKT_MS = 900_000;
  */
 const PLATZ_OHNE_ARBEIT_MS = 600_000;
 /**
+ * Mehr offene Sitzungen haelt der Knoten nicht. Jede kostet Speicher, und
+ * anmelden darf jeder -- ohne Grenze liesse sich der Knoten mit Anmeldungen
+ * fuellen, bis ihm der Speicher ausgeht.
+ */
+const SITZUNGEN_MAX = 5_000;
+/** So viele Treffer merkt sich eine Sitzung je Job -- siehe share(). */
+const TREFFER_JE_JOB_MAX = 10_000;
+/** Die Angabe "platform" ist nur fuer die Anzeige; laenger wird sie nicht aufgehoben. */
+const PLATFORM_MAX = 64;
+
+/** Eine Anfrage, die nicht stimmt -- der Fehler liegt beim Absender, nicht hier. */
+class AnfrageFehler extends Error {}
+/**
  * So meldet sich der Miner der Android-App (NativMiner.java). Er behandelt
  * eine Ablehnung nur dann als endgueltig, wenn sie mit HTTP 200 kommt --
  * siehe session().
@@ -105,6 +118,15 @@ interface Session {
   platform: string | null;
   /** Job je Session -- die Extranonce steckt im Header. */
   jobId: string | null;
+  /**
+   * Nonces, die fuer den aktuellen Job schon gutgeschrieben wurden.
+   *
+   * Ohne dieses Gedaechtnis liesse sich EIN guter Treffer immer wieder
+   * einreichen -- und er wuerde jedes Mal neu gutgeschrieben, solange er das
+   * Share-Ziel erfuellt. Wer das tut, bekaeme einen Anteil, fuer den er nie
+   * gerechnet hat, auf Kosten aller anderen im Pool.
+   */
+  gesehen: Set<string>;
 }
 
 export interface ServerOptionen {
@@ -237,7 +259,21 @@ export class MiningServer {
    */
   private vorgemerkt = new Map<string, { addressHex: string; bis: number }>();
   private naechsteExtranonce = 1n;
-  private server = createServer((req, res) => this.behandle(req, res));
+  private server = createServer((req, res) => {
+    // Nichts, was eine Anfrage ausloest, darf den Knoten beenden.
+    this.behandle(req, res).catch(e => {
+      this.onFehler?.('Anfrage', e as Error);
+      try { if (!res.headersSent) this.json(res, { error: 'internal' }, 500); else res.end(); }
+      catch { /* Verbindung schon weg */ }
+    });
+  });
+
+  /**
+   * Wer diese Schnittstelle benutzen darf. Ohne Angabe: jeder -- so laeuft
+   * ein oeffentlicher Knoten. Der Node Core setzt hier seine Regel: nur der
+   * eigene PC, solange er keinen Pool fuer andere betreibt.
+   */
+  zulassen?: (req: IncomingMessage) => boolean;
 
   /** Wird bei jedem angenommenen Block gerufen -- fuer die Anzeige. */
   onBlock?: (h: number, hash: string, adresse: string) => void;
@@ -302,7 +338,11 @@ export class MiningServer {
   }
 
   close(): Promise<void> {
-    return new Promise(auf => this.server.close(() => auf()));
+    return new Promise(auf => {
+      this.server.close(() => auf());
+      // Eine halb gesendete Anfrage hielte das Schliessen sonst minutenlang auf.
+      this.server.closeAllConnections();
+    });
   }
 
   aktiveSessions(): number {
@@ -323,8 +363,19 @@ export class MiningServer {
   // ------------------------------------------------------------ Weiterleitung
 
   private async behandle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const url = new URL(req.url ?? '/', 'http://x');
+    /*
+      Die Adresse der Anfrage kommt von aussen und kann Unsinn sein: Schon
+      "GET //" laesst sich nicht als Adresse lesen. Das darf nur diese eine
+      Anfrage kosten -- frueher beendete es den ganzen Knoten.
+    */
+    let url: URL;
+    try { url = new URL(req.url ?? '/', 'http://x'); }
+    catch { return this.json(res, { error: 'bad_request' }, 400); }
     const pfad = url.pathname.replace(/^\/api\/v2/, '');
+
+    if (this.zulassen && !this.zulassen(req)) {
+      return this.json(res, { error: 'forbidden' }, 403);
+    }
 
     try {
       if (req.method === 'POST' && pfad === '/session') {
@@ -398,6 +449,10 @@ export class MiningServer {
       }
       this.json(res, { error: 'not_found' }, 404);
     } catch (e) {
+      // Unlesbare Anfrage: Das ist kein Fehler dieses Knotens.
+      if (e instanceof AnfrageFehler) {
+        return this.json(res, { error: 'bad_request', detail: e.message }, 400);
+      }
       /*
         Stapelabzug auf die Konsole.
 
@@ -435,11 +490,17 @@ export class MiningServer {
       let roh = '';
       req.on('data', (stueck: Buffer) => {
         roh += stueck;
-        if (roh.length > 65536) { req.destroy(); ab(new Error('Anfrage zu gross')); }
+        if (roh.length > 65536) { req.destroy(); ab(new AnfrageFehler('Anfrage zu gross')); }
       });
       req.on('end', () => {
-        try { auf(roh ? JSON.parse(roh) : {}); }
-        catch { ab(new Error('kein gueltiges JSON')); }
+        let wert: unknown;
+        try { wert = roh ? JSON.parse(roh) : {}; }
+        catch { return ab(new AnfrageFehler('kein gueltiges JSON')); }
+        // Erwartet wird ein Objekt -- "null" oder eine Liste ist keins.
+        if (wert === null || typeof wert !== 'object' || Array.isArray(wert)) {
+          return ab(new AnfrageFehler('kein JSON-Objekt'));
+        }
+        auf(wert as Record<string, unknown>);
       });
       req.on('error', ab);
     });
@@ -514,6 +575,10 @@ export class MiningServer {
       }
     }
 
+    if (this.sessions.size >= SITZUNGEN_MAX) {
+      return ok({ error: 'too_many_sessions', detail: 'Der Knoten hat zu viele offene Sitzungen.' });
+    }
+
     const s: Session = {
       id: randomUUID(),
       address: roh,
@@ -527,8 +592,9 @@ export class MiningServer {
       letzterShare: null,
       angenommen: 0, abgelehnt: 0,
       gestartet: Date.now(), zuletzt: Date.now(),
-      platform: typeof b.platform === 'string' ? b.platform : null,
+      platform: typeof b.platform === 'string' ? b.platform.slice(0, PLATFORM_MAX) : null,
       jobId: null,
+      gesehen: new Set(),
     };
     this.sessions.set(s.id, s);
 
@@ -596,6 +662,7 @@ export class MiningServer {
       // Solo-Miner baut seinen eigenen Block.
       istPool ? this.blockName : new Uint8Array(0),
       anteile);
+    if (s.jobId !== job.jobId) s.gesehen.clear();
     s.jobId = job.jobId;
 
     return {
@@ -636,6 +703,16 @@ export class MiningServer {
     let nonce: bigint;
     try { nonce = BigInt(String(b.nonce)); }
     catch { return { accepted: false, reason: 'malformed' }; }
+    if (nonce < 0n || nonce > 0xffff_ffff_ffff_ffffn) return { accepted: false, reason: 'malformed' };
+
+    // Schon gutgeschrieben: Derselbe Treffer zaehlt kein zweites Mal.
+    const treffer = nonce.toString();
+    if (s.gesehen.has(treffer)) {
+      s.abgelehnt++;
+      return { accepted: false, reason: 'duplicate' };
+    }
+    // Voll: Der Miner holt sich neue Arbeit, und das Gedaechtnis beginnt neu.
+    if (s.gesehen.size >= TREFFER_JE_JOB_MAX) return { accepted: false, reason: 'job_expired' };
 
     /*
       Die Difficulty, gegen die der Miner GERADE arbeitet -- nicht die des
@@ -696,6 +773,7 @@ export class MiningServer {
           this.poolKoordinator.share(s.address, s.shareDifficulty);
         }
 
+        s.gesehen.add(treffer);
         s.angenommen++;
         this.nachShare(s);
         this.mining.invalidate();
@@ -738,6 +816,7 @@ export class MiningServer {
       };
     }
 
+    s.gesehen.add(treffer);
     s.angenommen++;
     const vorher = s.shareDifficulty;
     this.nachShare(s);
