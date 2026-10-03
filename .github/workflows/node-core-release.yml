@@ -163,6 +163,10 @@ jobs:
           if ($env:GITHUB_REF -like 'refs/tags/node-core-v*') {
             $tag = $env:GITHUB_REF -replace '^refs/tags/node-core-v', ''
             if ($tag -ne $paket) { throw "Der Tag sagt $tag, node-core/package.json sagt $paket." }
+            # Der Text der Veröffentlichung muss zu dieser Version gehören.
+            if (-not (Select-String -Path RELEASE_NOTES.md -SimpleMatch "YSKAR Node Core $paket" -Quiet)) {
+              throw "node-core/RELEASE_NOTES.md beschreibt nicht die Version $paket."
+            }
           }
           $quelle = (Select-String -Path src\main.ts -Pattern "export const VERSION = '([^']+)'").Matches[0].Groups[1].Value
           if ($quelle -ne $paket) { throw "src/main.ts sagt $quelle, package.json sagt $paket." }
@@ -289,11 +293,7 @@ jobs:
           draft: true
           name: YSKAR Node Core ${{ steps.version.outputs.version }}
           generate_release_notes: false
-          body: |
-            Windows-Installer des YSKAR Node Core ${{ steps.version.outputs.version }}.
-
-            Installer und Prüfsumme (SHA-256) hängen an dieser Veröffentlichung.
-            Was sich geändert hat, steht in `node-core/README.md`.
+          body_path: node-core/RELEASE_NOTES.md
           files: |
             node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe
             node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
