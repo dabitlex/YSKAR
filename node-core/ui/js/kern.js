@@ -143,13 +143,20 @@ export function zeichen(name, groesse = 16) {
   return s;
 }
 
-/** Das Zeichen der Marke. */
-export function kristall(groesse = 34) {
-  const s = document.createElementNS(SVG, 'svg');
-  s.setAttribute('width', groesse); s.setAttribute('height', groesse);
-  s.setAttribute('viewBox', '0 0 34 34'); s.setAttribute('fill', 'none'); s.setAttribute('aria-hidden', 'true');
-  s.innerHTML = '<path d="M17 3 31 27H3L17 3Z" fill="#2B62F0"/><path d="M17 3 24 27H10L17 3Z" fill="#7FA2FF"/><path d="M17 15 24 27H10l7-12Z" fill="#D6E3FF"/>';
-  return s;
+/**
+ * Das Zeichen der Marke: der YSKAR-Kristall, ohne Hintergrund -- dasselbe
+ * Bild wie in App, Explorer und auf der Webseite. `breite` in Pixeln; die
+ * Hoehe folgt aus dem Seitenverhaeltnis des Bildes (160 x 104).
+ */
+export function kristall(breite = 40) {
+  const b = document.createElement('img');
+  b.src = '/ui/kristall.png';
+  b.alt = '';
+  b.width = breite; b.height = Math.round(breite * 104 / 160);
+  b.decoding = 'async';
+  b.draggable = false;
+  b.style.flex = 'none';
+  return b;
 }
 
 // ---------------------------------------------------------------- Bausteine

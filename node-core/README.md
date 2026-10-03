@@ -26,6 +26,8 @@ the same node classes as the command-line node in `src/lib/node`.
 - **Program settings and Windows shell.** See "Windows shell" below.
 - **Messages in the language of the interface.** Every message of the node
   carries a code; the interface shows its own text for it.
+- **The YSKAR crystal as program icon and in the interface**, on a
+  transparent ground (`build/icon.ico`, `ui/kristall.png`).
 - **Fixes from an independent review.** Among them three in the node's
   interface that also concern the command-line node: a request for the path
   `//` ended the process, the same share could be credited repeatedly in a
