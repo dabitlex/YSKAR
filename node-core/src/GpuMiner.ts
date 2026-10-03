@@ -60,6 +60,8 @@ export interface GpuErkennung {
   geraete: GpuGeraet[];
   /** Warum nicht verfuegbar -- fuer die Anzeige, nicht zum Raten. */
   grund: string | null;
+  /** Kuerzel zum Grund, wenn er einer der bekannten ist -- die Oberflaeche zeigt dann ihren eigenen Text. */
+  grundCode?: string | null;
 }
 
 export interface GpuMinerStatus {
@@ -133,7 +135,7 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
   if (!pfad) {
     return Promise.resolve({
       verfuegbar: false, programm: null, geraete: [],
-      grund: 'GPU-Miner nicht installiert (yskar-cuda fehlt).',
+      grund: 'GPU-Miner nicht installiert (yskar-cuda fehlt).', grundCode: 'gpu_kein_programm',
     });
   }
 
@@ -142,13 +144,16 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
     let fehler: string | null = null;
     let erledigt = false;
 
-    const fertig = (grund: string | null) => {
+    const fertig = (grund: string | null, code: string | null = null) => {
       if (erledigt) return;
       erledigt = true;
+      const text = geraete.length > 0 ? grund : (grund ?? fehler ?? 'Keine CUDA-GPU gefunden.');
       auf({
         verfuegbar: geraete.length > 0 && grund === null,
         programm: pfad, geraete,
-        grund: geraete.length > 0 ? grund : (grund ?? fehler ?? 'Keine CUDA-GPU gefunden.'),
+        grund: text,
+        // Meldet das Programm selbst einen Fehler, bleibt dessen Text stehen.
+        grundCode: text === null ? null : code ?? (grund === null && fehler === null ? 'gpu_keine_karte' : null),
       });
     };
 
@@ -156,12 +161,12 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
     try {
       kind = spawn(pfad, ['--probe'], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     } catch (e) {
-      return fertig(`Programm nicht startbar: ${(e as Error).message}`);
+      return fertig(`Programm nicht startbar: ${(e as Error).message}`, 'gpu_nicht_startbar');
     }
 
     const zeit = setTimeout(() => {
       try { kind.kill(); } catch { /* egal */ }
-      fertig('Die Geraeteerkennung hat nicht geantwortet.');
+      fertig('Die Geraeteerkennung hat nicht geantwortet.', 'gpu_keine_antwort');
     }, PROBE_TIMEOUT_MS);
     zeit.unref?.();
 
@@ -176,7 +181,7 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
       } catch { /* keine JSON-Zeile -- ignorieren */ }
     });
 
-    kind.on('error', e => { clearTimeout(zeit); fertig(`Programm nicht startbar: ${e.message}`); });
+    kind.on('error', e => { clearTimeout(zeit); fertig(`Programm nicht startbar: ${e.message}`, 'gpu_nicht_startbar'); });
     kind.on('exit', () => { clearTimeout(zeit); fertig(null); });
   });
 }

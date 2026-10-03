@@ -1,5 +1,5 @@
 /* Pool betreiben: andere über den eigenen Knoten gemeinsam minen lassen. */
-import { sende, el, fuelle, text, chip, knopf, kopf, melde, schalter, zeichen, zahl, ysr, leistung, kurzAdresse, vor } from './kern.js';
+import { sende, el, fuelle, text, chip, knopf, kopf, melde, schalter, zeichen, zahl, ysr, leistung, kurzAdresse, vor, knotenText } from './kern.js';
 import { t, sprache } from './i18n.js';
 
 /** Dieselbe Regel wie im Knoten: druckbares ASCII, 3 bis 32 Zeichen, mindestens ein Buchstabe oder eine Ziffer. */
@@ -192,7 +192,7 @@ export function baue(ctx) {
       : c.aktiv && !s.running ? chip('hoch', t('betr.wartetAufKnoten'))
       : c.aktiv ? chip('gelb hoch', t('betr.nichtGestartet'), true)
       : chip('hoch', t('betr.aus')));
-    if (!b.laeuft && c.aktiv && b.fehler && fehler.hidden) { text(fehler, b.fehler); fehler.hidden = false; }
+    if (!b.laeuft && c.aktiv && b.fehler && fehler.hidden) { text(fehler, knotenText(b.fehlerCode, [], b.fehler)); fehler.hidden = false; }
     neustart.hidden = !b.neustartNoetig;
 
     // Kennzahlen

@@ -56,7 +56,9 @@ export interface Kontakt { name: string; adresse: string }
 /** Fehler, den die Oberflaeche in ihrer Sprache zeigen kann. */
 export class WalletFehler extends Error {
   code: string;
-  constructor(code: string, text: string) { super(text); this.code = code; }
+  /** Zahlen und Namen fuer die Platzhalter im Text der Oberflaeche. */
+  werte: (string | number)[];
+  constructor(code: string, text: string, werte: (string | number)[] = []) { super(text); this.code = code; this.werte = werte; }
 }
 
 function schreibe(pfad: string, inhalt: string): void {
@@ -161,7 +163,7 @@ export class WalletDienst {
 
   private pruefePasswort(passwort: unknown): string {
     if (typeof passwort !== 'string' || passwort.length < PASSWORT_MIN) {
-      throw new WalletFehler('passwort_kurz', `Das Passwort braucht mindestens ${PASSWORT_MIN} Zeichen.`);
+      throw new WalletFehler('passwort_kurz', `Das Passwort braucht mindestens ${PASSWORT_MIN} Zeichen.`, [PASSWORT_MIN]);
     }
     if (passwort.length > 256) throw new WalletFehler('passwort_lang', 'Das Passwort ist zu lang.');
     return passwort;
@@ -193,7 +195,8 @@ export class WalletDienst {
     const tresor = this.tresor;
     const jetzt = this.uhr();
     if (jetzt < this.pauseBis) {
-      throw new WalletFehler('pause', `Zu viele falsche Versuche. Bitte ${Math.ceil((this.pauseBis - jetzt) / 1000)} Sekunden warten.`);
+      const sekunden = Math.ceil((this.pauseBis - jetzt) / 1000);
+      throw new WalletFehler('pause', `Zu viele falsche Versuche. Bitte ${sekunden} Sekunden warten.`, [sekunden]);
     }
     if (typeof passwort !== 'string' || passwort.length === 0 || passwort.length > 256) {
       throw new WalletFehler('passwort_falsch', 'Das Passwort stimmt nicht.');
@@ -231,7 +234,7 @@ export class WalletDienst {
   async anlegen(woerter: unknown, passwort: unknown): Promise<WalletStand> {
     if (this.tresor) throw new WalletFehler('wallet_vorhanden', 'Auf diesem PC gibt es schon eine Wallet. Entferne sie zuerst.');
     if (this.dateiBeschaedigt()) {
-      throw new WalletFehler('datei_beschaedigt', 'wallet.json ist vorhanden, aber nicht lesbar. Sichere die Datei, bevor du eine neue Wallet anlegst.');
+      throw new WalletFehler('datei_unlesbar', 'wallet.json ist vorhanden, aber nicht lesbar. Sichere die Datei, bevor du eine neue Wallet anlegst.');
     }
     const pw = this.pruefePasswort(passwort);
     if (typeof woerter !== 'string') throw new WalletFehler('woerter_falsch', 'Die 12 Wörter fehlen.');
@@ -346,7 +349,7 @@ export class WalletDienst {
     const n = String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
     const a = String(adresse ?? '').trim().toLowerCase();
     if (!n) throw new WalletFehler('kontakt_name', 'Der Kontakt braucht einen Namen.');
-    if ([...n].length > KONTAKT_NAME_MAX) throw new WalletFehler('kontakt_name', `Der Name darf höchstens ${KONTAKT_NAME_MAX} Zeichen haben.`);
+    if ([...n].length > KONTAKT_NAME_MAX) throw new WalletFehler('kontakt_name_lang', `Der Name darf höchstens ${KONTAKT_NAME_MAX} Zeichen haben.`, [KONTAKT_NAME_MAX]);
     if (!isValidAddress(a)) throw new WalletFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
     const da = this.kontakte_.find(k => k.adresse === a);
     if (da) da.name = n;

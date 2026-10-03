@@ -20,6 +20,7 @@ import { MAX_COINBASE_OUTPUTS } from '../../src/lib/core/params.ts';
 import { MAX_FEE_BPS, MAX_MINERS_JE_BLOCK } from '../../src/lib/pool/settlement.ts';
 import { nameToExtra } from '../../src/lib/chain/finderName.ts';
 import type { ShareEintrag } from '../../src/lib/pool/pplns.ts';
+import { KernFehler } from './Programm.ts';
 
 export interface BetriebEinstellung {
   /** Der Pool soll laufen, sobald der Knoten laeuft. */
@@ -49,8 +50,9 @@ export function platzGrenze(feeBps: number): number {
 /** Ist das ein Name, der in einem Block stehen kann? Wirft mit dem Grund. */
 export function pruefePoolName(name: string): string {
   const sauber = name.trim();
-  if (sauber === '') throw new Error('Der Pool braucht einen Namen.');
-  nameToExtra(sauber);
+  if (sauber === '') throw new KernFehler('pool_name_fehlt', 'Der Pool braucht einen Namen.');
+  try { nameToExtra(sauber); }
+  catch (e) { throw new KernFehler('betrieb_name', `Name des Pools: ${(e as Error).message}`); }
   return sauber;
 }
 
@@ -66,21 +68,21 @@ export function pruefeBetrieb(roh: unknown, basis: BetriebEinstellung, streng: b
   const e = { ...basis };
   if (roh === null || typeof roh !== 'object') return e;
   const r = roh as Record<string, unknown>;
-  const nein = (text: string) => { if (streng) throw new Error(text); };
+  const nein = (code: string, text: string, werte: (string | number)[] = []) => { if (streng) throw new KernFehler(code, text, werte); };
 
   if (typeof r.name === 'string') {
     if (r.name.trim() === '') e.name = '';
-    else { try { e.name = pruefePoolName(r.name); } catch (f) { nein(`Name des Pools: ${(f as Error).message}`); } }
+    else { try { e.name = pruefePoolName(r.name); } catch (f) { nein('betrieb_name', (f as Error).message); } }
   }
   if (r.feeBps !== undefined) {
     const n = Number(r.feeBps);
     if (Number.isInteger(n) && n >= 0 && n <= MAX_FEE_BPS && n % GEBUEHR_SCHRITT_BPS === 0) e.feeBps = n;
-    else nein('Die Gebühr liegt zwischen 0 und 5 %, in Schritten von 0,25 %.');
+    else nein('betrieb_gebuehr', 'Die Gebühr liegt zwischen 0 und 5 %, in Schritten von 0,25 %.');
   }
   if (r.plaetze !== undefined) {
     const n = Number(r.plaetze);
     if (Number.isInteger(n) && n >= 1 && n <= MAX_COINBASE_OUTPUTS) e.plaetze = n;
-    else nein(`Die Zahl der Plätze liegt zwischen 1 und ${MAX_COINBASE_OUTPUTS}.`);
+    else nein('betrieb_plaetze', `Die Zahl der Plätze liegt zwischen 1 und ${MAX_COINBASE_OUTPUTS}.`, [MAX_COINBASE_OUTPUTS]);
   }
   if (typeof r.heimnetz === 'boolean') e.heimnetz = r.heimnetz;
   if (typeof r.aktiv === 'boolean') e.aktiv = r.aktiv;

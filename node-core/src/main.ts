@@ -52,7 +52,7 @@ import { LocalMiner } from './LocalMiner.ts';
 import { GpuMiner, erkenneGpu, type GpuErkennung } from './GpuMiner.ts';
 import { nameToExtra, finderName, MAX_FINDER_BYTES } from '../../src/lib/chain/finderName.ts';
 import {
-  linkErlaubt, sucheUpdate, Protokoll, ordnerBytes, RELEASES_ABFRAGE, RELEASES_SEITE,
+  linkErlaubt, sucheUpdate, Protokoll, ordnerBytes, KernFehler, RELEASES_ABFRAGE, RELEASES_SEITE,
   type Huelle, type UpdateStand,
 } from './Programm.ts';
 
@@ -135,12 +135,6 @@ const LEISTUNG_PUNKTE = 240;
 const FENSTER_TAKT_MS = 120_000;
 /** Mehr Zeilen zeigt die Liste "Miner im Pool" nicht. */
 const POOL_MINER_ZEILEN = 64;
-
-/** Fehler mit Kuerzel -- die Oberflaeche zeigt ihn in ihrer Sprache. */
-class KernFehler extends Error {
-  code: string;
-  constructor(code: string, text: string) { super(text); this.code = code; }
-}
 
 function defaultDataDir(): string {
   if (process.platform === 'win32') {
@@ -450,6 +444,7 @@ export class NodeCoreApp {
   private betriebLaeuft: { name: string; plaetze: number } | null = null;
   /** Warum der Pool nicht laeuft, obwohl er eingeschaltet ist. */
   private betriebFehler: string | null = null;
+  private betriebFehlerCode: string | null = null;
   private fensterTakt: ReturnType<typeof setInterval> | null = null;
   private fensterGesichert = '';
   /** Zaehlt die Sicherungen des Fensters -- eine aeltere ueberschreibt nie eine neuere. */
@@ -701,10 +696,10 @@ export class NodeCoreApp {
    *
    * Ein Block Abstand ist erlaubt: Der letzte Block ist oft noch unterwegs.
    */
-  private miningBereit(jetzt: number = Date.now()): { bereit: boolean; grund: string | null } {
+  private miningBereit(jetzt: number = Date.now()): { bereit: boolean; grund: string | null; code?: string; werte?: number[] } {
     const peers = this.peers?.info() ?? [];
     if (peers.length === 0) {
-      return { bereit: false, grund: 'Noch kein Peer verbunden. Ohne Verbindung zum Netz wäre ein gefundener Block wertlos. Bitte kurz warten.' };
+      return { bereit: false, code: 'bereit_kein_peer', grund: 'Noch kein Peer verbunden. Ohne Verbindung zum Netz wäre ein gefundener Block wertlos. Bitte kurz warten.' };
     }
     const ausgehend = peers.filter(p => p.richtung === 'aus');
     const massgeblich = ausgehend.length > 0 ? ausgehend : peers;
@@ -714,9 +709,13 @@ export class NodeCoreApp {
     const offen = this.sync?.fehlendeBloecke() ?? 0;
 
     let grund: string | null = null;
+    let code = '';
+    let werte: number[] = [];
     if (hoehe < ziel - 1) {
+      code = 'bereit_sync_hoehe'; werte = [Math.max(0, hoehe), ziel];
       grund = `Der Knoten synchronisiert noch (Höhe ${Math.max(0, hoehe)} von ${ziel}). Das Mining startet erst, wenn er auf dem Stand des Netzes ist.`;
     } else if (offen > 1) {
+      code = 'bereit_sync_bloecke'; werte = [offen];
       // Die Hoehe der Peers stammt vom Verbindungsaufbau und kann Stunden
       // alt sein. Dann zaehlt, was der Abgleich gerade nachlaedt. Ein
       // einzelner Block in der Warteschlange ist bei jedem neuen Block normal.
@@ -726,7 +725,7 @@ export class NodeCoreApp {
 
     // Rueckstand behauptet, aber seit einer Weile kommt nichts: nicht gedeckt.
     if (jetzt - this.fortschritt > SYNC_GEDULD_MS) return { bereit: true, grund: null };
-    return { bereit: false, grund };
+    return { bereit: false, grund, code, werte };
   }
 
   /** Eine selbst aufgebaute Verbindung bringt einen frischen Stand mit. */
@@ -755,7 +754,7 @@ export class NodeCoreApp {
       maxBlockName: MAX_FINDER_BYTES,
       running: !!(cpu?.running || gpu?.running),
       // Ob ein Start gerade Sinn hat -- siehe miningBereit().
-      startklar: this.running ? this.miningBereit() : { bereit: false, grund: 'Zuerst den Full Node starten.' },
+      startklar: this.running ? this.miningBereit() : { bereit: false, grund: 'Zuerst den Full Node starten.', code: 'knoten_aus' },
       pool: this.poolStatus(),
       poolEnde: this.poolEnde,
       // Welche Adressen in der gepflegten Liste stehen -- alles andere ist von Hand eingetragen.
@@ -927,6 +926,7 @@ export class NodeCoreApp {
   private starteBetrieb(): void {
     const server = this.miningServer;
     this.betriebFehler = null;
+    this.betriebFehlerCode = null;
     if (!server || !this.betrieb.aktiv || server.poolKoordinator) return;
     try {
       const name = pruefePoolName(this.betrieb.name);
@@ -935,7 +935,7 @@ export class NodeCoreApp {
       const adresse = this.wallet.stand().adresse;
       const auszahlung = adresse ? decodeAddress(adresse) : null;
       if (this.betrieb.feeBps > 0 && !auszahlung) {
-        throw new Error('Für eine Gebühr braucht der Pool eine Wallet, an die sie geht.');
+        throw new KernFehler('wallet_fehlt', 'Für eine Gebühr braucht der Pool eine Wallet, an die sie geht.');
       }
       /*
         Liegt noch Arbeit im Fenster, gilt fuer sie die Gebuehr von damals --
@@ -961,6 +961,7 @@ export class NodeCoreApp {
         + (stand.eintraege.length ? ` · ${stand.eintraege.length} Shares aus dem letzten Lauf` : ''));
     } catch (e) {
       this.betriebFehler = (e as Error).message;
+      this.betriebFehlerCode = e instanceof KernFehler ? e.code : null;
       this.log(`Pool nicht gestartet: ${this.betriebFehler}`);
     }
   }
@@ -1066,7 +1067,7 @@ export class NodeCoreApp {
       // Zurueck auf den eigenen PC -- ohne Schnittstelle kaemen auch die eigenen Miner nicht mehr an den Pool.
       await server.listen('127.0.0.1', this.config.nodePort);
       this.lauscht = '127.0.0.1';
-      throw new Error(`Freigabe im Heimnetz nicht möglich: ${(e as Error).message}`);
+      throw new KernFehler('heimnetz_fehler', `Freigabe im Heimnetz nicht möglich: ${(e as Error).message}`, [(e as Error).message]);
     }
   }
 
@@ -1086,6 +1087,7 @@ export class NodeCoreApp {
     if (e.feeBps > 0 || (e.feeBpsAbNaechstem ?? 0) > 0) {
       this.stoppeBetrieb();
       this.betriebFehler = 'Für eine Gebühr braucht der Pool eine Wallet, an die sie geht.';
+      this.betriebFehlerCode = 'wallet_fehlt';
       void this.richteLauschen().catch(() => {});
     }
   }
@@ -1139,6 +1141,7 @@ export class NodeCoreApp {
       config: this.betrieb,
       laeuft: !!pk,
       fehler: pk ? null : this.betriebFehler,
+      fehlerCode: pk ? null : this.betriebFehlerCode,
       grenze,
       auszahlung: wallet,
       heimnetz: {
@@ -1242,11 +1245,11 @@ export class NodeCoreApp {
 
   private async starteMining(body: Record<string, unknown>) {
     if (!this.running || !this.cpuMiner || !this.gpuMiner) {
-      throw new Error('Zuerst den Full Node starten.');
+      throw new KernFehler('knoten_aus', 'Zuerst den Full Node starten.');
     }
     const cpuMiner = this.cpuMiner, gpuMiner = this.gpuMiner;
     const address = String(body.address ?? this.mining_.address).trim().toLowerCase();
-    if (!isValidAddress(address)) throw new Error('Ungültige YSKAR-Adresse.');
+    if (!isValidAddress(address)) throw new KernFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
 
     const ziel: MiningZiel = body.ziel === 'pool' || body.ziel === 'solo' ? body.ziel : this.mining_.ziel;
     let poolHost = this.mining_.poolHost;
@@ -1271,12 +1274,12 @@ export class NodeCoreApp {
         // Der eigene Pool baut auf der EIGENEN Kette -- dann gilt dieselbe
         // Pruefung wie solo.
         const bereit = this.miningBereit();
-        if (!bereit.bereit) throw new Error(bereit.grund ?? 'Der Knoten ist noch nicht bereit.');
+        if (!bereit.bereit) throw new KernFehler(bereit.code ?? 'nicht_bereit', bereit.grund ?? 'Der Knoten ist noch nicht bereit.', bereit.werte);
       }
       pool = { eintrag, stand };
     } else {
       const stand = this.miningBereit();
-      if (!stand.bereit) throw new Error(stand.grund ?? 'Der Knoten ist noch nicht bereit.');
+      if (!stand.bereit) throw new KernFehler(stand.code ?? 'nicht_bereit', stand.grund ?? 'Der Knoten ist noch nicht bereit.', stand.werte);
     }
 
     const mode = body.mode === 'gpu' || body.mode === 'beide' ? body.mode : 'cpu';
@@ -1293,7 +1296,7 @@ export class NodeCoreApp {
     const blockName = String(body.blockName ?? this.mining_.blockName ?? '').trim();
     let extra: Uint8Array;
     try { extra = nameToExtra(blockName); }
-    catch (e) { throw new Error(`Name im Block: ${(e as Error).message}`); }
+    catch (e) { throw new KernFehler('block_name', `Name im Block: ${(e as Error).message}`); }
 
     // Erst alles anhalten: Die Quelle der Arbeit laesst sich nur im Stillstand wechseln.
     await cpuMiner.stop();
@@ -1308,6 +1311,7 @@ export class NodeCoreApp {
     gpuMiner.setExtra(extra);
 
     const hinweise: string[] = [];
+    const hinweisCodes: { code: string; werte: string[] }[] = [];
     const adresse = decodeAddress(address);
 
     /*
@@ -1341,8 +1345,9 @@ export class NodeCoreApp {
         const geraet = e.geraete.find(g => g.id === gpuDevice) ?? e.geraete[0];
         if (!e.verfuegbar || !geraet) {
           const grund = e.grund ?? 'Keine GPU gefunden.';
-          if (mode === 'gpu') throw new Error(`GPU-Mining nicht möglich: ${grund}`);
+          if (mode === 'gpu') throw new KernFehler('gpu_nicht_moeglich', `GPU-Mining nicht möglich: ${grund}`, [grund]);
           hinweise.push(`GPU nicht gestartet: ${grund}`);
+          hinweisCodes.push({ code: 'gpu_nicht_gestartet', werte: [grund] });
         } else {
           try {
             gpuMiner.setzeQuelle(await quelle('gpu'));
@@ -1353,6 +1358,7 @@ export class NodeCoreApp {
             await this.poolQuellen.gpu?.beenden();
             this.poolQuellen.gpu = null;
             hinweise.push(`GPU nicht gestartet: ${(fehler as Error).message}`);
+            hinweisCodes.push({ code: 'gpu_nicht_gestartet', werte: [(fehler as Error).message] });
           }
         }
       }
@@ -1383,7 +1389,7 @@ export class NodeCoreApp {
     this.leistungTakt = setInterval(() => this.merkeLeistung(), LEISTUNG_TAKT_MS);
     this.leistungTakt.unref?.();
 
-    return { ok: true, hinweise, status: this.miningStatus() };
+    return { ok: true, hinweise, hinweisCodes, status: this.miningStatus() };
   }
 
   private async stoppeMining() {
@@ -1452,13 +1458,13 @@ export class NodeCoreApp {
       // Nur die beiden eigenen Ordner -- kein Pfad aus der Anfrage.
       const ziel = body.welcher === 'daten' ? resolve(this.config.dataDir) : this.basis;
       // Nur ein ORDNER: Eine Datei wuerde Windows an dieser Stelle ausfuehren.
-      if (!existsSync(ziel) || !statSync(ziel).isDirectory()) throw new Error('Den Ordner gibt es noch nicht.');
+      if (!existsSync(ziel) || !statSync(ziel).isDirectory()) throw new KernFehler('ordner_fehlt', 'Den Ordner gibt es noch nicht.');
       await h.oeffneOrdner(ziel);
       return { ok: true };
     }
     if (pfad === '/api/huelle/link') {
       const url = linkErlaubt(body.url);
-      if (!url) throw new Error('Diese Adresse öffnet das Programm nicht.');
+      if (!url) throw new KernFehler('link_gesperrt', 'Diese Adresse öffnet das Programm nicht.');
       await h.oeffneLink(url);
       return { ok: true };
     }
@@ -1567,17 +1573,17 @@ export class NodeCoreApp {
     const nodePort = Number(body.nodePort || this.config.nodePort);
     const p2pPort = Number(body.p2pPort || this.config.p2pPort);
     const seed = String(body.seed ?? this.config.seed).trim();
-    if (!dataDir) throw new Error('Datenordner fehlt.');
-    if (!Number.isInteger(nodePort) || nodePort < 1024 || nodePort > 65535) throw new Error('Ungültiger Node-Port.');
-    if (!Number.isInteger(p2pPort) || p2pPort < 1024 || p2pPort > 65535) throw new Error('Ungültiger P2P-Port.');
-    if (nodePort === p2pPort) throw new Error('Node-Port und P2P-Port müssen unterschiedlich sein.');
+    if (!dataDir) throw new KernFehler('datenordner_fehlt', 'Datenordner fehlt.');
+    if (!Number.isInteger(nodePort) || nodePort < 1024 || nodePort > 65535) throw new KernFehler('port_node', 'Ungültiger Node-Port.');
+    if (!Number.isInteger(p2pPort) || p2pPort < 1024 || p2pPort > 65535) throw new KernFehler('port_p2p', 'Ungültiger P2P-Port.');
+    if (nodePort === p2pPort) throw new KernFehler('ports_gleich', 'Node-Port und P2P-Port müssen unterschiedlich sein.');
     if (seed) this.parseSeed(seed);
     // Der Assistent prueft seine Eingaben, bevor er sie festschreibt.
     if (body.nurPruefen === true) return;
     // Erst anlegen, dann uebernehmen: Scheitert das Anlegen -- etwa weil der
     // Pfad eine Datei ist --, bleibt die bisherige Einstellung stehen.
     mkdirSync(dataDir, { recursive: true });
-    if (!statSync(dataDir).isDirectory()) throw new Error('Der Datenordner ist kein Ordner.');
+    if (!statSync(dataDir).isDirectory()) throw new KernFehler('ordner_kein_ordner', 'Der Datenordner ist kein Ordner.');
     this.config = { dataDir, nodePort, p2pPort, seed };
     writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
     this.configured = true;
@@ -1594,7 +1600,7 @@ export class NodeCoreApp {
    */
   async startNode(): Promise<void> {
     if (this.running) return;
-    if (!this.configured) throw new Error('Assistent noch nicht abgeschlossen.');
+    if (!this.configured) throw new KernFehler('nicht_eingerichtet', 'Assistent noch nicht abgeschlossen.');
     try {
       await this.baueAuf();
     } catch (e) {
@@ -1740,9 +1746,9 @@ export class NodeCoreApp {
 
   private parseSeed(seed: string): { host: string; port: number } {
     const i = seed.lastIndexOf(':');
-    if (i < 1) throw new Error(`Seed "${seed}" muss host:port sein.`);
+    if (i < 1) throw new KernFehler('seed_format', `Seed "${seed}" muss host:port sein.`, [seed.slice(0, 80)]);
     const port = Number(seed.slice(i + 1));
-    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Ungültiger Seed-Port.');
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new KernFehler('seed_port', 'Ungültiger Seed-Port.');
     return { host: seed.slice(0, i), port };
   }
 
@@ -1862,9 +1868,9 @@ export class NodeCoreApp {
   }
 
   private verbindePeer(body: Record<string, unknown>) {
-    if (!this.running || !this.peers) throw new Error('Zuerst den Full Node starten.');
+    if (!this.running || !this.peers) throw new KernFehler('knoten_aus', 'Zuerst den Full Node starten.');
     const { host, port } = this.parseSeed(String(body.adresse ?? '').trim());
-    if (!/^[a-zA-Z0-9.\-:\[\]]{1,253}$/.test(host)) throw new Error('Ungültige Adresse.');
+    if (!/^[a-zA-Z0-9.\-:\[\]]{1,253}$/.test(host)) throw new KernFehler('peer_adresse', 'Ungültige Adresse.');
     this.peers.verbinde(host, port);
     this.log(`Verbindung zu ${host}:${port} wird aufgebaut.`);
     return { ok: true };
@@ -1872,7 +1878,7 @@ export class NodeCoreApp {
 
   private trennePeer(body: Record<string, unknown>) {
     const p = this.peers?.alle().find(x => x.id === Number(body.id));
-    if (!p) throw new Error('Diese Verbindung gibt es nicht mehr.');
+    if (!p) throw new KernFehler('peer_weg', 'Diese Verbindung gibt es nicht mehr.');
     p.close('vom_nutzer_getrennt');
     return { ok: true };
   }
@@ -2006,7 +2012,7 @@ export class NodeCoreApp {
   private walletRechne(body: Record<string, unknown>) {
     const adresse = this.wallet.verlangeOffen();
     if (!this.running || !this.chain || !this.pool || !this.lesen) {
-      throw new WalletFehler('knoten_aus', 'Zum Senden muss der Knoten laufen.');
+      throw new WalletFehler('senden_knoten_aus', 'Zum Senden muss der Knoten laufen.');
     }
     const an = String(body.an ?? '').trim().toLowerCase();
     if (!isValidAddress(an)) throw new WalletFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
@@ -2270,8 +2276,11 @@ export class NodeCoreApp {
       }
       json(res, { error: 'not_found' }, 404);
     } catch (e) {
-      const code = e instanceof WalletFehler || e instanceof KernFehler ? e.code : undefined;
-      json(res, { error: (e as Error).message, ...(code ? { code } : {}) }, 400);
+      const bekannt = e instanceof WalletFehler || e instanceof KernFehler ? e : null;
+      json(res, {
+        error: (e as Error).message,
+        ...(bekannt ? { code: bekannt.code, ...(bekannt.werte.length ? { werte: bekannt.werte } : {}) } : {}),
+      }, 400);
     }
   }
 }
