@@ -34,9 +34,19 @@ export interface NetzSumme {
   sessions: number;
 }
 
-interface Eintrag { stats: Stats; zeit: number }
+/**
+ * Mehr Meldungen werden nicht aufgehoben. Aufgehoben wird je VERBINDUNG eine;
+ * die Grenze greift erst, wenn es mehr Verbindungen gaebe, als ein Knoten je
+ * haelt.
+ */
+const MELDUNGEN_MAX = 256;
+/** Kommt von derselben Verbindung schneller eine weitere Meldung, wird sie uebergangen. */
+const MELDUNG_ABSTAND_MS = 1_000;
+
+interface Eintrag { knoten: string; adressen: string[]; hashrate: number; sessions: number; zeit: number }
 
 export class NetzStatistik {
+  /** Je Verbindung die juengste Meldung. */
   private meldungen = new Map<string, Eintrag>();
   /** Kennung dieses Knotens -- eigene Meldungen ueber Umwege zaehlen nicht. */
   readonly eigeneKennung: bigint;
@@ -47,9 +57,43 @@ export class NetzStatistik {
     this.uhr = uhr;
   }
 
-  aufnehmen(s: Stats): void {
+  /**
+   * Eine Meldung aufnehmen.
+   *
+   * @param quelle  die Verbindung, ueber die sie kam. Aufgehoben wird je
+   *                Verbindung EINE Meldung -- die naechste ersetzt sie.
+   *
+   * Frueher war die gemeldete Kennung der Schluessel. Die waehlt aber der
+   * Absender: Mit jeder Meldung eine neue Kennung, und der Knoten hob sie
+   * alle auf, bis ihm der Speicher ausging. Jetzt kann eine Verbindung nur
+   * ihren eigenen Platz ueberschreiben.
+   *
+   * Ohne `quelle` gilt die Kennung als Quelle -- so wie bisher, fuer
+   * Aufrufer, die selbst nur eine Meldung je Knoten liefern.
+   */
+  aufnehmen(s: Stats, quelle?: string): void {
     if (s.knoten === this.eigeneKennung) return;
-    this.meldungen.set(s.knoten.toString(), { stats: s, zeit: this.uhr() });
+    const jetzt = this.uhr();
+    const schluessel = quelle ?? `k:${s.knoten}`;
+    const alt = this.meldungen.get(schluessel);
+    if (alt && jetzt - alt.zeit < MELDUNG_ABSTAND_MS) return;
+    if (!alt && this.meldungen.size >= MELDUNGEN_MAX) {
+      this.aufraeumen();
+      if (this.meldungen.size >= MELDUNGEN_MAX) return;
+    }
+    const hashrate = Number(s.hashrate);
+    this.meldungen.set(schluessel, {
+      knoten: s.knoten.toString(),
+      adressen: s.adressen.map(a => toHex(a)),
+      hashrate: Number.isFinite(hashrate) && hashrate >= 0 ? hashrate : 0,
+      sessions: s.sessions,
+      zeit: jetzt,
+    });
+  }
+
+  /** Eine Verbindung ist zu -- ihre Meldung gilt nicht mehr. */
+  vergiss(quelle: string): void {
+    this.meldungen.delete(quelle);
   }
 
   /** Veraltete Meldungen entfernen. */
@@ -63,11 +107,17 @@ export class NetzStatistik {
     const adressen = new Set(lokal.adressen);
     let hashrate = lokal.hashrate;
     let sessions = lokal.sessions;
-    for (const { stats } of this.meldungen.values()) {
-      for (const a of stats.adressen) adressen.add(toHex(a));
-      hashrate += Number(stats.hashrate);
-      sessions += stats.sessions;
+    // Zwei Verbindungen zum selben Knoten: Er zaehlt einmal, mit der juengsten Meldung.
+    const jeKnoten = new Map<string, Eintrag>();
+    for (const e of this.meldungen.values()) {
+      const alt = jeKnoten.get(e.knoten);
+      if (!alt || e.zeit > alt.zeit) jeKnoten.set(e.knoten, e);
     }
-    return { knoten: 1 + this.meldungen.size, miner: adressen.size, hashrate, sessions };
+    for (const e of jeKnoten.values()) {
+      for (const a of e.adressen) adressen.add(a);
+      hashrate += e.hashrate;
+      sessions += e.sessions;
+    }
+    return { knoten: 1 + jeKnoten.size, miner: adressen.size, hashrate, sessions };
   }
 }
