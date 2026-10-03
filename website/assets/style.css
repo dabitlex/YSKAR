@@ -254,6 +254,15 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
 .text p{margin:0 0 16px}
 .text ul,.text ol{margin:0 0 16px;padding-left:22px}
 .text li{margin-bottom:6px}
+.tabelle-rahmen{margin:0 0 20px;overflow-x:auto;border:1px solid var(--kante);border-radius:18px;background:#fff}
+.tabelle{width:100%;border-collapse:collapse;font-size:16px;line-height:1.5;color:var(--lese)}
+.tabelle th{text-align:left;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);padding:14px 18px;border-bottom:1px solid var(--kante);white-space:nowrap}
+.tabelle td{padding:14px 18px;border-bottom:1px solid var(--kante);vertical-align:top}
+.tabelle tr:last-child td{border-bottom:0}
+.tabelle td:first-child{color:var(--text);min-width:168px}
+.tabelle a{color:var(--blau)}
+.klein-meta{font-family:var(--mono);font-size:13px!important;color:var(--dim)!important}
+.klein-meta a{font-family:var(--sans);font-weight:600;color:var(--blau)}
 .text code{font-family:var(--mono);font-size:.9em;background:#E8EEFE;color:#1C2B47;padding:2px 6px;border-radius:6px;overflow-wrap:anywhere}
 /* Eine Adresse zum Abtippen bleibt in einer Zeile. */
 .text code.ganz{white-space:nowrap}
