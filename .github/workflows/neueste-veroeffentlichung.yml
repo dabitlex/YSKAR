@@ -44,3 +44,28 @@ jobs:
           jetzt=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
           echo "::notice title=Neueste Veröffentlichung::$jetzt (veröffentlicht wurde ${{ github.event.release.tag_name }})"
           [ "$jetzt" = "$app" ] || { echo "::error::Neueste Veröffentlichung ist $jetzt statt $app."; exit 1; }
+
+  # Webseite und README nennen die Version im Download-Link. Zeigen sie nach
+  # einer neuen Veröffentlichung noch auf die alte, steht das hier als Warnung
+  # am Lauf -- mehr nicht: Der alte Link funktioniert weiter.
+  links:
+    name: Zeigen Webseite und README auf diese Version?
+    if: startsWith(github.event.release.tag_name, 'node-core-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          alt=0
+          for datei in website/index.html README.md; do
+            if grep -qF "/releases/download/$TAG/" "$datei"; then
+              echo "$datei zeigt auf $TAG."
+            else
+              echo "::warning title=Download-Link::$datei zeigt noch nicht auf $TAG. Bitte den Link und die Versionsnummer dort anpassen."
+              alt=1
+            fi
+          done
+          [ "$alt" = 0 ] && echo "::notice title=Download-Link::Webseite und README zeigen auf $TAG." || true

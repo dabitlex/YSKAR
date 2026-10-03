@@ -12,10 +12,10 @@
 <link rel="icon" href="/favicon.png?v=2" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
 <link rel="preload" href="/assets/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=3">
+<link rel="stylesheet" href="/assets/style.css?v=4">
 <noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=3"></script>
-<script src="/assets/site.js?v=3" defer></script>
+<script src="/assets/i18n/en.js?v=4"></script>
+<script src="/assets/site.js?v=4" defer></script>
 </head>
 <body data-seite="start">
 
@@ -31,6 +31,7 @@
 <nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
 <a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
 <a href="/#wallet" data-t="nav.wallet">Wallet</a>
+<a href="/#nodecore">Node Core</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
 <a href="/explorer" data-t="nav.explorer">Explorer</a>
@@ -148,6 +149,7 @@
 <h3 data-t="weg.pc.titel">PC miner</h3>
 <p data-t="weg.pc.text">For more power: computes on your processor or an NVIDIA graphics card.</p>
 <div class="befehl">node src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool</div>
+<a class="weg-link" href="#nodecore" data-t="weg.pc.fenster">Prefer a window? Node Core for Windows</a>
 <a class="knopf tinte" href="/anleitungen#pc" data-t="weg.pc.knopf">Read the guide</a>
 </article>
 </div>
@@ -183,6 +185,34 @@
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
 <span data-t="wallet.knopf">Google Play – coming soon</span></span>
 </div>
+</div>
+</section>
+
+<!-- Node Core -->
+<section id="nodecore" class="abschnitt weiss">
+<div class="wrap nc-raster">
+<div class="spalte">
+<p class="etikett" style="margin:0" data-t="nc.etikett">For Windows</p>
+<h2 class="h2">YSKAR Node Core</h2>
+<p data-t="nc.text">Node, wallet and mining in one program. Node Core checks every block itself, keeps your YSR and mines with your processor and NVIDIA graphics card.</p>
+<ul class="haken">
+<li data-t="nc.p1">Install and start – no command line</li>
+<li data-t="nc.p2">The same 12 words as in the app</li>
+<li data-t="nc.p3">Solo, in a pool, or run a pool of your own</li>
+</ul>
+<div class="nc-laden">
+<a class="knopf primaer gross" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.5.0/YSKAR-Node-Core-Setup-0.5.0.exe">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+<span data-t="nc.knopf">Download Node Core</span></a>
+<p class="nc-meta">v0.5.0 · <span data-t="nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB</p>
+</div>
+<p class="leise"><span data-t="nc.hinweis">The installer is not signed. Windows therefore asks once: choose “More info”, then “Run anyway”.</span> <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.5.0" data-t="nc.mehr">Checksum and release notes</a></p>
+</div>
+<figure class="fenster">
+<div class="fenster-leiste"><span>YSKAR Node Core</span><i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i></div>
+<img src="/assets/img/node-core-en.webp" width="1600" height="1125" alt="Overview of YSKAR Node Core: block height, peers, wallet, mining and latest blocks" data-ta="alt:nc.bildAlt;src:nc.bild" loading="lazy">
+<figcaption data-t="nc.bildNotiz">Example view – the numbers are examples.</figcaption>
+</figure>
 </div>
 </section>
 

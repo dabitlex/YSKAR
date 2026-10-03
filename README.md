@@ -5,6 +5,15 @@ einem Miner, der auf Smartphones laeuft. Die Bedienung laeuft ueber eine
 Telegram Mini App, das Eigentum haengt aber an Schluesseln, nicht an
 Telegram.
 
+## Download
+
+| | | |
+|---|---|---|
+| **Android-App** | YSKAR Wallet mit Mining | [APK herunterladen](https://github.com/dabitlex/YSKAR/releases/latest) |
+| **Node Core fuer Windows** | Knoten, Wallet und Mining in einem Programm | [Installer 0.5.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.5.0/YSKAR-Node-Core-Setup-0.5.0.exe) · [Hinweise und Pruefsumme](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.5.0) |
+| **Telegram Mini App** | Ohne Installation | [@YSKAR_bot](https://t.me/YSKAR_bot) |
+| **Website** | Anleitungen, Whitepaper, Explorer | [www.yskar.app](https://www.yskar.app) |
+
 **Kein Wert wird simuliert.** Das Geraet rechnet echte SHA-256d-Hashes, jeder
 Knoten rechnet jeden Share selbst nach, und der Kontostand ist allein aus den
 Bloecken wiederherstellbar.
@@ -180,8 +189,9 @@ Ehrlich benannt, damit niemand mehr erwartet als da ist.
 **Mikrozahlungen.** Kleine Betraege schnell und guenstig -- der naechste
 Schritt auf der Roadmap.
 
-**Node Core.** Eine Veroeffentlichung des Full Node mit eingebauter Wallet
-und Mining fuer alle Systeme, ohne Node.js-Installation.
+**Node Core.** Fuer Windows ist er da: Full Node mit eingebauter Wallet und
+Mining, ohne Node.js-Installation (`node-core/`). Fuer Linux und macOS fehlt
+er noch; dort laeuft der Knoten ueber die Kommandozeile.
 
 **Apps.** Android ist da (YSKAR Wallet, APK ueber GitHub Releases); der
 Play Store und iOS fehlen, die Lightning-Wallet ebenso.
