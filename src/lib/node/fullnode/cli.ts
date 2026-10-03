@@ -554,7 +554,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       },
       onMessage: (p, f) => {
         if (f.command === 'stats') {
-          try { statistik.aufnehmen(decodeStats(f.payload)); }
+          try { statistik.aufnehmen(decodeStats(f.payload), `v:${p.id}`); }
           catch (e) { p.close(`stats_unlesbar:${(e as Error).message}`); }
           return;
         }
