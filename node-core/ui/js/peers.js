@@ -8,6 +8,7 @@ export function baue(ctx) {
   const zeilen = el('tbody');
   const eingabe = el('input.feld', { id: 'peer', type: 'text', placeholder: 'knoten.example.org:8646', autocomplete: 'off', spellcheck: 'false' });
   const seed = el('div.box.mono', { style: 'font-size:13.5px' }, '—');
+  const weitere = el('p.hinweis', { hidden: true });
   const erreichText = el('span');
   const erreichZeichen = el('span', { style: 'display:inline-flex;margin-top:2px' });
   let bild = '';
@@ -48,6 +49,7 @@ export function baue(ctx) {
       el('section.karte', { style: 'flex:1 1 340px', 'aria-label': 'Seed' },
         el('div.karte-kopf', el('h2', 'Seed'), el('a', { href: '#/einstellungen' }, t('allg.aendern'))),
         seed,
+        weitere,
         el('p.hinweis', t('peers.seedHinweis'))),
       el('section.karte', { style: 'flex:1 1 340px', 'aria-label': t('peers.erreichbarkeit') },
         el('h2', t('peers.erreichbarkeit')),
@@ -63,6 +65,9 @@ export function baue(ctx) {
     text(st.verbSub, s.peerCount ? t('peers.hoechste', zahl(Math.max(...hoehen))) : t('peers.keiner'));
     text(st.aus, zahl(s.outboundPeers)); text(st.ein, zahl(s.inboundPeers)); text(st.buch, zahl(s.peerBook));
     text(seed, s.seed || t('peers.keinSeed'));
+    const eingebaut = s.weitereSeeds || [];
+    weitere.hidden = eingebaut.length === 0;
+    text(weitere, eingebaut.length ? t('peers.weitereSeeds', eingebaut.join(', ')) : '');
 
     fuelle(erreichZeichen, zeichen(offen ? 'haken' : 'info', 18));
     erreichZeichen.className = offen ? 'gut' : 'blass';

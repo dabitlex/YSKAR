@@ -43,7 +43,7 @@ import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
 import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
-import { MAINNET, type ConsensusParams } from '../../src/lib/core/networks.ts';
+import { MAINNET, istMainnet, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { stateRoot, totalSupply } from '../../src/lib/core/state.ts';
 import { toHex } from '../../src/lib/core/codec.ts';
 import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
@@ -122,6 +122,33 @@ const TOKEN_PLATZ = '__YSKAR_ZUGANG__';
 const DEFAULT_NODE_PORT = 8645;
 const DEFAULT_P2P_PORT = 8646;
 const DEFAULT_SEED = 'yskar-main.dynv6.net:8646';
+/**
+ * Weitere fest eingebaute Seeds des Hauptnetzes.
+ *
+ * Das Feld "Seed" in den Einstellungen nennt EINEN Knoten. Steht dort der
+ * einzige Einstieg ins Netz und ist dieser Knoten gerade aus, findet ein
+ * frisch gestarteter Node Core niemanden -- sein Adressbuch ist noch leer.
+ * Deshalb kennt das Programm einen zweiten Einstieg, der unabhaengig vom
+ * ersten laeuft (anderer Rechner, anderer Anschluss).
+ */
+export const WEITERE_SEEDS: readonly string[] = ['45.84.199.206:8646'];
+
+/**
+ * Welche Seeds der Knoten beim Start kennt.
+ *
+ * - Feld leer: keiner. Wer das Feld leert, will ohne Seed laufen -- daran
+ *   aendern auch die fest eingebauten nichts.
+ * - Sonst der eingetragene, und im Hauptnetz dazu die fest eingebauten.
+ *   In jedem anderen Netz (Tests) bleibt es beim eingetragenen: Ein
+ *   Testknoten waehlt nie eine Adresse des Hauptnetzes an.
+ */
+export function seedListe(eingetragen: string, hauptnetz: boolean): string[] {
+  const erster = eingetragen.trim();
+  if (!erster) return [];
+  const liste = [erster];
+  if (hauptnetz) for (const s of WEITERE_SEEDS) if (!liste.includes(s)) liste.push(s);
+  return liste;
+}
 /** So meldet sich das Programm bei einem Pool. */
 const POOL_AGENT = `yskar-node-core/${VERSION}`;
 /** So lange gilt die Antwort eines Pools, bevor er neu gefragt wird. */
@@ -1688,7 +1715,7 @@ export class NodeCoreApp {
       params,
       agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG}`,
       listenPort: this.config.p2pPort,
-      seeds: this.config.seed ? [this.parseSeed(this.config.seed)] : [],
+      seeds: seedListe(this.config.seed, istMainnet(params)).map(s => this.parseSeed(s)),
       kette: () => {
         const tip = this.chain!.tip();
         return { height: tip?.height ?? -1, chainWork: tip?.chainWork ?? 0n };
@@ -1801,6 +1828,8 @@ export class NodeCoreApp {
       nodePort: this.config.nodePort,
       p2pPort: this.config.p2pPort,
       seed: this.config.seed,
+      // Die fest eingebauten Seeds, die dieser Knoten zusaetzlich anwaehlt.
+      weitereSeeds: seedListe(this.config.seed, istMainnet(this.params)).slice(1),
       height: tip?.height ?? null,
       nextHeight: currentHeight + 1,
       targetHeight,
@@ -1852,13 +1881,16 @@ export class NodeCoreApp {
   /** Verbundene Knoten, so wie die Oberflaeche sie zeigt. */
   private peerListe() {
     const seedPort = this.config.seed ? Number(this.config.seed.slice(this.config.seed.lastIndexOf(':') + 1)) : 0;
+    const weitere = seedListe(this.config.seed, istMainnet(this.params)).slice(1);
     return (this.peers?.info() ?? []).map(p => {
       const istSeed = p.richtung === 'aus' && this.seedIp !== null
         && p.host === this.seedIp && p.port === seedPort;
+      // Die fest eingebauten Seeds stehen als Adresse im Programm, nicht als Name.
+      const istWeiterer = p.richtung === 'aus' && weitere.includes(`${p.host}:${p.port}`);
       return {
         id: p.id,
         adresse: istSeed ? this.config.seed : `${p.host}:${p.port}`,
-        seed: istSeed,
+        seed: istSeed || istWeiterer,
         richtung: p.richtung,
         hoehe: p.height,
         programm: p.agent,
