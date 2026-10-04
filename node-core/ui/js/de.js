@@ -158,6 +158,7 @@ export const de = {
   'peers.wirdVerbunden': 'Verbindung zu {0} wird aufgebaut.',
   'peers.hinzuHinweis': 'Nötig ist das nicht: Dein Knoten findet weitere Knoten von selbst über den Seed und sein Adressbuch.',
   'peers.keinSeed': 'kein Seed eingetragen',
+  'peers.weitereSeeds': 'Fest eingebaut außerdem: {0}',
   'peers.seedHinweis': 'Der Seed ist nur der erste Kontakt nach dem Start. Fällt er aus, verbindet sich dein Knoten mit den Knoten aus dem Adressbuch.',
   'peers.erreichbarkeit': 'Erreichbarkeit',
   'peers.offen': (a, port) => `${a} eingehende ${n(a, 'Verbindung', 'Verbindungen')}: Port ${port} ist von außen offen.`,

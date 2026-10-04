@@ -158,6 +158,7 @@ export const en = {
   'peers.wirdVerbunden': 'Connecting to {0}.',
   'peers.hinzuHinweis': 'You do not have to: your node finds further nodes on its own through the seed and its address book.',
   'peers.keinSeed': 'no seed entered',
+  'peers.weitereSeeds': 'Also built in: {0}',
   'peers.seedHinweis': 'The seed is only the first contact after start-up. If it is down, your node connects to the nodes in its address book.',
   'peers.erreichbarkeit': 'Reachability',
   'peers.offen': (a, port) => `${a} inbound ${n(a, 'connection', 'connections')}: port ${port} is open from outside.`,

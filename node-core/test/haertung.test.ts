@@ -19,7 +19,7 @@ import { ChainStore } from '../../src/lib/node/fullnode/ChainStore.ts';
 import { ChainManager } from '../../src/lib/node/fullnode/ChainManager.ts';
 import { TxPool } from '../../src/lib/node/fullnode/TxPool.ts';
 import { MiningCoordinator, type MiningJob } from '../../src/lib/node/fullnode/MiningCoordinator.ts';
-import { NodeCoreApp, istPrivateQuelle, type Huelle } from '../src/main.ts';
+import { NodeCoreApp, istPrivateQuelle, seedListe, WEITERE_SEEDS, type Huelle } from '../src/main.ts';
 import { LocalMiner } from '../src/LocalMiner.ts';
 import { GpuMiner, erkenneGpu } from '../src/GpuMiner.ts';
 import { WalletDienst } from '../src/Wallet.ts';
@@ -173,6 +173,29 @@ test('config.json von Hand verändert: nichts Unzulässiges wird übernommen', a
       assert.ok(!String(s.dataDir).includes('[object'));
     } finally { await K.app.shutdown(); }
   }
+});
+
+test('Seeds: Im Hauptnetz kommt der fest eingebaute dazu, in einem Testnetz nie', async () => {
+  const erster = 'yskar-main.dynv6.net:8646';
+  assert.ok(WEITERE_SEEDS.length >= 1);
+  for (const s of WEITERE_SEEDS) assert.match(s, /^[a-zA-Z0-9.-]+:\d{2,5}$/, `${s} ist nicht rechner:port`);
+
+  assert.deepEqual(seedListe(erster, true), [erster, ...WEITERE_SEEDS]);
+  assert.deepEqual(seedListe('  knoten.example.org:8646 ', true), ['knoten.example.org:8646', ...WEITERE_SEEDS],
+    'Auch neben einem selbst eingetragenen Seed');
+  assert.deepEqual(seedListe(WEITERE_SEEDS[0], true), [...WEITERE_SEEDS], 'Kein Seed steht doppelt');
+  assert.deepEqual(seedListe('', true), [], 'Ein geleertes Feld heißt: kein Seed, auch kein eingebauter');
+  assert.deepEqual(seedListe('   ', true), []);
+  assert.deepEqual(seedListe(erster, false), [erster], 'Ein Testnetz wählt nie eine Adresse des Hauptnetzes an');
+  assert.deepEqual(seedListe('127.0.0.1:19003', false), ['127.0.0.1:19003']);
+
+  // Die Anwendung im Testnetz meldet der Oberfläche keinen eingebauten Seed.
+  const K = await kern();
+  try {
+    const s = await K.stand();
+    assert.equal(s.seed, erster);
+    assert.deepEqual(s.weitereSeeds, []);
+  } finally { await K.app.shutdown(); }
 });
 
 // --------------------------------------------------------------- Wallet
