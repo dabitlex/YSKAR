@@ -9,7 +9,7 @@ operator of the main node and for anyone who wants to know which component is au
 | Component | Where | Task | Authoritative for |
 |---|---|---|---|
 | Full nodes | anywhere; connected over P2P on port 8646 | validate every block, build blocks, hold the mempool (the pending transfers) | which blocks are valid and which chain is active |
-| Main node | `yskar-main.dynv6.net`, a Raspberry Pi | a full node like any other, with extra duties (below) | nothing beyond what any full node decides |
+| Main node | `yskar-main.dynv6.net`, a server with the fixed address `45.84.199.206` | a full node like any other, with extra duties (below) | nothing beyond what any full node decides |
 | Mirror (German "Spiegel") | Supabase, schema `chain2` | read-only database copy of the chain for fast queries | nothing |
 | App project | Vercel, `https://yskar.vercel.app` | serves the web app, the explorer and the read API; writes blocks into the mirror | nothing |
 | Website project | Vercel, `https://www.yskar.app` | static website with guides and whitepaper | nothing |
@@ -31,8 +31,9 @@ chain:
 - It is the node the Vercel server asks for live data (variable `YSKAR_FULLNODE_URL`).
 - It is the node the web app sends solo mining sessions and transfers to (variable
   `NEXT_PUBLIC_MINING_BASE`), and it runs the public pool "YSKAR Main".
-- It is one of the two seeds of the main network (`yskar-main.dynv6.net:8646`; the other is
-  `45.84.199.206:8646`).
+- It is the seed of the main network. The two published seed addresses,
+  `yskar-main.dynv6.net:8646` and `45.84.199.206:8646`, both lead to it; the second one works
+  without a name lookup.
 
 ```text
   other full nodes
@@ -402,9 +403,11 @@ sudo systemctl reload caddy
 curl https://node.example.org/api/v2/summary
 ```
 
-The host name must point to the machine before Caddy can obtain a certificate. For a machine at
-home with a changing address that means a dynamic DNS name; the main node uses one
-(`yskar-main.dynv6.net`).
+The host name must point to the machine before Caddy can obtain a certificate. The main node
+runs on a server with a fixed address, and its name `yskar-main.dynv6.net` points to that
+address permanently. A machine at home with a changing address needs a dynamic DNS name
+instead, and every change of address interrupts the service until all name servers hand out
+the new one.
 
 The node sends no CORS headers itself and does not handle `OPTIONS`. The `header` lines add the
 headers to every answer, and the `@options` block answers the preflight request a browser sends

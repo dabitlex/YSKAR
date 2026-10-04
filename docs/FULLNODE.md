@@ -110,7 +110,7 @@ node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 -
 |---|---|
 | `mine` | Run the node with its HTTP interface and the node network |
 | `--data ./knoten` | Data directory. `knoten` is German for "node"; it is also the default |
-| `--seed ...` | A known node to connect to first. The main network has two seeds; give both |
+| `--seed ...` | A known node to connect to first. The main network publishes two seed addresses; give both |
 | `--no-upstream` | Do not send blocks to the project's web server and do not fetch blocks from it. See [Upstream and the mirror](#upstream-and-the-mirror) |
 
 The command-line node has no seed built in. Without `--seed` it knows no other node.

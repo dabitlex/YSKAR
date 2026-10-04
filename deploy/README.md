@@ -2,7 +2,7 @@
 
 This guide shows how to run the YSKAR full node as a systemd service on Linux, so that it starts
 at boot and comes back after a crash. It is written for operators of a node on a Raspberry Pi or a
-server; the files in this folder are the ones the main node uses.
+server; the files in this folder show the configuration of the main node.
 
 A node started by hand in a terminal stops when the session ends. While the main node is down, the
 web app can neither mine solo nor send, because solo mining sessions and transfers go to that node,
@@ -32,11 +32,15 @@ The unit files contain the values of the main node. They are an example, not def
 | `WorkingDirectory` | `/home/yskar/YSKAR/node` | the `node` folder of your checkout |
 | `ReadWritePaths` | `/home/yskar/YSKAR/node/knoten` | your data folder (`--data`, resolved against the working directory) |
 | Path to Node.js in `ExecStart` | `/usr/bin/node` | the output of `which node` |
-| Start command in `ExecStart` | `mine --data ./knoten --bind 127.0.0.1 --port 8645 --p2p-port 8646 --pool yskar-main.dynv6.net --pool-fee 0` | see below |
+| Start command in `ExecStart` | `mine --data ./knoten --bind 127.0.0.1 --port 8645 --p2p-port 8646 --pool yskar-main.dynv6.net --pool-fee 100 --pool-payout ysr1lfn8dw6st25jxv653vypcp929xs9lzg44954zz` | see below |
+| `CPUQuota` | `80%` of one processor core | what suits your machine, or remove the line |
 
 The start command in `yskar-node.service` is the one of the main node. It has no `--seed` and no
 `--no-upstream`, because the main node is the node that writes to the mirror, and it runs the
-public pool under the name `yskar-main.dynv6.net` without a fee.
+public pool under the name `yskar-main.dynv6.net` with a fee of 1 % (`--pool-fee 100`, in basis
+points) that is paid to the address given with `--pool-payout`. The main node runs on a server
+with a fixed address. If you copy the file for a pool of your own, change the pool name and the
+payout address, otherwise your pool pays its fee to that address.
 
 **Every other node uses the standard start command** with both seeds and `--no-upstream`:
 
@@ -200,4 +204,4 @@ journalctl -u yskar-node -n 50 --no-pager
 |---|---|
 | `status=203/EXEC` | Almost always the wrong path to Node.js. See above. |
 | `Read-only file system` when writing | `ReadWritePaths` does not point to the data folder that is actually used. |
-| The node runs, but `https://yskar.vercel.app/api/v2/summary` answers 503 | Not the service. Look at the reverse proxy, the DNS name or the dynamic DNS service in front of the node. |
+| The node runs, but `https://yskar.vercel.app/api/v2/summary` answers 503 | Not the service. Look at the reverse proxy and at the DNS name in front of the node. |

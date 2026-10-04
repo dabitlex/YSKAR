@@ -37,15 +37,18 @@ EnvironmentFile=-/etc/yskar/node.env
 # not have.
 #
 # This is the start command of the MAIN NODE: no --seed, no --no-upstream,
-# and the public pool. Every other node is started with both seeds and
-# --no-upstream instead -- see deploy/README.md.
+# and the public pool with its fee (100 basis points = 1 %) and the address
+# the fee is paid to. Every other node is started with both seeds and
+# --no-upstream instead, and a pool of your own needs your own name and
+# your own payout address -- see deploy/README.md.
 ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --data ./knoten \
     --bind 127.0.0.1 \
     --port 8645 \
     --p2p-port 8646 \
     --pool yskar-main.dynv6.net \
-    --pool-fee 0
+    --pool-fee 100 \
+    --pool-payout ysr1lfn8dw6st25jxv653vypcp929xs9lzg44954zz
 
 # Always restart, not only on failure: a node that exits cleanly is just
 # as gone for the chain as one that crashes.
@@ -61,6 +64,11 @@ TimeoutStopSec=30
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=yskar-node
+
+# At most 80 % of one processor core. The node needs little; the limit
+# keeps it below the load at which some hosters suspend a server, also
+# while it loads the chain for the first time.
+CPUQuota=80%
 
 # --- Hardening ---
 # The node needs its own directory (the store) and the network.
