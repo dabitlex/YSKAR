@@ -19,6 +19,7 @@ import { REGTEST } from '../../src/lib/core/networks.ts';
 import { decodeAddress } from '../../src/lib/core/address.ts';
 import type { Transfer } from '../../src/lib/core/tx.ts';
 import { sha256 } from '@noble/hashes/sha2.js';
+import { createHash } from 'node:crypto';
 
 /** Zwei Adressen, damit sich Zweige an der Coinbase unterscheiden lassen. */
 export const MINER_A = decodeAddress(
@@ -67,13 +68,28 @@ export function mineBlock(opts: {
     params: REGTEST,
   });
 
-  const ziel = targetFromDifficulty(difficulty);
-  for (let nonce = 0n; nonce < 10_000_000n; nonce++) {
-    const block = finalizeBlock(gebaut, nonce);
-    const h = sha256d(serializeHeader(block.header));
-    let wert = 0n;
-    for (const b of h) wert = (wert << 8n) | BigInt(b);
-    if (wert <= ziel) {
+  /*
+    Die Suche laeuft ueber die Bytes des Headers: Nur die Nonce aendert sich
+    (u64 Little-Endian ab Byte 128), der Rest wird einmal geschrieben. Dazu
+    das SHA-256 von Node statt des in JavaScript geschriebenen -- zusammen
+    rund viermal so schnell wie Block fuer Block neu zu bauen.
+
+    Am Ergebnis aendert das nichts: dieselbe Reihenfolge der Nonces ab 0,
+    dieselbe Bedingung (Hash als Zahl <= Ziel), also derselbe Block. Der
+    Hash wird am Ende noch einmal mit der Funktion des Kerns gerechnet und
+    verglichen.
+  */
+  const ziel = Buffer.from(targetFromDifficulty(difficulty).toString(16).padStart(64, '0'), 'hex');
+  const kopf = Buffer.from(serializeHeader(finalizeBlock(gebaut, 0n).header));
+  const einmal = (b: Uint8Array) => createHash('sha256').update(b).digest();
+  for (let nonce = 0; nonce < 10_000_000; nonce++) {
+    kopf.writeUInt32LE(nonce, 128);
+    if (Buffer.compare(einmal(einmal(kopf)), ziel) <= 0) {
+      const block = finalizeBlock(gebaut, BigInt(nonce));
+      const h = sha256d(serializeHeader(block.header));
+      let wert = 0n;
+      for (const b of h) wert = (wert << 8n) | BigInt(b);
+      if (wert > targetFromDifficulty(difficulty)) throw new Error('Testminer: Hash passt nicht zum Ziel');
       return { block, hash: h, body: serializeBlock(block) };
     }
   }
