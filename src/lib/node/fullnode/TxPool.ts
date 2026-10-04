@@ -23,7 +23,7 @@ import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
 import type { State } from '../../core/state.ts';
 
-/** Obergrenze. Bei 173 Byte je Transaktion sind das rund 900 KB. */
+/** Obergrenze. Bei 168 Byte je Transaktion (ohne Memo) sind das rund 840 KB. */
 export const MAX_POOL_SIZE = 5_000;
 /** Hoechstzahl wartender Transaktionen je Absender. */
 export const MAX_PER_SENDER = 32;

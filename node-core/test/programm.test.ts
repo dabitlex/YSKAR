@@ -75,7 +75,7 @@ test('Links: nur die eigenen Adressen, nur https', () => {
   for (const gut of [
     'https://github.com/dabitlex/YSKAR',
     'https://github.com/dabitlex/YSKAR/releases',
-    'https://github.com/dabitlex/YSKAR/blob/main/docs/POOL_BETRIEB.md',
+    'https://github.com/dabitlex/YSKAR/blob/main/docs/POOL.md',
     'https://www.yskar.app/',
     'https://yskar.vercel.app/explorer',
   ]) assert.equal(linkErlaubt(gut), new URL(gut).href, gut);

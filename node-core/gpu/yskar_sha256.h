@@ -3,7 +3,7 @@
  *
  * Dieselbe Datei wird zweimal uebersetzt:
  *
- *   nvcc  fuer die GPU     (yskar_cuda.cu)
+ *   nvcc  fuer die GPU     (yskar_gpu.cu)
  *   gcc   fuer die Pruefung (test/test_sha.c)
  *
  * Das ist Absicht. Die GPU-Ausfuehrung laesst sich nur auf einem Rechner mit

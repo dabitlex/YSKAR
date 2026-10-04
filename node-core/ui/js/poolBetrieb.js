@@ -16,7 +16,7 @@ function nameGrund(v) {
 const prozent = bps => (bps / 100).toLocaleString(sprache() === 'en' ? 'en-GB' : 'de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %';
 const anteilText = a => (a * 100).toLocaleString(sprache() === 'en' ? 'en-GB' : 'de-DE', { maximumFractionDigits: a < 0.1 ? 1 : 0 }) + ' %';
 
-const ANLEITUNG = 'https://github.com/dabitlex/YSKAR/blob/main/docs/POOL_BETRIEB.md';
+const ANLEITUNG = 'https://github.com/dabitlex/YSKAR/blob/main/docs/POOL.md';
 
 export function baue(ctx) {
   const zustand = el('span');

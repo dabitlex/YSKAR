@@ -8,7 +8,7 @@ import { istNativ } from './plattform';
  * Die Oberflaeche meldet dem Widget, was sie hat -- jedes Feld optional,
  * der Rest bleibt stehen. Ausserhalb der App tut das nichts.
  *
- * Seit APK 1.0.10 ist das Widget eine Mining-Uebersicht: Mining-Werte und
+ * Seit APK 1.1.0 ist das Widget eine Mining-Uebersicht: Mining-Werte und
  * den Verdienst der Sitzung liefert der MiningService selbst, den Stand
  * des Netzes holt das Widget. Von hier braucht es die Adresse -- und die
  * Wahl Hell/Dunkel (widgetThemaSetzen).
@@ -31,7 +31,7 @@ export type WidgetThema = 'hell' | 'dunkel';
 interface Plugin {
   stand(o: WidgetStand): Promise<void>;
   leeren(): Promise<void>;
-  /** Ab APK 1.0.10. Ohne Angabe nur lesen. */
+  /** Ab APK 1.1.0. Ohne Angabe nur lesen. */
   thema(o: { thema?: WidgetThema }): Promise<{ thema?: string }>;
 }
 

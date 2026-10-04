@@ -1,7 +1,7 @@
 /**
  * GPU-Miner.
  *
- * Startet das CUDA-Programm (gpu/yskar_cuda.cu) als Kindprozess und
+ * Startet das CUDA-Programm (gpu/yskar_gpu.cu) als Kindprozess und
  * verbindet es mit dem MiningCoordinator -- genau wie LocalMiner die
  * CPU-Worker verbindet.
  *

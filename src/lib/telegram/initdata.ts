@@ -27,7 +27,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  * WICHTIG: Die Plattform (android/ios) steht NICHT in den signierten Daten.
  * Sie kommt unsigniert aus Telegram.WebApp.platform und ist damit nicht
  * überprüfbar. Der Smartphone-Gate ist eine Regel, keine Sicherheitsgrenze --
- * siehe docs/SECURITY.md.
+ * siehe docs/history/FIRST_CHAIN_SECURITY.md.
  */
 
 export interface TelegramUser {
