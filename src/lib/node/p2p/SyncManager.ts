@@ -42,6 +42,16 @@ export const BLOCK_FENSTER = 16;
 export const ABGEWIESEN_RING = 4096;
 /** Wie lange auf angeforderte Daten gewartet wird. */
 export const ANFRAGE_TIMEOUT_MS = 30_000;
+/**
+ * Wie viele Header hoechstens auf ihren Koerper warten, in Vielfachen
+ * einer Header-Nachricht.
+ *
+ * Header sind billig zu erfinden, solange der Proof of Work zu der
+ * Difficulty passt, die sie selbst nennen. Ohne Grenze koennte ein Peer die
+ * Warteschlange mit jeder Nachricht weiter fuellen. Ist sie voll, wird erst
+ * weitergefragt, wenn sie leer ist.
+ */
+export const WARTESCHLANGE_NACHRICHTEN = 10;
 
 export interface SyncOptionen {
   chain: ChainManager;
@@ -58,11 +68,25 @@ export interface SyncOptionen {
   /** Wird bei jedem angenommenen fremden Block gerufen. */
   onBlock?: (hoehe: number, hash: string, vonPeer: string) => void;
   onLog?: (text: string) => void;
+  /**
+   * Wie viele Header eine Nachricht hoechstens traegt. Vorgabe MAX_HEADERS.
+   *
+   * Nur fuer Tests: Mit der Vorgabe von 2000 braeuchte ein Test, der mehr
+   * als eine Nachricht prueft, eine Kette von ueber 2000 geminten Bloecken.
+   */
+  maxHeaders?: number;
 }
 
 interface OffeneAnfrage {
   peer: PeerConnection;
   seit: number;
+}
+
+/** Ein Header, dessen Koerper noch fehlt. `key` ist der Hash als Hex. */
+interface Wartend {
+  hash: Uint8Array;
+  hoehe: number;
+  key: string;
 }
 
 export class SyncManager {
@@ -106,7 +130,27 @@ export class SyncManager {
    * Vorgaenger wird abgelehnt. Diese Liste haelt fest, was in welcher
    * Reihenfolge noch gebraucht wird.
    */
-  private warteschlange: { hash: Uint8Array; hoehe: number }[] = [];
+  private warteschlange: Wartend[] = [];
+  /** Die Hashes der Warteschlange -- damit "steht er schon drin?" nichts kostet. */
+  private wartend = new Set<string>();
+  /**
+   * Der Peer, bei dem die Bloecke der Warteschlange gerade bestellt sind.
+   *
+   * Solange bei ihm Bestellungen offen sind, wird bei keinem anderen
+   * bestellt. Ein Peer beantwortet Bestellungen in ihrer Reihenfolge; ueber
+   * zwei verteilt kaemen die Bloecke durcheinander an, und jeder, der vor
+   * seinem Vorgaenger eintrifft, wird verworfen und kostet eine neue
+   * Header-Runde.
+   */
+  private lieferant: PeerConnection | null = null;
+  /**
+   * Es gibt vermutlich mehr Header, als in der Warteschlange stehen: Die
+   * letzte volle Nachricht wurde nicht fortgesetzt, oder ein Block kam an,
+   * dessen Vorgaenger noch fehlt. Ist die Warteschlange leer, wird dann
+   * neu gefragt.
+   */
+  private mehrVermutet = false;
+  private maxHeaders: number;
   private laeuft = false;
   private takt: NodeJS.Timeout | null = null;
 
@@ -116,6 +160,7 @@ export class SyncManager {
     this.peers = o.peers;
     this.pool = o.pool ?? null;
     this.params = o.params ?? MAINNET;
+    this.maxHeaders = o.maxHeaders ?? MAX_HEADERS;
     this.opt = o;
   }
 
@@ -136,6 +181,9 @@ export class SyncManager {
     if (this.takt) { clearInterval(this.takt); this.takt = null; }
     this.offen.clear();
     this.warteschlange = [];
+    this.wartend.clear();
+    this.lieferant = null;
+    this.mehrVermutet = false;
   }
 
   offeneAnfragen(): number { return this.offen.size; }
@@ -216,9 +264,21 @@ export class SyncManager {
     return out;
   }
 
-  private frageHeader(p: PeerConnection): void {
+  /**
+   * Header anfragen.
+   *
+   * @param hinter  Ein Header, den wir schon erhalten haben und hinter dem
+   *                es weitergehen soll. Er steht im Locator vorn. Kennt die
+   *                Gegenseite ihn nicht (mehr) auf ihrer aktiven Kette,
+   *                greift sie auf die uebrigen Eintraege zurueck -- den
+   *                Locator ab unserem Kopf, wie ohne diese Angabe.
+   */
+  private frageHeader(p: PeerConnection, hinter?: Uint8Array): void {
+    const locator = this.baueLocator();
     p.send('getheaders', encodeGetHeaders({
-      locator: this.baueLocator(),
+      // Der Locator ab dem Kopf hat hoechstens 31 Eintraege; mit dem
+      // vorangestellten bleibt er in der Grenze der Nachricht.
+      locator: hinter ? [hinter, ...locator] : locator,
       stop: new Uint8Array(32),
     }));
   }
@@ -247,7 +307,7 @@ export class SyncManager {
     if (!tip) return;
 
     const header: Uint8Array[] = [];
-    for (let hoehe = ab; hoehe <= tip.height && header.length < MAX_HEADERS; hoehe++) {
+    for (let hoehe = ab; hoehe <= tip.height && header.length < this.maxHeaders; hoehe++) {
       const b = this.store.mainAt(hoehe);
       if (!b) break;
       header.push(b.body.slice(0, 136));
@@ -284,7 +344,9 @@ export class SyncManager {
     const roh = decodeHeaders(payload);
     if (roh.length === 0) return;
 
-    const neu: { hash: Uint8Array; hoehe: number }[] = [];
+    const neu: Wartend[] = [];
+    // Der letzte Header der Nachricht, in der Reihenfolge der Gegenseite.
+    let letzter: Uint8Array | null = null;
 
     for (const h of roh) {
       /*
@@ -311,26 +373,57 @@ export class SyncManager {
         return void p.close('header_ohne_arbeit');
       }
 
+      letzter = hash;
       if (this.store.has(hash)) continue;
-      neu.push({ hash, hoehe: kopf.height });
+      neu.push({ hash, hoehe: kopf.height, key: toHex(hash) });
     }
 
     if (neu.length === 0) return;
-    this.log(`${neu.length} neue Header von ${p.host}`);
 
-    // In Reihenfolge anhaengen -- Bloecke lassen sich nur so anwenden.
+    /*
+      In Reihenfolge anhaengen -- Bloecke lassen sich nur so anwenden.
+
+      "Steht er schon in der Warteschlange?" beantwortet die Menge der
+      Hashes. Vorher wurde dafuer die ganze Warteschlange durchsucht, fuer
+      jeden Header neu -- bei 2000 Headern einige Millionen Vergleiche, und
+      waehrenddessen tat der Knoten nichts anderes.
+    */
+    const grenze = WARTESCHLANGE_NACHRICHTEN * this.maxHeaders;
     neu.sort((a, b) => a.hoehe - b.hoehe);
+    let dazu = 0;
     for (const n of neu) {
-      if (!this.warteschlange.some(w => toHex(w.hash) === toHex(n.hash))) {
-        this.warteschlange.push(n);
-      }
+      if (this.wartend.has(n.key)) continue;
+      if (this.warteschlange.length >= grenze) break;
+      this.wartend.add(n.key);
+      this.warteschlange.push(n);
+      dazu++;
     }
-    this.warteschlange.sort((a, b) => a.hoehe - b.hoehe);
+    if (dazu > 0) {
+      this.log(`${dazu} neue Header von ${p.host}`);
+      this.warteschlange.sort((a, b) => a.hoehe - b.hoehe);
+    }
 
     this.frageBloecke(p);
 
-    // Kamen genau so viele Header wie erlaubt, gibt es vermutlich mehr.
-    if (roh.length >= MAX_HEADERS) this.frageHeader(p);
+    /*
+      Kamen so viele Header wie erlaubt, gibt es vermutlich mehr.
+
+      Weitergefragt wird HINTER dem letzten erhaltenen Header. Vorher wurde
+      mit dem Locator ab dem eigenen Kopf gefragt -- und der Kopf rueckt erst
+      vor, wenn Koerper ankommen. Die Gegenseite schickte deshalb dieselben
+      2000 Header wieder und wieder, nach jeder Antwort von vorn, solange der
+      Rueckstand groesser als eine Nachricht war.
+
+      Nur wenn die Nachricht etwas Neues brachte und noch Platz ist: Sonst
+      koennte ein Peer, der immer dieselbe volle Nachricht schickt, dieses
+      Hin und Her endlos in Gang halten. Dann wird nur vermerkt, dass es
+      mehr geben duerfte -- aufBlock() fragt neu, wenn die Warteschlange
+      leer ist.
+    */
+    if (roh.length >= this.maxHeaders) {
+      if (dazu > 0 && letzter && this.warteschlange.length < grenze) this.frageHeader(p, letzter);
+      else this.mehrVermutet = true;
+    }
   }
 
   /**
@@ -340,17 +433,30 @@ export class SyncManager {
    * wuerde bei einer langen Kette hunderte Megabyte gleichzeitig anfordern.
    */
   private frageBloecke(p: PeerConnection): void {
+    // Ein getrennter Peer liefert nichts mehr. Bei ihm zu bestellen hiesse,
+    // die Bloecke bis zum Ablauf der Wartezeit zu blockieren.
+    if (!p.ready) return;
+
+    // Solange der bisherige Lieferant Bestellungen offen hat, bleibt es bei
+    // ihm (siehe `lieferant`).
+    const bisher = this.lieferant;
+    if (bisher && bisher !== p && bisher.ready) {
+      for (const a of this.offen.values()) if (a.peer === bisher) return;
+    }
+
     const wunsch: { typ: number; hash: Uint8Array }[] = [];
 
     for (const w of this.warteschlange) {
       if (this.offen.size + wunsch.length >= BLOCK_FENSTER) break;
-      const k = toHex(w.hash);
-      if (this.offen.has(k) || this.store.has(w.hash)) continue;
+      if (this.offen.has(w.key) || this.store.has(w.hash)) continue;
       wunsch.push({ typ: INV_BLOCK, hash: w.hash });
-      this.offen.set(k, { peer: p, seit: Date.now() });
+      this.offen.set(w.key, { peer: p, seit: Date.now() });
     }
 
-    if (wunsch.length > 0) p.send('getdata', encodeGetData(wunsch));
+    if (wunsch.length > 0) {
+      this.lieferant = p;
+      p.send('getdata', encodeGetData(wunsch));
+    }
   }
 
   private aufBlock(p: PeerConnection, roh: Uint8Array): void {
@@ -359,15 +465,22 @@ export class SyncManager {
     catch { return void p.close('block_unlesbar'); }
 
     this.offen.delete(hash);
-    this.warteschlange = this.warteschlange.filter(w => toHex(w.hash) !== hash);
+    // Bloecke kommen in der Reihenfolge der Warteschlange -- der Eintrag
+    // steht fast immer ganz vorn.
+    if (this.wartend.delete(hash)) {
+      const i = this.warteschlange.findIndex(w => w.key === hash);
+      if (i >= 0) this.warteschlange.splice(i, 1);
+    }
 
     // Dieselbe vollstaendige Pruefung wie fuer einen selbst gebauten Block.
     const r = this.chain.accept(roh);
 
     if (!r.ok) {
       if (r.grund === 'vorgaenger_fehlt') {
-        // Kein Fehlverhalten: Uns fehlt nur die Vorgeschichte. Wieder
-        // zurueck in die Schlange und Header nachfordern.
+        // Kein Fehlverhalten: Uns fehlt nur die Vorgeschichte. Header
+        // nachfordern -- und merken, dass es hinter der Warteschlange
+        // weitergeht: Dieser Block steht nicht mehr darin.
+        this.mehrVermutet = true;
         this.frageHeader(p);
         return;
       }
@@ -398,16 +511,48 @@ export class SyncManager {
     }
 
     // Naechstes Stueck holen, solange noch etwas fehlt.
-    if (this.warteschlange.length > 0) this.frageBloecke(p);
+    if (this.warteschlange.length > 0) {
+      this.frageBloecke(p.ready ? p : this.peers.besterPeer() ?? p);
+      return;
+    }
+
+    /*
+      Die Warteschlange ist leer. Fehlt noch etwas, wird neu gefragt, ab dem
+      eigenen Kopf.
+
+      Zuerst ein Peer, der beim Handschlag mehr Arbeit gemeldet hat, als wir
+      jetzt haben: der, der gerade geliefert hat, sonst der mit der meisten
+      Arbeit. Gibt es keinen solchen, ist aber vermerkt, dass es mehr Header
+      geben duerfte, wird trotzdem gefragt -- die Arbeit aus dem Handschlag
+      ist so alt wie die Verbindung.
+
+      Vorher uebernahm das die Schleife aus Header-Anfragen, die es nicht
+      mehr gibt.
+    */
+    const eigene = this.chain.tip()?.chainWork ?? 0n;
+    const mehr = this.mehrVermutet;
+    this.mehrVermutet = false;
+    const kandidaten = [p, this.peers.besterPeer()]
+      .filter((q): q is PeerConnection => q !== null && q.ready);
+    const quelle = kandidaten.find(q => q.fremdeArbeit() > eigene)
+      ?? (mehr ? kandidaten[kandidaten.length - 1] : undefined);
+    if (quelle) this.frageHeader(quelle);
   }
 
   private aufInv(p: PeerConnection, payload: Uint8Array): void {
     const eintraege = decodeInv(payload);
 
-    const wunsch = eintraege.filter(e =>
-      e.typ === INV_BLOCK
-      && !this.store.has(e.hash)
-      && !this.offen.has(toHex(e.hash)));
+    /*
+      Was schon in der Warteschlange steht, wird nicht eigens geholt: Es
+      kommt in seiner Reihenfolge. Vorher wurde ein mitten im Aufholen
+      angekuendigter Block sofort bestellt, traf vor seinem Vorgaenger ein
+      und wurde verworfen.
+    */
+    const wunsch = eintraege.filter(e => {
+      if (e.typ !== INV_BLOCK || this.store.has(e.hash)) return false;
+      const k = toHex(e.hash);
+      return !this.offen.has(k) && !this.wartend.has(k);
+    });
 
     for (const w of wunsch) {
       this.offen.set(toHex(w.hash), { peer: p, seit: Date.now() });
