@@ -4,7 +4,7 @@
  * Die Merkwoerter werden NICHT im Klartext abgelegt. Sie liegen mit einer
  * vom Nutzer gewaehlten PIN verschluesselt im localStorage:
  *
- *   PIN -> PBKDF2-SHA256, 250.000 Runden, 16 Byte Salz -> AES-256-GCM
+ *   PIN -> PBKDF2-SHA256, 400.000 Runden, 16 Byte Salz -> AES-256-GCM
  *
  * Warum ueberhaupt eine PIN: localStorage einer Mini App ist fuer andere
  * Webinhalte nicht lesbar, wohl aber fuer jeden, der Zugriff auf das

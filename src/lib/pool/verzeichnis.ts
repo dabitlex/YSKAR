@@ -3,7 +3,7 @@
  *
  * EINE GEPFLEGTE LISTE, KEINE ANMELDUNG. Ein Pool ist ein Knoten, den man
  * erreichen kann -- die Kette kennt kein Register dafuer, und jeder darf
- * einen betreiben (docs/POOL_BETRIEB.md). Die App braucht trotzdem eine
+ * einen betreiben (docs/POOL.md). Die App braucht trotzdem eine
  * Liste, sonst muss jeder die Adresse abtippen. Diese Liste steht hier.
  *
  * Wer nicht darauf steht, ist nicht ausgesperrt: In der App fuehrt "Eigene
