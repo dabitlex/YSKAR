@@ -174,7 +174,7 @@
   "an.apk.widget": "Widget na tela inicial",
   "an.apk.w1": "Toque e segure um espaço vazio da tela inicial, escolha “Widgets” e arraste “YSKAR Wallet” para a tela.",
   "an.apk.w2": "Com a mineração rodando, o widget mostra o que você ganhou nesta sessão, além do hashrate, do tempo e dos shares aceitos. “Parar” encerra a mineração direto da tela inicial. Com a mineração parada, você vê o bloco atual, o hashrate da rede e a recompensa do bloco.",
-  "an.apk.w3": "“Ganho nesta sessão” conta as recompensas de bloco e os pagamentos do pool creditados no seu endereço desde o início; o valor muda quando um novo bloco é encontrado. Claro ou escuro você escolhe no app em Configurações → App → Widget. O widget nesta forma existe a partir da versão 1.0.10.",
+  "an.apk.w3": "“Ganho nesta sessão” conta as recompensas de bloco e os pagamentos do pool creditados no seu endereço desde o início; o valor muda quando um novo bloco é encontrado. Claro ou escuro você escolhe no app em Configurações → App → Widget. O widget nesta forma existe a partir da versão 1.1.0.",
   "an.apk.update": "Atualizar o app",
   "an.apk.updateText": "Quando há uma versão nova, o app mostra um aviso ao abrir. Toque em “Baixar”: o app baixa a atualização e depois o Android pergunta se deve instalar. Sua carteira é mantida. Para verificar manualmente, vá no app em Configurações → App → Atualizações.",
   "an.apk.pruefen": "Conferir o download (opcional)",

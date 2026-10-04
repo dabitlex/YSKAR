@@ -174,7 +174,7 @@
   "an.apk.widget": "Widżet na ekranie głównym",
   "an.apk.w1": "Przytrzymaj wolne miejsce na ekranie głównym, wybierz „Widżety” i przeciągnij „YSKAR Wallet” na ekran.",
   "an.apk.w2": "Gdy mining działa, widżet pokazuje, ile udało się zarobić w tej sesji, a do tego hashrate, czas pracy i przyjęte share’y. „Stop” zatrzymuje mining prosto z ekranu głównego. Gdy mining jest zatrzymany, widzisz aktualny blok, hashrate sieci i nagrodę za blok.",
-  "an.apk.w3": "„Zarobione w tej sesji” liczy nagrody za bloki i wypłaty z poola zaksięgowane na Twoim adresie od startu; wartość zmienia się, gdy zostanie znaleziony nowy blok. Wygląd jasny lub ciemny wybierasz w aplikacji: Ustawienia → Aplikacja → Widżet. Widżet w tej postaci jest dostępny od wersji 1.0.10.",
+  "an.apk.w3": "„Zarobione w tej sesji” liczy nagrody za bloki i wypłaty z poola zaksięgowane na Twoim adresie od startu; wartość zmienia się, gdy zostanie znaleziony nowy blok. Wygląd jasny lub ciemny wybierasz w aplikacji: Ustawienia → Aplikacja → Widżet. Widżet w tej postaci jest dostępny od wersji 1.1.0.",
   "an.apk.update": "Aktualizacja aplikacji",
   "an.apk.updateText": "Gdy pojawi się nowa wersja, aplikacja pokaże informację po otwarciu. Stuknij „Pobierz”: aplikacja pobierze aktualizację, a potem Android zapyta, czy ją zainstalować. Twój portfel zostaje zachowany. Ręcznie sprawdzisz to w aplikacji: Ustawienia → Aplikacja → Aktualizacje.",
   "an.apk.pruefen": "Sprawdzanie pobranego pliku (opcjonalnie)",
