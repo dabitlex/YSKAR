@@ -1,292 +1,340 @@
-# YSKAR Miner
+# YSKAR miner
 
-Eigenständiger Miner für Windows, macOS und Linux. Er braucht **nur eine
-Adresse** — keinen privaten Schlüssel, keine Wallet, keine Anmeldung.
+The command-line miner for Windows, macOS and Linux. This guide is for anyone who wants to mine
+YSR from a terminal, either in a pool or against their own full node. The miner needs only an
+address: no private key, no wallet and no sign-up.
 
-Die Coinbase eines gefundenen Blocks geht direkt an die Adresse, die du
-angibst. Mehr muss der Miner über dich nicht wissen. Deshalb kannst du ihn
-bedenkenlos auf einem fremden Rechner laufen lassen — und deshalb kann auch
-jemand anderes für dich minen, ohne dass du ihm etwas anvertraust.
+The reward of a block goes to the address you give the miner. That is all the miner knows about
+you. You can therefore run it on a computer you do not control, and someone else can mine for you
+without being given anything secret.
 
----
+The miner's own messages are in German. This guide quotes them as they appear and explains them.
 
-## Schritt 1 — Node.js installieren
+## Requirements
 
-Der Miner braucht **Node.js ab Version 20**. Prüf zuerst, ob du es schon hast:
+The miner needs Node.js 20 or newer. Check what you have:
 
 ```bash
 node --version
 ```
 
-Kommt eine Zahl ab `v20`, überspring diesen Schritt.
+If the answer starts with `v20` or a higher number, continue with the next section.
 
-**Windows** — [nodejs.org](https://nodejs.org) öffnen, die LTS-Fassung
-herunterladen, Installer durchklicken. Danach ein **neues**
-Eingabeaufforderungs-Fenster öffnen, sonst kennt es `node` noch nicht.
+- **Windows:** download the LTS version from [nodejs.org](https://nodejs.org) and run the
+  installer. Then open a new Command Prompt window, because a window that was already open does
+  not know `node` yet.
+- **macOS:** install from [nodejs.org](https://nodejs.org), or with Homebrew:
 
-**macOS** — entweder von [nodejs.org](https://nodejs.org), oder per Homebrew:
+  ```bash
+  brew install node
+  ```
 
-```bash
-brew install node
-```
+- **Linux:** use the package manager of your distribution. On Debian, Ubuntu and Raspberry Pi OS:
 
-**Linux** — über den Paketmanager der Distribution, oder:
+  ```bash
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo apt install -y nodejs
+  ```
 
-```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-```
+## Get the code
 
----
-
-## Schritt 2 — Miner holen
-
-Den Ordner `miner/` aus dem Repo kopieren, oder das ganze Projekt klonen:
+Clone the repository and change into the `miner` folder:
 
 ```bash
 git clone https://github.com/dabitlex/YSKAR.git
 cd YSKAR/miner
 ```
 
-**Es gibt nichts zu installieren.** Der Miner hat keine Abhängigkeiten —
-kein `npm install` nötig. Alles, was er braucht, liegt im Ordner:
-`src/` und die Datei `miner.<hash>.wasm`.
+There is nothing to install. The miner has no runtime dependencies, so `npm install` is not
+needed. Everything it uses is in this folder: `src/` and the file `miner.<hash>.wasm`, which is
+the hashing engine. Copying only the `miner` folder to another computer is enough.
 
----
-
-## Schritt 3 — Prüfen, ob alles passt
+## Run the self-test
 
 ```bash
 node src/selbsttest.mjs
 ```
 
-Erwartete Ausgabe:
+The self-test needs no network. It recomputes the hash of the genesis block (the first block of
+the chain) and compares it with the known result, then measures one CPU core for a moment. It
+prints five lines:
 
-```
-Engine      miner.57f237a2a4.wasm
-Selbsttest  bestanden (Genesis-Hash stimmt)
-Ein Kern    1.72 MH/s
-Kerne       8
-Erwartet    12.04 MH/s mit 7 Threads
-```
+| Line | Meaning |
+|---|---|
+| `Engine` | The engine file that was found, for example `miner.57f237a2a4.wasm` |
+| `Selbsttest  bestanden (Genesis-Hash stimmt)` | Passed: the computed genesis hash is correct |
+| `Ein Kern` | Measured hashrate of one core |
+| `Kerne` | Number of CPU cores |
+| `Erwartet` | The one-core figure multiplied by the default number of threads |
 
-Der Selbsttest rechnet den Genesis-Block der Kette nach und vergleicht mit
-dem bekannten Ergebnis. Besteht er, passen Engine und Serialisierung
-zusammen — und du weißt außerdem schon, was dein Rechner leistet.
+If the test passes, the engine and the way the miner builds a block header fit together. If it
+fails, do not mine with this folder. Every computing thread runs the same check when it starts
+and reports `Thread <n>: Selbsttest fehlgeschlagen …` if it fails.
 
-Schlägt er fehl, stimmt etwas an der Installation nicht. Dann bringt es
-nichts, trotzdem zu minen: Der Miner würde mit voller Geschwindigkeit
-rechnen und nie einen Share abliefern.
+## Get an address
 
----
+You need a YSKAR address. It begins with `ysr1` and has 42 characters, for example:
 
-## Schritt 4 — Adresse besorgen
-
-Du brauchst eine YSKAR-Adresse. Sie sieht so aus:
-
-```
+```text
 ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4
 ```
 
-Die bekommst du in der Telegram Mini App unter **Wallet → Empfangen**.
-Kopieren und bereithalten.
+Every YSKAR wallet shows your own address on its "Receive" screen: the Android app, Node Core, or
+the Telegram Mini App. If you have no wallet yet, create one, write the twelve words down on
+paper, and then copy the address.
 
-Wenn du noch keine Wallet hast: In der Mini App eine anlegen, die zwölf
-Wörter auf Papier notieren, und danach die Adresse kopieren.
+The address is public and safe to pass on. The twelve words are not: whoever has them controls
+the funds.
 
-**Die Adresse ist öffentlich.** Sie weiterzugeben ist unbedenklich — im
-Gegensatz zu den zwölf Wörtern, die niemand sonst sehen darf.
+## Start mining
 
----
+Every start command must name the server with `--api`. There are two choices.
 
-## Schritt 5 — Loslegen
-
-```bash
-node src/cli.mjs --address ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4
-```
-
-Oder ohne alles — dann fragt der Miner nach der Adresse:
+### In the public pool
 
 ```bash
-node src/cli.mjs
+node src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool
 ```
 
-```
-YSKAR Miner 0.1.0
-────────────────────────────────────────────────────
-Der Reward eines gefundenen Blocks geht an diese Adresse.
-Zu finden in der Telegram Mini App unter Wallet → Empfangen.
+In a pool, the reward of every block the pool finds is split among the miners by the work they
+contributed. The miner proves its work with shares: a share is a hash that meets an easier target
+than a block. The block itself pays each address directly. [POOL.md](../docs/POOL.md) explains
+how the split works. To mine in another pool, put its address after `--api`.
 
-YSKAR-Adresse: ysr1at4jxz…
+### Solo against your own full node
 
-Adresse merken, damit die Frage künftig entfällt? [J/n]
-```
-
-Wer ja sagt, legt eine Datei `yskar-miner.json` **neben dem Programm** ab.
-Ab dann genügt ein Doppelklick. Gelöscht wird sie mit `--forget`.
-
-Darin steht nur, was ohnehin öffentlich ist: Adresse, Threadzahl,
-Intensität. Der Miner kennt keine Schlüssel und kann deshalb auch keine
-verlieren.
-
-Das war's. Der Miner nimmt automatisch alle Kerne bis auf einen — der bleibt
-für das Betriebssystem, damit der Rechner bedienbar bleibt.
-
-```
-YSKAR Miner 0.1.0
-────────────────────────────────────────────────────
-  Adresse     ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4
-  Server      https://yskar.vercel.app
-  Threads     7 von 8 Kernen
-  Intensität  100 %
-────────────────────────────────────────────────────
-
-[14:22:31] 12.04 MH/s · 12 angenommen, 0 abgelehnt · Block #58 · Diff 18.150
-[14:24:07] BLOCK GEFUNDEN  #59   +875 YSR
-           000000a91c4d8e2f7b3a19c05e6d8f41a2b7c93e5d0f6a8b1c4e7d2f9a3b5c8e
+```bash
+node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645
 ```
 
-Beenden mit **Strg+C**. Der Miner schließt dabei seine Sitzung sauber ab und
-zeigt eine Zusammenfassung.
+Solo means that a block you find pays its whole reward to your address, and that you receive
+nothing until you find one. You need a running full node started with the `mine` command; its
+mining interface listens on `127.0.0.1:8645` by default. [FULLNODE.md](../docs/FULLNODE.md)
+describes how to set one up.
 
----
+### Without `--api`
 
-## Mehrere Miner auf eine Adresse
+Without `--api` the miner contacts `https://yskar.vercel.app`. That server no longer hands out
+mining work: it answers every request for a mining session with HTTP 410. The miner then prints
+`Verbindung fehlgeschlagen` ("connection failed") and stops.
 
-Ausdrücklich vorgesehen: Handy und Rechner gleichzeitig, mehrere Rechner,
-oder ein Rechner mit mehreren Instanzen. Alle Rewards gehen an dieselbe
-Adresse.
+### Entering and saving the address
 
-Jede Sitzung bekommt vom Server einen eigenen Nonce-Bereich, die Miner
-kommen sich also nicht ins Gehege und doppelte Arbeit entsteht nicht.
+If you start the miner in a terminal without `--address` and no address is saved yet, it asks
+for the address (`YSKAR-Adresse:`) and then whether to remember it
+(`Adresse merken, damit die Frage künftig entfällt? [J/n]`; `J` or Enter means yes).
 
-Höchstens **acht gleichzeitig** je Adresse. Wird der Deckel erreicht, sagt
-der Miner das beim Start. Abgestürzte Sitzungen schließen sich nach fünf
-Minuten von selbst.
+If you agree, it writes the file `yskar-miner.json` into the `miner` folder. The file holds the
+address, the number of threads and the intensity, all of which are public. It does not hold the
+server, so `--api` (and `--mode pool`) are still needed on every start:
 
-## Optionen
+```bash
+node src/cli.mjs --api https://yskar-main.dynv6.net --mode pool
+```
 
-| Option | Kurz | Bedeutung | Vorgabe |
+The saved values are used only when `--address` is not given. `--forget` deletes the file.
+
+### While the miner runs
+
+At the start the miner prints two blocks of information. The most important lines:
+
+| Line | Meaning |
+|---|---|
+| `RECHENWERK` | What computes: number of CPU threads, graphics card, intensity |
+| `ADRESSE` | The address that receives the reward |
+| `KNOTEN` | The server given with `--api` |
+| `MODUS` | `Solo` or `Pool` |
+| `NETZ` | Block height, network difficulty, active miners and network hashrate as reported by the server |
+| `SITZUNG` | The ID of your mining session on the node |
+| `SHARE-ZIEL` | The share difficulty the node asks of this session |
+| `POOL` | Pool name, fee and number of miners (pool mode only) |
+| `PARALLEL` | Shown when more than one miner is working for this address on this node |
+
+Then events follow, one per line:
+
+| Message | Meaning |
+|---|---|
+| `neue Arbeit · Block N · Difficulty D` | New work: the miner now works on block height N |
+| `angenommen #n · Difficulty d · p % eines Blocks` | Share number n was accepted. `d` is the difficulty this hash reached; `p` is that value as a percentage of the block difficulty. At 100 % the share is a block. |
+| `Ziel angepasst a → b` | The node changed the share difficulty of your session |
+| `abgelehnt <reason>` | A share was rejected, with the node's reason |
+| `BLOCK GEFUNDEN  #N   +R YSR` | You found block N. The next line shows the block hash. |
+| `Einreichen fehlgeschlagen: …` | A share could not be sent (network error) |
+| `Job holen fehlgeschlagen: …` | New work could not be fetched (network error) |
+
+Once a minute the miner prints the hashrate over the last 10 seconds, 60 seconds and 15 minutes,
+the total number of hashes and the running time.
+
+In a terminal with at least 20 rows, four lines stay fixed at the top: block height and
+difficulty, the current hashrate with accepted and rejected shares, temperatures where the
+system exposes sensors, and a separator. The fixed header is not used when the environment
+variable `NO_COLOR` is set. While it is active, lines that scroll out at the top are not kept in
+the scrollback of most terminals. Start with `--einfach` to turn the fixed header off and keep
+the full scrollback. If the window looks wrong after the miner ends, type `cls` (Windows) or
+`reset`.
+
+Keys while the miner runs in a terminal:
+
+| Key | Action |
+|---|---|
+| `h` | Hashrate over 10 s, 60 s and 15 min, per thread, and temperatures |
+| `s` | Summary: running time, hashes, shares, blocks |
+| `c` | Connection: server, address, session, share difficulty |
+| `q` or Ctrl+C | Stop |
+
+When you stop it with `q` or Ctrl+C in a terminal, the miner closes its session on the node and
+prints a summary.
+
+## Several miners on one address
+
+Running several miners for the same address is intended: phone and computer at the same time,
+several computers, or several instances on one computer. All rewards go to the same address.
+
+Every session receives its own extranonce from the node. The extranonce is a field of the block
+header, so two sessions never search the same hashes and no work is done twice.
+
+The limits are on the node, not per address:
+
+- A node keeps at most 5,000 open sessions in total.
+- A session that the node has not heard from for 300 seconds expires. A miner that crashed
+  therefore disappears by itself after five minutes.
+- A pool has a limited number of seats (at most 64, or 63 if the pool charges a fee; the
+  operator can set fewer). Seats count addresses, not devices: a second device mining for an
+  address that already has a seat does not need another one. See [POOL.md](../docs/POOL.md).
+
+## Options
+
+Options can be written as `--option value` or `--option=value`.
+
+| Option | Short | Meaning | Default |
 |---|---|---|---|
-| `--address` | `-a` | Zieladresse für den Reward | **Pflicht** |
-| `--workers` | `-w` | Rechen-Threads | Kerne minus 1 |
-| `--intensity` | `-i` | Anteil der Rechenzeit, 1–100 | 100 |
-| `--api` | | Server | `https://yskar.vercel.app` |
+| `--address <ysr1…>` | `-a` | Address that receives the reward | Required, unless saved in `yskar-miner.json` or entered at the prompt |
+| `--workers <n>` | `-w` | Number of CPU threads | CPU cores minus 1, at least 1 |
+| `--intensity <1-100>` | `-i` | Share of the time the CPU threads compute, in percent | `100` |
+| `--api <url>` | | Server that hands out work: a pool or your own full node | `https://yskar.vercel.app`, which no longer hands out work; always set this |
+| `--mode <solo\|pool>` | | Mine solo or in the pool of the node. Any value other than `pool` means solo. | `solo` |
+| `--gpu` | | Compute with the graphics card instead of the CPU | Off |
+| `--cpu-gpu` | | Compute with CPU and graphics card at the same time | Off |
+| `--device <n>` | | Number of the graphics card to use | `0` |
+| `--gpu-bin <path>` | | Path to the `yskar-cuda` program if the miner does not find it | Searched automatically, see below |
+| `--forget` | | Delete the saved `yskar-miner.json` and exit | |
+| `--einfach` | | No fixed header at the top; the scrollback stays complete ("einfach" means "plain") | Off |
+| `--help` | `-h` | Print the help text and exit | |
+| `--version` | `-v` | Print the version and exit | |
+
+An unknown option ends the miner with an error and the help text.
 
 ```bash
-# Nebenbei minen, ohne dass der Rechner zäh wird
-node src/cli.mjs -a ysr1… -w 2 -i 50
+# Mine in the background without slowing the computer down much
+node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool -w 2 -i 50
 
-# Alles geben
-node src/cli.mjs -a ysr1… -w 8 -i 100
+# Use eight threads at full intensity
+node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool -w 8 -i 100
 ```
 
-`--intensity` ist ehrlich umgesetzt: Der Miner rechnet und schläft anteilig.
-50 Prozent heißt halb so viele Hashes, nicht eine kleinere Anzeige.
+By default the miner uses all cores but one, so that the computer stays usable.
 
----
+`--intensity` really reduces the work: each thread computes for a moment and then sleeps for a
+proportional time. At 50 the miner computes half as many hashes.
 
-## Eigenständige Datei bauen (ohne Node beim Empfänger)
+## GPU mining
 
-Wenn der Miner an Leute gehen soll, die kein Node installieren wollen, lässt
-sich daraus **eine einzelne Datei** bauen — unter Windows eine `.exe`, die
-man doppelklickt.
+The miner can use NVIDIA graphics cards. Other manufacturers are not supported.
+
+GPU mining needs a separate program, `yskar-cuda` (`yskar-cuda.exe` on Windows), which is not
+part of this folder. It is built from the sources in `node-core/gpu`; the build script there is
+for Windows. See [node-core/gpu/README.md](../node-core/gpu/README.md).
+
+```bash
+# Graphics card only
+node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool --gpu
+
+# CPU and graphics card together
+node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool --cpu-gpu
+```
+
+The miner looks for the program in these places, in this order:
+
+1. `miner/gpu/`
+2. `node-core/gpu/bin/` in the repository (where the build script puts it)
+3. `gpu/bin/` below the current working directory
+4. the current working directory
+
+With `--gpu-bin <path>` it uses that file only.
+
+Before the first job the miner runs the program's self-test, in which the card computes the
+genesis hash. A card that fails is not used. What happens next depends on the mode:
+
+| Situation | With `--gpu` | With `--cpu-gpu` |
+|---|---|---|
+| Program not found (`yskar-cuda nicht gefunden.`) | The miner stops | Mining continues on the CPU |
+| Self-test fails (`GPU nicht verwendbar: …`) | The miner stops | Mining continues on the CPU |
+| Program ends while mining (`GPU ausgefallen: …`) | The miner stops | Mining continues on the CPU |
+
+With `--gpu` no CPU threads run, and `--workers` and `--intensity` have no effect.
+
+## Building a standalone executable
+
+The scripts in `build/` are meant to pack the miner together with the Node.js runtime into a
+single file that runs without an installed Node.js: `dist/yskar-miner.exe` on Windows,
+`dist/yskar-miner` on macOS and Linux.
 
 ```bash
 cd YSKAR/miner
-npm install            # einmalig, nur zum Bauen (esbuild + postject)
+npm install            # once, for building only (esbuild and postject)
 npm run build:exe
 ```
 
-**Unter Windows mit PowerShell** hängst du `.cmd` an. PowerShell führt
-standardmäßig keine Skripte aus, und npm liegt dort als `npm.ps1` vor:
+**This build does not work at present.** The first step (`npm run bundle`) writes
+`dist/yskar-miner.cjs`, but the bundled program stops at start-up with the error
+`ERR_INVALID_ARG_TYPE`: `src/gpu.mjs` determines its own folder with `import.meta.url`, which
+does not exist in the bundled file. `build/exe.mjs` starts the finished executable with
+`--version` as its last check, so `npm run build:exe` ends with that error. Until this is
+corrected, run the miner from the source folder as described above.
 
-```powershell
-npm.cmd install
-npm.cmd run build:exe
-```
+How the build is designed:
 
-Alternativ einmalig freischalten — das ist die von Microsoft für
-Arbeitsplätze empfohlene Einstellung und braucht keine Administratorrechte:
+- `build/bundle.mjs` combines the source into one CommonJS file, `dist/yskar-miner.cjs`. An
+  executable has no folder of source files next to it, so the hashing engine is embedded as
+  base64 text and the source of the computing threads is embedded as a string.
+- `build/exe.mjs` uses the "single executable application" feature of Node.js 20 and newer: it
+  turns the bundle into a data block, copies the `node` binary of the build machine, and writes
+  the data block into the copy with `postject`.
+- The executable is always built for the system the build runs on. A Windows `.exe` can only be
+  built on Windows, because the Windows `node.exe` is its base.
+- Node.js is needed to build. It is not needed to run the finished file.
+- The source is the same as when the miner runs from the folder; `src/cli.mjs` detects both
+  cases.
 
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-```
+In Windows PowerShell, `npm` may be refused because PowerShell does not run scripts by default.
+Use `npm.cmd install` and `npm.cmd run build:exe` there, or use the Command Prompt (`cmd`).
 
-In der Eingabeaufforderung (`cmd`) statt PowerShell tritt das Problem gar
-nicht auf.
+## Installing as a command
 
-Ergebnis: `dist/yskar-miner.exe` (Windows) beziehungsweise `dist/yskar-miner`
-(macOS, Linux). Rund 120 MB — darin steckt die komplette Node-Laufzeit.
-
-```
-dist\yskar-miner.exe --address ysr1…
-```
-
-**Gebaut wird immer für das System, auf dem gebaut wird.** Eine `.exe` für
-Windows kann nur auf Windows entstehen, weil dafür Windows' eigene `node.exe`
-als Grundlage dient. Wer für mehrere Systeme ausliefern will, baut auf jedem
-einmal — oder lässt es von einem Dienst wie GitHub Actions erledigen.
-
-Zum Bauen wird Node gebraucht. Zum **Ausführen** der fertigen Datei nicht.
-
-Beim ersten Start kann Windows SmartScreen anschlagen: Eine frisch gebaute,
-unsignierte Datei, die ins Netz geht, ist genau das Muster, bei dem es
-vorsichtig ist. Für den eigenen Rechner durchwinken. Soll die Datei an
-andere gehen, bräuchte sie eine Codesignatur — das kostet Geld und ist ein
-eigenes Thema.
-
-### Was dabei passiert
-
-Node kann seit Fassung 20 ein Skript in seine eigene Binärdatei einbetten.
-Drei Dinge muss der Bau dafür lösen:
-
-- Alles muss in **einer** Datei liegen. Der Bündler fasst den Quelltext zu
-  einer CommonJS-Datei zusammen.
-- Eine Binärdatei hat kein Dateisystem daneben. Die WASM-Engine wird deshalb
-  als base64 eingebettet.
-- Rechen-Threads können keine Datei nachladen. Ihr Quelltext wird
-  mitgebündelt und als Zeichenkette übergeben.
-
-Das Einfügen des Datenblocks ruft `postject` über seine
-Programmierschnittstelle auf, nicht über `npx`. Node verweigert seit einer
-Sicherheitskorrektur das Starten von `.cmd`-Dateien ohne Shell — der Umweg
-über `npx.cmd` scheitert dort mit `EINVAL`.
-
-Der Quelltext bleibt dabei derselbe wie im Ordnerbetrieb — `cli.mjs` erkennt
-beide Fälle selbst. Zwei getrennte Fassungen wären eine Verdopplung, und
-genau daran ist in diesem Projekt schon zweimal etwas zerbrochen.
-
----
-
-## Als Befehl einrichten (optional)
-
-Damit `yskar-miner` von überall funktioniert:
+To make `yskar-miner` available from any folder:
 
 ```bash
 cd YSKAR/miner
 npm link
-yskar-miner -a ysr1…
+yskar-miner -a ysr1… --api https://yskar-main.dynv6.net --mode pool
 ```
 
-Rückgängig mit `npm unlink -g yskar-miner`.
+Undo it with `npm unlink -g yskar-miner`.
 
----
+## Running permanently as a service
 
-## Dauerbetrieb
-
-**Linux mit systemd** — `/etc/systemd/system/yskar-miner.service`:
+On Linux with systemd, create `/etc/systemd/system/yskar-miner.service`:
 
 ```ini
 [Unit]
-Description=YSKAR Miner
+Description=YSKAR miner
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/node /pfad/zu/YSKAR/miner/src/cli.mjs --address ysr1… --intensity 80
+ExecStart=/usr/bin/node /path/to/YSKAR/miner/src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool --intensity 80
 Restart=always
 RestartSec=15
-User=dein-benutzer
+User=your-user
 Nice=10
 
 [Install]
@@ -298,45 +346,73 @@ sudo systemctl enable --now yskar-miner
 journalctl -u yskar-miner -f
 ```
 
-`Nice=10` gibt anderen Programmen Vorrang — der Rechner bleibt bedienbar.
+`Nice=10` gives other programs priority.
 
-**Raspberry Pi** — läuft, aber rechne mit deutlich weniger Leistung als auf
-einem Desktop. Für einen Pi 4 sind ein bis zwei Threads sinnvoll; mehr bringt
-wenig und macht ihn heiß.
+Notes for running without a terminal:
 
----
+- The miner cannot ask for the address. Pass `--address`, or the miner ends with
+  `Es fehlt die Adresse.` ("the address is missing").
+- When the service is stopped, the miner exits at once without closing its session. The node
+  drops the session after 300 seconds.
+- If the node restarts or forgets the session, the miner keeps running but its shares are
+  rejected (see "Troubleshooting"). Restart the service in that case:
+  `sudo systemctl restart yskar-miner`.
 
-## Wenn etwas nicht stimmt
+## Troubleshooting
 
-**„Verbindung fehlgeschlagen"** — prüf, ob der Server erreichbar ist:
+**`Verbindung fehlgeschlagen: …` (connection failed).** The server refused the session or cannot
+be reached. Check that `--api` is set and correct. The miner prints the address to test; for the
+public pool:
 
 ```bash
-curl https://yskar.vercel.app/api/v2/summary
+curl https://yskar-main.dynv6.net/api/v2/summary
 ```
 
-**„Das sieht nicht nach einer YSKAR-Adresse aus"** — die Adresse beginnt mit
-`ysr1` und ist rund 42 Zeichen lang. Beim Kopieren gern mal ein Leerzeichen
-oder Zeilenumbruch mitgenommen.
+If the message continues with `Mining und Transaktionen laufen nicht mehr über diese Adresse`,
+you are talking to `https://yskar.vercel.app`: add `--api`. If it continues with `Pool voll`, all
+seats of the pool are taken.
 
-**Selbsttest schlägt fehl** — die Datei `miner.<hash>.wasm` fehlt oder ist
-beschädigt. Ordner neu holen.
+**`Das sieht nicht nach einer YSKAR-Adresse aus.` (this does not look like a YSKAR address).**
+The address begins with `ysr1` and has 42 characters. A space or a line break is easily copied
+along with it.
 
-**Viele abgelehnte Shares** — einzelne Ablehnungen sind normal, sie
-entstehen, wenn der Server das Share-Ziel gerade anpasst. Werden es mehr als
-etwa jeder zehnte, stimmt etwas nicht; dann melde dich mit der Ausgabe.
+**The self-test fails.** If it prints `miner.<hash>.wasm nicht gefunden.`, the engine file is
+missing: fetch the folder again. If it prints `Selbsttest fehlgeschlagen`, the engine file does
+not match this version of the miner.
 
-**Keine Shares, obwohl die Hashrate läuft** — dann rechnet der Miner gegen
-ein falsches Ziel. Das sollte der Selbsttest abfangen; wenn nicht, ist es
-ein Fehler und ich will davon wissen.
+**`SITZUNG  undefined`.** The node refused the session. The miner keeps running in this state
+but is not mining; the next lines show `Block undefined` and an error in every thread. Stop it,
+correct the cause and start it again. The possible causes:
 
----
+- The address contains a typing error. The miner checks only the form of the address; the node
+  also checks its checksum.
+- You asked for `--mode pool`, but the node at `--api` runs no pool. The miner then also prints
+  `Dieser Knoten betreibt keinen Pool — es wird solo gemint.` ("this node runs no pool, mining
+  solo"). Despite that text it does not mine. Start it without `--mode pool`, or against a node
+  that runs a pool.
+- The node has reached its limit of open sessions.
 
-## Was der Miner nicht tut
+**`abgelehnt session_inactive`.** The node no longer knows your session: it was restarted, or it
+did not hear from the miner for 300 seconds. The miner does not open a new session by itself.
+Stop it and start it again.
 
-Er fasst **keine Schlüssel** an, kann **kein Guthaben bewegen** und speichert
-nichts außer dem, was auf dem Bildschirm steht. Er kennt nur eine Adresse und
-rechnet Hashes.
+**Other rejected shares.** Single rejections are normal. They happen when the node has just
+changed the share difficulty of the session. Rejections with the reasons `duplicate` and
+`low_difficulty` are counted but not printed. A share that the node answers with `stale_job` (the
+chain has moved on) or `job_expired` (the work is too old) is not counted as rejected; the miner
+fetches new work instead.
 
-Was er tut, ist nachprüfbar: Der Quelltext liegt offen, und jeder Share, den
-er einreicht, wird vom Server unabhängig nachgerechnet. Er kann nichts
-behaupten, was nicht stimmt.
+**No shares although a hashrate is shown.** A new session starts with a low share difficulty,
+and the node then adjusts it so that a share arrives about every 30 seconds. If no share is
+accepted for several minutes, stop the miner and run the self-test.
+
+**`yskar-cuda nicht gefunden.`** The GPU program is not in any of the places listed under
+"GPU mining". Build it, or give its location with `--gpu-bin`.
+
+## What the miner does not do
+
+It handles no keys, cannot move any funds, and stores nothing except the optional
+`yskar-miner.json`. It knows one address and computes hashes.
+
+What it does can be checked: the source code is public, and every share it submits is recomputed
+by the node. The miner cannot claim work it has not done.

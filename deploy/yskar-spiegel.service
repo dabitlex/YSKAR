@@ -1,13 +1,13 @@
 [Unit]
-Description=YSKAR Spiegel nachziehen — liegengebliebene Blöcke nach Supabase schieben
+Description=YSKAR mirror catch-up — push blocks the mirror is missing
 Documentation=https://github.com/dabitlex/YSKAR
 
 After=network-online.target
 Wants=network-online.target
 
-# Ohne laufenden Knoten ist nichts nachzuschieben, was nicht auch später
-# ginge. Kein "Requires" -- ein ausgefallener Knoten soll diesen Dienst
-# nicht als Fehler markieren.
+# Without a running node there is nothing to push that could not be pushed
+# later. No "Requires" -- a node that is down should not mark this service
+# as failed.
 After=yskar-node.service
 
 [Service]
@@ -18,16 +18,16 @@ WorkingDirectory=/home/cointastig/YSKAR/node
 
 EnvironmentFile=-/etc/yskar/node.env
 
-# Derselbe node-Pfad wie in yskar-node.service. Ändert sich der dort,
-# ändert er sich auch hier.
+# The same path to node as in yskar-node.service. If it changes there, it
+# changes here too.
 ExecStart=/usr/bin/node dist/yskar-node.cjs spiegel \
     --data ./knoten \
     --api https://yskar.vercel.app
 
-# Der laufende Knoten hält dieselbe SQLite-Ablage offen. Das geht, weil sie
-# im WAL-Modus läuft und dieser Befehl nur LIEST. Sollte es doch einmal
-# klemmen, scheitert dieser Lauf -- und der nächste Timer-Lauf holt es
-# nach. Deshalb kein Restart: Wiederholen ist die Aufgabe des Timers.
+# The running node keeps the same SQLite store open. That works because the
+# store runs in WAL mode and this command only READS blocks. If it does get
+# stuck once, this run fails -- and the next timer run makes up for it.
+# Hence no Restart: repeating is the job of the timer.
 TimeoutStartSec=1800
 
 StandardOutput=journal

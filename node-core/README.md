@@ -65,8 +65,8 @@ cards and one of them faces the internet.
 
 ## Wallet
 
-- `wallet.json` in the program folder holds the encrypted 12 words and the
-  address. The address is readable without the password (mining and the pool
+- `wallet.json` in the program folder (see "Files") holds the encrypted 12
+  words and the address. The address is readable without the password (mining and the pool
   fee need it); everything else is not.
 - Sending, showing the words, changing the password and removing the wallet
   need the password every time. The private key is derived for the one
@@ -118,7 +118,7 @@ command-line miner use. One session per device (CPU, GPU).
   list.
 - "Share in the home network" opens port 8645 for the own network. App and
   Mini App from the internet need HTTPS with a certificate; Node Core does
-  not set that up -- see `docs/POOL_BETRIEB.md`.
+  not set that up -- see [docs/POOL.md](../docs/POOL.md).
 
 ## Windows shell
 
@@ -144,7 +144,8 @@ everywhere), which passes it on:
 
 ## Files
 
-In `%LOCALAPPDATA%\YSKAR\Node Core`:
+In `%LOCALAPPDATA%\YSKAR\Node Core`, which the interface calls the program
+folder:
 
 | File | |
 |---|---|
@@ -159,12 +160,18 @@ The blockchain is in the data folder, by default `%LOCALAPPDATA%\YSKAR\Node`.
 
 Defaults: P2P port 8646, node API port 8645, seed `yskar-main.dynv6.net:8646`.
 
+On the main network a second seed, `45.84.199.206:8646`, is built in and is
+used in addition to the configured one (`WEITERE_SEEDS` in `src/main.ts`).
+If the seed field is left empty, no seed is used at all.
+It is in the source of this repository; the released installer 0.5.0 does
+not contain it yet.
+
 ## Mining engines
 
 | Backend | File | Engine |
 |---|---|---|
 | CPU | `src/LocalMiner.ts` | the same WASM engine as the Mini App and CLI miner, copied (never modified) into `dist/miner.wasm` at build time |
-| GPU | `src/GpuMiner.ts` + `gpu/yskar_cuda.cu` | CUDA, separate process -- see `gpu/README.md` |
+| GPU | `src/GpuMiner.ts` + `gpu/yskar_gpu.cu` | CUDA, separate process -- see `gpu/README.md` |
 
 Without an NVIDIA GPU the node runs normally and shows GPU mining as
 unavailable. In the installed program the GPU program is only taken from
@@ -198,9 +205,9 @@ A release build on GitHub is described in
 (`.github/workflows/neueste-veroeffentlichung.yml`).
 
 After publishing a new version, the download link and the version number
-have to be updated in two places: the section "YSKAR Node Core" in
-`website/index.html` and the block "Download" in the repository's
-`README.md`. The same workflow warns if they still point to the old version.
+have to be updated in three places: the section "YSKAR Node Core" in
+`website/index.html`, the Node Core guide in `website/anleitungen.html` and
+the block "Download" in the repository's `README.md`. The same workflow warns if they still point to the old version.
 
 ## Tests
 
@@ -221,5 +228,6 @@ checked on a Windows PC.
 
 ```powershell
 npm install
+npm run build
 npm start
 ```

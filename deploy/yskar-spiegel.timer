@@ -1,29 +1,29 @@
 [Unit]
-Description=YSKAR Spiegel regelmäßig nachziehen
+Description=YSKAR mirror catch-up at regular intervals
 Documentation=https://github.com/dabitlex/YSKAR
 
 [Timer]
-# Der laufende Knoten schiebt jeden selbst gefundenen Block sofort hoch.
-# Dieser Timer ist das Netz darunter: Für jeden Block, bei dem das einmal
-# nicht geklappt hat -- Gegenstelle kurz weg, Knoten neu gestartet,
-# Internet gestolpert.
+# The running node pushes every block it accepts to the mirror at once.
+# This timer is the safety net below that: for every block where the push
+# failed -- web server briefly away, node restarted, connection dropped.
 #
-# Das ist nicht hypothetisch: Genau so ist der Spiegel im September stehen
-# geblieben. Und weil die Gegenstelle immer nur den NÄCHSTEN Block annimmt,
-# blockiert ein einziger verlorener Block alle folgenden.
+# The mirror accepts only the NEXT block, so a single lost block stops all
+# that follow.
 #
-# Alle 5 Minuten. Ein Lauf ohne Rückstand kostet fast nichts -- ein
-# HTTP-Request und ein Zahlenvergleich. Dafür schließt sich eine Lücke
-# schneller, und das zählt: Die Wallet in der Mini App liest ihre Zahlen
-# aus dem Spiegel, nicht aus dem Knoten. Steht der Spiegel, stehen ihre
-# Zahlen.
+# Every 5 minutes. A run with nothing to push costs almost nothing -- one
+# HTTP request and a comparison of two numbers. In return a gap closes
+# sooner, and that matters: the wallet in the app reads balances and
+# history from the mirror, not from the node. If the mirror stands still,
+# so do those numbers.
 OnBootSec=2min
 OnUnitActiveSec=5min
 
-# Nicht alle Timer auf dem Pi gleichzeitig loslaufen lassen.
+# Do not let all timers on the machine start at the same moment.
 RandomizedDelaySec=60
 
-# Lief der Pi nicht, den ausgefallenen Lauf beim Start nachholen.
+# Persistent= only has an effect on timers with OnCalendar= (see
+# systemd.timer). This timer has none, so the line changes nothing; after
+# a boot the first run comes from OnBootSec above.
 Persistent=true
 
 Unit=yskar-spiegel.service
