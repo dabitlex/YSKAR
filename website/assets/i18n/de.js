@@ -174,7 +174,7 @@
   "an.apk.widget": "Widget auf dem Startbildschirm",
   "an.apk.w1": "Halte eine freie Stelle auf dem Startbildschirm gedrückt, wähle „Widgets“ und zieh „YSKAR Wallet“ auf den Bildschirm.",
   "an.apk.w2": "Läuft das Mining, zeigt das Widget, was du in dieser Sitzung verdient hast, dazu Hashrate, Laufzeit und angenommene Shares. Mit „Stopp“ beendest du das Mining direkt vom Startbildschirm. Ist das Mining gestoppt, siehst du den aktuellen Block, die Netz-Hashrate und die Blockbelohnung.",
-  "an.apk.w3": "„Verdient in dieser Sitzung“ zählt die Blockbelohnungen und Pool-Anteile, die deiner Adresse seit dem Start gutgeschrieben wurden; der Wert ändert sich, wenn ein neuer Block gefunden wird. Hell oder dunkel wählst du in der App unter Einstellungen → App → Widget. Das Widget in dieser Form gibt es ab Version 1.0.10.",
+  "an.apk.w3": "„Verdient in dieser Sitzung“ zählt die Blockbelohnungen und Pool-Anteile, die deiner Adresse seit dem Start gutgeschrieben wurden; der Wert ändert sich, wenn ein neuer Block gefunden wird. Hell oder dunkel wählst du in der App unter Einstellungen → App → Widget. Das Widget in dieser Form gibt es ab Version 1.1.0.",
   "an.apk.update": "App aktualisieren",
   "an.apk.updateText": "Gibt es eine neue Version, zeigt die App beim Öffnen einen Hinweis. Tippe auf „Laden“: Die App lädt das Update, danach fragt Android, ob es installiert werden soll. Deine Wallet bleibt erhalten. Von Hand prüfst du in der App unter Einstellungen → App → Updates.",
   "an.apk.pruefen": "Download prüfen (optional)",

@@ -174,7 +174,7 @@
   "an.apk.widget": "Ana ekranda widget",
   "an.apk.w1": "Ana ekranda boş bir yere basılı tut, “Widget’lar”ı seç ve “YSKAR Wallet”ı ekrana sürükle.",
   "an.apk.w2": "Madencilik çalışırken widget, bu oturumda kazandığını ve ayrıca hashrate’i, süreyi ve kabul edilen share’leri gösterir. “Durdur” ile madenciliği doğrudan ana ekrandan durdurursun. Madencilik durmuşken güncel bloğu, ağ hashrate’ini ve blok ödülünü görürsün.",
-  "an.apk.w3": "“Bu oturumda kazanıldı”, başlattığından beri adresine yazılan blok ödüllerini ve havuz ödemelerini sayar; değer yeni bir blok bulunduğunda değişir. Açık veya koyu görünümü uygulamada Ayarlar → Uygulama → Widget altından seçersin. Widget bu haliyle 1.0.10 sürümünden itibaren mevcuttur.",
+  "an.apk.w3": "“Bu oturumda kazanıldı”, başlattığından beri adresine yazılan blok ödüllerini ve havuz ödemelerini sayar; değer yeni bir blok bulunduğunda değişir. Açık veya koyu görünümü uygulamada Ayarlar → Uygulama → Widget altından seçersin. Widget bu haliyle 1.1.0 sürümünden itibaren mevcuttur.",
   "an.apk.update": "Uygulamayı güncelleme",
   "an.apk.updateText": "Yeni bir sürüm olduğunda uygulama açılışta bir uyarı gösterir. “İndir”e dokun: Uygulama güncellemeyi indirir, ardından Android yüklemek isteyip istemediğini sorar. Cüzdanın korunur. Elle kontrol etmek için uygulamada Ayarlar → Uygulama → Güncellemeler bölümüne git.",
   "an.apk.pruefen": "İndirmeyi doğrulama (isteğe bağlı)",
