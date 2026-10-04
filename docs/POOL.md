@@ -107,7 +107,7 @@ Build the node as described in [FULLNODE.md](FULLNODE.md). Then start it with th
 of a full node, followed by the pool flags:
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed 45.84.199.206:8646 --no-upstream \
+node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream \
   --pool my-pool-name --pool-fee 100 --pool-payout <address>
 ```
 

@@ -320,8 +320,8 @@ on the PC itself.
 ## Known limits
 
 - **A small network.** The genesis block of the main network carries the timestamp
-  2026-09-09T00:00:00Z. The network has one seed node, which a new node contacts first and which is
-  published under two addresses, and the app's pool list has one entry
+  2026-09-09T00:00:00Z. The network has two seed nodes, which a new node contacts first and which
+  are both run by the same operator, and the app's pool list has one entry
   (`src/lib/pool/verzeichnis.ts`). Proof of work protects a chain only as far as no single
   party controls most of the hash power. Hash power that mines through one pool is, for the
   purpose of building blocks, directed by that pool's operator, who chooses the transactions

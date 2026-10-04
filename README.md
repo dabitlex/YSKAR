@@ -172,10 +172,10 @@ git clone https://github.com/dabitlex/YSKAR.git
 cd YSKAR/node
 npm install
 npm run build
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed 45.84.199.206:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
-The node connects to the seed node, downloads the chain, checks every block and then
+The node connects to the seed nodes, downloads the chain, checks every block and then
 follows the network. `--data` names the folder for the chain data. `--no-upstream` belongs in
 this command: without it the node would also send blocks to the mirror, which is the task of
 the main node alone.
@@ -270,8 +270,8 @@ the workflows in `.github/workflows/`.
 
 Named plainly, so that nobody expects more than there is.
 
-- **A young, small network.** The network has one seed node and one public pool, both on the
-  same server. Proof of work protects a chain only as long as no single party controls most of
+- **A young, small network.** The network has two seed nodes and one public pool, and all three
+  are run by the same operator. Proof of work protects a chain only as long as no single party controls most of
   the hash power. [docs/SECURITY.md](docs/SECURITY.md) lists the known limits.
 - **Node Core exists for Windows only.** On Linux and macOS the full node runs from the command
   line.

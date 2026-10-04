@@ -160,10 +160,10 @@ The blockchain is in the data folder, by default `%LOCALAPPDATA%\YSKAR\Node`.
 
 Defaults: P2P port 8646, node API port 8645, seed `yskar-main.dynv6.net:8646`.
 
-On the main network a second seed address, `45.84.199.206:8646`, is built in
+On the main network a second seed, `yskar-seed2.dynv6.net:8646`, is built in
 and is used in addition to the configured one (`WEITERE_SEEDS` in
-`src/main.ts`). It is the fixed address of the same machine as the default
-seed and keeps that seed reachable when the name cannot be resolved.
+`src/main.ts`). It is a different machine on a different connection than the
+default seed, so a new Node Core finds the network when one of the two is off.
 If the seed field is left empty, no seed is used at all.
 It is in the source of this repository; the released installer 0.5.0 does
 not contain it yet.

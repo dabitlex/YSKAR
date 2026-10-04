@@ -141,7 +141,7 @@ node dist/yskar-node.cjs mine --data ./knoten --seed node.example.org:8646
 
 > Note (today): do not start a second node this way. Without `--no-upstream` it writes its blocks
 > into the mirror. The current command is
-> `node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed 45.84.199.206:8646 --no-upstream`.
+> `node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream`.
 
 ## Step 6: let it run alongside and compare
 

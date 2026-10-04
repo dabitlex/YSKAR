@@ -130,8 +130,12 @@ const DEFAULT_SEED = 'yskar-main.dynv6.net:8646';
  * frisch gestarteter Node Core niemanden -- sein Adressbuch ist noch leer.
  * Deshalb kennt das Programm einen zweiten Einstieg, der unabhaengig vom
  * ersten laeuft (anderer Rechner, anderer Anschluss).
+ *
+ * Hier steht bewusst KEINE zweite Adresse desselben Rechners (etwa seine
+ * feste IP neben seinem Namen): Der Knoten kann ihn dann unter beiden
+ * Adressen anwaehlen und belegt dort zwei Plaetze.
  */
-export const WEITERE_SEEDS: readonly string[] = ['45.84.199.206:8646'];
+export const WEITERE_SEEDS: readonly string[] = ['yskar-seed2.dynv6.net:8646'];
 
 /**
  * Welche Seeds der Knoten beim Start kennt.

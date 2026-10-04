@@ -240,7 +240,7 @@ npm run build</code></pre>
 <h3 data-t="an.node.s2">2. Start and connect to the network</h3>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
   --seed yskar-main.dynv6.net:8646 \
-  --seed 45.84.199.206:8646 --no-upstream</code></pre>
+  --seed yskar-seed2.dynv6.net:8646 --no-upstream</code></pre>
 <p data-t="an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.</p>
 <h3 data-t="an.node.s3">3. Mine against your own node</h3>
 <pre><code>node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
@@ -248,7 +248,7 @@ npm run build</code></pre>
 <p data-t="an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
   --seed yskar-main.dynv6.net:8646 \
-  --seed 45.84.199.206:8646 --no-upstream \
+  --seed yskar-seed2.dynv6.net:8646 --no-upstream \
   --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</code></pre>
 <p data-t="an.node.s4Fuss">--pool-fee is in basis points: 100 = 1.00 %, at most 500.</p>
 <p data-th="an.node.s4Mehr">What a pool needs so that the app and other miners can reach it is described under <a href="#pool">Running a pool</a>.</p>
@@ -281,7 +281,7 @@ npm run build</code></pre>
 <p data-t="an.pool.start">Start the node as a pool. It listens only on the machine itself; the web server stands in front of it.</p>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
   --seed yskar-main.dynv6.net:8646 \
-  --seed 45.84.199.206:8646 --no-upstream \
+  --seed yskar-seed2.dynv6.net:8646 --no-upstream \
   --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</code></pre>
 <p data-t="an.pool.caddy">The configuration for Caddy. Replace the name with yours; it must point to your machine first.</p>
 <pre><code>pool.example.org {

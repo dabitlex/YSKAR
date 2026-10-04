@@ -45,7 +45,7 @@ payout address, otherwise your pool pays its fee to that address.
 **Every other node uses the standard start command** with both seeds and `--no-upstream`:
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed 45.84.199.206:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 In the unit file that becomes:
@@ -54,7 +54,7 @@ In the unit file that becomes:
 ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --data ./knoten \
     --seed yskar-main.dynv6.net:8646 \
-    --seed 45.84.199.206:8646 \
+    --seed yskar-seed2.dynv6.net:8646 \
     --no-upstream
 ```
 

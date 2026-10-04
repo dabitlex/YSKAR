@@ -103,14 +103,14 @@ npm start -- status --data ./knoten
 All commands in this document are run inside the `node/` folder.
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed 45.84.199.206:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 | Part | Meaning |
 |---|---|
 | `mine` | Run the node with its HTTP interface and the node network |
 | `--data ./knoten` | Data directory. `knoten` is German for "node"; it is also the default |
-| `--seed ...` | A known node to connect to first. The main network publishes two seed addresses; give both |
+| `--seed ...` | A known node to connect to first. The main network has two seed nodes; give both |
 | `--no-upstream` | Do not send blocks to the project's web server and do not fetch blocks from it. See [Upstream and the mirror](#upstream-and-the-mirror) |
 
 The command-line node has no seed built in. Without `--seed` it knows no other node.
@@ -712,8 +712,8 @@ The node shuts down cleanly on `SIGINT` and `SIGTERM`: it closes the store befor
 | `Nicht erreichbar: ...` followed by `Es wird auf dem lokalen Stand weitergebaut.` | The HTTP source could not be reached at start. The node continues with its local chain |
 | `--pool-fee ohne --pool-payout`, `--pool-payout ist keine gültige YSKAR-Adresse`, `Pool konnte nicht starten: ...` | The pool options are incomplete or invalid; the node exits with code 1 |
 | Blocks from peers are rejected with `timestamp` | Check the system clock. Blocks more than 120 seconds in the future are invalid |
-| A miner reports `session_inactive` | The session timed out or the node was restarted. The miner has to open a new session |
-| `Kette` stays at `—` | The node has no peers. Check the `--seed` values and your outbound network access |
+| A miner reports `session_inactive` | The session timed out or the node was restarted. The miner has to open a new session; the command-line miner does that by itself |
+| `Kette` stays at `—` | The node has no peers. Check the `--seed` values and your outbound network access. If the seed names cannot be resolved, the main node is also reached as `45.84.199.206:8646` |
 | Ctrl+C in `sync` does not stop at once | `sync` finishes its current pause first, which lasts up to `--interval` seconds |
 
 Node.js prints a warning that `node:sqlite` is experimental. The node filters exactly this one

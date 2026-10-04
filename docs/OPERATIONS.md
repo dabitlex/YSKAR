@@ -31,9 +31,12 @@ chain:
 - It is the node the Vercel server asks for live data (variable `YSKAR_FULLNODE_URL`).
 - It is the node the web app sends solo mining sessions and transfers to (variable
   `NEXT_PUBLIC_MINING_BASE`), and it runs the public pool "YSKAR Main".
-- It is the seed of the main network. The two published seed addresses,
-  `yskar-main.dynv6.net:8646` and `45.84.199.206:8646`, both lead to it; the second one works
-  without a name lookup.
+- It is the first seed of the main network, `yskar-main.dynv6.net:8646`. Without a name lookup
+  it is reached as `45.84.199.206:8646`.
+
+The second seed, `yskar-seed2.dynv6.net:8646`, is an ordinary full node on a different machine
+and a different connection: a Raspberry Pi on a home connection whose address changes. It has
+none of the duties above. It is run by the same operator as the main node.
 
 ```text
   other full nodes
@@ -249,7 +252,7 @@ Every full node that is not the main node is therefore started with both seeds a
 `--no-upstream`:
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed 45.84.199.206:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 Such a node gets the chain over P2P and announces its blocks to other nodes. The main node
