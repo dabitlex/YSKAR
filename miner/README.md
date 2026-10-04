@@ -160,6 +160,10 @@ Then events follow, one per line:
 | `abgelehnt <reason>` | A share was rejected, with the node's reason |
 | `BLOCK GEFUNDEN  #N   +R YSR` | You found block N. The next line shows the block hash. |
 | `Einreichen fehlgeschlagen: …` | A share could not be sent (network error) |
+| `Sitzung beim Knoten beendet (…) — melde neu an …` | The node no longer knows your session. The computing threads pause and the miner opens a new session. |
+| `neu angemeldet · Sitzung …` | The new session is open and mining continues |
+| `Anmeldung fehlgeschlagen: … — es wird alle 15 s erneut versucht` | The new session could not be opened yet. The miner keeps trying every 15 seconds and prints the reason once. |
+| `Keine Arbeit vom Knoten: …` | The node answered the request for work with an error |
 | `Job holen fehlgeschlagen: …` | New work could not be fetched (network error) |
 
 Once a minute the miner prints the hashrate over the last 10 seconds, 60 seconds and 15 minutes,
@@ -354,9 +358,8 @@ Notes for running without a terminal:
   `Es fehlt die Adresse.` ("the address is missing").
 - When the service is stopped, the miner exits at once without closing its session. The node
   drops the session after 300 seconds.
-- If the node restarts or forgets the session, the miner keeps running but its shares are
-  rejected (see "Troubleshooting"). Restart the service in that case:
-  `sudo systemctl restart yskar-miner`.
+- If the node restarts or forgets the session, the miner opens a new session by itself and
+  continues. No restart of the service is needed.
 
 ## Troubleshooting
 
@@ -380,21 +383,24 @@ along with it.
 missing: fetch the folder again. If it prints `Selbsttest fehlgeschlagen`, the engine file does
 not match this version of the miner.
 
-**`SITZUNG  undefined`.** The node refused the session. The miner keeps running in this state
-but is not mining; the next lines show `Block undefined` and an error in every thread. Stop it,
-correct the cause and start it again. The possible causes:
+**The node refuses the session at start.** The miner prints the reason and ends. It never
+continues without a session:
 
-- The address contains a typing error. The miner checks only the form of the address; the node
-  also checks its checksum.
-- You asked for `--mode pool`, but the node at `--api` runs no pool. The miner then also prints
-  `Dieser Knoten betreibt keinen Pool — es wird solo gemint.` ("this node runs no pool, mining
-  solo"). Despite that text it does not mine. Start it without `--mode pool`, or against a node
-  that runs a pool.
-- The node has reached its limit of open sessions.
+- `Der Knoten nimmt diese Adresse nicht an.` ("the node does not accept this address"): the
+  address contains a typing error. The miner checks only the form of the address; the node also
+  checks its checksum.
+- `Dieser Knoten betreibt keinen Pool.` ("this node runs no pool"): you asked for `--mode pool`,
+  but the node at `--api` runs no pool. The miner does not fall back to solo mining. Start it
+  without `--mode pool`, or against a node that runs a pool.
+- `Der Knoten hat zu viele offene Sitzungen.` ("the node has too many open sessions"): the node
+  has reached its limit. Try again a few minutes later.
 
-**`abgelehnt session_inactive`.** The node no longer knows your session: it was restarted, or it
-did not hear from the miner for 300 seconds. The miner does not open a new session by itself.
-Stop it and start it again.
+**`Sitzung beim Knoten beendet … melde neu an`.** The node no longer knows your session: it was
+restarted, it did not hear from the miner for 300 seconds, or its name now points to another
+machine. The miner pauses its threads, opens a new session and continues; you see
+`neu angemeldet` when it has succeeded. If the node cannot be reached or refuses the session,
+the miner prints `Anmeldung fehlgeschlagen` with the reason and tries again every 15 seconds.
+In pool mode it waits for the pool and never switches to solo mining by itself.
 
 **Other rejected shares.** Single rejections are normal. They happen when the node has just
 changed the share difficulty of the session. Rejections with the reasons `duplicate` and

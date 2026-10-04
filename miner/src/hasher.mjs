@@ -13,6 +13,10 @@ const { wasm, extranonce, slot, stride } = workerData;
 
 let mem, view, initJob, mine;
 let job = null, running = false, duty = 100;
+// Zaehlt die Schleifen. Nach "stop" und einem neuen Job startet eine neue;
+// die alte kann dann noch in ihrer Pause stecken und muss enden, statt
+// neben der neuen denselben Bereich zu durchsuchen.
+let lauf = 0;
 let chunk = 200_000;
 let nonceHigh = slot * stride, nonceLow = 0;
 
@@ -36,7 +40,9 @@ function ladeJob(j) {
   const gleich = job !== null && job.jobId === j.jobId;
   // Die Extranonce gehoert zur SESSION, nicht zum Job -- sie trennt die
   // Suchraeume der Miner. Der Server erwartet sie an Byte 120 des Headers.
-  job = { ...j, extranonce };
+  // Sie kommt mit dem Job: Nach einer Neuanmeldung hat die Sitzung eine
+  // andere als beim Start dieses Threads. Fehlt sie, gilt die vom Start.
+  job = { ...j, extranonce: j.extranonce ?? extranonce };
   if (!gleich) { nonceHigh = slot * stride; nonceLow = 0; }
   mem.set(serializeHeader(job, BigInt(nonceHigh) << 32n), MEM.HEADER);
   mem.set(fromHex(job.target), MEM.TARGET);
@@ -49,9 +55,10 @@ function neuerBereich() {
 }
 
 async function schleife() {
+  const ich = ++lauf;
   let getan = 0, letzteMeldung = Date.now();
 
-  while (running && job) {
+  while (running && job && ich === lauf) {
     const t0 = performance.now();
     const treffer = mine(nonceLow | 0, chunk);
     const t1 = performance.now();

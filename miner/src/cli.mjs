@@ -38,6 +38,7 @@ const HIER = typeof __dirname !== 'undefined'
   : dirname(fileURLToPath(import.meta.url));
 const VERSION = '0.1.0';
 const STRIDE = 4096;   // Nonce-Abstand zwischen den Threads
+const WIEDER_MS = 15_000;   // Abstand zwischen zwei Anmeldeversuchen nach einer Unterbrechung
 
 // --------------------------------------------------------------- Argumente
 
@@ -270,23 +271,58 @@ async function main() {
   }
 
   // ---- Session ----
-  let session;
-  try {
-    session = await api(arg.api, '/session', {
+  /*
+    Anmelden -- beim Start und nach jeder Unterbrechung wieder.
+
+    Der Knoten lehnt manche Anmeldung mit HTTP 200 ab und schreibt den
+    Grund in `error` (kein Pool, zu viele Sitzungen). Frueher galt jede
+    200-Antwort als Sitzung: Der Miner rechnete dann mit einer Sitzung, die
+    es nicht gab, und nichts davon wurde gutgeschrieben. Eine Antwort ohne
+    sessionId ist deshalb ein Fehler, egal mit welchem Status sie kam.
+  */
+  async function anmelden() {
+    const s = await api(arg.api, '/session', {
       method: 'POST',
       body: JSON.stringify({
         address: arg.address, platform: `desktop/${process.platform}`,
         mode: arg.mode ?? 'solo',
       }),
     });
+    if (s?.error || typeof s?.sessionId !== 'string') {
+      const fehler = new Error(s?.detail ?? s?.error ?? 'Der Knoten hat keine Sitzung eröffnet.');
+      fehler.code = s?.error ?? 'keine_sitzung';
+      fehler.daten = s;
+      throw fehler;
+    }
+    return s;
+  }
+
+  let session;
+  try {
+    session = await anmelden();
   } catch (e) {
-    if (e.code === 'too_many_sessions') {
+    if (e.code === 'pool_unavailable') {
+      console.error(rot('Dieser Knoten betreibt keinen Pool.'));
+      console.error(grau(
+        `  ${arg.api} nimmt keine Pool-Sitzung an. Es wird NICHT stillschweigend\n` +
+        `  solo gerechnet. Wähle einen Pool-Knoten mit --api, oder starte ohne --mode pool.`));
+    } else if (e.code === 'too_many_sessions' && e.daten?.active !== undefined) {
       console.error(rot(`Zu viele Miner auf dieser Adresse.`));
       console.error(grau(
         `  Es laufen bereits ${e.daten?.active ?? '?'} von höchstens ` +
         `${e.daten?.max ?? '?'} gleichzeitig.\n` +
         `  Beende einen anderen Miner, oder warte fünf Minuten — ` +
         `abgestürzte Sitzungen\n  werden dann von selbst geschlossen.`));
+    } else if (e.code === 'too_many_sessions') {
+      // Der Full Node zaehlt nicht je Adresse, sondern insgesamt.
+      console.error(rot('Der Knoten hat zu viele offene Sitzungen.'));
+      console.error(grau(
+        `  Versuche es in ein paar Minuten erneut, oder wähle einen anderen Knoten mit --api.`));
+    } else if (e.code === 'bad_address' || e.code === 'missing_address') {
+      console.error(rot('Der Knoten nimmt diese Adresse nicht an.'));
+      console.error(grau(
+        `  Die Form stimmt, die Prüfsumme nicht — meist ein Tippfehler oder ein\n` +
+        `  fehlendes Zeichen. Kopiere die Adresse noch einmal aus der Wallet.`));
     } else {
       console.error(rot(`Verbindung fehlgeschlagen: ${e.message}`));
       console.error(grau(`Erreichbar? ${arg.api}/api/v2/summary`));
@@ -430,14 +466,75 @@ async function main() {
     if (m.t === 'share') sendeShare(m);
   }
 
+  /*
+    Neu anmelden, wenn der Knoten die Sitzung nicht mehr kennt.
+
+    Der Knoten schliesst eine Sitzung nach fuenf Minuten ohne Kontakt, und
+    nach einem Neustart kennt er gar keine mehr. Dasselbe passiert, wenn
+    der Name des Knotens ploetzlich auf einen anderen Rechner zeigt. Vorher
+    rechnete der Miner dann stundenlang weiter, und jede Antwort war
+    "session_inactive" -- bis ihn jemand von Hand neu startete.
+
+    Solange keine Sitzung steht, ruhen die Threads: Arbeit ohne Sitzung
+    wird nirgends gutgeschrieben. Im Pool wird NIE auf solo ausgewichen --
+    lehnt der Knoten die Pool-Sitzung ab, wird gewartet und es wieder
+    versucht.
+  */
+  let getrennt = false;        // true: Der Knoten kennt unsere Sitzung nicht mehr.
+  let anmeldungLaeuft = null;
+  let letzterGrund = null;
+  function neuAnmelden(grund) {
+    if (anmeldungLaeuft) return anmeldungLaeuft;
+    if (!getrennt) {
+      getrennt = true;
+      zustand.jobId = null;
+      arbeiter.forEach(w => w.postMessage({ t: 'stop' }));
+      ereignis(`${grau('[' + uhr() + ']')} ${gelb('Sitzung beim Knoten beendet')} ` +
+        `${grau('(' + grund + ') — melde neu an …')}`);
+    }
+    anmeldungLaeuft = (async () => {
+      try {
+        const neu = await anmelden();
+        session = neu;
+        zustand.shareDifficulty = Number(neu.shareDifficulty);
+        getrennt = false;
+        letzterGrund = null;
+        ereignis(`${grau('[' + uhr() + ']')} ${gruen('neu angemeldet')} ` +
+          `${grau('· Sitzung ' + String(neu.sessionId).slice(0, 8))}` +
+          (neu.pool ? grau(` · Pool ${neu.pool.name}`) : ''));
+      } catch (e) {
+        // Denselben Grund nicht alle paar Sekunden wiederholen.
+        if (e.message !== letzterGrund) {
+          letzterGrund = e.message;
+          ereignis(grau(`[${uhr()}] Anmeldung fehlgeschlagen: ${e.message} — ` +
+            `es wird alle ${WIEDER_MS / 1000} s erneut versucht`));
+        }
+      } finally {
+        anmeldungLaeuft = null;
+      }
+      if (!getrennt) await holeJob();
+    })();
+    return anmeldungLaeuft;
+  }
+
   async function sendeShare(m) {
+    // Ohne Sitzung gibt es nichts einzureichen -- der Treffer gehoert zu
+    // einer Sitzung, die der Knoten nicht mehr kennt.
+    if (getrennt) return;
+    // Die Antwort gehoert zu DIESER Sitzung. Kommt sie erst an, nachdem
+    // schon neu angemeldet wurde, darf sie keine zweite Anmeldung ausloesen.
+    const sitzung = session.sessionId;
     try {
       const r = await api(arg.api, '/share', {
         method: 'POST',
-        body: JSON.stringify({ sessionId: session.sessionId, jobId: m.jobId, nonce: m.nonce }),
+        body: JSON.stringify({ sessionId: sitzung, jobId: m.jobId, nonce: m.nonce }),
       });
 
       if (!r.accepted) {
+        if (r.reason === 'session_inactive') {
+          if (sitzung === session.sessionId) void neuAnmelden('Sitzung abgelaufen');
+          return;
+        }
         if (r.reason === 'job_expired' || r.reason === 'stale_job') { holeJob(); return; }
         k.abgelehnt++;
         // Vereinzelte Ablehnungen sind normal, wenn der Server das Ziel
@@ -513,8 +610,26 @@ async function main() {
   }
 
   async function holeJob() {
+    if (getrennt) return;
+    const sitzung = session.sessionId;
     try {
-      const job = await api(arg.api, `/job?session=${session.sessionId}`);
+      const job = await api(arg.api, `/job?session=${sitzung}`);
+      /*
+        Der Knoten antwortet auch im Fehlerfall mit HTTP 200 und schreibt
+        den Grund in `error`. Eine solche Antwort ist KEIN Job -- sie an
+        die Threads zu reichen, liess diese frueher an einem Header ohne
+        Felder scheitern.
+      */
+      if (job?.error === 'session_inactive') {
+        if (sitzung === session.sessionId) void neuAnmelden('Sitzung abgelaufen');
+        return;
+      }
+      // Eine Antwort fuer eine inzwischen abgeloeste Sitzung ist veraltet.
+      if (sitzung !== session.sessionId) return;
+      if (job?.error || typeof job?.jobId !== 'string') {
+        ereignis(grau(`[${uhr()}] Keine Arbeit vom Knoten: ${job?.detail ?? job?.error ?? 'Antwort ohne Job'}`));
+        return;
+      }
       if (job.jobId === zustand.jobId) return;
       const neueHoehe = job.height !== k.hoehe;
       /*
@@ -529,7 +644,9 @@ async function main() {
       zustand.shareDifficulty = Number(job.shareDifficulty);
       k.hoehe = job.height;
       k.netzDifficulty = wert;
-      arbeiter.forEach(w => w.postMessage({ t: 'job', job }));
+      // Die Extranonce der AKTUELLEN Sitzung mitgeben: Nach einer
+      // Neuanmeldung ist sie eine andere als beim Start der Threads.
+      arbeiter.forEach(w => w.postMessage({ t: 'job', job: { ...job, extranonce: session.extranonce } }));
       /*
         Die Karte rechnet gegen dasselbe Share-Ziel wie die Threads -- und
         braucht dieselbe Extranonce.
@@ -631,6 +748,8 @@ async function main() {
   if (threads === 0) await holeJob();
 
   const jobTakt = setInterval(holeJob, 45_000);
+  // Solange keine Sitzung steht, in kurzem Takt erneut anmelden.
+  const wiederTakt = setInterval(() => { if (getrennt) void neuAnmelden('erneuter Versuch'); }, WIEDER_MS);
   // Die Karte mit herunterfahren -- ein zurueckgelassener Kindprozess
   // rechnet sonst weiter und haelt das Geraet belegt.
   for (const sig of ['SIGINT', 'SIGTERM']) {
@@ -825,7 +944,7 @@ async function main() {
   async function aufhoeren() {
     if (beendet) return;
     beendet = true;
-    clearInterval(jobTakt); clearInterval(statusTakt); clearInterval(uebersichtTakt);
+    clearInterval(jobTakt); clearInterval(wiederTakt); clearInterval(statusTakt); clearInterval(uebersichtTakt);
     sensoren.stop();
     festerKopf?.stop();
     if (process.stdin.isTTY) { try { process.stdin.setRawMode(false); } catch { /* egal */ } }
