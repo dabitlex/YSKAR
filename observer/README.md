@@ -1,51 +1,53 @@
-# YSKAR Beobachter-Knoten
+# YSKAR observer
 
-Holt die Kette über die offene Schnittstelle und **rechnet jeden Block
-selbst nach** — Header, Proof of Work, Merkle-Wurzel, Signaturen, Guthaben,
-Zustandswurzel und die Difficulty-Regel. Er glaubt dem Server kein einziges
-Feld.
+The observer is a small read-only tool that downloads the YSKAR chain and recomputes every block
+itself. This guide is for anyone who wants to check the published chain independently without
+running a full node, for example on a Raspberry Pi.
 
-## Was er leistet, und was nicht
+The observer's own messages are in German. This guide quotes them as they appear and explains
+them.
 
-Er nimmt **keine** Blöcke an und entscheidet **keine** Gabelungen. Das ist
-Stufe 3 und der eigentlich schwere Teil.
+## What it checks
 
-Trotzdem verschiebt er etwas Wesentliches:
+The observer fetches blocks from the public read interface, `/api/v2/sync` on
+`https://yskar.vercel.app`. That interface serves the mirror: a database copy of the chain that
+the main node writes to and that the explorer reads from. The observer therefore verifies the
+mirror's copy of the chain. It trusts none of the fields the server sends and recomputes, for
+every block in order:
 
-- Er merkt, wenn ein ungültiger Block ausgeliefert wird
-- Er merkt, wenn Geschichte nachträglich verändert wird
-- Er merkt, wenn zwei Abfragen verschiedene Ketten liefern
-- Er hält eine vollständige Kopie, falls der Hauptknoten ausfällt
+- that the block can be decoded and carries the expected height;
+- the structure: block version, transaction count, exactly one coinbase (the transaction that
+  pays the block reward) in first position, the Merkle root of the transactions, and the proof of
+  work;
+- that the block hash named by the server is the hash of the header;
+- the consensus rules, with the same `validateBlock` function that the full node uses: link to
+  the previous block, timestamp, difficulty, the signature, nonce, fee and balance of every
+  transfer, the coinbase amount (block reward plus fees) and the maximum supply;
+- that the state root in the header equals the root of the account state the observer computed
+  itself.
 
-Damit wandert die Garantie von „dem Server vertrauen" zu „jeder Beobachter
-würde es bemerken". Das ist der erste echte Schritt weg von der
-Ein-Instanz-Kette.
+Every verified block is stored on disk, so the observer also keeps a complete copy of the chain
+it has checked.
 
-**Ehrlich dazu:** Mehrere Beobachter bei derselben Person sind technisch
-mehrere Knoten, aber weiterhin eine Instanz, der man vertrauen muss. Der
-schwierige Teil der Dezentralisierung ist am Ende nicht das Protokoll,
-sondern Leute zu finden, die einen Knoten betreiben.
+## What it does not do
 
----
+The observer does not take part in the network. It does not connect to other nodes, accepts no
+blocks or transactions from anyone, does not choose between competing branches and cannot follow
+a reorganization. It reads one source in one direction. If a block it receives does not build on
+the last block it verified, it reports a deviation and stops.
 
-## Raspberry Pi einrichten
+Because it reads only the mirror, it cannot tell whether the mirror shows the chain with the most
+work. A full node can: it performs the same verification and also takes part in the network. See
+[FULLNODE.md](../docs/FULLNODE.md). The observer is the lightweight read-only alternative.
 
-### Schritt 1 — System
+## Setup
 
-Raspberry Pi OS Lite (64 Bit) reicht völlig. Eine Oberfläche braucht der
-Knoten nicht.
+The steps below are for Linux, including Raspberry Pi OS (64-bit). A desktop environment is not
+needed.
 
-**Nimm eine SSD oder einen USB-Stick statt der SD-Karte.** Der Knoten
-schreibt bei jedem Block, und SD-Karten sterben an Schreibzyklen — nicht
-sofort, sondern nach Monaten. Das ist die unangenehmere Variante.
+### 1. Install Node.js
 
-```bash
-sudo apt update && sudo apt upgrade -y
-```
-
-### Schritt 2 — Node.js
-
-Gebraucht wird **ab Version 20**:
+The observer requires Node.js 22 or newer.
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
@@ -53,7 +55,7 @@ sudo apt install -y nodejs
 node --version
 ```
 
-### Schritt 3 — Knoten holen
+### 2. Get the code
 
 ```bash
 cd ~
@@ -61,60 +63,65 @@ git clone https://github.com/dabitlex/YSKAR.git
 cd YSKAR/observer
 ```
 
-### Schritt 4 — Bündeln
+The whole repository is needed, not only the `observer` folder: the observer uses the consensus
+code in `src/lib/core/`.
+
+### 3. Build
 
 ```bash
 npm install
 npm run build
 ```
 
-Ohne diesen Schritt müsste Node bei jedem Start die Typen aus dem Quelltext
-und der gesamten Chain-Bibliothek entfernen — auf einem Pi kostet das
-spürbar Zeit.
+This bundles the observer and the consensus code into one file, `dist/yskar-observer.cjs`.
 
-### Schritt 5 — Erster Lauf
+### 4. First run
 
 ```bash
-node dist/yskar-observer.cjs --data ~/yskar-daten --once
+node dist/yskar-observer.cjs --data ~/yskar-observer-data --once
 ```
 
-```
-YSKAR Beobachter 0.1.0
-────────────────────────────────────────────────────────
-  Netz     yskar-main-1
-  Server   https://yskar.vercel.app
-  Ablage   /home/pi/yskar-daten
-────────────────────────────────────────────────────────
+The observer prints its version, the network (`Netz`), the server (`Server`) and the data folder
+(`Ablage`). On the first run it reports `Kein Prüfpunkt — beginne bei Block 0.` ("no checkpoint,
+starting at block 0") and then verifies the chain from the genesis block. When it has caught up,
+it prints one line:
 
-Kein Prüfpunkt — beginne bei Block 0.
-[14:22:31] ✓ 61 Blöcke geprüft · Höhe 60 · Umlauf 53.375 YSR · 1.4s
+```text
+[<time>] ✓ <n> Blöcke geprüft · Höhe <height> · Umlauf <amount> YSR · <seconds>s
 ```
 
-`--once` holt alles auf und beendet sich. Ohne die Option läuft er weiter und
-fragt jede Minute nach.
+That is: the number of blocks verified in this round, the height reached, the circulating supply
+according to the observer's own account state, and the time taken.
 
-### Schritt 6 — Dauerbetrieb
+With `--once` the observer catches up and exits. Without it, it keeps running and asks for new
+blocks once per interval; while there is nothing new it shows `auf Höhe <height>, warte…`
+("at height …, waiting").
 
-`/etc/systemd/system/yskar-observer.service`:
+Stop it with Ctrl+C. It ends after its current wait, which can take up to one interval.
+
+### 5. Run as a service
+
+Create `/etc/systemd/system/yskar-observer.service`. Replace `your-user` with your user name:
 
 ```ini
 [Unit]
-Description=YSKAR Beobachter-Knoten
+Description=YSKAR observer
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/YSKAR/observer
-ExecStart=/usr/bin/node dist/yskar-observer.cjs --data /home/pi/yskar-daten
+User=your-user
+WorkingDirectory=/home/your-user/YSKAR/observer
+ExecStart=/usr/bin/node dist/yskar-observer.cjs --data /home/your-user/yskar-observer-data
 Restart=always
 RestartSec=30
+RestartPreventExitStatus=2
 Nice=10
 
-# Ein Beobachter braucht nichts außer seinem Datenordner.
+# The observer needs write access to its data folder only.
 ProtectSystem=strict
-ReadWritePaths=/home/pi/yskar-daten
+ReadWritePaths=/home/your-user/yskar-observer-data
 PrivateTmp=true
 NoNewPrivileges=true
 
@@ -128,99 +135,88 @@ sudo systemctl enable --now yskar-observer
 journalctl -u yskar-observer -f
 ```
 
-`Nice=10` gibt anderen Programmen Vorrang. Die drei `Protect`-Zeilen sind
-kein Zierrat: Der Knoten braucht Schreibzugriff auf genau einen Ordner, und
-alles andere kann ihm das System verwehren.
+The data folder must exist before the service starts; the first run in step 4 creates it.
+`Nice=10` gives other programs priority. `ProtectSystem=strict` makes the file system read-only
+for the service, and `ReadWritePaths` opens the one folder it writes to.
+`RestartPreventExitStatus=2` keeps systemd from restarting the observer after it has found a
+deviation.
 
----
+## Options
 
-## Was auf dem Pi 4 zu erwarten ist
-
-| | |
-|---|---|
-| Blöcke je Jahr | rund 50.000 bei zehn Minuten Blockzeit |
-| Speicher je Block | 188 Byte ohne Zahlungen, wenige hundert mit |
-| Ein Jahr Kette | einige zehn Megabyte |
-| Arbeitsspeicher | der Zustand, wenige Megabyte bei tausenden Konten |
-| Rechenlast | Signaturprüfung, sonst nichts Nennenswertes |
-
-Der Pi langweilt sich dabei. Der einzige Punkt, an dem er ins Schwitzen
-käme, wären volle Blöcke mit tausenden Signaturen — und selbst dann hätte er
-zehn Minuten Zeit für ein bis zwei Sekunden Arbeit.
-
----
-
-## Optionen
-
-| Option | Bedeutung | Vorgabe |
+| Option | Meaning | Default |
 |---|---|---|
-| `--api <url>` | Server | `https://yskar.vercel.app` |
-| `--data <ordner>` | Ablage für Blöcke und Prüfpunkte | `./daten` |
-| `--interval <sek>` | Abstand zwischen Abfragen | 60 |
-| `--from-scratch` | Ablage verwerfen, bei Block 0 beginnen | |
-| `--once` | Einmal aufholen und beenden | |
+| `--api <url>` | Server whose `/api/v2/sync` route is read | `https://yskar.vercel.app` |
+| `--data <folder>`, `-d` | Folder for blocks, checkpoint and log | `./daten` |
+| `--interval <seconds>` | Pause between two requests for new blocks | `60` |
+| `--from-scratch` | Ignore the saved checkpoint and verify again from block 0 | Off |
+| `--once` | Catch up once and exit | Off |
+| `--help`, `-h` | Print the help text and exit | |
+| `--version`, `-v` | Print the version and exit | |
 
----
+A full node serves the same `/api/v2/sync` route on its own interface (`127.0.0.1:8645` by
+default). With `--api http://127.0.0.1:8645` the observer verifies the active chain of that node
+instead of the mirror. Because the observer cannot follow a reorganization, it stops with a
+deviation if that node switches to another branch below the height already verified.
 
-## Was in der Ablage liegt
+## Storage layout
 
-```
+```text
 daten/
-  pruefpunkt.json          Zustand und Höhe, damit Neustarts schnell sind
-  beobachter.log           Protokoll aller Meldungen
-  bloecke/0000/00000000.bin
-  bloecke/0000/00000001.bin
+  pruefpunkt.json              checkpoint: state and height, so that a restart is fast
+  beobachter.log               log of the reported results, with timestamps
+  bloecke/0000/00000000.bin    block 0
+  bloecke/0000/00000001.bin    block 1
   …
+  bloecke/0001/00001000.bin    block 1,000
 ```
 
-Blöcke liegen in Tausenderordnern — ein Verzeichnis mit 50.000 Einträgen
-bringt manche Dateisysteme spürbar aus dem Tritt.
+Each `.bin` file is one block exactly as it was received and verified: the 136-byte header,
+the transaction count and the transactions. Blocks are grouped in folders of 1,000 so that no
+single directory grows large.
 
-Der Prüfpunkt ist eine Abkürzung, kein Beweis. Wer ihm nicht traut, startet
-mit `--from-scratch`; dann wird alles erneut gerechnet. Beim Laden wird
-ohnehin geprüft, ob der gespeicherte Zustand zu seiner eigenen Wurzel passt.
+`pruefpunkt.json` ("checkpoint") holds the network name, the height and hash of the last verified
+block, the state root, all account balances and nonces, and the recent block times and
+difficulties that the difficulty rule needs. With it, a restart continues at the next block
+instead of recomputing the whole chain.
 
----
+The checkpoint is a shortcut, not a proof. When it is loaded, the observer checks that the stored
+accounts produce the stored state root; if they do not, it reports
+`Prüfpunkt beschädigt — beginne bei Block 0.` ("checkpoint damaged") and starts over. If you do
+not want to rely on the checkpoint, start with `--from-scratch`: every block is then fetched and
+verified again.
 
-## Wenn er etwas findet
+## When it finds a deviation
 
-```
+```text
 ABWEICHUNG GEFUNDEN
-  Block 3: hash_stimmt_nicht
-  Server nennt ffffffffffffffff…, errechnet 00000001fe2320a6…
+  Block <height>: <kind>
+  <detail>
 
   Der Server liefert etwas, das der Kette widerspricht.
-  Geprüft bis Höhe 2. Die Blöcke bis dahin liegen in
-  /home/pi/yskar-daten/bloecke und lassen sich nachrechnen.
+  Geprüft bis Höhe <height>. Die Blöcke bis dahin liegen in
+  <data folder>/bloecke und lassen sich nachrechnen.
 ```
 
-Der Knoten hält dann an und beendet sich mit Rückgabewert 2. Das ist
-Absicht: Ab einer Abweichung ist jede weitere Aussage wertlos.
+In English: "Deviation found. The server delivers something that contradicts the chain. Verified
+up to height …. The blocks up to there are in … and can be recomputed."
 
-Geprüft wurde das mit vier Manipulationen an echten Blöcken:
+The observer then exits with exit code 2. This is intended: after a deviation, nothing further it
+could report would be reliable. The same lines are written to `beobachter.log`.
 
-| Manipulation | Erkannt als |
+The kind names the check that failed:
+
+| Kind | Meaning |
 |---|---|
-| Hash erfunden | `hash_stimmt_nicht` |
-| Byte in der Transaktion gekippt | `merkle_mismatch` |
-| Nonce geändert, Hash mitgezogen | `pow_failed` |
-| Coinbase-Betrag verdoppelt | `merkle_mismatch` |
+| `unlesbar` | The block could not be decoded |
+| `falsche_hoehe` | The block carries a different height than the one requested |
+| `struktur` | A structural check failed. The detail names it, for example `merkle_mismatch` (the transactions do not match the Merkle root) or `pow_failed` (the hash does not meet the target). |
+| `hash_stimmt_nicht` | The hash named by the server is not the hash of the header |
+| `height`, `prev_hash` | The block does not follow the previous block |
+| `timestamp` | The timestamp breaks the timestamp rules |
+| `difficulty` | The difficulty in the header is outside the range the rules allow |
+| `state` | A transaction cannot be applied. The detail names the transaction and the reason, for example `insufficient_funds`. |
+| `state_root` | The state root in the header is not the root of the computed account state |
+| `anwenden` | Applying the block to the observer's account state failed |
 
----
-
-## Nächste Stufen
-
-**Stufe 2** — Blöcke einreichen. Der Beobachter darf Blöcke an den
-Hauptknoten weiterreichen, Miner können auf ihn zeigen. Braucht ein
-Protokoll zwischen Knoten, aber noch keine Gabelungsentscheidung.
-
-**Stufe 3** — echtes P2P mit Fork-Wahl und Reorgs. Zwei Knoten finden
-gleichzeitig einen Block, die Kette gabelt sich, und jeder muss entscheiden,
-welcher Zweig gilt: Blöcke zurücknehmen, Zustand rückwärts rechnen,
-Transaktionen zurück in den Mempool. Dort steckt der Großteil der Arbeit und
-praktisch jeder Fehler, den Kryptoprojekte in diesem Bereich machen.
-
-Vorbereitet ist einiges: `validateBlock` prüft einen fremden Block
-vollständig, `cumulativeWork` entscheidet zwischen konkurrierenden Ketten,
-`chain2.rollback_to` kann Höhen zurücknehmen, und der Konsens rechnet
-ausschließlich ganzzahlig.
+A network error is not a deviation. The observer prints it as `[<time>] ! <message>` and tries
+again after the interval.

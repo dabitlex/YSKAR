@@ -1,105 +1,122 @@
-# Konsensfassung 4 — Difficulty ohne Obergrenze
+# Consensus revision 4: difficulty without an upper limit
 
-Beschlossen bei Höhe 2.942 am 01.10.2026. Aktiv ab **Höhe 6.000** (Beginn Season 2).
+This is the design record of consensus revision 4. It explains why the difficulty field of the block
+header needed a wider range, how the same four bytes are read from the activation height on, and what
+that means for nodes, miners and everything that displays a difficulty. The rules themselves are also
+part of the specification in [PROTOCOL.md](PROTOCOL.md).
 
-## Das Problem
+| | |
+|---|---|
+| Revision | 4 |
+| Activation height | 6,000 (the first block of season 2) |
+| Constant | `DIFF_V4_HEIGHT` in `src/lib/core/params.ts` |
+| Status | Applies from height 6,000 |
+| Decided | At height 2,942, on 2026-10-01 |
 
-Die Difficulty steht im Header als u32. Das Feld endet bei 4.294.967.295,
-entsprechend rund **469 GH/s** Netz-Hashrate. Darüber konnte die Anpassung
-nicht mehr folgen:
+## The problem
 
-1. LWMA verlangt einen Wert über u32, der Knoten kann keinen Header bauen.
-   `/job` antwortet mit HTTP 500, kein Miner bekommt Arbeit.
-2. Nach 30 Minuten ohne Block lockert die Notfallregel, bis der Wert wieder
-   passt. Der nächste Block fällt sofort, und alles beginnt von vorn.
+The difficulty is stored in the header as a `u32`. The field ends at 4,294,967,295, which corresponds to
+a network hashrate of about **469 GH/s** (4,294,967,295 x 65,536 hash attempts in 600 seconds). Above
+that, the adjustment could no longer follow:
 
-Simuliert mit der echten Anpassungsfunktion: Bei 200 TH/s kamen zwei
-Blöcke in je einer Sekunde, dann eine Pause von 30 Minuten, immer wieder.
-Die Blockzeit lag im Schnitt trotzdem bei 10 Minuten, weil die LWMA die
-Pausen mitzählt. Die Ausgabe neuer YSR wäre im Plan geblieben, aber das
-Mining nicht.
+1. The LWMA asks for a value above the `u32` range, and the node cannot build a header. `/job` answers
+   with HTTP 500, and no miner gets work.
+2. After 30 minutes without a block the emergency rule eases the requirement until the value fits again.
+   The next block falls at once, and everything starts over.
 
-## Die Lösung: dasselbe Feld, neue Lesart
+A simulation with the real adjustment function shows the pattern. At 200 TH/s two blocks arrive within
+about a second each, then the chain pauses for a little over 30 minutes, again and again. The average
+block time still comes out near 10 minutes, because the LWMA counts the pauses. The issuance of new YSR
+would have stayed on schedule, but mining would have happened in bursts.
 
-Das Feld bleibt 4 Byte groß. Header-Größe (136 Byte), Nonce-Position und
-Midstate ändern sich nicht. Ab Höhe 6.000 gilt:
+## The solution: the same field, read differently
 
-| Oberstes Bit | Bedeutung | Bereich |
+The field stays 4 bytes. The header size (136 bytes), the position of the nonce and the midstate do not
+change. From height 6,000 the field is read as follows:
+
+| Top bit | Meaning | Range |
 |---|---|---|
-| 0 | difficulty = Feld | 1 … 2.147.483.647 |
-| 1 | e = Bits 23–30, m = Bits 0–22, difficulty = (2^23 + m) · 2^e | 2^31 … `MAX_DIFFICULTY` |
+| 0 | difficulty = field | 1 to 2,147,483,647 |
+| 1 | `e` = bits 23 to 30, `m` = bits 0 to 22, difficulty = (2^23 + `m`) x 2^`e` | 2^31 to `MAX_DIFFICULTY` |
 
-- **Unter 2^31 sind die Bytes dieselben wie vorher**, vor und nach der
-  Aktivierung. Der höchste bisher erreichte Wert war 1.831.228.
-- Darüber gilt eine Gleitkommazahl mit 24 Bit Genauigkeit. Sie rundet um
-  weniger als 2^-23 (≈ 0,00001 %).
-- `MAX_DIFFICULTY` = (2^24 − 1) · 2^216, knapp unter 2^240. Dort ist das
-  Target 1, also die Grenze von SHA-256 selbst, nicht von YSKAR.
-- **Eindeutig:** Jeder Wert hat genau eine Schreibweise. Ein Exponent unter 8
-  (der Wert läge unter 2^31) oder über 216 ist ungültig, und ein solcher
-  Header wird schon beim Lesen abgelehnt.
+- **Below 2^31 the bytes are the same as before**, before and after the activation. When the revision was
+  decided, the highest difficulty the chain had reached was 1,831,228.
+- From 2^31 on the field is a floating-point number with 24 bits of precision. It rounds by less than
+  2^-23 (about 0.000012 %).
+- `MAX_DIFFICULTY` = (2^24 - 1) x 2^216, just below 2^240. There the target is 1, which is the limit of
+  SHA-256 itself, not of YSKAR.
+- **Unambiguous:** every value has exactly one encoding. An exponent below 8 (the value would lie below
+  2^31) or above 216 is invalid, and such a header is rejected when it is read.
 
-Unter der Aktivierungshöhe bleibt die alte Lesart: Das Feld ist eine
-schlichte u32 bis 2^32 − 1. Welche Lesart gilt, entscheidet die Höhe im
-selben Header. Code: `encodeDifficulty`, `decodeDifficulty`,
-`floorDifficulty` in `src/lib/core/params.ts`.
+Below the activation height the old reading remains: the field is a plain `u32` up to 2^32 - 1. The
+height in the same header decides which reading applies.
 
-## Regel
+The activation height is the same on every network, because it acts inside the header codec, which does
+not know the network parameters. For regtest this is harmless: below 2^31 the two readings do not differ.
+
+Code: `encodeDifficulty()`, `decodeDifficulty()` and `floorDifficulty()` in `src/lib/core/params.ts`. In
+memory `BlockHeader.difficulty` is always the real value, never the field.
+
+## The rule
 
 `checkDifficulty()` in `src/lib/core/validate.ts`:
 
+```text
+regular = floor(LWMA(...))
+eased   = floor(emergency rule(LWMA(...), elapsed))
+valid if eased <= difficulty <= regular
 ```
-regulär  = floor(LWMA(…))
-gelockert = floor(Notfallregel(LWMA(…), vergangen))
-gültig, wenn gelockert ≤ difficulty ≤ regulär
-```
 
-`floor` rundet auf den nächsten darstellbaren Wert ab, höchstens auf
-`MAX_DIFFICULTY`. Weil `floor` monoton ist, wird der Bereich nie leer. Unter
-2^31 rundet `floor` nichts, und die Regel ist dort exakt die alte.
+`floor` rounds down to the nearest representable value (`floorDifficulty()`), and to `MAX_DIFFICULTY` at
+most. Because `floor` is monotonic, the range never becomes empty. Below 2^31 `floor` rounds nothing, and
+there the rule is exactly the old one.
 
-Der Knoten (`MiningCoordinator`) baut seine Aufgaben mit genau diesem
-abgerundeten Wert.
+The node (`MiningCoordinator` in `src/lib/node/fullnode/MiningCoordinator.ts`) builds its mining jobs
+with exactly this rounded value.
 
-## Kompatibilität
+## Compatibility
 
-| | Muss aktualisiert werden? |
+| | Has to be updated? |
 |---|---|
-| Raspberry, PC-Knoten, Vercel | **Ja, vor Höhe 6.000.** Bis zu einer Difficulty von 2^31 (rund 234 GH/s) rechnen alte und neue Knoten trotzdem identisch. |
-| Supabase-Spiegel | Erledigt: Migration 00020 (`difficulty` → `numeric(78,0)`, `commit_block`) |
-| App, Mini App, CLI-Miner, GPU-Miner | Nein. Der Knoten schickt in `job.difficulty` das **rohe Header-Feld**, und genau das schreiben alle Miner an Stelle 112. Neuere Fassungen lesen den echten Wert aus `difficultyWert`. |
+| Full nodes (command-line node, Node Core) and the web server | **Yes, before height 6,000.** Up to a difficulty of 2^31 (about 234 GH/s) old and new nodes nevertheless compute identically. |
+| Database mirror | Yes. Migration `00020_difficulty_numeric` is that update: it changes `difficulty` to `numeric(78,0)` and adapts `commit_block`. |
+| App, Mini App, CLI miner, GPU miner | No. The node sends the **raw header field** in `job.difficulty`, and every miner writes exactly that at offset 112. Newer versions read the real value from `difficultyWert`. |
 
-Bei älteren Minern ist über 2^31 nur die **Anzeige** falsch (sie zeigt das
-rohe Feld), das Rechnen stimmt. Geprüft in
-`tests/konsens-v4.test.ts` mit dem unveränderten `miner/src/header.mjs`.
+With older miners only the **display** is wrong above 2^31 (it shows the raw field); the computation is
+right. This is checked in `tests/konsens-v4.test.ts` with the unchanged `miner/src/header.mjs`.
 
-## Außerhalb des Konsens
+## Outside the consensus
 
-| Stelle | Änderung |
+| Place | Change |
 |---|---|
-| API (`/summary`, `/blocks`, `/job`) | Zusätzlich `difficultyWert` als Dezimaltext. JavaScript rundet Zahlen ab 2^53 (rund 9 Billiarden). |
-| Supabase lesen | `difficulty::text`, aus demselben Grund |
-| P2P-Statistik | Hashrate über u64 (18,4 EH/s) wird gedeckelt statt zu werfen. Betrifft nur die Anzeige. |
-| Anzeigen | Einheiten bis YH/s (`src/lib/format/hashrate.ts`, Explorer, CLI); große Difficulty kompakt |
-| Explorer | Rechnet die Schreibweise selbst nach (`diffFeld`), bevor er den Hash prüft |
-| `src/lib/chain/` | Unverändert. Das ist der abgelöste Pfad der ersten Kette (siehe `DEPRECATED.md`). |
+| API (`/summary`, `/blocks`, `/job`) | Additionally returns `difficultyWert`, the real difficulty as decimal text. JavaScript numbers are exact only up to 2^53 (about 9 x 10^15). |
+| Reading the database mirror | `difficulty::text`, for the same reason |
+| Miner statistics in the node-to-node protocol | A hashrate above the `u64` range (18.4 EH/s) is capped instead of raising an error. This affects the display only. |
+| Displays | Units up to YH/s (`src/lib/format/hashrate.ts`, explorer, CLI miner); a large difficulty is shown in compact form |
+| Explorer | Computes the encoding itself (`diffFeld` in `public/explorer.html`) before it checks the block hash |
+| `src/lib/chain/` | Unchanged. This is the retired code path of the first chain (see `src/lib/chain/DEPRECATED.md`). |
 
 ## Tests
 
 `tests/konsens-v4.test.ts`:
 
-- Byte-Identität für über 500 Werte unter 2^31, an fünf Höhen
-- Darstellung und Rundung für über 2.000 Werte zwischen 2^31 und 2^240
-- Monotonie der Abrundung
-- Eindeutigkeit über 20.000 zufällige Felder, Ablehnung unzulässiger Exponenten
-- Regel: Wert über u32 angenommen, eine Stufe zu hoch oder zu niedrig abgelehnt, Notfallregel
-- Alter CLI-Header-Bau gegen den Knoten-Header, Byte für Byte
-- Explorer-Kodierung gegen den Kern
-- **Simulation bei 5 TH/s, 200 TH/s und 10^21 H/s: im Schnitt 540–660 s je Block,
-  höchstens 8 % Blöcke über 30 Minuten** (exponentiell erwartbar sind rund 5 %;
-  die alte Fassung hatte bei 200 TH/s 33 %).
+- byte identity of the header for more than 500 values below 2^31, at five heights;
+- below the activation height the old behavior is unchanged: the field is a plain `u32`, and a larger
+  value cannot be written;
+- representation and rounding for more than 2,000 values between 2^31 and 2^240;
+- monotonicity of the rounding;
+- unambiguity over 20,000 random fields, and rejection of invalid exponents;
+- the rule: a value above the `u32` range is accepted, one step too high or a value too low is rejected,
+  and the emergency rule works above the `u32` range;
+- the header built by the old CLI miner code against the header of the node, byte for byte;
+- the encoding of the explorer against the core;
+- the miner statistics cap an oversized hashrate instead of raising an error;
+- **a simulation at 5 TH/s, 200 TH/s and 10^21 H/s: 540 to 660 seconds per block on average, and fewer
+  than 8 % of the blocks take longer than 30 minutes.** With exponentially distributed block times about
+  5 % are to be expected. Under the old rule about a third of the blocks at 200 TH/s came after a pause
+  of more than 30 minutes.
 
-## Was sich nicht ändert
+## What does not change
 
-Hash (SHA-256d), Header-Größe, Blockzeit, Belohnung, Halbierungen,
-21 Millionen YSR, Gebühren, Adressen, Wallets und alle bisherigen Blöcke.
+The hash function (double SHA-256), the header size, the block time, the block reward, the halvings, the
+21,000,000 YSR, the fees, addresses, wallets and all existing blocks.

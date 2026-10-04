@@ -1,18 +1,18 @@
 [Unit]
-Description=YSKAR Full Node — prüft die Kette und betreibt den Pool
+Description=YSKAR full node — validates the chain and runs the pool
 Documentation=https://github.com/dabitlex/YSKAR
 
-# network-online, nicht nur network: Der Knoten spricht beim Start mit der
-# Gegenstelle und mit seinen Peers. "network.target" ist erreicht, sobald
-# das Netzwerk KONFIGURIERT wird -- nicht, sobald es benutzbar ist.
+# network-online, not just network: at start the node talks to the mirror
+# and to its peers. "network.target" is reached as soon as the network is
+# being CONFIGURED -- not as soon as it is usable.
 After=network-online.target
 Wants=network-online.target
 
-# Wenn er beim Start dauerhaft scheitert (falscher node-Pfad, kaputte
-# Ablage), soll systemd nicht ewig im Sekundentakt neu starten. Nach fünf
-# Fehlversuchen in zwei Minuten bleibt er liegen -- dann ist etwas kaputt,
-# das ein Neustart nicht heilt, und "systemctl status" sagt es dir.
-# (Gehört in [Unit], nicht in [Service] -- dort wird es ignoriert.)
+# If the node keeps failing at start (wrong path to node, broken store),
+# systemd should not restart it forever. After five failed attempts within
+# two minutes it stays down -- then something is broken that a restart
+# does not fix, and "systemctl status" tells you.
+# (Belongs in [Unit], not in [Service] -- there it is ignored.)
 StartLimitBurst=5
 StartLimitIntervalSec=120
 
@@ -22,18 +22,23 @@ User=yskar
 Group=yskar
 WorkingDirectory=/home/yskar/YSKAR/node
 
-# Der Token für den Spiegel steht in einer eigenen Datei, nicht hier.
-# Unit-Dateien sind für alle lesbar; /etc/yskar/node.env gehört root und
-# ist auf 600 gesetzt. Das führende "-" heißt: Fehlt die Datei, startet
-# der Dienst trotzdem -- dann eben ohne Token, wie vor dem Abschluss der
-# Umstellung.
+# The token for the mirror is kept in a file of its own, not here. Unit
+# files are readable for everyone; /etc/yskar/node.env belongs to root and
+# has mode 600. The leading "-" means: if the file is missing, the service
+# starts anyway -- then without a token, which works as long as the web
+# server does not require one.
 EnvironmentFile=-/etc/yskar/node.env
 
-# ACHTUNG: Absoluter Pfad zu node. systemd hat kein PATH wie deine Shell
-# und kein nvm. Prüfe vor dem Aktivieren:  which node
-# Liegt node woanders (z.B. unter ~/.nvm/versions/node/v22.x/bin/node),
-# trage den Pfad hier ein. Node 22 oder neuer ist Pflicht -- der Knoten
-# nutzt node:sqlite, das es vorher nicht gibt.
+# CAUTION: absolute path to node. systemd has no PATH like your shell and
+# no nvm. Check before you enable the unit:  which node
+# If node is somewhere else (for example under
+# ~/.nvm/versions/node/v22.x/bin/node), enter that path here. Node 22.13 or
+# newer is required -- the node uses node:sqlite, which older versions do
+# not have.
+#
+# This is the start command of the MAIN NODE: no --seed, no --no-upstream,
+# and the public pool. Every other node is started with both seeds and
+# --no-upstream instead -- see deploy/README.md.
 ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --data ./knoten \
     --bind 127.0.0.1 \
@@ -42,24 +47,24 @@ ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --pool yskar-main.dynv6.net \
     --pool-fee 0
 
-# Immer neu starten, nicht nur bei Fehlern: Ein Knoten, der sich sauber
-# beendet, ist für die Kette genauso weg wie einer, der abstürzt.
+# Always restart, not only on failure: a node that exits cleanly is just
+# as gone for the chain as one that crashes.
 Restart=always
 RestartSec=10
 
-# Sauber stoppen: SIGINT statt SIGTERM, damit der Knoten seine SQLite-
-# Ablage ordentlich schliesst.
+# Stop cleanly: SIGINT instead of SIGTERM, so that the node closes its
+# SQLite store in an orderly way.
 KillSignal=SIGINT
 TimeoutStopSec=30
 
-# Ausgabe ins Journal:  journalctl -u yskar-node -f
+# Output goes to the journal:  journalctl -u yskar-node -f
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=yskar-node
 
-# --- Absicherung ---
-# Der Knoten braucht: sein eigenes Verzeichnis (Ablage) und das Netz.
-# Sonst nichts.
+# --- Hardening ---
+# The node needs its own directory (the store) and the network.
+# Nothing else.
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict

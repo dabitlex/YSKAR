@@ -36,3 +36,8 @@ node/knoten/
 *.db-wal
 *.db-shm
 android/app/google-services.json
+
+# Signing keys never belong in the repository
+*.jks
+*.jks.b64
+*.keystore

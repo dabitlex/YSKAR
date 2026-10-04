@@ -1,133 +1,156 @@
-# GPU-Mining (CUDA)
+# GPU mining program (CUDA)
 
-Ein eigenständiges Programm, `yskar-cuda.exe`, das der Node Core als
-Kindprozess startet. Es rechnet Hashes und meldet Nonces, deren Hash das Ziel
-erfüllt. **Ob daraus ein Block wird, entscheidet der Knoten** — über
-`MiningCoordinator.submitNonce()` und dieselbe vollständige Prüfung wie für
-jeden anderen Block.
+This folder contains `yskar-cuda`, the program that mines YSKAR on NVIDIA graphics cards. This
+guide is for developers who want to build it, test it on a card, or understand how it works.
 
-## Was geprüft ist und was nicht
+`yskar-cuda.exe` is a standalone program. Node Core and the command-line miner start it as a
+child process, send it jobs and receive nonces from it. It computes hashes and reports nonces
+whose hash meets the target. Whether such a nonce becomes a block is decided by the node, through
+`MiningCoordinator.submitNonce()` and the same complete validation as for any other block.
 
-Ehrlich, damit du weißt, worauf du dich verlassen kannst.
+## What is verified and what is not
 
-**Geprüft, ohne Grafikkarte:**
+**Verified without a graphics card** (paths are relative to the `node-core` folder):
 
-| | |
+| What | How |
 |---|---|
-| SHA-256d für den 136-Byte-Header | bitgenau gegen den echten Genesis (`gcc`, dieselbe Datei wie für die GPU) |
-| Nonce an Offset 128, Little-Endian | ebenso |
-| Zielvergleich byteweise von vorn | wie `submitNonce()` |
-| Protokoll zum Node Core | Job, Treffer, Fortschritt, Fehler |
-| Jobwechsel, veraltete Jobs, Neustart | mit der CPU-Nachbildung |
-| Treffer werden echte Blöcke | vom Knoten vollständig geprüft und angenommen |
-| Absturz, fehlendes Programm, falsch rechnende Karte | Knoten läuft weiter |
+| SHA-256d of the 136-byte header, bit for bit against the real genesis block | `gpu/test/test_sha.c` compiles `yskar_sha256.h`, the same file the GPU build uses, with `gcc` (`npm run test:sha`) |
+| Nonce at offset 128, little-endian | The same test |
+| Target comparison byte by byte from the front, as in `submitNonce()` | The same test, and the self-test of the CPU emulation |
+| Protocol with Node Core: device detection, job, hit, progress | `test/gpu.test.ts` with the CPU emulation |
+| Hits become real blocks, several in a row, that the node validates completely | `test/gpu.test.ts` |
+| Stopping ends the program | `test/gpu.test.ts` |
+| A crash while mining or a missing program does not stop the node | `test/gpu.test.ts` |
+| A card that computes wrongly, or a program that does not answer the self-test, is refused | `test/gpu.test.ts` |
+| CPU and GPU never check the same nonces | `test/gpu.test.ts` |
+| The program compiles with `nvcc` and MSVC on Windows | The release workflow (`.github/workflows/node-core-release.yml` in the repository root) builds it on Windows with CUDA 11.8. It then runs `--probe` and records the outcome; without an NVIDIA driver the program is expected to end with an error there. |
 
-**Nicht geprüft, weil hier keine NVIDIA-Karte vorhanden ist:**
+The CPU emulation is the same program with `yskar_cpu.cpp` in place of the CUDA kernel. Build it
+with `npm run build:gpu-emu`; it produces `gpu/bin/yskar-cuda-emu`. It identifies itself as an
+emulation (`"emulation":true`, device name `CPU-Nachbildung (keine GPU)`), so that nobody takes
+its figures for GPU figures.
 
-- dass `nvcc` die Datei unter Windows übersetzt
-- dass der Kernel auf einer echten Karte läuft
-- wie schnell er auf der 940MX ist
+**Not verified by any automated run:**
 
-Das zeigt erst der Selbsttest auf deinem Rechner — Schritt 3 unten. **Er ist
-kein Beiwerk, sondern der eigentliche Beweis.**
+- that the kernel computes correctly on a real card. The build machines have no NVIDIA card.
+- how fast it is on a given card.
 
-## Warum ein eigenes Programm
+The self-test on the card itself shows the first, and the benchmark measures the second (steps 3
+and 4 below). The self-test is the actual proof that a card computes correctly. Node Core and the
+command-line miner run it themselves before they mine with a card, and refuse a card that fails.
 
-Kein natives Node-Modul, aus drei Gründen:
+## Why a separate program
 
-**Ein Treiberabsturz reißt nur dieses Programm mit**, nicht den Knoten. Der
-Node Core meldet dann „GPU nicht verfügbar" und läuft weiter.
+The GPU code is a program of its own and not a native Node.js module, for three reasons:
 
-**Kein Neubau bei jedem Node- oder Electron-Update.** Ein natives Modul muss
-genau zur Laufzeit passen, ein Programm nicht.
+- **A driver crash takes down only this program**, not the node. Node Core then reports that the
+  GPU is not available and keeps running.
+- **No rebuild with every Node.js or Electron update.** A native module must match the runtime
+  exactly; a program does not.
+- **Without CUDA, this one file is simply absent.** Node Core still builds and starts.
 
-**Ohne CUDA fehlt einfach diese Datei.** Der Node Core baut und startet
-trotzdem.
+## Step by step
 
-## Schritt für Schritt auf deinem Rechner
+All commands are for PowerShell in the `node-core` folder of the repository.
 
-Alle Befehle in PowerShell, im Ordner `node-core` des Repositorys.
+You need the NVIDIA CUDA Toolkit (for `nvcc`) and Visual Studio or the Visual Studio Build Tools
+with the C++ tools ("Desktop development with C++").
 
-### 1. Bauen
+### 1. Build
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File gpu\build-gpu.ps1 -Nvcc "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\nvcc.exe"
 ```
 
-Der Pfad ist der Standardort von CUDA 11.8. Liegt es woanders, dort anpassen.
+The path is the default location of CUDA 11.8. Change it if your installation is elsewhere.
+Without `-Nvcc` the script uses `bin\nvcc.exe` below the folder named in the `CUDA_PATH`
+environment variable, or the `nvcc.exe` found on the `PATH`. `npm run build:gpu` runs the script
+without parameters.
 
-**Warum 11.8 und nicht 12 oder 13:** Deine 940MX hat Compute Capability 5.0.
-Neuere CUDA-Fassungen können diese Architektur nicht mehr übersetzen. Das
-Skript fragt `nvcc` selbst, welche Architekturen es kennt, und überspringt
-den Rest mit einer Meldung — es rät nicht.
+| Parameter | Meaning |
+|---|---|
+| `-Nvcc <path>` | Use this `nvcc.exe` |
+| `-Arch 50,61,75` | Build only for these Compute Capabilities |
+| `-VcVarsVer 14.29` | Use this MSVC toolset instead of the default one |
 
-**Visual Studio 2026:** CUDA 11.8 kennt diese Fassung nicht und bricht mit
-„unsupported Microsoft Visual Studio version" ab. Das Skript versucht es
-dann ein zweites Mal mit `-allow-unsupported-compiler`. Das ist ein
-offizieller Schalter, der nur die Versionsprüfung abschaltet. Der Kernel
-benutzt auf der GPU keine Standardbibliothek, das Risiko ist daher gering —
-aber es ist eines, und genau deshalb gibt es Schritt 3.
+**Why CUDA 11.8.** CUDA 11.8 still builds for Compute Capability 5.0, the oldest architecture in
+the list below. Newer CUDA releases have removed old architectures. The script asks `nvcc` itself
+which architectures it knows and skips the others with a message; it does not guess.
 
-Das Skript sucht Visual Studio selbst über `vswhere` und übernimmt die
-Umgebung. Du musst keine „Developer PowerShell" öffnen.
+**Newer Visual Studio versions.** CUDA 11.8 supports Visual Studio 2017 to 2022. If `nvcc` stops
+with `unsupported Microsoft Visual Studio version`, the script tries a second time with
+`-allow-unsupported-compiler`. This is an official `nvcc` switch that only turns off the version
+check. The kernel uses no standard library on the GPU, so the risk is small, but it is a risk,
+and that is what step 3 is for. If the MSVC standard library then rejects the CUDA version
+(`STL1002`), the script tries once more with `_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH`. If the
+build still fails, it lists the installed MSVC toolsets and suggests selecting one with
+`-VcVarsVer`.
 
-Ergebnis: `gpu\bin\yskar-cuda.exe`. Am Ende zeigt das Skript, welche Karte es
-findet.
+The script finds Visual Studio through `vswhere` and takes over its build environment. You do
+not need to open a "Developer PowerShell".
 
-### 2. Karte erkennen
+The result is `gpu\bin\yskar-cuda.exe`. It is linked statically against the CUDA runtime, so a
+computer that runs it needs only the NVIDIA driver, not the CUDA Toolkit. At the end the script
+runs the device detection and the self-test on device 0 itself. If it finds no card, it says so
+and ends without an error; if the self-test fails, it ends with an error.
+
+### 2. Detect the card
 
 ```powershell
 .\gpu\bin\yskar-cuda.exe --probe
 ```
 
-Erwartet für die 940MX etwa:
+The program prints one line per card it finds:
 
-```
-{"t":"device","id":0,"name":"NVIDIA GeForce 940MX","cc":"5.0","vram":2147483648,"sm":3}
+```text
+{"t":"device","id":0,"name":"<name of the card>","cc":"<major>.<minor>","vram":<bytes>,"sm":<multiprocessors>}
 ```
 
-### 3. Selbsttest — der entscheidende Schritt
+`cc` is the Compute Capability, `vram` the memory in bytes, `sm` the number of streaming
+multiprocessors. If no card is found, the program ends with exit code 2.
+
+### 3. Self-test
 
 ```powershell
 .\gpu\bin\yskar-cuda.exe --selftest --device 0
 ```
 
-Die **Karte selbst** rechnet den Genesis-Hash und vergleicht ihn Bit für Bit.
-Dazu: Erkennt der Kernel die Genesis-Nonce als Treffer, und die daneben
-nicht?
+The card itself computes the hash of the genesis block and the result is compared bit for bit.
+The test also checks that the kernel recognizes the genesis nonce as a hit and the next nonce as
+no hit.
 
-Bestanden sieht so aus:
+A passed test prints the device line from step 2 and then:
 
-```
-{"t":"selftest","hash":"000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66","expected":"000000090a14a03f..."}
+```json
+{"t":"selftest","hash":"000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66","expected":"000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66"}
 {"t":"selftest","ok":true,"check":"Genesis-Hash bitgenau"}
 {"t":"selftest","ok":true,"check":"Genesis-Nonce als Treffer erkannt"}
 {"t":"selftest","ok":true,"check":"Nonce daneben ist kein Treffer"}
 {"t":"selftest","result":"PASSED"}
 ```
 
-**Steht dort `FAILED`, bitte nicht minen** und mir die Ausgabe schicken. Der
-Node Core lehnt eine solche Karte ohnehin ab: Er führt diesen Test vor jedem
-GPU-Start selbst aus.
+The three checks mean: genesis hash exact to the bit, genesis nonce recognized as a hit, the
+nonce next to it is not a hit.
 
-### 4. Leistung messen
+If the last line says `FAILED`, do not mine with this card. The program then ends with exit
+code 1.
+
+### 4. Measure the hashrate
 
 ```powershell
 .\gpu\bin\yskar-cuda.exe --bench 10 --device 0
 ```
 
-Zehn Sekunden, die ersten zwei zum Einregeln nicht mitgezählt. Das Ziel ist
-unerreichbar, damit kein Treffer die Zählung stört:
+The program measures for ten seconds after a warm-up of two seconds that is not counted. The
+target is unreachable, so that no hit disturbs the count. The result is one line:
 
+```text
+{"t":"bench","hashes":<count>,"seconds":<seconds>,"hashrate":<hashes per second>,"mhs":<megahashes per second>}
 ```
-{"t":"bench","hashes":...,"seconds":10.0,"hashrate":...,"mhs":...}
-```
 
-**Das ist gemessen, nicht geschätzt** — gezählte Hashes durch gemessene
-Zeit. Mit diesem Wert und deiner CPU-Hashrate (rund 2,5 MH/s) hast du den
-Vergleich.
+The figure is measured, not estimated: counted hashes divided by measured time.
 
-### 5. Node Core bauen und starten
+### 5. Build and start Node Core
 
 ```powershell
 npm install
@@ -135,112 +158,144 @@ npm run build
 npm start
 ```
 
-Der Build legt die Mining-Engine nach `dist\` und meldet, ob er
-`gpu\bin\yskar-cuda.exe` gefunden hat. In der App unter **Mining** erscheint
-die Karte dann mit Namen, Compute Capability und VRAM.
+The build copies the CPU mining engine to `dist\` and reports whether it found
+`gpu\bin\yskar-cuda.exe`. In the program, the card then appears on the Mining page with its name
+and memory size.
 
-### 6. Installer
+### 6. Build the installer
 
 ```powershell
 npm run dist
 ```
 
-Liegt `gpu\bin\yskar-cuda.exe` vor, legt der Installer sie neben die App —
-außerhalb des asar-Archivs, weil sich Programme daraus nicht starten lassen.
-Fehlt sie, entsteht ein Installer ohne GPU-Mining. **Beides ist gültig.**
+If `gpu\bin\yskar-cuda.exe` exists, the installer places it next to the application, outside the
+asar archive, because programs cannot be started from inside the archive. If it is missing, the
+result is an installer without GPU mining. Both are valid.
 
-## Warum drei Dateien statt einer
+## Protocol
 
-Neuere MSVC-Fassungen weigern sich, ihre C++-Standardbibliothek mit CUDA
-vor 12.4 zu übersetzen:
+The program reads jobs from standard input and writes results to standard output, one JSON object
+per line.
 
+To the program:
+
+```json
+{"t":"job","jobId":"<hex>","header":"<272 hex characters>","target":"<64 hex characters>"}
+{"t":"stop"}
+{"t":"quit"}
 ```
+
+`header` is the 136-byte block header with the nonce set to zero. `target` is the 32-byte target
+the hash must not exceed. A new target is always sent together with a header; there is no
+separate command for it. `stop` pauses the work, `quit` ends the program. The program also ends
+when its standard input is closed.
+
+From the program:
+
+```json
+{"t":"device","id":0,"name":"...","cc":"5.0","vram":2147483648,"sm":3}
+{"t":"ready"}
+{"t":"progress","hashes":123,"ms":1000}
+{"t":"found","jobId":"<hex>","nonce":"<decimal>"}
+{"t":"error","message":"..."}
+```
+
+`progress` is sent about once per second and carries the hashes computed since the last message.
+
+| Call | Purpose |
+|---|---|
+| `yskar-cuda --probe` | List the devices and exit |
+| `yskar-cuda --selftest --device 0` | The card computes the genesis hash |
+| `yskar-cuda --bench 10 --device 0` | Measure the hashrate |
+| `yskar-cuda --device 0` | Mine: wait for jobs on standard input |
+
+## Why three files instead of one
+
+Newer MSVC versions refuse to compile their C++ standard library with a CUDA older than 12.4:
+
+```text
 yvals_core.h: error STL1002: Unexpected compiler version, expected CUDA 12.4 or newer
 ```
 
-CUDA 12.4 kann aber Compute Capability 5.0 nicht mehr — dafür braucht es
-11.8. Beides zugleich geht nur, wenn `nvcc` die Standardbibliothek gar nicht
-erst zu sehen bekommt.
+The build uses CUDA 11.8 because of Compute Capability 5.0. Both requirements can be met at the
+same time only if `nvcc` never sees the standard library.
 
-Deshalb baut das Skript in drei Schritten:
+The script therefore builds in three steps:
 
-```
-nvcc  -c yskar_gpu.cu     nur der Kernel, keine Standardbibliothek
-cl    /c yskar_host.cpp   Protokoll und Fäden, kein CUDA
-nvcc  verbindet beide
-```
-
-Dazwischen liegt `yskar_backend.h`, eine schmale C-Schnittstelle. Über sie
-geht keine Standardbibliothek. Dieselbe Schnittstelle bedient auch
-`yskar_cpu.cpp`, die Nachbildung zum Prüfen ohne Grafikkarte.
-
-## Wie der Kernel arbeitet
-
-**Midstate.** Der Header ist 136 Byte: zwei volle SHA-256-Blöcke und acht
-Byte im dritten. Die Nonce liegt ganz im dritten. Der Zustand nach den
-ersten beiden Blöcken ist also für einen ganzen Job gleich und wird einmal
-gerechnet. Je Versuch bleiben zwei Kompressionen statt vier — die
-WASM-Engine macht genau dasselbe.
-
-**Konstantenspeicher.** Midstate und Ziel lesen alle Threads, keiner
-schreibt. Genau dafür ist der Konstantenspeicher da.
-
-**Gitterschritt.** Benachbarte Threads prüfen benachbarte Nonces. Am Ende
-eines Stapels ist ein lückenloser Bereich abgearbeitet.
-
-**Stapelgröße 100 bis 250 ms**, selbst nachgeregelt. Kürzer lässt die Karte
-auf den Rechner warten. Länger verzögert neue Jobs — und unter Windows
-beendet der Treiber Kernel, die länger als rund zwei Sekunden laufen,
-besonders auf einer Karte, die auch den Bildschirm betreibt.
-
-**Nach einem Treffer rechnet der Thread weiter.** Früher stieg er aus, und
-der Rechner zählte trotzdem alle seine Nonces als geprüft — die gemeldete
-Hashrate war zu hoch. Gefunden in der CPU-Nachbildung, die 82 MH/s auf
-einem Kern meldete.
-
-## CPU und GPU gleichzeitig
-
-Jeder Miner bekommt eine **eigene Extranonce** und damit einen eigenen Job.
-Die Header unterscheiden sich ab Byte 120 — beide können dieselbe Nonce gar
-nicht doppelt prüfen. Neue Konsensregeln braucht es dafür nicht; es ist
-dieselbe Mechanik, mit der der MiningCoordinator ohnehin Miner trennt.
-
-Der GPU-Miner belegt einen CPU-Faden, um die Karte zu versorgen. Im Modus
-CPU + GPU deshalb einen Kern frei lassen.
-
-## Compute Capabilities
-
-Gebaut wird für alle, die das vorhandene `nvcc` kennt, aus dieser Liste:
-
-```
-50  Maxwell    940MX, GTX 750
-52  Maxwell    GTX 9xx
-60  Pascal     Tesla P100
-61  Pascal     GTX 10xx
-70  Volta
-75  Turing     GTX 16xx, RTX 20xx
-80  Ampere     A100
-86  Ampere     RTX 30xx
-89  Ada        RTX 40xx
-90  Hopper
+```text
+nvcc  -c yskar_gpu.cu     the kernel only, no standard library
+cl    /c yskar_host.cpp   protocol and threads, no CUDA
+nvcc  links the two
 ```
 
-Dazu PTX der höchsten, damit neuere Karten den Code beim ersten Start selbst
-übersetzen können. Eigene Auswahl:
+Between them is `yskar_backend.h`, a narrow interface in plain C. No standard library type
+crosses it. The same interface is implemented by `yskar_cpu.cpp`, the emulation for testing
+without a graphics card.
+
+## How the kernel works
+
+**Midstate.** The header has 136 bytes: two full SHA-256 blocks and eight bytes in the third.
+The nonce lies entirely in the third block. The state after the first two blocks is therefore
+the same for a whole job and is computed once. Each attempt then costs two compressions instead
+of four. The WebAssembly engine of the CPU miner does the same.
+
+**Constant memory.** All threads read the midstate and the target, and none writes them. That is
+what GPU constant memory is for.
+
+**Grid stride.** Each thread checks nonces at a distance of the grid size, so neighboring threads
+check neighboring nonces. At the end of a batch a range without gaps has been covered.
+
+**Batch length of 100 to 250 ms**, adjusted by the program itself. Shorter batches make the card
+wait for the host. Longer batches delay new jobs, and under Windows the driver ends kernels that
+run for more than about two seconds, especially on a card that also drives the display.
+
+**A thread keeps computing after a hit.** If it stopped, nonces would remain unchecked while the
+host counts them as checked, and the reported hashrate would be too high.
+
+**At most one hit per batch.** The kernel stores the first hit of a batch and ignores further
+ones. This matters only while the share target is still very easy, right after a session starts.
+
+## CPU and GPU at the same time
+
+Each miner receives its own extranonce and therefore its own job. The headers differ in bytes
+120 to 127, so the two cannot check the same header twice. No additional consensus rule is
+needed for this; it is the same mechanism by which the node separates all miners.
+
+The program uses one CPU thread to drive the card. In CPU + GPU mode, leave one core free.
+
+## Compute capabilities
+
+The script builds for every architecture in this list that the installed `nvcc` knows:
+
+| Compute Capability | Generation | Examples |
+|---|---|---|
+| 50 | Maxwell | GTX 750, GeForce 940MX |
+| 52 | Maxwell | GTX 9xx |
+| 60 | Pascal | Tesla P100 |
+| 61 | Pascal | GTX 10xx |
+| 70 | Volta | |
+| 75 | Turing | GTX 16xx, RTX 20xx |
+| 80 | Ampere | A100 |
+| 86 | Ampere | RTX 30xx |
+| 89 | Ada | RTX 40xx |
+| 90 | Hopper | |
+
+In addition it includes PTX code for the highest of them, so that newer cards can compile the
+code themselves on first start. To choose the architectures yourself:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File gpu\build-gpu.ps1 -Arch 50,61,86
 ```
 
-## Dateien
+## Files
 
-```
-gpu/yskar_sha256.h     SHA-256d, übersetzbar mit nvcc UND gcc
-gpu/yskar_gpu.cu       Kernel und CUDA-Zugriff -- OHNE C++-Standardbibliothek
-gpu/yskar_host.cpp     Protokoll, Selbsttest, Messung -- ohne CUDA
-gpu/yskar_cpu.cpp      CPU-Nachbildung zum Prüfen
-gpu/yskar_backend.h    die schmale C-Schnittstelle dazwischen
-gpu/build-gpu.ps1      Windows-Build
-gpu/test/test_sha.c    Prüfung gegen den Genesis, ohne GPU
-gpu/bin/               Ergebnis, nicht im Repository
+```text
+gpu/yskar_sha256.h     SHA-256d, compiles with nvcc and with gcc
+gpu/yskar_gpu.cu       kernel and CUDA access, without the C++ standard library
+gpu/yskar_host.cpp     protocol, self-test, benchmark, without CUDA
+gpu/yskar_cpu.cpp      CPU emulation for testing
+gpu/yskar_backend.h    the narrow C interface between them
+gpu/build-gpu.ps1      Windows build
+gpu/test/test_sha.c    check against the genesis block, without a GPU
+gpu/bin/               build output, not in the repository
 ```
