@@ -488,6 +488,11 @@ from the snapshot's content and compares it with the stored root. If they differ
 ignores the snapshot and replays from block 0. After replaying up to the tip, the result must
 match the state root in the tip's header; otherwise the node refuses to start with that store.
 
+Snapshots are also the starting point when the node needs the state of a block that is not the
+active tip (see [Reorganization](#reorganization)). There the snapshot's root must match the
+state root in the header of the block it belongs to, a value the node verified itself when it
+accepted that block. A snapshot that does not match is ignored and the node replays from block 0.
+
 Snapshots above a fork point are deleted when the node switches branches. They belong to a
 branch that is no longer active.
 
@@ -522,9 +527,17 @@ computes independently and that is the same for everyone.
 ## Reorganization
 
 A side-branch block is validated against the state of **its own branch**, not against the
-active tip. The node walks from the block's parent back to the genesis block, replays that
-branch and validates the block against the result. This is slower than validating on the active
-tip, and it is rare.
+active tip. The node walks from the block's parent back to the first block that is on the
+active chain, takes the state of the active chain at that point (the latest snapshot at or
+below it, plus the blocks after the snapshot), applies the blocks of the branch and validates
+the new block against the result. This is slower than validating on the active tip, and it is
+rare. The node keeps the state after the last side-branch block it accepted, so a branch that
+arrives block by block is not recomputed for every block.
+
+The time and difficulty rules read only the most recent blocks before the new one: the time
+rule the last 11 timestamps, the difficulty rule the solve times of the last 45 blocks. The
+node reads only those blocks, along the block's own branch, and not the whole chain. Both rules are checked before the state of a side branch is computed, so a block with a
+wrong timestamp or difficulty is rejected before that work is done.
 
 After a valid block is stored, the node selects the best chain:
 
@@ -541,9 +554,11 @@ After a valid block is stored, the node selects the best chain:
 No block is deleted. The old branch stays in the store completely and can win again later if it
 gains more work. There is no depth limit for a reorg and there are no checkpoints.
 
-The same steps run when a block simply extends the active chain; the path then has one block and
-nothing is displaced. The node reports a reorg only when the new tip's parent is not the old
-tip.
+When a block simply extends the active chain, nothing is displaced and nothing has to be
+rebuilt: the node marks the block as active and keeps the state it computed while validating
+the block, whose root it has just compared with the root in the block's header. On a snapshot
+height it saves that state as a snapshot. The node reports a reorg only when the new tip's
+parent is not the old tip.
 
 ## The mempool
 
