@@ -1,4 +1,4 @@
-# YSKAR Node Core 0.5.0
+# YSKAR Node Core 0.5.1
 
 A full YSKAR node for Windows with its own window: wallet, mining (solo, in a
 pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -15,6 +15,21 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Program** | German and English, start with Windows, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 0.5.1
+
+- **Catching up over more than 2,000 blocks** (`src/lib/node/p2p/SyncManager.ts`).
+  A node that far behind asked for the same 2,000 headers again after every
+  answer and loaded about 16 blocks per 20 to 30 seconds. It now asks for the
+  headers behind the last one it received. See
+  [docs/P2P.md](../docs/P2P.md#catching-up-over-several-messages).
+- **Block acceptance** (`src/lib/node/fullnode/ChainManager.ts`) no longer
+  walks back to the genesis block for every block and no longer rebuilds the
+  state from the last snapshot after every block. The rules are unchanged.
+- **A second built-in seed**, `yskar-seed2.dynv6.net:8646` (see "Defaults"
+  below).
+
+Interface, wallet, mining and settings are the same as in 0.5.0.
 
 ## What changed in 0.5.0
 
@@ -165,8 +180,7 @@ and is used in addition to the configured one (`WEITERE_SEEDS` in
 `src/main.ts`). It is a different machine on a different connection than the
 default seed, so a new Node Core finds the network when one of the two is off.
 If the seed field is left empty, no seed is used at all.
-It is in the source of this repository; the released installer 0.5.0 does
-not contain it yet.
+The second seed is built in since 0.5.1.
 
 ## Mining engines
 
@@ -196,7 +210,7 @@ powershell -ExecutionPolicy Bypass -File .\build-desktop.ps1
 
 The finished installer is created under:
 
-`node-core\release\YSKAR-Node-Core-Setup-0.5.0.exe`
+`node-core\release\YSKAR-Node-Core-Setup-0.5.1.exe`
 
 A release build on GitHub is described in
 `.github/workflows/node-core-release.yml`: setting the branch
