@@ -98,7 +98,7 @@ trust the program that holds your keys and the program that validates for you.
   `.sha256` file of the release:
 
   ```powershell
-  Get-FileHash .\YSKAR-Node-Core-Setup-0.5.0.exe -Algorithm SHA256
+  Get-FileHash .\YSKAR-Node-Core-Setup-0.5.1.exe -Algorithm SHA256
   ```
 
   A matching checksum tells you that the file was not altered between the release page and your
