@@ -116,6 +116,11 @@ with different blocks. The locator finds the common ancestor in a few steps.
 
 A stop hash of 32 zero bytes means "as far as possible".
 
+While a node catches up over more than one `headers` message, it puts the last header it
+received in front of this list. The receiver finds that hash on its active chain and continues
+right behind it. If it does not know the hash, for example after a reorganization, it falls back
+to the rest of the list, which starts at the sender's own tip.
+
 ### Limits on everything
 
 Every list has a maximum number of entries and every text a maximum length.
@@ -321,22 +326,52 @@ is left out. A peer could send two thousand of them and make the node request tw
 bodies.
 
 For every header it receives, the node computes the hash and checks it against the difficulty
-stated in that header. This costs microseconds and makes the attack impossible: whoever delivers
-a header with valid proof of work has worked for it. A header that fails the check closes the
-connection. The **full** validation, including whether the stated difficulty is the right one,
-follows when the body arrives. At this stage the point is only to separate work from claims.
+stated in that header. This costs microseconds, and a header without any work behind it is
+rejected at once. A header that fails the check closes the connection. The check does not show
+that the stated difficulty is the right one: the **full** validation, including that, follows
+when the body arrives. Headers that state a low difficulty are therefore cheap to produce, and
+the number of headers a node keeps waiting for their bodies is limited (below).
 
-If a `headers` message contains the full 2,000 headers, the node asks for more.
+### Catching up over several messages
+
+If a `headers` message contains the full 2,000 headers and brought at least one header the node
+did not have yet, the node asks for the headers **behind the last one it received**. A node that
+is 5,000 blocks behind gets its headers in three messages.
+
+Until October 2026 the node asked again from its own tip instead. The tip only moves when block
+bodies arrive, so the peer sent the same 2,000 headers again after every answer, for as long as
+the node was more than 2,000 blocks behind, and comparing each of these messages with the list
+of waiting headers kept the node busy for many seconds. A new node loaded about 16 blocks per
+message that way.
+
+At most 20,000 headers wait for their bodies at the same time. When that limit is reached, or
+when a full message brought nothing new, the node does not ask further but notes that there is
+probably more. The same note is made when a block arrives whose parent is missing.
+
+When the last waiting block has been accepted, the node asks again from its own tip: the peer
+that just delivered if such a note exists, and a peer that reported more chain work in its
+handshake than the node has by then. The work from the handshake is as old as the connection
+and is only what the peer claims, so it decides who is asked in addition, not instead.
 
 ### Limited window
 
 At most 16 block bodies are requested at the same time. Requesting all of them at once would
 ask for hundreds of megabytes on a long chain.
 
-A request without an answer is released after 30 seconds, and the node then asks the peer with
-the most chain work for the missing blocks. Otherwise a peer that does not deliver would block a
-place in the window, and the block would never be fetched from anyone else. A peer that answers
-`notfound` causes the node to ask another peer.
+The blocks that wait in this list are requested from **one peer at a time**. A peer answers
+requests in the order it received them; spread over two peers, the blocks would arrive out of
+order, and a block that arrives before its parent is dropped.
+
+A request without an answer is released after 30 seconds. A peer that lets one request expire
+loses all its open requests and is no longer the peer the node orders from. Otherwise a peer
+that delivers only now and then would keep the whole catch-up to itself. A peer that answers
+`notfound` for a waiting block it was asked for is replaced in the same way.
+
+The node then orders from the peer with the most chain work (as reported in the handshake)
+that has not failed in this round. If every peer has failed, nothing is ordered at once; a
+check that runs every five seconds starts the round again. The same check orders waiting blocks
+that nobody has been asked for. The list of peers that failed is cleared as soon as a waiting
+block is accepted.
 
 ### Blocks
 
@@ -352,6 +387,9 @@ When a block arrives:
 
 A node announces a block that one of its own miners found in the same way. A node that receives
 an `inv` for a block it does not have and has not already requested asks for it with `getdata`.
+There is one exception: a block whose header already waits in the list is not fetched on an
+announcement if the node does not have its parent and is not fetching the parent with the same
+announcement. It could not be accepted now and will be fetched in its turn.
 
 ### Transfers
 

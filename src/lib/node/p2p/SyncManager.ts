@@ -48,8 +48,9 @@ export const ANFRAGE_TIMEOUT_MS = 30_000;
  *
  * Header sind billig zu erfinden, solange der Proof of Work zu der
  * Difficulty passt, die sie selbst nennen. Ohne Grenze koennte ein Peer die
- * Warteschlange mit jeder Nachricht weiter fuellen. Ist sie voll, wird erst
- * weitergefragt, wenn sie leer ist.
+ * Warteschlange mit jeder Nachricht weiter fuellen. Ist sie voll, wird
+ * nicht weitergefragt; neu gefragt wird, wenn der letzte ihrer Bloecke
+ * angenommen ist.
  */
 export const WARTESCHLANGE_NACHRICHTEN = 10;
 
@@ -87,6 +88,8 @@ interface Wartend {
   hash: Uint8Array;
   hoehe: number;
   key: string;
+  /** Hash des Vorgaengers, wie er im Header steht. */
+  vor: Uint8Array;
 }
 
 export class SyncManager {
@@ -131,18 +134,33 @@ export class SyncManager {
    * Reihenfolge noch gebraucht wird.
    */
   private warteschlange: Wartend[] = [];
-  /** Die Hashes der Warteschlange -- damit "steht er schon drin?" nichts kostet. */
-  private wartend = new Set<string>();
+  /** Die Warteschlange nach Hash -- damit "steht er schon drin?" nichts kostet. */
+  private wartend = new Map<string, Wartend>();
   /**
    * Der Peer, bei dem die Bloecke der Warteschlange gerade bestellt sind.
    *
-   * Solange bei ihm Bestellungen offen sind, wird bei keinem anderen
-   * bestellt. Ein Peer beantwortet Bestellungen in ihrer Reihenfolge; ueber
-   * zwei verteilt kaemen die Bloecke durcheinander an, und jeder, der vor
-   * seinem Vorgaenger eintrifft, wird verworfen und kostet eine neue
-   * Header-Runde.
+   * Solange bei ihm Bestellungen offen sind, werden die Bloecke der
+   * Warteschlange bei keinem anderen bestellt. Ein Peer beantwortet
+   * Bestellungen in ihrer Reihenfolge; ueber zwei verteilt kaemen die
+   * Bloecke durcheinander an, und jeder, der vor seinem Vorgaenger
+   * eintrifft, wird verworfen und kostet eine neue Header-Runde.
+   *
+   * Er verliert die Rolle, wenn er eine Bestellung verfallen laesst, einen
+   * bei ihm bestellten Block der Warteschlange nicht hat oder die
+   * Warteschlange leer ist. Einzeln angekuendigte Bloecke (inv) werden
+   * unabhaengig davon bei dem geholt, der sie ankuendigt.
    */
   private lieferant: PeerConnection | null = null;
+  /**
+   * Peers, die beim laufenden Aufholen eine Bestellung verfallen liessen
+   * oder einen Block der Warteschlange nicht hatten. Bei ihnen wird nicht
+   * nachbestellt, solange es einen anderen gibt.
+   *
+   * Geleert wird die Liste, sobald ein Block der Warteschlange angenommen
+   * ist, und wenn kein anderer Peer mehr uebrig ist -- dann beginnt die
+   * Runde im naechsten Takt von vorn.
+   */
+  private meiden = new Set<PeerConnection>();
   /**
    * Es gibt vermutlich mehr Header, als in der Warteschlange stehen: Die
    * letzte volle Nachricht wurde nicht fortgesetzt, oder ein Block kam an,
@@ -183,6 +201,7 @@ export class SyncManager {
     this.warteschlange = [];
     this.wartend.clear();
     this.lieferant = null;
+    this.meiden.clear();
     this.mehrVermutet = false;
   }
 
@@ -375,7 +394,7 @@ export class SyncManager {
 
       letzter = hash;
       if (this.store.has(hash)) continue;
-      neu.push({ hash, hoehe: kopf.height, key: toHex(hash) });
+      neu.push({ hash, hoehe: kopf.height, key: toHex(hash), vor: kopf.prevHash });
     }
 
     if (neu.length === 0) return;
@@ -394,7 +413,7 @@ export class SyncManager {
     for (const n of neu) {
       if (this.wartend.has(n.key)) continue;
       if (this.warteschlange.length >= grenze) break;
-      this.wartend.add(n.key);
+      this.wartend.set(n.key, n);
       this.warteschlange.push(n);
       dazu++;
     }
@@ -417,8 +436,8 @@ export class SyncManager {
       Nur wenn die Nachricht etwas Neues brachte und noch Platz ist: Sonst
       koennte ein Peer, der immer dieselbe volle Nachricht schickt, dieses
       Hin und Her endlos in Gang halten. Dann wird nur vermerkt, dass es
-      mehr geben duerfte -- aufBlock() fragt neu, wenn die Warteschlange
-      leer ist.
+      mehr geben duerfte. Ist der letzte Block der Warteschlange angenommen,
+      fragt aufBlock() einmal neu.
     */
     if (roh.length >= this.maxHeaders) {
       if (dazu > 0 && letzter && this.warteschlange.length < grenze) this.frageHeader(p, letzter);
@@ -447,7 +466,11 @@ export class SyncManager {
     const wunsch: { typ: number; hash: Uint8Array }[] = [];
 
     for (const w of this.warteschlange) {
-      if (this.offen.size + wunsch.length >= BLOCK_FENSTER) break;
+      // offen enthaelt schon, was in diesem Durchlauf bestellt wird (siehe
+      // unten). Vorher wurde es hier noch einmal dazugezaehlt; die erste
+      // Bestellung umfasste dadurch 8 statt 16 Bloecke, und danach blieb
+      // immer ein Platz frei.
+      if (this.offen.size >= BLOCK_FENSTER) break;
       if (this.offen.has(w.key) || this.store.has(w.hash)) continue;
       wunsch.push({ typ: INV_BLOCK, hash: w.hash });
       this.offen.set(w.key, { peer: p, seit: Date.now() });
@@ -467,7 +490,8 @@ export class SyncManager {
     this.offen.delete(hash);
     // Bloecke kommen in der Reihenfolge der Warteschlange -- der Eintrag
     // steht fast immer ganz vorn.
-    if (this.wartend.delete(hash)) {
+    const ausWarteschlange = this.wartend.delete(hash);
+    if (ausWarteschlange) {
       const i = this.warteschlange.findIndex(w => w.key === hash);
       if (i >= 0) this.warteschlange.splice(i, 1);
     }
@@ -489,6 +513,10 @@ export class SyncManager {
       p.close(`ungueltiger_block:${r.grund}`);
       return;
     }
+
+    // Es geht voran: Wer vorhin nicht liefern konnte, darf wieder gefragt
+    // werden, falls der jetzige Lieferant ausfaellt.
+    if (ausWarteschlange) this.meiden.clear();
 
     if (r.stored) {
       /*
@@ -517,42 +545,72 @@ export class SyncManager {
     }
 
     /*
-      Die Warteschlange ist leer. Fehlt noch etwas, wird neu gefragt, ab dem
-      eigenen Kopf.
+      Die Warteschlange ist leer: Das Aufholen ist zu Ende oder
+      unterbrochen. Der Lieferant wird frei.
 
-      Zuerst ein Peer, der beim Handschlag mehr Arbeit gemeldet hat, als wir
-      jetzt haben: der, der gerade geliefert hat, sonst der mit der meisten
-      Arbeit. Gibt es keinen solchen, ist aber vermerkt, dass es mehr Header
-      geben duerfte, wird trotzdem gefragt -- die Arbeit aus dem Handschlag
-      ist so alt wie die Verbindung.
+      Fehlt noch etwas, wird neu gefragt, ab dem eigenen Kopf:
+
+      - ein Peer, der beim Handschlag mehr Arbeit gemeldet hat, als wir
+        jetzt haben -- der, der gerade geliefert hat, sonst der mit der
+        meisten Arbeit;
+      - und, wenn vermerkt ist, dass es mehr Header geben duerfte, in jedem
+        Fall der Peer, der gerade geliefert hat. Die Arbeit aus dem
+        Handschlag ist so alt wie die Verbindung, und angeben kann ein Peer
+        dort, was er will: Wer sie zu hoch angibt, bekommt eine Anfrage,
+        nimmt sie aber dem liefernden Peer nicht weg.
+
+      Ein Block, den wir schon hatten, loest nichts aus -- ausser es ist
+      etwas vermerkt.
 
       Vorher uebernahm das die Schleife aus Header-Anfragen, die es nicht
       mehr gibt.
     */
-    const eigene = this.chain.tip()?.chainWork ?? 0n;
+    this.lieferant = null;
     const mehr = this.mehrVermutet;
+    if (!r.stored && !mehr) return;
     this.mehrVermutet = false;
+    const eigene = this.chain.tip()?.chainWork ?? 0n;
     const kandidaten = [p, this.peers.besterPeer()]
       .filter((q): q is PeerConnection => q !== null && q.ready);
-    const quelle = kandidaten.find(q => q.fremdeArbeit() > eigene)
-      ?? (mehr ? kandidaten[kandidaten.length - 1] : undefined);
-    if (quelle) this.frageHeader(quelle);
+    const ziele = new Set<PeerConnection>();
+    if (mehr && p.ready) ziele.add(p);
+    const mitMehrArbeit = kandidaten.find(q => q.fremdeArbeit() > eigene);
+    if (mitMehrArbeit) ziele.add(mitMehrArbeit);
+    for (const q of ziele) this.frageHeader(q);
   }
 
   private aufInv(p: PeerConnection, payload: Uint8Array): void {
     const eintraege = decodeInv(payload);
 
     /*
-      Was schon in der Warteschlange steht, wird nicht eigens geholt: Es
-      kommt in seiner Reihenfolge. Vorher wurde ein mitten im Aufholen
-      angekuendigter Block sofort bestellt, traf vor seinem Vorgaenger ein
-      und wurde verworfen.
+      Ein Block, der in der Warteschlange steht und dessen Vorgaenger wir
+      noch nicht haben, wird nicht eigens geholt: Er liesse sich jetzt nicht
+      annehmen und kommt in seiner Reihenfolge. Vorher wurde er auf die
+      Ankuendigung hin sofort bestellt, traf vor seinem Vorgaenger ein und
+      wurde verworfen -- etwa wenn ein anderer Knoten, der selbst gerade
+      aufholt, jeden seiner Bloecke weitersagt.
+
+      Haben wir den Vorgaenger -- oder holen wir ihn mit derselben
+      Ankuendigung --, wird der Block wie bisher sofort geholt, auch wenn er
+      in der Warteschlange steht. So folgt der Knoten einem neuen Kopf auch
+      dann, wenn vorn in der Warteschlange Eintraege stehen, die nie
+      geliefert werden. Geprueft wird das nur in diesem Augenblick: Kommt
+      der Vorgaenger erst spaeter, bleibt der Block in der Warteschlange.
+
+      Von einem Block, der nicht in der Warteschlange steht, kennen wir den
+      Vorgaenger nicht. Der wird wie bisher geholt.
     */
-    const wunsch = eintraege.filter(e => {
-      if (e.typ !== INV_BLOCK || this.store.has(e.hash)) return false;
+    const wunsch: typeof eintraege = [];
+    const gewuenscht = new Set<string>();
+    for (const e of eintraege) {
+      if (e.typ !== INV_BLOCK || this.store.has(e.hash)) continue;
       const k = toHex(e.hash);
-      return !this.offen.has(k) && !this.wartend.has(k);
-    });
+      if (this.offen.has(k) || gewuenscht.has(k)) continue;
+      const w = this.wartend.get(k);
+      if (w && !this.store.has(w.vor) && !gewuenscht.has(toHex(w.vor))) continue;
+      wunsch.push(e);
+      gewuenscht.add(k);
+    }
 
     for (const w of wunsch) {
       this.offen.set(toHex(w.hash), { peer: p, seit: Date.now() });
@@ -656,35 +714,96 @@ export class SyncManager {
   }
 
   private aufNotFound(p: PeerConnection, payload: Uint8Array): void {
+    // Hat p einen Block der Warteschlange nicht, der bei ihm bestellt war?
+    let fehltInWarteschlange = false;
     for (const e of decodeNotFoundSicher(payload)) {
-      this.offen.delete(toHex(e.hash));
+      const k = toHex(e.hash);
+      if (this.offen.get(k)?.peer === p && this.wartend.has(k)) fehltInWarteschlange = true;
+      this.offen.delete(k);
       // Eine Ueberweisung, die der Peer nicht mehr hat: Der Versuch ist
       // beendet. Nicht als abgewiesen merken -- sie kann bei einem anderen
       // liegen und voellig in Ordnung sein.
-      this.offeneTx.delete(toHex(e.hash));
+      this.offeneTx.delete(k);
     }
-    // Ein anderer Peer hat ihn vielleicht.
-    const anderer = this.peers.bereite().find(x => x !== p);
+    // Eine Ueberweisung oder ein einzeln angekuendigter Block, den der Peer
+    // nicht (mehr) hat, aendert am Aufholen nichts.
+    if (!fehltInWarteschlange) return;
+
+    /*
+      Ein anderer Peer hat den Block vielleicht. Gefragt wird der mit der
+      meisten beim Handschlag gemeldeten Arbeit, bei dem es in dieser Runde
+      noch nicht versucht wurde. Vorher war es der erste andere in der
+      Liste; standen dort zwei Knoten mit kurzer Kette, reichten sie die
+      Bestellung endlos hin und her, waehrend ein dritter alles gehabt
+      haette.
+
+      Ist keiner mehr uebrig, wird jetzt NICHT weiterbestellt -- das ergaebe
+      dieselbe Schleife in Netzgeschwindigkeit. Der Takt beginnt die Runde
+      nach ein paar Sekunden neu.
+    */
+    this.meiden.add(p);
+    if (this.lieferant === p) this.lieferant = null;
+    const anderer = this.besterAusser(this.meiden);
     if (anderer && this.warteschlange.length > 0) this.frageBloecke(anderer);
   }
 
+  /** Der bereite Peer mit der meisten Arbeit, der nicht in `ohne` steht. */
+  private besterAusser(ohne: Set<PeerConnection>): PeerConnection | null {
+    let best: PeerConnection | null = null;
+    for (const q of this.peers.bereite()) {
+      if (ohne.has(q)) continue;
+      if (!best || q.fremdeArbeit() > best.fremdeArbeit()) best = q;
+    }
+    return best;
+  }
+
   /**
-   * Abgelaufene Anfragen freigeben.
+   * Abgelaufene Anfragen freigeben, und nachsehen, ob etwas liegen blieb.
    *
    * Ein Peer, der nicht liefert, blockiert sonst einen Platz im Fenster --
    * und der Block wuerde nie von jemand anderem geholt.
+   *
+   * Wer EINE Bestellung verfallen laesst, verliert alle offenen und die
+   * Rolle des Lieferanten. Sonst behielte ein Peer, der nur tropfenweise
+   * liefert, das Aufholen fuer sich: Jeder seiner Bloecke bestellte die
+   * verfallenen wieder bei ihm. Nachbestellt wird bei einem Peer, bei dem
+   * es in dieser Runde noch nicht versucht wurde (siehe `meiden`), wenn es
+   * einen gibt.
    */
   private pruefeOffene(): void {
     const jetzt = Date.now();
     let frei = 0;
+    const saeumig = new Set<PeerConnection>();
     for (const [k, a] of [...this.offen]) {
-      if (jetzt - a.seit > ANFRAGE_TIMEOUT_MS) { this.offen.delete(k); frei++; }
+      if (jetzt - a.seit > ANFRAGE_TIMEOUT_MS) {
+        this.offen.delete(k); frei++; saeumig.add(a.peer);
+      }
     }
-    if (frei === 0) return;
+    if (frei > 0) {
+      for (const [k, a] of [...this.offen]) {
+        if (saeumig.has(a.peer)) { this.offen.delete(k); frei++; }
+      }
+      for (const q of saeumig) this.meiden.add(q);
+      if (this.lieferant && saeumig.has(this.lieferant)) this.lieferant = null;
+      this.log(`${frei} Anfragen ohne Antwort freigegeben`);
+    }
 
-    this.log(`${frei} Anfragen ohne Antwort freigegeben`);
-    const p = this.peers.besterPeer();
-    if (p && this.warteschlange.length > 0) this.frageBloecke(p);
+    /*
+      Steht etwas in der Warteschlange, wird bestellt -- in jedem Takt, nicht
+      nur nach einem Verfall. frageBloecke() bestellt nur, was nicht schon
+      bestellt ist, hoechstens ein Fenster, und laesst es, solange ein
+      anderer liefert. Ohne diesen Blick bliebe die Warteschlange liegen,
+      wenn der letzte Anstoss ausfiel: ein Block ohne Vorgaenger, ein
+      getrennter Peer, eine Runde, in der kein Peer den Block hatte.
+    */
+    if (this.warteschlange.length === 0) { this.meiden.clear(); return; }
+    let p = this.besterAusser(this.meiden);
+    if (!p) {
+      // Bei allen versucht: Die Runde beginnt von vorn.
+      this.meiden.clear();
+      p = this.peers.besterPeer();
+    }
+    if (p) this.frageBloecke(p);
   }
 }
 
