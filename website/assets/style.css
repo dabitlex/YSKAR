@@ -125,6 +125,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
 
 /* ------------------------------------------------------------ Karten */
 .raster-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.raster-wege{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .raster-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
 .karte{background:var(--weiss);border:1px solid var(--kante);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:14px}
 .karte h3{font-size:22px;font-weight:800}
@@ -185,9 +186,6 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
 .fenster-leiste i:nth-of-type(3){border:0;background:linear-gradient(45deg,transparent 44%,#5B6B84 44%,#5B6B84 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,#5B6B84 44%,#5B6B84 56%,transparent 56%);width:12px;height:12px}
 .fenster img{display:block;width:100%;height:auto}
 .fenster figcaption{padding:10px 16px;background:#0F1728;border-top:1px solid #1C283E;color:#9EADC6;font-size:12.5px}
-.weg-link{font-size:14.5px;font-weight:600;color:var(--blau);text-align:center}
-.weg .weg-link{margin-top:auto}
-.weg .weg-link+.knopf{margin-top:0}
 
 /* ------------------------------------------------------------ Kennzahlen */
 .zahlen{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -318,6 +316,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
   .nc-raster{gap:44px}
   .held-raster{gap:48px}
   .raster-3{grid-template-columns:minmax(0,1fr)}
+  .raster-wege{grid-template-columns:minmax(0,1fr)}
   .abschnitt{padding:72px 0}
   .h2,.h2.gross,.h2.faq-titel{font-size:38px}
   .kopfzeile-abschnitt{flex-direction:column;align-items:flex-start;gap:18px}
