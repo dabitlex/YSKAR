@@ -12,10 +12,10 @@
 <link rel="icon" href="/favicon.png?v=2" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
 <link rel="preload" href="/assets/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=9">
+<link rel="stylesheet" href="/assets/style.css?v=10">
 <noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=9"></script>
-<script src="/assets/site.js?v=9" defer></script>
+<script src="/assets/i18n/en.js?v=10"></script>
+<script src="/assets/site.js?v=10" defer></script>
 </head>
 <body data-seite="start">
 
@@ -29,13 +29,13 @@
 </a>
 <div style="display:flex;align-items:center;gap:12px">
 <nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
+<a href="/#was" data-t="nav.was">About YSKAR</a>
+<a href="/#ablauf" data-t="nav.ablauf">How it works</a>
 <a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
-<a href="/#wallet" data-t="nav.wallet">Wallet</a>
 <a href="/#nodecore">Node Core</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
 <a href="/explorer" data-t="nav.explorer">Explorer</a>
-<a class="knopf primaer klein" href="/#mitmachen" data-t="nav.minen">Start mining</a>
 </nav>
 <label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
 <button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
@@ -55,12 +55,12 @@
 <h1><span data-t="held.titel1">Mining for everyone.</span><span data-t="held.titel2">Verifiable</span><span data-t="held.titel3">by anyone.</span></h1>
 <p data-t="held.text">YSKAR is a blockchain of its own. Your phone or PC computes real SHA-256 hashes, and every block found is public, so you can check it yourself in your browser.</p>
 <div class="knopfreihe">
-<a class="knopf primaer gross" href="#mitmachen">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-<span data-t="held.minen">Start mining</span></a>
-<a class="knopf dunkel gross" href="#wallet">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M16 13h2"/><path d="M3 10h18"/></svg>
-<span data-t="held.wallet">Get the wallet</span></a>
+<a class="knopf primaer gross" href="#was">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg>
+<span data-t="held.was">What is YSKAR?</span></a>
+<a class="knopf dunkel gross" href="#ablauf">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="6" height="6" rx="1.5"/><rect x="15" y="9" width="6" height="6" rx="1.5"/><path d="M9 12h6"/></svg>
+<span data-t="held.ablauf">How it works</span></a>
 </div>
 </div>
 <div class="telefon">
@@ -76,6 +76,33 @@
 <div><span class="kennung" data-t="live.halbierung">Next halving</span><span class="wert" id="live-halbierung">—</span></div>
 </div>
 <p class="live-fuss"><span class="punkt"></span><span id="live-status" data-t="live.laedt">Loading live data from the chain…</span></p>
+</div>
+</section>
+
+<!-- Was ist YSKAR -->
+<section id="was" class="abschnitt weiss">
+<div class="wrap">
+<p class="etikett" data-t="was.etikett">In short</p>
+<h2 class="h2" data-t="was.titel">What is YSKAR?</h2>
+<div class="was-raster">
+<div class="was-text">
+<p class="gross" data-t="was.p1">YSKAR is a cryptocurrency with a blockchain of its own. Its coin is called YSR.</p>
+<p data-t="was.p2">New YSR come into existence in one way only: mining. The participants’ devices compete to find the next block, and whoever finds it receives the reward. Nothing was allocated in advance, and there will never be more than 21 million YSR.</p>
+<p data-t="was.p3">Anyone can take part with what they have: a phone, a PC or a graphics card. Your wallet lives on your own device; nobody else holds your YSR.</p>
+<p data-t="was.p4">YSKAR is a community project and still young. The network has been running since 9 September 2026, currently on very few nodes. Its present limits are named openly in the whitepaper.</p>
+</div>
+<aside class="steckbrief">
+<h3 data-t="was.steck.titel">At a glance</h3>
+<dl>
+<div><dt data-t="was.steck.muenze">Coin</dt><dd>YSR</dd></div>
+<div><dt data-t="was.steck.start">Running since</dt><dd data-t="was.steck.startWert">9 September 2026</dd></div>
+<div><dt data-t="zahlen.menge">Maximum supply</dt><dd><span data-n="21000000">21,000,000</span> YSR</dd></div>
+<div><dt data-t="was.steck.neu">New YSR</dt><dd data-t="was.steck.neuWert">by mining only</dd></div>
+<div><dt data-t="was.steck.vorab">Allocated in advance</dt><dd data-t="was.steck.vorabWert">nothing</dd></div>
+<div><dt data-t="was.steck.code">Source code</dt><dd><a href="https://github.com/dabitlex/YSKAR" data-t="was.steck.codeWert">public on GitHub</a></dd></div>
+</dl>
+</aside>
+</div>
 </div>
 </section>
 
@@ -100,6 +127,87 @@
 <div class="symbol bernstein"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
 <h3 data-t="grund.k3.titel">Yours alone</h3>
 <p data-t="grund.k3.text">Your wallet is created from 12 words on your own device. Nobody else holds your key, including us.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- So funktioniert es -->
+<section id="ablauf" class="abschnitt">
+<div class="wrap">
+<p class="etikett" data-t="ab.etikett">Step by step</p>
+<h2 class="h2" data-t="ab.titel">How YSKAR works</h2>
+<p class="einleitung dunkel" data-t="ab.text">From the first hash to the YSR in your wallet, in four steps.</p>
+<ol class="ablauf">
+<li><span class="nr">01</span>
+<div class="symbol nacht"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+<h3 data-t="ab.s1.titel">Devices compute</h3>
+<p data-t="ab.s1.text">Phones, PCs and graphics cards search at the same time for a number that makes the next block valid. That is mining: pure computation with SHA-256d.</p></li>
+<li><span class="nr">02</span>
+<div class="symbol nacht"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3z"/><path d="M4 7.5 12 12l8-4.5"/><path d="M12 12v9"/></svg></div>
+<h3 data-t="ab.s2.titel">A block is found</h3>
+<p data-t="ab.s2.text">The network sets the difficulty so that a block is found about every 10 minutes. The new block contains the waiting transfers and attaches itself to the previous one.</p></li>
+<li><span class="nr">03</span>
+<div class="symbol nacht"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.5 14.2 7 22l5-3 5 3-1.5-7.8"/></svg></div>
+<h3 data-t="ab.s3.titel">The reward is paid</h3>
+<p data-t="ab.s3.text">The block itself pays the reward, currently 875 YSR: to the finder alone, or in a pool to everyone by the work they contributed.</p></li>
+<li><span class="nr">04</span>
+<div class="symbol nacht"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+<h3 data-t="ab.s4.titel">Everyone verifies</h3>
+<p data-t="ab.s4.text">Every node re-computes every block completely: the work, the signatures, the balances. A block that breaks a rule is rejected, no matter who sent it.</p></li>
+</ol>
+
+<div class="kette-rahmen">
+<div class="kette" role="img" aria-label="Chain of blocks, each pointing to the one before" data-ta="aria-label:ab.kette.alt">
+<div class="block"><b data-kette="-2">#…</b><span data-t="ab.kette.geprueft">verified</span></div><i class="glied"></i>
+<div class="block"><b data-kette="-1">#…</b><span data-t="ab.kette.geprueft">verified</span></div><i class="glied"></i>
+<div class="block neu"><b data-kette="0">#…</b><span data-t="ab.kette.neu">newest block</span></div><i class="glied"></i>
+<div class="block offen"><b data-kette="1">#…</b><span data-t="ab.kette.offen">being searched for</span></div>
+</div>
+<p class="kette-text" data-t="ab.kette.text">Every block points to the one before it. Anyone who wanted to change an old block would have to redo the work of all blocks after it.</p>
+</div>
+
+<div class="raster-3 ablauf-karten">
+<div class="karte-d"><h3 data-t="ab.k1.titel">Your wallet</h3><p data-t="ab.k1.text">12 words create your key on your own device. You sign transfers with it; without it nobody can move your YSR.</p></div>
+<div class="karte-d"><h3 data-t="ab.k2.titel">Sending and receiving</h3><p data-t="ab.k2.text">A transfer is sent to the network and written into the chain with one of the next blocks. With every further block it becomes more secure.</p></div>
+<div class="karte-d"><h3 data-t="ab.k3.titel">Solo or in a pool</h3><p data-t="ab.k3.text">Solo, the finder receives the whole reward. In a pool the block splits it directly among everyone; the pool never holds anyone else’s money.</p></div>
+</div>
+
+<div class="knopfreihe" style="margin-top:40px">
+<a class="knopf primaer" href="/explorer" data-t="ab.explorer">See the chain in the explorer</a>
+<a class="knopf dunkel" href="/whitepaper" data-t="wp.knopf">Read the whitepaper</a>
+</div>
+</div>
+</section>
+
+<!-- Kennzahlen -->
+<section id="kennzahlen" class="abschnitt hell">
+<div class="wrap">
+<p class="etikett" data-t="zahlen.etikett">Key figures</p>
+<h2 class="h2" data-t="zahlen.titel">Fixed in the code, the same for everyone</h2>
+<div class="raster-2" style="margin-top:48px;gap:48px;align-items:stretch">
+<div class="zahlen">
+<div class="zahl"><div class="kennung" data-t="zahlen.menge">Maximum supply</div><div class="wert"><span data-n="21000000">21,000,000</span> YSR</div></div>
+<div class="zahl"><div class="kennung" data-t="zahlen.belohnung">Reward per block</div><div class="wert">875 YSR</div></div>
+<div class="zahl"><div class="kennung" data-t="zahlen.halbierung">Halving</div><div class="wert" data-t="zahlen.halbierungWert">every 12,000 blocks</div></div>
+<div class="zahl"><div class="kennung" data-t="zahlen.blockzeit">Block time</div><div class="wert" data-t="zahlen.blockzeitWert">10 minutes</div></div>
+<div class="zahl"><div class="kennung" data-t="zahlen.algo">Algorithm</div><div class="wert">SHA-256d</div></div>
+<div class="zahl"><div class="kennung" data-t="zahlen.teilbar">Divisibility</div><div class="wert" data-t="zahlen.teilbarWert">8 decimal places</div></div>
+</div>
+<div class="diagramm">
+<div class="diagramm-kopf"><h3 data-t="zahlen.diagramm">Supply created after each halving</h3><span class="mono" style="font-size:13px;color:var(--dim)" data-t="zahlen.einheit">million YSR</span></div>
+<div class="balken" role="img" aria-label="10.5, 15.75, 18.38, 19.69, 20.34, 20.67, 20.84, 20.92 million YSR after blocks 12,000 to 96,000" data-ta="aria-label:zahlen.diagrammAlt">
+<div><span data-n="10.5">10.5</span><i style="height:125px"></i></div>
+<div><span data-n="15.75">15.75</span><i style="height:188px"></i></div>
+<div><span data-n="18.38">18.38</span><i style="height:219px"></i></div>
+<div><span data-n="19.69">19.69</span><i style="height:234px"></i></div>
+<div><span data-n="20.34">20.34</span><i style="height:242px"></i></div>
+<div><span data-n="20.67">20.67</span><i style="height:246px"></i></div>
+<div><span data-n="20.84">20.84</span><i style="height:248px"></i></div>
+<div><span data-n="20.92">20.92</span><i style="height:249px"></i></div>
+</div>
+<div class="achse" aria-hidden="true"><span data-n="12000">12,000</span><span data-n="24000">24,000</span><span data-n="36000">36,000</span><span data-n="48000">48,000</span><span data-n="60000">60,000</span><span data-n="72000">72,000</span><span data-n="84000">84,000</span><span data-n="96000">96,000</span></div>
+<p class="fuss" data-t="zahlen.fuss">Block height at the end of each epoch. At 10 minutes per block, an epoch lasts about 83 days; 99% of all YSR are created within roughly the first 1.6 years.</p>
 </div>
 </div>
 </div>
@@ -253,39 +361,6 @@ npm run build
 node dist/yskar-node.cjs mine --data ./knoten \
   --seed yskar-main.dynv6.net:8646 \
   --seed yskar-seed2.dynv6.net:8646 --no-upstream</pre>
-</div>
-</div>
-</section>
-
-<!-- Kennzahlen -->
-<section id="kennzahlen" class="abschnitt weiss">
-<div class="wrap">
-<p class="etikett" data-t="zahlen.etikett">Key figures</p>
-<h2 class="h2" data-t="zahlen.titel">Fixed in the code, the same for everyone</h2>
-<div class="raster-2" style="margin-top:48px;gap:48px;align-items:stretch">
-<div class="zahlen">
-<div class="zahl"><div class="kennung" data-t="zahlen.menge">Maximum supply</div><div class="wert"><span data-n="21000000">21,000,000</span> YSR</div></div>
-<div class="zahl"><div class="kennung" data-t="zahlen.belohnung">Reward per block</div><div class="wert">875 YSR</div></div>
-<div class="zahl"><div class="kennung" data-t="zahlen.halbierung">Halving</div><div class="wert" data-t="zahlen.halbierungWert">every 12,000 blocks</div></div>
-<div class="zahl"><div class="kennung" data-t="zahlen.blockzeit">Block time</div><div class="wert" data-t="zahlen.blockzeitWert">10 minutes</div></div>
-<div class="zahl"><div class="kennung" data-t="zahlen.algo">Algorithm</div><div class="wert">SHA-256d</div></div>
-<div class="zahl"><div class="kennung" data-t="zahlen.teilbar">Divisibility</div><div class="wert" data-t="zahlen.teilbarWert">8 decimal places</div></div>
-</div>
-<div class="diagramm">
-<div class="diagramm-kopf"><h3 data-t="zahlen.diagramm">Supply created after each halving</h3><span class="mono" style="font-size:13px;color:var(--dim)" data-t="zahlen.einheit">million YSR</span></div>
-<div class="balken" role="img" aria-label="10.5, 15.75, 18.38, 19.69, 20.34, 20.67, 20.84, 20.92 million YSR after blocks 12,000 to 96,000" data-ta="aria-label:zahlen.diagrammAlt">
-<div><span data-n="10.5">10.5</span><i style="height:125px"></i></div>
-<div><span data-n="15.75">15.75</span><i style="height:188px"></i></div>
-<div><span data-n="18.38">18.38</span><i style="height:219px"></i></div>
-<div><span data-n="19.69">19.69</span><i style="height:234px"></i></div>
-<div><span data-n="20.34">20.34</span><i style="height:242px"></i></div>
-<div><span data-n="20.67">20.67</span><i style="height:246px"></i></div>
-<div><span data-n="20.84">20.84</span><i style="height:248px"></i></div>
-<div><span data-n="20.92">20.92</span><i style="height:249px"></i></div>
-</div>
-<div class="achse" aria-hidden="true"><span data-n="12000">12,000</span><span data-n="24000">24,000</span><span data-n="36000">36,000</span><span data-n="48000">48,000</span><span data-n="60000">60,000</span><span data-n="72000">72,000</span><span data-n="84000">84,000</span><span data-n="96000">96,000</span></div>
-<p class="fuss" data-t="zahlen.fuss">Block height at the end of each epoch. At 10 minutes per block, an epoch lasts about 83 days; 99% of all YSR are created within roughly the first 1.6 years.</p>
-</div>
 </div>
 </div>
 </section>

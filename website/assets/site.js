@@ -230,6 +230,12 @@
     var vorlage = t('live.blockN') || 'Block {n}';
     feld('live-halbierung', vorlage.replace('{n}', naechste.toLocaleString(loc)));
     feld('live-status', t('live.stand') || '');
+    // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke und der gesuchte.
+    var glieder = document.querySelectorAll('[data-kette]');
+    for (var i = 0; i < glieder.length; i++) {
+      var n = h + Number(glieder[i].getAttribute('data-kette'));
+      glieder[i].textContent = isFinite(n) && n >= 0 ? '#' + n.toLocaleString(loc) : '#…';
+    }
   }
 
   function liveHolen() {

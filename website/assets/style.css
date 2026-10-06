@@ -279,6 +279,45 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
 .entwurf{margin:0 0 28px;padding:16px 20px;border-radius:16px;background:#FDF0E1;color:#5C3300;font-size:15px;line-height:1.6}
 .wp-meta{font-family:var(--mono);font-size:14px;color:var(--dim);margin:0 0 32px}
 
+/* ------------------------------------------------------------ Was ist YSKAR */
+.was-raster{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:56px;margin-top:40px;align-items:start}
+.was-text{display:flex;flex-direction:column;gap:18px}
+.was-text p{margin:0;font-size:18px;line-height:1.65;color:var(--lese)}
+.was-text p.gross{font-size:26px;line-height:1.4;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.steckbrief{border:1px solid var(--kante);border-radius:24px;padding:28px;background:#F9FBFD}
+.steckbrief h3{font-size:18px;font-weight:800;margin-bottom:10px}
+.steckbrief dl{margin:0}
+.steckbrief dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:13px 0;border-top:1px solid var(--kante)}
+.steckbrief dt{color:var(--dim);font-size:15px}
+.steckbrief dd{margin:0;font-weight:700;font-size:15px;text-align:right}
+.steckbrief dd a{color:var(--blau)}
+
+/* ------------------------------------------------------------ So funktioniert es */
+.einleitung.dunkel{color:var(--lese-d)}
+.ablauf{list-style:none;margin:56px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.ablauf li{position:relative;background:var(--karte-d);border:1px solid var(--kante-d);border-radius:24px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.ablauf li:not(:last-child)::after{content:'';position:absolute;top:64px;right:-21px;width:20px;height:2px;background:var(--kante-d)}
+.ablauf .nr{font-family:var(--mono);font-size:13px;color:var(--blau-d)}
+.ablauf h3{font-size:20px;font-weight:800;overflow-wrap:anywhere}
+.ablauf p{margin:0;font-size:15.5px;line-height:1.6;color:var(--lese-d)}
+.symbol.nacht{background:#16233D;color:var(--blau-hell)}
+.kette-rahmen{margin-top:20px;border:1px solid var(--kante-d);border-radius:24px;background:var(--nacht-2);padding:28px}
+.kette{display:flex;align-items:stretch}
+.kette .block{flex:1;min-width:0;border:1px solid var(--kante-d);border-radius:16px;padding:16px 18px;background:var(--karte-d);display:flex;flex-direction:column;gap:6px}
+.kette .block b{font-family:var(--mono);font-size:20px;font-weight:500}
+.kette .block span{font-size:13px;color:var(--dim-d)}
+.kette .block.neu{border-color:var(--blau-d)}
+.kette .block.neu span{color:var(--blau-hell)}
+.kette .block.offen{border-style:dashed;background:transparent}
+.kette .glied{align-self:center;flex-shrink:0;width:28px;height:2px;background:var(--kante-d)}
+.kette-text{margin:16px 0 0;font-size:15px;line-height:1.6;color:var(--dim-d)}
+.ablauf-karten{margin-top:20px}
+.karte-d{background:transparent;border:1px solid var(--kante-d);border-radius:24px;padding:28px;display:flex;flex-direction:column;gap:10px}
+.karte-d h3{font-size:19px;font-weight:800}
+.karte-d p{margin:0;font-size:15.5px;line-height:1.6;color:var(--lese-d)}
+/* Kennzahlen stehen jetzt auf hellem Grund: Karten weiss, damit sie sich abheben. */
+.abschnitt.hell .zahl,.abschnitt.hell .diagramm{background:var(--weiss)}
+
 @media print{
   .kopf,.fusszeile,.toc,.sprachhinweis,.seitenkopf{display:none}
   body,.inhalt{background:#FFFFFF;color:#000000}
@@ -296,13 +335,16 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
   .live-raster>div:nth-child(2){border-right:0}
   .live-raster>div:nth-child(-n+2){border-bottom:1px solid var(--kante-d)}
 }
-/* Das Menue klappt frueher ein: Mit "Node Core" passen die Eintraege erst ab 1120px in eine Zeile. */
-@media (max-width:1120px){
+/* Das Menue hat sieben Eintraege. In der breitesten Sprache (Russisch) passen sie erst
+   ab 1123px in eine Zeile; darunter klappt es ein. Nachgemessen in allen zehn Sprachen. */
+@media (max-width:1160px){
   .menue-knopf{display:inline-flex}
   .nav{display:none;position:absolute;top:76px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;padding:12px 40px 20px;background:var(--nacht);border-bottom:1px solid var(--kante-d2)}
   .nav.offen{display:flex}
   .nav a{padding:12px 0;font-size:17px}
   .nav .knopf{margin-top:8px}
+  .ablauf{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ablauf li::after{display:none}
 }
 @media (max-width:960px){
   .wrap{padding:0 24px}
@@ -322,6 +364,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
   .kopfzeile-abschnitt{flex-direction:column;align-items:flex-start;gap:18px}
   .toc{display:none}
   .seitenkopf h1{font-size:42px}
+  .was-raster{grid-template-columns:minmax(0,1fr);gap:32px}
 }
 @media (max-width:640px){
   .wrap{padding:0 16px}
@@ -356,4 +399,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em}
   .balken span{font-size:10px}
   .text p,.text li{font-size:16px}
   .sprache select{max-width:120px}
+  .was-text p{font-size:17px}
+  .was-text p.gross{font-size:21px}
+  .ablauf{grid-template-columns:minmax(0,1fr);margin-top:36px}
+  .ablauf li,.karte-d,.steckbrief,.kette-rahmen{padding:22px}
+  .kette{flex-direction:column}
+  .kette .glied{width:2px;height:16px}
 }
