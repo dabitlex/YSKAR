@@ -106,8 +106,6 @@ button{font:inherit;color:inherit}
 .nav a[aria-current=page]{color:#fff;font-weight:700;position:relative}
 .nav a[aria-current=page]::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;
   border-radius:2px;background:#4F82FF}
-.nav a.knopf{background:#1F5BF0;color:#fff;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:800}
-.nav a.knopf:hover{background:#3B6FF5}
 #sprache{appearance:none;-webkit-appearance:none;height:44px;padding:0 34px 0 14px;border-radius:12px;
   border:1px solid var(--kante-d);color:var(--text-d);font:600 14px Manrope,sans-serif;cursor:pointer;
   background:var(--karte-d) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239EADC6' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 13px center}
@@ -370,18 +368,25 @@ details.empf .tx{border-top:0}
 .fuss span{margin-left:auto}
 
 /* Das Menue der Website hat sieben Eintraege. Damit es in jeder Sprache in
-   eine Zeile passt, rueckt es erst zusammen; darunter entfaellt der Knopf
-   am Ende -- er fuehrt an dieselbe Stelle wie der erste Eintrag. */
+   eine Zeile passt, rueckt es unter 1300px zusammen. */
 @media(max-width:1299px){
   .nav{gap:18px;font-size:14px}
-}
-@media(max-width:1240px){
-  .nav a.knopf{display:none}
 }
 @media(max-width:1080px){
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
   .charts{grid-template-columns:1fr 1fr}
   .charts .ch:last-child{grid-column:1/-1}
+}
+/* Auf der Website klappt das Menue schon ab 1140px ein: Mit sieben Eintraegen
+   passt es in den breitesten Sprachen (Deutsch, Russisch) erst darueber in
+   eine Zeile. Die App-Domain bleibt bei 1040px -- dort steht nur ein Eintrag. */
+@media(max-width:1140px){
+  body:not(.app-domain) #menue{display:inline-flex}
+  body:not(.app-domain) .nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;
+    background:var(--nacht);border-bottom:1px solid #1C283E;padding:8px 20px 18px}
+  body:not(.app-domain) .nav.offen{display:flex}
+  body:not(.app-domain) .nav a{padding:13px 4px;font-size:16px;border-bottom:1px solid #1C283E}
+  body:not(.app-domain) .nav a[aria-current=page]::after{display:none}
 }
 @media(max-width:1040px){
   #menue,.app-domain #appZurueck{display:inline-flex}
@@ -391,7 +396,6 @@ details.empf .tx{border-top:0}
   .app-domain .nav{display:none}
   .nav a{padding:13px 4px;font-size:16px;border-bottom:1px solid #1C283E}
   .nav a[aria-current=page]::after{display:none}
-  .nav a.knopf{display:block;margin-top:14px;text-align:center;border-bottom:0}
 }
 @media(max-width:640px){
   .wrap{padding:0 16px}
@@ -712,8 +716,8 @@ en:{
   merkle:'Merkle root',stateRoot:'State root',kopieren:'Copy',kopiert:'Copied',alleTx:n=>'Show all '+n+' transactions',
   menue:'Menu',erzeugt:p=>p+'% mined',offenP:p=>p+'% remaining',zumVorblock:'vs. previous block',wartend:'Pending',
   aeltereBew:'Load older activity',notiz:'Memo',inklGebuehr:x=>'incl. '+x+' in fees',blockZurueck:'Previous block',
-  blockWeiter:'Next block',minKurz:'min',navMitmachen:'Get started',navWallet:'Wallet',navAnleitungen:'Guides',
-  navWhitepaper:'Whitepaper',navMinen:'Start mining',
+  blockWeiter:'Next block',minKurz:'min',navMitmachen:'Get started',navWas:'About YSKAR',navAblauf:'How it works',navAnleitungen:'Guides',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'all '+t+' blocks',
   zielCa:m=>'Target ~ '+m+' min',
   navExplorer:'Explorer',
@@ -762,8 +766,8 @@ de:{
   merkle:'Merkle-Root',stateRoot:'State-Root',kopieren:'Kopieren',kopiert:'Kopiert',alleTx:n=>'Alle '+n+' Transaktionen zeigen',
   menue:'Menü',erzeugt:p=>p+' % erzeugt',offenP:p=>p+' % offen',zumVorblock:'zum Vorblock',wartend:'Wartend',
   aeltereBew:'Ältere Bewegungen laden',notiz:'Notiz',inklGebuehr:x=>'inkl. '+x+' Gebühren',blockZurueck:'Vorheriger Block',
-  blockWeiter:'Nächster Block',minKurz:'min',navMitmachen:'Mitmachen',navWallet:'Wallet',navAnleitungen:'Anleitungen',
-  navWhitepaper:'Whitepaper',navMinen:'Jetzt minen',
+  blockWeiter:'Nächster Block',minKurz:'min',navMitmachen:'Mitmachen',navWas:'Über YSKAR',navAblauf:'Funktionsweise',navAnleitungen:'Anleitungen',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'alle '+t+' Blöcke',
   zielCa:m=>'Ziel ~ '+m+' Min',
   navExplorer:'Explorer',
@@ -812,8 +816,8 @@ es:{
   merkle:'Raíz de Merkle',stateRoot:'Raíz de estado',kopieren:'Copiar',kopiert:'Copiado',alleTx:n=>'Mostrar las '+n+' transacciones',
   menue:'Menú',erzeugt:p=>p+' % emitido',offenP:p=>p+' % pendiente',zumVorblock:'respecto al bloque anterior',wartend:'Pendientes',
   aeltereBew:'Cargar actividad anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' de comisiones',blockZurueck:'Bloque anterior',
-  blockWeiter:'Bloque siguiente',minKurz:'min',navMitmachen:'Empezar',navWallet:'Wallet',navAnleitungen:'Guías',
-  navWhitepaper:'Whitepaper',navMinen:'Iniciar minería',
+  blockWeiter:'Bloque siguiente',minKurz:'min',navMitmachen:'Empezar',navWas:'Sobre YSKAR',navAblauf:'Cómo funciona',navAnleitungen:'Guías',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'todos los '+t+' bloques',
   zielCa:m=>'Objetivo ~ '+m+' min',
   navExplorer:'Explorador',
@@ -862,8 +866,8 @@ pt:{
   merkle:'Raiz de Merkle',stateRoot:'Raiz de estado',kopieren:'Copiar',kopiert:'Copiado',alleTx:n=>'Mostrar todas as '+n+' transações',
   menue:'Menu',erzeugt:p=>p+'% emitido',offenP:p=>p+'% restante',zumVorblock:'em relação ao bloco anterior',wartend:'Pendentes',
   aeltereBew:'Carregar atividade anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' em taxas',blockZurueck:'Bloco anterior',
-  blockWeiter:'Próximo bloco',minKurz:'min',navMitmachen:'Começar',navWallet:'Carteira',navAnleitungen:'Guias',
-  navWhitepaper:'Whitepaper',navMinen:'Iniciar mineração',
+  blockWeiter:'Próximo bloco',minKurz:'min',navMitmachen:'Começar',navWas:'Sobre o YSKAR',navAblauf:'Como funciona',navAnleitungen:'Guias',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'todos os '+t+' blocos',
   zielCa:m=>'Alvo ~ '+m+' min',
   navExplorer:'Explorer',
@@ -915,7 +919,7 @@ ru:{
   erzeugt:p=>p+'% выпущено',offenP:p=>p+'% осталось',zumVorblock:'к предыдущему блоку',wartend:'В ожидании',
   aeltereBew:'Загрузить более ранние операции',notiz:'Заметка',inklGebuehr:x=>'вкл. '+x+' комиссий',
   blockZurueck:'Предыдущий блок',blockWeiter:'Следующий блок',minKurz:'мин',navMitmachen:'Участвовать',
-  navWallet:'Кошелёк',navAnleitungen:'Инструкции',navWhitepaper:'Whitepaper',navMinen:'Начать майнинг',
+  navWas:'О YSKAR',navAblauf:'Как это работает',navAnleitungen:'Инструкции',navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'все '+t+' '+ruPl(n,'блок','блока','блоков'),
   zielCa:m=>'Цель ~ '+m+' мин',
   navExplorer:'Explorer',
@@ -964,8 +968,8 @@ tr:{
   merkle:'Merkle kökü',stateRoot:'Durum kökü',kopieren:'Kopyala',kopiert:'Kopyalandı',alleTx:n=>n+' işlemin tümünü göster',
   menue:'Menü',erzeugt:p=>'%'+p+' üretildi',offenP:p=>'%'+p+' kaldı',zumVorblock:'önceki bloğa göre',wartend:'Bekleyen',
   aeltereBew:'Eski hareketleri yükle',notiz:'Not',inklGebuehr:x=>x+' ücret dahil',blockZurueck:'Önceki blok',
-  blockWeiter:'Sonraki blok',minKurz:'dk',navMitmachen:'Katıl',navWallet:'Cüzdan',navAnleitungen:'Rehberler',
-  navWhitepaper:'Whitepaper',navMinen:'Madenciliği başlat',
+  blockWeiter:'Sonraki blok',minKurz:'dk',navMitmachen:'Katıl',navWas:'YSKAR hakkında',navAblauf:'Nasıl çalışır',navAnleitungen:'Rehberler',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'tüm '+t+' blok',
   zielCa:m=>'Hedef ~ '+m+' dk',
   navExplorer:'Gezgin',
@@ -1014,8 +1018,8 @@ fr:{
   merkle:'Racine de Merkle',stateRoot:'Racine d’état',kopieren:'Copier',kopiert:'Copié',alleTx:n=>'Afficher les '+n+' transactions',
   menue:'Menu',erzeugt:p=>p+' % émis',offenP:p=>p+' % restants',zumVorblock:'par rapport au bloc précédent',wartend:'En attente',
   aeltereBew:'Charger l’activité plus ancienne',notiz:'Note',inklGebuehr:x=>'dont '+x+' de frais',blockZurueck:'Bloc précédent',
-  blockWeiter:'Bloc suivant',minKurz:'min',navMitmachen:'Commencer',navWallet:'Portefeuille',navAnleitungen:'Guides',
-  navWhitepaper:'Livre blanc',navMinen:'Commencer à miner',
+  blockWeiter:'Bloc suivant',minKurz:'min',navMitmachen:'Commencer',navWas:'À propos',navAblauf:'Fonctionnement',navAnleitungen:'Guides',
+  navWhitepaper:'Livre blanc',
   alleBloecke:(n,t)=>'tous les '+t+' blocs',
   zielCa:m=>'Cible ~ '+m+' min',
   navExplorer:'Explorateur',
@@ -1064,8 +1068,8 @@ it:{
   merkle:'Radice di Merkle',stateRoot:'Radice di stato',kopieren:'Copia',kopiert:'Copiato',alleTx:n=>'Mostra tutte le '+n+' transazioni',
   menue:'Menu',erzeugt:p=>p+'% emesso',offenP:p=>p+'% rimanente',zumVorblock:'rispetto al blocco precedente',wartend:'In attesa',
   aeltereBew:'Carica movimenti precedenti',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' di commissioni',blockZurueck:'Blocco precedente',
-  blockWeiter:'Blocco successivo',minKurz:'min',navMitmachen:'Inizia',navWallet:'Wallet',navAnleitungen:'Guide',
-  navWhitepaper:'Whitepaper',navMinen:'Inizia a minare',
+  blockWeiter:'Blocco successivo',minKurz:'min',navMitmachen:'Inizia',navWas:'Cos’è YSKAR',navAblauf:'Come funziona',navAnleitungen:'Guide',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'tutti i '+t+' blocchi',
   zielCa:m=>'Obiettivo ~ '+m+' min',
   navExplorer:'Explorer',
@@ -1116,8 +1120,8 @@ pl:{
   kopieren:'Kopiuj',kopiert:'Skopiowano',alleTx:n=>'Pokaż wszystkie transakcje ('+n+')',menue:'Menu',
   erzeugt:p=>p+'% wyemitowano',offenP:p=>p+'% pozostało',zumVorblock:'względem poprzedniego bloku',wartend:'Oczekujące',
   aeltereBew:'Wczytaj starsze operacje',notiz:'Notatka',inklGebuehr:x=>'w tym '+x+' opłat',blockZurueck:'Poprzedni blok',
-  blockWeiter:'Następny blok',minKurz:'min',navMitmachen:'Dołącz',navWallet:'Portfel',navAnleitungen:'Poradniki',
-  navWhitepaper:'Whitepaper',navMinen:'Zacznij mining',
+  blockWeiter:'Następny blok',minKurz:'min',navMitmachen:'Dołącz',navWas:'O YSKAR',navAblauf:'Jak to działa',navAnleitungen:'Poradniki',
+  navWhitepaper:'Whitepaper',
   alleBloecke:(n,t)=>'wszystkie '+t+' '+plPl(n,'blok','bloki','bloków'),
   zielCa:m=>'Cel ~ '+m+' min',
   navExplorer:'Explorer',
@@ -1166,8 +1170,8 @@ zh:{
   merkle:'默克尔根',stateRoot:'状态根',kopieren:'复制',kopiert:'已复制',alleTx:n=>'显示全部 '+n+' 笔交易',
   menue:'菜单',erzeugt:p=>'已发行 '+p+'%',offenP:p=>'剩余 '+p+'%',zumVorblock:'较上一区块',wartend:'待处理',
   aeltereBew:'加载更早的动态',notiz:'备注',inklGebuehr:x=>'含手续费 '+x,blockZurueck:'上一个区块',
-  blockWeiter:'下一个区块',minKurz:'分钟',navMitmachen:'开始参与',navWallet:'钱包',navAnleitungen:'教程',
-  navWhitepaper:'白皮书',navMinen:'开始挖矿',
+  blockWeiter:'下一个区块',minKurz:'分钟',navMitmachen:'开始参与',navWas:'关于 YSKAR',navAblauf:'运作原理',navAnleitungen:'教程',
+  navWhitepaper:'白皮书',
   alleBloecke:(n,t)=>'全部 '+t+' 个区块',
   zielCa:m=>'目标约 '+m+' 分钟',
   navExplorer:'区块浏览器',
@@ -1232,13 +1236,13 @@ function navBauen(){
   const n=$('nav');
   if(WEBSITE_NAV){
     n.innerHTML=
+      `<a href="${SITE}/#was">${T.navWas}</a>`+
+      `<a href="${SITE}/#ablauf">${T.navAblauf}</a>`+
       `<a href="${SITE}/#mitmachen">${T.navMitmachen}</a>`+
-      `<a href="${SITE}/#wallet">${T.navWallet}</a>`+
       `<a href="${SITE}/#nodecore">Node Core</a>`+
       `<a href="${SITE}/anleitungen">${T.navAnleitungen}</a>`+
       `<a href="${SITE}/whitepaper">${T.navWhitepaper}</a>`+
-      `<a href="${SITE}/explorer" aria-current="page">${T.navExplorer}</a>`+
-      `<a class="knopf" href="${SITE}/#mitmachen">${T.navMinen}</a>`;
+      `<a href="${SITE}/explorer" aria-current="page">${T.navExplorer}</a>`;
   }else{
     n.innerHTML=`<a href="/">${T.zurApp}</a>`;
   }
