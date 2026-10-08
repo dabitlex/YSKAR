@@ -81,7 +81,7 @@ export class PoolCoordinator {
    * hat hoechstens 64 Empfaenger. Nimmt der Pool eine Gebuehr, braucht der
    * Betreiber einen davon -- dann sind es 63. Wer darueber hinaus mitmint,
    * faellt bei der Abrechnung heraus, sobald er zu den Kleinsten gehoert
-   * (settlement.ts, `uebertrag`). Deshalb nimmt der Pool gar nicht erst
+   * (settlement.ts, `ausgelassen`). Deshalb nimmt der Pool gar nicht erst
    * mehr Adressen an, als er auszahlen kann.
    *
    * Eine angekuendigte Gebuehr zaehlt schon mit: Sonst waere der Pool mit

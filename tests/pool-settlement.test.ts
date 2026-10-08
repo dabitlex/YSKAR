@@ -129,9 +129,9 @@ test('Ein mitminender Betreiber bekommt einen Eintrag, nicht zwei', () => {
   assert.equal(a.amount, 490n);
 });
 
-// -------------------------------------------------------------- Übertrag
+// ------------------------------------------------------------ Ausgelassen
 
-test('Wer nicht in den Block passt, verliert seine Arbeit nicht', () => {
+test('Wer nicht in den Block passt, geht in diesem Block leer aus -- die Kleinsten', () => {
   // Die Coinbase fasst 64 Empfänger. Mit Gebühr bleiben 63 Plätze.
   const viele = Array.from({ length: 80 }, (_, i) => ({
     to: adr(i + 1), work: BigInt(100 - i),
@@ -139,12 +139,15 @@ test('Wer nicht in den Block passt, verliert seine Arbeit nicht', () => {
   const r = abrechnen(100_000n, viele, 200, POOL);
 
   assert.equal(r.outputs.length, MAX_MINERS_JE_BLOCK + 1);
-  assert.equal(r.uebertrag.length, 80 - MAX_MINERS_JE_BLOCK);
+  assert.equal(r.ausgelassen.length, 80 - MAX_MINERS_JE_BLOCK);
   assert.equal(summe(r.outputs), 100_000n);
 
-  // Übertragen werden die mit der WENIGSTEN Arbeit -- und sie behalten sie.
-  const uebertragen = r.uebertrag.reduce((s, a) => s + a.work, 0n);
-  assert.ok(uebertragen > 0n, 'die Arbeit gilt in der nächsten Runde weiter');
+  // Ausgelassen werden die mit der WENIGSTEN Arbeit. Sie bekommen in diesem
+  // Block nichts; einen Ausgleich gibt es nicht (Issue #6).
+  const kleinsteDabei = 100 - (MAX_MINERS_JE_BLOCK - 1);
+  for (const a of r.ausgelassen) assert.ok(a.work < BigInt(kleinsteDabei));
+  const raus = new Set(r.ausgelassen.map(a => a.to.join(',')));
+  for (const o of r.outputs) assert.ok(!raus.has(o.to.join(',')), 'kein Ausgelassener hat eine Auszahlung');
 });
 
 test('Ohne Gebühr stehen alle 64 Plätze den Minern zu', () => {
@@ -153,7 +156,7 @@ test('Ohne Gebühr stehen alle 64 Plätze den Minern zu', () => {
   }));
   const r = abrechnen(100_000n, viele, 0, null);
   assert.equal(r.outputs.length, MAX_COINBASE_OUTPUTS);
-  assert.equal(r.uebertrag.length, 70 - MAX_COINBASE_OUTPUTS);
+  assert.equal(r.ausgelassen.length, 70 - MAX_COINBASE_OUTPUTS);
 });
 
 // ------------------------------------------------------------------ Fehler

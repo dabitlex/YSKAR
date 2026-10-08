@@ -29,12 +29,16 @@ import type { PeerConnection } from '../p2p/PeerConnection.ts';
 import { encodeStats, decodeStats, STATS_FAEHIG } from '../p2p/messages.ts';
 import { NetzStatistik } from './NetzStatistik.ts';
 import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
+import { fensterGroesse } from '../../pool/pplns.ts';
+import { leseFenster, schreibeFenster, schreibeFensterSofort, kuerze } from '../../pool/fensterDatei.ts';
 import { nameToExtra } from '../../chain/finderName.ts';
 import { decodeAddress } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 
 const VERSION = '0.1.0';
+/** Wie oft das Fenster des Pools gesichert wird (wie in Node Core). */
+const FENSTER_TAKT_MS = 120_000;
 
 /*
   Node warnt bei jedem Start, dass node:sqlite experimentell sei. Fuer den
@@ -73,6 +77,12 @@ interface Optionen {
   poolMax: number | null;
   /** Wohin gefundene Bloecke gehen. Leer heisst: nirgends. */
   upstream?: string;
+  /**
+   * Woher der Absender einer Mining-Anfrage kommt (--sender-ip): 'proxy'
+   * hinter einem Proxy wie Caddy, 'socket' ohne Proxy. Ohne Angabe gelten
+   * keine Grenzen je Absender.
+   */
+  absender: 'proxy' | 'socket' | null;
 }
 
 function argumente(argv: string[]): Optionen {
@@ -83,6 +93,7 @@ function argumente(argv: string[]): Optionen {
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false,
     poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null,
+    absender: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -105,6 +116,15 @@ function argumente(argv: string[]): Optionen {
       case '--pool-fee': o.poolFee = Number(nimm()); break;
       case '--pool-payout': o.poolAuszahlung = nimm(); break;
       case '--pool-max': o.poolMax = Number(nimm()); break;
+      case '--sender-ip': {
+        const w = nimm();
+        if (w !== 'proxy' && w !== 'socket') {
+          console.error(`  --sender-ip kennt "proxy" oder "socket", nicht "${w}".`);
+          process.exit(1);
+        }
+        o.absender = w;
+        break;
+      }
       case '--help': case '-h': o.help = true; break;
     }
   }
@@ -150,6 +170,10 @@ Spiegel nachziehen
       --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
       --pool-max <n>    höchstens so viele Adressen aufnehmen (Vorgabe: 64,
                         mit Gebühr 63 -- mehr zahlt ein Block nicht aus)
+      --sender-ip <q>   Absender von Mining-Anfragen erkennen und je
+                        Absender begrenzen: "proxy" hinter Caddy o. ä.
+                        (letzter Eintrag von X-Forwarded-For), "socket"
+                        ohne Proxy. Vorgabe: keine Grenzen je Absender.
 
 Pool betreiben
   yskar-node mine --data ./knoten --pool pool.yskar.net --pool-fee 100 \
@@ -201,8 +225,15 @@ const nf = (n: number | bigint) => Number(n).toLocaleString('de-DE');
 
 // -------------------------------------------------------------------- Netz
 
+/**
+ * Frist fuer jede Anfrage an die Gegenstelle. Ohne sie haengt der Abgleich
+ * (und der Dienst yskar-spiegel) fuer immer, wenn die Gegenstelle die
+ * Verbindung annimmt und nie antwortet.
+ */
+const ANFRAGE_FRIST_MS = 30_000;
+
 async function hole(api: string, pfad: string): Promise<Record<string, unknown>> {
-  const res = await fetch(`${api}/api/v2${pfad}`);
+  const res = await fetch(`${api}/api/v2${pfad}`, { signal: AbortSignal.timeout(ANFRAGE_FRIST_MS) });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(String(body.detail ?? body.error ?? `HTTP ${res.status}`));
   return body as Record<string, unknown>;
@@ -256,7 +287,7 @@ async function spiegel(
       Liste ist die ehrliche Antwort "ich habe nichts" und wird zu -1,
       damit die Schleife unten bei Hoehe 0 anfaengt.
     */
-    const res = await fetch(`${ziel}/api/v2/blocks?limit=1`);
+    const res = await fetch(`${ziel}/api/v2/blocks?limit=1`, { signal: AbortSignal.timeout(ANFRAGE_FRIST_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     /*
       Erst pruefen, DANN auswerten. Antwortet dort ein Vorschaltserver mit
@@ -297,6 +328,7 @@ async function spiegel(
         method: 'POST',
         headers: spiegelKopf(),
         body: JSON.stringify({ raw: toHex(b.body) }),
+        signal: AbortSignal.timeout(ANFRAGE_FRIST_MS),
       });
       const body = await res.json().catch(() => ({}));
       if (!body.accepted) {
@@ -395,14 +427,41 @@ async function sync(
   let geprueft = 0;
   const t0 = Date.now();
 
-  for (;;) {
-    const von = chain.height() + 1;
+  /*
+    Ab welcher Hoehe gefragt wird. Normal: ab dem eigenen Kopf + 1.
+
+    Folgt die Gegenstelle einem ANDEREN Zweig, der an oder unter unserem
+    Kopf abzweigt, passt ihr Block h+1 an nichts, was wir haben
+    ("vorgaenger_fehlt"). Bisher endete der Abgleich dort -- im Betrieb alle
+    30 Sekunden mit BLOCK ABGELEHNT, und der Knoten blieb auf seinem Zweig
+    (Issue #11). Jetzt geht er schrittweise zurueck (1, 2, 4, ... Bloecke),
+    bis die Gegenstelle einen Block liefert, dessen Vorgaenger wir kennen.
+    Ab dort werden ihre Bloecke normal geprueft; hat ihr Zweig mehr Arbeit,
+    wechselt die Kette (Reorg) wie bei Bloecken aus dem Knotennetz.
+  */
+  let von = chain.height() + 1;
+  let schritt = 0;
+
+  abgleich: for (;;) {
     const antwort = await hole(opt.api, `/sync?from=${von}&count=200`);
     const bloecke = (antwort.blocks ?? []) as { height: number; hash: string; body: string }[];
     if (bloecke.length === 0) break;
 
     for (const b of bloecke) {
       const r = chain.accept(fromHex(b.body));
+      if (!r.ok && r.grund === 'vorgaenger_fehlt' && b.height > 0) {
+        // Abzweigung: weiter zurueck fragen. Nie unter Hoehe 0 -- passt auch
+        // der Genesis nicht, ist es eine andere Kette, und das meldet accept()
+        // dann selbst.
+        schritt = schritt === 0 ? 1 : schritt * 2;
+        const zurueck = Math.max(0, b.height - schritt);
+        if (schritt === 1) {
+          melde(`${grau('[' + uhr() + ']')} ${gelb('Abzweigung')} ` +
+            `bei Höhe ${nf(b.height)}: Gegenstelle folgt einem anderen Zweig, suche den gemeinsamen Vorgänger…`);
+        }
+        von = zurueck;
+        continue abgleich;
+      }
       if (!r.ok) {
         // Der Zweck dieses Programms. Ab hier ist jede weitere Aussage wertlos.
         melde('');
@@ -422,6 +481,7 @@ async function sync(
             `auf Höhe ${r.height}, neuer Tip ${toHex(r.tip).slice(0, 16)}…`);
         }
       }
+      von = b.height + 1;
     }
   }
 
@@ -451,8 +511,11 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   const pool = new TxPool(params);
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
-    host: opt.bind, port: opt.port, params,
+    host: opt.bind, port: opt.port, params, absender: opt.absender,
   });
+  // Weicht ein Job aus der Vorarbeit je vom vollen Blockbau ab, schaltet
+  // sich die Vorarbeit ab -- und das gehoert ins Protokoll.
+  koordinator.onFehler = (wo, e) => melde(rot(`[${uhr()}] ${wo}: ${e.message}`));
 
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
@@ -619,6 +682,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     Name wandert in die Coinbase jedes Pool-Blocks, also gelten dieselben
     Regeln wie ueberall: druckbares ASCII, hoechstens 32 Zeichen.
   */
+  const fensterPfad = `${opt.daten}/pool-fenster.json`;
+  let fensterAusLauf = 0;
   if (opt.poolName) {
     let auszahlung: Uint8Array | null = null;
     if (opt.poolFee > 0) {
@@ -630,12 +695,29 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       catch { console.error('  --pool-payout ist keine gültige YSKAR-Adresse.'); process.exit(1); }
     }
     try {
-      server.poolKoordinator = new PoolCoordinator({
-        name: opt.poolName, feeBps: opt.poolFee, payoutAddress: auszahlung,
+      /*
+        Das gesicherte Fenster vom letzten Lauf (Issue #7). Liegt darin noch
+        Arbeit, gilt fuer sie die Gebuehr von damals -- eine geaenderte
+        --pool-fee erst ab dem naechsten Block, wie im laufenden Betrieb und
+        wie in Node Core. Sonst liesse sich die Gebuehr fuer schon geleistete
+        Arbeit anheben, indem man den Knoten neu startet.
+      */
+      const stand = leseFenster(fensterPfad, params.network);
+      if (stand.hinweis) console.log(gelb(`  Fenster des Pools: ${stand.hinweis}`));
+      let fee = opt.poolFee;
+      if (stand.eintraege.length > 0 && stand.feeBps !== null && stand.feeBps !== fee) {
+        fee = stand.feeBps > 0 && !auszahlung ? 0 : stand.feeBps;
+      }
+      const pk = new PoolCoordinator({
+        name: opt.poolName, feeBps: fee, payoutAddress: auszahlung,
         // Unsinn ("--pool-max abc") landet als NaN hier und laesst den Start
         // scheitern -- besser als stillschweigend ohne Grenze zu laufen.
         ...(opt.poolMax !== null ? { maxMiner: opt.poolMax } : {}),
       });
+      if (fee !== opt.poolFee) pk.setzeGebuehr(opt.poolFee, auszahlung);
+      pk.laden(stand.eintraege);
+      fensterAusLauf = stand.eintraege.length;
+      server.poolKoordinator = pk;
       server.blockName = nameToExtra(opt.poolName);
     } catch (e) {
       console.error(`  Pool konnte nicht starten: ${(e as Error).message}`);
@@ -644,6 +726,15 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   }
 
   await server.listen(opt.bind, opt.port);
+
+  /** Die geltende Gebuehr -- und eine angekuendigte, falls das Fenster noch unter der alten steht. */
+  const gebuehrJetzt = () => {
+    const e = server.poolKoordinator?.einstellungen();
+    if (!e) return `${(opt.poolFee / 100).toFixed(2)} %`;
+    const jetzt = `${(e.feeBps / 100).toFixed(2)} %`;
+    return e.feeBpsAbNaechstem !== null && e.feeBpsAbNaechstem !== e.feeBps
+      ? `${jetzt} (ab dem nächsten Block ${(e.feeBpsAbNaechstem / 100).toFixed(2)} %)` : jetzt;
+  };
 
   console.log(fett(`\nYSKAR Full Node ${VERSION}  ${grau('Mining')}`));
   console.log(grau('─'.repeat(56)));
@@ -654,9 +745,12 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   console.log(`  Blöcke   ${nachOben ? '→ ' + nachOben : 'bleiben lokal'}`);
   console.log(`  Sync     ${nachOben ? 'alle 30 s von ' + opt.api : 'aus'}`);
   console.log(`  Pool     ${opt.poolName
-    ? `${opt.poolName} · Gebühr ${(opt.poolFee / 100).toFixed(2)} % · ${
-        server.poolKoordinator?.plaetze() ?? '?'} Plätze`
+    ? `${opt.poolName} · Gebühr ${gebuehrJetzt()} · ${
+        server.poolKoordinator?.plaetze() ?? '?'} Plätze${
+        fensterAusLauf ? ` · ${nf(fensterAusLauf)} Shares aus dem letzten Lauf` : ''}`
     : 'aus (nur Solo-Mining)'}`);
+  console.log(`  Absender ${opt.absender === 'proxy' ? 'aus X-Forwarded-For (hinter Proxy)'
+    : opt.absender === 'socket' ? 'aus der Verbindung' : 'nicht erkannt (keine Grenzen je Absender)'}`);
   console.log(`  Knoten   ${netz
     ? (opt.p2pPort > 0 ? `lauscht auf ${opt.p2pPort}` : 'nur ausgehend') +
       (opt.seeds.length ? `, ${opt.seeds.length} Seed${opt.seeds.length > 1 ? 's' : ''}` : '')
@@ -692,6 +786,36 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
                      'ungeschützt ins Netz.\n'));
   }
 
+  /*
+    Das Fenster des Pools sichern (Issue #7): alle zwei Minuten, wenn sich
+    etwas geaendert hat, und beim Beenden in einem Zug. Nach einem Absturz
+    fehlt so hoechstens die Arbeit der letzten zwei Minuten.
+  */
+  let fensterGesichert = '';
+  let fensterFolge = 0;
+  const sichereFenster = async () => {
+    const pk = server.poolKoordinator;
+    if (!pk) return;
+    // Kuerzen, wenn das Fenster weit ueber das hinausgewachsen ist, was zaehlen
+    // kann -- nur mit einer Kette, die auf dem Stand ist.
+    const d = chain.tip()?.difficulty;
+    if (d && d > 0n && (abgleich?.fehlendeBloecke() ?? 0) <= 1) {
+      const behalten = fensterGroesse(d) * 3n;
+      if (pk.arbeitGesamt() > behalten * 2n) pk.laden(kuerze(pk.exportieren(), behalten));
+    }
+    const fee = pk.einstellungen().feeBps;
+    const stand = `${pk.eintraege()}:${pk.arbeitGesamt()}:${fee}`;
+    if (stand === fensterGesichert) return;
+    const folge = ++fensterFolge;
+    try {
+      const geschrieben = await schreibeFenster(fensterPfad, params.network, fee, pk.exportieren(),
+        () => folge === fensterFolge);
+      if (geschrieben) fensterGesichert = stand;
+    } catch (e) { melde(gelb(`  Fenster des Pools nicht gesichert: ${(e as Error).message}`)); }
+  };
+  const fensterTakt = server.poolKoordinator ? setInterval(() => { void sichereFenster(); }, FENSTER_TAKT_MS) : null;
+  fensterTakt?.unref?.();
+
   let laeuft = true;
   const aufhoeren = async () => {
     if (!laeuft) return;
@@ -699,6 +823,13 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     clearInterval(syncTakt);
     clearInterval(takt);
     if (statsTakt) clearInterval(statsTakt);
+    if (fensterTakt) clearInterval(fensterTakt);
+    const pk = server.poolKoordinator;
+    if (pk) {
+      fensterFolge++;
+      try { schreibeFensterSofort(fensterPfad, params.network, pk.einstellungen().feeBps, pk.exportieren()); }
+      catch (e) { console.error(`  Fenster des Pools nicht gesichert: ${(e as Error).message}`); }
+    }
     abgleich?.stop();
     await netz?.stop();
     await server.close();
@@ -725,10 +856,12 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   const syncTakt = setInterval(async () => {
     if (syncLaeuft || !nachOben) return;
     syncLaeuft = true;
-    const vorher = chain.height();
+    // Der Kopf, nicht nur die Hoehe: Ein Reorg auf gleicher Hoehe (Issue #11)
+    // aendert den Vorgaenger aller Jobs genauso.
+    const vorher = chain.tip() ? toHex(chain.tip()!.hash) : '';
     try {
       await sync({ ...opt, einmal: true }, store, chain, pool);
-      if (chain.height() !== vorher) {
+      if ((chain.tip() ? toHex(chain.tip()!.hash) : '') !== vorher) {
         koordinator.invalidate();
         const tip = chain.tip();
         melde(`${grau('[' + uhr() + ']')} ${grau('Kette weiter:')} ` +

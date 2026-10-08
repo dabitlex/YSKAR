@@ -47,6 +47,8 @@ The code is in `src/lib/node/fullnode/` and `src/lib/node/p2p/`. The consensus c
 | `src/lib/node/fullnode/TxPool.ts` | Mempool |
 | `src/lib/node/fullnode/mempoolPflege.ts` | Mempool maintenance after each accepted block |
 | `src/lib/node/fullnode/MiningCoordinator.ts` | Building jobs, checking submitted nonces |
+| `src/lib/node/fullnode/jobVorlage.ts` | Job template: the session-independent part of a block, computed once per tip and mempool state |
+| `src/lib/node/fullnode/kettenIndex.ts` | In-memory index of the active chain for `/account`, `/tx` and `/search` |
 | `src/lib/node/fullnode/MiningServer.ts` | HTTP interface: sessions, jobs, shares, transfers |
 | `src/lib/node/fullnode/ReadApi.ts` | HTTP read interface: blocks, accounts, search, fees |
 | `src/lib/node/fullnode/NetzStatistik.ts` | Miner statistics reported by peers |
@@ -217,9 +219,17 @@ each one through the same validation as any other block. `--api` can be any serv
 this route: the web server at `https://yskar.vercel.app`, which answers from the mirror, or the
 HTTP interface of another full node.
 
+If the source follows a different branch that forks at or below the node's own tip, its next
+block does not connect to anything the node has. The node then asks for earlier heights, 1, 2, 4,
+… blocks further back, until the source delivers a block whose predecessor it knows, and
+validates the source's branch from there. If that branch has more work, the node reorganizes to
+it, as with blocks from peers. `mine` does the same in its 30-second sync and rebuilds its jobs
+whenever the tip changes, also on a reorganization at the same height. Before 9 October 2026 the
+node stopped at that point (issue #11).
+
 If the source delivers a block that fails validation, the node prints `BLOCK ABGELEHNT` ("block
 rejected") with the height and the reason, keeps what it has validated so far and exits with
-code 2.
+code 2. A source on a chain with a different genesis block is rejected the same way.
 
 `sync` does not connect to other nodes. To follow the network continuously, use `mine`.
 
@@ -261,6 +271,7 @@ ignored without a message.
 | `--pool-fee <bp>` | `0` | `mine` | Pool fee in basis points, 0 to 500 (100 = 1.00 %) |
 | `--pool-payout <address>` | none | `mine` | Address that receives the pool fee. Required when the fee is above 0 |
 | `--pool-max <n>` | chain limit | `mine` | Highest number of addresses in the pool, 1 to 64. The chain limit is 64, or 63 when a fee is set |
+| `--sender-ip <proxy\|socket>` | none | `mine` | Recognize the sender of mining requests and apply the per-sender session limits. `proxy`: the last entry of `X-Forwarded-For`, for a node behind a reverse proxy that sets this header itself (Caddy does). `socket`: the address of the connection, only for a node without a proxy in front. Without this option there are no per-sender limits |
 | `-h`, `--help` | | | Print the help text and exit |
 
 Notes:
@@ -312,14 +323,20 @@ Amounts are integers in base units (1 YSR = 100,000,000 units) and are sent as d
 number in the block header that is unique per session, so two miners search different nonce
 spaces and cannot find the same hash. Sessions live in memory. A session ends after 300 seconds
 without a job or share request, and all sessions end when the node restarts. The node keeps at
-most 5,000 sessions. The mode is fixed when the session is opened. A node without a pool rejects
+most 5,000 sessions; when the table is full, a new session replaces the oldest session that has
+never delivered a share, and only if every session has delivered shares is the new one refused
+with `too_many_sessions`. The mode is fixed when the session is opened. A node without a pool rejects
 `mode: "pool"` with `pool_unavailable` instead of silently treating the session as solo. A full
 pool answers a new address with `pool_full` and HTTP status 409; the native miner of the Android
 app gets the same answer with status 200.
 
 **Jobs.** Every `GET /job` builds a block template for that session: the coinbase pays the
 session's address (solo) or the pool's current split (pool), and the node selects transfers from
-its mempool. The answer contains `jobId`, `height`, `version`, `prevHash`, `merkleRoot`,
+its mempool. The part that does not depend on the session (the selection of transfers, the
+account state after them and the Merkle tree over that state) is computed once per chain tip and
+mempool state; each job then only adds its coinbase (`jobVorlage.ts`). The first job of each kind
+from a new template is also built the full way and compared byte for byte; on any difference
+the node switches back to the full build until it restarts and logs the error. The answer contains `jobId`, `height`, `version`, `prevHash`, `merkleRoot`,
 `stateRoot`, `timestamp`, `difficulty`, `difficultyWert`, `txCount`, `extranonce`, `target` and
 `shareDifficulty`. The miner assembles the 136-byte header from these fields and varies only the
 nonce.
@@ -335,12 +352,20 @@ A job is valid for 90,000 ms. It also becomes invalid as soon as the chain tip c
 job a session fetched most recently is accepted.
 
 **Share target.** A new session starts with share difficulty 128; the share target is
-`floor(2^240 / shareDifficulty)`. The node aims at one share every 30 seconds per session. After
-each accepted share it stores the sample `seconds since the last share / share difficulty` and
-keeps the last 8 samples. With at least 3 samples the new share difficulty is `30 / mean of the
-samples`. A change by a factor between 0.7 and 1.4 is ignored, and one step is limited to a
-factor between 0.25 and 4. The average over several samples matters: the gaps between shares are
-random, and a rule that reacts to every single gap makes the target swing instead of settling.
+`floor(2^240 / shareDifficulty)`. The target belongs to the **job**: it is fixed when the job is
+handed out, every hash submitted for that job is checked against it and credited with it, and
+`shareDifficulty` in a share answer is the target of the running job. The node aims at one share
+every 30 seconds per session. After each accepted share it stores a sample in seconds per unit of
+difficulty: the time since the last share, each stretch divided by the share difficulty that was
+in force during it (the target can change between two shares when a new job is fetched). It keeps
+the last 8 samples. With at least 3 samples the share difficulty for the next job is `30 / mean of
+the samples`. A change by a factor between 0.7 and 1.4 is ignored, and one step is limited to a
+factor between 0.25 and 4. The share difficulty never exceeds the job's block difficulty divided
+by 8 (but this limit is never below 128). A raise by a factor of 4 or more ends the running job
+early: the next hash submitted for it gets `job_expired`. The next job of the session then has a
+different `jobId`, if necessary with a timestamp one second later. The average over several
+samples matters: the gaps between shares are random, and a rule that reacts to every single gap
+makes the target swing instead of settling.
 
 **Shares.** The miner sends only the nonce. The node computes the hash itself from the block it
 kept for the job; a miner's claim about the difficulty it reached is never used.
@@ -350,7 +375,7 @@ kept for the job; a miner's claim about the difficulty it reached is never used.
   announces the block to its peers and, if an upstream is set, forwards it. The answer has
   `accepted: true, block: true` with `height`, `hash` and `reward`.
 - If the hash meets only the share target, the answer has `accepted: true, block: false`. In a
-  pool session the share is credited with the share difficulty that was in force.
+  pool session the share is credited with the share difficulty of its job.
 - Otherwise the answer has `accepted: false` and a `reason`.
 
 | `reason` | Meaning |
@@ -358,7 +383,7 @@ kept for the job; a miner's claim about the difficulty it reached is never used.
 | `session_inactive` | Unknown or expired session; open a new one |
 | `job_foreign` | The job is not the session's current job |
 | `duplicate` | This nonce was already credited for this job |
-| `job_expired` | The job is older than 90 s, or the session already has 10,000 credited nonces for it; fetch a new job |
+| `job_expired` | The job is older than 90 s, the session already has 10,000 credited nonces for it, or the node ended it early to raise the share target; fetch a new job |
 | `job_unknown` | The node discarded the job, for example after a new block |
 | `stale_job` | The chain tip changed since the job was built |
 | `low_difficulty` | The hash does not meet the share target |
@@ -394,15 +419,22 @@ height 3, the field falls back to the reported figure. `minerHashrate`, `activeM
 `miningSessions` and `knoten` (German for "nodes") are reported figures; see
 [Miner statistics](P2P.md#miner-statistics-stats).
 
-The node has no index by address or transaction ID. `/account`, `/tx` and `/search` walk back
-through the blocks, which is why their range is limited.
+`/account`, `/tx` and `/search` use an index of the active chain kept in memory
+(`kettenIndex.ts`): which block holds a transaction, and in which blocks an address appears. The
+node builds it when the mining interface starts and updates it before each of these requests; when
+the top of the index no longer matches the active chain (new block or reorg), it removes blocks
+from the top until it matches and adds the new ones. The answers are the same as without the
+index, including the range of 5,000 blocks. In `/summary`, `stateRoot` is the state root from the
+header of the tip block, which the node checked when it accepted the block; supply and the
+hashrate from the chain are computed once per tip.
 
 ### Limits and errors
 
 | Limit | Value |
 |---|---|
 | Request body | 64 KB |
-| Open sessions | 5,000 |
+| Open sessions | 5,000 (a full table replaces the oldest session without a share) |
+| Sessions without a share per sender | 32 (only with `--sender-ip`) |
 | Session timeout | 300 s |
 | Job lifetime | 90,000 ms |
 | Credited nonces per session and job | 10,000 |
@@ -415,7 +447,7 @@ through the blocks, which is why their range is limited.
 | 404 | `not_found` | Unknown route, block or transaction |
 | 404 | `pool_unavailable` | `GET /pool` on a node without a pool |
 | 409 | `pool_full` | New address for a full pool |
-| 500 | `internal` | An error inside the node; the node also prints it |
+| 500 | `internal` | An error inside the node. The answer names the request (`where`) but not the error text; the node prints the error in its own log |
 
 `POST /session`, `GET /job`, `POST /share` and `POST /tx` report refusals with HTTP status 200
 and an `error` or `reason` field in the body.

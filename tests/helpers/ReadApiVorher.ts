@@ -1,4 +1,10 @@
 /**
+ * NUR FUER TESTS: die Leseschnittstelle, wie sie VOR dem Verzeichnis
+ * (kettenIndex.ts) war -- unveraendert aus dem Stand vor Teil A, nur mit
+ * angepassten Pfaden und einer einstellbaren Suchtiefe. tests/kettenindex.test.ts
+ * vergleicht die neuen Antworten Feld fuer Feld mit diesen.
+ */
+/**
  * Leseschnittstelle des Knotens.
  *
  * Alles, was Mini App und Explorer brauchen -- aus der lokalen Ablage, ohne
@@ -14,32 +20,29 @@
  * Mining-Betrieb und liegen im MiningServer. Diese Datei liest nur die
  * Kette.
  */
-import { deserializeBlock, headerHash } from '../../core/block.ts';
+import { deserializeBlock, headerHash } from '../../src/lib/core/block.ts';
 import { coinbaseTotal, txid, TX_COINBASE, type Coinbase, type Transfer }
-  from '../../core/tx.ts';
-import { encodeAddress, decodeAddress } from '../../core/address.ts';
-import { toHex, fromHex } from '../../core/codec.ts';
-import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
-import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
-import { finderName } from '../../chain/finderName.ts';
-import { marktlage, position } from '../../core/feemarket.ts';
-import { FEE_V3_HEIGHT } from '../../core/params.ts';
-import type { ConsensusParams } from '../../core/networks.ts';
+  from '../../src/lib/core/tx.ts';
+import { encodeAddress, decodeAddress } from '../../src/lib/core/address.ts';
+import { toHex, fromHex } from '../../src/lib/core/codec.ts';
+import { stateRoot, totalSupply, getAccount } from '../../src/lib/core/state.ts';
+import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../src/lib/core/params.ts';
+import { finderName } from '../../src/lib/chain/finderName.ts';
+import { marktlage, position } from '../../src/lib/core/feemarket.ts';
+import { FEE_V3_HEIGHT } from '../../src/lib/core/params.ts';
+import type { ConsensusParams } from '../../src/lib/core/networks.ts';
 
-import type { ChainManager } from './ChainManager.ts';
-import type { ChainStore, StoredBlock } from './ChainStore.ts';
-import type { TxPool } from './TxPool.ts';
-import { KettenIndex, hoeheVon, stelleVon, artVon, ART_FUND, ART_POOL } from './kettenIndex.ts';
+import type { ChainManager } from '../../src/lib/node/fullnode/ChainManager.ts';
+import type { ChainStore, StoredBlock } from '../../src/lib/node/fullnode/ChainStore.ts';
+import type { TxPool } from '../../src/lib/node/fullnode/TxPool.ts';
 
 /**
  * Wie viele Bloecke fuer einen Kontoverlauf hoechstens durchsucht werden.
  *
- * Seit es das Verzeichnis gibt (kettenIndex.ts), kostet die Tiefe kaum noch
- * etwas -- gelesen werden nur die Bloecke, in denen die Adresse vorkommt.
- * Die Grenze bleibt trotzdem, wie sie war: Sie steht in jeder Antwort
- * (historyDepth), und blocksFound zaehlt genau innerhalb dieser Tiefe. Sie
- * zu aendern hiesse, die Zahlen in der App zu aendern -- das ist eine
- * eigene Entscheidung, keine Nebenwirkung einer Beschleunigung.
+ * Es gibt keinen Index nach Adresse -- der Knoten haelt die Kette, nicht
+ * eine Auswertung davon. Bei einigen tausend Bloecken kostet die Suche
+ * Millisekunden; bei Hunderttausenden braeuchte es einen Index, und den
+ * baut man, wenn es so weit ist, nicht vorher.
  */
 export const VERLAUF_TIEFE = 5000;
 
@@ -58,29 +61,9 @@ export interface ReadTeile {
   verlaufTiefe?: number;
 }
 
-export class ReadApi {
+export class ReadApiVorher {
   private t: ReadTeile;
-  private index: KettenIndex;
-  /**
-   * Was nur am Kettenkopf haengt, einmal je Kopf gerechnet: Geldmenge und
-   * Hashrate aus der Kette. Vorher bei jedem /summary neu -- die Geldmenge
-   * als Summe ueber ALLE Konten.
-   */
-  private jeKopf: { hash: string; menge: bigint; hashrate: number | null } | null = null;
-
-  constructor(teile: ReadTeile) {
-    this.t = teile;
-    this.index = new KettenIndex(teile.store, teile.chain);
-  }
-
-  /**
-   * Das Verzeichnis jetzt aufbauen statt bei der ersten Abfrage.
-   *
-   * Beim Start einmal alle Bloecke; danach je neuem Block einer. Ohne
-   * diesen Aufruf passiert dasselbe bei der ersten Abfrage -- die dauert
-   * dann entsprechend.
-   */
-  vorbereiten(): void { this.index.nachziehen(); }
+  constructor(teile: ReadTeile) { this.t = teile; }
 
   /**
    * Eine Leseanfrage beantworten.
@@ -118,21 +101,6 @@ export class ReadApi {
     const hoehe = tip?.height ?? -1;
     const state = this.t.chain.state();
 
-    /*
-      Zustandswurzel: die des Kopfblocks. Sie steht im Header, und der
-      ChainManager hat sie beim Annehmen gegen den Zustand geprueft -- ein
-      Block mit falscher Wurzel kommt nicht in die Kette. Vorher wurde sie
-      bei jedem Aufruf ueber ALLE Konten neu gerechnet (Befund S5), mit
-      demselben Ergebnis. Nur falls Zustand und Kopf gerade nicht
-      zusammenpassen, wird wie bisher gerechnet.
-    */
-    const kopfHash = tip ? toHex(tip.hash) : '';
-    if (this.jeKopf?.hash !== kopfHash) {
-      this.jeKopf = { hash: kopfHash, menge: totalSupply(state), hashrate: this.hashrateAusKette() };
-    }
-    const wurzel = !tip ? null
-      : this.t.chain.height() === tip.height ? toHex(tip.stateRoot) : toHex(stateRoot(state));
-
     return {
       token: { token_name: 'YSKAR', token_symbol: 'YSR', decimals: 8 },
       height: tip ? tip.height : null,
@@ -146,14 +114,14 @@ export class ReadApi {
         jeden Miner enthaelt, auch solche an fremden Knoten, und die niemand
         melden muss. Erst ohne genug Bloecke auf die gemessene zurueck.
       */
-      hashrate: this.jeKopf.hashrate ?? this.t.hashrate?.() ?? null,
+      hashrate: this.hashrateAusKette() ?? this.t.hashrate?.() ?? null,
       /** Gemessen: eigene Sitzungen plus Meldungen der Peers. */
       minerHashrate: this.t.hashrate?.() ?? null,
       targetBlockTime: Number(TARGET_BLOCK_TIME),
       tipHash: tip ? toHex(tip.hash) : null,
       stateHeight: this.t.chain.height(),
-      stateRoot: wurzel,
-      totalSupply: this.jeKopf.menge.toString(),
+      stateRoot: tip ? toHex(stateRoot(state)) : null,
+      totalSupply: totalSupply(state).toString(),
       maxSupply: MAX_SUPPLY.toString(),
       nextReward: rewardAt(hoehe + 1).toString(),
       mempool: this.t.pool.size(),
@@ -355,6 +323,9 @@ export class ReadApi {
     let poolAnteile = 0;
 
     /*
+      Rueckwaerts durch die Kette. Es gibt keinen Index nach Adresse -- der
+      Knoten haelt die Kette, nicht eine Auswertung davon.
+
       ZWEI GRENZEN, DIE FRUEHER EINE WAREN
 
       Der Verlauf zeigt 40 Eintraege -- das ist eine Anzeigegrenze. Die
@@ -366,13 +337,15 @@ export class ReadApi {
       als 40 -- bei einer Wallet mit 1158 gefundenen Bloecken stand dort 40,
       und das sah aus wie eine Zahl und war eine Abbruchbedingung.
 
-      Jetzt zaehlen die Zaehler ueber die volle Tiefe; nur das Anhaengen an
-      den Verlauf hoert bei 40 auf.
+      Jetzt laeuft die Schleife bis zur vollen Tiefe durch; nur das Anhaengen
+      an den Verlauf hoert bei 40 auf.
 
-      WAS DAS KOSTET: Frueher las jeder Aufruf bis zu VERLAUF_TIEFE Bloecke.
-      Heute kommen Zaehler und Fundstellen aus dem Verzeichnis, das bei
-      jedem neuen Block und jedem Reorg fortgeschrieben wird
-      (kettenIndex.ts); gelesen werden nur die Bloecke fuer den Verlauf.
+      WAS DAS KOSTET: Jeder Aufruf liest und deserialisiert bis zu
+      VERLAUF_TIEFE Bloecke statt abzubrechen. Bei einigen tausend Bloecken
+      sind das Millisekunden. Waechst die Kette deutlich darueber hinaus,
+      braucht es einen Zaehler, der beim Annehmen eines Blocks fortgeschrieben
+      wird -- und der muss dann auch Reorgs zurueckrechnen. Diese Stelle ist
+      der Ort dafuer.
 
       UND DIE EHRLICHKEIT DAZU: Auch so ist blocksFound nicht "alle Bloecke
       seit Genesis", sondern "alle innerhalb der letzten VERLAUF_TIEFE".
@@ -380,56 +353,37 @@ export class ReadApi {
       deshalb steht historyDepth in der Antwort.
     */
     const bis = tip ? Math.max(0, tip.height - (this.t.verlaufTiefe ?? VERLAUF_TIEFE)) : 0;
-
-    /*
-      Aus dem Verzeichnis (kettenIndex.ts) statt durch die Kette.
-
-      Gezaehlt wird ueber die Eintraege -- sie tragen die Art. Gelesen werden
-      nur die Bloecke, aus denen der Verlauf seine hoechstens 40 Zeilen
-      nimmt. Reihenfolge wie vorher: Hoehe absteigend, innerhalb eines
-      Blocks nach der Stelle im Block.
-    */
-    this.index.nachziehen();
-    const eintraege = this.index.eintraege(key);
-    let unten = eintraege.length;          // erster Eintrag innerhalb der Tiefe
-    while (unten > 0 && hoeheVon(eintraege[unten - 1]) >= bis) unten--;
-    for (let i = unten; i < eintraege.length; i++) {
-      const art = artVon(eintraege[i]);
-      if (art === ART_FUND) gefunden++;
-      else if (art === ART_POOL) poolAnteile++;
-    }
-
-    let oben = eintraege.length;
-    while (oben > unten && verlauf.length < 40) {
-      const h = hoeheVon(eintraege[oben - 1]);
-      let anfang = oben - 1;
-      while (anfang > unten && hoeheVon(eintraege[anfang - 1]) === h) anfang--;
+    for (let h = tip?.height ?? -1; h >= bis; h--) {
       const b = this.t.store.mainAt(h);
-      if (b) {
-        const block = deserializeBlock(b.body);
-        for (let i = anfang; i < oben && verlauf.length < 40; i++) {
-          const t = block.txs[stelleVon(eintraege[i])];
-          if (t.type === TX_COINBASE) {
-            const meiner = t.outputs.find(o => toHex(o.to) === key)!;
-            verlauf.push({
-              txid: toHex(txid(t)), height: h, timestamp: String(b.blockTime),
-              kind: t.outputs.length === 1 ? 'reward' : 'pool',
-              counterparty: null,
-              amount: meiner.amount.toString(), fee: '0', memo: toHex(t.extra),
-              shares: t.outputs.length > 1 ? t.outputs.length : undefined,
-            });
-            continue;
-          }
-          const ein = toHex(t.to) === key;
+      if (!b) continue;
+      const block = deserializeBlock(b.body);
+
+      for (const t of block.txs) {
+        if (t.type === TX_COINBASE) {
+          const meiner = t.outputs.find(o => toHex(o.to) === key);
+          if (!meiner) continue;
+          if (t.outputs.length === 1) gefunden++; else poolAnteile++;
+          if (verlauf.length >= 40) continue;
           verlauf.push({
             txid: toHex(txid(t)), height: h, timestamp: String(b.blockTime),
-            kind: ein ? 'in' : 'out',
-            counterparty: encodeAddress(ein ? t.from : t.to),
-            amount: t.amount.toString(), fee: t.fee.toString(), memo: toHex(t.memo),
+            kind: t.outputs.length === 1 ? 'reward' : 'pool',
+            counterparty: null,
+            amount: meiner.amount.toString(), fee: '0', memo: toHex(t.extra),
+            shares: t.outputs.length > 1 ? t.outputs.length : undefined,
           });
+          continue;
         }
+        const ein = toHex(t.to) === key;
+        const aus = toHex(t.from) === key;
+        if (!ein && !aus) continue;
+        if (verlauf.length >= 40) continue;
+        verlauf.push({
+          txid: toHex(txid(t)), height: h, timestamp: String(b.blockTime),
+          kind: ein ? 'in' : 'out',
+          counterparty: encodeAddress(ein ? t.from : t.to),
+          amount: t.amount.toString(), fee: t.fee.toString(), memo: toHex(t.memo),
+        });
       }
-      oben = anfang;
     }
 
     // Wartende Transaktionen -- sie zaehlen noch nicht zum Guthaben, aber
@@ -512,21 +466,16 @@ export class ReadApi {
     return { kind: 'nichts', hinweis: 'Adresse, Transaktion, Höhe oder Blockhash.' };
   }
 
-  /**
-   * Eine Transaktion der aktiven Kette finden -- innerhalb derselben Tiefe
-   * wie bisher, aber ueber das Verzeichnis: ein Block statt bis zu 5.000.
-   */
   private sucheTx(hex: string): { hoehe: number; tx: Transfer | Coinbase } | null {
     const tip = this.t.chain.tip();
     if (!tip) return null;
     const bis = Math.max(0, tip.height - (this.t.verlaufTiefe ?? VERLAUF_TIEFE));
-    this.index.nachziehen();
-    const h = this.index.hoeheVonTx(hex);
-    if (h === null || h < bis || h > tip.height) return null;
-    const b = this.t.store.mainAt(h);
-    if (!b) return null;
-    for (const t of deserializeBlock(b.body).txs) {
-      if (toHex(txid(t)) === hex) return { hoehe: h, tx: t };
+    for (let h = tip.height; h >= bis; h--) {
+      const b = this.t.store.mainAt(h);
+      if (!b) continue;
+      for (const t of deserializeBlock(b.body).txs) {
+        if (toHex(txid(t)) === hex) return { hoehe: h, tx: t };
+      }
     }
     return null;
   }

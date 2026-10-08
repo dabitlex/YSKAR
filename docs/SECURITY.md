@@ -268,9 +268,12 @@ request therefore has to pass three checks:
 
 1. `Host` must be `127.0.0.1:8650` or `localhost:8650`. This stops DNS rebinding.
 2. If the browser sends `Origin` or `Sec-Fetch-Site`, it must be the interface's own origin.
-3. Everything under `/api/` needs the header `x-yskar-token`. The token is created at every
-   start, is contained only in the page the server delivers itself, and is compared in constant
-   time.
+3. Everything under `/api/` needs the access token. It is created at every start and compared
+   in constant time. It is not contained in the page: the program window receives it as an
+   HttpOnly, SameSite=Strict cookie that the program sets in the window's own session before the
+   page loads; tools send it in the header `x-yskar-token`. Up to version 0.5.1 the token was
+   written into the page, so every program on the PC that could reach `127.0.0.1:8650` (also
+   one of another user account) could read it there.
 
 A request body must be declared as `application/json`. The pages are served with a strict
 Content-Security-Policy that allows scripts and styles only from the interface itself.
@@ -340,13 +343,16 @@ on the PC itself.
   the future and not older than 7 days. The address book does not record who reported an
   address. A peer that sends many fresh addresses can displace older entries.
 - **No rate limiting on the HTTP interface.** Apart from the size and count limits listed
-  above, port 8645 does not limit requests per client. On a publicly offered node, limiting
-  has to be done by the reverse proxy.
+  above and the per-sender session limits of `--sender-ip`, port 8645 does not limit requests
+  per client. On a publicly offered node, limiting has to be done by the reverse proxy.
 - **Pool seats can be occupied cheaply.** A pool has at most 64 seats (63 with a fee), counted
   by address. Opening a pool session needs only a valid address, with no proof that the caller
-  owns it. A new session counts as a seat for 10 minutes without any accepted share, and keeps
+  owns it. A new session counts as a seat for 2 minutes without any accepted share, and keeps
   the seat as long as a share is accepted at least every 10 minutes. Someone who opens sessions
-  for many addresses can fill a pool, and new addresses are then refused with `pool_full`.
+  for many addresses can fill a pool, and new addresses are then refused with `pool_full`. With
+  the option `--sender-ip`, sessions without a share hold at most two seats per sender, and a
+  sender keeps at most 32 sessions without a share; this needs a reverse proxy that sets
+  `X-Forwarded-For` itself (Caddy does), or no proxy at all (`--sender-ip socket`).
 - **Mempool.** The mempool holds at most 5,000 transfers and at most 32 per sender. When it is
   full, new transfers are refused; there is no eviction by fee.
 - **The mirror cannot reorganize.** It is strictly linear: it accepts only the block that

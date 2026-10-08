@@ -138,16 +138,50 @@ test('Pool: Derselbe Treffer zählt genau einmal', async () => {
   } finally { await k.zu(); }
 });
 
-test('Sitzungen: Es gibt eine Obergrenze', async () => {
+test('Sitzungen: Es gibt eine Obergrenze -- solange alle Sitzungen arbeiten', async () => {
   const k = await knoten(18_704);
   try {
-    const sitzungen = (k.server as any).sessions as Map<string, unknown>;
+    const sitzungen = (k.server as any).sessions as Map<string, any>;
     const eine = (await hole(k.url, '/session', { address: A })).json;
-    const muster = sitzungen.get(eine.sessionId);
-    for (let i = 0; i < 5_000; i++) sitzungen.set('x' + i, muster);
+    // 5.000 Sitzungen, die alle schon geliefert haben: Keine wird verdraengt.
+    const muster = { ...sitzungen.get(eine.sessionId), angenommen: 1 };
+    for (let i = 0; i < 5_000; i++) sitzungen.set('x' + i, { ...muster, id: 'x' + i });
     const voll = (await hole(k.url, '/session', { address: B })).json;
     assert.equal(voll.error, 'too_many_sessions');
     assert.equal(voll.sessionId, undefined);
+  } finally { await k.zu(); }
+});
+
+test('Sitzungen: Volle Tabelle -- die aelteste Sitzung OHNE Share macht Platz (Befund S3)', async () => {
+  /*
+    Vorher lehnte eine volle Tabelle JEDE neue Anmeldung ab. Wer sie mit
+    Anmeldungen fuellte, die nie rechnen, sperrte damit alle aus -- auch
+    Miner, die sich nach einer Pause oder einem Neustart neu anmelden
+    mussten.
+  */
+  const k = await knoten(18_706);
+  try {
+    const sitzungen = (k.server as any).sessions as Map<string, any>;
+    const eine = (await hole(k.url, '/session', { address: A })).json;
+    const muster = sitzungen.get(eine.sessionId);
+    const t0 = Date.now();
+    // 4.000 arbeitende und 1.000 ohne Share; die ohne Share unterschiedlich alt.
+    for (let i = 0; i < 4_000; i++) sitzungen.set('a' + i, { ...muster, id: 'a' + i, angenommen: 3, gestartet: t0 - 1_000_000 });
+    for (let i = 0; i < 1_000; i++) sitzungen.set('o' + i, { ...muster, id: 'o' + i, angenommen: 0, gestartet: t0 - 10_000 + i });
+    sitzungen.delete(eine.sessionId);
+    assert.equal(sitzungen.size, 5_000);
+
+    const neu = (await hole(k.url, '/session', { address: B })).json;
+    assert.ok(neu.sessionId, `abgelehnt: ${neu.error}`);
+    assert.equal(sitzungen.size, 5_000, 'die Tabelle waechst nicht ueber die Grenze');
+    assert.equal(sitzungen.has('o0'), false, 'die aelteste ohne Share ist weg');
+    assert.equal(sitzungen.has('o1'), true);
+    for (let i = 0; i < 4_000; i++) assert.ok(sitzungen.has('a' + i), 'wer arbeitet, bleibt');
+
+    // Die verdraengte Sitzung erfaehrt es beim naechsten Aufruf -- darauf
+    // melden sich alle Miner von selbst neu an.
+    const job = (await hole(k.url, '/job?session=o0')).json;
+    assert.equal(job.error, 'session_inactive');
   } finally { await k.zu(); }
 });
 

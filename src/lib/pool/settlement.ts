@@ -24,8 +24,8 @@ export const MAX_FEE_BPS = 500;
  * Wie viele Miner hoechstens in einem Block ausgezahlt werden koennen.
  *
  * Ein Platz geht an die Gebuehr des Betreibers, sofern sie groesser als null
- * ist. Wer nicht hineinpasst, verliert seine Arbeit NICHT -- sie wandert in
- * die naechste Runde.
+ * ist. Wer nicht hineinpasst, bekommt in DIESEM Block nichts (siehe
+ * `ausgelassen` in Abrechnung). Einen Ausgleich dafuer gibt es nicht.
  */
 export const MAX_MINERS_JE_BLOCK = MAX_COINBASE_OUTPUTS - 1;
 
@@ -49,11 +49,23 @@ export interface Abrechnung {
   /** Was an die Miner geht. */
   verteilt: bigint;
   /**
-   * Arbeit, die in dieser Runde nicht ausgezahlt werden konnte, weil die
-   * Coinbase nur begrenzt viele Empfaenger hat. Sie gilt in der naechsten
-   * Runde weiter -- sonst waere es Diebstahl an den Kleinsten.
+   * Adressen, die in diesem Block NICHT ausgezahlt werden, weil die Coinbase
+   * nur begrenzt viele Empfaenger hat -- die mit der wenigsten Arbeit.
+   *
+   * Nur zur Auskunft (Issue #6). Frueher hiess das Feld `uebertrag`, und die
+   * Kommentare versprachen, diese Arbeit wandere in die naechste Runde. Das
+   * stimmte nicht: Ihr Anteil an DIESEM Block geht an die Ausgezahlten, und
+   * es gibt keinen Ausgleich. Ihre Arbeit bleibt nur deshalb im PPLNS-Fenster
+   * und zaehlt beim naechsten Block wieder mit, weil das Fenster ohnehin
+   * ueber Bloecke hinweg reicht -- wie fuer alle anderen auch. Eine Adresse,
+   * die dauerhaft zu den Kleinsten gehoert, geht so jedes Mal leer aus.
+   *
+   * Dass es dazu kommt, verhindert der Pool weitgehend schon bei der
+   * Aufnahme (PoolCoordinator.plaetze()); moeglich bleibt es, weil Plaetze
+   * die Aufnahme begrenzen, nicht das Fenster: Wer geht, gibt seinen Platz
+   * sofort frei, seine Arbeit bleibt eine Weile im Fenster.
    */
-  uebertrag: Anteil[];
+  ausgelassen: Anteil[];
 }
 
 /**
@@ -110,7 +122,8 @@ export function abrechnen(
   }
 
   /*
-    Wer nicht in den Block passt, wird uebertragen.
+    Wer nicht in den Block passt, geht in diesem Block leer aus (siehe
+    `ausgelassen`).
 
     Sortiert wird nach Arbeit absteigend; bei gleicher Arbeit entscheidet
     die Adresse, damit das Ergebnis deterministisch ist. Zwei Knoten
@@ -121,7 +134,7 @@ export function abrechnen(
     x.work !== y.work ? (x.work > y.work ? -1 : 1)
                       : (toHex(x.to) < toHex(y.to) ? -1 : 1));
   const dabei = sortiert.slice(0, platz);
-  const uebertrag = sortiert.slice(platz);
+  const ausgelassen = sortiert.slice(platz);
 
   let gesamtArbeit = 0n;
   for (const a of dabei) gesamtArbeit += a.work;
@@ -191,5 +204,5 @@ export function abrechnen(
     throw new Error(`${outputs.length} Empfaenger, hoechstens ${MAX_COINBASE_OUTPUTS}`);
   }
 
-  return { outputs, fee, verteilt: verteilbar, uebertrag };
+  return { outputs, fee, verteilt: verteilbar, ausgelassen };
 }

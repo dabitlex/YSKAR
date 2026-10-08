@@ -71,6 +71,18 @@ export class TxPool {
   /** Je Absender die wartenden Nonces -- fuer Ersetzung und Luecken. */
   private nachAbsender = new Map<string, Map<string, Eintrag>>();
 
+  /**
+   * Zaehler, der sich bei JEDER Aenderung des Inhalts erhoeht.
+   *
+   * Daran erkennt der Blockbau, ob seine Vorarbeit (Auswahl und Zustand
+   * nach den Ueberweisungen, siehe jobVorlage.ts) noch zum Mempool passt.
+   * Ein Zaehler statt eines Vergleichs der Inhalte: Der kostet nichts und
+   * kann sich nicht irren -- jede Aenderung geht durch add(), remove() oder
+   * leeren().
+   */
+  private stand = 0;
+  version(): number { return this.stand; }
+
   size(): number { return this.nachId.size; }
   has(id: string): boolean { return this.nachId.has(id); }
   get(id: string): Transfer | null { return this.nachId.get(id)?.tx ?? null; }
@@ -180,6 +192,7 @@ export class TxPool {
     this.nachId.set(id, eintrag);
     wartend.set(id, eintrag);
     this.nachAbsender.set(absender, wartend);
+    this.stand++;
 
     return { ok: true, txid: id, ersetzt };
   }
@@ -189,6 +202,7 @@ export class TxPool {
     const e = this.nachId.get(id);
     if (!e) return false;
     this.nachId.delete(id);
+    this.stand++;
     const wartend = this.nachAbsender.get(e.from);
     if (wartend) {
       wartend.delete(id);
@@ -252,6 +266,7 @@ export class TxPool {
   }
 
   leeren(): void {
+    this.stand++;
     this.nachId.clear();
     this.nachAbsender.clear();
   }

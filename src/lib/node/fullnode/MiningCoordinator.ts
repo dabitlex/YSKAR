@@ -16,6 +16,7 @@
  */
 import { buildBlock, finalizeBlock, selectTransactions, type BuildResult }
   from '../../core/builder.ts';
+import { baueVorlage, baueAusVorlage, type JobVorlage } from './jobVorlage.ts';
 import { serializeHeader, serializeBlock, headerHash, deserializeBlock }
   from '../../core/block.ts';
 import { expectedDifficulty } from '../../core/validate.ts';
@@ -67,6 +68,21 @@ export type SubmitResult =
   | { ok: true; block: false; achieved: string }
   | { ok: false; grund: string; detail?: string };
 
+/** Was createJob() zusaetzlich beachten soll. */
+export interface JobWunsch {
+  /**
+   * Fruehester Zeitstempel fuer diesen Job.
+   *
+   * Der MiningServer bindet das Share-Ziel an den Job. Soll sich das Ziel
+   * aendern, braucht die Sitzung einen Job mit ANDERER Kennung -- und
+   * innerhalb derselben Sekunde ergaebe dieselbe Vorlage dieselbe Kennung.
+   * Ein um eine Sekunde spaeterer Zeitstempel macht sie verschieden. Die
+   * Regel fuer Zeitstempel (nicht mehr als MAX_FUTURE_DRIFT voraus) gilt
+   * weiter: Daran wird der Wunsch gekappt.
+   */
+  mindestZeit?: bigint;
+}
+
 interface OffenerJob {
   job: MiningJob;
   gebaut: BuildResult;
@@ -88,6 +104,32 @@ export class MiningCoordinator {
    */
   private letzteVorgaben: { height: number; difficulty: bigint } | null = null;
   private jetzt: () => bigint;
+
+  /**
+   * Vorarbeit fuer den naechsten Block -- siehe jobVorlage.ts.
+   *
+   * Gilt fuer genau einen Kettenkopf und einen Mempool-Stand. Aendert sich
+   * eins von beidem, wird sie beim naechsten Job neu gerechnet.
+   */
+  private vorlage: JobVorlage | null = null;
+  /**
+   * Welche Rechenwege dieser Vorlage schon gegen buildBlock() geprueft sind.
+   *
+   * Ein Weg ist: Coinbase-Fassung (ein oder mehrere Empfaenger) und wie die
+   * Wurzel entsteht (nur Pfade, oder ab einer neuen Stelle). Jeder wird
+   * einmal je Vorlage voll nachgebaut und verglichen -- hoechstens vier
+   * volle Bauten je Kettenkopf und Mempool-Stand.
+   */
+  private vorlageGeprueft = new Set<string>();
+  /**
+   * Ein: Jobs aus der Vorlage. Aus: jeder Job wie bisher mit buildBlock().
+   *
+   * Schaltet sich selbst ab, sobald ein Job aus der Vorlage auch nur in
+   * einem Byte von buildBlock() abweicht -- dann lieber langsam und richtig.
+   */
+  vorlageAn = true;
+  /** Wird gerufen, wenn die Vorlage abgeschaltet werden musste. */
+  onFehler?: (wo: string, e: Error) => void;
 
   /**
    * @param jetzt  Aktuelle Zeit in Sekunden. Ohne Angabe die Systemuhr.
@@ -141,28 +183,18 @@ export class MiningCoordinator {
    */
   createJob(minerAddress: Uint8Array, extranonce: bigint,
             extra: Uint8Array = new Uint8Array(0),
-            anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[]): MiningJob {
+            anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[],
+            wunsch: JobWunsch = {}): MiningJob {
     const tip = this.chain.tip();
     const hoehe = (tip?.height ?? -1) + 1;
     const state = this.chain.state();
 
-    const { difficulty, zeitstempel } = this.naechsteVorgaben(tip);
+    const { difficulty, zeitstempel } = this.naechsteVorgaben(tip, wunsch.mindestZeit);
+    const prevHash = tip ? tip.hash : new Uint8Array(32);
 
-    const { included } = selectTransactions(state, this.pool.alle(), hoehe, undefined, this.params);
-
-    const gebaut = buildBlock({
-      height: hoehe,
-      prevHash: tip ? tip.hash : new Uint8Array(32),
-      state,
-      mempool: included,
-      minerAddress,
-      timestamp: zeitstempel,
-      difficulty,
-      extranonce,
-      coinbaseExtra: extra,
-      anteile,
-      params: this.params,
-    });
+    const gebaut = this.vorlageAn
+      ? this.ausVorlage(hoehe, prevHash, minerAddress, zeitstempel, difficulty, extranonce, extra, anteile)
+      : this.vollerBau(hoehe, prevHash, minerAddress, zeitstempel, difficulty, extranonce, extra, anteile);
 
     const h = gebaut.block.header;
     const jobId = toHex(headerHash({ ...h, nonce: 0n })).slice(0, 32);
@@ -184,10 +216,62 @@ export class MiningCoordinator {
       erzeugt: Date.now(),
     };
 
-    this.offen.set(jobId, { job, gebaut, enthalten: included });
+    this.offen.set(jobId, { job, gebaut, enthalten: gebaut.included });
     this.letzteVorgaben = { height: hoehe, difficulty: h.difficulty };
     this.aufraeumen();
     return job;
+  }
+
+  /** Der Blockbau wie bisher: alles neu, ohne Vorarbeit. */
+  private vollerBau(hoehe: number, prevHash: Uint8Array, minerAddress: Uint8Array,
+                    zeitstempel: bigint, difficulty: bigint, extranonce: bigint,
+                    extra: Uint8Array,
+                    anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[]): BuildResult {
+    const state = this.chain.state();
+    const { included } = selectTransactions(state, this.pool.alle(), hoehe, undefined, this.params);
+    return buildBlock({
+      height: hoehe, prevHash, state, mempool: included, minerAddress,
+      timestamp: zeitstempel, difficulty, extranonce, coinbaseExtra: extra, anteile,
+      params: this.params,
+    });
+  }
+
+  /**
+   * Der Blockbau aus der Vorarbeit.
+   *
+   * Der erste Job jeder neuen Vorlage wird ZUSAETZLICH voll gebaut und
+   * Byte fuer Byte verglichen. Weicht er ab, gilt ab sofort wieder der
+   * volle Bau -- fuer immer, bis zum Neustart -- und der Fehler wird
+   * gemeldet. Ein Miner, der auf einem falschen Job rechnet, verliert seine
+   * Arbeit; das darf nicht stillschweigend passieren.
+   */
+  private ausVorlage(hoehe: number, prevHash: Uint8Array, minerAddress: Uint8Array,
+                     zeitstempel: bigint, difficulty: bigint, extranonce: bigint,
+                     extra: Uint8Array,
+                     anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[]): BuildResult {
+    const schluessel = `${toHex(prevHash)}:${hoehe}:${this.pool.version()}`;
+    if (this.vorlage?.schluessel !== schluessel) {
+      this.vorlage = baueVorlage(schluessel, this.chain.state(), this.pool.alle(), hoehe, this.params);
+      this.vorlageGeprueft.clear();
+    }
+    const { art, ...gebaut } = baueAusVorlage(this.vorlage, {
+      prevHash, minerAddress, timestamp: zeitstempel, difficulty, extranonce,
+      coinbaseExtra: extra, anteile, params: this.params,
+    });
+    if (this.vorlageGeprueft.has(art)) return gebaut;
+
+    const voll = this.vollerBau(hoehe, prevHash, minerAddress, zeitstempel, difficulty, extranonce, extra, anteile);
+    const gleich = toHex(serializeBlock(voll.block)) === toHex(serializeBlock(gebaut.block))
+      && voll.fees === gebaut.fees;
+    if (!gleich) {
+      this.vorlageAn = false;
+      this.vorlage = null;
+      this.onFehler?.('Job-Vorlage', new Error(
+        'Ein Job aus der Vorarbeit wich vom vollen Blockbau ab -- die Vorarbeit ist bis zum Neustart abgeschaltet.'));
+      return voll;
+    }
+    this.vorlageGeprueft.add(art);
+    return gebaut;
   }
 
   /**
@@ -259,6 +343,7 @@ export class MiningCoordinator {
   invalidate(): void {
     this.offen.clear();
     this.letzteVorgaben = null;
+    this.vorlage = null;
   }
 
   /**
@@ -282,13 +367,17 @@ export class MiningCoordinator {
    * Beides muss GENAU den Regeln folgen, sonst lehnt die eigene
    * Validierung den fertigen Block ab -- nach getaner Arbeit.
    */
-  private naechsteVorgaben(tip: { height: number; blockTime: bigint } | null): {
+  private naechsteVorgaben(tip: { height: number; blockTime: bigint } | null,
+                           mindestZeit?: bigint): {
     difficulty: bigint; zeitstempel: bigint;
   } {
     const jetzt = this.jetzt();
 
     if (!tip) {
-      return { difficulty: this.params.genesisDifficulty, zeitstempel: jetzt };
+      const z = mindestZeit !== undefined && mindestZeit > jetzt
+        ? (mindestZeit < jetzt + MAX_FUTURE_DRIFT - 5n ? mindestZeit : jetzt + MAX_FUTURE_DRIFT - 5n)
+        : jetzt;
+      return { difficulty: this.params.genesisDifficulty, zeitstempel: z };
     }
 
     const kette = this.aktiveKette(tip.height);
@@ -304,6 +393,7 @@ export class MiningCoordinator {
     const median = medianTimePast(kette.slice(-11).map(b => b.blockTime));
     let zeitstempel = jetzt;
     if (zeitstempel <= median) zeitstempel = median + 1n;
+    if (mindestZeit !== undefined && zeitstempel < mindestZeit) zeitstempel = mindestZeit;
     const obergrenze = jetzt + MAX_FUTURE_DRIFT - 5n;
     if (zeitstempel > obergrenze) zeitstempel = obergrenze;
 

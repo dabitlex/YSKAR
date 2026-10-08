@@ -26,8 +26,7 @@ import { randomUUID } from 'node:crypto';
 
 import { decodeAddress } from '../../core/address.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
-import { totalSupply, stateRoot } from '../../core/state.ts';
-import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME } from '../../core/params.ts';
+import { rewardAt } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 
 import type { ChainManager } from './ChainManager.ts';
@@ -42,6 +41,31 @@ import { spiegelKopf } from './spiegelKopf.ts';
 const SHARE_ZIEL_SEKUNDEN = 30;
 /** Startwert, bis genug gemessen wurde. */
 const SHARE_START = 128n;
+/**
+ * Obergrenze fuer das Share-Ziel: ein Achtel der Blockdifficulty des Jobs
+ * (aber nie unter dem Startwert).
+ *
+ * Ohne Grenze liess sich das Ziel ueber die Einreichzeiten beliebig
+ * hochtreiben -- und ein Blockfund wird mit dem Share-Ziel gutgeschrieben.
+ * Ein Ziel ueber der Blockdifficulty haette einem Fund mehr Gewicht gegeben,
+ * als der Block an Arbeit gekostet hat (Befund S2).
+ *
+ * Ein ehrlicher Miner erreicht die Grenze nie: Bei 30 Sekunden je Share und
+ * 600 Sekunden je Block liegt sein Ziel selbst mit der GESAMTEN Rechenleistung
+ * des Netzes bei einem Zwanzigstel der Blockdifficulty.
+ */
+const SHARE_DECKEL_TEILER = 8n;
+/**
+ * Ab diesem Faktor wartet eine Anhebung nicht auf den naechsten Job.
+ *
+ * Das Ziel gilt je Job (siehe share()). Ein schneller Miner, der beim
+ * Startwert 128 anfaengt, wuerde sonst bis zum naechsten Job -- 30 bis 45
+ * Sekunden -- Hunderte Shares je Sekunde schicken. Ab Faktor 4 wird der
+ * Job deshalb beendet: Der naechste Treffer darauf bekommt "job_expired",
+ * und darauf holen alle Miner (App, Mini App, Kommandozeile, Node Core)
+ * sofort neue Arbeit.
+ */
+const FRUEHES_ENDE_FAKTOR = 4n;
 /** Eine Session gilt als tot, wenn so lange nichts kam. */
 const SESSION_TIMEOUT_MS = 300_000;
 /**
@@ -60,8 +84,8 @@ const SESSION_TIMEOUT_MS = 300_000;
 const PLATZ_VORGEMERKT_MS = 900_000;
 /**
  * Ein Platz gehoert, wer arbeitet: So lange haelt eine offene Pool-Sitzung
- * ihren Platz, ohne dass ein Share von ihr angenommen wurde -- gerechnet ab
- * der Anmeldung bzw. ab dem letzten angenommenen Share.
+ * ihren Platz nach ihrem letzten angenommenen Share. (Fuer eine Sitzung,
+ * die noch nie einen geliefert hat, gilt PLATZ_ANWARTSCHAFT_MS.)
  *
  * Ohne diese Frist liesse sich ein Pool mit einer Handvoll Anmeldungen
  * zustellen, die nur alle paar Minuten einen Job abholen und nie rechnen.
@@ -73,9 +97,45 @@ const PLATZ_VORGEMERKT_MS = 900_000;
  */
 const PLATZ_OHNE_ARBEIT_MS = 600_000;
 /**
+ * So lange haelt eine Pool-Sitzung OHNE einen einzigen angenommenen Share
+ * einen Platz -- gerechnet ab der Anmeldung.
+ *
+ * Bisher galten auch dafuer zehn Minuten (PLATZ_OHNE_ARBEIT_MS). Damit
+ * liess sich der Pool mit einer Anmeldung je Platz alle zehn Minuten
+ * kostenlos fuer Neue sperren (Befund S3). Ein Miner, der wirklich
+ * rechnet, liefert seinen ersten Share beim Startwert 128 in Sekunden:
+ * 128 * 65.536 = 8,4 Millionen Hashes. Zwei Minuten reichen auch fuer
+ * langsame Geraete; danach braucht es einen Share, um den Platz zu halten.
+ *
+ * Die Sitzung selbst wird dabei NICHT beendet. Liefert sie spaeter doch,
+ * zaehlt ihr Share wie jeder andere.
+ */
+const PLATZ_ANWARTSCHAFT_MS = 120_000;
+/**
+ * Hoechstens so viele Sitzungen OHNE Share halten je Absender einen Platz
+ * auf Probe -- nur, wenn der Knoten den Absender kennt (--sender-ip).
+ *
+ * Mehr Geraete hinter einem Anschluss sperrt das nicht aus: Wer liefert,
+ * belegt seinen Platz ueber den Share, nicht ueber die Anmeldung.
+ */
+const ANWARTSCHAFTEN_JE_ABSENDER = 2;
+/**
+ * Hoechstens so viele Sitzungen OHNE Share haelt der Knoten je Absender
+ * (nur mit --sender-ip). Die naechste Anmeldung verdraengt die aelteste
+ * davon -- abgelehnt wird niemand. Wer schon geliefert hat, wird nie
+ * verdraengt.
+ */
+const SITZUNGEN_OHNE_ARBEIT_JE_ABSENDER = 32;
+/**
  * Mehr offene Sitzungen haelt der Knoten nicht. Jede kostet Speicher, und
  * anmelden darf jeder -- ohne Grenze liesse sich der Knoten mit Anmeldungen
  * fuellen, bis ihm der Speicher ausgeht.
+ *
+ * Ist die Tabelle voll, verdraengt eine neue Anmeldung die aelteste Sitzung,
+ * die noch nie einen Share geliefert hat. Bisher wurde dann JEDE neue
+ * Anmeldung abgelehnt -- auch die eines Miners, der nach einem Neustart oder
+ * einer Pause wieder einsteigen wollte (Befund S3). "too_many_sessions"
+ * gibt es nur noch, wenn alle Sitzungen arbeiten.
  */
 const SITZUNGEN_MAX = 5_000;
 /** So viele Treffer merkt sich eine Sitzung je Job -- siehe share(). */
@@ -99,7 +159,40 @@ interface Session {
   extranonce: bigint;
   /** solo = eigene Coinbase, pool = Anteil an der Aufteilung. */
   modus: MiningModus;
+  /**
+   * Das Share-Ziel fuer den NAECHSTEN Job -- die Nachfuehrung schreibt
+   * hierher. Fuer den laufenden Job gilt `jobZiel`.
+   */
   shareDifficulty: bigint;
+  /**
+   * Das Share-Ziel des laufenden Jobs. Festgelegt, wenn der Job ausgegeben
+   * wird; jeder Treffer auf diesen Job wird damit geprueft und mit genau
+   * diesem Wert gutgeschrieben.
+   *
+   * WARUM JE JOB: Vorher galt das Ziel der Sitzung, und es aenderte sich
+   * nach jedem angenommenen Share. Wer Treffer zurueckhielt und sie in der
+   * richtigen Reihenfolge schnell hintereinander einreichte, trieb das Ziel
+   * hoch und bekam seine besten Treffer mit dem hoeheren Wert gutgeschrieben
+   * -- mehr, als er gerechnet hatte (Befund S2). Mit einem festen Wert je
+   * Job bringt die Reihenfolge nichts mehr: Jeder Treffer zaehlt gleich.
+   */
+  jobZiel: bigint;
+  /** Obergrenze des Share-Ziels, aus der Blockdifficulty des laufenden Jobs. */
+  jobDeckel: bigint;
+  /** Der laufende Job ist vorzeitig beendet (FRUEHES_ENDE_FAKTOR). */
+  jobEnde: boolean;
+  /** Zeitstempel des letzten Jobs. Jobs einer Sitzung gehen zeitlich nie zurueck. */
+  jobZeit: bigint;
+  /**
+   * Messung fuer die Nachfuehrung: Beginn des laufenden Abschnitts (ms) und
+   * die Summe "Sekunden je Difficulty-Einheit" der Abschnitte davor, seit
+   * dem letzten Share. Ein Abschnitt endet, wenn ein Job mit anderem Ziel
+   * ausgegeben wird -- siehe nachShare().
+   */
+  messungAb: number;
+  messungSumme: number;
+  /** Absender laut --sender-ip; null, wenn der Knoten ihn nicht kennen soll. */
+  absender: string | null;
   /**
    * Normierte Messwerte: Sekunden je Difficulty-Einheit.
    *
@@ -133,7 +226,23 @@ export interface ServerOptionen {
   host?: string;
   port?: number;
   params?: ConsensusParams;
+  /** Woher der Absender einer Anfrage kommt -- siehe MiningServer.absenderQuelle. */
+  absender?: AbsenderQuelle;
 }
+
+/**
+ * Woher der Knoten den Absender einer Anfrage nimmt.
+ *
+ *   'proxy'  -- aus dem LETZTEN Eintrag von X-Forwarded-For. Nur hinter
+ *               einem Proxy, der diesen Kopf selbst setzt (Caddy tut das).
+ *               Den letzten, weil nur der vom eigenen Proxy stammt; alles
+ *               davor kann der Absender selbst hineinschreiben.
+ *   'socket' -- die Adresse der Verbindung. Nur, wenn KEIN Proxy davor
+ *               steht -- sonst waeren alle Anfragen "vom Proxy".
+ *   null     -- gar nicht (Vorgabe). Die Grenzen je Absender gelten dann
+ *               nicht; alles andere schon.
+ */
+export type AbsenderQuelle = 'proxy' | 'socket' | null;
 
 export class MiningServer {
   private chain: ChainManager;
@@ -153,6 +262,9 @@ export class MiningServer {
    * Heisst absichtlich nicht "pool" -- so heisst schon der Mempool.
    */
   poolKoordinator: PoolCoordinator | null = null;
+
+  /** Siehe AbsenderQuelle. */
+  absenderQuelle: AbsenderQuelle = null;
 
   /**
    * Name, der in die Coinbase der Pool-Bloecke dieses Knotens kommt.
@@ -207,17 +319,92 @@ export class MiningServer {
     this.aufraeumen();
     const verbunden = new Set<string>();
     const belegt = new Set<string>();
-    const frist = Date.now() - PLATZ_OHNE_ARBEIT_MS;
+    const jetzt = Date.now();
+    const frist = jetzt - PLATZ_OHNE_ARBEIT_MS;
+    const probe = this.anwartschaften(jetzt - PLATZ_ANWARTSCHAFT_MS);
     let hashrate = 0;
     for (const x of this.sessions.values()) {
       if (x.modus !== 'pool') continue;
       verbunden.add(x.addressHex);
-      if ((x.letzterShare ?? x.gestartet) > frist) belegt.add(x.addressHex);
+      if (x.angenommen > 0) {
+        if ((x.letzterShare ?? x.gestartet) > frist) belegt.add(x.addressHex);
+      } else if (probe.has(x.id)) {
+        belegt.add(x.addressHex);
+      }
       const r = this.sessionHashrate(x);
       if (r) hashrate += r;
     }
     for (const v of this.vorgemerkt.values()) belegt.add(v.addressHex);
     return { verbunden, belegt, hashrate };
+  }
+
+  /**
+   * Welche Pool-Sitzungen OHNE Share gerade einen Platz auf Probe halten.
+   *
+   * Juenger als die Frist (PLATZ_ANWARTSCHAFT_MS) -- und, wenn der Knoten
+   * den Absender kennt, nur die neuesten ANWARTSCHAFTEN_JE_ABSENDER je
+   * Absender. Ohne diese zweite Grenze haelt ein einziger Anschluss mit 63
+   * Anmeldungen alle 63 Plaetze, solange er sich alle zwei Minuten neu
+   * anmeldet.
+   */
+  private anwartschaften(frist: number): Set<string> {
+    const je = new Map<string, Session[]>();
+    const frei = new Set<string>();
+    for (const x of this.sessions.values()) {
+      if (x.modus !== 'pool' || x.angenommen > 0 || x.gestartet <= frist) continue;
+      if (x.absender === null) { frei.add(x.id); continue; }
+      const liste = je.get(x.absender) ?? [];
+      liste.push(x);
+      je.set(x.absender, liste);
+    }
+    for (const liste of je.values()) {
+      liste.sort((a, b) => b.gestartet - a.gestartet);
+      for (const x of liste.slice(0, ANWARTSCHAFTEN_JE_ABSENDER)) frei.add(x.id);
+    }
+    return frei;
+  }
+
+  /** Der Absender einer Anfrage -- siehe AbsenderQuelle. */
+  private absenderVon(req: IncomingMessage): string | null {
+    if (this.absenderQuelle === 'proxy') {
+      const kopf = req.headers['x-forwarded-for'];
+      const text = Array.isArray(kopf) ? kopf.join(',') : (kopf ?? '');
+      const letzter = text.split(',').map(t => t.trim()).filter(Boolean).pop();
+      if (letzter) return letzter.slice(0, 64);
+      return req.socket.remoteAddress ?? null;
+    }
+    if (this.absenderQuelle === 'socket') return req.socket.remoteAddress ?? null;
+    return null;
+  }
+
+  /**
+   * Platz in der Sitzungstabelle schaffen -- fuer die Anmeldung von `absender`.
+   *
+   * Verdraengt wird nur, wer noch nie einen Share geliefert hat; zuerst die
+   * aelteste solche Sitzung DESSELBEN Absenders (ab
+   * SITZUNGEN_OHNE_ARBEIT_JE_ABSENDER), dann -- bei voller Tabelle -- die
+   * aelteste ueberhaupt. Eine verdraengte Sitzung bekommt beim naechsten
+   * Aufruf "session_inactive"; darauf melden sich alle Miner von selbst neu
+   * an.
+   *
+   * @returns false, wenn die Tabelle voll ist und jede Sitzung arbeitet.
+   */
+  private platzSchaffen(absender: string | null): boolean {
+    const ohneArbeit = (nurVon?: string) => [...this.sessions]
+      .filter(([, x]) => x.angenommen === 0 && (nurVon === undefined || x.absender === nurVon))
+      .sort(([, a], [, b]) => a.gestartet - b.gestartet)
+      .map(([schluessel]) => schluessel);
+
+    if (absender !== null) {
+      const eigene = ohneArbeit(absender);
+      while (eigene.length >= SITZUNGEN_OHNE_ARBEIT_JE_ABSENDER) {
+        this.sessions.delete(eigene.shift()!);
+      }
+    }
+    if (this.sessions.size < SITZUNGEN_MAX) return true;
+    const weg = ohneArbeit();
+    while (this.sessions.size >= SITZUNGEN_MAX && weg.length) this.sessions.delete(weg.shift()!);
+    return this.sessions.size < SITZUNGEN_MAX;
   }
 
   /**
@@ -290,6 +477,8 @@ export class MiningServer {
    */
   upstream?: string;
   onUpstream?: (ergebnis: { ok: boolean; grund?: string; hoehe?: number }) => void;
+  /** So lange darf die Weitergabe eines Blocks an den Spiegel dauern. */
+  weitergabeFristMs = 15_000;
 
   /**
    * Eine ueber die Schnittstelle eingereichte Ueberweisung wurde aufgenommen.
@@ -312,6 +501,7 @@ export class MiningServer {
     this.pool = teile.pool;
     this.mining = teile.mining;
     this.params = opt.params ?? MAINNET;
+    this.absenderQuelle = opt.absender ?? null;
 
     /*
       Die Leseschnittstelle.
@@ -331,6 +521,9 @@ export class MiningServer {
   }
 
   listen(host = '127.0.0.1', port = 8645): Promise<void> {
+    // Das Verzeichnis der Kette vor der ersten Anfrage aufbauen -- sonst
+    // wartet die erste Abfrage von /account oder /tx darauf.
+    this.lesen.vorbereiten();
     return new Promise((auf, ab) => {
       this.server.once('error', ab);
       this.server.listen(port, host, () => auf());
@@ -513,11 +706,18 @@ export class MiningServer {
         "Einreichen fehlgeschlagen: HTTP 500" -- ohne jeden Hinweis worauf.
         Genau so ein Fall kostete einen Abend Rätselraten.
       */
+      /*
+        Der Fehlertext bleibt im Protokoll des Knotens (onFehler) und geht
+        NICHT nach aussen. Er kann Pfade, Dateinamen und innere Zustaende
+        enthalten -- Auskunft fuer den Betreiber, nicht fuer jeden, der eine
+        Anfrage schicken kann (Befund S5). Wo es passiert ist, darf der
+        Absender wissen: Das ist seine eigene Anfrage.
+      */
       const fehler = e as Error;
       this.onFehler?.(`${req.method} ${pfad}`, fehler);
       this.json(res, {
         error: 'internal',
-        detail: fehler.message,
+        detail: 'Interner Fehler des Knotens -- Einzelheiten stehen in seinem Protokoll.',
         where: `${req.method} ${pfad}`,
       }, 500);
     }
@@ -565,6 +765,7 @@ export class MiningServer {
       Promise<{ status: number; body: Record<string, unknown> }> {
     const ok = (body: Record<string, unknown>) => ({ status: 200, body });
     const b = await this.body(req);
+    const absender = this.absenderVon(req);
     if (typeof b.address !== 'string') return ok({ error: 'missing_address' });
 
     let roh: Uint8Array;
@@ -628,7 +829,7 @@ export class MiningServer {
       }
     }
 
-    if (this.sessions.size >= SITZUNGEN_MAX) {
+    if (!this.platzSchaffen(absender)) {
       return ok({ error: 'too_many_sessions', detail: 'Der Knoten hat zu viele offene Sitzungen.' });
     }
 
@@ -641,6 +842,13 @@ export class MiningServer {
       extranonce: this.naechsteExtranonce++,
       modus,
       shareDifficulty: SHARE_START,
+      jobZiel: SHARE_START,
+      jobDeckel: SHARE_START,
+      jobEnde: false,
+      jobZeit: 0n,
+      messungAb: Date.now(),
+      messungSumme: 0,
+      absender,
       proben: [],
       letzterShare: null,
       angenommen: 0, abgelehnt: 0,
@@ -688,13 +896,23 @@ export class MiningServer {
     const anteile = istPool
       ? (brutto: bigint) => {
           const netz = this.chain.tip()?.difficulty ?? 1n;
-          const a = pk!.coinbase(this.chain.height() + 1, 0n, netz);
+          const hoehe = this.chain.height() + 1;
+          /*
+            Die Transaktionsgebuehren werden mit der Belohnung verteilt
+            (Issue #12): nach Arbeit, und die Pool-Gebuehr gilt fuer beides.
+            Bisher rechnete pk.coinbase() ohne sie, und die ganze Differenz
+            ging an den groessten Anteil -- unter Umstaenden den Betreiber.
+
+            Der Blockbau kennt die echten Gebuehren erst hier und reicht die
+            Summe als `brutto` herein: brutto = Belohnung + Gebuehren.
+          */
+          const gebuehren = brutto - rewardAt(hoehe);
+          const a = pk!.coinbase(hoehe, gebuehren > 0n ? gebuehren : 0n, netz);
           if (!a) return [];
           /*
-            pk.coinbase() rechnet ohne Gebuehren. Der Blockbau kennt die
-            echten und reicht die Summe als `brutto` herein. Die Differenz
-            kommt auf den groessten Anteil -- so bleibt die Summe exakt,
-            und niemand verliert einen Bruchteil.
+            abrechnen() verteilt `brutto` damit auf die Einheit genau. Die
+            Angleichung unten bleibt nur als Sicherung, falls die Summe je
+            abweicht -- die Coinbase muss exakt brutto auszahlen.
           */
           const summe = a.outputs.reduce((m, o) => m + o.amount, 0n);
           const rest = brutto - summe;
@@ -714,9 +932,44 @@ export class MiningServer {
       // Der Name des Knotens gehoert nur in Pool-Bloecke. Ein fremder
       // Solo-Miner baut seinen eigenen Block.
       istPool ? this.blockName : new Uint8Array(0),
-      anteile);
-    if (s.jobId !== job.jobId) s.gesehen.clear();
-    s.jobId = job.jobId;
+      anteile,
+      /*
+        Zeitstempel einer Sitzung gehen nie zurueck, und nach einem
+        vorzeitigen Ende muss der neue Job eine ANDERE Kennung haben als der
+        beendete -- sonst haette er dasselbe Ziel. Innerhalb derselben
+        Sekunde ergaebe dieselbe Vorlage dieselbe Kennung; eine Sekunde
+        spaeter macht sie verschieden. Holt der Miner danach (mehrere
+        Anfragen auf einmal sind bei der Kommandozeile moeglich) noch
+        einmal, bekommt er wieder genau diesen Job und keinen dritten.
+      */
+      { mindestZeit: s.jobEnde ? s.jobZeit + 1n : (s.jobZeit > 0n ? s.jobZeit : undefined) });
+    s.jobZeit = BigInt(job.timestamp);
+
+    /*
+      Neuer Job: neues Ziel. Es gilt fuer jeden Treffer auf diesen Job und
+      aendert sich bis zum naechsten Job nicht (siehe Session.jobZiel).
+
+      Ausnahme: Ein vorzeitig beendeter Job, fuer den trotzdem keine neue
+      Kennung entstand (der Zeitstempel stiess an seine Obergrenze). Dann
+      gilt das neue Ziel ab sofort fuer denselben Job -- das kann nur eine
+      ANHEBUNG sein, und eine Anhebung schreibt niemandem mehr gut, als er
+      gerechnet hat.
+    */
+    if (s.jobId !== job.jobId || s.jobEnde) {
+      if (s.jobId !== job.jobId) s.gesehen.clear();
+      s.jobId = job.jobId;
+      s.jobDeckel = shareDeckel(BigInt(job.difficultyWert));
+      const neuesZiel = s.shareDifficulty < 1n ? 1n
+        : s.shareDifficulty > s.jobDeckel ? s.jobDeckel : s.shareDifficulty;
+      // Abschnitt der Messung abschliessen, wenn sich das Ziel aendert.
+      if (neuesZiel !== s.jobZiel && s.letzterShare !== null) {
+        const jetzt = Date.now();
+        s.messungSumme += (jetzt - s.messungAb) / 1000 / Number(s.jobZiel);
+        s.messungAb = jetzt;
+      }
+      s.jobZiel = neuesZiel;
+      s.jobEnde = false;
+    }
 
     return {
       jobId: job.jobId,
@@ -734,8 +987,8 @@ export class MiningServer {
       // Der Miner rechnet gegen das SHARE-Ziel, nicht gegen das Blockziel.
       // Sonst saehe er stundenlang keinen Treffer und wuesste nicht, ob er
       // ueberhaupt arbeitet.
-      target: toHex(zielBytes(zielAus(s.shareDifficulty))),
-      shareDifficulty: s.shareDifficulty.toString(),
+      target: toHex(zielBytes(zielAus(s.jobZiel))),
+      shareDifficulty: s.jobZiel.toString(),
     };
   }
 
@@ -752,6 +1005,9 @@ export class MiningServer {
       // auf denselben Job einreichen und beide gutgeschrieben bekommen.
       return { accepted: false, reason: 'job_foreign' };
     }
+    // Vorzeitig beendet (FRUEHES_ENDE_FAKTOR): Der Miner soll neue Arbeit
+    // mit dem neuen Ziel holen. Kein Fehler des Miners -- nicht gezaehlt.
+    if (s.jobEnde) return { accepted: false, reason: 'job_expired' };
 
     let nonce: bigint;
     try { nonce = BigInt(String(b.nonce)); }
@@ -801,13 +1057,18 @@ export class MiningServer {
 
         Deshalb: Alles Weitere einzeln abgesichert, die Antwort steht fest.
       */
+      /*
+        Gutgeschrieben wird das Ziel des Jobs -- wie bei jedem anderen
+        Treffer auch. Es liegt nie ueber SHARE_DECKEL_TEILER-tel der
+        Blockdifficulty; vorher konnte es darueber liegen (Befund S2).
+      */
       const antwort = {
         accepted: true, block: true,
         height: r.height, reward: r.reward, hash: r.hash,
-        credited: s.shareDifficulty.toString(),
-        shareDifficulty: s.shareDifficulty.toString(),
-        achieved: (netzDifficulty > 0n ? netzDifficulty : s.shareDifficulty).toString(),
-        required: s.shareDifficulty.toString(),
+        credited: s.jobZiel.toString(),
+        shareDifficulty: s.jobZiel.toString(),
+        achieved: (netzDifficulty > 0n ? netzDifficulty : s.jobZiel).toString(),
+        required: s.jobZiel.toString(),
         blockDifficulty: netzDifficulty.toString(),
       };
 
@@ -823,7 +1084,7 @@ export class MiningServer {
           bliebe das Fenster sonst immer leer.
         */
         if (s.modus === 'pool' && this.poolKoordinator) {
-          this.poolKoordinator.share(s.address, s.shareDifficulty);
+          this.poolKoordinator.share(s.address, s.jobZiel);
         }
 
         s.gesehen.add(treffer);
@@ -859,20 +1120,22 @@ export class MiningServer {
 
     // Kein Block. Reicht es fuer einen Share?
     const erreicht = BigInt(r.achieved);
-    if (erreicht < s.shareDifficulty) {
+    if (erreicht < s.jobZiel) {
       s.abgelehnt++;
       return {
         accepted: false, reason: 'low_difficulty',
         achieved: erreicht.toString(),
-        required: s.shareDifficulty.toString(),
+        required: s.jobZiel.toString(),
         blockDifficulty: netzDifficulty.toString(),
       };
     }
 
     s.gesehen.add(treffer);
     s.angenommen++;
-    const vorher = s.shareDifficulty;
+    const vorher = s.jobZiel;
     this.nachShare(s);
+    // Weit daneben: nicht bis zum naechsten Job warten.
+    if (s.shareDifficulty >= s.jobZiel * FRUEHES_ENDE_FAKTOR) s.jobEnde = true;
 
     /*
       Die Arbeit in den Pool eintragen.
@@ -887,18 +1150,25 @@ export class MiningServer {
       gemeldeten. Sonst koennte jemand die Auszahlungsadresse nachtraeglich
       umbiegen und sich fremde Arbeit gutschreiben.
 
-      Gezaehlt wird die Share-Difficulty, die zum Zeitpunkt des Funds galt
-      (`vorher`), nicht die ERREICHTE. Sonst zaehlte ein Glueckstreffer wie
-      tausend Shares, und wer Glueck hat, bekaeme mehr als wer arbeitet.
+      Gezaehlt wird das Ziel des Jobs (`vorher`), nicht die ERREICHTE
+      Difficulty. Sonst zaehlte ein Glueckstreffer wie tausend Shares, und
+      wer Glueck hat, bekaeme mehr als wer arbeitet.
     */
     if (s.modus === 'pool' && this.poolKoordinator) {
       this.poolKoordinator.share(s.address, vorher);
     }
 
+    /*
+      shareDifficulty ist das Ziel des LAUFENDEN Jobs, nicht das naechste.
+      Alle Miner uebernehmen diesen Wert sofort fuer ihre Arbeit; meldete
+      der Knoten hier schon das naechste Ziel, rechneten sie am laufenden
+      Job gegen ein anderes als das, mit dem er prueft. Das neue Ziel kommt
+      mit dem naechsten Job.
+    */
     return {
       accepted: true, block: false,
       credited: vorher.toString(),
-      shareDifficulty: s.shareDifficulty.toString(),
+      shareDifficulty: s.jobZiel.toString(),
       achieved: erreicht.toString(),
       required: vorher.toString(),
       blockDifficulty: netzDifficulty.toString(),
@@ -918,10 +1188,23 @@ export class MiningServer {
     const jetzt = Date.now();
     const vorher = s.letzterShare;
     s.letzterShare = jetzt;
-    if (vorher === null) return;
+    if (vorher === null) { s.messungAb = jetzt; s.messungSumme = 0; return; }
 
-    const sekunden = (jetzt - vorher) / 1000;
-    if (!(sekunden > 0)) return;
+    /*
+      Die Zeit seit dem letzten Share, je Abschnitt durch das Ziel geteilt,
+      das in diesem Abschnitt galt.
+
+      Seit das Ziel je Job gilt, wechselt es ZWISCHEN zwei Shares -- beim
+      naechsten Job. Wer die ganze Wartezeit durch das neue Ziel teilte,
+      rechnete die Zeit unter dem alten, leichteren Ziel zu schwer: Die
+      Messung saehe einen schnelleren Miner, als er ist, und zoege das Ziel
+      zu hoch (im Ende-zu-Ende-Test: 1852 statt rund 730). Die Abschnitte
+      fuehrt job() mit (messungSumme), hier kommt der letzte dazu.
+    */
+    const probe = s.messungSumme + (jetzt - s.messungAb) / 1000 / Number(s.jobZiel);
+    s.messungSumme = 0;
+    s.messungAb = jetzt;
+    if (!(probe > 0)) return;
 
     /*
       Normieren, bevor gemittelt wird.
@@ -934,11 +1217,11 @@ export class MiningServer {
       Sekunden je Difficulty-Einheit ist dagegen eine reine
       Geraeteeigenschaft und vom Ziel unabhaengig:
 
-          probe    = sekunden / difficulty
+          probe    = sekunden / difficulty   (je Abschnitt, siehe oben)
           hashrate = 2^16 / probe
           neuesZiel = zielSekunden / mittelwert(proben)
     */
-    s.proben.push(sekunden / Number(s.shareDifficulty));
+    s.proben.push(probe);
     if (s.proben.length > 8) s.proben.shift();
     if (s.proben.length < 3) return;
 
@@ -955,7 +1238,10 @@ export class MiningServer {
 
     // Deckelung, damit ein einzelner Ausreisser nicht durchschlaegt.
     const gedeckelt = Math.max(0.25, Math.min(4, faktor));
-    s.shareDifficulty = BigInt(Math.max(1, Math.round(jetzigeZahl * gedeckelt)));
+    const neu = BigInt(Math.max(1, Math.round(jetzigeZahl * gedeckelt)));
+    // Nie ueber die Obergrenze (SHARE_DECKEL_TEILER) -- auch nicht als
+    // Vormerkung fuer den naechsten Job.
+    s.shareDifficulty = neu > s.jobDeckel ? s.jobDeckel : neu;
   }
 
   /** Hashrate dieser Session aus den normierten Messwerten. */
@@ -966,14 +1252,11 @@ export class MiningServer {
   }
 
   /**
-   * Einen gefundenen Block nach oben reichen.
+   * Einen Block an die Gegenstelle weitergeben -- den Spiegel.
    *
    * Der Block wird aus der eigenen Ablage gelesen, nicht aus dem
    * Arbeitsspeicher -- so geht genau das hinaus, was lokal geprueft und
    * festgeschrieben wurde.
-   */
-  /**
-   * Einen Block an die Gegenstelle weitergeben -- den Spiegel.
    *
    * Oeffentlich, weil nicht nur selbst gefundene Bloecke dorthin gehoeren:
    * Sobald der Knoten die Wahrheit ist, muss AUCH ein Block, der ueber
@@ -992,6 +1275,13 @@ export class MiningServer {
         method: 'POST',
         headers: spiegelKopf(),
         body: JSON.stringify({ raw: toHex(gespeichert.body) }),
+        /*
+          Mit Frist. Ohne sie wartete eine Weitergabe ewig, wenn die
+          Gegenstelle die Verbindung annimmt und nie antwortet (Befund S5).
+          Der Block ist dann nicht verloren: Der Dienst yskar-spiegel
+          schiebt liegengebliebene Bloecke nach.
+        */
+        signal: AbortSignal.timeout(this.weitergabeFristMs),
       });
       const body = await res.json().catch(() => ({}));
       this.onUpstream?.(body.accepted
@@ -1048,28 +1338,6 @@ export class MiningServer {
     }
   }
 
-  private summary(): Record<string, unknown> {
-    const tip = this.chain.tip();
-    const hoehe = tip?.height ?? -1;
-    return {
-      token: { token_name: 'YSKAR', token_symbol: 'YSR', decimals: 8 },
-      height: tip ? tip.height : null,
-      nextHeight: hoehe + 1,
-      difficulty: tip ? Number(tip.difficulty) : null,
-      difficultyWert: tip ? tip.difficulty.toString() : null,
-      hashrate: this.gesamtHashrate() || null,
-      targetBlockTime: Number(TARGET_BLOCK_TIME),
-      tipHash: tip ? toHex(tip.hash) : null,
-      stateHeight: this.chain.height(),
-      stateRoot: tip ? toHex(stateRoot(this.chain.state())) : null,
-      totalSupply: totalSupply(this.chain.state()).toString(),
-      maxSupply: MAX_SUPPLY.toString(),
-      nextReward: rewardAt(hoehe + 1).toString(),
-      mempool: this.pool.size(),
-      activeMiners: new Set([...this.sessions.values()].map(s => s.addressHex)).size,
-    };
-  }
-
   private status(): Record<string, unknown> {
     const tip = this.chain.tip();
     return {
@@ -1089,6 +1357,12 @@ export class MiningServer {
 }
 
 const zielAus = (difficulty: bigint) => (1n << 240n) / (difficulty > 0n ? difficulty : 1n);
+
+/** Obergrenze des Share-Ziels fuer einen Job dieser Blockdifficulty. */
+function shareDeckel(blockDifficulty: bigint): bigint {
+  const d = blockDifficulty / SHARE_DECKEL_TEILER;
+  return d > SHARE_START ? d : SHARE_START;
+}
 
 function zielBytes(ziel: bigint): Uint8Array {
   const out = new Uint8Array(32);

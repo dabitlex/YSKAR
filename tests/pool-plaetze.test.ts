@@ -359,7 +359,8 @@ test('Wer angemeldet ist und nicht rechnet, hält keinen Platz', async () => {
   /*
     Sonst ließe sich ein Pool zustellen: anmelden, alle paar Minuten einen Job
     abholen, nie einen Share liefern. Die Sitzung bleibt bestehen — sie zählt
-    nach zehn Minuten nur nicht mehr als belegter Platz.
+    nach zwei Minuten ohne einen einzigen Share nur nicht mehr als belegter
+    Platz (bis Teil A: zehn Minuten; tests/sitzungen-plaetze.test.ts).
   */
   const k = await knoten(18919, { max: 1 });
   let zurueck = () => {};

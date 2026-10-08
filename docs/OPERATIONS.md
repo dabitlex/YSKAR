@@ -126,8 +126,8 @@ The reason is the rule that only one place may hand out work. A mining job fixes
 the transactions and the state root; it lives 90 seconds and must stand on the current tip. A
 mirror is behind by definition and must not issue jobs.
 
-The command-line miner still has `https://yskar.vercel.app` as its default `--api`. Because that
-address answers 410, every miner command has to name a full node with `--api`.
+The command-line miner's default `--api` is the public main node, `https://yskar-main.dynv6.net`.
+Until 9 October 2026 it was `https://yskar.vercel.app`, which answers 410 (issue #8).
 
 The routes under `/api/v1/chain/` and `/api/v1/auth/telegram` belong to the first chain (see
 [history/FIRST_CHAIN_SECURITY.md](history/FIRST_CHAIN_SECURITY.md)). Nothing in the current app,
@@ -219,6 +219,12 @@ While the mirror is behind the chain:
   the mirror's height.
 
 The next successful `spiegel` run closes the gap.
+
+Both cases are visible from outside (issue #14). The explorer compares its newest block with the
+height and `tipHash` that `/summary` reports from the full node. If the mirror stays behind, or
+shows a different block at the same height, for more than a minute, it shows a warning under the
+search field. The observer compares its tip with a second source after every round, by default
+the public main node (`--compare`), and logs the same two cases.
 
 ### When the mirror is on a branch that lost
 
@@ -416,6 +422,15 @@ The node sends no CORS headers itself and does not handle `OPTIONS`. The `header
 headers to every answer, and the `@options` block answers the preflight request a browser sends
 before a `POST` with a JSON body.
 
+**Recognizing senders.** Behind the reverse proxy every request reaches the node from
+`127.0.0.1`. To apply the per-sender session limits of the pool (see [POOL.md](POOL.md)), start
+the node with `--sender-ip proxy`. The node then takes the **last** entry of `X-Forwarded-For`,
+the one the proxy appended; entries before it can be written by the sender. `reverse_proxy` in
+Caddy sets this header by itself, and since Caddy 2.5 it replaces a value sent by a client
+unless the client is configured as a trusted proxy. Check the version with `caddy version`
+before you switch the option on. A node without a proxy in front uses `--sender-ip socket`;
+never use `socket` behind a proxy, because then every request comes from the same sender.
+
 ### Firewall
 
 ```bash
@@ -457,9 +472,15 @@ Things to know before you restart:
 - **The Vercel server validates too.** The mirror's write path uses the same consensus code as the
   node. Deploy the app project before a revision's height as well, otherwise the mirror rejects
   the first block that uses the new rule and stops.
-- **The pool window.** The command-line node keeps the PPLNS window of its pool in memory. A
-  restart of the main node empties the window of the public pool; see [POOL.md](POOL.md).
-- **Sessions.** Mining sessions are held in memory. Miners open new sessions after the restart.
+- **The pool window.** The command-line node saves the PPLNS window of its pool to
+  `pool-fenster.json` in the data folder every two minutes and on stop, and loads it at the next
+  start. A clean restart (`systemctl restart`) keeps it. A node that ran a version before this
+  change had nothing saved, so its first restart onto this version still starts with an empty
+  window; see [POOL.md](POOL.md).
+- **Sessions.** Mining sessions are held in memory. Miners open new sessions after the restart:
+  the command-line miner from the version of 4 October 2026 on, the Android app from 1.0.9,
+  Node Core and the web app. An older command-line miner keeps running without a session and
+  has to be restarted by hand.
 
 ## After a deployment
 

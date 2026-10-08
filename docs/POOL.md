@@ -68,12 +68,24 @@ session opens. Two sessions therefore never search the same range of hashes.
 
 A share is a hash that meets the share target, a target much easier than the block target. The
 node sets a share target per session and adjusts it so that a working miner delivers about one
-share every 30 seconds.
+share every 30 seconds. The target is fixed per **job**: it is set when the job is handed out and
+does not change while the job runs. An adjustment takes effect with the next job.
 
-- Each accepted share is credited with the **share difficulty that was in force**, not with the
+- Each accepted share is credited with the **share difficulty of its job**, not with the
   difficulty the hash happened to reach. Otherwise one lucky hash would count like a thousand
   shares, and luck would be paid instead of work. A share that happens to be a whole block is
   credited the same way.
+- Because the target cannot change within a job, the order and timing in which a miner submits
+  its hashes do not change its credit. (Before the target was bound to the job, holding hashes
+  back and submitting the best ones last could raise the credit.)
+- The share difficulty never exceeds one eighth of the job's block difficulty (and never falls
+  below the starting value 128 because of this limit). An honest miner stays far below: at one
+  share per 30 seconds and one block per 600 seconds its target is at most one twentieth of the
+  block difficulty, even with all the hash power of the network.
+- If the adjustment would raise the target by a factor of 4 or more, the node ends the running job
+  early: the next hash submitted for it is answered with `job_expired`, and every miner then
+  fetches a new job at once. Without this, a fast miner starting at 128 would submit hundreds of
+  shares per second until its next regular job.
 - The payout address is the one given when the session opened. A later message cannot redirect
   work that has already been done.
 - A nonce is credited once. The node accepts shares only for the job the session fetched last and
@@ -187,12 +199,24 @@ status from 400 upward as a network error and would retry forever instead of sto
 | The miner stops (closes its session) | at once, unless another session of the same address still holds it |
 | The miner goes silent (app frozen, crash, network gone) | the session expires after 5 minutes; the seat stays reserved for another 15 minutes |
 | A session never delivered a share and goes silent | after 5 minutes, without a reservation |
-| A session keeps fetching jobs but has no accepted share for 10 minutes | after those 10 minutes; the session stays open but no longer counts as a seat |
+| A session that has delivered shares keeps fetching jobs but has no accepted share for 10 minutes | after those 10 minutes; the session stays open but no longer counts as a seat |
+| A new session has not delivered a single accepted share | 2 minutes after it opened; the session stays open but no longer counts as a seat |
 
-A seat belongs to whoever works. A session without an accepted share for ten minutes is not
-closed. It only stops holding a seat, and another address can take it. When the session delivers a
-share again, it counts again. This is why `miner` (connected addresses) can be higher than
-`belegt` (occupied seats) in the status.
+A seat belongs to whoever works. A new session holds a seat on trial for two minutes; a real miner
+delivers its first share at the starting difficulty of 128 within seconds (128 × 65,536 hashes).
+After that a seat needs accepted shares. A session that stops holding a seat is not closed, and
+when it delivers a share it counts again. This is why `miner` (connected addresses) can be higher
+than `belegt` (occupied seats) in the status.
+
+**Per sender.** When the node knows who sent a request (option `--sender-ip`, see
+[OPERATIONS.md](OPERATIONS.md)), at most two sessions without a share per sender hold a seat on
+trial, and the node keeps at most 32 sessions without a share per sender: a further session from
+the same sender replaces the oldest of them. A session that has delivered a share is never
+replaced. Without `--sender-ip` these per-sender limits do not apply.
+
+**A full session table.** At 5,000 open sessions a new session replaces the oldest session that
+has never delivered a share. Only when every open session has delivered shares is a new session
+refused with `too_many_sessions`.
 
 The reservation exists for phones. A frozen app does not close its session. When it wakes up after
 ten minutes, the miner opens a new session without asking, and without a reservation it would face
@@ -374,8 +398,9 @@ still receives something for a while, for exactly as long as it was missing at t
 1. The fee is `gross × feeBps / 10,000`, rounded down.
 2. Entries of the same address are merged.
 3. The addresses are sorted by work, largest first; with equal work the smaller address comes
-   first. The first 64 take part, or the first 63 when a fee is taken. The work of the others is
-   returned in `uebertrag` and is not booked anywhere.
+   first. The first 64 take part, or the first 63 when a fee is taken. The others receive nothing
+   in this block; they are returned in `ausgelassen` for information only, and nothing makes up
+   for the missed block (issue #6).
 4. The net amount, gross minus fee, is divided by the **largest-remainder method**: every address
    first receives `net × work / total work`, rounded down. The units that are still missing, fewer
    than there are recipients, go one each to the addresses with the largest remainder. With equal
@@ -385,10 +410,12 @@ still receives something for a while, for exactly as long as it was missing at t
    to the operator's output if the operator's address also mined.
 6. The outputs are sorted by address in ascending order, the only order the chain accepts.
 
-The node calls this with the block reward of the next height as the gross amount. The transaction
-fees of the block are not known until the block is assembled; the node then adds them to the
-output with the largest amount. The pool fee is therefore taken from the block reward, not from
-the transaction fees.
+The gross amount is the block reward of the next height plus the transaction fees of the block.
+The fees are not known until the block builder has selected the transfers, so the node passes the
+split as a function that receives the gross amount (`MiningServer.job()`). The transaction fees
+are therefore divided by work like the reward, and the pool fee applies to both. Until 9 October
+2026 the node split the reward alone and added all transaction fees to the output with the
+largest amount (issue #12).
 
 If the window is empty, for example right after the start of the node, there is nothing to split.
 The job then gets an ordinary coinbase with one recipient, the address of the session that fetched
@@ -422,10 +449,15 @@ it.
 | 500 | `MAX_FEE_BPS` | highest fee in basis points (5 %) |
 | 2 | `PPLNS_FAKTOR` | window size as a multiple of the network difficulty |
 | 128 | `SHARE_START` | share difficulty of a new session |
+| 1/8 | `SHARE_DECKEL_TEILER` | the share difficulty is at most the job's block difficulty divided by 8 (at least 128) |
+| 4 | `FRUEHES_ENDE_FAKTOR` | a raise by this factor or more ends the running job early |
 | 30 s | `SHARE_ZIEL_SEKUNDEN` | intended time between two shares of a session |
 | 300 s | `SESSION_TIMEOUT_MS` | a session without a request for this long expires |
 | 900 s | `PLATZ_VORGEMERKT_MS` | reservation of a seat after a working session expired |
-| 600 s | `PLATZ_OHNE_ARBEIT_MS` | an open session holds a seat this long without an accepted share |
+| 600 s | `PLATZ_OHNE_ARBEIT_MS` | an open session holds a seat this long after its last accepted share |
+| 120 s | `PLATZ_ANWARTSCHAFT_MS` | a new session holds a seat this long without any accepted share |
+| 2 | `ANWARTSCHAFTEN_JE_ABSENDER` | sessions without a share per sender that hold a seat (only with `--sender-ip`) |
+| 32 | `SITZUNGEN_OHNE_ARBEIT_JE_ABSENDER` | sessions without a share per sender (only with `--sender-ip`) |
 | 5,000 | `SITZUNGEN_MAX` | open sessions per node, solo and pool together |
 
 ### A worked example
@@ -456,19 +488,22 @@ the two smaller addresses, which end up with 29,166,666,667.
   address received 37.71 % of a block, but not whether 37.71 % was its due. That is so with every
   pool. The design removes the need to trust the operator with your coins; it does not remove the
   need to trust the operator's counting.
-- **Seats can be occupied cheaply.** Without any work a session holds its seat for ten minutes;
-  after that a seat costs one accepted share per address every ten minutes. That is little.
-  Somebody who sets out to do it can fill a pool with many addresses and little hash power: the
-  node knows addresses, not persons. At present the only defense is a limit in the web server in
-  front of the node.
+- **Seats can still be occupied cheaply.** Without any work a session holds its seat for two
+  minutes; after that a seat costs one accepted share per address every ten minutes. That is
+  little. Somebody who sets out to do it can fill a pool with many addresses and little hash
+  power: the node knows addresses, not persons. With `--sender-ip`, one sender holds at most two
+  seats without work, so occupying the pool without work needs many sender addresses; with work
+  (one share per address every ten minutes) it does not.
 - **The seat limit applies to admission, not to the window.** A miner who has left still has work
   in the window for a while. If the window therefore holds more addresses than one block can pay,
   the addresses with the most work receive their part and the smallest receive nothing in that
   block. Their work stays in the window and counts again at the next block, but the node keeps no
   separate balance for them.
-- **The command-line node does not keep the window across a restart.** `PoolCoordinator` can
-  export and load its share log, and Node Core does so. The command-line node does not: after a
-  restart the window is empty and the work credited before is lost. Sessions and seat reservations
-  are also held in memory only; miners open new sessions after a restart.
+- **The window survives a restart, sessions do not.** Both Node Core and the command-line node
+  save the PPLNS window to `pool-fenster.json` in the data folder every two minutes and when they
+  stop, and load it at the next start (`src/lib/pool/fensterDatei.ts`). After a crash at most the
+  last two minutes of work are missing. Work saved under an earlier fee keeps that fee; a changed
+  `--pool-fee` applies from the next block. Sessions and seat reservations are held in memory
+  only; miners open new sessions after a restart.
 - **The node keeps no payout ledger.** Who received how much is in the coinbase of each block and
   nowhere else.

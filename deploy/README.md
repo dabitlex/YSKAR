@@ -172,7 +172,8 @@ sudo chmod 600 /etc/yskar/node.env
 sudo systemctl restart yskar-node
 ```
 
-The restart ends all mining sessions and empties the PPLNS window of a pool the node runs; see
+The restart ends all mining sessions. The PPLNS window of a pool the node runs is saved on stop and
+loaded again (`pool-fenster.json` in the data folder); see
 "Updating a node" in [OPERATIONS.md](../docs/OPERATIONS.md#updating-a-node).
 
 **Only then** set `YSKAR_SPIEGEL_TOKEN` to the same value in the Vercel app project and redeploy.
