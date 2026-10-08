@@ -53,6 +53,55 @@ export const ANFRAGE_TIMEOUT_MS = 30_000;
  * angenommen ist.
  */
 export const WARTESCHLANGE_NACHRICHTEN = 10;
+/**
+ * Nach so vielen vergeblichen Bestellungen fliegt ein Header aus der
+ * Warteschlange -- mit allen, die auf ihm aufbauen.
+ *
+ * Vorher verliess ein Eintrag die Warteschlange NUR, wenn sein Koerper kam.
+ * Ein Peer, der Header ohne Koerper lieferte, hielt sie damit dauerhaft
+ * voll, und ein aufholender Knoten fragte nie weiter (Befund S4). Ehrliche
+ * Header lernt der Knoten danach von einem anderen Peer neu.
+ */
+export const WARTEND_VERSUCHE_MAX = 4;
+/**
+ * Hoechstens so viele Bloecke beantwortet der Knoten je getdata.
+ *
+ * Eine Anfrage darf 500 Eintraege tragen (MAX_INV) -- 500 Bloecke zu je
+ * 400 KB waeren 200 MB Antwort auf eine Nachricht von 16 KB. Der eigene
+ * Abgleich bestellt nie mehr als BLOCK_FENSTER auf einmal; der Rest
+ * bekommt "notfound" und kann neu bestellt werden.
+ */
+export const GETDATA_BLOECKE_MAX = BLOCK_FENSTER;
+/**
+ * Liegt mehr als das schon im Sendepuffer eines Peers, schickt der Knoten
+ * ihm vorerst keine Bloecke (sie gehen als "notfound" zurueck, der Peer
+ * bestellt neu) und stellt sein getheaders zurueck (beantwortet im naechsten
+ * Takt, wenn der Puffer leerer ist). Einer, der nie liest, stoesst an
+ * SENDEPUFFER_MAX und wird getrennt.
+ */
+export const ANTWORT_PUFFER_MAX = 2 * 1024 * 1024;
+/**
+ * Hoechstens so viele getheaders je Peer in GETHEADERS_FENSTER_MS. Jede
+ * Antwort liest bis zu 2000 Bloecke aus der Ablage; ein ehrlicher Knoten
+ * fragt einmal je Verbindung und je aufgeholter Nachricht.
+ *
+ * Was darueber hinausgeht, wird ZURUECKGESTELLT, nicht verworfen: Ein Knoten
+ * fragt nicht von selbst erneut nach Headern -- weder der alte noch der
+ * neue. Eine verworfene Anfrage liess ihn im Mischbetriebstest stehen, bis
+ * der naechste Block angekuendigt wurde. Je Peer wird nur die letzte
+ * zurueckgestellte Anfrage gehalten und im Takt (pruefeOffene) beantwortet,
+ * sobald das Fenster es erlaubt. Die Arbeit bleibt so bei
+ * GETHEADERS_JE_FENSTER Antworten je Fenster und Peer.
+ */
+export const GETHEADERS_JE_FENSTER = 20;
+export const GETHEADERS_FENSTER_MS = 10_000;
+/**
+ * Hoechstens so viele Ueberweisungen gleichzeitig angefordert. Vorher gab
+ * es weder Grenze noch Frist: Angekuendigte, nie gelieferte Ueberweisungen
+ * blieben fuer immer vermerkt und wurden nie bei jemand anderem geholt
+ * (Befund S4).
+ */
+export const OFFENE_TX_MAX = 5_000;
 
 export interface SyncOptionen {
   chain: ChainManager;
@@ -90,6 +139,8 @@ interface Wartend {
   key: string;
   /** Hash des Vorgaengers, wie er im Header steht. */
   vor: Uint8Array;
+  /** Wie oft eine Bestellung seines Koerpers ins Leere ging. */
+  versuche: number;
 }
 
 export class SyncManager {
@@ -169,6 +220,10 @@ export class SyncManager {
    */
   private mehrVermutet = false;
   private maxHeaders: number;
+  /** getheaders je Peer: Beginn des laufenden Fensters und Anzahl darin. */
+  private getheadersZaehler = new WeakMap<PeerConnection, { ab: number; n: number }>();
+  /** Je Peer die letzte getheaders-Anfrage, die noch nicht beantwortet werden durfte. */
+  private zurueckgestellt = new Map<PeerConnection, Uint8Array>();
   private laeuft = false;
   private takt: NodeJS.Timeout | null = null;
 
@@ -202,6 +257,7 @@ export class SyncManager {
     this.wartend.clear();
     this.lieferant = null;
     this.meiden.clear();
+    this.zurueckgestellt.clear();
     this.mehrVermutet = false;
   }
 
@@ -307,6 +363,20 @@ export class SyncManager {
   private aufGetHeaders(p: PeerConnection, payload: Uint8Array): void {
     const g = decodeGetHeaders(payload);
 
+    // Zu oft gefragt, oder es liegt noch viel ungelesen im Puffer: Die
+    // Anfrage wird zurueckgestellt und im Takt beantwortet (siehe
+    // GETHEADERS_JE_FENSTER). Getrennt wird nicht.
+    const jetzt = Date.now();
+    const z = this.getheadersZaehler.get(p);
+    const neuesFenster = !z || jetzt - z.ab > GETHEADERS_FENSTER_MS;
+    if ((!neuesFenster && z!.n >= GETHEADERS_JE_FENSTER) || puffer(p) > ANTWORT_PUFFER_MAX) {
+      this.zurueckgestellt.set(p, payload);
+      return;
+    }
+    if (neuesFenster) this.getheadersZaehler.set(p, { ab: jetzt, n: 1 });
+    else z!.n++;
+    this.zurueckgestellt.delete(p);
+
     /*
       Den ersten Locator-Hash finden, den wir kennen UND der auf unserer
       aktiven Kette liegt.
@@ -339,6 +409,10 @@ export class SyncManager {
   private aufGetData(p: PeerConnection, payload: Uint8Array): void {
     const wunsch = decodeGetData(payload);
     const fehlt: { typ: number; hash: Uint8Array }[] = [];
+    // Liegt noch viel ungelesen im Puffer, werden keine Bloecke geschickt --
+    // sie gehen als "notfound" zurueck und koennen neu bestellt werden.
+    const bloeckeErlaubt = puffer(p) > ANTWORT_PUFFER_MAX ? 0 : GETDATA_BLOECKE_MAX;
+    let bloecke = 0;
 
     for (const e of wunsch) {
       if (e.typ === INV_TX) {
@@ -348,9 +422,11 @@ export class SyncManager {
         continue;
       }
       if (e.typ !== INV_BLOCK) { fehlt.push(e); continue; }
+      if (bloecke >= bloeckeErlaubt) { fehlt.push(e); continue; }
       const b = this.store.get(e.hash);
       if (!b) { fehlt.push(e); continue; }
       p.send('block', b.body);
+      bloecke++;
     }
 
     // notfound, damit der Frager nicht ins Leere wartet.
@@ -366,6 +442,8 @@ export class SyncManager {
     const neu: Wartend[] = [];
     // Der letzte Header der Nachricht, in der Reihenfolge der Gegenseite.
     let letzter: Uint8Array | null = null;
+    // Hoehen der Header dieser Nachricht -- damit der naechste an sie anschliessen kann.
+    const inNachricht = new Map<string, number>();
 
     for (const h of roh) {
       /*
@@ -391,10 +469,37 @@ export class SyncManager {
       if (wert > ziel) {
         return void p.close('header_ohne_arbeit');
       }
+      /*
+        Unter der Untergrenze der Kette gibt es keinen gueltigen Block. Ohne
+        diese Pruefung kostete ein erfundener Header, der sich selbst
+        Difficulty 1 gibt, rund 65.000 Hashes -- Millisekunden (Befund S4).
+      */
+      if (kopf.height > 0 && kopf.difficulty < this.params.minDifficulty) {
+        return void p.close('header_unter_untergrenze');
+      }
+
+      /*
+        Der Header muss an etwas anschliessen, das wir kennen: an einen
+        gespeicherten Block, einen wartenden Header oder einen frueheren
+        dieser Nachricht -- und genau eine Hoehe darueber stehen. Ein
+        gueltiger Block erfuellt beides; was nicht anschliesst, wird nicht
+        vorgemerkt (eine Nachricht, die nicht passt, kann nach einem Reorg
+        auch von einem ehrlichen Peer kommen). Eine falsche Hoehe dagegen
+        gibt es bei keinem gueltigen Block.
+      */
+      const key = toHex(hash);
+      const vorKey = toHex(kopf.prevHash);
+      const vorHoehe = inNachricht.get(vorKey) ?? this.wartend.get(vorKey)?.hoehe
+        ?? (kopf.height > 0 ? this.store.get(kopf.prevHash)?.height : undefined);
+      if (kopf.height > 0 && vorHoehe === undefined) continue;
+      if (kopf.height > 0 && kopf.height !== vorHoehe! + 1) {
+        return void p.close('header_hoehe_falsch');
+      }
+      inNachricht.set(key, kopf.height);
 
       letzter = hash;
       if (this.store.has(hash)) continue;
-      neu.push({ hash, hoehe: kopf.height, key: toHex(hash), vor: kopf.prevHash });
+      neu.push({ hash, hoehe: kopf.height, key, vor: kopf.prevHash, versuche: 0 });
     }
 
     if (neu.length === 0) return;
@@ -632,7 +737,7 @@ export class SyncManager {
           if (e.typ !== INV_TX) return false;
           const id = toHex(e.hash);
           return !this.pool!.has(id) && !this.offeneTx.has(id) && !this.abgewiesen.has(id);
-        }).slice(0, MAX_INV)
+        }).slice(0, Math.max(0, Math.min(MAX_INV, OFFENE_TX_MAX - this.offeneTx.size)))
       : [];
 
     for (const w of txWunsch) {
@@ -718,7 +823,10 @@ export class SyncManager {
     let fehltInWarteschlange = false;
     for (const e of decodeNotFoundSicher(payload)) {
       const k = toHex(e.hash);
-      if (this.offen.get(k)?.peer === p && this.wartend.has(k)) fehltInWarteschlange = true;
+      if (this.offen.get(k)?.peer === p && this.wartend.has(k)) {
+        fehltInWarteschlange = true;
+        this.wartend.get(k)!.versuche++;
+      }
       this.offen.delete(k);
       // Eine Ueberweisung, die der Peer nicht mehr hat: Der Versuch ist
       // beendet. Nicht als abgewiesen merken -- sie kann bei einem anderen
@@ -743,9 +851,38 @@ export class SyncManager {
     */
     this.meiden.add(p);
     if (this.lieferant === p) this.lieferant = null;
+    if (this.raeumeWarteschlange() > 0 && this.warteschlange.length === 0) {
+      // Alles herausgefallen: neu nach Headern fragen, ab dem eigenen Kopf.
+      const q = this.besterAusser(this.meiden) ?? this.peers.besterPeer();
+      if (q) this.frageHeader(q);
+      return;
+    }
     const anderer = this.besterAusser(this.meiden);
     if (anderer && this.warteschlange.length > 0) this.frageBloecke(anderer);
   }
+
+  /**
+   * Header, deren Koerper zu oft nicht kam, aus der Warteschlange nehmen --
+   * und alle, die auf ihnen aufbauen: Ohne ihren Vorgaenger liesse sich
+   * keiner von ihnen je annehmen.
+   *
+   * @returns wie viele Eintraege entfernt wurden
+   */
+  private raeumeWarteschlange(): number {
+    const weg = new Set<string>();
+    for (const w of this.warteschlange) {
+      if (w.versuche >= WARTEND_VERSUCHE_MAX || weg.has(toHex(w.vor))) weg.add(w.key);
+    }
+    if (weg.size === 0) return 0;
+    this.warteschlange = this.warteschlange.filter(w => !weg.has(w.key));
+    for (const k of weg) { this.wartend.delete(k); this.offen.delete(k); }
+    this.mehrVermutet = true;
+    this.log(`${weg.size} Header ohne lieferbaren Koerper aus der Warteschlange genommen`);
+    return weg.size;
+  }
+
+  /** Wie viele Ueberweisungen gerade angefordert und noch nicht geliefert sind. */
+  offeneUeberweisungen(): number { return this.offeneTx.size; }
 
   /** Der bereite Peer mit der meisten Arbeit, der nicht in `ohne` steht. */
   private besterAusser(ohne: Set<PeerConnection>): PeerConnection | null {
@@ -771,14 +908,28 @@ export class SyncManager {
    * einen gibt.
    */
   private pruefeOffene(): void {
+    // Zurueckgestellte Header-Anfragen: jetzt beantworten, wenn Fenster und
+    // Puffer es erlauben -- sonst bleiben sie bis zum naechsten Takt liegen.
+    for (const [q, roh] of [...this.zurueckgestellt]) {
+      this.zurueckgestellt.delete(q);
+      if (q.ready) this.aufGetHeaders(q, roh);
+    }
     const jetzt = Date.now();
     let frei = 0;
     const saeumig = new Set<PeerConnection>();
     for (const [k, a] of [...this.offen]) {
       if (jetzt - a.seit > ANFRAGE_TIMEOUT_MS) {
         this.offen.delete(k); frei++; saeumig.add(a.peer);
+        const w = this.wartend.get(k);
+        if (w) w.versuche++;
       }
     }
+    // Ueberweisungen, die nicht kamen: freigeben, damit ein anderer Peer sie
+    // liefern kann.
+    for (const [k, a] of [...this.offeneTx]) {
+      if (jetzt - a.seit > ANFRAGE_TIMEOUT_MS) this.offeneTx.delete(k);
+    }
+    const geraeumt = this.raeumeWarteschlange();
     if (frei > 0) {
       for (const [k, a] of [...this.offen]) {
         if (saeumig.has(a.peer)) { this.offen.delete(k); frei++; }
@@ -796,7 +947,15 @@ export class SyncManager {
       wenn der letzte Anstoss ausfiel: ein Block ohne Vorgaenger, ein
       getrennter Peer, eine Runde, in der kein Peer den Block hatte.
     */
-    if (this.warteschlange.length === 0) { this.meiden.clear(); return; }
+    if (this.warteschlange.length === 0) {
+      this.meiden.clear();
+      // Es flogen Header heraus: bei einem Peer neu fragen, ab dem eigenen Kopf.
+      if (geraeumt > 0) {
+        const q = this.peers.besterPeer();
+        if (q) this.frageHeader(q);
+      }
+      return;
+    }
     let p = this.besterAusser(this.meiden);
     if (!p) {
       // Bei allen versucht: Die Runde beginnt von vorn.
@@ -805,6 +964,11 @@ export class SyncManager {
     }
     if (p) this.frageBloecke(p);
   }
+}
+
+/** Sendepuffer eines Peers -- 0, wenn die Verbindung ihn nicht nennen kann. */
+function puffer(p: PeerConnection): number {
+  return typeof p.sendePuffer === 'function' ? p.sendePuffer() : 0;
 }
 
 function decodeNotFoundSicher(b: Uint8Array) {

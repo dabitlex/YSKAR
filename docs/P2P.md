@@ -140,6 +140,19 @@ Every list has a maximum number of entries and every text a maximum length.
 
 The framing limit alone is not enough: two mebibytes are a great many small entries.
 
+Answers have limits too, because a small request can ask for a large answer:
+
+| What | Limit |
+|---|---|
+| Blocks sent in answer to one `getdata` | 16; the rest is answered with `notfound` |
+| `getheaders` answered per peer | 20 in 10 seconds; beyond that the peer's latest request is held back and answered on the next 5-second tick that the window allows. Never dropped (a node does not ask again by itself) and never punished |
+| Unread data waiting to be sent to a peer | above 2 MiB, blocks in `getdata` get `notfound` and `getheaders` is held back until the buffer drains; above 12 MiB the connection is closed |
+| Transfers requested and not yet received | 5,000; a request is released after 30 seconds |
+
+Before October 2026 none of these existed. A `getdata` with 500 block hashes, a message of about
+16 KB, made the node send up to 200 MB, and a peer that never read let the send buffer grow
+without limit.
+
 ## The connection
 
 `PeerConnection.ts` handles the handshake, the keep-alive, the framing and the limits of one
@@ -332,6 +345,15 @@ that the stated difficulty is the right one: the **full** validation, including 
 when the body arrives. Headers that state a low difficulty are therefore cheap to produce, and
 the number of headers a node keeps waiting for their bodies is limited (below).
 
+Three further checks need no body and no history, because every valid block passes them:
+
+- The stated difficulty is not below the minimum of the network (`minDifficulty`). A closed
+  connection otherwise.
+- The header continues something the node knows: a stored block, a waiting header or an
+  earlier header of the same message. A header that does not is not queued (this can happen to
+  an honest peer after a reorganization, so it is not treated as misbehavior).
+- Its height is exactly one above that of its parent. A closed connection otherwise.
+
 ### Catching up over several messages
 
 If a `headers` message contains the full 2,000 headers and brought at least one header the node
@@ -347,6 +369,12 @@ message that way.
 At most 20,000 headers wait for their bodies at the same time. When that limit is reached, or
 when a full message brought nothing new, the node does not ask further but notes that there is
 probably more. The same note is made when a block arrives whose parent is missing.
+
+A waiting header whose body was requested four times in vain (no answer within 30 seconds, or
+`notfound`) leaves the list, together with every waiting header built on it. If the list is
+then empty, the node asks a peer for headers again from its own tip. Before October 2026 a
+waiting header only left the list when its body arrived, so a peer that sent headers without
+ever delivering the bodies could keep the list full and stop a node that was catching up.
 
 When the last waiting block has been accepted, the node asks again from its own tip: the peer
 that just delivered if such a note exists, and a peer that reported more chain work in its
@@ -402,6 +430,9 @@ A received transfer passes the same mempool checks as one submitted over the HTT
 ([FULLNODE.md](FULLNODE.md#the-mempool)). Only a transfer that was actually added is announced
 further. That is also the protection against loops: a transfer that is already in the mempool
 is rejected as a duplicate and not sent around again.
+
+A requested transfer that does not arrive within 30 seconds is released and can be requested
+from another peer. At most 5,000 transfers are requested at the same time.
 
 A rejected transfer is not a reason to disconnect; a correctly built transfer can be unusable
 here, for example because its nonce has been used in the meantime. The node remembers the last

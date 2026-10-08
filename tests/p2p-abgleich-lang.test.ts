@@ -486,9 +486,11 @@ test('Ein angekündigter Block wird sofort geholt, wenn sein Vorgänger da ist -
     timestamp: kette().bloecke[2].block.header.timestamp + 600n + BigInt(i),
     miner: MINER_B, extra: `nie-${i}` }));
   b.sync.aufNachricht(alsPeer(g), { command: 'headers', payload: headerVon(nieGeliefert) });
-  // Die echten Header 3 und 5 dahinter (4 fehlt absichtlich in der Liste).
+  // Die echten Header 3, 4 und 5 dahinter. (Bis Teil B fehlte 4 hier
+  // absichtlich; seit Teil B wird ein Header, der an nichts Bekanntes
+  // anschliesst, gar nicht erst eingereiht. 5 wartet jetzt auf 4.)
   b.sync.aufNachricht(alsPeer(g), { command: 'headers',
-    payload: headerVon([kette().bloecke[3], kette().bloecke[5]]) });
+    payload: headerVon([kette().bloecke[3], kette().bloecke[4], kette().bloecke[5]]) });
   const key = (h: number) => toHex(kette().bloecke[h].hash);
   assert.ok(!innen(b).offen.has(key(3)), 'Block 3 ist eingereiht, aber nicht bestellt');
   assert.ok(!innen(b).offen.has(key(5)));
@@ -497,7 +499,7 @@ test('Ein angekündigter Block wird sofort geholt, wenn sein Vorgänger da ist -
   const kuendigeAn = (h: number) => b.sync.aufNachricht(alsPeer(g), { command: 'inv',
     payload: encodeInv([{ typ: INV_BLOCK, hash: kette().bloecke[h].hash }]) });
 
-  // Block 5: Sein Vorgänger (4) fehlt uns. Er ließe sich nicht annehmen.
+  // Block 5: Sein Vorgänger (4) fehlt uns noch. Er ließe sich nicht annehmen.
   kuendigeAn(5);
   assert.equal(g.zahl('getdata'), bestellungen, 'Ohne Vorgänger wird ein eingereihter Block nicht geholt');
 

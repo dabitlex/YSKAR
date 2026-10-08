@@ -36,6 +36,19 @@ export const HANDSHAKE_TIMEOUT_MS = 10_000;
 export const PING_INTERVAL_MS = 60_000;
 /** Ohne ein Byte in dieser Zeit gilt die Verbindung als tot. */
 export const IDLE_TIMEOUT_MS = 150_000;
+/**
+ * So viel darf hoechstens auf dem Weg zu einem Peer liegen.
+ *
+ * Node puffert alles, was geschrieben wird und der Peer noch nicht abgeholt
+ * hat, im Speicher. Ein Peer, der Bloecke anfragt und nie liest, liess
+ * diesen Puffer bisher unbegrenzt wachsen (Befund S4): Eine Anfrage von 57
+ * Byte loeste bis zu 272 KB Antwort aus. Wer so viel liegen laesst, liest
+ * nicht -- die Verbindung wird getrennt.
+ *
+ * 12 MB: Eine ehrliche Anfrage umfasst hoechstens 16 Bloecke (BLOCK_FENSTER
+ * im SyncManager) zu je hoechstens 400 KB, also 6,4 MB, dazu Kleinkram.
+ */
+export const SENDEPUFFER_MAX = 12 * 1024 * 1024;
 
 export type PeerRichtung = 'aus' | 'ein';
 
@@ -198,6 +211,10 @@ export class PeerConnection {
       const roh = encodeFrame(this.magic, command, payload);
       this.sock.write(roh);
       this.gesendet += roh.length;
+      if (this.sendePuffer() > SENDEPUFFER_MAX) {
+        this.schliessen('sendepuffer_voll');
+        return false;
+      }
       return true;
     } catch (e) {
       this.schliessen(`senden:${(e as Error).message}`);
@@ -206,6 +223,15 @@ export class PeerConnection {
   }
 
   close(grund = 'lokal'): void { this.schliessen(grund); }
+
+  /**
+   * Wie viele Byte noch auf dem Weg zu diesem Peer im Speicher liegen.
+   *
+   * Der SyncManager fragt das, bevor er eine teure Anfrage beantwortet: Liegt
+   * schon viel im Puffer, wartet die Antwort -- der Peer fragt nach Ablauf
+   * seiner Frist von selbst noch einmal.
+   */
+  sendePuffer(): number { return this.sock.writableLength ?? 0; }
 
   // ------------------------------------------------------------- Innereien
 
