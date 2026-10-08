@@ -60,9 +60,13 @@ any web page open in a browser on the same PC can send requests to
 1. `Host` must be `127.0.0.1:8650` or `localhost:8650` (stops DNS rebinding).
 2. If the browser sends `Origin` or `Sec-Fetch-Site`, it must be the
    interface's own origin.
-3. Everything under `/api/` needs the header `x-yskar-token`. The token is
-   created at every start and is only contained in the page the server
-   delivers itself; a foreign page cannot read it.
+3. Everything under `/api/` needs the access token. It is created at every
+   start and is **not** contained in the page. The program window gets it as
+   a cookie (`yskar_zugang`, HttpOnly, SameSite=Strict, valid until the
+   program ends) that `electron-main.mjs` sets in the window's session
+   before the page loads. Tools can send it in the header `x-yskar-token`.
+   Until version 0.5.1 the token was written into the page, so any program
+   that could reach `127.0.0.1:8650` could read it from there.
 
 A request body must be declared as `application/json`.
 

@@ -64,13 +64,12 @@ let naechsterPort = 19_700;
 const port = () => naechsterPort++;
 const ordner = () => mkdtempSync(join(tmpdir(), 'yskar-kern-'));
 
-/** Den Zugangsschluessel so holen, wie ihn die Oberflaeche bekommt: aus der Seite. */
-async function schluessel(guiPort: number): Promise<string> {
-  const seite = await ruf(guiPort, '/');
-  assert.equal(seite.status, 200);
-  const m = seite.text.match(/<meta name="yskar-zugang" content="([0-9a-f]{64})">/);
-  assert.ok(m, 'Die Seite muss ihren Zugangsschlüssel enthalten');
-  return m![1];
+/**
+ * Den Zugangsschluessel so holen, wie ihn das Fenster bekommt: aus dem
+ * Programm selbst. In der Seite steht er nicht mehr (Befund S8).
+ */
+async function schluessel(app: NodeCoreApp): Promise<string> {
+  return app.zugangFuerFenster();
 }
 
 const json = (token: string, wert: unknown) => ({
@@ -94,7 +93,8 @@ test('Oberfläche: Die eigene Seite kommt durch, eine fremde nicht', async () =>
     assert.equal(seite.kopf['x-frame-options'], 'DENY');
     assert.ok(!seite.text.includes('__YSKAR_ZUGANG__'), 'Der Platzhalter muss ersetzt sein');
 
-    const token = await schluessel(gui);
+    const token = await schluessel(app);
+    assert.ok(!seite.text.includes(token), 'Der Zugangsschlüssel steht nicht in der Seite');
     const mit = { 'x-yskar-token': token };
 
     // Ohne Schluessel: nichts, weder lesen noch schreiben.
@@ -245,8 +245,8 @@ test('Zwei Knoten: Überweisung wandert, landet im Block, Miner zählen mit', as
   await b.startGui();
 
   try {
-    const tA = await schluessel(A.gui);
-    const tB = await schluessel(B.gui);
+    const tA = await schluessel(a);
+    const tB = await schluessel(b);
     assert.notEqual(tA, tB, 'Jeder Start hat seinen eigenen Schlüssel');
 
     const stand = async (k: typeof A, t: string) =>
@@ -365,7 +365,7 @@ test('Ein gescheiterter Start räumt auf, der nächste gelingt', async () => {
   });
 
   try {
-    const t = await schluessel(K.gui);
+    const t = await schluessel(app);
     assert.equal((await ruf(K.gui, '/api/configure',
       json(t, { dataDir: ordner(), nodePort: K.api, p2pPort: K.p2p, seed: '' }))).status, 200);
 
@@ -393,4 +393,28 @@ test('Ein gescheiterter Start räumt auf, der nächste gelingt', async () => {
     if (besetzer.listening) await new Promise<void>(auf => besetzer.close(() => auf()));
     await app.shutdown();
   }
+});
+
+
+test('Oberfläche: Der Zugangsschlüssel kommt als Cookie des Fensters -- in der Seite steht er nicht (Befund S8)', async () => {
+  const gui = port();
+  const app = new NodeCoreApp({ params: REGTEST, guiPort: gui, basis: ordner() });
+  await app.startGui();
+  try {
+    const token = app.zugangFuerFenster();
+    const seite = await ruf(gui, '/');
+    assert.equal(seite.status, 200);
+    assert.ok(!seite.text.includes(token), 'nicht in der Seite');
+    assert.match(seite.text, /<meta name="yskar-zugang" content="">/, 'das Feld bleibt, aber leer');
+
+    // Wie das Fenster: nur das Cookie, kein Kopffeld.
+    assert.equal((await ruf(gui, '/api/status', { headers: { cookie: `yskar_zugang=${token}` } })).status, 200);
+    assert.equal((await ruf(gui, '/api/status', { headers: { cookie: `andere=1; yskar_zugang=${token}; noch=2` } })).status, 200);
+    // Falsch, leer oder fehlend: abgewiesen.
+    assert.equal((await ruf(gui, '/api/status', { headers: { cookie: `yskar_zugang=${'f'.repeat(64)}` } })).status, 401);
+    assert.equal((await ruf(gui, '/api/status', { headers: { cookie: 'yskar_zugang=' } })).status, 401);
+    assert.equal((await ruf(gui, '/api/status')).status, 401);
+    // Die Pruefung von Host und Herkunft gilt auch mit gueltigem Cookie.
+    assert.equal((await ruf(gui, '/api/status', { headers: { cookie: `yskar_zugang=${token}`, origin: 'https://boese.example' } })).status, 403);
+  } finally { await app.shutdown(); }
 });

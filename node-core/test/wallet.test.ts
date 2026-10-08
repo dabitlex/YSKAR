@@ -198,8 +198,7 @@ test('Wallet am Knoten: minen in die Wallet, senden, Verlauf, QR-Code', async ()
   const b = new NodeCoreApp({ params: REGTEST, guiPort: B.gui, basis: ordner(), uhr });
   await a.startGui(); await b.startGui();
 
-  const zugang = async (gui: number) => String((await ruf(gui, '/')).json).match(/name="yskar-zugang" content="([0-9a-f]{64})"/)![1];
-  const tA = await zugang(A.gui), tB = await zugang(B.gui);
+  const tA = a.zugangFuerFenster(), tB = b.zugangFuerFenster();
   const GET = (k: typeof A, t: string, pfad: string) => ruf(k.gui, pfad, { headers: { 'x-yskar-token': t } });
   const POST = (k: typeof A, t: string, pfad: string, wert: unknown = {}) => ruf(k.gui, pfad, {
     method: 'POST', headers: { 'x-yskar-token': t, 'content-type': 'application/json' }, body: JSON.stringify(wert) });

@@ -227,6 +227,18 @@ async function createMainWindow() {
   });
 
   try {
+    /*
+      Den Zugangsschluessel der Oberflaeche als Cookie in die Sitzung dieses
+      Fensters legen -- bevor die Seite laedt. Er steht nicht mehr in der
+      Seite selbst (Befund S8); so bekommt ihn nur dieses Fenster.
+      HttpOnly: Das Skript der Seite braucht ihn nicht zu sehen. SameSite
+      Strict: Eine fremde Seite kann ihn nicht mitschicken lassen. Ohne
+      Ablaufdatum: Er gilt nur, solange das Programm laeuft.
+    */
+    await mainWindow.webContents.session.cookies.set({
+      url: SEITE, name: 'yskar_zugang', value: core.zugangFuerFenster(),
+      httpOnly: true, sameSite: 'strict',
+    });
     await mainWindow.loadURL(`${SEITE}/`, {
       extraHeaders: 'Cache-Control: no-cache\n',
     });

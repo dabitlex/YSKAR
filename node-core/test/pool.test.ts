@@ -74,10 +74,9 @@ function ruf(p: number, pfad: string, opt: { method?: string; headers?: Record<s
   });
 }
 
-async function schluessel(gui: number): Promise<string> {
-  const m = (await ruf(gui, '/')).text.match(/<meta name="yskar-zugang" content="([0-9a-f]{64})">/);
-  assert.ok(m);
-  return m![1];
+/** Der Zugangsschluessel -- aus dem Programm, nicht aus der Seite (Befund S8). */
+async function schluessel(app: NodeCoreApp): Promise<string> {
+  return app.zugangFuerFenster();
 }
 
 const json = (token: string, wert: unknown) => ({
@@ -133,7 +132,7 @@ async function kern(uhr: () => bigint, seedP2p: number) {
   const basis = ordner();
   const app = new NodeCoreApp({ params: REGTEST, guiPort: k.gui, basis, uhr });
   await app.startGui();
-  const token = await schluessel(k.gui);
+  const token = await schluessel(app);
   assert.equal((await ruf(k.gui, '/api/configure',
     json(token, { dataDir: ordner(), nodePort: k.api, p2pPort: k.p2p, seed: `127.0.0.1:${seedP2p}` }))).status, 200);
   assert.equal((await ruf(k.gui, '/api/start', json(token, {}))).status, 200);
@@ -472,7 +471,7 @@ test('mining.json aus einer älteren Fassung: Ziel ist solo, ein unzulässiger P
   const app = new NodeCoreApp({ params: REGTEST, guiPort: gui, basis });
   await app.startGui();
   try {
-    const t = await schluessel(gui);
+    const t = await schluessel(app);
     const c = (await ruf(gui, '/api/status', { headers: { 'x-yskar-token': t } })).json.mining.config;
     assert.equal(c.ziel, 'solo');
     assert.equal(c.poolHost, '');
@@ -485,7 +484,7 @@ test('mining.json aus einer älteren Fassung: Ziel ist solo, ein unzulässiger P
   const app2 = new NodeCoreApp({ params: REGTEST, guiPort: gui2, basis: basis2 });
   await app2.startGui();
   try {
-    const t = await schluessel(gui2);
+    const t = await schluessel(app2);
     const c = (await ruf(gui2, '/api/status', { headers: { 'x-yskar-token': t } })).json.mining.config;
     assert.equal(c.ziel, 'pool');
     assert.equal(c.poolHost, '', 'Keine Adresse eines Pools');

@@ -8,6 +8,11 @@ import { t, sprache } from './i18n.js';
 
 // ------------------------------------------------------------ Schnittstelle
 
+/*
+ * Der Zugangsschluessel kommt als Cookie des Fensters mit (siehe
+ * electron-main.mjs) und steht nicht mehr in der Seite. Das Meta-Feld bleibt
+ * fuer aeltere Fassungen; ist es leer, wird kein Kopffeld geschickt.
+ */
 const ZUGANG = document.querySelector('meta[name="yskar-zugang"]')?.content ?? '';
 
 /**
@@ -27,7 +32,7 @@ export class ApiFehler extends Error {
 }
 
 export async function api(pfad, opt = {}) {
-  const kopf = Object.assign({}, opt.headers || {}, { 'x-yskar-token': ZUGANG });
+  const kopf = Object.assign({}, opt.headers || {}, ZUGANG ? { 'x-yskar-token': ZUGANG } : {});
   let antwort;
   try { antwort = await fetch(pfad, Object.assign({}, opt, { headers: kopf })); }
   catch { throw new ApiFehler(t('fehler.keineVerbindung'), 0); }

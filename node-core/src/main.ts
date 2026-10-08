@@ -117,6 +117,12 @@ const SYNC_GEDULD_MS = 120_000;
 const AUSGEHEND_ZAEHLT_ALLE_MS = 600_000;
 /** Name des Kopffelds, in dem die Oberflaeche ihren Zugangsschluessel schickt. */
 const TOKEN_KOPF = 'x-yskar-token';
+/**
+ * Name des Cookies, ueber das das Fenster des Programms den Schluessel
+ * mitschickt. Gesetzt wird es von electron-main.mjs, bevor die Seite laedt
+ * -- nur in der Sitzung dieses Fensters, HttpOnly und SameSite=Strict.
+ */
+const TOKEN_COOKIE = 'yskar_zugang';
 /** Platzhalter in der ausgelieferten Seite -- wird je Start ersetzt. */
 const TOKEN_PLATZ = '__YSKAR_ZUGANG__';
 const DEFAULT_NODE_PORT = 8645;
@@ -486,9 +492,14 @@ export class NodeCoreApp {
   private leistung: { zeit: number; hashrate: number }[] = [];
   private leistungTakt: ReturnType<typeof setInterval> | null = null;
   /*
-   * Zugangsschluessel der Oberflaeche. Entsteht bei jedem Start neu und
-   * steht nur in der Seite, die dieser Server selbst ausliefert. Eine fremde
-   * Webseite kann die Seite nicht lesen und kennt ihn deshalb nicht.
+   * Zugangsschluessel der Oberflaeche. Entsteht bei jedem Start neu.
+   *
+   * Er steht NICHT mehr in der Seite (Befund S8): Die Seite konnte jedes
+   * Programm abrufen, das 127.0.0.1 erreicht -- auch das eines anderen
+   * Benutzers am selben PC -- und hatte damit den Schluessel, etwa um die
+   * Auszahlungsadresse des Minings zu aendern. Jetzt bekommt ihn nur das
+   * eigene Fenster: electron-main.mjs liest ihn ueber zugangFuerFenster()
+   * im selben Prozess und setzt ihn als Cookie in die Sitzung des Fensters.
    */
   private zugang = randomBytes(32).toString('hex');
   private guiServer = createServer((req, res) => this.handleGui(req, res));
@@ -2192,20 +2203,34 @@ export class NodeCoreApp {
     }
 
     if (pfad.startsWith('/api/')) {
+      // Der Schluessel kommt im Kopffeld (Werkzeuge, Tests) oder im Cookie
+      // des eigenen Fensters. Verglichen wird in fester Zeit.
       const kopf = req.headers[TOKEN_KOPF];
-      const a = Buffer.from(typeof kopf === 'string' ? kopf : '');
-      const b = Buffer.from(this.zugang);
-      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      const ausKopf = typeof kopf === 'string' ? kopf : '';
+      const ausCookie = cookieWert(req.headers.cookie, TOKEN_COOKIE);
+      if (!this.passt(ausKopf) && !this.passt(ausCookie)) {
         return { status: 401, error: 'Zugriff verweigert: Zugangsschlüssel fehlt.' };
       }
     }
     return null;
   }
 
-  /** Die Seite mit dem Zugangsschluessel dieses Starts. */
+  private passt(wert: string): boolean {
+    const a = Buffer.from(wert);
+    const b = Buffer.from(this.zugang);
+    return a.length === b.length && timingSafeEqual(a, b);
+  }
+
+  /**
+   * Der Zugangsschluessel -- nur fuer das eigene Fenster (electron-main.mjs,
+   * derselbe Prozess) und fuer Tests. Ueber HTTP gibt es ihn nirgends.
+   */
+  zugangFuerFenster(): string { return this.zugang; }
+
+  /** Die Seite -- ohne Zugangsschluessel (siehe `zugang`). */
   private seite(): string | null {
     const roh = uiDatei('/ui/index.html');
-    return roh ? roh.inhalt.toString('utf8').split(TOKEN_PLATZ).join(this.zugang) : null;
+    return roh ? roh.inhalt.toString('utf8').split(TOKEN_PLATZ).join('') : null;
   }
 
   private async handleGui(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -2319,4 +2344,15 @@ export class NodeCoreApp {
       }, 400);
     }
   }
+}
+
+/** Wert eines Cookies aus dem Kopffeld "cookie", sonst ''. */
+function cookieWert(kopf: string | undefined, name: string): string {
+  if (!kopf) return '';
+  for (const teil of kopf.split(';')) {
+    const i = teil.indexOf('=');
+    if (i < 0) continue;
+    if (teil.slice(0, i).trim() === name) return teil.slice(i + 1).trim();
+  }
+  return '';
 }

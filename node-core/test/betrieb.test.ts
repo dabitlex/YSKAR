@@ -57,8 +57,7 @@ async function kern(uhr: () => bigint, seed: string, basis = ordner(), daten = o
   const k = { gui: port(), api: port(), p2p: port() };
   const app = new NodeCoreApp({ params: REGTEST, guiPort: k.gui, basis, uhr });
   await app.startGui();
-  const seite = await ruf(k.gui, '/');
-  const token = seite.text.match(/<meta name="yskar-zugang" content="([0-9a-f]{64})">/)![1];
+  const token = app.zugangFuerFenster();
   const kopf = { 'x-yskar-token': token, 'content-type': 'application/json' };
   const GET = (pfad: string) => ruf(k.gui, pfad, { headers: { 'x-yskar-token': token } });
   const POST = (pfad: string, wert: unknown) => ruf(k.gui, pfad, { method: 'POST', headers: kopf, body: JSON.stringify(wert) });
@@ -307,7 +306,7 @@ test('Neustart des Programms: Der Pool kommt wieder, mit Fenster; die alte Gebü
     const gui = port();
     const app = new NodeCoreApp({ params: REGTEST, guiPort: gui, basis, uhr });
     await app.startGui();
-    const token = (await ruf(gui, '/')).text.match(/content="([0-9a-f]{64})"/)![1];
+    const token = app.zugangFuerFenster();
     const POST = (pfadApi: string, wert: unknown) => ruf(gui, pfadApi, { method: 'POST', headers: { 'x-yskar-token': token, 'content-type': 'application/json' }, body: JSON.stringify(wert) });
     const stand = async () => (await ruf(gui, '/api/status', { headers: { 'x-yskar-token': token } })).json;
     P = { ...P, app, POST, stand } as typeof P;

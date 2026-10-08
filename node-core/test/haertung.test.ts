@@ -60,7 +60,7 @@ async function kern(opt: ConstructorParameters<typeof NodeCoreApp>[0] = {}) {
   const basis = opt.basis ?? ordner();
   const app = new NodeCoreApp({ params: REGTEST, guiPort: gui, ...opt, basis });
   await app.startGui();
-  const token = (await ruf(gui, '/')).text.match(/content="([0-9a-f]{64})"/)![1];
+  const token = app.zugangFuerFenster();
   const kopf = { 'x-yskar-token': token, 'content-type': 'application/json' };
   const GET = (pfad: string) => ruf(gui, pfad, { headers: { 'x-yskar-token': token } });
   const POST = (pfad: string, wert: unknown = {}) => ruf(gui, pfad, { method: 'POST', headers: kopf, body: JSON.stringify(wert) });
