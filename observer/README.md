@@ -36,9 +36,15 @@ blocks or transactions from anyone, does not choose between competing branches a
 a reorganization. It reads one source in one direction. If a block it receives does not build on
 the last block it verified, it reports a deviation and stops.
 
-Because it reads only the mirror, it cannot tell whether the mirror shows the chain with the most
-work. A full node can: it performs the same verification and also takes part in the network. See
-[FULLNODE.md](../docs/FULLNODE.md). The observer is the lightweight read-only alternative.
+From the mirror alone it cannot tell whether the mirror shows the chain with the most work. So
+after every round it compares its own tip with a second source, by default the public main node
+`https://yskar-main.dynv6.net` (`--compare`). It asks that source for its tip (`/summary`) and, if
+needed, the hash of one block (`/sync?from=<height>&count=1`), and reports when the mirror lags
+behind or when the source has a different block at the same height (another branch). The
+answers of the second source are only compared, not verified, and a difference is reported, not
+decided. A full node does more: it performs the same verification and also takes part in the
+network. See [FULLNODE.md](../docs/FULLNODE.md). The observer is the lightweight read-only
+alternative.
 
 ## Setup
 
@@ -149,7 +155,9 @@ deviation.
 | `--data <folder>`, `-d` | Folder for blocks, checkpoint and log | `./daten` |
 | `--interval <seconds>` | Pause between two requests for new blocks | `60` |
 | `--from-scratch` | Ignore the saved checkpoint and verify again from block 0 | Off |
-| `--once` | Catch up once and exit | Off |
+| `--once` | Catch up once and exit. Exit code 3 if a comparison source has a different block at the same height | Off |
+| `--compare <url>` | Compare the tip with this source after every round; can be given more than once | `https://yskar-main.dynv6.net` |
+| `--no-compare` | Do not compare | |
 | `--help`, `-h` | Print the help text and exit | |
 | `--version`, `-v` | Print the version and exit | |
 

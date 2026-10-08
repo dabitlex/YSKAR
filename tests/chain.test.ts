@@ -2,148 +2,20 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 
-import * as vardiff from '../src/lib/chain/vardiff.ts';
-import { nextDifficulty, effectiveDifficulty, type DifficultyParams }
-  from '../src/lib/chain/difficulty.ts';
+import { targetFromDifficulty } from '../src/lib/core/params.ts';
+// @ts-expect-error -- reines JavaScript ohne Typen
+import { targetBytes, toHex as minerHex } from '../miner/src/header.mjs';
 import { verifyInitData, isMobilePlatform } from '../src/lib/telegram/initdata.ts';
 import { issue, verify } from '../src/lib/auth/jwt.ts';
 
-const VP = {
-  targetSeconds: 30,
-  min: 32n,
-  max: 4096n,
-  blockDifficulty: 24576n,
-  shareDiffBlockRatio: 8,
-};
-
-const DP: DifficultyParams = {
-  targetBlockTime: 600,
-  lwmaWindow: 45,
-  lwmaClamp: 4,
-  minDifficulty: 4096n,
-  emergencyFactor: 3,
-};
-
-test('VarDiff regelt nach oben, wenn Shares zu schnell kommen', () => {
-  // 5 s statt 30 s bei Difficulty 256 -> Zielwert liegt sechsfach hoeher
-  const hist = Array.from({ length: 8 }, () => 5 / 256);
-  assert.ok(vardiff.adjustFromHistory(256n, hist, VP) > 256n);
-});
-
-test('VarDiff regelt nach unten, wenn Shares zu langsam kommen', () => {
-  const hist = Array.from({ length: 8 }, () => 200 / 1024);
-  assert.ok(vardiff.adjustFromHistory(1024n, hist, VP) < 1024n);
-});
-
-test('Ein einzelner Messwert loest nichts aus', () => {
-  // Der Fehler, der im Betrieb 60 % Ausschuss erzeugt hat: Anpassung je
-  // Einzelwert. Bei exponentialverteilten Abstaenden ist ein Einzelwert
-  // reines Rauschen.
-  const eine = vardiff.pushSample([], 3, 512n);
-  assert.equal(vardiff.adjustFromHistory(512n, eine, VP), 512n);
-});
-
-test('Messwerte werden auf die Difficulty normiert, bei der sie entstanden', () => {
-  // Gleicher Geraetedurchsatz, verschiedene Targets -> gleicher Messwert.
-  const bei128 = vardiff.pushSample([], 3.2, 128n)[0];
-  const bei1024 = vardiff.pushSample([], 25.6, 1024n)[0];
-  assert.ok(Math.abs(bei128 - bei1024) < 1e-9,
-    `normierte Werte muessen uebereinstimmen: ${bei128} vs ${bei1024}`);
-});
-
-test('Bei korrekt eingestellter Difficulty bleibt der Regler ruhig', () => {
-  // 300 exponentialverteilte Abstaende um den Zielwert. Frueher haetten rund
-  // 79 % davon eine Anpassung ausgeloest.
-  let seed = 12345;
-  const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
-  const hashrate = 2.64e6;
-
-  let d = 1208n, hist: number[] = [], changes = 0;
-  for (let i = 0; i < 300; i++) {
-    const mean = Number(d) * 65536 / hashrate;
-    const dt = -Math.log(1 - rnd()) * mean;
-    hist = vardiff.pushSample(hist, dt, d);
-    const next = vardiff.adjustFromHistory(d, hist, VP);
-    if (next !== d) changes++;
-    d = next;
-  }
-  assert.ok(changes < 60, `zu viele Anpassungen: ${changes} von 300`);
-  // und der Wert bleibt in der Naehe des Idealwerts von rund 1208
-  assert.ok(d > 400n && d < 3500n, `abgedriftet auf ${d}`);
-});
-
-test('Share-Difficulty kann nie in die Nähe der Block-Difficulty kommen', () => {
-  const hist = Array.from({ length: 8 }, () => 0.0001 / 4096);
-  const hoch = vardiff.adjustFromHistory(4096n, hist, VP);
-  assert.ok(hoch <= VP.blockDifficulty / 8n,
-    `Obergrenze verletzt: ${hoch} > ${VP.blockDifficulty / 8n}`);
-
-  const eng = { ...VP, blockDifficulty: 100n };
-  assert.ok(vardiff.adjustFromHistory(512n, hist, eng) >= eng.min);
-});
-
-test('VarDiff verkraftet kaputte Zeitangaben', () => {
-  for (const bad of [0, -5, NaN, Infinity]) {
-    assert.deepEqual(vardiff.pushSample([1, 2], bad, 512n), [1, 2],
-      `${bad} haette verworfen werden muessen`);
-  }
-  assert.equal(vardiff.adjustFromHistory(512n, [], VP), 512n);
-});
-
-test('LWMA erhöht die Difficulty, wenn Blöcke zu schnell kommen', () => {
-  const schnell = Array.from({ length: 45 }, () => ({
-    difficulty: 100_000n, solveSeconds: 150,   // 150s statt 600s
-  }));
-  const next = nextDifficulty(schnell, DP);
-  assert.ok(next > 100_000n, `erwartet Erhöhung, bekam ${next}`);
-  assert.ok(next <= 400_000n, 'Clamp auf Faktor 4 wurde nicht eingehalten');
-});
-
-test('LWMA senkt die Difficulty, wenn Blöcke zu langsam kommen', () => {
-  const langsam = Array.from({ length: 45 }, () => ({
-    difficulty: 100_000n, solveSeconds: 2400,
-  }));
-  const next = nextDifficulty(langsam, DP);
-  assert.ok(next < 100_000n, `erwartet Senkung, bekam ${next}`);
-  assert.ok(next >= 25_000n, 'Clamp nach unten wurde nicht eingehalten');
-});
-
-test('Ein einzelner Ausreißer kippt das Fenster nicht', () => {
-  const normal = Array.from({ length: 45 }, () => ({
-    difficulty: 100_000n, solveSeconds: 600,
-  }));
-  const mitAusreisser = [...normal];
-  mitAusreisser[44] = { difficulty: 100_000n, solveSeconds: 86_400 };  // ein Tag
-
-  const ohne = nextDifficulty(normal, DP);
-  const mit = nextDifficulty(mitAusreisser, DP);
-  // Die Klammerung auf 6x Zielzeit begrenzt den Einfluss
-  assert.ok(mit < ohne, 'Ausreißer sollte die Difficulty senken');
-  assert.ok(mit > ohne / 4n, `Ausreißer hat zu stark durchgeschlagen: ${mit} vs ${ohne}`);
-});
-
-test('Difficulty fällt nie unter die Untergrenze', () => {
-  const tot = Array.from({ length: 45 }, () => ({
-    difficulty: 4096n, solveSeconds: 3600,
-  }));
-  assert.ok(nextDifficulty(tot, DP) >= DP.minDifficulty);
-  assert.equal(nextDifficulty([], DP), DP.minDifficulty);
-});
-
-test('Notfallregel lockert das Target erst nach dem Schwellwert', () => {
-  const base = 100_000n;
-  assert.equal(effectiveDifficulty(base, 600, DP), base, 'zu früh gelockert');
-  assert.equal(effectiveDifficulty(base, 1800, DP), base, 'genau am Schwellwert');
-
-  const nach1h = effectiveDifficulty(base, 3600, DP);
-  assert.ok(nach1h < base && nach1h >= base / 2n - 1n,
-    `nach 1h sollte etwa halbiert sein, ist ${nach1h}`);
-
-  const nach2h = effectiveDifficulty(base, 7200, DP);
-  assert.ok(nach2h < nach1h, 'sollte weiter fallen');
-  assert.ok(effectiveDifficulty(base, 10 ** 9, DP) >= DP.minDifficulty,
-    'Untergrenze auch im Extremfall');
-});
+/*
+  Hier standen bis zum 9. Oktober 2026 Tests fuer VarDiff und LWMA der ERSTEN
+  Kette (src/lib/chain/vardiff.ts, difficulty.ts). Diese Dateien wurden nur
+  noch von hier benutzt und waren vom laufenden Code abgewichen -- die Tests
+  sagten nichts mehr ueber das Netz (Issue #5). Die Difficulty-Regel der
+  Kette prueft tests/core.test.ts, das Share-Ziel der Knoten
+  tests/share-ziel.test.ts.
+*/
 
 // ---------------------------------------------------------------- initData
 
@@ -306,9 +178,7 @@ test('JWT mit falschem Schlüssel oder abgelaufen wird abgewiesen', () => {
 // ganzen Block und lieferte praktisch nie einen Share ab -- von aussen sah
 // das aus, als wuerde das Mining gar nicht starten.
 
-test('Share-Target ist um Groessenordnungen leichter als das Block-Target', async () => {
-  const { targetFromDifficulty, targetToBytes } = await import('../src/lib/chain/target.ts');
-
+test('Share-Target ist um Groessenordnungen leichter als das Block-Target', () => {
   const blockDifficulty = 24576n;
   const shareDifficulty = 128n;
 
@@ -325,22 +195,15 @@ test('Share-Target ist um Groessenordnungen leichter als das Block-Target', asyn
   assert.equal(blockHashes, 1_610_612_736n);
   assert.ok(blockHashes / shareHashes === 192n,
     'Der Unterschied betraegt Faktor 192 -- 3 Sekunden gegen 10 Minuten');
-
-  // 32 Byte, fuehrende Nullen erhalten
-  assert.equal(targetToBytes(shareTarget).length, 32);
-  assert.equal(targetToBytes(shareTarget).toString('hex').length, 64);
 });
 
-test('Die Hex-Umrechnung im Client stimmt mit der des Servers ueberein', async () => {
-  const { targetFromDifficulty, targetToBytes } = await import('../src/lib/chain/target.ts');
-
-  // Nachbau von targetHexFromDifficulty() aus src/hooks/useMiner.ts
-  const clientHex = (d: number) => ((1n << 240n) / BigInt(d)).toString(16).padStart(64, '0');
-
-  for (const d of [32, 128, 512, 4096, 24576, 1_000_000]) {
+test('Die Ziel-Umrechnung des Miners stimmt mit der des Kerns ueberein', () => {
+  // Vorher gegen src/lib/chain/target.ts (erste Kette, Issue #5); jetzt gegen
+  // den Kern und die Funktion, die der Kommandozeilen-Miner wirklich benutzt.
+  for (const d of [1, 32, 128, 512, 4096, 24576, 1_000_000]) {
     assert.equal(
-      clientHex(d),
-      targetToBytes(targetFromDifficulty(BigInt(d))).toString('hex'),
+      minerHex(targetBytes(d)),
+      targetFromDifficulty(BigInt(d)).toString(16).padStart(64, '0'),
       `Abweichung bei Difficulty ${d} -- der Worker wuerde gegen ein anderes Target pruefen`,
     );
   }

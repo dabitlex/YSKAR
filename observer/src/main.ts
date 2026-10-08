@@ -30,6 +30,7 @@ import { emptyState, applyBlock, stateRoot, totalSupply, cloneState,
 import { toHex, fromHex } from '../../src/lib/core/codec.ts';
 import { NETWORK, LWMA_WINDOW } from '../../src/lib/core/params.ts';
 import type { Block } from '../../src/lib/core/block.ts';
+import { vergleiche, beschreibe, type Vergleich } from './vergleich.ts';
 
 const VERSION = '0.1.0';
 
@@ -38,13 +39,19 @@ const VERSION = '0.1.0';
 interface Optionen {
   api: string; daten: string; intervall: number;
   vonVorn: boolean; einmal: boolean; help?: boolean; version?: boolean;
+  /** Zweite Quellen zum Vergleich (Issue #14). Leer: kein Vergleich. */
+  vergleich: string[];
 }
+
+/** Vorgabe fuer --compare: der oeffentliche Hauptknoten. */
+const VORGABE_VERGLEICH = 'https://yskar-main.dynv6.net';
 
 function argumente(argv: string[]): Optionen {
   const o: Optionen = {
     api: 'https://yskar.vercel.app', daten: './daten',
-    intervall: 60, vonVorn: false, einmal: false,
+    intervall: 60, vonVorn: false, einmal: false, vergleich: [],
   };
+  let vergleichGesetzt = false, ohneVergleich = false;
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
     const wert = direkt ?? argv[i + 1];
@@ -55,10 +62,14 @@ function argumente(argv: string[]): Optionen {
       case '--interval': o.intervall = Number(nimm()); break;
       case '--from-scratch': o.vonVorn = true; break;
       case '--once': o.einmal = true; break;
+      case '--compare': o.vergleich.push(nimm().replace(/\/+$/, '')); vergleichGesetzt = true; break;
+      case '--no-compare': ohneVergleich = true; break;
       case '--help': case '-h': o.help = true; break;
       case '--version': case '-v': o.version = true; break;
     }
   }
+  if (ohneVergleich) o.vergleich = [];
+  else if (!vergleichGesetzt) o.vergleich = [VORGABE_VERGLEICH];
   return o;
 }
 
@@ -76,7 +87,13 @@ Optionen
       --interval <sek>   Abstand zwischen den Abfragen (Vorgabe: 60)
       --from-scratch     Ablage verwerfen und bei Block 0 beginnen
       --once             Einmal aufholen und beenden
+      --compare <url>    Kopf mit einer zweiten Quelle vergleichen, etwa einem
+                         Full Node (Vorgabe: ${VORGABE_VERGLEICH}; mehrfach angebbar)
+      --no-compare       nicht vergleichen
   -h, --help             Diese Hilfe
+
+Mit --once endet das Programm mit Code 3, wenn eine Vergleichsquelle auf
+derselben Höhe einen anderen Block hat als der Spiegel.
 `;
 
 // ----------------------------------------------------------------- Ausgabe
@@ -165,7 +182,7 @@ function pruefpunktAus(
 // -------------------------------------------------------------------- Netz
 
 async function hole(api: string, pfad: string) {
-  const res = await fetch(`${api}/api/v2${pfad}`);
+  const res = await fetch(`${api}/api/v2${pfad}`, { signal: AbortSignal.timeout(30_000) });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.detail ?? body.error ?? `HTTP ${res.status}`);
   return body;
@@ -295,6 +312,7 @@ async function main() {
   console.log(`  Netz     ${NETWORK}`);
   console.log(`  Server   ${opt.api}`);
   console.log(`  Ablage   ${opt.daten}`);
+  console.log(`  Vergleich ${opt.vergleich.length ? opt.vergleich.join(', ') : 'aus'}`);
   console.log(grau('─'.repeat(56)) + '\n');
 
   const lauf: Lauf = {
@@ -328,6 +346,7 @@ async function main() {
     melde(grau('--from-scratch: beginne bei Block 0.'));
   }
 
+  const letzterVergleich = new Map<string, Vergleich>();
   let laeuft = true;
   process.on('SIGINT', () => { laeuft = false; });
   process.on('SIGTERM', () => { laeuft = false; });
@@ -388,6 +407,25 @@ async function main() {
         return;
       }
       melde(`${grau('[' + uhr() + ']')} ${gelb('!')} ${(e as Error).message}`);
+    }
+
+    /*
+      Den eigenen Kopf mit den Vergleichsquellen abgleichen (Issue #14).
+      Gemeldet wird, wenn sich das Ergebnis aendert -- nicht jede Minute
+      dasselbe. Ein Block Rueckstand ist fuer ein paar Sekunden normal
+      (der Spiegel bekommt jeden Block kurz nach dem Knoten); er wird erst
+      gemeldet, wenn er in der naechsten Runde noch besteht.
+    */
+    for (const q of lauf.hoehe >= 0 ? opt.vergleich : []) {
+      const v = await vergleiche(hole, q, lauf.hoehe, lauf.tipHash);
+      const vorher = letzterVergleich.get(q);
+      letzterVergleich.set(q, v);
+      const schluessel = (x: Vergleich | undefined) => x ? `${x.art}:${'quelleHoehe' in x ? x.quelleHoehe - x.hoehe : ''}` : '';
+      if (schluessel(v) === schluessel(vorher)) continue;
+      if (v.art === 'spiegel_hinten' && v.quelleHoehe - v.hoehe === 1 && vorher?.art !== 'spiegel_hinten') continue;
+      const farbe = v.art === 'anderer_block' ? rot : v.art === 'gleich' ? gruen : gelb;
+      melde(`${grau('[' + uhr() + ']')} ${farbe(beschreibe(v, q))}`);
+      if (v.art === 'anderer_block' && opt.einmal) process.exitCode = 3;
     }
 
     if (opt.einmal) break;

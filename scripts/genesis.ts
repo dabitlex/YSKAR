@@ -16,6 +16,7 @@ import { ZERO_ADDRESS, encodeAddress } from '../src/lib/core/address.ts';
 import { MIN_DIFFICULTY, rewardAt, targetFromDifficulty, NETWORK, CHAIN_ID } from '../src/lib/core/params.ts';
 import { toHex } from '../src/lib/core/codec.ts';
 import { txid, serializeTx } from '../src/lib/core/tx.ts';
+import { MINER_WASM_URL } from '../src/lib/minerWasm.ts';
 
 // 2026-09-09T00:00:00Z
 const TIMESTAMP = 1_788_912_000n;
@@ -57,7 +58,9 @@ console.log(`merkle_root   ${toHex(built.block.header.merkleRoot)}`);
 console.log(`state_root    ${toHex(built.stateRoot)}`);
 console.log(`erwartet      ~${Number(DIFFICULTY * 65536n / 1_000_000n)} Mio Hashes\n`);
 
-const wasm = readFileSync(new URL('../public/miner.wasm', import.meta.url));
+// Dieselbe Datei, die App und Mini App laden (Issue #14: public/miner.wasm
+// pflegt wasm/publish.js nicht; die Datei mit dem Hash im Namen schon).
+const wasm = readFileSync(new URL('../public' + MINER_WASM_URL, import.meta.url));
 const { instance } = await WebAssembly.instantiate(wasm, {});
 const mem = new Uint8Array((instance.exports.memory as WebAssembly.Memory).buffer);
 const view = new DataView((instance.exports.memory as WebAssembly.Memory).buffer);

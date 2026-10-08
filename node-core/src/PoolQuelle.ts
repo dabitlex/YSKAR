@@ -159,7 +159,7 @@ function bytes(h: string): Uint8Array {
  * Aus den Feldern eines Jobs den Header bauen -- wie jeder Miner. Das Feld
  * `difficulty` ist das ROHE Header-Feld und kommt unveraendert an Stelle 112.
  */
-function baueJob(j: Record<string, unknown>): MiningJob {
+export function baueJob(j: Record<string, unknown>): MiningJob {
   if (typeof j.jobId !== 'string' || j.jobId.length < 1 || j.jobId.length > 128 || !/^[\x21-\x7e]+$/.test(j.jobId)) {
     throw new Error('Der Pool schickt unlesbare Arbeit.');
   }

@@ -140,6 +140,7 @@ button{font:inherit;color:inherit}
   background:rgba(255,255,255,.07);color:#C9D4E6}
 .meldung:empty{display:none}
 .meldung.schlecht{background:rgba(240,97,107,.14);color:#FFB3B9}
+.meldung.warn{background:rgba(245,190,80,.14);color:#FFD98A}
 /*
   Pruefergebnis hinter einem Info-Symbol. Die Blase haengt an der Zeile,
   nicht am Symbol -- so beginnt sie am linken Rand und passt auch am Handy.
@@ -481,6 +482,7 @@ details.empf .tx{border-top:0}
     </div>
     <div class="meldung" id="treffer" role="status"></div>
     <div class="meldung schlecht" id="err" role="alert"></div>
+    <div class="meldung warn" id="abgleich" role="status"></div>
   </div>
 </div></section>
 
@@ -589,10 +591,9 @@ async function sha256d(bytes){
 }
 
 // ---------------------------------------------------------------- Header
-// 116 Byte, Little-Endian. Identisch zu src/lib/chain/serialize.ts.
-//   0 u32 version | 4 u32 height | 8 prevHash | 40 merkleRoot
-//  72 jobSeed | 88 u64 timestamp | 96 u32 difficulty | 100 u64 extranonce
-// 108 u64 nonce
+// Hilfsfunktionen; die Serialisierung selbst steht in serializeHeader()
+// unten (136 Byte, wie src/lib/core/block.ts). Hier stand bis zum 9. Oktober
+// 2026 die Beschreibung des 116-Byte-Headers der ersten Kette (Issue #5).
 function fromHex(s){
   const c=s.startsWith('\\x')?s.slice(2):s;
   const o=new Uint8Array(c.length/2);
@@ -675,7 +676,7 @@ const WB={
 en:{
   platzhalter:'Address, transaction, block height or block hash',suchen:'Search',hoehe:'Height',
   laedt:'loading…',hinweisTitel:'Every block is re-verified here in your browser.',
-  hinweisText:'The header is rebuilt from its fields, double-hashed, checked against the recorded difficulty, and the chain link is followed. None of these statements comes from the server. A green dot on a block means: verified here.',
+  hinweisText:'The header is rebuilt from its fields, double-hashed, checked against the recorded difficulty, and the chain link is followed. These checks run here, not on the server. Which blocks are listed comes from the server’s mirror; it is compared with the full node, and a difference is shown here. A green dot on a block means: verified here.',
   bloecke:'Blocks',legende:'left: in progress · right: found',
   klickHinweis:'Click a block to see its transactions.',zurApp:'← Back to the app',quelltext:'Source on GitHub',
   imBau:'in progress',tx:n=>n+(n===1?' transaction':' transactions'),wirdGesucht:'being searched',
@@ -706,7 +707,7 @@ en:{
   keineBewegungen:'No activity yet.',txNichtLesbar:'Transaction not readable.',transaktion:'Transaction',
   status:'Status',wartetAufBlock:'waiting for a block',inBlock:h=>'in block '+h,art:'Type',betrag:'Amount',
   zuBlock:h=>'Go to block '+h,geradeEben:'just now',vorMin:n=>n+' min ago',vorStd:n=>n+' h ago',vorTg:n=>n+' d ago',
-  keinServer:'None of these statements comes from the server.',neu:'NEW',voll:p=>p+'% full',
+  keinServer:'These checks run here, not on the server.',spiegelZweig:h=>'The mirror shows a different block at height '+h+' than the full node. The list below may be on another branch.',spiegelHinten:n=>'The mirror is '+n+(n===1?' block':' blocks')+' behind the full node. The newest blocks are missing below.',neu:'NEW',voll:p=>p+'% full',
   vonTx:(n,max)=>n+' of '+max+' transactions',kette:'The chain',fuellLegende:'fill = used transaction slots',
   netzBlick:'Network at a glance',netzBlickUnter:'updates with every block',
   cBlockzeit:n=>'Block time of the last '+n+' blocks',cBlockzeitUnter:m=>'Minutes between two blocks · line = target '+m+' min',
@@ -725,7 +726,7 @@ en:{
 de:{
   platzhalter:'Adresse, Transaktion, Blockhöhe oder Blockhash',suchen:'Suchen',hoehe:'Höhe',
   laedt:'wird geladen…',hinweisTitel:'Jeder Block wird hier im Browser nachgerechnet.',
-  hinweisText:'Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die eingetragene Difficulty geprüft, Verkettung verfolgt. Keine dieser Aussagen stammt vom Server. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.',
+  hinweisText:'Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die eingetragene Difficulty geprüft, Verkettung verfolgt. Diese Prüfungen laufen hier, nicht auf dem Server. Welche Blöcke erscheinen, kommt aus dem Spiegel des Servers; er wird mit dem Full Node verglichen, eine Abweichung steht dann hier. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.',
   bloecke:'Blöcke',legende:'links im Bau · rechts gefunden',
   klickHinweis:'Auf einen Block klicken, um seine Transaktionen zu sehen.',zurApp:'← Zurück zur App',quelltext:'Quelltext auf GitHub',
   imBau:'im Bau',tx:n=>n+(n===1?' Transaktion':' Transaktionen'),wirdGesucht:'wird gesucht',
@@ -756,7 +757,7 @@ de:{
   keineBewegungen:'Noch keine Bewegungen.',txNichtLesbar:'Transaktion nicht lesbar.',transaktion:'Transaktion',
   status:'Status',wartetAufBlock:'wartet auf einen Block',inBlock:h=>'in Block '+h,art:'Art',betrag:'Betrag',
   zuBlock:h=>'Zu Block '+h,geradeEben:'gerade eben',vorMin:n=>'vor '+n+' Min',vorStd:n=>'vor '+n+' Std',vorTg:n=>'vor '+n+' Tg',
-  keinServer:'Keine dieser Aussagen stammt vom Server.',neu:'NEU',voll:p=>p+' % voll',
+  keinServer:'Diese Prüfungen laufen hier, nicht auf dem Server.',spiegelZweig:h=>'Der Spiegel zeigt auf Höhe '+h+' einen anderen Block als der Full Node. Die Liste unten liegt womöglich auf einem anderen Zweig.',spiegelHinten:n=>'Der Spiegel liegt '+n+(n===1?' Block':' Blöcke')+' hinter dem Full Node. Unten fehlen die neuesten.',neu:'NEU',voll:p=>p+' % voll',
   vonTx:(n,max)=>n+' von '+max+' Transaktionen',kette:'Die Kette',fuellLegende:'Füllung = belegte Transaktionsplätze',
   netzBlick:'Netz auf einen Blick',netzBlickUnter:'aktualisiert sich mit jedem Block',
   cBlockzeit:n=>'Blockzeit der letzten '+n+' Blöcke',cBlockzeitUnter:m=>'Minuten zwischen zwei Blöcken · Linie = Ziel '+m+' Min.',
@@ -775,7 +776,7 @@ de:{
 es:{
   platzhalter:'Dirección, transacción, altura o hash de bloque',suchen:'Buscar',hoehe:'Altura',
   laedt:'cargando…',hinweisTitel:'Cada bloque se recalcula aquí, en tu navegador.',
-  hinweisText:'La cabecera se reconstruye a partir de sus campos, se hashea dos veces, se comprueba contra la dificultad registrada y se sigue el encadenamiento. Ninguna de estas afirmaciones viene del servidor. El punto verde en un bloque significa: verificado aquí.',
+  hinweisText:'La cabecera se reconstruye a partir de sus campos, se hashea dos veces, se comprueba contra la dificultad registrada y se sigue el encadenamiento. Estas comprobaciones se hacen aquí, no en el servidor. Qué bloques aparecen viene del espejo del servidor; se compara con el nodo completo y, si difieren, se avisa aquí. El punto verde en un bloque significa: verificado aquí.',
   bloecke:'Bloques',legende:'izquierda: en curso · derecha: encontrados',
   klickHinweis:'Pulsa un bloque para ver sus transacciones.',zurApp:'← Volver a la app',quelltext:'Código en GitHub',
   imBau:'en curso',tx:n=>n+(n===1?' transacción':' transacciones'),wirdGesucht:'en búsqueda',
@@ -806,7 +807,7 @@ es:{
   keineBewegungen:'Sin actividad todavía.',txNichtLesbar:'Transacción no legible.',transaktion:'Transacción',
   status:'Estado',wartetAufBlock:'esperando un bloque',inBlock:h=>'en el bloque '+h,art:'Tipo',betrag:'Importe',
   zuBlock:h=>'Ir al bloque '+h,geradeEben:'ahora mismo',vorMin:n=>'hace '+n+' min',vorStd:n=>'hace '+n+' h',vorTg:n=>'hace '+n+' d',
-  keinServer:'Ninguna de estas afirmaciones proviene del servidor.',neu:'NUEVO',voll:p=>p+' % lleno',
+  keinServer:'Estas comprobaciones se hacen aquí, no en el servidor.',spiegelZweig:h=>'El espejo muestra en la altura '+h+' un bloque distinto al del nodo completo. La lista de abajo podría estar en otra rama.',spiegelHinten:n=>'El espejo va '+n+(n===1?' bloque':' bloques')+' por detrás del nodo completo. Abajo faltan los más recientes.',neu:'NUEVO',voll:p=>p+' % lleno',
   vonTx:(n,max)=>n+' de '+max+' transacciones',kette:'La cadena',fuellLegende:'relleno = espacios de transacción ocupados',
   netzBlick:'La red de un vistazo',netzBlickUnter:'se actualiza con cada bloque',
   cBlockzeit:n=>'Tiempo de bloque de los últimos '+n+' bloques',cBlockzeitUnter:m=>'Minutos entre dos bloques · línea = objetivo '+m+' min',
@@ -825,7 +826,7 @@ es:{
 pt:{
   platzhalter:'Endereço, transação, altura ou hash do bloco',suchen:'Buscar',hoehe:'Altura',
   laedt:'carregando…',hinweisTitel:'Cada bloco é recalculado aqui, no seu navegador.',
-  hinweisText:'O cabeçalho é remontado a partir dos campos, passa por hash duplo, é conferido com a dificuldade registrada e o encadeamento é seguido. Nenhuma dessas afirmações vem do servidor. O ponto verde em um bloco significa: verificado aqui.',
+  hinweisText:'O cabeçalho é remontado a partir dos campos, passa por hash duplo, é conferido com a dificuldade registrada e o encadeamento é seguido. Essas verificações são feitas aqui, não no servidor. Quais blocos aparecem vem do espelho do servidor; ele é comparado com o nó completo e, se houver diferença, ela aparece aqui. O ponto verde em um bloco significa: verificado aqui.',
   bloecke:'Blocos',legende:'esquerda: em andamento · direita: encontrados',
   klickHinweis:'Toque em um bloco para ver suas transações.',zurApp:'← Voltar ao app',quelltext:'Código no GitHub',
   imBau:'em andamento',tx:n=>n+(n===1?' transação':' transações'),wirdGesucht:'em busca',
@@ -856,7 +857,7 @@ pt:{
   keineBewegungen:'Ainda sem atividade.',txNichtLesbar:'Transação ilegível.',transaktion:'Transação',
   status:'Status',wartetAufBlock:'aguardando um bloco',inBlock:h=>'no bloco '+h,art:'Tipo',betrag:'Valor',
   zuBlock:h=>'Ir ao bloco '+h,geradeEben:'agora mesmo',vorMin:n=>'há '+n+' min',vorStd:n=>'há '+n+' h',vorTg:n=>'há '+n+' d',
-  keinServer:'Nenhuma destas afirmações vem do servidor.',neu:'NOVO',voll:p=>p+'% cheio',
+  keinServer:'Essas verificações são feitas aqui, não no servidor.',spiegelZweig:h=>'O espelho mostra na altura '+h+' um bloco diferente do nó completo. A lista abaixo pode estar em outro ramo.',spiegelHinten:n=>'O espelho está '+n+(n===1?' bloco':' blocos')+' atrás do nó completo. Os mais recentes faltam abaixo.',neu:'NOVO',voll:p=>p+'% cheio',
   vonTx:(n,max)=>n+' de '+max+' transações',kette:'A cadeia',fuellLegende:'preenchimento = vagas de transação ocupadas',
   netzBlick:'A rede em resumo',netzBlickUnter:'atualiza a cada bloco',
   cBlockzeit:n=>'Tempo de bloco dos últimos '+n+' blocos',cBlockzeitUnter:m=>'Minutos entre dois blocos · linha = alvo '+m+' min',
@@ -875,7 +876,7 @@ pt:{
 ru:{
   platzhalter:'Адрес, транзакция, высота или хеш блока',suchen:'Найти',hoehe:'Высота',
   laedt:'загрузка…',hinweisTitel:'Каждый блок пересчитывается здесь, в вашем браузере.',
-  hinweisText:'Заголовок собирается заново из полей, хешируется дважды, сверяется с записанной сложностью, проверяется связь с предыдущим блоком. Ни одно из этих утверждений не приходит с сервера. Зелёная точка на блоке значит: проверено здесь.',
+  hinweisText:'Заголовок собирается заново из полей, хешируется дважды, сверяется с записанной сложностью, проверяется связь с предыдущим блоком. Эти проверки выполняются здесь, а не на сервере. Какие блоки показаны, определяет зеркало сервера; оно сверяется с полным узлом, и расхождение будет показано здесь. Зелёная точка на блоке значит: проверено здесь.',
   bloecke:'Блоки',legende:'слева: в работе · справа: найденные',
   klickHinweis:'Нажмите на блок, чтобы увидеть его транзакции.',zurApp:'← Назад в приложение',quelltext:'Исходный код на GitHub',
   imBau:'в работе',tx:n=>n+' '+ruPl(n,'транзакция','транзакции','транзакций'),wirdGesucht:'идёт поиск',
@@ -906,7 +907,7 @@ ru:{
   keineBewegungen:'Операций пока нет.',txNichtLesbar:'Транзакция нечитаема.',transaktion:'Транзакция',
   status:'Статус',wartetAufBlock:'ожидает блока',inBlock:h=>'в блоке '+h,art:'Тип',betrag:'Сумма',
   zuBlock:h=>'К блоку '+h,geradeEben:'только что',vorMin:n=>n+' мин назад',vorStd:n=>n+' ч назад',vorTg:n=>n+' дн назад',
-  keinServer:'Ни одно из этих утверждений не получено от сервера.',neu:'НОВЫЙ',voll:p=>p+'% занято',
+  keinServer:'Эти проверки выполняются здесь, а не на сервере.',spiegelZweig:h=>'Зеркало показывает на высоте '+h+' другой блок, чем полный узел. Список ниже может относиться к другой ветке.',spiegelHinten:n=>'Зеркало отстаёт от полного узла (блоков: '+n+'). Самых новых блоков ниже нет.',neu:'НОВЫЙ',voll:p=>p+'% занято',
   vonTx:(n,max)=>n+' из '+max+' транзакций',kette:'Цепочка',fuellLegende:'заливка = занятые места для транзакций',
   netzBlick:'Сеть в цифрах',netzBlickUnter:'обновляется с каждым блоком',
   cBlockzeit:n=>'Время блока: последние '+n+' '+ruPl(n,'блок','блока','блоков'),
@@ -927,7 +928,7 @@ ru:{
 tr:{
   platzhalter:'Adres, işlem, blok yüksekliği veya blok hash’i',suchen:'Ara',hoehe:'Yükseklik',
   laedt:'yükleniyor…',hinweisTitel:'Her blok burada, tarayıcınızda yeniden hesaplanır.',
-  hinweisText:'Başlık alanlarından yeniden kurulur, iki kez hash’lenir, kayıtlı zorlukla karşılaştırılır ve zincir bağı izlenir. Bu ifadelerin hiçbiri sunucudan gelmez. Bloktaki yeşil nokta şu anlama gelir: burada doğrulandı.',
+  hinweisText:'Başlık alanlarından yeniden kurulur, iki kez hash’lenir, kayıtlı zorlukla karşılaştırılır ve zincir bağı izlenir. Bu kontroller sunucuda değil, burada yapılır. Hangi blokların listelendiği sunucunun aynasından gelir; ayna tam düğümle karşılaştırılır ve fark varsa burada gösterilir. Bloktaki yeşil nokta şu anlama gelir: burada doğrulandı.',
   bloecke:'Bloklar',legende:'sol: yapımda · sağ: bulunan',
   klickHinweis:'İşlemlerini görmek için bir bloğa dokunun.',zurApp:'← Uygulamaya dön',quelltext:'GitHub’da kaynak kodu',
   imBau:'yapımda',tx:n=>n+' işlem',wirdGesucht:'aranıyor',
@@ -958,7 +959,7 @@ tr:{
   keineBewegungen:'Henüz hareket yok.',txNichtLesbar:'İşlem okunamıyor.',transaktion:'İşlem',
   status:'Durum',wartetAufBlock:'blok bekliyor',inBlock:h=>h+' numaralı blokta',art:'Tür',betrag:'Tutar',
   zuBlock:h=>h+' numaralı bloğa git',geradeEben:'az önce',vorMin:n=>n+' dk önce',vorStd:n=>n+' sa önce',vorTg:n=>n+' gün önce',
-  keinServer:'Bu ifadelerin hiçbiri sunucudan gelmez.',neu:'YENİ',voll:p=>'%'+p+' dolu',
+  keinServer:'Bu kontroller sunucuda değil, burada yapılır.',spiegelZweig:h=>'Ayna, '+h+' yüksekliğinde tam düğümden farklı bir blok gösteriyor. Aşağıdaki liste başka bir dalda olabilir.',spiegelHinten:n=>'Ayna tam düğümün '+n+' blok gerisinde. En yeni bloklar aşağıda eksik.',neu:'YENİ',voll:p=>'%'+p+' dolu',
   vonTx:(n,max)=>max+' işlemden '+n,kette:'Zincir',fuellLegende:'dolgu = kullanılan işlem yeri',
   netzBlick:'Bir bakışta ağ',netzBlickUnter:'her blokta güncellenir',
   cBlockzeit:n=>'Son '+n+' bloğun blok süresi',cBlockzeitUnter:m=>'İki blok arasındaki dakika · çizgi = hedef '+m+' dk',
@@ -977,7 +978,7 @@ tr:{
 fr:{
   platzhalter:'Adresse, transaction, hauteur ou hash de bloc',suchen:'Rechercher',hoehe:'Hauteur',
   laedt:'chargement…',hinweisTitel:'Chaque bloc est revérifié ici, dans ton navigateur.',
-  hinweisText:'L’en-tête est reconstruit à partir de ses champs, hashé deux fois, comparé à la difficulté enregistrée, et le lien de chaîne est suivi. Aucune de ces affirmations ne vient du serveur. Un point vert sur un bloc signifie : vérifié ici.',
+  hinweisText:'L’en-tête est reconstruit à partir de ses champs, hashé deux fois, comparé à la difficulté enregistrée, et le lien de chaîne est suivi. Ces vérifications se font ici, pas sur le serveur. Les blocs affichés viennent du miroir du serveur ; il est comparé au nœud complet, et un écart s’affiche ici. Un point vert sur un bloc signifie : vérifié ici.',
   bloecke:'Blocs',legende:'à gauche : en cours · à droite : trouvés',
   klickHinweis:'Clique sur un bloc pour voir ses transactions.',zurApp:'← Retour à l’app',quelltext:'Code source sur GitHub',
   imBau:'en cours',tx:n=>n+(n<2?' transaction':' transactions'),wirdGesucht:'en recherche',
@@ -1008,7 +1009,7 @@ fr:{
   keineBewegungen:'Aucune activité pour l’instant.',txNichtLesbar:'Transaction illisible.',transaktion:'Transaction',
   status:'Statut',wartetAufBlock:'en attente d’un bloc',inBlock:h=>'dans le bloc '+h,art:'Type',betrag:'Montant',
   zuBlock:h=>'Aller au bloc '+h,geradeEben:'à l’instant',vorMin:n=>'il y a '+n+' min',vorStd:n=>'il y a '+n+' h',vorTg:n=>'il y a '+n+' j',
-  keinServer:'Aucune de ces affirmations ne vient du serveur.',neu:'NOUVEAU',voll:p=>p+' % plein',
+  keinServer:'Ces vérifications se font ici, pas sur le serveur.',spiegelZweig:h=>'Le miroir montre à la hauteur '+h+' un autre bloc que le nœud complet. La liste ci-dessous est peut-être sur une autre branche.',spiegelHinten:n=>'Le miroir a '+n+(n===1?' bloc':' blocs')+' de retard sur le nœud complet. Les plus récents manquent ci-dessous.',neu:'NOUVEAU',voll:p=>p+' % plein',
   vonTx:(n,max)=>n+' transactions sur '+max,kette:'La chaîne',fuellLegende:'remplissage = emplacements de transaction occupés',
   netzBlick:'Le réseau en un coup d’œil',netzBlickUnter:'mis à jour à chaque bloc',
   cBlockzeit:n=>'Temps de bloc des '+n+' derniers blocs',cBlockzeitUnter:m=>'Minutes entre deux blocs · ligne = cible '+m+' min',
@@ -1027,7 +1028,7 @@ fr:{
 it:{
   platzhalter:'Indirizzo, transazione, altezza o hash del blocco',suchen:'Cerca',hoehe:'Altezza',
   laedt:'caricamento…',hinweisTitel:'Ogni blocco viene ricontrollato qui, nel tuo browser.',
-  hinweisText:'L’header viene ricostruito dai suoi campi, sottoposto a doppio hash, confrontato con la difficulty registrata, e si segue il collegamento della catena. Nessuna di queste verifiche arriva dal server. Un punto verde su un blocco significa: verificato qui.',
+  hinweisText:'L’header viene ricostruito dai suoi campi, sottoposto a doppio hash, confrontato con la difficulty registrata, e si segue il collegamento della catena. Queste verifiche avvengono qui, non sul server. Quali blocchi compaiono lo decide lo specchio del server; viene confrontato con il nodo completo e un’eventuale differenza compare qui. Un punto verde su un blocco significa: verificato qui.',
   bloecke:'Blocchi',legende:'sinistra: in lavorazione · destra: trovati',
   klickHinweis:'Clicca un blocco per vederne le transazioni.',zurApp:'← Torna all’app',quelltext:'Codice su GitHub',
   imBau:'in lavorazione',tx:n=>n+(n===1?' transazione':' transazioni'),wirdGesucht:'in ricerca',
@@ -1058,7 +1059,7 @@ it:{
   keineBewegungen:'Ancora nessun movimento.',txNichtLesbar:'Transazione non leggibile.',transaktion:'Transazione',
   status:'Stato',wartetAufBlock:'in attesa di un blocco',inBlock:h=>'nel blocco '+h,art:'Tipo',betrag:'Importo',
   zuBlock:h=>'Vai al blocco '+h,geradeEben:'proprio ora',vorMin:n=>n+' min fa',vorStd:n=>n+' h fa',vorTg:n=>n+' g fa',
-  keinServer:'Nessuna di queste affermazioni proviene dal server.',neu:'NUOVO',voll:p=>p+'% pieno',
+  keinServer:'Queste verifiche avvengono qui, non sul server.',spiegelZweig:h=>'Lo specchio mostra all’altezza '+h+' un blocco diverso da quello del nodo completo. L’elenco qui sotto potrebbe essere su un altro ramo.',spiegelHinten:n=>'Lo specchio è indietro di '+n+(n===1?' blocco':' blocchi')+' rispetto al nodo completo. Qui sotto mancano i più recenti.',neu:'NUOVO',voll:p=>p+'% pieno',
   vonTx:(n,max)=>n+' di '+max+' transazioni',kette:'La catena',fuellLegende:'riempimento = posti transazione occupati',
   netzBlick:'La rete in sintesi',netzBlickUnter:'si aggiorna a ogni blocco',
   cBlockzeit:n=>'Tempo di blocco degli ultimi '+n+' blocchi',cBlockzeitUnter:m=>'Minuti tra due blocchi · linea = obiettivo '+m+' min',
@@ -1077,7 +1078,7 @@ it:{
 pl:{
   platzhalter:'Adres, transakcja, wysokość lub hash bloku',suchen:'Szukaj',hoehe:'Wysokość',
   laedt:'ładowanie…',hinweisTitel:'Każdy blok jest tu ponownie weryfikowany w Twojej przeglądarce.',
-  hinweisText:'Nagłówek jest odtwarzany z jego pól, hashowany podwójnie, porównywany z zapisaną trudnością, a powiązanie z poprzednim blokiem jest sprawdzane. Żadne z tych stwierdzeń nie pochodzi z serwera. Zielona kropka na bloku oznacza: zweryfikowano tutaj.',
+  hinweisText:'Nagłówek jest odtwarzany z jego pól, hashowany podwójnie, porównywany z zapisaną trudnością, a powiązanie z poprzednim blokiem jest sprawdzane. Te kontrole odbywają się tutaj, a nie na serwerze. To, które bloki są widoczne, pochodzi z lustra serwera; jest ono porównywane z pełnym węzłem, a różnica zostanie tu pokazana. Zielona kropka na bloku oznacza: zweryfikowano tutaj.',
   bloecke:'Bloki',legende:'po lewej: w budowie · po prawej: znalezione',
   klickHinweis:'Kliknij blok, aby zobaczyć jego transakcje.',zurApp:'← Wróć do aplikacji',quelltext:'Kod źródłowy na GitHubie',
   imBau:'w budowie',tx:n=>n+' '+plPl(n,'transakcja','transakcje','transakcji'),wirdGesucht:'trwa szukanie',
@@ -1108,7 +1109,7 @@ pl:{
   keineBewegungen:'Na razie brak operacji.',txNichtLesbar:'Nie można odczytać transakcji.',transaktion:'Transakcja',
   status:'Status',wartetAufBlock:'czeka na blok',inBlock:h=>'w bloku '+h,art:'Typ',betrag:'Kwota',
   zuBlock:h=>'Przejdź do bloku '+h,geradeEben:'przed chwilą',vorMin:n=>n+' min temu',vorStd:n=>n+' godz. temu',vorTg:n=>n+' '+plPl(n,'dzień','dni','dni')+' temu',
-  keinServer:'Żadne z tych stwierdzeń nie pochodzi z serwera.',neu:'NOWY',voll:p=>p+'% pełny',
+  keinServer:'Te kontrole odbywają się tutaj, a nie na serwerze.',spiegelZweig:h=>'Lustro pokazuje na wysokości '+h+' inny blok niż pełny węzeł. Lista poniżej może dotyczyć innej gałęzi.',spiegelHinten:n=>'Lustro jest w tyle za pełnym węzłem (bloki: '+n+'). Poniżej brakuje najnowszych.',neu:'NOWY',voll:p=>p+'% pełny',
   vonTx:(n,max)=>n+' z '+max+' transakcji',kette:'Łańcuch',fuellLegende:'wypełnienie = zajęte miejsca na transakcje',
   netzBlick:'Sieć w skrócie',netzBlickUnter:'aktualizuje się z każdym blokiem',
   cBlockzeit:n=>'Czas bloku: ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),
@@ -1129,7 +1130,7 @@ pl:{
 zh:{
   platzhalter:'地址、交易、区块高度或区块哈希',suchen:'搜索',hoehe:'高度',
   laedt:'加载中…',hinweisTitel:'每个区块都会在你的浏览器中重新验证。',
-  hinweisText:'区块头会根据其字段重建、进行双重哈希、与记录的难度比对，并沿着链的链接追溯。这些结论没有一条来自服务器。区块上的绿点表示：已在此处验证。',
+  hinweisText:'区块头会根据其字段重建、进行双重哈希、与记录的难度比对，并沿着链的链接追溯。这些检查在这里进行，而不是在服务器上。显示哪些区块来自服务器的镜像；镜像会与全节点比对，如有差异会在此显示。区块上的绿点表示：已在此处验证。',
   bloecke:'区块',legende:'左：生成中 · 右：已找到',
   klickHinweis:'点击区块查看其中的交易。',zurApp:'← 返回应用',quelltext:'GitHub 上的源代码',
   imBau:'生成中',tx:n=>n+' 笔交易',wirdGesucht:'正在搜索',
@@ -1160,7 +1161,7 @@ zh:{
   keineBewegungen:'暂无动态。',txNichtLesbar:'无法读取交易。',transaktion:'交易',
   status:'状态',wartetAufBlock:'等待打包进区块',inBlock:h=>'在区块 '+h+' 中',art:'类型',betrag:'金额',
   zuBlock:h=>'前往区块 '+h,geradeEben:'刚刚',vorMin:n=>n+' 分钟前',vorStd:n=>n+' 小时前',vorTg:n=>n+' 天前',
-  keinServer:'这些结论均非来自服务器。',neu:'新',voll:p=>'已用 '+p+'%',
+  keinServer:'这些检查在这里进行，而不是在服务器上。',spiegelZweig:h=>'镜像在高度 '+h+' 显示的区块与全节点不同。下面的列表可能位于另一条分支。',spiegelHinten:n=>'镜像落后全节点 '+n+' 个区块。下面缺少最新的区块。',neu:'新',voll:p=>'已用 '+p+'%',
   vonTx:(n,max)=>n+' / '+max+' 笔交易',kette:'区块链',fuellLegende:'填充 = 已占用的交易位',
   netzBlick:'网络概览',netzBlickUnter:'每出一个区块更新一次',
   cBlockzeit:n=>'最近 '+n+' 个区块的出块时间',cBlockzeitUnter:m=>'相邻两个区块的间隔（分钟）· 横线 = 目标 '+m+' 分钟',
@@ -1580,6 +1581,34 @@ function renderStats(){
       <div class="fortschritt"><i style="width:${epoche.toFixed(2)}%"></i></div>
       ${wer}
     </div>`);
+  renderAbgleich();
+}
+
+/*
+  Spiegel und Full Node vergleichen (Issue #14).
+
+  Die Bloecke dieser Seite kommen aus dem Spiegel (Datenbank), /summary
+  kommt vom Full Node. Bisher standen beide nebeneinander, ohne dass
+  verglichen wurde. Jetzt: Zeigt der Spiegel auf derselben Hoehe einen
+  anderen Block als der Full Node (tipHash), oder liegt er zurueck, steht
+  ein Hinweis da -- erst wenn das laenger als eine Minute so bleibt. Ein
+  Block Rueckstand fuer ein paar Sekunden ist normal: Der Spiegel bekommt
+  jeden Block kurz nach dem Knoten.
+*/
+let abgleichSeit=null;
+function renderAbgleich(){
+  const el=$('abgleich'); if(!el) return;
+  let text='';
+  const kopf=blocks[0];
+  if(sum&&kopf&&Number.isInteger(sum.height)){
+    const th=typeof sum.tipHash==='string'?sum.tipHash.toLowerCase():null;
+    const kh=typeof kopf.hash==='string'?kopf.hash.toLowerCase():null;
+    if(sum.height===kopf.height&&th&&kh&&th!==kh) text=T.spiegelZweig(nf(kopf.height));
+    else if(sum.height>kopf.height) text=T.spiegelHinten(sum.height-kopf.height);
+  }
+  if(text){ if(abgleichSeit===null) abgleichSeit=Date.now(); if(Date.now()-abgleichSeit<60_000) text=''; }
+  else abgleichSeit=null;
+  el.textContent=text;
 }
 
 /*
