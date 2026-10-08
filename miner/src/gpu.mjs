@@ -36,7 +36,14 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeHeader } from './header.mjs';
 
-const HIER = dirname(fileURLToPath(import.meta.url));
+/*
+  Eingepackt (CommonJS) gibt es import.meta nicht, wohl aber __dirname --
+  dieselbe Pruefung wie in cli.mjs (Issue #8). Ohne sie brach die
+  eingepackte Fassung schon beim Laden mit ERR_INVALID_ARG_TYPE ab.
+*/
+const HIER = typeof __dirname !== 'undefined'
+  ? __dirname
+  : dirname(fileURLToPath(import.meta.url));
 
 /** Wo das Programm liegen koennte -- in der Reihenfolge des Nachsehens. */
 export function findeGpuProgramm(eigen) {
@@ -88,10 +95,12 @@ export function pruefeGpu(programm, geraet) {
  * mit der ersten uebereinstimmen, und wenn nicht, rechnet die Karte
  * fleissig und jeder Treffer wird abgelehnt.
  *
- * WAS IM JOB FEHLEN KANN: Der Server auf Vercel liefert weder `version`
- * noch `extranonce`. Die Version ist immer 1, und die Extranonce gehoert
- * zur SITZUNG, nicht zum Job -- der Aufrufer muss sie hineinlegen, genau
- * wie es die Worker tun.
+ * WAS IM JOB FEHLEN KANN: `version` und `extranonce`. Aeltere Knoten
+ * schickten keine Version (sie ist 1), und die Extranonce gehoert zur
+ * SITZUNG, nicht zum Job -- der Aufrufer muss sie hineinlegen, genau wie es
+ * die Worker tun. (Hier stand bis zum 9. Oktober 2026 "der Server auf
+ * Vercel"; der vergibt seit dem Umzug auf die Full Nodes keine Jobs mehr,
+ * Issue #5.)
  */
 export function headerHex(job) {
   if (job.extranonce === undefined || job.extranonce === null) {
@@ -190,6 +199,13 @@ export function starteGpu(opt) {
      * Ohne das rechnet die Karte weiter gegen das alte, LEICHTERE Ziel und
      * liefert Treffer, die der Server als "low_difficulty" abweist. Genau
      * das war der Grund fuer 269 Ablehnungen gegen 14 Annahmen.
+     *
+     * Bei gleicher Kennung und gleichem Header rechnet yskar-cuda ab dem
+     * 9. Oktober 2026 dort weiter, wo es steht (Issue #4); aeltere Fassungen
+     * beginnen wieder bei Nonce 0, und ihre ersten Treffer kommen als
+     * "duplicate" zurueck. Seit das Share-Ziel je Job fest ist (Knoten ab
+     * Teil A), aendert der Knoten das Ziel ohnehin nur noch mit einem neuen
+     * Job.
      */
     job(job, zielHex) {
       if (!lebt) return;

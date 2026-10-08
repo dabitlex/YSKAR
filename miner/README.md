@@ -114,9 +114,10 @@ describes how to set one up.
 
 ### Without `--api`
 
-Without `--api` the miner contacts `https://yskar.vercel.app`. That server no longer hands out
-mining work: it answers every request for a mining session with HTTP 410. The miner then prints
-`Verbindung fehlgeschlagen` ("connection failed") and stops.
+Without `--api` the miner contacts the public main node, `https://yskar-main.dynv6.net`, in the
+mode given by `--mode` (solo unless you choose `pool`). Until 9 October 2026 the default was
+`https://yskar.vercel.app`, which no longer hands out mining work and answers every request for a
+mining session with HTTP 410 (issue #8).
 
 ### Entering and saving the address
 
@@ -277,6 +278,10 @@ genesis hash. A card that fails is not used. What happens next depends on the mo
 
 With `--gpu` no CPU threads run, and `--workers` and `--intensity` have no effect.
 
+With `--cpu-gpu` the CPU threads search the upper half of the nonce range (from 2^63), the card
+counts up from 0, so the two never compute the same hash. Before 9 October 2026 CPU thread 0
+started at 0 as well and mostly repeated the card's work (issue #4).
+
 ## Building a standalone executable
 
 The scripts in `build/` are meant to pack the miner together with the Node.js runtime into a
@@ -289,12 +294,10 @@ npm install            # once, for building only (esbuild and postject)
 npm run build:exe
 ```
 
-**This build does not work at present.** The first step (`npm run bundle`) writes
-`dist/yskar-miner.cjs`, but the bundled program stops at start-up with the error
-`ERR_INVALID_ARG_TYPE`: `src/gpu.mjs` determines its own folder with `import.meta.url`, which
-does not exist in the bundled file. `build/exe.mjs` starts the finished executable with
-`--version` as its last check, so `npm run build:exe` ends with that error. Until this is
-corrected, run the miner from the source folder as described above.
+Until 9 October 2026 this build stopped at start-up with `ERR_INVALID_ARG_TYPE`, because
+`src/gpu.mjs` determined its own folder with `import.meta.url`, which does not exist in the bundled
+file (issue #8). `src/gpu.mjs` now uses `__dirname` when it is bundled, as `src/cli.mjs` already
+did. Tested on Linux: `npm run build:exe` finishes, and the executable answers `--version`.
 
 How the build is designed:
 

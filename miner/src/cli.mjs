@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import os from 'node:os';
 import { targetBytes, toHex } from './header.mjs';
+import { ANFRAGE_MS, liesRumpf, pruefeJob, shareDifficulty as pruefeShareZiel } from './pruefung.mjs';
 import { Kennzahlen, rate as fmtRate2, hashes as fmtHashes, dauer, zahl as zahl2 }
   from './anzeige.mjs';
 import * as konfig from './konfig.mjs';
@@ -39,11 +40,19 @@ const HIER = typeof __dirname !== 'undefined'
 const VERSION = '0.1.0';
 const STRIDE = 4096;   // Nonce-Abstand zwischen den Threads
 const WIEDER_MS = 15_000;   // Abstand zwischen zwei Anmeldeversuchen nach einer Unterbrechung
+/** Knoten, wenn --api fehlt: der oeffentliche Hauptknoten (Pool YSKAR Main). */
+const VORGABE_API = 'https://yskar-main.dynv6.net';
 
 // --------------------------------------------------------------- Argumente
 
 function argumente(argv) {
-  const a = { workers: 0, intensity: 100, api: 'https://yskar.vercel.app',
+  /*
+    Vorgabe: der oeffentliche Hauptknoten (Issue #8). Bisher war es
+    https://yskar.vercel.app -- der Webserver vergibt aber seit dem Umzug
+    auf die Full Nodes keine Mining-Arbeit mehr und antwortet auf /session
+    mit 410. Ein Miner ohne --api zeigte den Netzkopf und scheiterte dann.
+  */
+  const a = { workers: 0, intensity: 100, api: VORGABE_API,
               rechner: 'cpu', device: 0 };
   for (let i = 0; i < argv.length; i++) {
     const [schluessel, direkt] = argv[i].split('=');
@@ -86,7 +95,7 @@ Optionen
   -w, --workers <n>      Rechen-Threads (Vorgabe: Kerne minus 1)
   -i, --intensity <1-100>  Anteil der Rechenzeit (Vorgabe: 100)
       --einfach          ohne festen Kopf — dafür bleibt der Verlauf scrollbar
-      --api <url>        Server (Vorgabe: https://yskar.vercel.app)
+      --api <url>        Knoten (Vorgabe: https://yskar-main.dynv6.net)
       --mode <solo|pool> Solo oder Pool (Vorgabe: solo)
       --gpu              mit der Grafikkarte rechnen statt mit der CPU
       --cpu-gpu          mit beidem gleichzeitig
@@ -139,12 +148,20 @@ function ereignis(text) {
 
 // -------------------------------------------------------------------- Netz
 
+/*
+  Eine Anfrage an den Knoten (Issue #3): mit Frist, ohne Umleitung, mit
+  Groessengrenze, und alle Texte der Antwort ohne Steuerzeichen -- siehe
+  pruefung.mjs. Vorher galten nur die Vorgaben von fetch (Minuten), und ein
+  haengendes /session hielt Start oder Neuanmeldung so lange auf.
+*/
 async function api(basis, pfad, init) {
   const res = await fetch(`${basis}/api/v2${pfad}`, {
     ...init,
     headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+    signal: AbortSignal.timeout(ANFRAGE_MS),
+    redirect: 'error',
   });
-  const body = await res.json().catch(() => ({}));
+  const body = await liesRumpf(res);
   if (!res.ok) {
     const fehler = new Error(body.detail ?? body.error ?? `HTTP ${res.status}`);
     fehler.code = body.error;
@@ -382,7 +399,7 @@ async function main() {
 
   const zustand = {
     raten: new Map(), jobId: null,
-    shareDifficulty: Number(session.shareDifficulty), laeuft: true,
+    shareDifficulty: pruefeShareZiel(session.shareDifficulty) ?? Number.NaN, laeuft: true,
     // Leistung der Karte, zuletzt gemeldet. null = keine Karte oder
     // laenger nichts gehoert.
     gpuRate: null,
@@ -432,6 +449,9 @@ async function main() {
 
   // ---- Threads ----
   const arbeiter = [];
+  // Mit Karte: Die Threads rechnen in der oberen Haelfte der Nonce (ab 2^63),
+  // die Karte von 0 an -- getrennte Bereiche, keine Duplikate (Issue #4).
+  const cpuVersatz = arg.rechner === 'beides' ? 0x8000_0000 : 0;
   const hasherQuelle = globalThis.__YSKAR_HASHER_SRC;
   for (let slot = 0; slot < threads; slot++) {
     // In der eingepackten Fassung liegt der Rechen-Thread als Quelltext bei
@@ -440,10 +460,10 @@ async function main() {
     const w = hasherQuelle
       ? new Worker(hasherQuelle, {
           eval: true,
-          workerData: { wasm, extranonce: session.extranonce, slot, stride: STRIDE },
+          workerData: { wasm, extranonce: session.extranonce, slot, stride: STRIDE, versatz: cpuVersatz },
         })
       : new Worker(join(HIER, 'hasher.mjs'), {
-          workerData: { wasm, extranonce: session.extranonce, slot, stride: STRIDE },
+          workerData: { wasm, extranonce: session.extranonce, slot, stride: STRIDE, versatz: cpuVersatz },
         });
     w.on('message', m => nachricht(m, w));
     w.on('error', e => ereignis(rot(`Thread ${slot}: ${e.message}`)));
@@ -483,6 +503,23 @@ async function main() {
   let getrennt = false;        // true: Der Knoten kennt unsere Sitzung nicht mehr.
   let anmeldungLaeuft = null;
   let letzterGrund = null;
+  /*
+    Abstand zwischen Anmeldungen (Issue #2).
+
+    Nimmt ein Knoten die Anmeldung an, kennt die Sitzung beim folgenden
+    /job aber nicht (mehrere Rechner hinter einem Namen, ein fehlerhafter
+    Pool), riefen sich neuAnmelden() und holeJob() bisher gegenseitig auf --
+    im Takt der Netzlaufzeit, mit zwei Zeilen Ausgabe je Runde und einer
+    neuen Sitzung beim Knoten je Runde, bis dessen Sitzungstabelle voll war.
+
+    Jetzt: Folgt eine Neuanmeldung einer erfolgreichen in weniger als
+    WIEDER_MS, wartet der Miner erst -- 2, 4, 8 ... Sekunden, hoechstens
+    eine Minute. Und die alte Sitzung wird vorher abgemeldet, damit keine
+    liegen bleibt.
+  */
+  let letzteAnmeldungAm = Date.now();
+  let schnelleFolge = 0;
+  const schlafe = ms => new Promise(r => setTimeout(r, ms));
   function neuAnmelden(grund) {
     if (anmeldungLaeuft) return anmeldungLaeuft;
     if (!getrennt) {
@@ -493,10 +530,29 @@ async function main() {
         `${grau('(' + grund + ') — melde neu an …')}`);
     }
     anmeldungLaeuft = (async () => {
+      if (Date.now() - letzteAnmeldungAm < WIEDER_MS) {
+        schnelleFolge++;
+        const pause = Math.min(60_000, 1000 * 2 ** Math.min(schnelleFolge, 6));
+        if (schnelleFolge === 3) {
+          ereignis(grau(`[${uhr()}] Der Knoten verliert die Sitzung sofort wieder — ` +
+            `Anmeldungen werden jetzt gebremst (bis zu einer Minute Abstand)`));
+        }
+        await schlafe(pause);
+      } else {
+        schnelleFolge = 0;
+      }
+      // Die alte Sitzung abmelden -- kennt der Knoten sie noch, ist sie
+      // sonst eine Leiche in seiner Tabelle. Fehler sind hier egal.
+      const alt = session?.sessionId;
+      if (typeof alt === 'string') {
+        await api(arg.api, '/session/stop', { method: 'POST', body: JSON.stringify({ sessionId: alt }) })
+          .catch(() => {});
+      }
       try {
         const neu = await anmelden();
+        letzteAnmeldungAm = Date.now();
         session = neu;
-        zustand.shareDifficulty = Number(neu.shareDifficulty);
+        zustand.shareDifficulty = pruefeShareZiel(neu.shareDifficulty) ?? zustand.shareDifficulty;
         getrennt = false;
         letzterGrund = null;
         ereignis(`${grau('[' + uhr() + ']')} ${gruen('neu angemeldet')} ` +
@@ -547,11 +603,13 @@ async function main() {
 
       k.shareAngenommen();
 
-      if (r.shareDifficulty && Number(r.shareDifficulty) !== zustand.shareDifficulty) {
+      // Nur eine taugliche Zahl (ab 1, ganz) wird uebernommen -- siehe pruefung.mjs.
+      const neuesZiel = pruefeShareZiel(r.shareDifficulty);
+      if (neuesZiel !== null && neuesZiel !== zustand.shareDifficulty) {
         // VarDiff: Der Server passt das Share-Target an. Ohne Nachfuehrung
         // rechneten die Threads weiter gegen den alten Wert.
         const vorher = zustand.shareDifficulty;
-        zustand.shareDifficulty = Number(r.shareDifficulty);
+        zustand.shareDifficulty = neuesZiel;
         const t = toHex(targetBytes(zustand.shareDifficulty));
         arbeiter.forEach(w => w.postMessage({ t: 'target', target: t }));
         /*
@@ -630,6 +688,12 @@ async function main() {
         ereignis(grau(`[${uhr()}] Keine Arbeit vom Knoten: ${job?.detail ?? job?.error ?? 'Antwort ohne Job'}`));
         return;
       }
+      // Jedes Feld pruefen, bevor es an die Threads und die Karte geht (Issue #3).
+      try { pruefeJob(job); }
+      catch (e) {
+        ereignis(gelb(`[${uhr()}] Job verworfen: ${e.message}`));
+        return;
+      }
       if (job.jobId === zustand.jobId) return;
       const neueHoehe = job.height !== k.hoehe;
       /*
@@ -641,7 +705,7 @@ async function main() {
       const wert = Number(job.difficultyWert ?? job.difficulty);
       const neueDiff = wert !== k.netzDifficulty;
       zustand.jobId = job.jobId;
-      zustand.shareDifficulty = Number(job.shareDifficulty);
+      zustand.shareDifficulty = pruefeShareZiel(job.shareDifficulty) ?? zustand.shareDifficulty;
       k.hoehe = job.height;
       k.netzDifficulty = wert;
       // Die Extranonce der AKTUELLEN Sitzung mitgeben: Nach einer

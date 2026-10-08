@@ -187,8 +187,16 @@ To the program:
 
 `header` is the 136-byte block header with the nonce set to zero. `target` is the 32-byte target
 the hash must not exceed. A new target is always sent together with a header; there is no
-separate command for it. `stop` pauses the work, `quit` ends the program. The program also ends
-when its standard input is closed.
+separate command for it. A job with the same `jobId` and the same header as the running one
+changes only the target, and the card continues from the nonce it has reached; any other job
+starts at nonce 0. Before 9 October 2026 every job started at nonce 0, so a target change
+repeated work and returned duplicates (issue #4). `stop` pauses the work, `quit` ends the
+program. The program also ends when its standard input is closed.
+
+The kernel keeps one hit per batch: the first one a thread writes. While the share target is
+still easy, a batch can contain several hits, and the others are not reported. Keeping the
+lowest hit and checking the block target separately would close this, but needs a change to
+`yskar_gpu.cu` that has to be built and tested on a card first (open in issue #4).
 
 From the program:
 

@@ -339,6 +339,7 @@ int main(int argc, char **argv) {
   sende("{\"t\":\"ready\"}");
 
   std::string jobId;
+  uint8_t letzterKopf[YSKAR_HEADER_BYTES] = {0};
   bool aktiv = false;
   uint64_t basis = 0;
   uint64_t zaehler = 0;
@@ -367,8 +368,14 @@ int main(int argc, char **argv) {
         uint32_t mid[8];
         yskar_midstate(mid, header);
         if (!g.setzeJob(mid, target)) continue;
+        /* Derselbe Job (gleiche Kennung, gleicher Header) mit nur einem
+           neuen Ziel: weiter, wo die Karte steht (Issue #4). Bisher begann
+           sie wieder bei 0 und lieferte, was sie schon gefunden hatte, als
+           Duplikate. Ein anderer Job beginnt bei 0. */
+        const bool gleicherJob = aktiv && id == jobId && std::memcmp(header, letzterKopf, YSKAR_HEADER_BYTES) == 0;
         jobId = id;
-        basis = 0;        /* Neuer Job, neuer Nonce-Bereich. */
+        std::memcpy(letzterKopf, header, YSKAR_HEADER_BYTES);
+        if (!gleicherJob) basis = 0;
         aktiv = true;
       }
     }

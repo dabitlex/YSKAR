@@ -10,6 +10,13 @@ import { serializeHeader, targetBytes, fromHex, toHex, MEM, selfTest }
   from './header.mjs';
 
 const { wasm, extranonce, slot, stride } = workerData;
+/*
+  Wo der Bereich der Threads beginnt (obere 32 Bit der Nonce). Bei
+  --cpu-gpu rechnet die Karte von Nonce 0 aufwaerts, mit derselben
+  Extranonce -- ohne Versatz fiel Thread 0 genau in ihren Bereich und
+  lieferte fast nur Duplikate (Issue #4). Die Karte erreicht 2^63 nie.
+*/
+const versatz = Number(workerData.versatz ?? 0) >>> 0;
 
 let mem, view, initJob, mine;
 let job = null, running = false, duty = 100;
@@ -18,7 +25,7 @@ let job = null, running = false, duty = 100;
 // neben der neuen denselben Bereich zu durchsuchen.
 let lauf = 0;
 let chunk = 200_000;
-let nonceHigh = slot * stride, nonceLow = 0;
+let nonceHigh = versatz + slot * stride, nonceLow = 0;
 
 const schlafen = ms => new Promise(r => setTimeout(r, ms));
 
@@ -43,7 +50,7 @@ function ladeJob(j) {
   // Sie kommt mit dem Job: Nach einer Neuanmeldung hat die Sitzung eine
   // andere als beim Start dieses Threads. Fehlt sie, gilt die vom Start.
   job = { ...j, extranonce: j.extranonce ?? extranonce };
-  if (!gleich) { nonceHigh = slot * stride; nonceLow = 0; }
+  if (!gleich) { nonceHigh = versatz + slot * stride; nonceLow = 0; }
   mem.set(serializeHeader(job, BigInt(nonceHigh) << 32n), MEM.HEADER);
   mem.set(fromHex(job.target), MEM.TARGET);
   initJob();
