@@ -1,4 +1,4 @@
-# YSKAR Node Core 0.5.1
+# YSKAR Node Core 0.5.2
 
 A full YSKAR node for Windows with its own window: wallet, mining (solo, in a
 pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -15,6 +15,33 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Program** | German and English, start with Windows, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 0.5.2
+
+- **The access token of the local interface is no longer in the page.**
+  The program window gets it as a cookie (see "Local interface" below).
+- **Running a pool** (shared with the command-line node,
+  `src/lib/node/fullnode/MiningServer.ts`, `src/lib/pool/`):
+  - the share target is fixed per job and changes only with the next job;
+  - a place in the pool counts only for an active session: a new session
+    gets a trial place for 2 minutes and keeps it by delivering a share at
+    least every 10 minutes;
+  - transaction fees are split by work, like the reward, instead of going to
+    the largest output;
+  - jobs are built from one block template per pool, and block lookups no
+    longer walk the chain.
+- **P2P limits** (`src/lib/node/p2p/`): header requests are limited per peer
+  and answered later instead of dropped; a peer gets at most 16 blocks per
+  request and is disconnected when 12 MiB are waiting for it. See
+  [docs/P2P.md](../docs/P2P.md).
+- **Blocks are stored and forwarded in their own encoding**
+  (`ChainManager.accept`). Extra bytes a peer attaches to a block are dropped
+  on arrival (issue #10).
+- **GPU miner** (`gpu/yskar_host.cpp`): when only the share target changes,
+  it continues where it was instead of searching the same range again
+  (issue #4).
+
+Consensus rules, wallet, settings and data folder are unchanged.
 
 ## What changed in 0.5.1
 
@@ -214,7 +241,7 @@ powershell -ExecutionPolicy Bypass -File .\build-desktop.ps1
 
 The finished installer is created under:
 
-`node-core\release\YSKAR-Node-Core-Setup-0.5.1.exe`
+`node-core\release\YSKAR-Node-Core-Setup-0.5.2.exe`
 
 A release build on GitHub is described in
 `.github/workflows/node-core-release.yml`: setting the branch

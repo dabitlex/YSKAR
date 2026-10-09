@@ -1,6 +1,6 @@
 {
   "name": "yskar-node-core-app",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "description": "YSKAR Node Core native Windows desktop application",
