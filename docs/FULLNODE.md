@@ -21,6 +21,9 @@ For every block the node checks:
 - every transfer: signature, sender address, nonce, balance, fee and expiry,
 - the coinbase: its amount must equal the block reward plus the fees,
 - the timestamp rules and the difficulty rule,
+- from height 7,000 (consensus revision 5, [CONSENSUS_V5.md](CONSENSUS_V5.md)): a timestamp not
+  before the parent's, the canonical encoding of the block and at most 1 MiB, coinbase version 1
+  or 2 with at most 32 bytes of `extra`, and no version 2 coinbase output below 100 units,
 - the state root: the node applies the block to its own account state and compares the result
   with the root in the header.
 

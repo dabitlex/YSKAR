@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { deserializeBlock, headerHash, checkBlockStructure } from '@/lib/core/block';
 import { coinbaseTotal, type Coinbase } from '@/lib/core/tx';
-import { validateBlock } from '@/lib/core/validate';
+import { validateBlock, checkEncoding } from '@/lib/core/validate';
 import { applyBlock, cloneState, stateRoot } from '@/lib/core/state';
 import { toHex, fromHex } from '@/lib/core/codec';
 import { LWMA_WINDOW } from '@/lib/core/params';
@@ -100,8 +100,13 @@ export async function POST(req: Request) {
   catch { return fail('not_hex'); }
 
   let block;
-  try { block = deserializeBlock(roh); }
-  catch (e) { return fail('malformed', String((e as Error).message)); }
+  let kodierung: string | null;
+  try {
+    block = deserializeBlock(roh);
+    // Ab Konsensfassung 5: genau so kodiert, wie serializeBlock schreibt.
+    kodierung = checkEncoding(roh, block);
+  } catch (e) { return fail('malformed', String((e as Error).message)); }
+  if (kodierung) return fail('encoding', kodierung);
 
   // Billig vor teuer: Struktur und Proof of Work kosten Mikrosekunden,
   // die Signaturen Millisekunden, der Datenbankzugriff noch mehr.

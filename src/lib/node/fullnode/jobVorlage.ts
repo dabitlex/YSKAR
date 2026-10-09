@@ -38,7 +38,7 @@
  * ersten Job jeder neuen Vorlage gegen buildBlock() und schaltet die
  * Vorlage bei der kleinsten Abweichung ab.
  */
-import { selectTransactions, buildCoinbase, buildCoinbaseV2, type BuildResult }
+import { selectTransactions, buildCoinbase, waehleCoinbase, type BuildResult }
   from '../../core/builder.ts';
 import { type Block, type BlockHeader, serializeHeader, txMerkleRoot, BLOCK_VERSION }
   from '../../core/block.ts';
@@ -162,9 +162,7 @@ export function baueAusVorlage(v: JobVorlage, p: JobAngaben): BuildResult & { ar
   const height = v.height;
   const brutto = rewardAt(height) + v.fees;
   const verteilt = p.anteile ? p.anteile(brutto) : null;
-  const coinbase = verteilt && verteilt.length > 0
-    ? buildCoinbaseV2(height, verteilt, v.fees, p.coinbaseExtra)
-    : buildCoinbase(height, p.minerAddress, v.fees, p.coinbaseExtra);
+  const coinbase = waehleCoinbase(height, verteilt, p.minerAddress, v.fees, p.coinbaseExtra, p.params);
 
   /*
     Was applyBlock() an der Coinbase prueft und buildCoinbase/-V2 nicht

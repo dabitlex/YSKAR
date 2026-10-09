@@ -348,14 +348,18 @@ value in the chain work and in the windows of the following blocks.
 
 ### Timestamp rules
 
-Code: `checkTimestamp()` in `src/lib/core/difficulty.ts`. Both rules apply to every block except the
-genesis block.
+Code: `checkTimestamp()` in `src/lib/core/difficulty.ts`, `checkParentTimestamp()` in
+`src/lib/core/validate.ts`. The rules apply to every block except the genesis block; rule 3 only from
+height 7,000.
 
 1. **Median rule.** Take the timestamps of the last 11 blocks of the branch, ending with the parent (all
    of them if there are fewer than 11), sort them ascending and pick the element at zero-based index
    `floor(count / 2)`. The timestamp of the block must be strictly greater than this value.
 2. **Future limit.** The timestamp must not be more than 120 seconds (`MAX_FUTURE_DRIFT`) ahead of the
    clock of the validating node.
+3. **Not before the parent** (from height 7,000, consensus revision 5). The timestamp must be greater
+   than or equal to the timestamp of the parent (`before_parent`). An equal timestamp is allowed. Below
+   height 7,000 a block may state an earlier time than its parent as long as it meets the median rule.
 
 The future limit is the only rule that depends on local time. A block that fails it is not stored and can
 be accepted when it arrives again later.
@@ -587,8 +591,9 @@ before revision 2 keep their bytes.
    has 1 to 64 outputs (`MAX_COINBASE_OUTPUTS`); the addresses of its outputs are strictly ascending when
    compared byte by byte, which also excludes duplicates; and every output amount is greater than 0.
 4. A coinbase with any other `version` value is read with the first layout and has exactly one output.
-   The node writes 1. The code does not reject other values; because the version is part of the wire
-   bytes, it still changes the transaction ID.
+   The node writes 1. Below height 7,000 the code does not reject other values; because the version is
+   part of the wire bytes, it still changes the transaction ID. From height 7,000 (consensus revision 5)
+   only versions 1 and 2 are valid (`coinbase_fassung`).
 5. The sum of all output amounts equals `reward(height) + fees` exactly, where `fees` is the sum of the
    fees of all transfers in the block. One unit more or less makes the block invalid.
 6. The outputs are credited after all transfers of the block have been applied. A transfer therefore
@@ -596,13 +601,16 @@ before revision 2 keep their bytes.
 7. After the coinbase is credited, the sum of all balances must not exceed 21,000,000 YSR
    (`supply_exceeded`).
 
-Version 1 stays valid at every height. A version 1 coinbase has no separate rule for its amount beyond
-rule 5.
+From height 7,000 (consensus revision 5) every output of a version 2 coinbase is at least 100 units
+(`DUST_LIMIT`, `coinbase_output_staub`). Version 1 stays valid at every height. A version 1 coinbase has
+no separate rule for its amount beyond rule 5; it is exempt from the dust limit because from height
+360,000 the block reward itself is below 100 units.
 
 ### The `extra` field
 
-`extra` is not interpreted by the consensus rules. Its length is limited only by the one-byte length
-field, so up to 255 bytes are valid. It makes transaction IDs distinct and carries a self-chosen name of
+`extra` is not interpreted by the consensus rules. Below height 7,000 its length is limited only by the
+one-byte length field, so up to 255 bytes are valid; from height 7,000 (consensus revision 5) at most 32
+bytes (`MAX_COINBASE_EXTRA`, `coinbase_extra`). It makes transaction IDs distinct and carries a self-chosen name of
 the pool or miner that found the block: the node writes the pool name there (printable ASCII, 3 to 32
 characters, see `src/lib/chain/finderName.ts`) and leaves the field empty for solo sessions. The read API
 returns the field as `memo` and the decoded name as `finder`. The name is a self-declaration and proves
@@ -673,8 +681,15 @@ node contain no such bytes.
 The node stores and forwards every accepted block in its own encoding (`serializeBlock` of the decoded
 block), not in the bytes it received. Extra bytes are therefore dropped on arrival: two nodes hold the same
 bytes for the same block, and a peer cannot make a node keep or pass on an inflated copy (issue #10). This
-is not a consensus change; the block, its hash and its validity are the same. Rejecting such bytes as
-invalid is planned for a later soft fork.
+is not a consensus change; the block, its hash and its validity are the same.
+
+**From height 7,000 (consensus revision 5) the encoding must be canonical.** The received bytes must be
+exactly the bytes that `serializeBlock()` writes for the decoded block (`nicht_kanonisch`), and a block
+is at most 1,048,576 bytes (`MAX_BLOCK_BYTES`, `block_zu_gross`). Code: `checkEncoding()` in
+`src/lib/core/validate.ts`. The rule judges the copy, not the block: a copy with extra bytes has the same
+hash as the clean one, so the node rejects only that copy (`kodierung`), stores nothing and does not
+mark the hash as invalid. The clean copy is accepted when it arrives. A non-canonical copy of a block
+the node already has is answered as known.
 
 ## Block validity
 
@@ -685,7 +700,9 @@ last. The names in parentheses are the error codes.
 
 **1. Decoding.** The header is 136 bytes and its difficulty field is decodable at the stated height. The
 body announces at most 2,000 transactions. Every transaction has type 0 or 1; a version 2 coinbase has 1
-to 64 outputs. No field is cut short.
+to 64 outputs. No field is cut short. From height 7,000 the bytes are also the canonical encoding of the
+decoded block and at most 1,048,576 bytes (`kodierung`, see [Block format](#block-format)); the hash is
+not marked as invalid if only this check fails.
 
 **2. Structure and proof of work.**
 
@@ -756,6 +773,7 @@ their bytes.
 | 2 | `COINBASE_V2_HEIGHT` = 2000 | Active since height 2,000 | The coinbase may pay 1 to 64 recipients (version 2 layout) | [CONSENSUS_V2.md](CONSENSUS_V2.md) |
 | 3 | `FEE_V3_HEIGHT` = 4000 | Applies from height 4,000 | Minimum fee of 1 unit per byte instead of a fixed 0.001 YSR; smallest amount 100 units | [CONSENSUS_V3.md](CONSENSUS_V3.md) |
 | 4 | `DIFF_V4_HEIGHT` = 6000 | Applies from height 6,000 | The difficulty field can express values above 2^32 - 1, up to `MAX_DIFFICULTY` | [CONSENSUS_V4.md](CONSENSUS_V4.md) |
+| 5 | `V5_HEIGHT` = 7000 | Applies from height 7,000 | Soft fork: timestamp not before the parent; canonical encoding and at most 1 MiB per block; coinbase version 1 or 2 and `extra` at most 32 bytes; no version 2 coinbase output below 100 units | [CONSENSUS_V5.md](CONSENSUS_V5.md) |
 
 Together with revision 3 the code began to verify signatures against the chain ID of the network the
 node runs on instead of a fixed constant. On the main network the value is the same as before, so this
@@ -769,15 +787,17 @@ changes nothing there and is not tied to a height.
 | Memo | 32 bytes | `MAX_MEMO_BYTES` |
 | Transfer size | 168 to 200 bytes | `TRANSFER_BASE_BYTES` plus memo |
 | Coinbase outputs | 1 (version 1); 1 to 64 (version 2) | `MAX_COINBASE_OUTPUTS` |
-| Coinbase `extra` | 255 bytes | One-byte length field |
+| Coinbase `extra` | 255 bytes below height 7,000; 32 bytes from there | One-byte length field; `MAX_COINBASE_EXTRA` |
 | Difficulty | At least 4,096 for every block after genesis; at most 2^32 - 1 below height 6,000 and `MAX_DIFFICULTY` from there | `MIN_DIFFICULTY`, `MAX_DIFFICULTY` |
 | Supply | 21,000,000 YSR | `MAX_SUPPLY` |
-| Block size in bytes | No consensus limit | |
+| Block size in bytes | No consensus limit below height 7,000; 1,048,576 bytes from there | `MAX_BLOCK_BYTES` |
 
-Without a byte limit, the largest block in canonical encoding follows from the other limits: 136 bytes
+The largest block in canonical encoding follows from the other limits and stays far below the byte
+limit: 136 bytes
 header, 4 bytes count, a version 2 coinbase with 64 outputs and 255 bytes of `extra` (4 + 2,056 bytes)
-and 1,999 transfers with full memos (1,999 x 204 bytes), together 409,996 bytes. Two transport limits
-lie above that and are not consensus rules: a node-to-node message carries at most 2 MiB
+and 1,999 transfers with full memos (1,999 x 204 bytes), together 409,996 bytes; from height 7,000, with
+`extra` limited to 32 bytes, 409,773 bytes. Two transport limits lie above that and are not consensus
+rules: a node-to-node message carries at most 2 MiB
 ([P2P.md](P2P.md)), and the mirror accepts blocks of at most 1,048,576 bytes.
 
 ## Regtest
@@ -794,6 +814,7 @@ with the node flag `--regtest`). It runs the same code and the same rules with t
 | Coinbase version 2 (revision 2) | From height 2,000 | From height 0 |
 | Per-byte fee and dust limit (revision 3) | From height 4,000 | From height 0 |
 | Difficulty encoding (revision 4) | From height 6,000 | From height 6,000 |
+| Revision 5 (soft fork) | From height 7,000 | From height 0 |
 
 Everything else is identical: block time, LWMA window, bounds, emergency rule, formats and limits. At
 difficulty 1 a block takes 65,536 hash attempts on average instead of 1,610,612,736 at difficulty 24,576,

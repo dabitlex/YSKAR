@@ -15,7 +15,7 @@
  * verschiedenen Ergebnissen. Gerechnet wird in der kleinsten Einheit.
  */
 import { toHex } from '../core/codec.ts';
-import { MAX_COINBASE_OUTPUTS } from '../core/params.ts';
+import { MAX_COINBASE_OUTPUTS, DUST_LIMIT } from '../core/params.ts';
 
 /** Hoechste zulaessige Gebuehr: 500 Basispunkte, also 5,00 %. */
 export const MAX_FEE_BPS = 500;
@@ -105,7 +105,13 @@ export function abrechnen(
     throw new Error('keine Arbeit in dieser Runde -- nichts zu verteilen');
   }
 
-  const fee = gebuehrBetrag(brutto, feeBps);
+  /*
+    Eine Gebuehr unter der Staubgrenze waere ab Konsensfassung 5 eine
+    ungueltige Ausgabe. Dann geht sie an die Miner. Das betrifft erst sehr
+    spaete Halbierungen (Belohnung unter rund 0,0001 YSR).
+  */
+  const roheGebuehr = gebuehrBetrag(brutto, feeBps);
+  const fee = roheGebuehr < DUST_LIMIT ? 0n : roheGebuehr;
   if (fee > 0n && !betreiber) {
     throw new Error('Gebuehr ohne Adresse des Betreibers');
   }
@@ -133,43 +139,38 @@ export function abrechnen(
   const sortiert = [...summiert.values()].sort((x, y) =>
     x.work !== y.work ? (x.work > y.work ? -1 : 1)
                       : (toHex(x.to) < toHex(y.to) ? -1 : 1));
-  const dabei = sortiert.slice(0, platz);
+  let dabei = sortiert.slice(0, platz);
   const ausgelassen = sortiert.slice(platz);
-
-  let gesamtArbeit = 0n;
-  for (const a of dabei) gesamtArbeit += a.work;
-
   const verteilbar = brutto - fee;
 
   /*
-    Groesste-Reste-Verfahren.
-
-    Zuerst bekommt jeder den abgerundeten Anteil. Was dann noch fehlt --
-    hoechstens eine Einheit je Miner -- geht an die mit dem groessten Rest.
-
-    Reihum zu verteilen oder den Rest dem Ersten zu geben waere einfacher
-    und unfair: Bei kleinen Betraegen entscheidet der Rest spuerbar mit.
+    Ab Konsensfassung 5 (params.ts, V5_HEIGHT) muss jede Ausgabe einer
+    Coinbase der Fassung 2 mindestens DUST_LIMIT betragen. Wer mit seinem
+    Anteil darunter laege, wird in diesem Block wie ein Ausgelassener
+    behandelt; sein Anteil geht an die anderen, seine Arbeit bleibt im
+    Fenster. Vor der Aktivierung schadet das nicht -- es betrifft nur
+    Anteile unter rund einem Milliardstel. Gerechnet wird so oft neu, bis
+    niemand mehr darunter liegt; die Kleinsten fallen zuerst heraus.
   */
-  const roh = dabei.map(a => {
-    const genau = verteilbar * a.work;
-    const ganz = genau / gesamtArbeit;
-    return { to: a.to, work: a.work, ganz, rest: genau - ganz * gesamtArbeit };
-  });
-
-  let vergeben = 0n;
-  for (const r of roh) vergeben += r.ganz;
-  let offen = verteilbar - vergeben;
-
-  // Groesster Rest zuerst; bei gleichem Rest die kleinere Adresse. Ohne
-  // diesen zweiten Schluessel waere das Ergebnis von der Eingabereihenfolge
-  // abhaengig -- und damit nicht reproduzierbar.
-  const nachRest = [...roh].sort((x, y) =>
-    x.rest !== y.rest ? (x.rest > y.rest ? -1 : 1)
-                      : (toHex(x.to) < toHex(y.to) ? -1 : 1));
-  for (const r of nachRest) {
-    if (offen <= 0n) break;
-    r.ganz += 1n;
-    offen -= 1n;
+  let roh = verteile(dabei, verteilbar);
+  for (;;) {
+    const zuKlein = roh.filter(r => r.ganz < DUST_LIMIT);
+    if (zuKlein.length === 0) break;
+    if (zuKlein.length === roh.length) {
+      // Alle laegen darunter (erst ab Hoehe 360.000 moeglich, wenn die
+      // Belohnung unter DUST_LIMIT faellt): Der mit der meisten Arbeit
+      // bekommt alles. Liegt auch das darunter, baut der Block eine
+      // Coinbase der Fassung 1 (builder.ts), die keine Staubgrenze kennt.
+      if (dabei.length === 1) break;
+      ausgelassen.push(...dabei.slice(1));
+      dabei = dabei.slice(0, 1);
+      roh = verteile(dabei, verteilbar);
+      break;
+    }
+    const weg = new Set(zuKlein.map(r => toHex(r.to)));
+    ausgelassen.push(...dabei.filter(a => weg.has(toHex(a.to))));
+    dabei = dabei.filter(a => !weg.has(toHex(a.to)));
+    roh = verteile(dabei, verteilbar);
   }
 
   const outputs: Auszahlung[] = roh
@@ -205,4 +206,34 @@ export function abrechnen(
   }
 
   return { outputs, fee, verteilt: verteilbar, ausgelassen };
+}
+
+/**
+ * `verteilbar` nach Arbeit aufteilen, auf die Einheit genau.
+ *
+ * Groesste-Reste-Verfahren: Zuerst bekommt jeder den abgerundeten Anteil.
+ * Was dann noch fehlt -- hoechstens eine Einheit je Miner -- geht an die mit
+ * dem groessten Rest; bei gleichem Rest an die kleinere Adresse, damit das
+ * Ergebnis nicht von der Eingabereihenfolge abhaengt.
+ */
+function verteile(dabei: Anteil[], verteilbar: bigint): { to: Uint8Array; work: bigint; ganz: bigint; rest: bigint }[] {
+  let gesamtArbeit = 0n;
+  for (const a of dabei) gesamtArbeit += a.work;
+  const roh = dabei.map(a => {
+    const genau = verteilbar * a.work;
+    const ganz = genau / gesamtArbeit;
+    return { to: a.to, work: a.work, ganz, rest: genau - ganz * gesamtArbeit };
+  });
+  let vergeben = 0n;
+  for (const r of roh) vergeben += r.ganz;
+  let offen = verteilbar - vergeben;
+  const nachRest = [...roh].sort((x, y) =>
+    x.rest !== y.rest ? (x.rest > y.rest ? -1 : 1)
+                      : (toHex(x.to) < toHex(y.to) ? -1 : 1));
+  for (const r of nachRest) {
+    if (offen <= 0n) break;
+    r.ganz += 1n;
+    offen -= 1n;
+  }
+  return roh;
 }

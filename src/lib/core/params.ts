@@ -218,3 +218,28 @@ export const MAX_COINBASE_OUTPUTS = 64;
 
 /** Fassung einer Coinbase mit mehreren Empfaengern. */
 export const COINBASE_V2 = 2;
+
+/*
+ * Konsensfassung 5 -- ein Soft Fork: Ab V5_HEIGHT gelten vier Regeln mehr,
+ * und jede davon verbietet nur etwas, was bisher erlaubt war. Was ein Knoten
+ * mit diesen Regeln annimmt, nimmt auch ein Knoten ohne sie an.
+ *
+ *   1. Ein Zeitstempel liegt nicht vor dem seines Vorgaengers (gleich ist
+ *      erlaubt). Damit misst die Difficulty-Anpassung und die Notfallregel
+ *      die Zeit so, wie sie wirklich vergangen ist.
+ *   2. Ein Block ist genau so kodiert, wie serializeBlock() ihn schreibt --
+ *      keine Bytes hinter der letzten Transaktion oder in einem zu langen
+ *      Rahmen -- und hoechstens MAX_BLOCK_BYTES gross (Issue #10).
+ *   3. Eine Coinbase hat Fassung 1 oder 2, und ihr `extra` hoechstens
+ *      MAX_COINBASE_EXTRA Byte (Issue #10).
+ *   4. Jede Ausgabe einer Coinbase der Fassung 2 betraegt mindestens
+ *      DUST_LIMIT. Fassung 1 nicht: Ab Hoehe 360.000 ist die Belohnung
+ *      selbst kleiner, und ein Block ohne Gebuehren muss gueltig bleiben.
+ *
+ * Bloecke darunter bleiben byteweise gueltig. Die Hoehe gilt fuer das
+ * Mainnet; Regtest prueft die Regeln von Anfang an (networks.ts).
+ * Beschlossen bei Hoehe 4.111 am 09.10.2026, siehe docs/CONSENSUS_V5.md.
+ */
+export const V5_HEIGHT = 7_000;
+export const MAX_BLOCK_BYTES = 1_048_576;
+export const MAX_COINBASE_EXTRA = 32;

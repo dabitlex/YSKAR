@@ -220,11 +220,17 @@ export class ChainStore {
   bestTip(): StoredBlock | null {
     const zeilen = this.db.prepare(`
       SELECT * FROM blocks WHERE status = 'valid'
-      ORDER BY chain_work DESC LIMIT 8`).all();
+      ORDER BY chain_work DESC, hash ASC LIMIT 8`).all();
     if (zeilen.length === 0) return null;
 
-    // SQLite sortiert nach Arbeit. Bei Gleichstand entscheidet der Hash --
-    // das kann SQL nicht in derselben Ordnung, also hier.
+    /*
+      Bei gleicher Arbeit gewinnt der kleinere Hash (compareTips). Beide
+      Spalten sind BLOBs fester Laenge, Big-Endian; SQLite vergleicht sie
+      Byte fuer Byte -- also in genau der Ordnung von compareTips. Bisher
+      sortierte die Abfrage nur nach Arbeit: Bei mehr als acht Spitzen mit
+      gleicher Arbeit war offen, welche acht zurueckkamen, und die Wahl hing
+      vom Zufall der Ablage ab. Die Schleife unten bleibt als Gegenprobe.
+    */
     let bester = zuBlock(zeilen[0] as Record<string, unknown>);
     for (const z of zeilen.slice(1)) {
       const k = zuBlock(z as Record<string, unknown>);

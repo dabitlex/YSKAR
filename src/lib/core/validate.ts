@@ -1,9 +1,9 @@
-import { type Block, type BlockHeader, checkBlockStructure, headerHash, meetsTarget } from './block.ts';
+import { type Block, type BlockHeader, checkBlockStructure, headerHash, meetsTarget, serializeBlock } from './block.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
 import { type State, cloneState, applyBlock, stateRoot } from './state.ts';
 import { txMerkleRoot } from './block.ts';
 import { nextDifficulty, effectiveDifficulty, checkTimestamp, type BlockTiming } from './difficulty.ts';
-import { GENESIS_DIFFICULTY, MIN_DIFFICULTY, difficultyAtHeight } from './params.ts';
+import { GENESIS_DIFFICULTY, MIN_DIFFICULTY, MAX_BLOCK_BYTES, difficultyAtHeight } from './params.ts';
 import { toHex } from './codec.ts';
 
 /**
@@ -97,6 +97,43 @@ export function checkDifficulty(
   return null;
 }
 
+/**
+ * Konsensfassung 5, Regel 1: Ab params.v5Height liegt kein Zeitstempel vor
+ * dem seines Vorgaengers. Gleich ist erlaubt -- ein Knoten, dessen Uhr
+ * nachgeht, muss so nie auf seine Uhr warten.
+ */
+export function checkParentTimestamp(
+  h: BlockHeader, previous: BlockHeader, params: ConsensusParams = MAINNET,
+): string | null {
+  if (h.height < params.v5Height) return null;
+  return h.timestamp < previous.timestamp ? 'before_parent' : null;
+}
+
+/**
+ * Konsensfassung 5, Regel 2: Ab params.v5Height ist ein Block genau so
+ * kodiert, wie serializeBlock() ihn schreibt, und hoechstens MAX_BLOCK_BYTES
+ * gross (Issue #10).
+ *
+ * Braucht die empfangenen Bytes -- validateBlock() sieht nur den gelesenen
+ * Block. Aufrufer, die Bytes annehmen (ChainManager.accept, Spiegel,
+ * Beobachter), rufen das zusaetzlich auf.
+ *
+ * Wichtig fuer Aufrufer: Eine falsch kodierte Kopie ist eine kaputte
+ * NACHRICHT, kein ungueltiger Block. Derselbe Block in richtiger Kodierung
+ * hat denselben Hash und bleibt gueltig. Wer hier ablehnt, darf den Hash
+ * deshalb nicht als ungueltig vormerken.
+ */
+export function checkEncoding(
+  raw: Uint8Array, block: Block, params: ConsensusParams = MAINNET,
+): string | null {
+  if (block.header.height < params.v5Height) return null;
+  if (raw.length > MAX_BLOCK_BYTES) return `block_zu_gross:${raw.length}`;
+  const sauber = serializeBlock(block);
+  if (sauber.length !== raw.length) return 'nicht_kanonisch';
+  for (let i = 0; i < raw.length; i++) if (raw[i] !== sauber[i]) return 'nicht_kanonisch';
+  return null;
+}
+
 export function validateBlock(block: Block, ctx: Context): ValidationError | null {
   // --- billig: Aufbau, Merkle, Proof of Work ---
   const structural = checkBlockStructure(block);
@@ -122,7 +159,8 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
 
   // --- Zeitstempel ---
   if (ctx.previous !== null) {
-    const tsError = checkTimestamp(h.timestamp, ctx.recentTimestamps, ctx.now);
+    const tsError = checkTimestamp(h.timestamp, ctx.recentTimestamps, ctx.now)
+      ?? checkParentTimestamp(h, ctx.previous, ctx.params ?? MAINNET);
     if (tsError) return { code: 'timestamp', detail: tsError };
   }
 

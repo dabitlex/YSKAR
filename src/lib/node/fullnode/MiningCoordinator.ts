@@ -396,6 +396,16 @@ export class MiningCoordinator {
     if (mindestZeit !== undefined && zeitstempel < mindestZeit) zeitstempel = mindestZeit;
     const obergrenze = jetzt + MAX_FUTURE_DRIFT - 5n;
     if (zeitstempel > obergrenze) zeitstempel = obergrenze;
+    /*
+      Nie vor dem Vorgaenger (Konsensfassung 5, ab V5_HEIGHT Pflicht). Geht
+      die eigene Uhr nach oder liegt der Vorgaenger leicht in der Zukunft,
+      bekommt der Block dessen Zeitstempel -- gleich ist erlaubt, warten
+      muss niemand. Auch vor der Aktivierung schadet das nicht: Der Wert
+      wird hier nur angehoben, nie gesenkt, die Median-Regel bleibt also
+      erfuellt. Und ueber der eigenen Zukunftsgrenze liegt er nicht, denn
+      diesen Vorgaenger hat der Knoten selbst schon angenommen.
+    */
+    if (zeitstempel < tip.blockTime) zeitstempel = tip.blockTime;
 
     // Notfallregel: Nach langer Stille darf leichter gemint werden.
     const vergangen = zeitstempel > tip.blockTime ? zeitstempel - tip.blockTime : 0n;

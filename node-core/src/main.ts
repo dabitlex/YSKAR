@@ -100,7 +100,7 @@ export const VERSION = '0.5.2';
  * Stand der Konsensregeln, die dieses Programm kennt (docs/CONSENSUS_V*.md).
  * Nur fuer die Anzeige -- die Regeln selbst stehen in src/lib/core.
  */
-const KONSENSFASSUNG = 4;
+const KONSENSFASSUNG = 5;
 const GUI_PORT = 8650;
 /** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
 const STATS_TAKT_MS = 30_000;

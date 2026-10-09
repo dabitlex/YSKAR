@@ -128,6 +128,7 @@ Rule changes are tied to block heights, so that every node switches at the same 
 | 2 | 2,000 | Coinbase with several recipients | [CONSENSUS_V2.md](docs/CONSENSUS_V2.md) |
 | 3 | 4,000 | Minimum fee per byte instead of a fixed fee, and a dust limit | [CONSENSUS_V3.md](docs/CONSENSUS_V3.md) |
 | 4 | 6,000 | Wider encoding of the difficulty field in the header | [CONSENSUS_V4.md](docs/CONSENSUS_V4.md) |
+| 5 | 7,000 | Soft fork: stricter rules for timestamps, block encoding and the coinbase | [CONSENSUS_V5.md](docs/CONSENSUS_V5.md) |
 
 ## Components
 
@@ -253,7 +254,7 @@ the workflows in `.github/workflows/`.
 | Document | Content |
 |---|---|
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | Protocol specification: formats, hashing, difficulty, transactions, validity rules, test vectors |
-| [docs/CONSENSUS_V2.md](docs/CONSENSUS_V2.md), [V3](docs/CONSENSUS_V3.md), [V4](docs/CONSENSUS_V4.md) | Design records of the consensus revisions |
+| [docs/CONSENSUS_V2.md](docs/CONSENSUS_V2.md), [V3](docs/CONSENSUS_V3.md), [V4](docs/CONSENSUS_V4.md), [V5](docs/CONSENSUS_V5.md) | Design records of the consensus revisions |
 | [docs/FULLNODE.md](docs/FULLNODE.md) | The command-line full node: commands, options, HTTP interface, storage, reorganization |
 | [docs/P2P.md](docs/P2P.md) | The protocol between nodes |
 | [docs/FEES.md](docs/FEES.md) | Fee rules and the fee estimate |

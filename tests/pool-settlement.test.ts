@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 
 import { abrechnen, gebuehrBetrag, MAX_FEE_BPS, MAX_MINERS_JE_BLOCK }
   from '../src/lib/pool/settlement.ts';
-import { UNIT, MAX_COINBASE_OUTPUTS } from '../src/lib/core/params.ts';
+import { UNIT, MAX_COINBASE_OUTPUTS, DUST_LIMIT } from '../src/lib/core/params.ts';
 import { toHex } from '../src/lib/core/codec.ts';
 
 const adr = (n: number) => {
@@ -60,25 +60,27 @@ test('Anteile nach Arbeit, Summe geht exakt auf', () => {
 test('Die Summe geht auch bei krummen Anteilen exakt auf', () => {
   // Drei gleiche Anteile an einem nicht teilbaren Betrag: Der Rest muss
   // vergeben werden, nicht verschwinden.
-  const brutto = 100n;
+  // (Betraege ueber DUST_LIMIT, sonst greift die Staubregel.)
+  const brutto = 1_000n;
   const r = abrechnen(brutto, [
     { to: A, work: 1n }, { to: B, work: 1n }, { to: C, work: 1n },
   ], 0, null);
-  assert.equal(summe(r.outputs), 100n);
+  assert.equal(summe(r.outputs), 1_000n);
   const betraege = r.outputs.map(o => o.amount).sort();
-  assert.deepEqual(betraege, [33n, 33n, 34n]);
+  assert.deepEqual(betraege, [333n, 333n, 334n]);
 });
 
 test('Der Rest geht an den größten Bruchteil, nicht an den Ersten', () => {
-  // A hat den größten Rest und muss die zusätzliche Einheit bekommen.
-  const r = abrechnen(10n, [
+  // 1.001 im Verhaeltnis 7:3 ergibt 700,7 und 300,3. A hat den größten
+  // Rest und muss die zusätzliche Einheit bekommen.
+  const r = abrechnen(1_001n, [
     { to: A, work: 7n }, { to: B, work: 3n },
   ], 0, null);
-  assert.equal(summe(r.outputs), 10n);
+  assert.equal(summe(r.outputs), 1_001n);
   const find = (a: Uint8Array) =>
     r.outputs.find(o => toHex(o.to) === toHex(a))!.amount;
-  assert.equal(find(A), 7n);
-  assert.equal(find(B), 3n);
+  assert.equal(find(A), 701n);
+  assert.equal(find(B), 300n);
 });
 
 test('Das Ergebnis hängt nicht von der Eingabereihenfolge ab', () => {
@@ -116,17 +118,17 @@ test('Zwei Sitzungen desselben Miners werden zusammengefasst', () => {
 });
 
 test('Ein mitminender Betreiber bekommt einen Eintrag, nicht zwei', () => {
-  const r = abrechnen(1000n, [
+  const r = abrechnen(100_000n, [
     { to: POOL, work: 500n }, { to: A, work: 500n },
   ], 200, POOL);
   assert.equal(r.outputs.length, 2);
-  assert.equal(summe(r.outputs), 1000n);
-  // 1000 brutto, 20 Gebühr, 980 verteilbar, halbe Arbeit also 490.
+  assert.equal(summe(r.outputs), 100_000n);
+  // 100.000 brutto, 2.000 Gebühr, 98.000 verteilbar, halbe Arbeit also 49.000.
   const pool = r.outputs.find(o => toHex(o.to) === toHex(POOL))!;
-  assert.equal(r.fee, 20n);
-  assert.equal(pool.amount, 490n + 20n, 'Anteil plus Gebühr in einem Eintrag');
+  assert.equal(r.fee, 2_000n);
+  assert.equal(pool.amount, 49_000n + 2_000n, 'Anteil plus Gebühr in einem Eintrag');
   const a = r.outputs.find(o => toHex(o.to) === toHex(A))!;
-  assert.equal(a.amount, 490n);
+  assert.equal(a.amount, 49_000n);
 });
 
 // ------------------------------------------------------------ Ausgelassen
@@ -167,8 +169,42 @@ test('Eine Runde ohne Arbeit lässt sich nicht abrechnen', () => {
 });
 
 test('Eine Gebühr ohne Adresse wird abgelehnt', () => {
-  assert.throws(() => abrechnen(1000n, [{ to: A, work: 1n }], 200, null),
+  assert.throws(() => abrechnen(100_000n, [{ to: A, work: 1n }], 200, null),
     /ohne Adresse/);
+});
+
+// ------------------------------------------------- Staubgrenze (Fassung 5)
+
+test('Kein Anteil unter der Staubgrenze: wer darunter läge, geht in diesem Block leer aus', () => {
+  // 875 YSR, ein großer Miner und einer mit einem Milliardstel der Arbeit.
+  const brutto = 875n * 100_000_000n;
+  const r = abrechnen(brutto, [
+    { to: A, work: 1_000_000_000_000n }, { to: B, work: 1n },
+  ], 0, null);
+  assert.equal(summe(r.outputs), brutto, 'nichts entsteht, nichts verschwindet');
+  assert.ok(r.outputs.every(o => o.amount >= DUST_LIMIT));
+  assert.equal(r.outputs.length, 1);
+  assert.deepEqual(r.ausgelassen.map(x => toHex(x.to)), [toHex(B)]);
+});
+
+test('Eine Gebühr unter der Staubgrenze geht an die Miner', () => {
+  const r = abrechnen(1_000n, [{ to: A, work: 1n }], 200, POOL);
+  assert.equal(r.fee, 0n);
+  assert.deepEqual(r.outputs.map(o => o.amount), [1_000n]);
+});
+
+test('Über tausend zufällige Runden: keine Ausgabe unter der Staubgrenze, Summe exakt', () => {
+  let saat = 7;
+  const zufall = (n: number) => { saat = (saat * 1103515245 + 12345) & 0x7fffffff; return saat % n; };
+  for (let i = 0; i < 1000; i++) {
+    const n = 1 + zufall(70);
+    const anteile = Array.from({ length: n }, (_, k) => ({ to: adr(k + 1), work: BigInt(1 + zufall(1 + zufall(1_000_000))) }));
+    const brutto = BigInt(10_000 + zufall(1_000_000_000));
+    const r = abrechnen(brutto, anteile, zufall(501), POOL);
+    assert.equal(summe(r.outputs), brutto);
+    assert.ok(r.outputs.length <= 64);
+    for (const o of r.outputs) assert.ok(o.amount >= DUST_LIMIT, `Runde ${i}: ${o.amount}`);
+  }
 });
 
 test('Die Invariante hält über tausend zufällige Runden', () => {

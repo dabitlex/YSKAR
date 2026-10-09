@@ -3,7 +3,7 @@ import { merkleRoot } from './hash.ts';
 import { txid, checkTransfer, coinbaseTotal, TX_COINBASE, TX_TRANSFER, type Tx }
   from './tx.ts';
 import { type Block } from './block.ts';
-import { rewardAt, ADDRESS_BYTES, MAX_SUPPLY, COINBASE_V2, MAX_COINBASE_OUTPUTS }
+import { rewardAt, ADDRESS_BYTES, MAX_SUPPLY, COINBASE_V2, MAX_COINBASE_OUTPUTS, MAX_COINBASE_EXTRA, DUST_LIMIT }
   from './params.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
 
@@ -140,6 +140,21 @@ export function applyBlock(
     }
   } else if (cb.outputs.length !== 1) {
     return fail(0, 'coinbase_v1_mehrere_empfaenger');
+  }
+
+  /*
+    Konsensfassung 5 (params.ts, V5_HEIGHT): nur Fassung 1 oder 2, `extra`
+    hoechstens MAX_COINBASE_EXTRA Byte, und jede Ausgabe einer Coinbase der
+    Fassung 2 mindestens DUST_LIMIT. Darunter bleibt alles wie bisher.
+  */
+  if (block.header.height >= params.v5Height) {
+    if (cb.version !== 1 && cb.version !== COINBASE_V2) return fail(0, `coinbase_fassung:${cb.version}`);
+    if (cb.extra.length > MAX_COINBASE_EXTRA) return fail(0, `coinbase_extra:${cb.extra.length}`);
+    if (cb.version === COINBASE_V2) {
+      for (const o of cb.outputs) {
+        if (o.amount < DUST_LIMIT) return fail(0, 'coinbase_output_staub');
+      }
+    }
   }
 
   const expected = rewardAt(block.header.height) + fees;

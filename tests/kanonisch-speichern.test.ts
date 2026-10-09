@@ -16,11 +16,19 @@ import { toHex } from '../src/lib/core/codec.ts';
 import { serializeBlock, deserializeBlock, headerHash } from '../src/lib/core/block.ts';
 import { baueKette } from './helpers/regtest.ts';
 
-function knoten() {
+/**
+ * Unterhalb der Hoehe von Konsensfassung 5 sind falsch kodierte Kopien noch
+ * gueltig -- der Knoten nimmt sie an und speichert sie sauber. Regtest prueft
+ * die Fassung 5 sonst von Block 0 an; hier wird sie deshalb weit nach hinten
+ * verlegt. Die Faelle AB der Fassung 5 stehen unten mit REGTEST selbst.
+ */
+const VOR_V5 = { ...REGTEST, v5Height: 1_000_000 };
+
+function knoten(params = VOR_V5) {
   const store = new ChainStore(':memory:');
-  store.setMeta('network', REGTEST.network);
-  store.setMeta('chain_id', toHex(REGTEST.chainId));
-  return { store, chain: new ChainManager(store, REGTEST) };
+  store.setMeta('network', params.network);
+  store.setMeta('chain_id', toHex(params.chainId));
+  return { store, chain: new ChainManager(store, params) };
 }
 
 /** Bytes in den Rahmen der Coinbase schieben: Laengenfeld groesser, Hash bleibt. */
@@ -95,5 +103,38 @@ test('Header mit Difficulty 0: abgelehnt als unlesbar, kein Absturz', () => {
   const r = chain.accept(b);
   assert.equal(r.ok, false);
   assert.equal((r as { grund: string }).grund, 'unlesbar');
+  store.close();
+});
+
+// ------------------------------------------------- ab Konsensfassung 5
+
+test('Ab Fassung 5: Bytes hinten oder im Rahmen -- diese Kopie wird abgelehnt, nichts gespeichert', () => {
+  const { store, chain } = knoten(REGTEST);
+  assert.equal(chain.accept(kette.bloecke[0].body).ok, true);
+  const sauber = kette.bloecke[1].body;
+  const hinten = new Uint8Array(sauber.length + 4);
+  hinten.set(sauber);
+  for (const kopie of [hinten, rahmenMuell(sauber)]) {
+    const r = chain.accept(kopie);
+    assert.equal(r.ok, false);
+    assert.equal((r as { grund: string }).grund, 'kodierung');
+    assert.equal(store.has(kette.bloecke[1].hash), false, 'nichts gespeichert');
+  }
+  // Die saubere Kopie desselben Blocks ist danach nicht gesperrt.
+  const r = chain.accept(sauber);
+  assert.equal(r.ok, true);
+  assert.equal((r as { stored: boolean }).stored, true);
+  assert.equal(chain.height(), 1);
+  store.close();
+});
+
+test('Ab Fassung 5: Eine falsch kodierte Kopie eines BEKANNTEN Blocks stört nicht', () => {
+  const { store, chain } = knoten(REGTEST);
+  chain.accept(kette.bloecke[0].body);
+  chain.accept(kette.bloecke[1].body);
+  const kopie = new Uint8Array(kette.bloecke[1].body.length + 1);
+  kopie.set(kette.bloecke[1].body);
+  assert.deepEqual(chain.accept(kopie), { ok: true, stored: false, grund: 'bekannt' });
+  assert.ok(gleich(store.get(kette.bloecke[1].hash)!.body, kette.bloecke[1].body));
   store.close();
 });

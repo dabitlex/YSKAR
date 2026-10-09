@@ -4,7 +4,7 @@ import {
 } from './tx.ts';
 import { type Block, type BlockHeader, serializeHeader, txMerkleRoot, BLOCK_VERSION } from './block.ts';
 import { type State, cloneState, getAccount, applyBlock, stateRoot } from './state.ts';
-import { rewardAt, MAX_TXS_PER_BLOCK, COINBASE_V2, MAX_COINBASE_OUTPUTS }
+import { rewardAt, MAX_TXS_PER_BLOCK, COINBASE_V2, MAX_COINBASE_OUTPUTS, DUST_LIMIT }
   from './params.ts';
 import { toHex } from './codec.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
@@ -208,6 +208,32 @@ export function buildCoinbaseV2(
   };
 }
 
+/**
+ * Die Coinbase fuer eine Aufteilung waehlen -- gemeinsam fuer buildBlock()
+ * und die Job-Vorlage (jobVorlage.ts), damit beide dasselbe bauen.
+ *
+ * Ohne Aufteilung: Fassung 1 an `minerAddress`. Mit Aufteilung: Fassung 2.
+ * Ausnahme ab Konsensfassung 5: Dort muss jede Ausgabe einer Coinbase der
+ * Fassung 2 mindestens DUST_LIMIT betragen, Fassung 1 kennt diese Grenze
+ * nicht. Ein einzelner Empfaenger mit weniger (erst ab Hoehe 360.000
+ * moeglich, wenn die Belohnung darunter faellt) bekommt deshalb Fassung 1 --
+ * derselbe Betrag an dieselbe Adresse.
+ */
+export function waehleCoinbase(
+  height: number,
+  verteilt: { to: Uint8Array; amount: bigint }[] | null,
+  minerAddress: Uint8Array,
+  fees: bigint,
+  extra: Uint8Array | undefined,
+  params: ConsensusParams,
+): Coinbase {
+  if (!verteilt || verteilt.length === 0) return buildCoinbase(height, minerAddress, fees, extra);
+  if (verteilt.length === 1 && verteilt[0].amount < DUST_LIMIT && height >= params.v5Height) {
+    return buildCoinbase(height, verteilt[0].to, fees, extra);
+  }
+  return buildCoinbaseV2(height, verteilt, fees, extra);
+}
+
 export function buildBlock(p: BuildParams): BuildResult {
   const { included, rejected, fees } =
     selectTransactions(p.state, p.mempool, p.height, undefined, p.params ?? MAINNET);
@@ -222,9 +248,7 @@ export function buildBlock(p: BuildParams): BuildResult {
   */
   const brutto = rewardAt(p.height) + fees;
   const verteilt = p.anteile ? p.anteile(brutto) : null;
-  const coinbase = verteilt && verteilt.length > 0
-    ? buildCoinbaseV2(p.height, verteilt, fees, p.coinbaseExtra)
-    : buildCoinbase(p.height, p.minerAddress, fees, p.coinbaseExtra);
+  const coinbase = waehleCoinbase(p.height, verteilt, p.minerAddress, fees, p.coinbaseExtra, p.params ?? MAINNET);
   const txs: Tx[] = [coinbase, ...included];
 
   // Zustand nach diesem Block bestimmen -- daraus kommt state_root.

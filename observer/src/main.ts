@@ -24,7 +24,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, appendFileSync } fr
 import { join } from 'node:path';
 
 import { deserializeBlock, headerHash, checkBlockStructure } from '../../src/lib/core/block.ts';
-import { validateBlock, expectedDifficulty } from '../../src/lib/core/validate.ts';
+import { validateBlock, expectedDifficulty, checkEncoding } from '../../src/lib/core/validate.ts';
 import { emptyState, applyBlock, stateRoot, totalSupply, cloneState,
          type State } from '../../src/lib/core/state.ts';
 import { toHex, fromHex } from '../../src/lib/core/codec.ts';
@@ -227,8 +227,13 @@ function pruefeUndWende(lauf: Lauf, roh: Uint8Array, erwarteterHash: string): Bl
   const hoehe = lauf.hoehe + 1;
 
   let block: Block;
-  try { block = deserializeBlock(roh); }
-  catch (e) { throw new Abweichung(hoehe, 'unlesbar', String((e as Error).message)); }
+  let kodierung: string | null;
+  try {
+    block = deserializeBlock(roh);
+    // Ab Konsensfassung 5: genau so kodiert, wie serializeBlock schreibt.
+    kodierung = checkEncoding(roh, block);
+  } catch (e) { throw new Abweichung(hoehe, 'unlesbar', String((e as Error).message)); }
+  if (kodierung) throw new Abweichung(hoehe, 'kodierung', kodierung);
 
   if (block.header.height !== hoehe) {
     throw new Abweichung(hoehe, 'falsche_hoehe',

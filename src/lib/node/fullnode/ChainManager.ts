@@ -17,7 +17,7 @@
  */
 import { deserializeBlock, headerHash, checkBlockStructure, serializeBlock, type Block, type BlockHeader }
   from '../../core/block.ts';
-import { validateBlock, checkDifficulty, type ValidationError } from '../../core/validate.ts';
+import { validateBlock, checkDifficulty, checkEncoding, checkParentTimestamp, type ValidationError } from '../../core/validate.ts';
 import { checkTimestamp, type BlockTiming } from '../../core/difficulty.ts';
 import { emptyState, applyBlock, stateRoot, cloneState, type State }
   from '../../core/state.ts';
@@ -178,6 +178,15 @@ export class ChainManager {
 
     if (this.store.has(hash)) return { ok: true, stored: false, grund: 'bekannt' };
 
+    /*
+      Ab Konsensfassung 5 muss der Block so ankommen, wie er kodiert gehoert
+      (validate.ts, checkEncoding). Abgelehnt wird nur DIESE Kopie: Es wird
+      nichts gespeichert und nichts als ungueltig vorgemerkt -- dieselbe
+      Kopie sauber kodiert hat denselben Hash und wird angenommen.
+    */
+    const kodierung = checkEncoding(roh, block, this.params);
+    if (kodierung) return { ok: false, grund: 'kodierung', detail: kodierung };
+
     const strukturfehler = checkBlockStructure(block);
     if (strukturfehler) return { ok: false, grund: 'struktur', detail: strukturfehler };
 
@@ -231,7 +240,8 @@ export class ChainManager {
         abgelehnt, was validateBlock nicht mit demselben Grund ablehnen
         wuerde, und angenommen wird ein Block nur dort.
       */
-      const zeitFehler = checkTimestamp(block.header.timestamp, zeitstempel, jetzt);
+      const zeitFehler = checkTimestamp(block.header.timestamp, zeitstempel, jetzt)
+        ?? checkParentTimestamp(block.header, vorKopf, this.params);
       if (zeitFehler) return { ok: false, grund: 'timestamp', detail: zeitFehler };
       const diffFehler = checkDifficulty(block.header, vorKopf, timings, this.params);
       if (diffFehler) return { ok: false, grund: 'difficulty', detail: diffFehler };
