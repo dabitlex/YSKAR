@@ -76,7 +76,7 @@ node --version
 
 systemd does not know the `PATH` of your shell and does not load nvm. If `which node` prints
 anything other than `/usr/bin/node`, change the path in **both** service files. The version must
-be 22 or newer: the node uses `node:sqlite`, which older versions do not have.
+be 22.13 or newer: the node uses `node:sqlite`, which older versions do not have.
 
 The node must be built before the service can start it (`npm install` and `npm run build` in the
 `node` folder; see [FULLNODE.md](../docs/FULLNODE.md)).

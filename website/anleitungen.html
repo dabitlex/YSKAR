@@ -73,7 +73,7 @@
 <tr><td><strong><a href="#android" data-t="an.ue.r2a">Android app</a></strong></td><td><span data-t="an.ue.r2b">Mining in the background on your phone</span></td><td><span data-t="an.ue.r2c">An Android phone</span></td></tr>
 <tr><td><strong><a href="#nodecore" data-t="an.ue.r3a">Node Core</a></strong></td><td><span data-t="an.ue.r3b">Your own node with wallet and mining on a PC, graphics card included</span></td><td><span data-t="an.ue.r3c">Windows 10 or 11</span></td></tr>
 <tr><td><strong><a href="#pc" data-t="an.ue.r4a">PC miner</a></strong></td><td><span data-t="an.ue.r4b">Mining from the command line</span></td><td><span data-t="an.ue.r4c">Windows, macOS or Linux with Node.js</span></td></tr>
-<tr><td><strong><a href="#fullnode" data-t="an.ue.r5a">Full node</a></strong></td><td><span data-t="an.ue.r5b">A node or a pool on a Raspberry Pi or a server</span></td><td><span data-t="an.ue.r5c">Linux with Node.js 22</span></td></tr>
+<tr><td><strong><a href="#fullnode" data-t="an.ue.r5a">Full node</a></strong></td><td><span data-t="an.ue.r5b">A node or a pool on a Raspberry Pi or a server</span></td><td><span data-t="an.ue.r5c">Linux, Windows or macOS with Node.js 22.13 or newer</span></td></tr>
 </tbody></table></div>
 <h2 id="grundlagen" data-t="an.gr.titel">How mining works</h2>
 <p data-t="an.gr.p1">YSKAR is a blockchain of its own. A new block is found about every 10 minutes. Whoever finds it receives the reward – currently 875 YSR – directly on their address.</p>
@@ -87,7 +87,7 @@
 <p data-t="an.gr.aus1">The block itself pays everyone directly. The pool operator never holds your money, and there is no payout threshold.</p>
 <p data-t="an.gr.aus2">What counts is the work of the recent past, measured in shares. If you have only just started, your part of the first block is correspondingly small.</p>
 <ul>
-<li data-t="an.gr.plaetze">A block can pay out at most 64 addresses, so a pool has at most 64 places. A full pool takes nobody else in.</li>
+<li data-t="an.gr.plaetze">A block can pay out at most 64 addresses, so a pool has at most 64 places (63 when it takes a fee). A place counts only while you mine: a new device holds it on trial for 2 minutes and keeps it by delivering shares regularly. Places of miners who stop become free again.</li>
 <li data-t="an.gr.gebuehr">The operator may take a fee between 0 and 5 %. It is shown in the pool list.</li>
 </ul>
 <div class="hinweisband"><p data-t="an.gr.hinweis">Nobody can promise you a return. How often you receive something depends on your computing power, on the power of the network and on chance.</p></div>
@@ -201,7 +201,7 @@ node src/selbsttest.mjs</code></pre>
 <pre><code>node src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool</code></pre>
 <p data-t="an.pc.solo">Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.</p>
 <h3 data-t="an.pc.s4">4. Graphics card (optional)</h3>
-<p data-th="an.pc.s4Text">With an NVIDIA card, add <code>--gpu</code>. This needs the GPU program <code>yskar-cuda</code>; how to build it is described in the repository under <code>node-core/gpu</code>.</p>
+<p data-th="an.pc.s4Text">With an NVIDIA card, add <code>--gpu</code>. This needs the GPU program <code>yskar-cuda</code>; how to build it on Windows is described in the repository under <code>node-core/gpu</code>. A build script for Linux is not included yet.</p>
 
 <h2 id="wallet" data-t="an.wallet.titel">Your wallet</h2>
 <p data-t="an.wallet.text">Your wallet is created on your device from 12 words. These words are your key: whoever has them can access the funds – on any device, in any YSKAR app.</p>
@@ -219,7 +219,7 @@ node src/selbsttest.mjs</code></pre>
 <h3 data-t="an.w.senden">Sending</h3>
 <ol>
 <li data-t="an.w.s1">Recipient: paste the address, scan the QR code or choose a contact. A YSKAR address starts with ysr1.</li>
-<li data-t="an.w.s2">Amount, and a note of up to 32 characters if you like. The note is stored publicly in the blockchain.</li>
+<li data-t="an.w.s2">Amount, and a note of up to 32 bytes if you like – that is 32 plain Latin letters, fewer with accents or other scripts. The note is stored publicly in the blockchain.</li>
 <li data-t="an.w.s3">Fee: the app suggests it. When the network is not busy, the minimum fee is enough for the next block.</li>
 <li data-t="an.w.s4">Review: the app shows the full address and tells you whether you have sent there before. Confirm with your PIN or fingerprint.</li>
 </ol>
@@ -230,7 +230,7 @@ node src/selbsttest.mjs</code></pre>
 <p data-t="an.w.kontakteText">Contacts give addresses a name; they are stored only on your device. The history shows every payment; mining income of one day is bundled into one line and can be opened down to the single block.</p>
 
 <h2 id="fullnode" data-t="an.node.titel">Running a full node</h2>
-<p data-t="an.node.text">A full node downloads the chain and checks every block itself – proof of work, signatures, balances. It needs Node.js 22 or newer and runs well on a Raspberry Pi.</p>
+<p data-t="an.node.text">A full node downloads the chain and checks every block itself – proof of work, signatures, balances. It needs Node.js 22.13 or newer and runs well on a Raspberry Pi.</p>
 <h3 data-t="an.node.s1">1. Build</h3>
 <pre><code>git clone https://github.com/dabitlex/YSKAR.git
 cd YSKAR/node
@@ -314,7 +314,7 @@ npm run build</code></pre>
 <h3 data-t="an.pool.liste">Getting into the pool list</h3>
 <p data-th="an.pool.listeText">The app and Node Core show a maintained list of pools. For an entry your pool must be reachable over HTTPS and answer <code>/api/v2/pool</code>. Ask for it on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. The list is neither a check nor a recommendation: a pool reports its miners, power and fee itself.</p>
 <h2 id="explorer" data-t="an.ex.titel">The explorer</h2>
-<p data-th="an.ex.text">The <a href="/explorer">explorer</a> shows every block, every transfer and every address. It reassembles each block in your browser, hashes it and checks the chain – you do not have to believe the server.</p>
+<p data-th="an.ex.text">The <a href="/explorer">explorer</a> shows every block, every transfer and every address. It reassembles each block header in your browser, hashes it and checks the proof of work and the chain. Transfers, signatures and balances are checked by full nodes – run one, and you do not have to believe anyone.</p>
 <ul>
 <li data-t="an.ex.p1">Search by block height, hash or address.</li>
 <li data-t="an.ex.p2">For every block you see who found it: a name, a pool or a solo address.</li>
@@ -324,7 +324,7 @@ npm run build</code></pre>
 <ul>
 <li data-th="an.si.p1"><strong>Your 12 words are your wallet.</strong> Never type them into a website, never send them to anyone. Nobody from YSKAR will ask for them.</li>
 <li data-th="an.si.p2"><strong>Download only from yskar.app and the YSKAR project on GitHub.</strong> If you want to be sure, compare the checksum.</li>
-<li data-th="an.si.p3"><strong>Keep your software up to date.</strong> A node that misses an announced rule change stops at that block.</li>
+<li data-th="an.si.p3"><strong>Keep your software up to date.</strong> At an announced rule change, an outdated node either stops at that block or keeps running without checking the new rule – both are reasons to update in time.</li>
 <li data-th="an.si.p4"><strong>Running a node:</strong> other nodes see your IP address, as in every peer-to-peer network. You do not need a port forwarding. If you do not want your address to be visible, use a VPN.</li>
 <li data-th="an.si.p5"><strong>Node Core:</strong> wallet and interface can only be reached from your own PC.</li>
 </ul>
@@ -332,7 +332,7 @@ npm run build</code></pre>
 <h3 data-t="an.hi.f1">Mining on the phone stops by itself</h3>
 <p data-t="an.hi.a1">Android is closing the app to save battery. Set the battery usage of YSKAR Wallet to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
 <h3 data-t="an.hi.f2">“Pool full”</h3>
-<p data-t="an.hi.a2">A pool has at most 64 places. Choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
+<p data-t="an.hi.a2">A pool has at most 64 places. Places of miners who stopped become free again after a few minutes, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
 <h3 data-t="an.hi.f3">Node Core: “No peer connected yet”</h3>
 <p data-t="an.hi.a3">The node has not found another node yet. Check your internet connection and whether you allowed Node Core in the Windows firewall prompt. Then wait a moment.</p>
 <h3 data-t="an.hi.f4">Node Core: mining does not start</h3>

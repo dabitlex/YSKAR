@@ -10,7 +10,7 @@
     "start": "node --experimental-strip-types src/main.ts",
     "build": "node build.mjs"
   },
-  "license": "SEE LICENSE IN ../README.md",
+  "license": "MIT",
   "private": false,
   "devDependencies": {
     "esbuild": "^0.28.2"

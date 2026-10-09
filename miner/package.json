@@ -21,7 +21,7 @@
     "bundle": "node build/bundle.mjs",
     "build:exe": "node build/bundle.mjs && node build/exe.mjs"
   },
-  "license": "SEE LICENSE IN ../README.md",
+  "license": "MIT",
   "private": false,
   "devDependencies": {
     "esbuild": "^0.28.2",

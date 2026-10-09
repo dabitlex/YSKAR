@@ -121,7 +121,7 @@
 <div class="karte">
 <div class="symbol gruen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
 <h3 data-t="grund.k2.titel">Check it yourself</h3>
-<p data-t="grund.k2.text">The explorer rebuilds every block in your browser, hashes it and follows the chain. None of its checks comes from the server.</p>
+<p data-t="grund.k2.text">The explorer rebuilds every block header in your browser, hashes it, checks the proof of work and follows the chain. Everything else – transfers, signatures, balances – a full node checks, and anyone can run one.</p>
 </div>
 <div class="karte">
 <div class="symbol bernstein"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
@@ -343,7 +343,7 @@
 <h2 class="h2" data-t="node.titel">Run your own node</h2>
 <p style="color:var(--lese-d)" data-t="node.text">A node checks every block itself, starting from block 0. The more nodes there are, the less YSKAR depends on any single computer. A Raspberry Pi is enough.</p>
 <ul class="haken">
-<li data-t="node.p1">Node.js 22 or newer</li>
+<li data-t="node.p1">Node.js 22.13 or newer</li>
 <li data-t="node.p2">Runs on Linux, Windows and macOS</li>
 <li data-t="node.p3">Can run its own pool, no sign-up needed</li>
 </ul>
@@ -383,8 +383,8 @@ node dist/yskar-node.cjs mine --data ./knoten \
 <div class="fahrplan">
 <p class="etikett" style="margin:0" data-t="plan.etikett">Network updates</p>
 <h2 data-t="plan.titel">What happens next</h2>
-<div class="termin"><div class="wann" data-t="plan.t1.wann">Block 4,000</div><div><b data-t="plan.t1.titel">Fees by size</b><span data-t="plan.t1.text">Transfers become much cheaper, plus protection against spam micro-amounts.</span></div></div>
-<div class="termin"><div class="wann" data-t="plan.t2.wann">Block 6,000</div><div><b data-t="plan.t2.titel">Difficulty without an upper limit</b><span data-t="plan.t2.text">YSKAR grows along, no matter how many miners join.</span></div></div>
+<div class="termin"><div class="wann" data-t="plan.t1.wann">Block 6,000</div><div><b data-t="plan.t1.titel">Difficulty without an upper limit</b><span data-t="plan.t1.text">YSKAR grows along, no matter how many miners join.</span></div></div>
+<div class="termin"><div class="wann" data-t="plan.t2.wann">Block 7,000</div><div><b data-t="plan.t2.titel">Network upgrade (soft fork)</b><span data-t="plan.t2.text">Planned. Stricter rules for block timestamps and the block format. Node and pool operators update beforehand; miners and the app need nothing.</span></div></div>
 <div class="termin"><div class="wann" data-t="plan.t3.wann">Launch</div><div><b data-t="plan.t3.titel">YSKAR Wallet on Google Play</b><span data-t="plan.t3.text">Released together with the official launch.</span></div></div>
 <div class="termin"><div class="wann offen" data-t="plan.t4.wann">Planned</div><div><b data-t="plan.t4.titel">Instant payments</b><span data-t="plan.t4.text">Payment channels for real-time payments. No fixed date yet.</span></div></div>
 </div>
@@ -395,11 +395,11 @@ node dist/yskar-node.cjs mine --data ./knoten \
 <section class="abschnitt weiss">
 <div class="wrap faq">
 <h2 class="h2 faq-titel" data-t="faq.titel">Frequently asked questions</h2>
-<details open><summary data-t="faq.q1">Does it cost anything to take part?</summary><p data-t="faq.a1">No. The app, Mini App and miner are free. You only pay for the electricity your device uses.</p></details>
+<details open><summary data-t="faq.q1">Does it cost anything to take part?</summary><p data-t="faq.a1">No. The app, Mini App, Node Core and miner are free. You pay for the electricity your device uses; sending YSR costs a small network fee, and a pool keeps its fee (the public pool: 1 %).</p></details>
 <details><summary data-t="faq.q2">What if I lose my phone?</summary><p data-t="faq.a2">With your 12 words you can restore your wallet on any device. Without them, nobody can recover the funds, not even us.</p></details>
 <details><summary data-t="faq.q3">Why doesn’t the Play Store app mine?</summary><p data-t="faq.a3">Google Play does not allow apps that mine cryptocurrency on the device itself. That is why the Android app with mining is available directly on this website.</p></details>
-<details><summary data-t="faq.q4">Is the code open?</summary><p data-th="faq.a4">Yes. The entire code – node, app, miner and this website – is public on <a href="https://github.com/dabitlex/YSKAR">GitHub</a>.</p></details>
-<details><summary data-t="faq.q5">How do I know the numbers are real?</summary><p data-t="faq.a5">The explorer checks every block in your browser, and anyone can run a full node that verifies the entire chain from block 0.</p></details>
+<details><summary data-t="faq.q4">Is the code open source?</summary><p data-th="faq.a4">Yes. The entire code – node, app, miner and this website – is public on <a href="https://github.com/dabitlex/YSKAR">GitHub</a> and released under the MIT License.</p></details>
+<details><summary data-t="faq.q5">How do I know the numbers are real?</summary><p data-t="faq.a5">The explorer checks the proof of work of every block in your browser and follows the chain. A full node or the observer goes further and verifies every transfer, signature and balance from block 0 – anyone can run one.</p></details>
 </div>
 </section>
 

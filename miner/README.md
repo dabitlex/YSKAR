@@ -88,7 +88,8 @@ the funds.
 
 ## Start mining
 
-Every start command must name the server with `--api`. There are two choices.
+The server comes from `--api`; without it the miner uses the public main node (see below).
+There are two choices.
 
 ### In the public pool
 
@@ -127,7 +128,8 @@ for the address (`YSKAR-Adresse:`) and then whether to remember it
 
 If you agree, it writes the file `yskar-miner.json` into the `miner` folder. The file holds the
 address, the number of threads and the intensity, all of which are public. It does not hold the
-server, so `--api` (and `--mode pool`) are still needed on every start:
+server or the mode, so `--mode pool` is still needed on every start, and `--api` whenever you do
+not use the public main node:
 
 ```bash
 node src/cli.mjs --api https://yskar-main.dynv6.net --mode pool
@@ -216,7 +218,7 @@ Options can be written as `--option value` or `--option=value`.
 | `--address <ysr1…>` | `-a` | Address that receives the reward | Required, unless saved in `yskar-miner.json` or entered at the prompt |
 | `--workers <n>` | `-w` | Number of CPU threads | CPU cores minus 1, at least 1 |
 | `--intensity <1-100>` | `-i` | Share of the time the CPU threads compute, in percent | `100` |
-| `--api <url>` | | Server that hands out work: a pool or your own full node | `https://yskar.vercel.app`, which no longer hands out work; always set this |
+| `--api <url>` | | Server that hands out work: a pool or your own full node | `https://yskar-main.dynv6.net` (the public main node) |
 | `--mode <solo\|pool>` | | Mine solo or in the pool of the node. Any value other than `pool` means solo. | `solo` |
 | `--gpu` | | Compute with the graphics card instead of the CPU | Off |
 | `--cpu-gpu` | | Compute with CPU and graphics card at the same time | Off |
@@ -375,8 +377,10 @@ curl https://yskar-main.dynv6.net/api/v2/summary
 ```
 
 If the message continues with `Mining und Transaktionen laufen nicht mehr über diese Adresse`,
-you are talking to `https://yskar.vercel.app`: add `--api`. If it continues with `Pool voll`, all
-seats of the pool are taken.
+you are talking to `https://yskar.vercel.app`, the old default of miner versions before 9 October
+2026: update the miner or set `--api https://yskar-main.dynv6.net`. If it continues with
+`Pool voll`, all seats of the pool are taken by active miners; a seat of a miner who stops
+becomes free again after a few minutes.
 
 **`Das sieht nicht nach einer YSKAR-Adresse aus.` (this does not look like a YSKAR address).**
 The address begins with `ysr1` and has 42 characters. A space or a line break is easily copied

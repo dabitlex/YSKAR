@@ -7,7 +7,7 @@
     "yskar-node": "./dist/yskar-node.cjs"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "start": "node --experimental-strip-types ../src/lib/node/fullnode/cli.ts",

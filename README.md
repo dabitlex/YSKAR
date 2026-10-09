@@ -46,9 +46,9 @@ and [`src/lib/core/networks.ts`](src/lib/core/networks.ts). The full specificati
 
 ### Proof of work
 
-A block header is 136 bytes long. It contains the height, the hash of the previous block, a
-Merkle root over the block's transactions, a Merkle root over all account balances after the
-block (the state root), a timestamp, the difficulty, the transaction count, an extranonce and a
+A block header is 136 bytes long. It contains a version number, the height, the hash of the
+previous block, a Merkle root over the block's transactions, a Merkle root over all accounts
+(balance and nonce) after the block (the state root), a timestamp, the difficulty, the transaction count, an extranonce and a
 nonce.
 
 A miner hashes the header twice with SHA-256 and reads the result as a number. The block is valid
@@ -101,7 +101,7 @@ An address is the first 20 bytes of the SHA-256 hash of the public key, written 
 the prefix `ysr`. Keys are derived from BIP39 seed words along the path
 `m/44'/9077'/account'/0'/index'`. The seed words stay on the device that created them.
 
-The state root in every header commits to all balances. A node that replays the blocks from the
+The state root in every header commits to all balances and nonces. A node that replays the blocks from the
 genesis block arrives at the same balances as every other node, or it rejects the block.
 
 ### Chain selection
@@ -114,7 +114,9 @@ own branch, and switches branches when another one has more work.
 
 From height 2,000 a coinbase may pay up to 64 recipients. Pools are built on this: the pool's
 accounting (PPLNS, "pay per last N shares") becomes the coinbase of the block, and the chain
-pays every participant directly in the block that was found. A pool operator never holds other
+pays the participants directly in the block that was found: up to 64 addresses, or 63 miners
+plus the operator's fee. Miners with the least work in the window receive nothing in a block
+that has more participants than that. A pool operator never holds other
 miners' coins. See [docs/POOL.md](docs/POOL.md).
 
 ### Consensus revisions
@@ -152,15 +154,16 @@ your browser. Source: `public/explorer.html`.
 **Command-line miner.** A miner for the CPU, and with an extra program for NVIDIA graphics
 cards. It needs only an address, never a key and has no dependencies to install. See [miner/README.md](miner/README.md).
 
-**Observer.** Downloads the chain and recomputes every block without building any. See
-[observer/README.md](observer/README.md).
+**Observer.** Downloads the mirror's copy of the chain, recomputes every block without building
+any, and compares its tip with the main node (`--compare`, switched off with `--no-compare`).
+See [observer/README.md](observer/README.md).
 
 **Website.** The static site at [www.yskar.app](https://www.yskar.app). See
 [website/README.md](website/README.md).
 
 **Mirror.** The server behind the app keeps a read copy of the chain in a database, so that the
-explorer, balances and history load quickly. It validates every block it stores, but it is a
-convenience, not the authority: the chain is what the full nodes agree on. See
+explorer, balances and history load quickly. It validates every block it stores and accepts new blocks only from the main node, but it is
+a convenience, not the authority: the chain is what the full nodes agree on. See
 [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Run a full node
@@ -177,8 +180,9 @@ node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 -
 
 The node connects to the seed nodes, downloads the chain, checks every block and then
 follows the network. `--data` names the folder for the chain data. `--no-upstream` belongs in
-this command: without it the node would also send blocks to the mirror, which is the task of
-the main node alone.
+this command: without it the node would also fetch blocks from the mirror and send blocks to it.
+Writing to the mirror is the task of the main node alone, and the mirror refuses blocks from
+other nodes.
 
 On Windows, type `npm.cmd` in place of `npm` in PowerShell.
 
@@ -270,15 +274,15 @@ the workflows in `.github/workflows/`.
 
 Named plainly, so that nobody expects more than there is.
 
-- **A young, small network.** The network has two seed nodes and one public pool, and all three
-  are run by the same operator. Proof of work protects a chain only as long as no single party controls most of
+- **A young, small network.** The network has two seed nodes, the first of which also runs the
+  public pool; both are run by the same operator. At least one independent pool mines as well. Proof of work protects a chain only as long as no single party controls most of
   the hash power. [docs/SECURITY.md](docs/SECURITY.md) lists the known limits.
 - **Node Core exists for Windows only.** On Linux and macOS the full node runs from the command
   line.
 - **The Android app is distributed as an APK** through GitHub Releases. It is not in an app
   store. There is no iOS app.
-- **No license has been chosen yet.** The source code is public and can be read and verified.
-  Without a license file, the usual rights of the authors apply.
+- **Open source under the MIT License.** The source code is public and can be read, verified
+  and reused under the terms in [LICENSE](LICENSE).
 
 ## No promises
 
