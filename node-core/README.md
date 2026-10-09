@@ -92,6 +92,10 @@ any web page open in a browser on the same PC can send requests to
    a cookie (`yskar_zugang`, HttpOnly, SameSite=Strict, valid until the
    program ends) that `electron-main.mjs` sets in the window's session
    before the page loads. Tools can send it in the header `x-yskar-token`.
+   A tool that starts the program itself (the trial run of the GitHub
+   build) can preset it with the environment variable `YSKAR_ZUGANG`,
+   exactly 64 lowercase hex characters; the program removes the variable
+   after reading it, so child processes do not inherit it.
    Until version 0.5.1 the token was written into the page, so any program
    that could reach `127.0.0.1:8650` could read it from there.
 

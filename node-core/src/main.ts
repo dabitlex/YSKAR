@@ -500,8 +500,14 @@ export class NodeCoreApp {
    * Auszahlungsadresse des Minings zu aendern. Jetzt bekommt ihn nur das
    * eigene Fenster: electron-main.mjs liest ihn ueber zugangFuerFenster()
    * im selben Prozess und setzt ihn als Cookie in die Sitzung des Fensters.
+   *
+   * Werkzeuge, die das Programm selbst starten (der Probelauf im Bau auf
+   * GitHub), koennen ihn vorgeben: YSKAR_ZUGANG mit genau 64 Hexzeichen.
+   * Wer die Umgebung des Prozesses setzen kann, ist ohnehin derselbe
+   * Benutzer. Die Variable wird nach dem Lesen entfernt, damit Kindprozesse
+   * (GPU-Miner) sie nicht erben.
    */
-  private zugang = randomBytes(32).toString('hex');
+  private zugang = startZugang();
   private guiServer = createServer((req, res) => this.handleGui(req, res));
   private configured = false;
   private running = false;
@@ -2344,6 +2350,14 @@ export class NodeCoreApp {
       }, 400);
     }
   }
+}
+
+/** Zugangsschluessel dieses Starts: vorgegeben (YSKAR_ZUGANG) oder zufaellig. */
+export function startZugang(env: NodeJS.ProcessEnv = process.env): string {
+  const vorgabe = env.YSKAR_ZUGANG;
+  delete env.YSKAR_ZUGANG;
+  return typeof vorgabe === 'string' && /^[0-9a-f]{64}$/.test(vorgabe)
+    ? vorgabe : randomBytes(32).toString('hex');
 }
 
 /** Wert eines Cookies aus dem Kopffeld "cookie", sonst ''. */

@@ -235,8 +235,14 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $exe = Get-ChildItem 'release\win-unpacked' -Filter '*.exe' | Where-Object { $_.Name -like 'YSKAR*' } | Select-Object -First 1
           if (-not $exe) { throw 'Das Programm fehlt in release\win-unpacked.' }
+          # Seit 0.5.2 steht der Zugangsschluessel nicht mehr in der Seite
+          # (Befund S8). Der Probelauf gibt ihn deshalb beim Start vor; das
+          # Programm liest YSKAR_ZUGANG einmal und entfernt die Variable.
+          $zugang = -join (1..32 | ForEach-Object { '{0:x2}' -f (Get-Random -Maximum 256) })
+          $env:YSKAR_ZUGANG = $zugang
           Write-Host "Starte $($exe.FullName)"
           $p = Start-Process -FilePath $exe.FullName -PassThru
+          Remove-Item Env:YSKAR_ZUGANG
 
           $seite = $null
           for ($i = 0; $i -lt 90; $i++) {
@@ -244,8 +250,14 @@ jobs:
             if ($p.HasExited) { throw "Das Programm endet sofort wieder (Code $($p.ExitCode))." }
           }
           if (-not $seite) { throw 'Die Oberfläche antwortet nicht.' }
-          if ($seite.Content -notmatch 'name="yskar-zugang" content="([0-9a-f]{64})"') { throw 'Die Seite enthält keinen Zugangsschlüssel.' }
-          $kopf = @{ 'x-yskar-token' = $Matches[1] }
+          if ($seite.Content.Contains($zugang)) { throw 'Die Seite enthält den Zugangsschlüssel -- das darf seit 0.5.2 nicht mehr sein.' }
+          try {
+            Invoke-RestMethod 'http://127.0.0.1:8650/api/status' -TimeoutSec 10 | Out-Null
+            throw 'Die Schnittstelle antwortet ohne Zugangsschlüssel.'
+          } catch {
+            if ($_.Exception.Response.StatusCode.value__ -ne 401) { throw }
+          }
+          $kopf = @{ 'x-yskar-token' = $zugang }
           $ruf = { param($pfad, $rumpf) Invoke-RestMethod "http://127.0.0.1:8650$pfad" -Method Post -Headers $kopf -ContentType 'application/json' -Body $rumpf -TimeoutSec 30 }
 
           $s = Invoke-RestMethod 'http://127.0.0.1:8650/api/status' -Headers $kopf
