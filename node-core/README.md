@@ -1,4 +1,4 @@
-# YSKAR Node Core 0.5.2
+# YSKAR Node Core 0.6.0
 
 A full YSKAR node for Windows with its own window: wallet, mining (solo, in a
 pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -15,6 +15,26 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Program** | German and English, start with Windows, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 0.6.0
+
+- **Consensus revision 5 from height 7,000** (soft fork,
+  [docs/CONSENSUS_V5.md](../docs/CONSENSUS_V5.md)): timestamp not before the
+  parent's; canonical encoding and at most 1 MiB per block; coinbase version
+  1 or 2 with at most 32 bytes of `extra`; no version 2 coinbase output below
+  100 units. The program shows consensus revision 5.
+- **Mining jobs** (`MiningCoordinator.ts`): the timestamp is never earlier
+  than the parent's, even when the PC's clock is behind.
+- **Running a pool** (`src/lib/pool/settlement.ts`): shares below 100 units
+  and a fee below 100 units are left out of a block, so every output meets
+  the new rule.
+- **Side branches** (`src/lib/node/p2p/SyncManager.ts`, `ChainStore.ts`): a
+  block that does not extend the tip is fetched and checked only if its
+  branch is at most 144 blocks' worth of work below the tip or known headers
+  of the branch reach that far; side blocks more than 2,000 below the tip are
+  deleted. See [docs/P2P.md](../docs/P2P.md#side-branches-deep-below-the-tip).
+
+Wallet, settings and data folder are unchanged.
 
 ## What changed in 0.5.2
 
@@ -245,7 +265,7 @@ powershell -ExecutionPolicy Bypass -File .\build-desktop.ps1
 
 The finished installer is created under:
 
-`node-core\release\YSKAR-Node-Core-Setup-0.5.2.exe`
+`node-core\release\YSKAR-Node-Core-Setup-0.6.0.exe`
 
 A release build on GitHub is described in
 `.github/workflows/node-core-release.yml`: setting the branch
