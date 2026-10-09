@@ -412,12 +412,53 @@ When a block arrives:
 - If its parent is missing, the node asks the same peer for headers again. This is not
   misbehavior; the node only lacks the history.
 - If it is invalid, the node closes the connection and keeps nothing.
+- If it does not extend the node's tip and its branch has too little work (see below), the node
+  does not look at it: no validation, nothing stored, and the connection stays open.
 
 A node announces a block that one of its own miners found in the same way. A node that receives
 an `inv` for a block it does not have and has not already requested asks for it with `getdata`.
 There is one exception: a block whose header already waits in the list is not fetched on an
 announcement if the node does not have its parent and is not fetching the parent with the same
 announcement. It could not be accepted now and will be fetched in its turn.
+
+### Side branches deep below the tip
+
+A block that branches off deep below the tip can never take over the chain unless its branch
+gathers more work. Validating it still costs the node the recomputation of the account state of
+that branch, and storing it costs space for good. Since October 2026 the node therefore applies a
+minimum work, following the example of Bitcoin Core. This is a rule of the node, not a consensus
+rule: it decides which blocks the node looks at, not which blocks are valid.
+
+A block that does not extend the node's tip is fetched, validated and stored only if one of two
+conditions holds (`MINDESTARBEIT_BLOECKE` = 144 in `SyncManager.ts`):
+
+- the work of its branch is at most 144 blocks' worth of work below the tip, measured with the
+  difficulty of the tip; or
+- a waiting header of its branch reaches that far. The headers of a heavier branch therefore
+  release the whole branch, including its first blocks deep below the tip.
+
+A real competing block branches off one or two blocks below the tip and is not affected. When a
+node rejoins a branch with more work after a long separation, the headers of that branch show
+the work before the bodies are fetched. Headers cannot pretend work: each must meet the
+difficulty it states with real proof of work.
+
+A block below the minimum work is not misbehavior. The node keeps the connection, stores
+nothing, and does not fetch the same block again for a while (it remembers the last 1,024 such
+hashes). Waiting headers whose branch does not reach the minimum work are not fetched; they leave
+the list after 120 seconds (`ZWEIG_FRIST_MS`), or at once when the list is full and headers that
+do reach the minimum arrive.
+
+The rule sits in the P2P sync and not in `ChainManager.accept()`. The command-line node can also
+sync over HTTP, where it passes the blocks of another branch to `accept()` one by one, without
+headers first; there the rule would stop the sync.
+
+Blocks of side branches more than 2,000 blocks below the tip are deleted, together with their
+state snapshots (`SEITENBLOCK_TIEFE` in `ChainManager.ts`). Blocks of the active chain are always
+kept. If a branch that deep ever gathers more work, its blocks are fetched again from the peers.
+
+Limit: the waiting list holds at most 20,000 headers. A heavier branch whose work exceeds the tip
+only after more than 20,000 headers behind the point where it branches off (a separation of
+more than four months) is not recognized this way.
 
 ### Transfers
 
@@ -455,6 +496,13 @@ loopback interface, with a real chain and real TCP:
 | The same announcement three times | No request stays open |
 | A transfer travels to the next node and across one node to a third | It ends up in each mempool |
 | A rejected transfer | It is remembered and not requested again |
+
+`tests/seitenzweige.test.ts` checks the minimum work: a light side block deep below the tip is
+neither validated nor stored and the peer stays connected; the same block is valid and is accepted
+without the rule and through `accept()` directly; a competing block at the tip is accepted; a
+heavier branch after a long separation is adopted, also when its headers arrive in two messages
+and only the second one shows the work; light headers leave the list after the deadline; a full
+list of light headers does not hold up the real chain; and the deletion of deep side blocks.
 
 ### In the node
 

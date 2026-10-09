@@ -18,8 +18,9 @@
 import { deserializeBlock, headerHash, deserializeHeader } from '../../core/block.ts';
 import { targetFromDifficulty } from '../../core/params.ts';
 import { sha256d } from '../../core/hash.ts';
-import { toHex } from '../../core/codec.ts';
+import { toHex, fromHex } from '../../core/codec.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
+import { blockWork } from '../fullnode/ChainWork.ts';
 
 import type { ChainManager } from '../fullnode/ChainManager.ts';
 import type { ChainStore } from '../fullnode/ChainStore.ts';
@@ -102,6 +103,40 @@ export const GETHEADERS_FENSTER_MS = 10_000;
  * (Befund S4).
  */
 export const OFFENE_TX_MAX = 5_000;
+/**
+ * Mindestarbeit fuer Bloecke, die nicht die eigene Spitze verlaengern
+ * (Befund S7): Ein solcher Block wird nur geholt, geprueft und gespeichert,
+ * wenn sein Zweig hoechstens so viele Bloecke Arbeit unter der Spitze liegt
+ * -- gemessen an der Difficulty der Spitze -- oder wenn bekannte Header
+ * seines Zweigs so weit hinaufreichen.
+ *
+ * Warum: Ein Block, der an einen alten Block der Hauptkette anknuepft, darf
+ * einen aktuellen Zeitstempel tragen; die Notfallregel senkt seine
+ * Difficulty dann bis zur Untergrenze. Er ist gueltig und billig, kann die
+ * Kette nie uebernehmen -- und zwang den Knoten bisher, den Zustand seines
+ * Zweigs nachzurechnen und ihn fuer immer zu speichern.
+ *
+ * Das ist eine Regel des Knotens, keine Konsensregel: Sie entscheidet nur,
+ * welche Bloecke er sich ansieht. Welche Bloecke gueltig sind, bleibt
+ * unveraendert. Sie sitzt hier und nicht in ChainManager.accept, weil der
+ * Abgleich ueber HTTP (cli.ts) fremde Zweige Block fuer Block an accept
+ * gibt, ohne Header vorab -- dort braeche die Regel den Abgleich ab.
+ * 144 Bloecke sind ein Tag; ein echter Konkurrenzblock zweigt 1 oder 2
+ * Bloecke tief ab.
+ */
+export const MINDESTARBEIT_BLOECKE = 144;
+/**
+ * So lange darf ein Header in der Warteschlange stehen, dessen Zweig die
+ * Mindestarbeit (noch) nicht erreicht. Bei einem ehrlichen Zweig nach einer
+ * Netztrennung kommen die Header, die ihn ueber die Grenze heben, binnen
+ * Sekunden nach; was danach noch zu leicht ist, fliegt heraus -- sonst
+ * hielte ein Peer die Warteschlange mit Headern voll, deren Koerper nie
+ * bestellt werden (und die deshalb auch nie an WARTEND_VERSUCHE_MAX
+ * scheitern).
+ */
+export const ZWEIG_FRIST_MS = 120_000;
+/** Wie viele zu leichte Bloecke im Gedaechtnis bleiben (nicht neu holen). */
+export const LEICHT_RING = 1_024;
 
 export interface SyncOptionen {
   chain: ChainManager;
@@ -125,6 +160,8 @@ export interface SyncOptionen {
    * als eine Nachricht prueft, eine Kette von ueber 2000 geminten Bloecken.
    */
   maxHeaders?: number;
+  /** Mindestarbeit in Bloecken. Vorgabe MINDESTARBEIT_BLOECKE; nur fuer Tests kleiner. */
+  mindestArbeitBloecke?: number;
 }
 
 interface OffeneAnfrage {
@@ -141,6 +178,15 @@ interface Wartend {
   vor: Uint8Array;
   /** Wie oft eine Bestellung seines Koerpers ins Leere ging. */
   versuche: number;
+  /** Arbeit der Kette bis einschliesslich dieses Headers. */
+  arbeit: bigint;
+  /**
+   * Sein Zweig erreicht die Mindestarbeit: er selbst oder ein bekannter
+   * Header, der auf ihm aufbaut. Nur dann wird sein Koerper bestellt.
+   */
+  frei: boolean;
+  /** Seit wann er in der Warteschlange steht (Date.now()). */
+  seit: number;
 }
 
 export class SyncManager {
@@ -220,6 +266,10 @@ export class SyncManager {
    */
   private mehrVermutet = false;
   private maxHeaders: number;
+  private mindestBloecke: bigint;
+  /** Kuerzlich als zu leicht abgelehnte Bloecke -- nicht gleich wieder holen. */
+  private leicht = new Set<string>();
+  private leichtRing: string[] = [];
   /** getheaders je Peer: Beginn des laufenden Fensters und Anzahl darin. */
   private getheadersZaehler = new WeakMap<PeerConnection, { ab: number; n: number }>();
   /** Je Peer die letzte getheaders-Anfrage, die noch nicht beantwortet werden durfte. */
@@ -234,6 +284,7 @@ export class SyncManager {
     this.pool = o.pool ?? null;
     this.params = o.params ?? MAINNET;
     this.maxHeaders = o.maxHeaders ?? MAX_HEADERS;
+    this.mindestBloecke = BigInt(o.mindestArbeitBloecke ?? MINDESTARBEIT_BLOECKE);
     this.opt = o;
   }
 
@@ -442,8 +493,9 @@ export class SyncManager {
     const neu: Wartend[] = [];
     // Der letzte Header der Nachricht, in der Reihenfolge der Gegenseite.
     let letzter: Uint8Array | null = null;
-    // Hoehen der Header dieser Nachricht -- damit der naechste an sie anschliessen kann.
-    const inNachricht = new Map<string, number>();
+    // Hoehe und Arbeit der Header dieser Nachricht -- damit der naechste an
+    // sie anschliessen kann.
+    const inNachricht = new Map<string, { hoehe: number; arbeit: bigint }>();
 
     for (const h of roh) {
       /*
@@ -489,17 +541,23 @@ export class SyncManager {
       */
       const key = toHex(hash);
       const vorKey = toHex(kopf.prevHash);
-      const vorHoehe = inNachricht.get(vorKey) ?? this.wartend.get(vorKey)?.hoehe
-        ?? (kopf.height > 0 ? this.store.get(kopf.prevHash)?.height : undefined);
-      if (kopf.height > 0 && vorHoehe === undefined) continue;
-      if (kopf.height > 0 && kopf.height !== vorHoehe! + 1) {
+      const vor = kopf.height === 0 ? { hoehe: -1, arbeit: 0n }
+        : inNachricht.get(vorKey) ?? this.wartend.get(vorKey) ?? gespeichert(this.store, kopf.prevHash);
+      if (!vor) continue;
+      if (kopf.height !== vor.hoehe + 1) {
         return void p.close('header_hoehe_falsch');
       }
-      inNachricht.set(key, kopf.height);
+      // Die Arbeit, die dieser Header behauptet, ist durch seinen Proof of
+      // Work gedeckt (oben geprueft). Ob die Difficulty stimmt, prueft erst
+      // accept() -- ein Zweig mit falscher Difficulty kostet trotzdem echte
+      // Arbeit.
+      const arbeit = vor.arbeit + blockWork(kopf.difficulty);
+      inNachricht.set(key, { hoehe: kopf.height, arbeit });
 
       letzter = hash;
       if (this.store.has(hash)) continue;
-      neu.push({ hash, hoehe: kopf.height, key, vor: kopf.prevHash, versuche: 0 });
+      neu.push({ hash, hoehe: kopf.height, key, vor: kopf.prevHash, versuche: 0,
+                 arbeit, frei: this.reichtArbeit(arbeit), seit: Date.now() });
     }
 
     if (neu.length === 0) return;
@@ -514,6 +572,15 @@ export class SyncManager {
     */
     const grenze = WARTESCHLANGE_NACHRICHTEN * this.maxHeaders;
     neu.sort((a, b) => a.hoehe - b.hoehe);
+    /*
+      Ist kein Platz mehr, aber diese Nachricht bringt Header, die die
+      Mindestarbeit erreichen, weichen die zu leichten: Sonst koennte ein
+      Peer mit Headern eines leichten Zweigs den Abgleich der echten Kette
+      aufhalten, bis ZWEIG_FRIST_MS abgelaufen ist.
+    */
+    if (this.warteschlange.length + neu.length > grenze && neu.some(n => n.frei)) {
+      this.raeumeWarteschlange(true);
+    }
     let dazu = 0;
     for (const n of neu) {
       if (this.wartend.has(n.key)) continue;
@@ -525,6 +592,9 @@ export class SyncManager {
     if (dazu > 0) {
       this.log(`${dazu} neue Header von ${p.host}`);
       this.warteschlange.sort((a, b) => a.hoehe - b.hoehe);
+      // Was frei ist, gibt seine ganze Vorgeschichte in der Warteschlange
+      // frei: Ohne seine Vorgaenger liesse er sich nicht annehmen.
+      for (const n of neu) if (n.frei) this.gibFrei(n);
     }
 
     this.frageBloecke(p);
@@ -577,6 +647,8 @@ export class SyncManager {
       // immer ein Platz frei.
       if (this.offen.size >= BLOCK_FENSTER) break;
       if (this.offen.has(w.key) || this.store.has(w.hash)) continue;
+      // Ein Zweig unter der Mindestarbeit wird nicht geholt (S7).
+      if (!w.frei) continue;
       wunsch.push({ typ: INV_BLOCK, hash: w.hash });
       this.offen.set(w.key, { peer: p, seit: Date.now() });
     }
@@ -589,8 +661,24 @@ export class SyncManager {
 
   private aufBlock(p: PeerConnection, roh: Uint8Array): void {
     let hash: string;
-    try { hash = toHex(headerHash(deserializeBlock(roh).header)); }
+    let kopf;
+    try { kopf = deserializeBlock(roh).header; hash = toHex(headerHash(kopf)); }
     catch { return void p.close('block_unlesbar'); }
+
+    /*
+      Mindestarbeit (S7), BEVOR accept() den Zustand eines Nebenzweigs
+      nachrechnet. Ein zu leichter Block ist gueltig oder nicht -- in jedem
+      Fall kein Fehlverhalten, das sich hier feststellen liesse. Der Peer
+      bleibt verbunden; der Block wird nicht gespeichert und eine Weile
+      nicht neu geholt.
+    */
+    if (this.zuLeicht(kopf, hash)) {
+      this.offen.delete(hash);
+      this.entferneMitNachfahren(hash);
+      this.merkeLeicht(hash);
+      this.log(`Block ${kopf.height} von ${p.host} nicht angesehen: zu wenig Arbeit im Zweig`);
+      return;
+    }
 
     this.offen.delete(hash);
     // Bloecke kommen in der Reihenfolge der Warteschlange -- der Eintrag
@@ -710,8 +798,9 @@ export class SyncManager {
     for (const e of eintraege) {
       if (e.typ !== INV_BLOCK || this.store.has(e.hash)) continue;
       const k = toHex(e.hash);
-      if (this.offen.has(k) || gewuenscht.has(k)) continue;
+      if (this.offen.has(k) || gewuenscht.has(k) || this.leicht.has(k)) continue;
       const w = this.wartend.get(k);
+      if (w && !w.frei) continue;
       if (w && !this.store.has(w.vor) && !gewuenscht.has(toHex(w.vor))) continue;
       wunsch.push(e);
       gewuenscht.add(k);
@@ -866,20 +955,94 @@ export class SyncManager {
    * und alle, die auf ihnen aufbauen: Ohne ihren Vorgaenger liesse sich
    * keiner von ihnen je annehmen.
    *
+   * Ebenso Header eines Zweigs unter der Mindestarbeit (S7), die laenger als
+   * ZWEIG_FRIST_MS warten -- oder alle solchen, wenn `alleLeichten` gesetzt
+   * ist, weil Platz fuer freie Header gebraucht wird.
+   *
    * @returns wie viele Eintraege entfernt wurden
    */
-  private raeumeWarteschlange(): number {
+  private raeumeWarteschlange(alleLeichten = false): number {
     const weg = new Set<string>();
+    const jetzt = Date.now();
     for (const w of this.warteschlange) {
       if (w.versuche >= WARTEND_VERSUCHE_MAX || weg.has(toHex(w.vor))) weg.add(w.key);
+      // Zu leicht und zu lange da -- oder Platz wird fuer Freie gebraucht.
+      else if (!w.frei && (alleLeichten || jetzt - w.seit > ZWEIG_FRIST_MS)) weg.add(w.key);
     }
     if (weg.size === 0) return 0;
     this.warteschlange = this.warteschlange.filter(w => !weg.has(w.key));
     for (const k of weg) { this.wartend.delete(k); this.offen.delete(k); }
     this.mehrVermutet = true;
-    this.log(`${weg.size} Header ohne lieferbaren Koerper aus der Warteschlange genommen`);
+    this.log(`${weg.size} Header aus der Warteschlange genommen (kein Koerper lieferbar oder Zweig zu leicht)`);
     return weg.size;
   }
+
+  // ------------------------------------------------------ Mindestarbeit (S7)
+
+  /**
+   * Erreicht ein Zweig mit dieser Arbeit die Mindestarbeit? Ja, wenn er
+   * hoechstens MINDESTARBEIT_BLOECKE Bloecke Arbeit unter der Spitze liegt
+   * -- die Difficulty der Spitze als Mass. Was die Spitze verlaengert, liegt
+   * immer darueber.
+   */
+  private reichtArbeit(arbeit: bigint): boolean {
+    const tip = this.chain.tip();
+    if (!tip) return true;
+    return arbeit + this.mindestBloecke * blockWork(tip.difficulty) >= tip.chainWork;
+  }
+
+  /** Einen Header und alle seine Vorgaenger in der Warteschlange freigeben. */
+  private gibFrei(w: Wartend): void {
+    let x: Wartend | undefined = w;
+    while (x) {
+      x.frei = true;
+      const vor = this.wartend.get(toHex(x.vor));
+      if (!vor || vor.frei) break;
+      x = vor;
+    }
+  }
+
+  /**
+   * Ist dieser Block zu leicht, um ihn anzusehen?
+   *
+   * Nein, wenn er bekannt ist (accept antwortet "bekannt"), wenn sein
+   * Vorgaenger fehlt (accept fordert ihn an; ohne Vorgaenger rechnet
+   * niemand etwas nach), wenn er als Header frei ist oder wenn sein Zweig
+   * die Mindestarbeit erreicht.
+   */
+  private zuLeicht(kopf: { height: number; prevHash: Uint8Array; difficulty: bigint }, hash: string): boolean {
+    if (kopf.height === 0) return false;
+    if (this.wartend.get(hash)?.frei) return false;
+    if (this.store.has(fromHex(hash))) return false;
+    const vor = gespeichert(this.store, kopf.prevHash);
+    if (!vor) return false;
+    let arbeit: bigint;
+    try { arbeit = vor.arbeit + blockWork(kopf.difficulty); }
+    catch { return false; }
+    return !this.reichtArbeit(arbeit);
+  }
+
+  /** Einen Eintrag aus der Warteschlange nehmen, mit allen, die auf ihm aufbauen. */
+  private entferneMitNachfahren(key: string): void {
+    if (!this.wartend.has(key)) return;
+    const weg = new Set<string>([key]);
+    for (const w of this.warteschlange) if (weg.has(toHex(w.vor))) weg.add(w.key);
+    this.warteschlange = this.warteschlange.filter(w => !weg.has(w.key));
+    for (const k of weg) { this.wartend.delete(k); this.offen.delete(k); }
+  }
+
+  private merkeLeicht(hash: string): void {
+    if (this.leicht.has(hash)) return;
+    this.leicht.add(hash);
+    this.leichtRing.push(hash);
+    while (this.leichtRing.length > LEICHT_RING) {
+      const raus = this.leichtRing.shift();
+      if (raus !== undefined) this.leicht.delete(raus);
+    }
+  }
+
+  /** Steht dieser Block im Gedaechtnis der zu leichten? Fuer Tests und Diagnose. */
+  istZuLeicht(hash: string): boolean { return this.leicht.has(hash); }
 
   /** Wie viele Ueberweisungen gerade angefordert und noch nicht geliefert sind. */
   offeneUeberweisungen(): number { return this.offeneTx.size; }
@@ -964,6 +1127,12 @@ export class SyncManager {
     }
     if (p) this.frageBloecke(p);
   }
+}
+
+/** Hoehe und Arbeit eines gespeicherten Blocks, oder undefined. */
+function gespeichert(store: ChainStore, hash: Uint8Array): { hoehe: number; arbeit: bigint } | undefined {
+  const b = store.get(hash);
+  return b ? { hoehe: b.height, arbeit: b.chainWork } : undefined;
 }
 
 /** Sendepuffer eines Peers -- 0, wenn die Verbindung ihn nicht nennen kann. */

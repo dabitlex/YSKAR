@@ -29,7 +29,8 @@ For every block the node checks:
 
 On top of that the node:
 
-- stores all valid blocks, including blocks on side branches, in a local SQLite file,
+- stores all valid blocks, including blocks on side branches, in a local SQLite file; side
+  blocks more than 2,000 blocks below the tip are deleted (see [P2P.md](P2P.md#side-branches-deep-below-the-tip)),
 - makes the valid chain with the most cumulative work its active chain and switches branches
   when another one overtakes it (a reorganization, or reorg),
 - exchanges blocks and transfers with other nodes over TCP port 8646 ([P2P.md](P2P.md)),

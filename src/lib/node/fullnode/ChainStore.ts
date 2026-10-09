@@ -311,6 +311,27 @@ export class ChainStore {
         SELECT height FROM snapshots ORDER BY height DESC LIMIT ?)`).run(behalten);
   }
 
+  /**
+   * Bloecke von Nebenzweigen unterhalb einer Hoehe loeschen, samt ihren
+   * Zustandsmarken (Befund S7).
+   *
+   * Ein Seitenblock tief unter der Spitze kann die aktive Kette nur noch
+   * ueber einen Zweig mit mehr Arbeit verdraengen; die Bloecke eines solchen
+   * Zweigs holt der Knoten dann neu von seinen Peers. Bis dahin belegen sie
+   * nur Platz. Bloecke der aktiven Kette bleiben immer.
+   *
+   * @returns wie viele Bloecke geloescht wurden
+   */
+  raeumeSeitenbloecke(unterHoehe: number): number {
+    return this.transaktion(() => {
+      this.db.prepare(`
+        DELETE FROM snapshots WHERE hash IN (
+          SELECT hash FROM blocks WHERE main_chain = 0 AND height < ?)`).run(unterHoehe);
+      const r = this.db.prepare('DELETE FROM blocks WHERE main_chain = 0 AND height < ?').run(unterHoehe);
+      return Number(r.changes);
+    });
+  }
+
   transaktion<T>(fn: () => T): T {
     this.db.exec('BEGIN');
     try { const r = fn(); this.db.exec('COMMIT'); return r; }

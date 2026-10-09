@@ -30,6 +30,13 @@ import { blockWork, compareTips } from './ChainWork.ts';
 
 /** Abstand zwischen Zustandsmarken auf der aktiven Kette. */
 export const SNAPSHOT_INTERVAL = 200;
+/**
+ * Bloecke von Nebenzweigen, die mehr als so viele Bloecke unter der Spitze
+ * liegen, werden geloescht (Befund S7, ChainStore.raeumeSeitenbloecke).
+ * Ueber zwei Wochen Kette: Ein Zweig, der so tief abzweigt und trotzdem
+ * noch gewinnt, wird ohnehin von den Peers neu geholt.
+ */
+export const SEITENBLOCK_TIEFE = 2_000;
 
 /**
  * Was die Zeit- und die Difficulty-Regel von der Vorgeschichte bekommen.
@@ -293,6 +300,11 @@ export class ChainManager {
     });
 
     const wechsel = this.besteKetteWaehlen({ hash, state: nachher });
+    // Tiefe Seitenbloecke aufraeumen. Eine Abfrage ueber den Index
+    // (main_chain, height); meistens loescht sie nichts.
+    if (this.zustandHoehe > SEITENBLOCK_TIEFE) {
+      this.store.raeumeSeitenbloecke(this.zustandHoehe - SEITENBLOCK_TIEFE);
+    }
     // Wurde der Block nicht Kopf der aktiven Kette, ist er der juengste
     // Block eines Nebenzweigs -- sein Zustand wird fuer den naechsten Block
     // dieses Zweigs gebraucht. Als Kopf wird `nachher` nicht gemerkt: Nach
