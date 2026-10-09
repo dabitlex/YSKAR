@@ -107,7 +107,8 @@ an old client gets a clear answer instead of a 404:
   `POST /api/v2/tx`
 - `/api/v1/mining/session`, `/session/stop`, `/job`, `/share`, `/status`
 
-Each answers HTTP 410 (`src/lib/api/stillgelegt.ts`). The addresses in this example depend on
+Each answers HTTP 410 (`src/lib/api/stillgelegt.ts`; the `/api/v1` paths through the single
+catch-all `src/app/api/v1/[...pfad]/route.ts`). The addresses in this example depend on
 `YSKAR_FULLNODE_URL`:
 
 ```json
@@ -129,9 +130,11 @@ mirror is behind by definition and must not issue jobs.
 The command-line miner's default `--api` is the public main node, `https://yskar-main.dynv6.net`.
 Until 9 October 2026 it was `https://yskar.vercel.app`, which answers 410 (issue #8).
 
-The routes under `/api/v1/chain/` and `/api/v1/auth/telegram` belong to the first chain (see
-[history/FIRST_CHAIN_SECURITY.md](history/FIRST_CHAIN_SECURITY.md)). Nothing in the current app,
-explorer, miner or node calls them.
+The other routes under `/api/v1` (`/api/v1/chain/…` and `/api/v1/auth/telegram`, which issued
+JWTs) belonged to the first chain (see [history/FIRST_CHAIN_SECURITY.md](history/FIRST_CHAIN_SECURITY.md)).
+Nothing in the current app, explorer, miner, node or wallet app called them, and they were removed
+on 9 October 2026 (issue #5). Any request under `/api/v1` other than the mining paths above now
+answers 410 with `"error": "gone"` and points to `/api/v2`.
 
 ## The mirror
 
@@ -315,8 +318,10 @@ The files in `supabase/migrations` are applied by hand. The repository contains 
 configuration that applies them, and they are a record of what was changed, not a history that can
 be replayed against an empty database. Migration `00016_commit_block_u64.sql`, for example,
 contains only a description; the full body of the changed function exists in the database alone.
-Migrations `00001` to `00006` belong to the first chain (schema `public`); `00007` and later
-belong to `chain2`.
+Migrations `00007` and later belong to `chain2`. The migrations `00001` to `00006` of the first
+chain (schema `public`) were removed from the repository on 9 October 2026 (issue #5); the git
+history keeps them. Their tables still exist in the database: removing the files does not drop
+them, and nothing reads them any more.
 
 When a consensus change widens a value, the database has to follow before the height at which the
 change applies. Migration `00020_difficulty_numeric.sql` did this for the difficulty of revision
@@ -335,7 +340,7 @@ way as a lost block.
 | `NEXT_PUBLIC_MINING_BASE` | yes | Address of the full node the web app uses for solo mining sessions and for submitting transfers. It is built into the client code, so a change takes effect only with a new build. If it is empty, the app sends these requests to its own server, which answers 410. Pool mining goes to the address of the chosen pool instead. |
 | `YSKAR_SPIEGEL_TOKEN` | no | Mirror token, see above. |
 | `YSKAR_ADMIN_TOKEN` | no | Token for `POST /api/v2/news`. Without it that route answers 401 to every request. |
-| `TELEGRAM_BOT_TOKEN`, `JWT_SECRET`, `TELEGRAM_INITDATA_MAX_AGE` | no | Read only by `/api/v1/auth/telegram`, a route of the first chain that nothing calls any more. |
+| `TELEGRAM_BOT_TOKEN`, `JWT_SECRET`, `TELEGRAM_INITDATA_MAX_AGE` | no | No longer read by any code since `/api/v1/auth/telegram` was removed on 9 October 2026. They can be deleted from the project. |
 
 The website project needs no variables.
 

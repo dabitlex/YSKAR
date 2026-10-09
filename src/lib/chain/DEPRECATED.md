@@ -18,10 +18,11 @@ can be rebuilt from the blocks. The protocol of the current chain is described i
 | File | Status | Used by |
 |---|---|---|
 | `finderName.ts` | Live code of the current chain. It converts the name of a block finder or pool to and from the `extra` field of the coinbase (`finderName`, `nameToExtra`, `MAX_FINDER_BYTES`). | The full node (`src/lib/node/fullnode/cli.ts`, `ReadApi.ts`), Node Core (`node-core/src/main.ts`, `PoolBetrieb.ts`, `WalletKette.ts`), the server route `src/app/api/v2/blocks/route.ts`, and tests |
-| `blockView.ts` | First chain. Prepares a block row of the first chain for display. | The routes `src/app/api/v1/chain/blocks` and `src/app/api/v1/chain/blocks/[height]` |
-| `params.ts` | First chain. Reads the parameters of the first chain from the database table `chain_params`. | The route `src/app/api/v1/chain/summary` |
 
 ## Removed files
+
+`blockView.ts` and `params.ts` were removed on 9 October 2026 together with the routes under
+`/api/v1` that were their only users (issue #5).
 
 `difficulty.ts`, `target.ts` and `vardiff.ts` of the first chain were removed on 9 October 2026
 (issue #5). Only `tests/chain.test.ts` still used them, and they had drifted from the live code:

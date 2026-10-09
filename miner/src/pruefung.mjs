@@ -32,7 +32,7 @@ export const LEICHTESTES_ZIEL = toHex(targetBytes(1));
  * Schreibrichtung umdrehen. Uebrig bleibt druckbarer Text.
  */
 export function sauber(x) {
-  return String(x).replace(/[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g, '');
+  return String(x).replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '');
 }
 
 /** Alle Texte einer Antwort saeubern -- tief, aber begrenzt. */
