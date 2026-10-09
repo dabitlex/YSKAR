@@ -15,7 +15,7 @@ accounting, the wallet and mining apps, the miners, the explorer and the website
 | | | |
 |---|---|---|
 | **Android app** | YSKAR Wallet with mining | [Download the APK](https://github.com/dabitlex/YSKAR/releases/latest) |
-| **Node Core for Windows** | Full node, wallet and mining in one program | [Installer 0.5.1](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.5.1/YSKAR-Node-Core-Setup-0.5.1.exe) · [Notes and checksum](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.5.1) |
+| **Node Core for Windows** | Full node, wallet and mining in one program | [Installer 0.5.2](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.5.2/YSKAR-Node-Core-Setup-0.5.2.exe) · [Notes and checksum](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.5.2) |
 | **Telegram Mini App** | Nothing to install | [@YSKAR_bot](https://t.me/YSKAR_bot) |
 | **Website** | Guides, whitepaper, explorer | [www.yskar.app](https://www.yskar.app) |
 | **Telegram channel** | Releases and news | [@yskar_official](https://t.me/yskar_official) |
