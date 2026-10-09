@@ -15,7 +15,7 @@
  * Historische Bloecke werden nie veraendert oder geloescht. Ein Reorg
  * markiert nur um, welcher Zweig gerade gilt.
  */
-import { deserializeBlock, headerHash, checkBlockStructure, type Block, type BlockHeader }
+import { deserializeBlock, headerHash, checkBlockStructure, serializeBlock, type Block, type BlockHeader }
   from '../../core/block.ts';
 import { validateBlock, checkDifficulty, type ValidationError } from '../../core/validate.ts';
 import { checkTimestamp, type BlockTiming } from '../../core/difficulty.ts';
@@ -148,10 +148,34 @@ export class ChainManager {
    */
   accept(roh: Uint8Array): AcceptResult {
     let block: Block;
-    try { block = deserializeBlock(roh); }
-    catch (e) { return { ok: false, grund: 'unlesbar', detail: String((e as Error).message) }; }
+    let hash: Uint8Array;
+    let kanonisch: Uint8Array;
+    /*
+      Gespeichert und weitergegeben wird der Block in SEINER EIGENEN
+      Kodierung, nicht in den empfangenen Bytes (Issue #10).
 
-    const hash = headerHash(block.header);
+      Der Blockhash deckt nur den Header ab, die Merkle-Wurzel nur die
+      Transaktions-IDs -- beide aus den gelesenen Feldern. Bytes hinter der
+      letzten Transaktion oder in einem zu langen Transaktionsrahmen liest
+      deserializeBlock nicht und aendern keinen Hash. Bisher wurden sie mit
+      gespeichert: Ein Peer konnte einen fremden, gueltigen Block mit bis zu
+      2 MiB Muell zuerst zustellen, und der Knoten hielt und verteilte diese
+      Fassung -- auch an den Spiegel, der ueber 1 MiB ablehnt. Die saubere
+      Fassung galt danach als "bekannt".
+
+      Neu kodiert ist der Block derselbe: gleicher Hash, gleiche
+      Transaktionen, gleiche Gueltigkeit. Das ist keine Konsensaenderung.
+
+      headerHash und serializeBlock stehen mit im try: Beide kodieren den
+      Header neu und werfen bei einem Feld, das sich so nicht schreiben
+      laesst (etwa Difficulty 0). Das ist ein unlesbarer Block, kein Absturz.
+    */
+    try {
+      block = deserializeBlock(roh);
+      hash = headerHash(block.header);
+      kanonisch = serializeBlock(block);
+    } catch (e) { return { ok: false, grund: 'unlesbar', detail: String((e as Error).message) }; }
+
     if (this.store.has(hash)) return { ok: true, stored: false, grund: 'bekannt' };
 
     const strukturfehler = checkBlockStructure(block);
@@ -254,7 +278,7 @@ export class ChainManager {
       chainWork: arbeit, difficulty: block.header.difficulty,
       blockTime: block.header.timestamp,
       merkleRoot: block.header.merkleRoot, stateRoot: block.header.stateRoot,
-      txCount: block.txs.length, body: roh,
+      txCount: block.txs.length, body: kanonisch,
       status: 'valid', mainChain: false,
     });
 

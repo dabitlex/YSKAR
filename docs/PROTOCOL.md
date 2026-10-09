@@ -670,6 +670,12 @@ transaction of a block. Transaction IDs are computed from the re-serialized fiel
 change neither a transaction ID nor the block hash, and the node accepts the block. Blocks built by the
 node contain no such bytes.
 
+The node stores and forwards every accepted block in its own encoding (`serializeBlock` of the decoded
+block), not in the bytes it received. Extra bytes are therefore dropped on arrival: two nodes hold the same
+bytes for the same block, and a peer cannot make a node keep or pass on an inflated copy (issue #10). This
+is not a consensus change; the block, its hash and its validity are the same. Rejecting such bytes as
+invalid is planned for a later soft fork.
+
 ## Block validity
 
 A node accepts a block only if every check below passes. The order is the order of the code
