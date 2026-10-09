@@ -87,7 +87,7 @@ from height 7,000.
 | | Has to be updated? |
 |---|---|
 | Nodes that mine or run a pool (command-line node, Node Core) | **Yes, before height 7,000.** An old node can build blocks that updated nodes reject: with a timestamp before its parent when its clock is behind, or, as a pool, with a coinbase output below 100 units. Such a block would be lost. |
-| Other full nodes (command-line node, Node Core) | Recommended before height 7,000. Without the update a node keeps following the chain but does not check the new rules itself. |
+| Other full nodes (command-line node, Node Core) | **Please update before height 7,000.** Without the update a node keeps following the chain but does not check the new rules itself: it can show a block for a while that updated nodes reject, and it lacks the protection against cheap side branches. |
 | Web server (mirror, `/api/v2/block`) | Yes, before height 7,000. It checks rule 2 itself and the other rules through the core. |
 | Observer (`observer/`) | Yes. It checks rule 2 itself. |
 | App, Mini App, CLI miner, GPU miner | No. Miners take the timestamp from the job and do not build a coinbase. |
