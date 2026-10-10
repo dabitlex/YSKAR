@@ -3,12 +3,14 @@
   "version": "0.6.0",
   "private": true,
   "type": "module",
-  "description": "YSKAR Node Core native Windows desktop application",
+  "description": "YSKAR Node Core desktop application for Windows and Linux",
+  "homepage": "https://github.com/dabitlex/YSKAR",
   "main": "src/electron-main.mjs",
   "scripts": {
     "build": "node build.mjs",
     "start": "electron .",
     "dist": "npm run build && electron-builder --win nsis --publish never",
+    "dist:linux": "npm run build && electron-builder --linux deb AppImage --x64 --publish never",
     "build:gpu": "powershell -ExecutionPolicy Bypass -File gpu/build-gpu.ps1",
     "build:gpu-emu": "g++ -std=c++17 -O2 -o gpu/bin/yskar-cuda-emu gpu/yskar_host.cpp gpu/yskar_cpu.cpp -pthread",
     "test": "node --experimental-strip-types --test test/*.test.ts",
@@ -23,10 +25,12 @@
     },
     "files": [
       "src/electron-main.mjs",
+      "src/autostartLinux.mjs",
       "dist/node-core.cjs",
       "dist/miner.wasm",
       "dist/ui/**/*",
-      "build/icon.ico"
+      "build/icon.ico",
+      "build/icon.png"
     ],
     "asar": true,
     "win": {
@@ -43,6 +47,17 @@
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Utility",
+      "synopsis": "YSKAR full node with wallet and mining",
+      "maintainer": "dabitlex <287329668+dabitlex@users.noreply.github.com>",
+      "artifactName": "YSKAR-Node-Core-${version}-${arch}.${ext}"
+    },
     "extraResources": [
       {
         "from": "gpu/bin",
@@ -54,8 +69,13 @@
       {
         "from": "build/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
       }
-    ]
+    ],
+    "publish": null
   },
   "engines": {
     "node": ">=22.0.0"

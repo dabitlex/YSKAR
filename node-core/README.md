@@ -1,7 +1,7 @@
 # YSKAR Node Core 0.6.0
 
-A full YSKAR node for Windows with its own window: wallet, mining (solo, in a
-pool, or as the operator of a pool), block explorer and peer list. It runs
+A full YSKAR node for Windows and Linux with its own window: wallet, mining
+(solo, in a pool, or as the operator of a pool), block explorer and peer list. It runs
 the same node classes as the command-line node in `src/lib/node`.
 
 ## What it does
@@ -10,11 +10,11 @@ the same node classes as the command-line node in `src/lib/node`.
 |---|---|
 | **Node** | Full node on the P2P network. Checks every block itself, relays blocks and transfers. |
 | **Wallet** | 12 words, encrypted on this PC (PBKDF2-SHA256 400,000 rounds, AES-256-GCM). Send with a review step, receive with QR code, contacts, history from the own chain. The password is asked before every transfer. |
-| **Mining, solo** | CPU and NVIDIA GPU (CUDA). Work comes from the own node; a found block is announced to the peers directly. |
+| **Mining, solo** | CPU and NVIDIA GPU (CUDA; GPU on Windows only for now, see issue #9). Work comes from the own node; a found block is announced to the peers directly. |
 | **Mining, pool** | The same miners take their work from a pool node. The list is the one the app uses; any other pool can be entered by address. |
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
-| **Program** | German and English, start with Windows, keep running in the notification area, resume mining after start, update notice. |
+| **Program** | German and English, start when you log in, keep running in the notification area, resume mining after start, update notice. |
 
 ## What changed in 0.6.0
 
@@ -190,15 +190,16 @@ command-line miner use. One session per device (CPU, GPU).
   Mini App from the internet need HTTPS with a certificate; Node Core does
   not set that up -- see [docs/POOL.md](../docs/POOL.md).
 
-## Windows shell
+## Desktop shell
 
 `src/electron-main.mjs` shows the interface in its own window and provides
-what only the operating system can: folder dialog, Explorer, browser, start
-with Windows, the icon in the notification area.
+what only the operating system can: folder dialog, file manager, browser,
+start when you log in, the icon in the notification area. The same shell runs
+on Windows and Linux.
 
 The window is a sandboxed page without access to the system. Whatever the
-interface needs from Windows it asks from the local server (token as
-everywhere), which passes it on:
+interface needs from the operating system it asks from the local server
+(token as everywhere), which passes it on:
 
 - "Open folder" opens the program folder or the data folder, nothing else.
 - Links open in the user's browser, and only addresses from a fixed list
@@ -207,15 +208,18 @@ everywhere), which passes it on:
 - Only one instance runs. A second start brings the window to the front.
 - "Keep running when closed" hides the window in the notification area --
   only if the icon could be created there.
-- "Start with Windows" starts the program without a window.
+- "Start with Windows" (Linux: "Start when you log in") starts the program
+  without a window. On Windows Electron registers it; on Linux the shell
+  writes `~/.config/autostart/yskar-node-core.desktop`
+  (`src/autostartLinux.mjs`) and deletes it when switched off.
 - Updates: the program asks GitHub for the newest release tagged
   `node-core-vX.Y.Z` and shows it. Nothing is downloaded or installed by
   itself.
 
 ## Files
 
-In `%LOCALAPPDATA%\YSKAR\Node Core`, which the interface calls the program
-folder:
+In `%LOCALAPPDATA%\YSKAR\Node Core` (Linux: `~/.yskar/node-core`), which the
+interface calls the program folder:
 
 | File | |
 |---|---|
@@ -226,7 +230,8 @@ folder:
 | `pool.json`, `pool-fenster.json` | own pool: settings, saved window |
 | `protokoll.log` | log, at most 2 MB (`.alt` keeps the previous one) |
 
-The blockchain is in the data folder, by default `%LOCALAPPDATA%\YSKAR\Node`.
+The blockchain is in the data folder, by default `%LOCALAPPDATA%\YSKAR\Node`
+(Linux: `~/.yskar/node`).
 
 Defaults: P2P port 8646, node API port 8645, seed `yskar-main.dynv6.net:8646`.
 
@@ -267,16 +272,43 @@ The finished installer is created under:
 
 `node-core\release\YSKAR-Node-Core-Setup-0.6.0.exe`
 
+## Build on Linux
+
+Requirements: Node.js 22 or newer, the full repository one directory above
+`node-core`, internet access for the first `npm install`.
+
+```bash
+cd node-core
+npm ci
+npm run dist:linux
+```
+
+This creates two packages for x64 under `node-core/release`:
+
+| File | For |
+|---|---|
+| `YSKAR-Node-Core-<version>-amd64.deb` | Debian, Ubuntu, Linux Mint: `sudo apt install ./YSKAR-Node-Core-<version>-amd64.deb`, then start "YSKAR Node Core" from the application menu |
+| `YSKAR-Node-Core-<version>-x86_64.AppImage` | other distributions: `chmod +x` the file and run it. AppImages need FUSE 2; on Ubuntu 22.04 and newer that is the package `libfuse2` (`libfuse2t64` on 24.04) |
+
+The Linux version has no GPU miner yet (issue #9); it mines with the CPU. The
+icon in the notification area needs a desktop that shows such icons (on
+GNOME the AppIndicator extension). Without it the program runs normally, and
+closing the window ends it.
+
+## Release
+
 A release build on GitHub is described in
 `.github/workflows/node-core-release.yml`: setting the branch
-`node-core-release` to a commit builds the installer for the version in
-`package.json` and attaches it to a **draft** release with the text from
-`RELEASE_NOTES.md`. Publishing the draft by hand creates the tag
+`node-core-release` to a commit builds the Windows installer and the two
+Linux packages for the version in `package.json` and attaches all of them,
+each with its checksum, to a **draft** release with the text from
+`RELEASE_NOTES.md`. The draft is only created when both the Windows and the
+Linux build succeed. Publishing the draft by hand creates the tag
 `node-core-vX.Y.Z`. The Android app stays the repository's "latest" release
 (`.github/workflows/neueste-veroeffentlichung.yml`).
 
-After publishing a new version, the download link and the version number
-have to be updated in three places: the section "YSKAR Node Core" in
+After publishing a new version, the download links (Windows and Linux,
+separately) and the version number have to be updated in three places: the section "YSKAR Node Core" in
 `website/index.html`, the Node Core guide in `website/anleitungen.html` and
 the block "Download" in the repository's `README.md`. The same workflow warns if they still point to the old version.
 
@@ -291,9 +323,11 @@ The tests run the real application class on the test network: several nodes
 over TCP, the built-in miners with the real engine, a pool with guests, the
 wallet with real transfers.
 
-**Not covered by tests:** the Electron shell (window, notification area,
-start with Windows, installer) and a real graphics card. They can only be
-checked on a Windows PC.
+**Not covered by tests:** the Electron shell on a real desktop (window,
+notification area, start when you log in, installer) and a real graphics card.
+The release workflow starts the unpacked program on Windows and, under a
+virtual screen, on Linux; whether the icon and the autostart work on a real
+desktop can only be checked there.
 
 ## Development
 

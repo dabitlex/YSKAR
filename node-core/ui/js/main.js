@@ -6,7 +6,7 @@
  * `aktualisiere` kommt alle zwei Sekunden mit dem Stand des Knotens.
  */
 import { hole, sende, el, fuelle, zeichen, kristall, melde, text, zahl, netzName } from './kern.js';
-import { t, setzeSprache } from './i18n.js';
+import { t, setzeSprache, setzePlattform } from './i18n.js';
 import * as einrichtung from './einrichtung.js';
 import * as uebersicht from './uebersicht.js';
 import * as wallet from './wallet.js';
@@ -122,6 +122,7 @@ async function start() {
     return;
   }
   setzeSprache(stand.einstellungen?.sprache);
+  setzePlattform(stand.plattform);
 
   // Eingerichtet, aber der Knoten steht noch: sofort starten, wenn gewünscht.
   if (stand.configured && !stand.running && stand.einstellungen?.knotenSofort !== false) {

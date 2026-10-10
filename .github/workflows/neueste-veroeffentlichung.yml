@@ -1,7 +1,7 @@
 name: Neueste Veröffentlichung bleibt die App
 
 # In diesem Repository erscheinen zwei Dinge als "Release": die Android-App
-# (Tags app-v1.2.3) und der Node Core für Windows (Tags node-core-v1.2.3).
+# (Tags app-v1.2.3) und der Node Core für Windows und Linux (Tags node-core-v1.2.3).
 #
 # GitHub kennt aber nur EINE "neueste" Veröffentlichung -- und auf genau die
 # zeigen die Anleitung auf der Webseite und der Ausweich-Link der App
@@ -45,9 +45,10 @@ jobs:
           echo "::notice title=Neueste Veröffentlichung::$jetzt (veröffentlicht wurde ${{ github.event.release.tag_name }})"
           [ "$jetzt" = "$app" ] || { echo "::error::Neueste Veröffentlichung ist $jetzt statt $app."; exit 1; }
 
-  # Webseite und README nennen die Version im Download-Link. Zeigen sie nach
-  # einer neuen Veröffentlichung noch auf die alte, steht das hier als Warnung
-  # am Lauf -- mehr nicht: Der alte Link funktioniert weiter.
+  # Webseite und README nennen die Version im Download-Link, getrennt für
+  # Windows (.exe) und Linux (.deb). Zeigen sie nach einer neuen
+  # Veröffentlichung noch auf die alte, steht das hier als Warnung am Lauf --
+  # mehr nicht: Der alte Link funktioniert weiter.
   links:
     name: Zeigen Webseite und README auf diese Version?
     if: startsWith(github.event.release.tag_name, 'node-core-v')
@@ -60,12 +61,15 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           alt=0
+          v=${TAG#node-core-v}
           for datei in website/index.html README.md; do
-            if grep -qF "/releases/download/$TAG/" "$datei"; then
-              echo "$datei zeigt auf $TAG."
-            else
-              echo "::warning title=Download-Link::$datei zeigt noch nicht auf $TAG. Bitte den Link und die Versionsnummer dort anpassen."
-              alt=1
-            fi
+            for paket in "YSKAR-Node-Core-Setup-$v.exe" "YSKAR-Node-Core-$v-amd64.deb"; do
+              if grep -qF "/releases/download/$TAG/$paket" "$datei"; then
+                echo "$datei zeigt auf $paket."
+              else
+                echo "::warning title=Download-Link::$datei zeigt noch nicht auf $paket. Bitte den Link und die Versionsnummer dort anpassen."
+                alt=1
+              fi
+            done
           done
           [ "$alt" = 0 ] && echo "::notice title=Download-Link::Webseite und README zeigen auf $TAG." || true

@@ -1,9 +1,11 @@
 name: Node Core bauen und veröffentlichen
 
-# Baut den Windows-Installer des YSKAR Node Core.
+# Baut den YSKAR Node Core für Windows (Installer) und Linux (.deb, AppImage).
 #
-#   Zweig node-core-release  Tests, GPU-Miner, Installer -- und ein ENTWURF
-#                            einer Veröffentlichung mit dem Installer daran.
+#   Zweig node-core-release  Tests, GPU-Miner, beide Fassungen -- und ein
+#                            ENTWURF einer Veröffentlichung, an dem die Dateien
+#                            für Windows UND Linux getrennt hängen. Der Nutzer
+#                            lädt die Datei für sein System.
 #                            Wer diesen Zweig auf einen Stand setzt, bekommt
 #                            den Entwurf für die Version aus package.json.
 #   von Hand, mit Haken      dasselbe, vom gewählten Zweig aus.
@@ -22,12 +24,15 @@ name: Node Core bauen und veröffentlichen
 #
 # Was hier geprüft wird und was nicht:
 #   - Die Tests laufen auf Linux gegen die echte Anwendungsklasse.
-#   - Der fertige Installer wird nicht installiert. Gestartet wird das
-#     ausgepackte Programm: Es muss seine Oberfläche ausliefern, die Hülle
-#     muss sich anmelden, ein zweiter Start darf kein zweites Programm
-#     ergeben, und es muss sich wieder beenden.
+#   - Die fertigen Pakete werden nicht installiert. Gestartet wird jeweils
+#     das ausgepackte Programm (Linux: unter einem virtuellen Bildschirm): Es
+#     muss seine Oberfläche ausliefern, die Hülle muss sich anmelden, ein
+#     zweiter Start darf kein zweites Programm ergeben, und es muss sich
+#     wieder beenden.
 #   - Eine Grafikkarte gibt es hier nicht. Dass der GPU-Miner RECHNET, kann
-#     nur ein PC mit NVIDIA-Karte zeigen.
+#     nur ein PC mit NVIDIA-Karte zeigen. Die Linux-Fassung hat noch keinen
+#     GPU-Miner (Issue #9); sie rechnet mit der CPU.
+#   - Ein Entwurf entsteht nur, wenn BEIDE Fassungen gebaut sind.
 
 on:
   push:
@@ -168,7 +173,7 @@ jobs:
         run: '"gebaut=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8'
 
   installer:
-    name: Installer
+    name: Windows-Installer
     needs: [pruefen, gpu]
     if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
     runs-on: windows-2022
@@ -317,13 +322,166 @@ jobs:
             node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
           if-no-files-found: error
 
+  linux:
+    name: Linux-Pakete
+    needs: [pruefen]
+    # 22.04: Was auf der älteren glibc gebaut ist, läuft auch auf neueren Systemen.
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
+        working-directory: node-core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: node-core/package-lock.json
+
+      - name: Version
+        id: version
+        run: |
+          set -euo pipefail
+          paket=$(node -p "require('./package.json').version")
+          quelle=$(sed -n "s/^export const VERSION = '\([^']*\)'.*/\1/p" src/main.ts)
+          if [ "$quelle" != "$paket" ]; then echo "::error::src/main.ts sagt $quelle, package.json sagt $paket."; exit 1; fi
+          echo "version=$paket" >> "$GITHUB_OUTPUT"
+          echo "Node Core $paket"
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Bundle und Pakete
+        run: npm run dist:linux
+
+      - name: Was im Paket liegt
+        run: |
+          set -euo pipefail
+          v='${{ steps.version.outputs.version }}'
+          ls -l release
+          res=release/linux-unpacked/resources
+          ls -l "$res"
+          for f in "$res/app.asar" "$res/icon.png"; do [ -f "$f" ] || { echo "::error::$f fehlt."; exit 1; }; done
+          for f in "release/YSKAR-Node-Core-$v-amd64.deb" "release/YSKAR-Node-Core-$v-x86_64.AppImage"; do
+            [ -f "$f" ] || { echo "::error::$f fehlt."; exit 1; }
+          done
+          dpkg-deb -I "release/YSKAR-Node-Core-$v-amd64.deb" | sed -n '/Package:/,$p'
+
+      # Wie unter Windows: das ausgepackte Programm wirklich starten -- hier
+      # unter einem virtuellen Bildschirm. --no-sandbox nur für diesen
+      # Probelauf: Im ausgepackten Ordner ist chrome-sandbox nicht
+      # eingerichtet; das .deb richtet es bei der Installation ein.
+      - name: Probelauf des Programms
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb > /dev/null
+          app=release/linux-unpacked/yskar-node-core-app
+          zugang=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+          YSKAR_ZUGANG=$zugang xvfb-run -a "$app" --no-sandbox > "$RUNNER_TEMP/app.log" 2>&1 &
+          pid=$!
+          seite=''
+          for i in $(seq 1 90); do
+            if seite=$(curl -sf --max-time 3 http://127.0.0.1:8650/); then break; fi
+            if ! kill -0 $pid 2>/dev/null; then echo "::error::Das Programm endet sofort wieder."; cat "$RUNNER_TEMP/app.log"; exit 1; fi
+            sleep 1
+          done
+          [ -n "$seite" ] || { echo "::error::Die Oberfläche antwortet nicht."; cat "$RUNNER_TEMP/app.log"; exit 1; }
+          if grep -qF "$zugang" <<<"$seite"; then echo "::error::Die Seite enthält den Zugangsschlüssel."; exit 1; fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8650/api/status)
+          [ "$code" = 401 ] || { echo "::error::Die Schnittstelle antwortet ohne Zugangsschlüssel mit $code."; exit 1; }
+
+          kopf="x-yskar-token: $zugang"
+          ruf() { curl -sf -X POST -H "$kopf" -H 'content-type: application/json' --data "$2" "http://127.0.0.1:8650$1"; }
+          feld() { node -e "const s=JSON.parse(require('fs').readFileSync(0,'utf8'));console.log(JSON.stringify($1))"; }
+
+          s=$(curl -sf -H "$kopf" http://127.0.0.1:8650/api/status)
+          echo "::notice title=Probelauf (Linux)::$(feld '{version:s.version,network:s.network,plattform:s.plattform,huelle:s.huelle}' <<<"$s")"
+          [ "$(feld 's.version' <<<"$s")" = '"${{ steps.version.outputs.version }}"' ] || { echo "::error::Falsche Version."; exit 1; }
+          [ "$(feld 's.network' <<<"$s")" = '"yskar-main-1"' ] || { echo "::error::Nicht im Mainnet."; exit 1; }
+          [ "$(feld 's.plattform' <<<"$s")" = '"linux"' ] || { echo "::error::Plattform nicht linux."; exit 1; }
+          [ "$(feld 's.huelle.vorhanden' <<<"$s")" = true ] || { echo "::error::Die Hülle hat sich nicht angemeldet."; exit 1; }
+
+          for d in /ui/app.css /ui/js/main.js /ui/fonts/manrope-latin-wght-normal.woff2; do
+            curl -sf -o /dev/null "http://127.0.0.1:8650$d" || { echo "::error::$d fehlt im Paket."; exit 1; }
+          done
+
+          # Start beim Anmelden: setzen, lesen, wieder löschen.
+          an=$(ruf /api/huelle/autostart '{"an":true}' | feld 's.autostart')
+          datei="$HOME/.config/autostart/yskar-node-core.desktop"
+          if [ -f "$datei" ]; then cat "$datei"; fi
+          aus=$(ruf /api/huelle/autostart '{"an":false}' | feld 's.autostart')
+          echo "::notice title=Start beim Anmelden::nach dem Einschalten $an, nach dem Ausschalten $aus"
+          [ "$an" = true ] && [ "$aus" = false ] && [ ! -f "$datei" ] || { echo "::error::Start beim Anmelden lässt sich nicht schalten."; exit 1; }
+
+          # Ein zweiter Start darf kein zweites Programm ergeben.
+          if ! timeout 20 xvfb-run -a "$app" --no-sandbox > /dev/null 2>&1; then
+            echo "::error::Ein zweiter Start bleibt als zweites Programm stehen."; exit 1
+          fi
+          curl -sf -H "$kopf" http://127.0.0.1:8650/api/status > /dev/null
+
+          # Beenden über die Oberfläche: Der Prozess muss wirklich enden.
+          ruf /api/shutdown '{}' > /dev/null
+          for i in $(seq 1 30); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+          if kill -0 $pid 2>/dev/null; then kill $pid; echo "::error::Das Programm beendet sich nicht."; exit 1; fi
+          echo "Das Programm hat sich beendet."
+          log="$HOME/.yskar/node-core/protokoll.log"
+          if [ -f "$log" ]; then echo '--- protokoll.log'; tail -30 "$log"; fi
+
+      - name: Prüfsummen
+        run: |
+          set -euo pipefail
+          v='${{ steps.version.outputs.version }}'
+          cd release
+          for f in "YSKAR-Node-Core-$v-amd64.deb" "YSKAR-Node-Core-$v-x86_64.AppImage"; do
+            sha256sum "$f" > "$f.sha256"
+            echo "::notice title=$f::$(stat -c %s "$f") Byte, SHA-256 $(cut -d' ' -f1 "$f.sha256")"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YSKAR-Node-Core-Linux-${{ steps.version.outputs.version }}
+          path: |
+            node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-amd64.deb
+            node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-amd64.deb.sha256
+            node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage
+            node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
+          if-no-files-found: error
+
+  entwurf:
+    name: Entwurf der Veröffentlichung
+    needs: [installer, linux]
+    # Nur mit BEIDEN Fassungen -- eine Veröffentlichung ohne Linux- oder ohne
+    # Windows-Datei gibt es nicht.
+    if: ${{ needs.installer.result == 'success' && needs.linux.result == 'success' && (github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: version
+        run: echo "version=$(node -p "require('./node-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}
+          path: dateien
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: YSKAR-Node-Core-Linux-${{ steps.version.outputs.version }}
+          path: dateien
+
+      - name: Was angehängt wird
+        run: ls -l dateien
+
       # Ein ENTWURF. Sichtbar wird die Veröffentlichung erst, wenn sie von
       # Hand freigegeben wird -- und erst dann findet das Programm sie auch
       # bei seiner Suche nach einer neuen Version. Den Tag gibt es bis dahin
       # nicht; GitHub legt ihn beim Freigeben auf diesem Stand an.
       - name: Entwurf der Veröffentlichung
         id: entwurf
-        if: env.RELEASE == 'true'
         uses: softprops/action-gh-release@v2
         with:
           draft: true
@@ -337,9 +495,12 @@ jobs:
           body_path: node-core/RELEASE_NOTES.md
           fail_on_unmatched_files: true
           files: |
-            node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe
-            node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
+            dateien/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe
+            dateien/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
+            dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-amd64.deb
+            dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-amd64.deb.sha256
+            dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage
+            dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
 
       - name: Wo der Entwurf liegt
-        if: env.RELEASE == 'true'
-        run: Write-Host "::notice title=Entwurf::node-core-v${{ steps.version.outputs.version }} auf ${{ github.sha }} -- ${{ steps.entwurf.outputs.url }}"
+        run: echo "::notice title=Entwurf::node-core-v${{ steps.version.outputs.version }} auf ${{ github.sha }} -- ${{ steps.entwurf.outputs.url }}"

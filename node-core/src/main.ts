@@ -1843,6 +1843,8 @@ export class NodeCoreApp {
     return {
       version: VERSION,
       network: this.params.network,
+      // Fuer die Oberflaeche: Unter Linux zeigt sie andere Texte als unter Windows.
+      plattform: process.platform,
       running: this.running,
       configured: this.configured,
       dataDir: this.config.dataDir,

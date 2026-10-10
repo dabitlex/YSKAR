@@ -1,18 +1,19 @@
 /*
- * Die Windows-Huelle des YSKAR Node Core.
+ * Die Desktop-Huelle des YSKAR Node Core, fuer Windows und Linux.
  *
  * Sie zeigt die Oberflaeche in einem eigenen Fenster und stellt dem Programm
- * bereit, was nur das Betriebssystem kann: Ordnerauswahl, Explorer, Browser,
- * den Start mit Windows und das Symbol im Infobereich neben der Uhr.
+ * bereit, was nur das Betriebssystem kann: Ordnerauswahl, Dateimanager,
+ * Browser, den Start beim Anmelden und das Symbol im Infobereich neben der Uhr.
  *
  * Das Fenster selbst bleibt eine abgeschottete Seite ohne Zugriff auf das
- * System. Alles, was die Oberflaeche von Windows braucht, erbittet sie beim
- * lokalen Server des Programms; der ruft die Funktionen hier unten.
+ * System. Alles, was die Oberflaeche vom Betriebssystem braucht, erbittet sie
+ * beim lokalen Server des Programms; der ruft die Funktionen hier unten.
  */
 import { app, BrowserWindow, dialog, shell, Tray, Menu, powerMonitor, nativeImage } from 'electron';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { autostartPfad, autostartAn, setzeAutostartLinux, startProgramm } from './autostartLinux.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -21,15 +22,18 @@ const { NodeCoreApp } = require('../dist/node-core.cjs');
 const SEITE = 'http://127.0.0.1:8650';
 /** Dieselbe Kennung wie im Installer (appId) -- unter ihr fuehrt Windows das Programm. */
 const KENNUNG = 'app.yskar.nodecore';
+const LINUX = process.platform === 'linux';
 /**
  * Das Programmsymbol. Zuerst neben der Anwendung (resources), dann im
- * Programmarchiv -- je nachdem, was Windows an dieser Stelle laden kann.
+ * Programmarchiv -- je nachdem, was das System an dieser Stelle laden kann.
+ * Unter Linux ein PNG: Ein .ico laedt Electron nur unter Windows.
  */
+const SYMBOLDATEI = LINUX ? 'icon.png' : 'icon.ico';
 const SYMBOLE = [
-  ...(process.resourcesPath ? [join(process.resourcesPath, 'icon.ico')] : []),
-  join(here, '..', 'build', 'icon.ico'),
+  ...(process.resourcesPath ? [join(process.resourcesPath, SYMBOLDATEI)] : []),
+  join(here, '..', 'build', SYMBOLDATEI),
 ];
-/** So startet Windows das Programm beim Anmelden -- dann ohne Fenster. */
+/** So startet das System das Programm beim Anmelden -- dann ohne Fenster. */
 const AUTOSTART_ARG = '--versteckt';
 const VERSTECKT_GESTARTET = process.argv.includes(AUTOSTART_ARG);
 
@@ -88,7 +92,7 @@ function baueTray(bild) {
   }
 }
 
-/** Was das Programm von Windows braucht. */
+/** Was das Programm vom Betriebssystem braucht. */
 const huelle = {
   async waehleOrdner(start) {
     const wahl = { title: 'YSKAR Node Core', defaultPath: start, properties: ['openDirectory', 'createDirectory'] };
@@ -107,10 +111,13 @@ const huelle = {
   autostart() {
     // Aus dem Quellbaum gestartet gibt es keinen Eintrag, der dieses Programm meint.
     if (!app.isPackaged) return false;
+    if (LINUX) return autostartAn(autostartPfad());
     return app.getLoginItemSettings({ args: [AUTOSTART_ARG] }).openAtLogin === true;
   },
   setzeAutostart(an) {
-    if (!app.isPackaged) throw new Error('Den Start mit Windows gibt es nur im installierten Programm.');
+    if (!app.isPackaged) throw new Error('Den Start beim Anmelden gibt es nur im installierten Programm.');
+    // Linux: eine .desktop-Datei in ~/.config/autostart (Electron kann das dort nicht).
+    if (LINUX) return setzeAutostartLinux(autostartPfad(), an, startProgramm(), AUTOSTART_ARG);
     app.setLoginItemSettings({ openAtLogin: an, args: [AUTOSTART_ARG] });
   },
   infobereich() {
@@ -131,7 +138,7 @@ async function createMainWindow() {
 
   const symbol = ladeSymbol();
   baueTray(symbol);
-  // Mit Windows gestartet: ohne Fenster -- aber nur, wenn es im Infobereich
+  // Beim Anmelden gestartet: ohne Fenster -- aber nur, wenn es im Infobereich
   // ein Symbol gibt, ueber das man es wieder oeffnen kann.
   const ohneFenster = VERSTECKT_GESTARTET && tray !== null;
 
@@ -210,7 +217,7 @@ async function createMainWindow() {
     }
   });
 
-  // Windows faehrt herunter oder meldet ab: Dann kommt kein "before-quit".
+  // Das System faehrt herunter oder meldet ab: Dann kommt kein "before-quit".
   // Der Knoten soll trotzdem ordentlich schliessen, soweit die Zeit reicht.
   mainWindow.on('session-end', () => {
     quitting = true;
@@ -303,7 +310,7 @@ const einzig = app.requestSingleInstanceLock();
 if (!einzig) {
   app.quit();
 } else {
-  // Vor allem anderen: Unter dieser Kennung legt Windows auch den Start beim Anmelden ab.
+  // Vor allem anderen: Unter dieser Kennung legt Windows auch den Start beim Anmelden ab (nur Windows).
   app.setAppUserModelId(KENNUNG);
   app.on('second-instance', () => zeigeFenster());
 
@@ -311,12 +318,13 @@ if (!einzig) {
     .then(async () => {
       await createMainWindow();
 
-      // Windows gesperrt oder im Ruhezustand: Die Wallet sperrt sich mit.
+      // Bildschirm gesperrt oder Ruhezustand: Die Wallet sperrt sich mit.
+      // (Die Sperre des Bildschirms meldet Electron nur unter Windows und macOS.)
       try {
         powerMonitor.on('lock-screen', () => core?.sperreWallet());
         powerMonitor.on('suspend', () => core?.sperreWallet());
       } catch (error) {
-        log(`Sperren mit Windows nicht verfügbar: ${error?.message || error}`);
+        log(`Sperren mit dem System nicht verfügbar: ${error?.message || error}`);
       }
     })
     .catch(async error => {
