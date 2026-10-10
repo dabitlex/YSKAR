@@ -900,14 +900,14 @@ export class MiningServer {
           /*
             Die Transaktionsgebuehren werden mit der Belohnung verteilt
             (Issue #12): nach Arbeit, und die Pool-Gebuehr gilt fuer beides.
-            Bisher rechnete pk.coinbase() ohne sie, und die ganze Differenz
+            Bisher rechnete pk.aufteilung() ohne sie, und die ganze Differenz
             ging an den groessten Anteil -- unter Umstaenden den Betreiber.
 
             Der Blockbau kennt die echten Gebuehren erst hier und reicht die
             Summe als `brutto` herein: brutto = Belohnung + Gebuehren.
           */
           const gebuehren = brutto - rewardAt(hoehe);
-          const a = pk!.coinbase(hoehe, gebuehren > 0n ? gebuehren : 0n, netz);
+          const a = pk!.aufteilung(hoehe, gebuehren > 0n ? gebuehren : 0n, netz);
           if (!a) return [];
           /*
             abrechnen() verteilt `brutto` damit auf die Einheit genau. Die

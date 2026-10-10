@@ -11,9 +11,7 @@
  * nebeneinander.
  */
 import { toHex } from '../core/codec.ts';
-import { buildCoinbaseV2 } from '../core/builder.ts';
 import { rewardAt } from '../core/params.ts';
-import type { Coinbase } from '../core/tx.ts';
 import { MAX_COINBASE_OUTPUTS } from '../core/params.ts';
 import { abrechnen, MAX_FEE_BPS, MAX_MINERS_JE_BLOCK, type Abrechnung } from './settlement.ts';
 import { ShareLog, fensterGroesse, PPLNS_FAKTOR, type ShareEintrag } from './pplns.ts';
@@ -37,8 +35,7 @@ export interface PoolEinstellungen {
   maxMiner?: number;
 }
 
-export interface BlockAbrechnung extends Abrechnung {
-  coinbase: Coinbase;
+export interface BlockAufteilung extends Abrechnung {
   /** Arbeit im Fenster, auf der die Aufteilung beruht. */
   fensterArbeit: bigint;
   /** Gebuehr, die bei diesem Block galt. */
@@ -136,14 +133,16 @@ export class PoolCoordinator {
   eintraege(): number { return this.log.laenge(); }
 
   /**
-   * Die Coinbase fuer einen Block bauen.
+   * Die Aufteilung fuer einen Block: wer wie viel bekommt.
+   *
+   * Die Coinbase selbst baut der Blockbau aus `outputs` (builder.ts,
+   * waehleCoinbase). Frueher entstand sie hier ein zweites Mal, ungenutzt.
    *
    * Findet sich keine Arbeit im Fenster -- etwa direkt nach dem Start --,
    * wird null geliefert. Der Aufrufer baut dann eine gewoehnliche Coinbase
    * der Fassung 1; ein Block ohne Empfaenger waere ungueltig.
    */
-  coinbase(height: number, fees: bigint, netzDifficulty: bigint,
-           extra?: Uint8Array): BlockAbrechnung | null {
+  aufteilung(height: number, fees: bigint, netzDifficulty: bigint): BlockAufteilung | null {
     const groesse = fensterGroesse(netzDifficulty, this.faktor);
     const anteile = this.log.anteile(groesse);
     if (anteile.length === 0) return null;
@@ -158,7 +157,6 @@ export class PoolCoordinator {
       ...r,
       feeBps: this.feeBps,
       fensterArbeit,
-      coinbase: buildCoinbaseV2(height, r.outputs, fees, extra),
     };
   }
 

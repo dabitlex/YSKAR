@@ -77,7 +77,7 @@ test('Drei Miner teilen sich einen Block nach geleisteter Arbeit', () => {
   p.share(A, 300n); p.share(B, 200n); p.share(C, 100n);
 
   const job = k.mining.createJob(A, 1n, new Uint8Array(0),
-    brutto => p.coinbase(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
+    brutto => p.aufteilung(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
   mine(k, job);
 
   const cb = deserializeBlock(k.store.mainAt(0)!.body).txs[0] as Coinbase;
@@ -106,7 +106,7 @@ test('Der Block wird vom Knoten vollständig geprüft und angenommen', () => {
   p.share(A, 100n); p.share(B, 100n);
 
   const job = k.mining.createJob(A, 1n, new Uint8Array(0),
-    () => p.coinbase(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
+    () => p.aufteilung(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
   const r = mine(k, job);
 
   assert.equal(r.ok, true);
@@ -123,7 +123,7 @@ test('Ohne Shares entsteht eine gewöhnliche Coinbase', () => {
   const p = pool();
 
   const job = k.mining.createJob(A, 1n, new Uint8Array(0),
-    () => p.coinbase(0, 0n, NETZ)?.outputs ?? []);
+    () => p.aufteilung(0, 0n, NETZ)?.outputs ?? []);
   mine(k, job);
 
   const cb = deserializeBlock(k.store.mainAt(0)!.body).txs[0] as Coinbase;
@@ -141,7 +141,7 @@ test('Die Gebühr geht an den Betreiber, der Rest an die Miner', () => {
   p.share(A, 100n); p.share(B, 100n);
 
   const job = k.mining.createJob(A, 1n, new Uint8Array(0),
-    () => p.coinbase(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
+    () => p.aufteilung(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
   mine(k, job);
 
   const cb = deserializeBlock(k.store.mainAt(0)!.body).txs[0] as Coinbase;
@@ -163,7 +163,7 @@ test('Ein Pool-Block trägt den Namen des Pools', () => {
   p.share(A, 100n);
 
   const job = k.mining.createJob(A, 1n, nameToExtra('pool.yskar.net'),
-    () => p.coinbase(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
+    () => p.aufteilung(0, 0n, NETZ)!.outputs.map(o => ({ ...o })));
   mine(k, job);
 
   const cb = deserializeBlock(k.store.mainAt(0)!.body).txs[0] as Coinbase;
@@ -187,7 +187,7 @@ test('Transaktionsgebühren landen mit in der Aufteilung', () => {
   let gesehen: bigint | null = null;
   const job = k.mining.createJob(A, 1n, new Uint8Array(0), brutto => {
     gesehen = brutto;
-    const a = p.coinbase(0, 0n, NETZ)!;
+    const a = p.aufteilung(0, 0n, NETZ)!;
     const out = a.outputs.map(o => ({ ...o }));
     const summe = out.reduce((m, o) => m + o.amount, 0n);
     out[0].amount += brutto - summe;      // Differenz auf den ersten

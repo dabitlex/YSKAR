@@ -44,6 +44,9 @@ test('Arbeit ist die Difficulty selbst', () => {
   // runden.
   assert.equal(blockWork(4096n), 4096n);
   assert.equal(cumulativeWork([100n, 200n, 300n]), 600n);
+  // Kurze Kette mit viel Arbeit schlaegt lange Kette mit wenig (vorher in
+  // core.test.ts, gegen die Doppelfassung in validate.ts).
+  assert.ok(cumulativeWork([5000n, 5000n]) > cumulativeWork([100n, 100n, 100n, 100n]));
   assert.throws(() => blockWork(0n));
   assert.throws(() => blockWork(-1n));
 });

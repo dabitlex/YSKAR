@@ -187,14 +187,3 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
 
   return null;
 }
-
-/**
- * Kumulierte Arbeit einer Kette. Bei zwei konkurrierenden Ketten gewinnt die
- * mit der hoeheren Summe -- nicht die laengere. Wird in Phase 2 fuer Reorgs
- * gebraucht; die Formel gehoert aber zum Konsens und steht deshalb hier.
- */
-export function cumulativeWork(difficulties: bigint[]): bigint {
-  let sum = 0n;
-  for (const d of difficulties) sum += d;
-  return sum;
-}

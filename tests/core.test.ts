@@ -727,12 +727,6 @@ test('Coinbase an eine fremde Adresse macht den Block ungültig', async () => {
     'ein anderer Empfaenger aendert den txid und damit die Merkle-Wurzel');
 });
 
-test('Kumulierte Arbeit summiert Difficulty, nicht Blockanzahl', () => {
-  assert.equal(V.cumulativeWork([100n, 200n, 300n]), 600n);
-  // Kurze Kette mit viel Arbeit schlaegt lange Kette mit wenig
-  assert.ok(V.cumulativeWork([5000n, 5000n]) > V.cumulativeWork([100n, 100n, 100n, 100n]));
-});
-
 // ---------------------------------------------------------------- Genesis
 
 /**

@@ -349,7 +349,7 @@ The accounting has three parts, all in `src/lib/pool/`:
 |---|---|
 | `pplns.ts` | decides which work counts |
 | `settlement.ts` | divides an amount among the work |
-| `PoolCoordinator.ts` | holds the settings of the operator and builds the coinbase |
+| `PoolCoordinator.ts` | holds the settings of the operator and computes the split for a block (`aufteilung`); the block builder turns it into the coinbase |
 
 All amounts are integers in the smallest unit (1 YSR = 100,000,000 units) and all arithmetic uses
 `BigInt`. Floating-point numbers would be fatal here: `0.1 + 0.2` is not `0.3`, and two nodes

@@ -190,7 +190,7 @@ test('Zwei Miner im Pool teilen sich das Fenster', async () => {
     }
 
     // Beide Adressen müssen im Fenster stehen.
-    const a = k.pk!.coinbase(2, 0n, 1n);
+    const a = k.pk!.aufteilung(2, 0n, 1n);
     assert.ok(a, 'die Aufteilung fehlt');
     assert.equal(a!.outputs.length, 2, 'beide Miner müssen Anteile bekommen');
   } finally { await k.zu(); }
