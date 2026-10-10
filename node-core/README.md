@@ -10,7 +10,7 @@ the same node classes as the command-line node in `src/lib/node`.
 |---|---|
 | **Node** | Full node on the P2P network. Checks every block itself, relays blocks and transfers. |
 | **Wallet** | 12 words, encrypted on this PC (PBKDF2-SHA256 400,000 rounds, AES-256-GCM). Send with a review step, receive with QR code, contacts, history from the own chain. The password is asked before every transfer. |
-| **Mining, solo** | CPU and NVIDIA GPU (CUDA; GPU on Windows only for now, see issue #9). Work comes from the own node; a found block is announced to the peers directly. |
+| **Mining, solo** | CPU and NVIDIA GPU (CUDA, on Windows and Linux). Work comes from the own node; a found block is announced to the peers directly. |
 | **Mining, pool** | The same miners take their work from a pool node. The list is the one the app uses; any other pool can be entered by address. |
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
@@ -290,7 +290,8 @@ This creates two packages for x64 under `node-core/release`:
 | `YSKAR-Node-Core-<version>-amd64.deb` | Debian, Ubuntu, Linux Mint: `sudo apt install ./YSKAR-Node-Core-<version>-amd64.deb`, then start "YSKAR Node Core" from the application menu |
 | `YSKAR-Node-Core-<version>-x86_64.AppImage` | other distributions: `chmod +x` the file and run it. AppImages need FUSE 2; on Ubuntu 22.04 and newer that is the package `libfuse2` (`libfuse2t64` on 24.04) |
 
-The Linux version has no GPU miner yet (issue #9); it mines with the CPU. The
+With `gpu/bin/yskar-cuda` present (see `gpu/README.md`, "Build on Linux"),
+the packages include the GPU miner; without it they mine with the CPU only. The
 icon in the notification area needs a desktop that shows such icons (on
 GNOME the AppIndicator extension). Without it the program runs normally, and
 closing the window ends it.

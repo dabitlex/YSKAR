@@ -63,7 +63,8 @@
         "from": "gpu/bin",
         "to": ".",
         "filter": [
-          "yskar-cuda.exe"
+          "yskar-cuda.exe",
+          "yskar-cuda"
         ]
       },
       {

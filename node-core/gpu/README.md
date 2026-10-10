@@ -24,6 +24,7 @@ whose hash meets the target. Whether such a nonce becomes a block is decided by 
 | A card that computes wrongly, or a program that does not answer the self-test, is refused | `test/gpu.test.ts` |
 | CPU and GPU never check the same nonces | `test/gpu.test.ts` |
 | The program compiles with `nvcc` and MSVC on Windows | The release workflow (`.github/workflows/node-core-release.yml` in the repository root) builds it on Windows with CUDA 11.8. It then runs `--probe` and records the outcome; without an NVIDIA driver the program is expected to end with an error there. |
+| The program compiles with `nvcc` and g++ on Linux | The same workflow builds it in the container `nvidia/cuda:12.8.1-devel-ubuntu20.04` with `gpu/build-gpu.sh`, runs `--probe` the same way and records which glibc version the result needs. |
 
 The CPU emulation is the same program with `yskar_cpu.cpp` in place of the CUDA kernel. Build it
 with `npm run build:gpu-emu`; it produces `gpu/bin/yskar-cuda-emu`. It identifies itself as an
@@ -172,6 +173,30 @@ If `gpu\bin\yskar-cuda.exe` exists, the installer places it next to the applicat
 asar archive, because programs cannot be started from inside the archive. If it is missing, the
 result is an installer without GPU mining. Both are valid.
 
+## Build on Linux
+
+```bash
+bash gpu/build-gpu.sh
+```
+
+The result is `gpu/bin/yskar-cuda`. You need the CUDA Toolkit (`nvcc` in `PATH`, or
+`NVCC=/path/to/nvcc`) and g++. The program is linked statically against the CUDA runtime and the
+C++ standard library; on the target machine it needs only the NVIDIA driver and a glibc at least as
+new as the one it was built against. The script prints that version at the end. Built on Ubuntu
+20.04, as in the release workflow, it runs on that and on newer systems. `ARCH="75 86" bash
+gpu/build-gpu.sh` builds for selected architectures only.
+
+The release workflow uses CUDA 12.8: it still supports Maxwell and Pascal (GTX 9xx, GTX 10xx) and
+already knows Blackwell (RTX 50xx). CUDA 13 no longer supports compute capabilities 50 to 72; with
+it the script skips them and says so. A CUDA 12 build needs an NVIDIA driver for CUDA 12 on the
+target machine.
+
+`npm run dist:linux` puts `gpu/bin/yskar-cuda` into the Linux packages of Node Core, next to the
+application as on Windows. A release also carries the program as a single file,
+`yskar-cuda-<version>-linux-x86_64`, for mining systems without a desktop such as HiveOS.
+
+The steps follow the proposal of derhier in issue #9.
+
 ## Protocol
 
 The program reads jobs from standard input and writes results to standard output, one JSON object
@@ -273,7 +298,8 @@ The program uses one CPU thread to drive the card. In CPU + GPU mode, leave one 
 
 ## Compute capabilities
 
-The script builds for every architecture in this list that the installed `nvcc` knows:
+The scripts build for every architecture in this list that the installed `nvcc` knows. The Linux
+script adds 100 and 120 (Blackwell, RTX 50xx), which need CUDA 12.8 or newer:
 
 | Compute Capability | Generation | Examples |
 |---|---|---|
@@ -304,6 +330,7 @@ gpu/yskar_host.cpp     protocol, self-test, benchmark, without CUDA
 gpu/yskar_cpu.cpp      CPU emulation for testing
 gpu/yskar_backend.h    the narrow C interface between them
 gpu/build-gpu.ps1      Windows build
+gpu/build-gpu.sh       Linux build
 gpu/test/test_sha.c    check against the genesis block, without a GPU
 gpu/bin/               build output, not in the repository
 ```

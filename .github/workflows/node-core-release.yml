@@ -30,8 +30,10 @@ name: Node Core bauen und veröffentlichen
 #     zweiter Start darf kein zweites Programm ergeben, und es muss sich
 #     wieder beenden.
 #   - Eine Grafikkarte gibt es hier nicht. Dass der GPU-Miner RECHNET, kann
-#     nur ein PC mit NVIDIA-Karte zeigen. Die Linux-Fassung hat noch keinen
-#     GPU-Miner (Issue #9); sie rechnet mit der CPU.
+#     nur ein PC mit NVIDIA-Karte zeigen. Für Linux wird der GPU-Miner im
+#     Container nvidia/cuda (CUDA 12.8) gebaut (Issue #9); er liegt in den
+#     Linux-Paketen und zusätzlich als einzelne Datei an der Veröffentlichung,
+#     etwa für Mining-Systeme wie HiveOS.
 #   - Ein Entwurf entsteht nur, wenn BEIDE Fassungen gebaut sind.
 
 on:
@@ -322,9 +324,59 @@ jobs:
             node-core/release/YSKAR-Node-Core-Setup-${{ steps.version.outputs.version }}.exe.sha256
           if-no-files-found: error
 
+  gpu-linux:
+    name: GPU-Miner Linux (CUDA)
+    runs-on: ubuntu-22.04
+    # Das offizielle Image von NVIDIA mit CUDA 12.8: Compiler und Laufzeit,
+    # sonst wird nichts geladen. CUDA 12.8 kennt Maxwell (GTX 9xx) bis
+    # Blackwell (RTX 50xx); CUDA 13 kennt Maxwell und Pascal nicht mehr.
+    container: nvidia/cuda:12.8.1-devel-ubuntu20.04
+    # Wie unter Windows: Auf dem Arbeitszweig darf dieser Teil scheitern --
+    # die Linux-Pakete entstehen dann ohne GPU-Miner. Eine Veröffentlichung
+    # braucht ihn.
+    continue-on-error: ${{ !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
+    outputs:
+      gebaut: ${{ steps.fertig.outputs.gebaut }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: yskar-cuda bauen
+        working-directory: node-core
+        shell: bash
+        run: bash gpu/build-gpu.sh
+
+      # Ohne Karte kann das Programm nicht rechnen -- aber es muss starten
+      # und sagen, dass es keine findet. Fehlt ihm eine Bibliothek oder
+      # stürzt es ab, endet es anders.
+      - name: Startet das Programm?
+        working-directory: node-core
+        shell: bash
+        run: |
+          set +e
+          aus=$(gpu/bin/yskar-cuda --probe 2>&1); ende=$?
+          set -e
+          echo "$aus"
+          case "$aus" in
+            *'"t":'*) ;;
+            *) echo "::error::yskar-cuda antwortet nicht wie erwartet (Code $ende)."; exit 1 ;;
+          esac
+          glibc=$(objdump -T gpu/bin/yskar-cuda | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          echo "::notice title=GPU-Miner Linux::yskar-cuda gebaut ($(stat -c %s gpu/bin/yskar-cuda) Byte, sha256 $(sha256sum gpu/bin/yskar-cuda | cut -c1-16), braucht $glibc). --probe endet hier mit $ende: $(echo $aus | tr -s ' ')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yskar-cuda-linux
+          path: node-core/gpu/bin/yskar-cuda
+          if-no-files-found: error
+
+      - id: fertig
+        shell: bash
+        run: echo "gebaut=true" >> "$GITHUB_OUTPUT"
+
   linux:
     name: Linux-Pakete
-    needs: [pruefen]
+    needs: [pruefen, gpu-linux]
+    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu-linux.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
     # 22.04: Was auf der älteren glibc gebaut ist, läuft auch auf neueren Systemen.
     runs-on: ubuntu-22.04
     defaults:
@@ -350,6 +402,18 @@ jobs:
           echo "version=$paket" >> "$GITHUB_OUTPUT"
           echo "Node Core $paket"
 
+      - name: GPU-Miner holen
+        if: ${{ needs.gpu-linux.outputs.gebaut == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: yskar-cuda-linux
+          path: node-core/gpu/bin
+
+      # Ein Artefakt verliert das Ausführungsrecht.
+      - name: GPU-Miner ausführbar machen
+        if: ${{ needs.gpu-linux.outputs.gebaut == 'true' }}
+        run: chmod 755 gpu/bin/yskar-cuda
+
       - name: Abhängigkeiten
         run: npm ci
 
@@ -364,6 +428,10 @@ jobs:
           res=release/linux-unpacked/resources
           ls -l "$res"
           for f in "$res/app.asar" "$res/icon.png"; do [ -f "$f" ] || { echo "::error::$f fehlt."; exit 1; }; done
+          if [ '${{ needs.gpu-linux.outputs.gebaut }}' = true ]; then
+            [ -x "$res/yskar-cuda" ] || { echo "::error::Der GPU-Miner wurde gebaut, liegt aber nicht ausführbar im Paket."; exit 1; }
+            dpkg-deb -c "release/YSKAR-Node-Core-$v-amd64.deb" | grep -E 'resources/yskar-cuda$'
+          fi
           for f in "release/YSKAR-Node-Core-$v-amd64.deb" "release/YSKAR-Node-Core-$v-x86_64.AppImage"; do
             [ -f "$f" ] || { echo "::error::$f fehlt."; exit 1; }
           done
@@ -415,6 +483,13 @@ jobs:
           echo "::notice title=Start beim Anmelden::nach dem Einschalten $an, nach dem Ausschalten $aus"
           [ "$an" = true ] && [ "$aus" = false ] && [ ! -f "$datei" ] || { echo "::error::Start beim Anmelden lässt sich nicht schalten."; exit 1; }
 
+          # Der GPU-Miner: Ohne Karte findet er nichts -- aber das Programm muss ihn finden.
+          gpu=$(ruf /api/mining/detect '{}' | feld 's.gpuErkennung')
+          echo "::notice title=GPU-Erkennung (Linux)::$gpu"
+          if [ -x release/linux-unpacked/resources/yskar-cuda ] && [ "$(feld 's.programm' <<<"$gpu")" = null ]; then
+            echo "::error::Der GPU-Miner liegt im Paket, wird vom Programm aber nicht gefunden."; exit 1
+          fi
+
           # Ein zweiter Start darf kein zweites Programm ergeben.
           if ! timeout 20 xvfb-run -a "$app" --no-sandbox > /dev/null 2>&1; then
             echo "::error::Ein zweiter Start bleibt als zweites Programm stehen."; exit 1
@@ -429,12 +504,20 @@ jobs:
           log="$HOME/.yskar/node-core/protokoll.log"
           if [ -f "$log" ]; then echo '--- protokoll.log'; tail -30 "$log"; fi
 
+      # Der GPU-Miner zusätzlich als einzelne Datei -- für Mining-Systeme
+      # ohne Desktop (HiveOS und ähnliche), die nur das Programm brauchen.
+      - name: GPU-Miner als einzelne Datei
+        if: ${{ needs.gpu-linux.outputs.gebaut == 'true' }}
+        run: cp gpu/bin/yskar-cuda "release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64"
+
       - name: Prüfsummen
         run: |
           set -euo pipefail
           v='${{ steps.version.outputs.version }}'
           cd release
-          for f in "YSKAR-Node-Core-$v-amd64.deb" "YSKAR-Node-Core-$v-x86_64.AppImage"; do
+          dateien=("YSKAR-Node-Core-$v-amd64.deb" "YSKAR-Node-Core-$v-x86_64.AppImage")
+          [ -f "yskar-cuda-$v-linux-x86_64" ] && dateien+=("yskar-cuda-$v-linux-x86_64")
+          for f in "${dateien[@]}"; do
             sha256sum "$f" > "$f.sha256"
             echo "::notice title=$f::$(stat -c %s "$f") Byte, SHA-256 $(cut -d' ' -f1 "$f.sha256")"
           done
@@ -447,6 +530,8 @@ jobs:
             node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-amd64.deb.sha256
             node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage
             node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
+            node-core/release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64
+            node-core/release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64.sha256
           if-no-files-found: error
 
   entwurf:
@@ -501,6 +586,8 @@ jobs:
             dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-amd64.deb.sha256
             dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage
             dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
+            dateien/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64
+            dateien/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64.sha256
 
       - name: Wo der Entwurf liegt
         run: echo "::notice title=Entwurf::node-core-v${{ steps.version.outputs.version }} auf ${{ github.sha }} -- ${{ steps.entwurf.outputs.url }}"
