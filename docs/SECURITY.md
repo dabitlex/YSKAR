@@ -92,13 +92,17 @@ trust the program that holds your keys and the program that validates for you.
   (`capacitor.config.ts`), so the point above applies as well. The APK itself is signed with the
   project's key. Android installs an update only if its signature matches the installed app.
   Every release also contains a `.sha256` file with the checksum of the APK.
-- **Node Core.** The program ships its UI inside the installer and serves it locally. The
-  Windows installer is not signed, so Windows shows "Windows protected your PC" when you run
-  it. To check that your download is the file that was published, compare its checksum with the
-  `.sha256` file of the release:
+- **Node Core.** The program ships its UI inside the installer or package and serves it locally.
+  The Windows installer is not signed, so Windows shows "Windows protected your PC" when you run
+  it; the Linux packages are not signed either. To check that your download is the file that was
+  published, compare its checksum with the `.sha256` file of the release:
 
   ```powershell
-  Get-FileHash .\YSKAR-Node-Core-Setup-0.6.0.exe -Algorithm SHA256
+  Get-FileHash .\YSKAR-Node-Core-Setup-0.7.0.exe -Algorithm SHA256
+  ```
+
+  ```bash
+  sha256sum -c YSKAR-Node-Core-0.7.0-amd64.deb.sha256
   ```
 
   A matching checksum tells you that the file was not altered between the release page and your
