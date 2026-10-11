@@ -10,6 +10,7 @@
  * Sie beweist NICHT, dass eine Grafikkarte arbeitet. Sie gibt sich als
  * Nachbildung zu erkennen, damit niemand ihre Zahlen fuer GPU-Werte haelt.
  */
+#include <stdlib.h>
 #include <string.h>
 #include "yskar_sha256.h"
 #include "yskar_backend.h"
@@ -23,12 +24,23 @@ extern "C" {
 int yskar_dev_is_emulation(void) { return 1; }
 const char *yskar_dev_error(void) { return ""; }
 
-int yskar_dev_count(int *anzahl) { *anzahl = 1; return 0; }
+/*
+ * Wie viele Karten die Nachbildung vorgibt. Ohne Angabe eine; mit
+ * YSKAR_EMU_GERAETE=n (1 bis 8) n Stueck -- fuer die Tests mit mehreren
+ * Karten. Jede rechnet gleich, sie heissen nur verschieden.
+ */
+static int emu_anzahl(void) {
+  const char *t = getenv("YSKAR_EMU_GERAETE");
+  int n = t ? atoi(t) : 1;
+  return n < 1 ? 1 : n > 8 ? 8 : n;
+}
+
+int yskar_dev_count(int *anzahl) { *anzahl = emu_anzahl(); return 0; }
 
 int yskar_dev_info(int id, char *name, int namelen,
                    int *major, int *minor, unsigned long long *vram, int *sm) {
-  (void)id;
-  snprintf(name, (size_t)namelen, "CPU-Nachbildung (keine GPU)");
+  if (emu_anzahl() > 1) snprintf(name, (size_t)namelen, "CPU-Nachbildung (keine GPU) #%d", id);
+  else snprintf(name, (size_t)namelen, "CPU-Nachbildung (keine GPU)");
   *major = 0; *minor = 0; *vram = 0; *sm = 0;
   return 0;
 }

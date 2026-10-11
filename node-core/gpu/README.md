@@ -23,6 +23,7 @@ whose hash meets the target. Whether such a nonce becomes a block is decided by 
 | A crash while mining or a missing program does not stop the node | `test/gpu.test.ts` |
 | A card that computes wrongly, or a program that does not answer the self-test, is refused | `test/gpu.test.ts` |
 | CPU and GPU never check the same nonces | `test/gpu.test.ts` |
+| Several cards at once: each with its own program, self-test and extranonce; one card failing does not stop the others | `test/gpu-mehrere.test.ts` and `test/gpu-api.test.ts`, with `YSKAR_EMU_GERAETE=3` |
 | The program compiles with `nvcc` and MSVC on Windows | The release workflow (`.github/workflows/node-core-release.yml` in the repository root) builds it on Windows with CUDA 11.8. It then runs `--probe` and records the outcome; without an NVIDIA driver the program is expected to end with an error there. |
 | The program compiles with `nvcc` and g++ on Linux | The same workflow builds it in the container `nvidia/cuda:12.8.1-devel-ubuntu20.04` with `gpu/build-gpu.sh`, runs `--probe` the same way and records which glibc version the result needs. |
 

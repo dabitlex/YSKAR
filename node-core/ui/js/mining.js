@@ -163,11 +163,17 @@ export function baue(ctx) {
     el('div.feldgruppe', el('div.karte-kopf', el('label', { for: 'm-kerne' }, t('min.kerne')), kerneText), kerne),
     el('div.feldgruppe', el('div.karte-kopf', el('label', { for: 'm-last' }, t('min.last')), lastText), last, el('p.hinweis', t('min.lastHinweis'))));
   const gpuChip = el('span');
-  const gpuWahl = el('select.feld', { id: 'm-gpu' });
+  /*
+   * Die Grafikkarten zum Ankreuzen. Jede gewählte Karte rechnet mit eigenem
+   * Programm und eigenem Nonce-Bereich (GpuGruppe im Kern).
+   */
+  const gpuListe = el('div.stapel', { id: 'm-gpu', style: 'gap:8px' });
+  const gpuListeName = el('span.feldname', t('min.karte'));
+  let gpuGewaehlt = null;   // Set der Kartennummern -- null, bis der Stand einmal da war
   const gpuGrund = el('p.hinweis');
   const gpuKasten = el('div.box.stapel', { style: 'gap:12px' },
     el('div.karte-kopf', el('h3', t('min.gpu')), gpuChip),
-    el('div.feldgruppe', el('label', { for: 'm-gpu' }, t('min.karte')), gpuWahl),
+    el('div.feldgruppe', gpuListeName, gpuListe),
     gpuGrund,
     el('div', knopf(t('min.gpuSuchen'), async () => { try { await sende('/api/mining/detect'); await ctx.neuLaden(); } catch (e) { melde(e.message, true); } }, 'klein')));
   const walletAdr = el('span.mono.dim', { style: 'font-size:12.5px' });
@@ -313,6 +319,11 @@ export function baue(ctx) {
 
   // -------------------------------------------------------------- Start
 
+  /** Die angekreuzten Karten, in der Reihenfolge der Liste. */
+  function gpuAuswahl() {
+    return [...gpuListe.querySelectorAll('input[type=checkbox]')].filter(b => b.checked).map(b => Number(b.value));
+  }
+
   async function schalte() {
     const an = ctx.stand()?.mining?.running;
     beschaeftigt = true; start.disabled = true;
@@ -323,7 +334,7 @@ export function baue(ctx) {
           address: zielWallet ? ctx.stand().wallet.adresse : adresse.value.trim(), mode: modus,
           ziel, ...(ziel === 'pool' ? { poolHost } : {}),
           cpuWorkers: Number(kerne.value), cpuIntensity: Number(last.value),
-          gpuDevice: Number(gpuWahl.value || 0), blockName: name.value.trim(),
+          gpuDevices: gpuAuswahl(), gpuDevice: gpuAuswahl()[0] ?? 0, blockName: name.value.trim(),
         });
         if (r.hinweise?.length) melde(r.hinweise.map((h, i) => knotenText(r.hinweisCodes?.[i]?.code, r.hinweisCodes?.[i]?.werte, h)).join(' '));
       }
@@ -409,7 +420,9 @@ export function baue(ctx) {
     text(lGesamt, m.running ? leistung(m.totalHashrate) : '—');
     text(lSeit, m.running ? t('pool.gesamtSeit', dauer(seit)) : t('min.nochNicht'));
     text(lCpu, c?.running ? leistung(c.hashrate) : '—');
-    text(lGpu, g?.running ? leistung(g.hashrate) : '—');
+    // Mit mehreren Karten: wie viele davon rechnen.
+    const gk = g?.karten ?? [];
+    text(lGpu, g?.running ? leistung(g.hashrate) + (gk.length > 1 ? ' · ' + t('min.nKarten', gk.filter(k => k.running).length, gk.length) : '') : '—');
     verlauf.setze(m.running && p ? m.verlauf : []);
 
     // Vor dem Start stehen hier die Angaben des gewählten Pools aus der Liste.
@@ -470,7 +483,7 @@ export function baue(ctx) {
       : !bereit && m.startklar?.grund ? knotenText(m.startklar.code, m.startklar.werte, m.startklar.grund) : '';
 
     // Während das Mining läuft, bleiben die Einstellungen stehen.
-    for (const f of [adresse, kerne, last, name, gpuWahl, rWallet, rAndere, eigen]) f.disabled = m.running;
+    for (const f of [adresse, kerne, last, name, rWallet, rAndere, eigen, ...gpuListe.querySelectorAll('input')]) f.disabled = m.running;
     eigenKnopf.disabled = m.running;
     for (const b of zielWahl.children) b.disabled = m.running;
     // Ohne Wallet gibt es nur das Adressfeld.
@@ -483,12 +496,25 @@ export function baue(ctx) {
     const e = m.gpuErkennung;
     const karten = e?.geraete ?? [];
     fuelle(gpuChip, m.gpuSucheLaeuft ? chip('', t('min.gpuSucht')) : e?.verfuegbar ? chip('gruen', [zeichen('haken', 14), t('min.cudaBereit')]) : chip('', t('min.gpuFehlt')));
+    // Beim ersten Stand: die zuletzt gewählten Karten.
+    if (gpuGewaehlt === null) gpuGewaehlt = new Set(m.config.gpuDevices ?? [m.config.gpuDevice ?? 0]);
     const wahl = JSON.stringify(karten.map(g => [g.id, g.name]));
-    if (gpuWahl.dataset.bild !== wahl) {
-      gpuWahl.dataset.bild = wahl;
-      fuelle(gpuWahl, karten.length ? karten.map(g => el('option', { value: g.id, selected: g.id === m.config.gpuDevice },
-        g.name + (g.vram ? ' · ' + (g.vram / 1073741824).toFixed(0) + ' GB' : '') + (g.emulation ? ' · ' + t('min.nachbildung') : '')))
-        : el('option', { value: 0 }, t('min.keineKarte')));
+    if (gpuListe.dataset.bild !== wahl) {
+      gpuListe.dataset.bild = wahl;
+      // Keine der gewählten Karten (mehr) da: die erste.
+      if (karten.length && !karten.some(g => gpuGewaehlt.has(g.id))) gpuGewaehlt = new Set([karten[0].id]);
+      text(gpuListeName, karten.length > 1 ? t('min.karten') : t('min.karte'));
+      fuelle(gpuListe, karten.length ? karten.map(g => {
+        const box = el('input', { type: 'checkbox', value: g.id, checked: gpuGewaehlt.has(g.id) });
+        box.addEventListener('change', () => {
+          if (box.checked) gpuGewaehlt.add(g.id); else gpuGewaehlt.delete(g.id);
+          // Mindestens eine Karte bleibt gewählt.
+          if (gpuGewaehlt.size === 0) { gpuGewaehlt.add(g.id); box.checked = true; }
+        });
+        return el('label.box.wahl', box, el('span', { style: 'font-size:13.5px' },
+          g.name + (g.vram ? ' · ' + (g.vram / 1073741824).toFixed(0) + ' GB' : '') + (g.emulation ? ' · ' + t('min.nachbildung') : '')));
+      }) : el('p.hinweis', t('min.keineKarte')));
+      if (karten.length > 1) gpuListe.append(el('p.hinweis', t('min.kartenHinweis')));
     }
     text(gpuGrund, e && !e.verfuegbar && e.grund ? knotenText(e.grundCode, [], e.grund) : (m.gpu?.lastError ? t('min.letzterFehler', m.gpu.lastError) : t('min.gpuHinweis')));
     if (!e?.verfuegbar && modus !== 'cpu' && !m.running) { modus = 'cpu'; geraet.setze('cpu'); zeigeKaesten(); }
@@ -510,8 +536,7 @@ export function baue(ctx) {
     fuelle(mess,
       el('tr', el('td', t('min.cpu'), c?.running ? el('span.blass', ' · ' + t('min.nKerne', c.workers)) : null),
         el('td.r.mono', c?.running ? leistung(c.hashrate) : '—'), el('td.r.mono', c ? zahl(c.hashes) : '—'), el('td.r.mono', c ? zahl(c.errors) : '—')),
-      el('tr', el('td', t('min.gpu'), karten[0] && g?.running ? el('span.blass', ' · ' + karten[0].name) : null),
-        el('td.r.mono', g?.running ? leistung(g.hashrate) : '—'), el('td.r.mono', g ? zahl(g.hashes) : '—'), el('td.r.mono', g ? zahl(g.errors) : '—')));
+      ...gpuZeilen(g, karten));
     const hoehe = c?.height ?? g?.height ?? null;
     text(z.hoehe, m.running && hoehe !== null ? t('kette.block', zahl(hoehe)) : '—');
     text(z.seit, m.running ? dauer(Math.max(c?.uptimeSeconds ?? 0, g?.uptimeSeconds ?? 0)) : '—');
@@ -520,6 +545,25 @@ export function baue(ctx) {
     const adr = (m.config.address || '').trim();
     if (s.running && adr && (adr !== fundeFuer || s.height !== fundeHoehe)) { fundeFuer = adr; fundeHoehe = s.height; ladeFunde(adr); }
     if (!adr) { text(fundeKopf, ''); fuelle(funde, el('p.hinweis', t('min.fundeOhneAdresse'))); }
+  }
+
+  /*
+   * Zeilen der Grafikkarten in den Messwerten: mit mehreren Karten eine
+   * Zeile je Karte und darüber die Summe, sonst wie bisher eine Zeile.
+   */
+  function gpuZeilen(g, karten) {
+    const name = id => karten.find(k => k.id === id)?.name ?? ('GPU ' + id);
+    const zeileFuer = (titel, x) => el('tr', el('td', ...titel),
+      el('td.r.mono', x?.running ? leistung(x.hashrate) : '—'), el('td.r.mono', x ? zahl(x.hashes) : '—'), el('td.r.mono', x ? zahl(x.errors) : '—'));
+    const einzeln = g?.karten ?? [];
+    if (einzeln.length <= 1) {
+      const k = einzeln[0];
+      return [zeileFuer([t('min.gpu'), g?.running ? el('span.blass', ' · ' + (k ? name(k.id) : karten[0]?.name ?? '')) : null], g)];
+    }
+    return [
+      zeileFuer([t('min.gpu'), el('span.blass', ' · ' + t('min.nKarten', einzeln.filter(k => k.running).length, einzeln.length))], g),
+      ...einzeln.map(k => zeileFuer([el('span.blass', '└ '), name(k.id), !k.running && k.lastError ? el('span.blass', ' · ' + t('min.karteAus')) : null], k)),
+    ];
   }
 
   function verlasse() { if (listeTakt) clearInterval(listeTakt); listeTakt = null; }

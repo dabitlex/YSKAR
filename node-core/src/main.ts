@@ -49,7 +49,8 @@ import { toHex } from '../../src/lib/core/codec.ts';
 import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
 import { cpus } from 'node:os';
 import { LocalMiner } from './LocalMiner.ts';
-import { GpuMiner, erkenneGpu, type GpuErkennung } from './GpuMiner.ts';
+import { erkenneGpu, type GpuErkennung } from './GpuMiner.ts';
+import { GpuGruppe } from './GpuGruppe.ts';
 import { nameToExtra, finderName, MAX_FINDER_BYTES } from '../../src/lib/chain/finderName.ts';
 import {
   linkErlaubt, sucheUpdate, Protokoll, ordnerBytes, KernFehler, RELEASES_ABFRAGE, RELEASES_SEITE,
@@ -75,7 +76,10 @@ interface MiningEinstellung {
   mode: MiningModus;
   cpuWorkers: number;
   cpuIntensity: number;
+  /** Erste gewaehlte Karte -- fuer aeltere Fassungen, die nur eine kennen. */
   gpuDevice: number;
+  /** Alle gewaehlten Karten (Nummern aus der Erkennung). Fehlt das Feld, gilt [gpuDevice]. */
+  gpuDevices: number[];
   /**
    * Name, mit dem dieser Knoten in seinen Bloecken steht.
    *
@@ -172,6 +176,25 @@ const LEISTUNG_PUNKTE = 240;
 const FENSTER_TAKT_MS = 120_000;
 /** Mehr Zeilen zeigt die Liste "Miner im Pool" nicht. */
 const POOL_MINER_ZEILEN = 64;
+
+/**
+ * Eine Liste gewaehlter Grafikkarten pruefen: ganze Zahlen ab 0, jede nur
+ * einmal, hoechstens 16. Alles andere -- auch eine leere Liste -- gilt als
+ * "nicht angegeben" (null).
+ */
+export function kartenAus(roh: unknown): number[] | null {
+  if (!Array.isArray(roh)) return null;
+  const k: number[] = [];
+  for (const x of roh) {
+    // Nur Zahlen oder Ziffernfolgen -- Number(null) waere 0, Number(true) 1.
+    if (typeof x !== 'number' && !(typeof x === 'string' && /^\d+$/.test(x))) continue;
+    const n = Number(x);
+    if (!Number.isInteger(n) || n < 0 || n > 63 || k.includes(n)) continue;
+    k.push(n);
+    if (k.length >= 16) break;
+  }
+  return k.length ? k : null;
+}
 
 function defaultDataDir(): string {
   if (process.platform === 'win32') {
@@ -454,7 +477,8 @@ export class NodeCoreApp {
   /** Bloecke je Name in der eigenen Kette -- fuer die Pool-Liste. */
   private namen = new NamenZaehler();
   /** Die Sitzungen beim Pool: je Geraet eine. */
-  private poolQuellen: { cpu: PoolQuelle | null; gpu: PoolQuelle | null } = { cpu: null, gpu: null };
+  /** Im Pool: eine Sitzung fuer den Prozessor, eine je Grafikkarte. */
+  private poolQuellen: { cpu: PoolQuelle | null; gpu: PoolQuelle[] } = { cpu: null, gpu: [] };
   /** Der Pool, in dem gerade gemint wird. null = solo oder gestoppt. */
   private poolAktiv: { eintrag: PoolEintrag; stand: PoolStand } | null = null;
   private poolTakt: ReturnType<typeof setInterval> | null = null;
@@ -514,14 +538,14 @@ export class NodeCoreApp {
   private startedAt = 0;
   private logs: string[] = [];
   private cpuMiner: LocalMiner | null = null;
-  private gpuMiner: GpuMiner | null = null;
+  private gpuMiner: GpuGruppe | null = null;
   private gpuErkennung: GpuErkennung | null = null;
   private gpuSucheLaeuft = false;
   private miningPfad = '';
   private mining_: MiningEinstellung = {
     address: '', ziel: 'solo', poolHost: '', mode: 'cpu',
     cpuWorkers: Math.max(1, cpus().length - 1),
-    cpuIntensity: 100, gpuDevice: 0, blockName: '', lief: false,
+    cpuIntensity: 100, gpuDevice: 0, gpuDevices: [0], blockName: '', lief: false,
   };
   private configPath: string;
   private config: {
@@ -616,6 +640,9 @@ export class NodeCoreApp {
       if (Number.isInteger(d.cpuWorkers)) this.mining_.cpuWorkers = Math.max(1, Math.min(kerne, Number(d.cpuWorkers)));
       if (Number.isFinite(d.cpuIntensity)) this.mining_.cpuIntensity = Math.max(10, Math.min(100, Number(d.cpuIntensity)));
       if (Number.isInteger(d.gpuDevice) && Number(d.gpuDevice) >= 0) this.mining_.gpuDevice = Number(d.gpuDevice);
+      // Aeltere Dateien kennen nur eine Karte.
+      this.mining_.gpuDevices = kartenAus(d.gpuDevices) ?? [this.mining_.gpuDevice];
+      this.mining_.gpuDevice = this.mining_.gpuDevices[0];
       if (typeof d.blockName === 'string') {
         // Ueber denselben Weg wie beim Speichern -- eine Datei aus einer
         // aelteren Fassung darf keinen unzulaessigen Namen einschleusen.
@@ -684,10 +711,12 @@ export class NodeCoreApp {
     if (laufend.length === 0 || !isValidAddress(this.mining_.address)) return null;
     const hashrate = laufend.reduce(
       (summe, m) => summe + (Number.isFinite(m!.hashrate) ? Math.max(0, m!.hashrate) : 0), 0);
+    // Jede rechnende Karte ist eine eigene Sitzung, wie im Pool.
+    const sitzungen = (this.cpuMiner?.status().running ? 1 : 0) + (this.gpuMiner?.laufend() ?? 0);
     return {
       adressen: [toHex(decodeAddress(this.mining_.address))],
       hashrate,
-      sessions: laufend.length,
+      sessions: sitzungen,
     };
   }
 
@@ -896,7 +925,7 @@ export class NodeCoreApp {
   private poolStatus() {
     const a = this.poolAktiv;
     if (!a) return null;
-    const q = [this.poolQuellen.cpu, this.poolQuellen.gpu].filter((x): x is PoolQuelle => x !== null).map(x => x.stand());
+    const q = [this.poolQuellen.cpu, ...this.poolQuellen.gpu].filter((x): x is PoolQuelle => x !== null).map(x => x.stand());
     const summe = (f: (s: ReturnType<PoolQuelle['stand']>) => number) => q.reduce((n, s) => n + f(s), 0);
     const zuletzt = q.map(s => s.letzterShare).filter((x): x is number => x !== null);
     // Die letzte Auszahlung steht in der Kette -- nicht beim Pool erfragt.
@@ -918,7 +947,7 @@ export class NodeCoreApp {
       letzterShare: zuletzt.length ? Math.max(...zuletzt) : null,
       shareDifficulty: {
         cpu: this.poolQuellen.cpu?.stand().shareDifficulty ?? null,
-        gpu: this.poolQuellen.gpu?.stand().shareDifficulty ?? null,
+        gpu: this.poolQuellen.gpu[0]?.stand().shareDifficulty ?? null,
       },
       auszahlung,
     };
@@ -928,8 +957,8 @@ export class NodeCoreApp {
   private async beendePool(): Promise<void> {
     if (this.poolTakt) clearInterval(this.poolTakt);
     this.poolTakt = null;
-    const q = [this.poolQuellen.cpu, this.poolQuellen.gpu];
-    this.poolQuellen = { cpu: null, gpu: null };
+    const q = [this.poolQuellen.cpu, ...this.poolQuellen.gpu];
+    this.poolQuellen = { cpu: null, gpu: [] };
     this.poolAktiv = null;
     await Promise.all(q.map(x => x?.beenden()));
   }
@@ -1334,7 +1363,13 @@ export class NodeCoreApp {
     const kerne = cpus().length;
     const cpuWorkers = Math.max(1, Math.min(kerne, Math.floor(Number(body.cpuWorkers ?? this.mining_.cpuWorkers)) || 1));
     const cpuIntensity = Math.max(10, Math.min(100, Math.round(Number(body.cpuIntensity ?? this.mining_.cpuIntensity)) || 100));
-    const gpuDevice = Math.max(0, Math.floor(Number(body.gpuDevice ?? this.mining_.gpuDevice)) || 0);
+    /*
+      Die gewaehlten Grafikkarten. Neu: gpuDevices (Liste); eine aeltere
+      Oberflaeche schickt nur gpuDevice. Ohne Angabe gilt die letzte Wahl.
+    */
+    const gpuDevices = kartenAus(body.gpuDevices)
+      ?? (body.gpuDevice !== undefined ? [Math.max(0, Math.floor(Number(body.gpuDevice)) || 0)] : this.mining_.gpuDevices);
+    const gpuDevice = gpuDevices[0];
 
     /*
       Name im Block. Wird hier geprueft, nicht erst beim Bauen: Was einmal
@@ -1352,7 +1387,7 @@ export class NodeCoreApp {
     await this.beendePool();
     this.poolEnde = null;
 
-    this.mining_ = { address, ziel, poolHost, mode, cpuWorkers, cpuIntensity, gpuDevice, blockName, lief: this.mining_.lief };
+    this.mining_ = { address, ziel, poolHost, mode, cpuWorkers, cpuIntensity, gpuDevice, gpuDevices, blockName, lief: this.mining_.lief };
     this.speichereMining();
 
     cpuMiner.setExtra(extra);
@@ -1370,7 +1405,7 @@ export class NodeCoreApp {
     const quelle = async (geraet: 'cpu' | 'gpu'): Promise<PoolQuelle | null> => {
       if (!pool) return null;
       const q = new PoolQuelle(poolSchnittstelle(pool.eintrag.host), POOL_AGENT);
-      this.poolQuellen[geraet] = q;
+      if (geraet === 'cpu') this.poolQuellen.cpu = q; else this.poolQuellen.gpu.push(q);
       try { await q.anmelden(adresse); }
       catch (e) {
         if (e instanceof PoolEndgueltig) throw new KernFehler(e.code, e.message);
@@ -1390,23 +1425,44 @@ export class NodeCoreApp {
 
       if (mode === 'gpu' || mode === 'beide') {
         const e = this.gpuErkennung ?? await this.sucheGpu();
-        const geraet = e.geraete.find(g => g.id === gpuDevice) ?? e.geraete[0];
-        if (!e.verfuegbar || !geraet) {
+        // Die gewaehlten Karten, die es gibt. Keine davon da (andere Karte
+        // eingebaut, Reihenfolge geaendert): wie bisher die erste.
+        let karten = e.geraete.filter(g => gpuDevices.includes(g.id));
+        if (karten.length === 0 && e.geraete[0]) karten = [e.geraete[0]];
+        if (!e.verfuegbar || karten.length === 0) {
           const grund = e.grund ?? 'Keine GPU gefunden.';
           if (mode === 'gpu') throw new KernFehler('gpu_nicht_moeglich', `GPU-Mining nicht möglich: ${grund}`, [grund]);
           hinweise.push(`GPU nicht gestartet: ${grund}`);
           hinweisCodes.push({ code: 'gpu_nicht_gestartet', werte: [grund] });
         } else {
-          try {
-            gpuMiner.setzeQuelle(await quelle('gpu'));
-            await gpuMiner.start(adresse, geraet);
-          } catch (fehler) {
-            // Mit beiden Geraeten gewaehlt: Der Prozessor rechnet weiter.
-            if (mode === 'gpu') throw fehler;
-            await this.poolQuellen.gpu?.beenden();
-            this.poolQuellen.gpu = null;
-            hinweise.push(`GPU nicht gestartet: ${(fehler as Error).message}`);
-            hinweisCodes.push({ code: 'gpu_nicht_gestartet', werte: [(fehler as Error).message] });
+          /*
+            Jede Karte einzeln: eigener Selbsttest, eigene Extranonce, im
+            Pool eine eigene Sitzung. Scheitert eine Karte, rechnen die
+            anderen weiter -- und die Sitzung der gescheiterten wird wieder
+            abgemeldet, damit sie keinen Platz im Pool belegt.
+          */
+          const r = await gpuMiner.start(adresse, karten, () => quelle('gpu'), async (_g, q) => {
+            if (!q) return;
+            const pq = q as PoolQuelle;
+            this.poolQuellen.gpu = this.poolQuellen.gpu.filter(x => x !== pq);
+            await pq.beenden();
+          });
+          if (r.gestartet.length === 0) {
+            const grund = r.fehlgeschlagen[0]?.grund ?? 'Keine GPU gestartet.';
+            // Nur Grafikkarte gewaehlt: Das ist ein Fehler. Mit beiden rechnet der Prozessor weiter.
+            // (Eine einzelne Karte meldet ihren Grund wie bisher unveraendert.)
+            if (mode === 'gpu') {
+              if (karten.length === 1) throw new Error(grund);
+              throw new KernFehler('gpu_nicht_moeglich', `GPU-Mining nicht möglich: ${grund}`, [grund]);
+            }
+            hinweise.push(`GPU nicht gestartet: ${grund}`);
+            hinweisCodes.push({ code: 'gpu_nicht_gestartet', werte: [grund] });
+          } else {
+            for (const f of r.fehlgeschlagen) {
+              const text = `${f.geraet.name} (GPU ${f.geraet.id}): ${f.grund}`;
+              hinweise.push(`GPU nicht gestartet: ${text}`);
+              hinweisCodes.push({ code: 'gpu_nicht_gestartet', werte: [text] });
+            }
           }
         }
       }
@@ -1722,7 +1778,7 @@ export class NodeCoreApp {
       onBlock: (h, hash) => this.eigenerBlock('CPU', h, hash),
       onLog: t => this.log(t),
     });
-    this.gpuMiner = new GpuMiner({
+    this.gpuMiner = new GpuGruppe({
       mining: this.mining,
       onBlock: (h, hash) => this.eigenerBlock('GPU', h, hash),
       onLog: t => this.log(t),

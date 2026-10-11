@@ -10,7 +10,7 @@ the same node classes as the command-line node in `src/lib/node`.
 |---|---|
 | **Node** | Full node on the P2P network. Checks every block itself, relays blocks and transfers. |
 | **Wallet** | 12 words, encrypted on this PC (PBKDF2-SHA256 400,000 rounds, AES-256-GCM). Send with a review step, receive with QR code, contacts, history from the own chain. The password is asked before every transfer. |
-| **Mining, solo** | CPU and NVIDIA GPU (CUDA, on Windows and Linux). Work comes from the own node; a found block is announced to the peers directly. |
+| **Mining, solo** | CPU and one or more NVIDIA GPUs (CUDA, on Windows and Linux). Work comes from the own node; a found block is announced to the peers directly. |
 | **Mining, pool** | The same miners take their work from a pool node. The list is the one the app uses; any other pool can be entered by address. |
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
@@ -177,7 +177,9 @@ public, as in the app.
 
 The miners log in at the pool node with the address, fetch work with the
 pool's share target, and submit hits -- the same interface the app and the
-command-line miner use. One session per device (CPU, GPU).
+command-line miner use. One session per device: the CPU and each graphics card
+have their own. Several sessions of the same address take one place in the pool,
+because places are counted per address.
 
 - The pool is a foreign computer. Every field of its answers is checked
   before it reaches a worker or the GPU program; at most 64 KB are read, no
@@ -267,6 +269,13 @@ The second seed is built in since 0.5.1.
 |---|---|---|
 | CPU | `src/LocalMiner.ts` | the same WASM engine as the Mini App and CLI miner, copied (never modified) into `dist/miner.wasm` at build time |
 | GPU | `src/GpuMiner.ts` + `gpu/yskar_gpu.cu` | CUDA, separate process -- see `gpu/README.md` |
+| Several GPUs | `src/GpuGruppe.ts` | one `GpuMiner` per selected card |
+
+With several NVIDIA cards, the Mining page lists each one with a checkbox. Each
+selected card runs its own GPU program with its own self-test and its own
+extranonce, so no two cards ever check the same nonce. If one card fails its
+self-test or its program ends, the others keep mining and the page shows the
+reason next to that card. The measurements show the sum and each card.
 
 Without an NVIDIA GPU the node runs normally and shows GPU mining as
 unavailable. In the installed program the GPU program is only taken from
