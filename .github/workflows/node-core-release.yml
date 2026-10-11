@@ -32,8 +32,10 @@ name: Node Core bauen und veröffentlichen
 #   - Eine Grafikkarte gibt es hier nicht. Dass der GPU-Miner RECHNET, kann
 #     nur ein PC mit NVIDIA-Karte zeigen. Für Linux wird der GPU-Miner im
 #     Container nvidia/cuda (CUDA 12.8) gebaut (Issue #9); er liegt in den
-#     Linux-Paketen und zusätzlich als einzelne Datei an der Veröffentlichung,
-#     etwa für Mining-Systeme wie HiveOS.
+#     Linux-Paketen und zusätzlich als einzelne Datei an der Veröffentlichung.
+#   - Für HiveOS entsteht ein eigenes Paket (hiveos/): CLI-Miner, yskar-cuda
+#     und Node.js. Es wird wie von HiveOS ausgepackt und mint im Test gegen
+#     einen Pool auf dem Testnetz -- mit der CPU-Nachbildung statt Karten.
 #   - Ein Entwurf entsteht nur, wenn BEIDE Fassungen gebaut sind.
 
 on:
@@ -534,12 +536,84 @@ jobs:
             node-core/release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64.sha256
           if-no-files-found: error
 
+  # Das Paket für HiveOS: der CLI-Miner, yskar-cuda aus dem Job gpu-linux und
+  # Node.js (glibc 2.17), mit den Skripten aus hiveos/. Geprüft wird es so,
+  # wie HiveOS es benutzt: ausgepackt nach /hive/miners/custom, h-config.sh
+  # und h-stats.sh geladen, h-run.sh minend gegen einen Pool auf dem
+  # Testnetz -- mit der CPU-Nachbildung statt Karten. Ob die Werte im
+  # Dashboard ankommen, zeigt nur ein echtes Rig.
+  hiveos:
+    name: HiveOS-Paket
+    needs: [pruefen, gpu-linux]
+    if: ${{ always() && needs.pruefen.result == 'success' && needs.gpu-linux.outputs.gebaut == 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Version
+        id: version
+        run: echo "version=$(node -p "require('./node-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: GPU-Miner holen
+        uses: actions/download-artifact@v4
+        with:
+          name: yskar-cuda-linux
+          path: ${{ runner.temp }}/cuda
+
+      - name: Node.js holen und prüfen
+        id: node
+        run: |
+          set -euo pipefail
+          bash hiveos/node-holen.sh "$RUNNER_TEMP/node" | tee "$RUNNER_TEMP/node.txt"
+          echo "archiv=$(tail -1 "$RUNNER_TEMP/node.txt")" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Node.js für HiveOS::$(grep '^Node ' "$RUNNER_TEMP/node.txt")"
+
+      - name: Paket bauen
+        run: |
+          set -euo pipefail
+          v='${{ steps.version.outputs.version }}'
+          bash hiveos/bauen.sh "$v" "$RUNNER_TEMP/cuda/yskar-cuda" '${{ steps.node.outputs.archiv }}' node-core/release
+          f="node-core/release/yskar-hiveos-$v.tar.gz"
+          tar -tzvf "$f"
+          # Das echte yskar-cuda im Paket muss starten -- ohne Karte endet es mit einer Meldung.
+          mkdir -p "$RUNNER_TEMP/probe" && tar -xzf "$f" -C "$RUNNER_TEMP/probe"
+          set +e; aus=$("$RUNNER_TEMP/probe/yskar-hiveos/miner/gpu/yskar-cuda" --probe 2>&1); set -e
+          case "$aus" in *'"t":'*) ;; *) echo "::error::yskar-cuda im Paket antwortet nicht: $aus"; exit 1 ;; esac
+          echo "::notice title=HiveOS-Paket::$(stat -c %s "$f") Byte, SHA-256 $(cut -d' ' -f1 "$f.sha256"), Node $("$RUNNER_TEMP/probe/yskar-hiveos/node/bin/node" --version)"
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: GPU-Nachbildung bauen
+        working-directory: node-core
+        run: mkdir -p gpu/bin && npm run build:gpu-emu
+
+      - name: Paket prüfen wie HiveOS
+        run: |
+          sudo mkdir -p /hive/miners/custom /var/log/miner/custom
+          sudo chown -R "$(id -u):$(id -g)" /hive /var/log/miner
+          YSKAR_HIVEOS_PAKET="$PWD/node-core/release/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz" \
+            node --experimental-strip-types --no-warnings --test hiveos/test/paket.test.ts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yskar-hiveos-${{ steps.version.outputs.version }}
+          path: |
+            node-core/release/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz
+            node-core/release/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz.sha256
+          if-no-files-found: error
+
   entwurf:
     name: Entwurf der Veröffentlichung
-    needs: [installer, linux]
+    needs: [installer, linux, hiveos]
     # Nur mit BEIDEN Fassungen -- eine Veröffentlichung ohne Linux- oder ohne
-    # Windows-Datei gibt es nicht.
-    if: ${{ needs.installer.result == 'success' && needs.linux.result == 'success' && (github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
+    # Windows-Datei gibt es nicht. Das HiveOS-Paket gehört dazu.
+    if: ${{ needs.installer.result == 'success' && needs.linux.result == 'success' && needs.hiveos.result == 'success' && (github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -556,6 +630,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: YSKAR-Node-Core-Linux-${{ steps.version.outputs.version }}
+          path: dateien
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: yskar-hiveos-${{ steps.version.outputs.version }}
           path: dateien
 
       - name: Was angehängt wird
@@ -588,6 +667,8 @@ jobs:
             dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
             dateien/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64
             dateien/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64.sha256
+            dateien/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz
+            dateien/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz.sha256
 
       - name: Wo der Entwurf liegt
         run: echo "::notice title=Entwurf::node-core-v${{ steps.version.outputs.version }} auf ${{ github.sha }} -- ${{ steps.entwurf.outputs.url }}"

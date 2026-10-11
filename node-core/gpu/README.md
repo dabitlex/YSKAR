@@ -194,7 +194,8 @@ target machine.
 
 `npm run dist:linux` puts `gpu/bin/yskar-cuda` into the Linux packages of Node Core, next to the
 application as on Windows. A release also carries the program as a single file,
-`yskar-cuda-<version>-linux-x86_64`, for mining systems without a desktop such as HiveOS.
+`yskar-cuda-<version>-linux-x86_64`, for mining systems without a desktop. For HiveOS there is a
+ready package with the command-line miner, see [hiveos/README.md](../../hiveos/README.md).
 
 The steps follow the proposal of derhier in issue #9.
 
