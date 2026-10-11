@@ -591,7 +591,20 @@ async function main() {
           if (sitzung === session.sessionId) void neuAnmelden('Sitzung abgelaufen');
           return;
         }
-        if (r.reason === 'job_expired' || r.reason === 'stale_job') { holeJob(); return; }
+        /*
+          Die Arbeit ist veraltet -- sofort neue holen, statt bis zur
+          naechsten Abfrage (45 s) weiter an ihr zu rechnen.
+
+          job_unknown gehoert dazu: Nach JEDEM neuen Block im Netz verwirft
+          der Knoten alle offenen Jobs (MiningCoordinator.invalidate), und
+          der naechste Treffer auf den alten Job bekommt genau diese
+          Antwort. Bis 0.8.0 zaehlte sie als Ablehnung, und der Miner
+          rechnete im Mittel gut 20 Sekunden je Block umsonst. Node Core
+          behandelt sie schon immer so (PoolQuelle).
+        */
+        if (r.reason === 'job_expired' || r.reason === 'stale_job' || r.reason === 'job_unknown') {
+          holeJob(); return;
+        }
         k.abgelehnt++;
         // Vereinzelte Ablehnungen sind normal, wenn der Server das Ziel
         // gerade nachzieht. Nur die uebrigen sind eine Meldung wert.
