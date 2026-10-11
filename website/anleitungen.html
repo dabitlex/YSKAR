@@ -8,10 +8,10 @@
 <meta name="theme-color" content="#0A101C">
 <link rel="icon" href="/favicon.png?v=2" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
-<link rel="stylesheet" href="/assets/style.css?v=10">
+<link rel="stylesheet" href="/assets/style.css?v=11">
 <noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=10"></script>
-<script src="/assets/site.js?v=10" defer></script>
+<script src="/assets/i18n/en.js?v=11"></script>
+<script src="/assets/site.js?v=11" defer></script>
 </head>
 <body data-seite="anleitungen">
 
@@ -134,8 +134,8 @@
 
 <h2 id="nodecore" data-t="an.nc.titel">Node Core for Windows and Linux</h2>
 <p data-t="an.nc.text">Node Core is the YSKAR program for Windows and Linux: your own node with wallet and mining in one window. It downloads the blockchain to your PC and checks every block itself.</p>
-<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/YSKAR-Node-Core-Setup-0.7.0.exe" data-t="nc.knopfWin">Download for Windows</a> <a class="knopf tinte" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/YSKAR-Node-Core-0.7.0-amd64.deb" data-t="nc.knopfLinux">Download for Linux (.deb)</a></p>
-<p class="klein-meta">v0.7.0 · <span data-t="nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/YSKAR-Node-Core-0.7.0-x86_64.AppImage" data-t="nc.appimage">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.7.0" data-t="nc.mehr">Checksum and release notes</a></p>
+<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-Setup-0.7.1.exe" data-t="nc.knopfWin">Download for Windows</a> <a class="knopf tinte" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-0.7.1-amd64.deb" data-t="nc.knopfLinux">Download for Linux (.deb)</a></p>
+<p class="klein-meta">v0.7.1 · <span data-t="nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-0.7.1-x86_64.AppImage" data-t="nc.appimage">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.7.1" data-t="nc.mehr">Checksum and release notes</a></p>
 <h3 data-t="an.nc.vor">What you need</h3>
 <ul>
 <li data-t="an.nc.v1">Windows 10 or 11 (64-bit) or Linux (64-bit, x86-64) and an internet connection</li>
@@ -149,16 +149,16 @@
 <li data-t="an.nc.i3">Follow the installer. Node Core starts afterwards.</li>
 </ol>
 <p data-th="an.nc.pruefen">To be sure the file is the one we published, compare its checksum with the <code>.sha256</code> file of the release. In PowerShell:</p>
-<pre><code>Get-FileHash .\YSKAR-Node-Core-Setup-0.7.0.exe -Algorithm SHA256</code></pre>
+<pre><code>Get-FileHash .\YSKAR-Node-Core-Setup-0.7.1.exe -Algorithm SHA256</code></pre>
 <h3 data-t="an.nc.linux">Installing on Linux</h3>
 <p data-th="an.nc.l1"><strong>Ubuntu, Debian, Linux Mint:</strong> download the <code>.deb</code> file and install it in a terminal. Then start “YSKAR Node Core” from the application menu.</p>
-<pre><code>sudo apt install ./YSKAR-Node-Core-0.7.0-amd64.deb</code></pre>
+<pre><code>sudo apt install ./YSKAR-Node-Core-0.7.1-amd64.deb</code></pre>
 <p data-th="an.nc.l2"><strong>Other distributions:</strong> download the AppImage, make it executable and start it. AppImages need FUSE 2 (on Ubuntu the package <code>libfuse2</code>).</p>
-<pre><code>chmod +x YSKAR-Node-Core-0.7.0-x86_64.AppImage
-./YSKAR-Node-Core-0.7.0-x86_64.AppImage</code></pre>
+<pre><code>chmod +x YSKAR-Node-Core-0.7.1-x86_64.AppImage
+./YSKAR-Node-Core-0.7.1-x86_64.AppImage</code></pre>
 <p data-t="an.nc.l3">Node Core for Linux runs on 64-bit PCs (x86-64) with a desktop. ARM computers such as the Raspberry Pi are not supported.</p>
 <p data-t="an.nc.pruefenLinux">On Linux:</p>
-<pre><code>sha256sum -c YSKAR-Node-Core-0.7.0-amd64.deb.sha256</code></pre>
+<pre><code>sha256sum -c YSKAR-Node-Core-0.7.1-amd64.deb.sha256</code></pre>
 <h3 data-t="an.nc.erst">First start</h3>
 <ol>
 <li data-th="an.nc.e1"><strong>Node:</strong> data folder, ports and seed are filled in. The defaults suit most people – just click “Continue”.</li>
@@ -212,6 +212,8 @@ node src/selbsttest.mjs</code></pre>
 <p data-t="an.pc.solo">Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.</p>
 <h3 data-t="an.pc.s4">4. Graphics card (optional)</h3>
 <p data-th="an.pc.s4Text">With an NVIDIA card, add <code>--gpu</code>. This needs the GPU program <code>yskar-cuda</code>. For Linux it is attached to every Node Core release as <code>yskar-cuda-…-linux-x86_64</code>; on Windows, build it as described in the repository under <code>node-core/gpu</code>.</p>
+<h3 data-t="an.pc.s5">5. Mining rigs with HiveOS</h3>
+<p data-th="an.pc.s5Text">For mining rigs with HiveOS there is a ready package: this miner with the GPU program, one miner per NVIDIA card, no fee. It is attached to every Node Core release as <code>yskar-hiveos-….tar.gz</code>. How to set up the flight sheet is described in <a href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md">hiveos/README.md</a>.</p>
 
 <h2 id="wallet" data-t="an.wallet.titel">Your wallet</h2>
 <p data-t="an.wallet.text">Your wallet is created on your device from 12 words. These words are your key: whoever has them can access the funds – on any device, in any YSKAR app.</p>

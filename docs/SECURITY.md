@@ -98,11 +98,11 @@ trust the program that holds your keys and the program that validates for you.
   published, compare its checksum with the `.sha256` file of the release:
 
   ```powershell
-  Get-FileHash .\YSKAR-Node-Core-Setup-0.7.0.exe -Algorithm SHA256
+  Get-FileHash .\YSKAR-Node-Core-Setup-0.7.1.exe -Algorithm SHA256
   ```
 
   ```bash
-  sha256sum -c YSKAR-Node-Core-0.7.0-amd64.deb.sha256
+  sha256sum -c YSKAR-Node-Core-0.7.1-amd64.deb.sha256
   ```
 
   A matching checksum tells you that the file was not altered between the release page and your

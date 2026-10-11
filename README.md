@@ -15,8 +15,9 @@ accounting, the wallet and mining apps, the miners, the explorer and the website
 | | | |
 |---|---|---|
 | **Android app** | YSKAR Wallet with mining | [Download the APK](https://github.com/dabitlex/YSKAR/releases/latest) |
-| **Node Core for Windows** | Full node, wallet and mining in one program | [Installer 0.7.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/YSKAR-Node-Core-Setup-0.7.0.exe) · [Notes and checksum](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.7.0) |
-| **Node Core for Linux** | The same program for 64-bit Linux (x86-64) | [.deb 0.7.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/YSKAR-Node-Core-0.7.0-amd64.deb) for Ubuntu, Debian, Mint · [AppImage 0.7.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/YSKAR-Node-Core-0.7.0-x86_64.AppImage) for other distributions · [GPU miner for Linux](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.0/yskar-cuda-0.7.0-linux-x86_64) |
+| **Node Core for Windows** | Full node, wallet and mining in one program | [Installer 0.7.1](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-Setup-0.7.1.exe) · [Notes and checksum](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.7.1) |
+| **Node Core for Linux** | The same program for 64-bit Linux (x86-64) | [.deb 0.7.1](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-0.7.1-amd64.deb) for Ubuntu, Debian, Mint · [AppImage 0.7.1](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-0.7.1-x86_64.AppImage) for other distributions · [GPU miner for Linux](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/yskar-cuda-0.7.1-linux-x86_64) |
+| **HiveOS** | Command-line miner for mining rigs, one miner per NVIDIA card | [Package 0.7.1](https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/yskar-hiveos-0.7.1.tar.gz) · [Flight sheet and setup](hiveos/README.md) |
 | **Telegram Mini App** | Nothing to install | [@YSKAR_bot](https://t.me/YSKAR_bot) |
 | **Website** | Guides, whitepaper, explorer | [www.yskar.app](https://www.yskar.app) |
 | **Telegram channel** | Releases and news | [@yskar_official](https://t.me/yskar_official) |
