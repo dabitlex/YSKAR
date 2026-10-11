@@ -32,7 +32,8 @@
  * Kompressionen statt vier. Die WASM-Engine macht genau dasselbe.
  *
  * Verglichen wird der Hash BYTEWEISE VON VORN gegen das Ziel -- so wie
- * submitNonce() im Knoten es tut. Byte 0 ist das hoechstwertige.
+ * submitNonce() im Knoten es tut. Byte 0 ist das hoechstwertige. Die Karte
+ * vergleicht dasselbe in acht Big-Endian-Woertern (yskar_meets_target_w).
  * ---------------------------------------------------------------------
  */
 #ifndef YSKAR_SHA256_H
@@ -46,6 +47,16 @@
 #else
 #  define YSKAR_FN static inline
 #  define YSKAR_CONST static const
+#endif
+
+/* Schleifen mit fester Laenge auf der Karte GANZ ausrollen. Erst dann sind
+   alle Indizes Konstanten, und die Arbeitswoerter liegen in Registern statt
+   im langsamen lokalen Speicher. Nur im Uebersetzungslauf fuer die Karte;
+   gcc, cl.exe und der Host-Teil von nvcc sehen nichts davon. */
+#ifdef __CUDA_ARCH__
+#  define YSKAR_UNROLL _Pragma("unroll")
+#else
+#  define YSKAR_UNROLL
 #endif
 
 #define YSKAR_HEADER_BYTES 136
@@ -76,24 +87,38 @@ YSKAR_FN void yskar_sha_init(uint32_t s[8]) {
  * Die Woerter sind bereits Big-Endian gelesen -- SHA-256 rechnet in
  * Big-Endian, der YSKAR-Header ist Little-Endian. Die Umwandlung passiert
  * beim Einlesen, nicht hier.
+ *
+ * Der Nachrichtenplan braucht in jeder Runde nur die letzten 16 Woerter.
+ * Statt 64 Woerter vorab zu rechnen (256 Byte -- auf der Karte zu viel fuer
+ * Register, sie landeten im lokalen Speicher), wird ein Fenster aus 16
+ * Woertern fortgeschrieben: Wort i ersetzt Wort i-16 an derselben Stelle.
+ * Ganz ausgerollt sind alle Stellen fest; Woerter, die im Block konstant
+ * sind (Nullen, Endbit, Laenge), rechnet der Compiler gleich mit aus.
  */
 YSKAR_FN void yskar_sha_block(uint32_t s[8], const uint32_t in[16]) {
-  uint32_t w[64];
+  uint32_t w[16];
+  YSKAR_UNROLL
   for (int i = 0; i < 16; i++) w[i] = in[i];
-  for (int i = 16; i < 64; i++) {
-    uint32_t s0 = YSKAR_ROTR(w[i-15], 7) ^ YSKAR_ROTR(w[i-15], 18) ^ (w[i-15] >> 3);
-    uint32_t s1 = YSKAR_ROTR(w[i-2], 17) ^ YSKAR_ROTR(w[i-2], 19) ^ (w[i-2] >> 10);
-    w[i] = w[i-16] + s0 + w[i-7] + s1;
-  }
   uint32_t a = s[0], b = s[1], c = s[2], d = s[3];
   uint32_t e = s[4], f = s[5], g = s[6], h = s[7];
+  YSKAR_UNROLL
   for (int i = 0; i < 64; i++) {
-    uint32_t S1 = YSKAR_ROTR(e, 6) ^ YSKAR_ROTR(e, 11) ^ YSKAR_ROTR(e, 25);
-    uint32_t ch = (e & f) ^ (~e & g);
-    uint32_t t1 = h + S1 + ch + YSKAR_K[i] + w[i];
-    uint32_t S0 = YSKAR_ROTR(a, 2) ^ YSKAR_ROTR(a, 13) ^ YSKAR_ROTR(a, 22);
-    uint32_t mj = (a & b) ^ (a & c) ^ (b & c);
-    uint32_t t2 = S0 + mj;
+    uint32_t wi;
+    if (i < 16) {
+      wi = w[i];
+    } else {
+      const uint32_t x = w[(i - 15) & 15], y = w[(i - 2) & 15];
+      const uint32_t s0 = YSKAR_ROTR(x, 7) ^ YSKAR_ROTR(x, 18) ^ (x >> 3);
+      const uint32_t s1 = YSKAR_ROTR(y, 17) ^ YSKAR_ROTR(y, 19) ^ (y >> 10);
+      wi = w[i & 15] + s0 + w[(i - 7) & 15] + s1;
+      w[i & 15] = wi;
+    }
+    const uint32_t S1 = YSKAR_ROTR(e, 6) ^ YSKAR_ROTR(e, 11) ^ YSKAR_ROTR(e, 25);
+    const uint32_t ch = (e & f) ^ (~e & g);
+    const uint32_t t1 = h + S1 + ch + YSKAR_K[i] + wi;
+    const uint32_t S0 = YSKAR_ROTR(a, 2) ^ YSKAR_ROTR(a, 13) ^ YSKAR_ROTR(a, 22);
+    const uint32_t mj = (a & b) ^ (a & c) ^ (b & c);
+    const uint32_t t2 = S0 + mj;
     h = g; g = f; f = e; e = d + t1; d = c; c = b; b = a; a = t1 + t2;
   }
   s[0] += a; s[1] += b; s[2] += c; s[3] += d;
@@ -122,40 +147,49 @@ YSKAR_FN void yskar_midstate(uint32_t mid[8], const uint8_t header[YSKAR_HEADER_
 }
 
 /*
- * SHA-256d fuer eine Nonce, ausgehend vom Midstate.
+ * SHA-256d fuer eine Nonce, ausgehend vom Midstate -- als acht Woerter.
  *
  * Dritter Block: acht Nonce-Byte (Little-Endian, wie im Header), dann das
  * Endbit 0x80, dann Nullen, am Ende die Laenge in Bit (136 * 8 = 1088).
  *
  * Zweiter Durchlauf: 32 Byte Hash, 0x80, Nullen, Laenge 256 Bit.
  *
- * Ergebnis als 32 Byte in der Reihenfolge, in der auch Node sie ausgibt.
+ * Ergebnis: acht Big-Endian-Woerter. Wort 0 enthaelt die Bytes 0..3 des
+ * Hashes, Byte 0 im hoechstwertigen Teil -- dieselbe Reihenfolge, in der
+ * Node den Hash ausgibt. So bleibt der Zielvergleich ein Wortvergleich.
  */
-YSKAR_FN void yskar_hash_nonce(uint8_t out[32], const uint32_t mid[8], uint64_t nonce) {
+YSKAR_FN void yskar_hash_nonce_w(uint32_t t[8], const uint32_t mid[8], uint64_t nonce) {
   uint32_t s[8];
+  YSKAR_UNROLL
   for (int i = 0; i < 8; i++) s[i] = mid[i];
 
-  /* Nonce-Bytes in der Header-Reihenfolge (LE), dann als BE-Woerter gelesen. */
-  uint8_t n[8];
-  for (int i = 0; i < 8; i++) n[i] = (uint8_t)(nonce >> (8 * i));
-
+  /* Die Nonce steht Little-Endian im Header und wird Big-Endian gelesen:
+     jedes Wort ist die Byteumkehr seiner 32 Bit. */
+  const uint32_t lo = (uint32_t)nonce, hi = (uint32_t)(nonce >> 32);
   uint32_t w[16];
-  w[0] = ((uint32_t)n[0] << 24) | ((uint32_t)n[1] << 16) | ((uint32_t)n[2] << 8) | n[3];
-  w[1] = ((uint32_t)n[4] << 24) | ((uint32_t)n[5] << 16) | ((uint32_t)n[6] << 8) | n[7];
+  w[0] = (lo << 24) | ((lo & 0xff00u) << 8) | ((lo >> 8) & 0xff00u) | (lo >> 24);
+  w[1] = (hi << 24) | ((hi & 0xff00u) << 8) | ((hi >> 8) & 0xff00u) | (hi >> 24);
   w[2] = 0x80000000u;
+  YSKAR_UNROLL
   for (int i = 3; i < 15; i++) w[i] = 0;
   w[15] = YSKAR_HEADER_BYTES * 8;
   yskar_sha_block(s, w);
 
   /* Zweiter Durchlauf ueber die 32 Byte des ersten. */
-  uint32_t t[8];
   yskar_sha_init(t);
+  YSKAR_UNROLL
   for (int i = 0; i < 8; i++) w[i] = s[i];
   w[8] = 0x80000000u;
+  YSKAR_UNROLL
   for (int i = 9; i < 15; i++) w[i] = 0;
   w[15] = 256;
   yskar_sha_block(t, w);
+}
 
+/* Dasselbe als 32 Byte in der Reihenfolge, in der auch Node sie ausgibt. */
+YSKAR_FN void yskar_hash_nonce(uint8_t out[32], const uint32_t mid[8], uint64_t nonce) {
+  uint32_t t[8];
+  yskar_hash_nonce_w(t, mid, nonce);
   for (int i = 0; i < 8; i++) {
     out[i*4]   = (uint8_t)(t[i] >> 24);
     out[i*4+1] = (uint8_t)(t[i] >> 16);
@@ -176,6 +210,29 @@ YSKAR_FN int yskar_meets_target(const uint8_t hash[32], const uint8_t target[32]
     if (hash[i] > target[i]) return 0;
   }
   return 1;
+}
+
+/*
+ * Dasselbe auf Woertern: 32 Byte als acht Big-Endian-Woerter, Wort 0 vorn.
+ *
+ * Ein Wortvergleich von vorn ist genau der Bytevergleich von vorn -- das
+ * hoechstwertige Byte jedes Wortes ist das vordere. Auf der Karte sind es
+ * so acht Vergleiche statt 32, und fast immer entscheidet schon der erste.
+ */
+YSKAR_FN int yskar_meets_target_w(const uint32_t hash[8], const uint32_t ziel[8]) {
+  for (int i = 0; i < 8; i++) {
+    if (hash[i] < ziel[i]) return 1;
+    if (hash[i] > ziel[i]) return 0;
+  }
+  return 1;
+}
+
+/* 32 Byte Ziel als acht Big-Endian-Woerter -- einmal je Job. */
+YSKAR_FN void yskar_ziel_woerter(uint32_t ziel[8], const uint8_t z[32]) {
+  for (int i = 0; i < 8; i++) {
+    ziel[i] = ((uint32_t)z[i*4] << 24) | ((uint32_t)z[i*4+1] << 16)
+            | ((uint32_t)z[i*4+2] << 8) | (uint32_t)z[i*4+3];
+  }
 }
 
 #endif

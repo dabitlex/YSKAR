@@ -139,9 +139,14 @@ jobs:
         working-directory: node-core
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File gpu\build-gpu.ps1
+          powershell -ExecutionPolicy Bypass -File gpu\build-gpu.ps1 | Tee-Object -FilePath "$env:RUNNER_TEMP\bau.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Der Bau des GPU-Miners ist gescheitert.' }
           if (-not (Test-Path gpu\bin\yskar-cuda.exe)) { throw 'gpu\bin\yskar-cuda.exe fehlt.' }
+          # Liegt der Hash ganz in Registern? (siehe gpu/README.md, "How the kernel works")
+          $bau = Get-Content "$env:RUNNER_TEMP\bau.txt"
+          $w = $bau | Where-Object { $_ -like 'WARNUNG*' } | Select-Object -First 1
+          $k = $bau | Where-Object { $_ -like 'Kernel:*' } | Select-Object -First 1
+          if ($w) { Write-Host "::warning title=Kernel (Windows)::$w" } else { Write-Host "::notice title=Kernel (Windows)::$k" }
 
       # Ohne Karte kann das Programm nicht rechnen -- aber es muss starten und
       # sagen, dass es keine findet. Stürzt es hier ab, fehlt ihm etwas.
@@ -345,7 +350,15 @@ jobs:
       - name: yskar-cuda bauen
         working-directory: node-core
         shell: bash
-        run: bash gpu/build-gpu.sh
+        run: |
+          set -euo pipefail
+          bash gpu/build-gpu.sh | tee "$RUNNER_TEMP/bau.txt"
+          # Liegt der Hash ganz in Registern? (siehe gpu/README.md, "How the kernel works")
+          if grep -q '^WARNUNG' "$RUNNER_TEMP/bau.txt"; then
+            echo "::warning title=Kernel (Linux)::$(grep '^WARNUNG' "$RUNNER_TEMP/bau.txt" | head -1)"
+          else
+            echo "::notice title=Kernel (Linux)::$(grep '^Kernel:' "$RUNNER_TEMP/bau.txt" | head -1)"
+          fi
 
       # Ohne Karte kann das Programm nicht rechnen -- aber es muss starten
       # und sagen, dass es keine findet. Fehlt ihm eine Bibliothek oder

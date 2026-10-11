@@ -24,6 +24,8 @@ whose hash meets the target. Whether such a nonce becomes a block is decided by 
 | A card that computes wrongly, or a program that does not answer the self-test, is refused | `test/gpu.test.ts` |
 | CPU and GPU never check the same nonces | `test/gpu.test.ts` |
 | Several cards at once: each with its own program, self-test and extranonce; one card failing does not stop the others | `test/gpu-mehrere.test.ts` and `test/gpu-api.test.ts`, with `YSKAR_EMU_GERAETE=3` |
+| The unrolled hash and the word-wise target comparison give the same results as an independent implementation: 2,500 random headers and nonces against `node:crypto`, each with up to five targets including hash = target and one step above and below | `test/sha-vektoren.test.ts`, compiling `yskar_sha256.h` with `gcc` |
+| The kernel keeps everything in registers | Compiling with `nvcc -Xptxas -v` reports 0 bytes stack frame for `yskar_kernel` (it was 256 bytes up to 0.7.0) |
 | The program compiles with `nvcc` and MSVC on Windows | The release workflow (`.github/workflows/node-core-release.yml` in the repository root) builds it on Windows with CUDA 11.8. It then runs `--probe` and records the outcome; without an NVIDIA driver the program is expected to end with an error there. |
 | The program compiles with `nvcc` and g++ on Linux | The same workflow builds it in the container `nvidia/cuda:12.8.1-devel-ubuntu20.04` with `gpu/build-gpu.sh`, runs `--probe` the same way and records which glibc version the result needs. |
 
@@ -276,6 +278,17 @@ of four. The WebAssembly engine of the CPU miner does the same.
 
 **Constant memory.** All threads read the midstate and the target, and none writes them. That is
 what GPU constant memory is for.
+
+**Everything in registers.** The message schedule of SHA-256 needs only the last 16 words in each
+round. The kernel keeps those 16 words as a rolling window and lets the compiler unroll all 64
+rounds of both compressions. Every index is then a constant, and all working words stay in
+registers. Up to Node Core 0.7.0 the 64 schedule words were computed in advance into an array of
+256 bytes, which the compiler placed in the card's slow local memory. Words that are constant in
+a block (the zeros, the end bit, the length) are folded in at compile time.
+
+**Target as words.** Hash and target are compared as eight big-endian words from the front. That
+is exactly the byte-wise comparison of `submitNonce()`, because the most significant byte of each
+word is the front one. Almost always the first word decides.
 
 **Grid stride.** Each thread checks nonces at a distance of the grid size, so neighboring threads
 check neighboring nonces. At the end of a batch a range without gaps has been covered.

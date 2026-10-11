@@ -3,9 +3,10 @@
  * CPU-Nachbildung des Rechenwerks.
  *
  * Dieselbe Schnittstelle wie yskar_gpu.cu und dieselben Funktionen aus
- * yskar_sha256.h. Damit laesst sich alles ausser der Ausfuehrung auf der
- * Karte pruefen: Protokoll, Jobwechsel, Treffermeldung, Selbsttest,
- * Messung -- auf jedem Rechner, ohne CUDA.
+ * yskar_sha256.h -- auch dieselben wie im Kernel: Hash als Woerter,
+ * Zielvergleich auf Woertern. Damit laesst sich alles ausser der
+ * Ausfuehrung auf der Karte pruefen: Protokoll, Jobwechsel, Treffermeldung,
+ * Selbsttest, Messung -- auf jedem Rechner, ohne CUDA.
  *
  * Sie beweist NICHT, dass eine Grafikkarte arbeitet. Sie gibt sich als
  * Nachbildung zu erkennen, damit niemand ihre Zahlen fuer GPU-Werte haelt.
@@ -16,7 +17,7 @@
 #include "yskar_backend.h"
 
 static uint32_t e_mid[8];
-static uint8_t  e_target[32];
+static uint32_t e_ziel[8];   /* Ziel als Big-Endian-Woerter, wie auf der Karte */
 static unsigned int e_iters_default = 4096;
 
 extern "C" {
@@ -49,7 +50,7 @@ int yskar_dev_init(int id) { (void)id; return 0; }
 
 int yskar_dev_set_job(const uint32_t mid[8], const uint8_t target[32]) {
   memcpy(e_mid, mid, sizeof e_mid);
-  memcpy(e_target, target, 32);
+  yskar_ziel_woerter(e_ziel, target);
   return 0;
 }
 
@@ -61,12 +62,12 @@ unsigned long long yskar_dev_batchsize(unsigned int iters) {
 int yskar_dev_batch(unsigned long long basis, unsigned int iters,
                     unsigned long long *geprueft, unsigned long long *gefunden) {
   *gefunden = YSKAR_NONE;
-  uint8_t h[32];
+  uint32_t h[8];
   for (unsigned int k = 0; k < iters; k++) {
-    yskar_hash_nonce(h, e_mid, basis + k);
+    yskar_hash_nonce_w(h, e_mid, basis + k);
     /* Wie im Kernel: ersten Treffer merken, aber zu Ende rechnen -- sonst
        waere die gezaehlte Hashzahl groesser als die gerechnete. */
-    if (*gefunden == YSKAR_NONE && yskar_meets_target(h, e_target)) *gefunden = basis + k;
+    if (*gefunden == YSKAR_NONE && yskar_meets_target_w(h, e_ziel)) *gefunden = basis + k;
   }
   *geprueft = iters;
   return 0;
@@ -78,9 +79,9 @@ int yskar_dev_single(unsigned long long nonce, unsigned char aus[32]) {
 }
 
 int yskar_dev_one(unsigned long long nonce, unsigned long long *gefunden) {
-  uint8_t h[32];
-  yskar_hash_nonce(h, e_mid, nonce);
-  *gefunden = yskar_meets_target(h, e_target) ? nonce : YSKAR_NONE;
+  uint32_t h[8];
+  yskar_hash_nonce_w(h, e_mid, nonce);
+  *gefunden = yskar_meets_target_w(h, e_ziel) ? nonce : YSKAR_NONE;
   return 0;
 }
 

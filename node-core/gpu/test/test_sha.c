@@ -19,7 +19,34 @@ static void unhex(uint8_t *out, const char *s, int n) {
   for (int i = 0; i < n; i++) sscanf(s + 2*i, "%2hhx", &out[i]);
 }
 
-int main(void) {
+/*
+ * Pruefvektoren von aussen: je Zeile "<Header 272 hex> <Nonce> <Ziel 64 hex>".
+ * Ausgabe je Zeile: "<Hash 64 hex> <erfuellt byteweise> <erfuellt wortweise>".
+ * Gegengeprueft wird in test/sha-vektoren.test.ts mit node:crypto -- einer
+ * Umsetzung, die mit dieser hier nichts gemeinsam hat.
+ */
+static int vektoren(void) {
+  char hx[300], zx[80];
+  unsigned long long nonce;
+  while (scanf("%299s %llu %79s", hx, &nonce, zx) == 3) {
+    uint8_t header[136], ziel[32], hash[32];
+    uint32_t mid[8], hw[8], zw[8];
+    unhex(header, hx, 136);
+    unhex(ziel, zx, 32);
+    memset(header + YSKAR_NONCE_OFFSET, 0, 8);
+    yskar_midstate(mid, header);
+    yskar_hash_nonce(hash, mid, nonce);
+    yskar_hash_nonce_w(hw, mid, nonce);
+    yskar_ziel_woerter(zw, ziel);
+    for (int i = 0; i < 32; i++) printf("%02x", hash[i]);
+    printf(" %d %d\n", yskar_meets_target(hash, ziel), yskar_meets_target_w(hw, zw));
+  }
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  if (argc > 1 && strcmp(argv[1], "--vektoren") == 0) return vektoren();
+
   const char *HEADER =
     "010000000000000000000000000000000000000000000000000000000000000000000000"
     "000000001007612ea5c27b0b7c6ae79c745da364cfd64224eb6f5519bf559dc3b09fe840"

@@ -192,7 +192,7 @@ function Baue([string[]] $extra) {
   $code = 0
   try {
     # 1. Kernel
-    $a1 = $gencode + $extra + @('-O3', '-c', '-o', $objGpu, $quelleGpu)
+    $a1 = $gencode + $extra + @('-O3', '-Xptxas', '-v', '-c', '-o', $objGpu, $quelleGpu)
     $text += (& $Nvcc @a1 2>&1 | Out-String)
     $code = $LASTEXITCODE
     if ($code -eq 0) {
@@ -252,6 +252,19 @@ if ($r.Code -ne 0) {
 # -------------------------------------------------------- Selbstpruefung
 Write-Host ''
 Write-Host "Gebaut: $ziel" -ForegroundColor Green
+
+# Liegt der Hash ganz in Registern? ptxas meldet je Architektur den Stapel
+# des Kernels. Mehr als 0 Byte heisst: Arbeitswoerter im langsamen lokalen
+# Speicher -- der Kernel rechnet dann deutlich langsamer (so bis 0.7.0).
+$stapel = [regex]::Matches($r.Text, 'Function properties for _Z12yskar_kernel\w*\s+(\d+) bytes stack frame') |
+  ForEach-Object { [int]$_.Groups[1].Value } | Sort-Object -Unique
+if (-not $stapel) {
+  Write-Host 'WARNUNG: ptxas hat keine Angaben zum Kernel geliefert.' -ForegroundColor Yellow
+} elseif (($stapel | Measure-Object -Maximum).Maximum -eq 0) {
+  Write-Host 'Kernel: ganz in Registern (0 Byte Stapel) auf allen Architekturen' -ForegroundColor Green
+} else {
+  Write-Host "WARNUNG: Kernel braucht lokalen Speicher (Stapel in Byte: $($stapel -join ' '))" -ForegroundColor Yellow
+}
 Write-Host ''
 Write-Host 'Geraeteerkennung:' -ForegroundColor Cyan
 $vorherEAP = $ErrorActionPreference

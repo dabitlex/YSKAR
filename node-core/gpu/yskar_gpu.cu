@@ -18,8 +18,8 @@
  * und Zeichenketten -- uebersetzt von cl.exe oder g++, ohne CUDA. Verbunden
  * werden beide ueber die schmale C-Schnittstelle in yskar_backend.h.
  *
- * Gerechnet wird nichts anderes als vorher. yskar_sha256.h ist unveraendert
- * dieselbe Datei, die auch die Pruefung mit gcc uebersetzt.
+ * Gerechnet wird nichts anderes als vorher. yskar_sha256.h ist dieselbe
+ * Datei, die auch die Pruefung mit gcc uebersetzt.
  */
 #include <stdint.h>
 #include <string.h>
@@ -31,13 +31,16 @@
 #include "yskar_backend.h"
 
 /* Midstate und Ziel liest jeder Thread, keiner schreibt -- genau dafuer ist
-   der Konstantenspeicher da. */
+   der Konstantenspeicher da. Das Ziel liegt als acht Big-Endian-Woerter
+   vor (yskar_ziel_woerter): Der Vergleich braucht so acht Schritte statt 32. */
 __constant__ uint32_t c_mid[8];
-__constant__ uint8_t  c_target[32];
+__constant__ uint32_t c_ziel[8];
+
+#define YSKAR_THREADS 256
 
 static char   g_fehler[512] = {0};
 static int    g_bloecke = 0;
-static int    g_threads = 256;
+static int    g_threads = YSKAR_THREADS;
 static unsigned long long *g_treffer = NULL;
 
 static int melde(const char *was, cudaError_t e) {
@@ -53,16 +56,21 @@ static int melde(const char *was, cudaError_t e) {
  * Benachbarte Threads arbeiten an benachbarten Nonces, und am Ende eines
  * Stapels ist ein lueckenloser Bereich abgearbeitet.
  */
-__global__ void yskar_kernel(uint64_t basis, uint32_t iters,
-                             unsigned long long *treffer) {
+/*
+ * __launch_bounds__: Der Compiler weiss so, dass nie mehr als YSKAR_THREADS
+ * Threads je Block laufen, und darf entsprechend viele Register verwenden.
+ * Der ganze Hash liegt in Registern -- nichts im lokalen Speicher.
+ */
+__global__ void __launch_bounds__(YSKAR_THREADS)
+yskar_kernel(uint64_t basis, uint32_t iters, unsigned long long *treffer) {
   const uint64_t tid = (uint64_t)blockIdx.x * blockDim.x + threadIdx.x;
   const uint64_t schritt = (uint64_t)gridDim.x * blockDim.x;
-  uint8_t hash[32];
+  uint32_t hash[8];
 
   for (uint32_t k = 0; k < iters; k++) {
     const uint64_t nonce = basis + tid + (uint64_t)k * schritt;
-    yskar_hash_nonce(hash, c_mid, nonce);
-    if (yskar_meets_target(hash, c_target)) {
+    yskar_hash_nonce_w(hash, c_mid, nonce);
+    if (yskar_meets_target_w(hash, c_ziel)) {
       /* KEIN return: Der Thread rechnet seine Iterationen zu Ende. Sonst
          blieben Nonces ungeprueft, waehrend der Rechner sie als geprueft
          zaehlt -- die gemeldete Hashrate waere zu hoch. */
@@ -114,8 +122,10 @@ int yskar_dev_init(int id) {
 }
 
 int yskar_dev_set_job(const uint32_t mid[8], const uint8_t target[32]) {
+  uint32_t ziel[8];
+  yskar_ziel_woerter(ziel, target);
   CUDA_OK("cudaMemcpyToSymbol(mid)", cudaMemcpyToSymbol(c_mid, mid, sizeof(uint32_t) * 8));
-  CUDA_OK("cudaMemcpyToSymbol(target)", cudaMemcpyToSymbol(c_target, target, 32));
+  CUDA_OK("cudaMemcpyToSymbol(ziel)", cudaMemcpyToSymbol(c_ziel, ziel, sizeof ziel));
   return 0;
 }
 
