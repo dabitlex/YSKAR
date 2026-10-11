@@ -1,4 +1,4 @@
-# YSKAR Node Core 0.6.0
+# YSKAR Node Core 0.7.0
 
 A full YSKAR node for Windows and Linux with its own window: wallet, mining
 (solo, in a pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -15,6 +15,25 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Program** | German and English, start when you log in, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 0.7.0
+
+- **Linux version** next to the Windows installer: a `.deb` for Ubuntu,
+  Debian and Linux Mint and an AppImage for other distributions, x86-64 only.
+  Same program and same version as on Windows; see "Build on Linux" below.
+- **GPU mining on Linux:** `yskar-cuda` is built for Linux in the release
+  workflow (CUDA 12.8, GTX 9xx to RTX 50xx, `gpu/build-gpu.sh`) and included
+  in the Linux packages; the release also carries it as a single file for
+  systems such as HiveOS. Proposal by derhier in issue #9.
+- **Desktop shell:** PNG icon on Linux; "Start when you log in" via
+  `~/.config/autostart` (`src/autostartLinux.mjs`); the status reports the
+  platform, and texts that mention Windows have a Linux variant.
+- **Release:** the draft release is created only when the Windows installer,
+  the Linux GPU miner and the Linux packages are all built; each file has its
+  own checksum.
+
+On Windows nothing changes for the user. Wallet, settings and data folder are
+unchanged.
 
 ## What changed in 0.6.0
 
@@ -270,7 +289,7 @@ powershell -ExecutionPolicy Bypass -File .\build-desktop.ps1
 
 The finished installer is created under:
 
-`node-core\release\YSKAR-Node-Core-Setup-0.6.0.exe`
+`node-core\release\YSKAR-Node-Core-Setup-<version>.exe`
 
 ## Build on Linux
 
