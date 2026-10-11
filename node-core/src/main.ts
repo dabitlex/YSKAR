@@ -99,7 +99,7 @@ interface MiningEinstellung {
   lief: boolean;
 }
 
-export const VERSION = '0.8.0';
+export const VERSION = '0.7.1';
 /**
  * Stand der Konsensregeln, die dieses Programm kennt (docs/CONSENSUS_V*.md).
  * Nur fuer die Anzeige -- die Regeln selbst stehen in src/lib/core.

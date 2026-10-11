@@ -4,9 +4,9 @@
  *
  * Nach jedem neuen Block im Netz verwirft der Knoten alle offenen Jobs
  * (MiningCoordinator.invalidate). Der naechste Treffer auf einen alten Job
- * bekommt "job_unknown". Bis 0.8.0 zaehlte der Miner das als Ablehnung und
+ * bekommt "job_unknown". Bis Oktober 2026 zaehlte der Miner das als Ablehnung und
  * rechnete bis zur naechsten Abfrage -- alle 45 Sekunden -- an der alten
- * Arbeit weiter: im Mittel gut 20 Sekunden je Block umsonst.
+ * Arbeit weiter: nach jedem Block bis zu 45 Sekunden umsonst.
  *
  * Gestartet wird der ECHTE Miner als eigener Prozess gegen einen echten
  * Knoten im Testnetz.

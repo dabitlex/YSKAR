@@ -1,4 +1,4 @@
-# YSKAR Node Core 0.7.0
+# YSKAR Node Core 0.7.1
 
 A full YSKAR node for Windows and Linux with its own window: wallet, mining
 (solo, in a pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -15,6 +15,23 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Program** | German and English, start when you log in, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 0.7.1
+
+- **Several GPUs at once** (`src/GpuGruppe.ts`): one `GpuMiner` per selected
+  card, each with its own self-test and extranonce; in a pool each card has
+  its own session, all of one address take one place. A failing card does not
+  stop the others. The Mining page lists the cards with checkboxes; the choice
+  is kept in `mining.json` (`gpuDevices`).
+- **GPU kernel** (`gpu/yskar_sha256.h`, `gpu/yskar_gpu.cu`): rolling message
+  schedule, fully unrolled, hash and target as words -- nothing in local
+  memory any more (0 bytes stack frame, 256 up to 0.7.0). Checked against
+  `node:crypto` in `test/sha-vektoren.test.ts`. On a GeForce 940MX the
+  hashrate is unchanged; newer cards are not measured yet.
+- **HiveOS package** (`../hiveos/`), built and tested in the release workflow
+  and attached to the release as `yskar-hiveos-<version>.tar.gz`.
+- **Command-line miner** (`../miner/`): fetches new work at once on
+  `job_unknown`, which the node answers after every new block.
 
 ## What changed in 0.7.0
 

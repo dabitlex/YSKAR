@@ -151,7 +151,7 @@ test('Protokolle: Zaehler, Leistung, Kuerzen', opt, () => {
   const lade = (s: string) => bash(`. ./yskar-log.sh; ${s}`);
 
   writeFileSync(f, [
-    '### Start 2026-10-11 10:00:00 GPU 0 YSKAR 0.8.0',
+    '### Start 2026-10-11 10:00:00 GPU 0 YSKAR 0.7.1',
     '[10:00:05] angenommen #1 · Difficulty 1.000 · 0,1 % eines Blocks',
     '[10:00:10] abgelehnt stale',
     '[10:01:00] 10s 3,52 GH/s 60s 3,51 GH/s 15m 3,50 GH/s · 1,2 TH gesamt · Laufzeit 1 min',
@@ -167,7 +167,7 @@ test('Protokolle: Zaehler, Leistung, Kuerzen', opt, () => {
   assert.equal(lade(`yskar_zaehle ${f}`).aus.trim(), '4 1', 'Der Block darf nicht doppelt zaehlen');
 
   // Ein Neustart setzt die Zaehler zurueck; vor der ersten Minutenzeile gibt es keine Leistung.
-  writeFileSync(f, readFileSync(f, 'utf8') + '### Start 2026-10-11 10:05:00 GPU 0 YSKAR 0.8.0\n[10:05:09] angenommen #1 · x\n');
+  writeFileSync(f, readFileSync(f, 'utf8') + '### Start 2026-10-11 10:05:00 GPU 0 YSKAR 0.7.1\n[10:05:09] angenommen #1 · x\n');
   assert.equal(lade(`yskar_zaehle ${f}`).aus.trim(), '1 0');
   assert.equal(lade(`yskar_khs ${f}`).aus.trim(), '0');
 
