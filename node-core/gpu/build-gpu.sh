@@ -70,14 +70,14 @@ echo "1/3 Kernel (nvcc)"
 # Liegt der Hash ganz in Registern? ptxas meldet je Architektur den Stapel
 # des Kernels. Mehr als 0 Byte heisst: Arbeitswoerter im langsamen lokalen
 # Speicher -- der Kernel rechnet dann deutlich langsamer (so bis 0.7.0).
-stapel=$(awk '/Function properties for _Z12yskar_kernel/ { getline; print $1 }' "$arbeit/ptxas.txt" | sort -u | tr '\n' ' ')
+stapel=$(awk '/Function properties for [^ ]*yskar_kernel/ { getline; print $1 }' "$arbeit/ptxas.txt" | sort -u | tr '\n' ' ')
 if [[ -z $stapel ]]; then
   echo "WARNUNG: ptxas hat keine Angaben zum Kernel geliefert."
 elif [[ $stapel == "0 " ]]; then
   echo "Kernel: ganz in Registern (0 Byte Stapel) auf allen Architekturen"
 else
   echo "WARNUNG: Kernel braucht lokalen Speicher (Stapel in Byte: $stapel)"
-  grep -A1 "Function properties for _Z12yskar_kernel" "$arbeit/ptxas.txt" || true
+  grep -A1 "Function properties for .*yskar_kernel" "$arbeit/ptxas.txt" || true
 fi
 
 echo "2/3 Programmlogik (g++)"

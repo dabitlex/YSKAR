@@ -14,9 +14,9 @@
 set -euo pipefail
 
 NODE_VERSION=v22.23.3
-# Leer: Nur gegen SHASUMS256.txt pruefen und die Summe ausgeben, damit sie
-# hier eingetragen werden kann.
-NODE_SHA256=
+# Festgehalten aus dem ersten Lauf der CI (12.10.2026), dort gegen
+# SHASUMS256.txt geprueft. Leer: nur gegen SHASUMS256.txt pruefen.
+NODE_SHA256=5473ba6774b3c631201a1d29fd4f1809fd927d2266894c544ca47f301eec15bf
 
 ziel=${1:?Zielordner fehlt}
 mkdir -p "$ziel"

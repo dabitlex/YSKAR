@@ -256,9 +256,25 @@ Write-Host "Gebaut: $ziel" -ForegroundColor Green
 # Liegt der Hash ganz in Registern? ptxas meldet je Architektur den Stapel
 # des Kernels. Mehr als 0 Byte heisst: Arbeitswoerter im langsamen lokalen
 # Speicher -- der Kernel rechnet dann deutlich langsamer (so bis 0.7.0).
-$stapel = [regex]::Matches($r.Text, 'Function properties for _Z12yskar_kernel\w*\s+(\d+) bytes stack frame') |
-  ForEach-Object { [int]$_.Groups[1].Value } | Sort-Object -Unique
-if (-not $stapel) {
+# Unter Windows traegt der Kernel einen MSVC-Namen (?yskar_kernel@@...),
+# unter Linux einen Itanium-Namen (_Z12yskar_kernel...) -- gesucht wird
+# deshalb nur nach "yskar_kernel" im Namen.
+# Zeilenweise: Die Zeile nach "Function properties for ..." nennt den
+# Stapel. PowerShell kann Meldungen von stderr mit Zusatzzeilen umgeben --
+# gesucht wird deshalb die naechste Zeile mit "bytes stack frame".
+$zeilen = $r.Text -split "`r?`n"
+$stapel = @()
+for ($i = 0; $i -lt $zeilen.Count; $i++) {
+  if ($zeilen[$i] -match 'Function properties for \S*yskar_kernel') {
+    for ($j = $i + 1; $j -lt [Math]::Min($i + 8, $zeilen.Count); $j++) {
+      if ($zeilen[$j] -match '(\d+) bytes stack frame') { $stapel += [int]$Matches[1]; break }
+    }
+  }
+}
+# @(...): Mit nur einem Wert waere $stapel sonst die Zahl 0 -- und -not 0
+# ist wahr.
+$stapel = @($stapel | Sort-Object -Unique)
+if ($stapel.Count -eq 0) {
   Write-Host 'WARNUNG: ptxas hat keine Angaben zum Kernel geliefert.' -ForegroundColor Yellow
 } elseif (($stapel | Measure-Object -Maximum).Maximum -eq 0) {
   Write-Host 'Kernel: ganz in Registern (0 Byte Stapel) auf allen Architekturen' -ForegroundColor Green
