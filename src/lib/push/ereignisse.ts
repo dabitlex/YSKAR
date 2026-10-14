@@ -56,7 +56,7 @@ type Texte = {
   unterwegs: (b: string, sym: string) => string;
   vonNaechster: (von: string) => string;
 };
-const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl' | 'zh', Texte> = {
+const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl' | 'zh' | 'id' | 'vi' | 'uk', Texte> = {
   de: {
     locale: 'de-DE',
     poolAnteil: h => `Pool-Anteil aus Block #${h}`,
@@ -157,9 +157,40 @@ const TEXTE: Record<'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl'
     unterwegs: (b, sym) => `${b} ${sym} 正在途中`,
     vonNaechster: von => `来自 ${von} · 将随下一个区块到账`,
   },
+  id: {
+    locale: 'id-ID',
+    poolAnteil: h => `Bagian pool dari blok #${h}`,
+    blockGefunden: h => `Blok #${h} ditemukan`,
+    aufAdresse: (b, sym) => `+${b} ${sym} sudah ada di alamatmu.`,
+    erhalten: (b, sym) => `${b} ${sym} diterima`,
+    vonBestaetigt: (von, h) => `Dari ${von} · dikonfirmasi di blok #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} sedang dikirim`,
+    vonNaechster: von => `Dari ${von} · masuk bersama blok berikutnya`,
+  },
+  vi: {
+    locale: 'vi-VN',
+    poolAnteil: h => `Phần chia pool từ block #${h}`,
+    blockGefunden: h => `Đã tìm thấy block #${h}`,
+    aufAdresse: (b, sym) => `+${b} ${sym} đã vào địa chỉ của bạn.`,
+    erhalten: (b, sym) => `Đã nhận ${b} ${sym}`,
+    vonBestaetigt: (von, h) => `Từ ${von} · đã xác nhận trong block #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} đang trên đường`,
+    vonNaechster: von => `Từ ${von} · sẽ đến cùng block tiếp theo`,
+  },
+  uk: {
+    locale: 'uk-UA',
+    poolAnteil: h => `Частка пулу з блоку #${h}`,
+    blockGefunden: h => `Знайдено блок #${h}`,
+    aufAdresse: (b, sym) => `+${b} ${sym} на твоїй адресі.`,
+    erhalten: (b, sym) => `Отримано ${b} ${sym}`,
+    vonBestaetigt: (von, h) => `Від ${von} · підтверджено в блоці #${h}`,
+    unterwegs: (b, sym) => `${b} ${sym} у дорозі`,
+    vonNaechster: von => `Від ${von} · надійде з наступним блоком`,
+  },
 };
 export function texteFuer(sprache?: string): Texte {
-  const k = (sprache ?? '').toLowerCase().slice(0, 2);
+  let k = (sprache ?? '').toLowerCase().slice(0, 2);
+  if (k === 'in') k = 'id'; // alter Sprachcode fuer Indonesisch
   return k in TEXTE ? TEXTE[k as keyof typeof TEXTE] : TEXTE.en;
 }
 const ysr = (roh: string, locale: string, dec = 8) =>

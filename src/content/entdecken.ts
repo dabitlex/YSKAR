@@ -17,6 +17,9 @@ import inhalteIt from './entdecken.it';
 import inhalteFr from './entdecken.fr';
 import inhaltePl from './entdecken.pl';
 import inhalteZh from './entdecken.zh';
+import inhalteId from './entdecken.id';
+import inhalteVi from './entdecken.vi';
+import inhalteUk from './entdecken.uk';
 
 export type Baustein =
   | { art: 'absatz'; text: string }
@@ -46,6 +49,7 @@ export interface Inhalte { ARTIKEL: Artikel[]; FAQ: Frage[]; NEUIGKEITEN: Neuigk
 const FABRIKEN = {
   de: inhalteDe, en: inhalteEn, ru: inhalteRu, es: inhalteEs, tr: inhalteTr, pt: inhaltePt,
   it: inhalteIt, fr: inhalteFr, pl: inhaltePl, zh: inhalteZh,
+  id: inhalteId, vi: inhalteVi, uk: inhalteUk,
 } as const;
 export type InhaltSprache = keyof typeof FABRIKEN;
 

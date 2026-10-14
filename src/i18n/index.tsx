@@ -11,6 +11,9 @@ import it from './it';
 import fr from './fr';
 import pl from './pl';
 import zh from './zh';
+import id from './id';
+import vi from './vi';
+import uk from './uk';
 
 /**
  * Sprache der Oberflaeche.
@@ -24,7 +27,7 @@ import zh from './zh';
  * Alle Texte liegen in de.ts und en.ts mit identischen Schluesseln; eine
  * neue Sprache ist eine weitere Datei und ein Eintrag in SPRACHEN.
  */
-export type Sprache = 'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl' | 'zh';
+export type Sprache = 'de' | 'en' | 'ru' | 'es' | 'tr' | 'pt' | 'it' | 'fr' | 'pl' | 'zh' | 'id' | 'vi' | 'uk';
 
 export const SPRACHEN: { code: Sprache; name: string }[] = [
   { code: 'en', name: en.name },
@@ -34,12 +37,15 @@ export const SPRACHEN: { code: Sprache; name: string }[] = [
   { code: 'fr', name: fr.name },
   { code: 'it', name: it.name },
   { code: 'pl', name: pl.name },
-  { code: 'ru', name: ru.name },
+  { code: 'id', name: id.name },
+  { code: 'vi', name: vi.name },
   { code: 'tr', name: tr.name },
+  { code: 'ru', name: ru.name },
+  { code: 'uk', name: uk.name },
   { code: 'zh', name: zh.name },
 ];
 
-const BUECHER: Record<Sprache, Woerterbuch> = { de, en, ru, es, tr, pt, it, fr, pl, zh };
+const BUECHER: Record<Sprache, Woerterbuch> = { de, en, ru, es, tr, pt, it, fr, pl, zh, id, vi, uk };
 const MERKER = 'yskar.sprache';
 const VORGABE: Sprache = 'en';
 
@@ -60,7 +66,9 @@ export function spracheErkennen(): Sprache {
   if (Array.isArray(navigator.languages)) kandidaten.push(...navigator.languages);
   if (navigator.language) kandidaten.push(navigator.language);
   for (const k of kandidaten) {
-    const kurz = k.toLowerCase().slice(0, 2);
+    let kurz = k.toLowerCase().slice(0, 2);
+    // Aeltere Android-Fassungen melden Indonesisch noch als "in".
+    if (kurz === 'in') kurz = 'id';
     if (istSprache(kurz)) return kurz;
   }
   return VORGABE;
