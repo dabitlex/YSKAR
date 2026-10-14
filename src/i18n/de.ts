@@ -8,7 +8,10 @@
  * Fachwoerter, die in jeder Sprache gleich bleiben: Share, Difficulty,
  * Hashrate, Worker, Block, Reward, Mempool, Full Node, Pool, PPLNS.
  */
+import neu from './neu/de';
+
 const de = {
+  ...neu,
   name: 'Deutsch',
   locale: 'de-DE',
 
@@ -34,7 +37,7 @@ const de = {
     sprache: 'Sprache',
   },
 
-  nav: { home: 'Home', mining: 'Mining', wallet: 'Wallet', netz: 'Netz', entdecken: 'Entdecken' },
+  nav: { home: 'Home', mining: 'Mining', wallet: 'Wallet', netz: 'Netz', entdecken: 'Entdecken', community: 'Community' },
 
   splash: { laedt: 'KETTE WIRD GELADEN' },
 

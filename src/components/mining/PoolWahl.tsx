@@ -187,8 +187,10 @@ function Karte({ s, gewaehlt, eigen, laedt, onWaehlen }: {
 }
 
 /** Die Liste der Pools, von unten eingeschoben. */
-export function PoolBlatt({ pool, offen, onSchliessen }: {
+export function PoolBlatt({ pool, offen, onSchliessen, voll }: {
   pool: PoolAuswahl; offen: boolean; onSchliessen: () => void;
+  /** Der Start ist an einem vollen Pool gescheitert: Name und Plaetze fuer den Hinweis oben. */
+  voll?: { name: string; plaetze: number } | null;
 }) {
   const { t, locale } = useT();
   const [sicht, setSicht] = useState<'liste' | 'eigen'>('liste');
@@ -242,6 +244,12 @@ export function PoolBlatt({ pool, offen, onSchliessen }: {
         </form>
       ) : (
         <>
+          {voll && (
+            <div className="-mt-1 mb-4 rounded-[16px] bg-[#FFF6E5] px-4 py-3.5 text-[#0E1A2F]">
+              <p className="text-[15px] font-extrabold">{t.miningNeu.vollTitel(voll.name)}</p>
+              <p className="mt-1 text-[13px] font-semibold leading-[1.5] text-[#6B5A35]">{t.miningNeu.vollText(voll.plaetze)}</p>
+            </div>
+          )}
           <p className="-mt-3 mb-3.5 text-[12.5px] font-semibold text-faint">
             {pool.liste === null
               ? (pool.listeFehler ? t.pool.listeFehler : t.pool.laedt)

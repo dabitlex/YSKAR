@@ -4,7 +4,10 @@ import type { Woerterbuch } from './de';
  * Simplified Chinese. Same keys as de.ts -- `satisfies` makes a missing one a
  * build error, not a blank spot in the app.
  */
+import neu from './neu/zh';
+
 const zh = {
+  ...neu,
   name: '中文',
   locale: 'zh-CN',
 
@@ -30,7 +33,7 @@ const zh = {
     sprache: '语言',
   },
 
-  nav: { home: '首页', mining: '挖矿', wallet: '钱包', netz: '网络', entdecken: '发现' },
+  nav: { home: '首页', mining: '挖矿', wallet: '钱包', netz: '网络', entdecken: '发现', community: '社区' },
 
   splash: { laedt: '正在加载区块链' },
 

@@ -6,11 +6,10 @@ import Onboarding from '@/components/Onboarding';
 import Unlock from '@/components/Unlock';
 import AppLadenHinweis from '@/components/AppLaden';
 import AppShell from '@/components/AppShell';
-import { Screen, Title, Body } from '@/components/ui/Primitives';
 import { Splash, useSplash } from '@/components/ui/Chrome';
 import { plattform, fehlerspeicherInstallieren } from '@/lib/native/plattform';
-import { SpracheProvider, useT } from '@/i18n';
-import { EXPLORER_URL } from '@/components/ui/ExternLink';
+import { SpracheProvider } from '@/i18n';
+import AusserhalbTelegram from '@/components/AusserhalbTelegram';
 import { vorladen } from '@/lib/vorladen';
 import { ThemaProvider } from '@/lib/useThema';
 
@@ -32,7 +31,6 @@ export default function Page() {
 
 function Router() {
   const wallet = useWallet();
-  const { t } = useT();
   // Ohne Mindestdauer stuende das Startbild einen Frame lang: Tresor und
   // Plattform werden synchron gelesen. Der erste Eindruck der Marke darf
   // nicht davon abhaengen, wie schnell das Geraet ist.
@@ -62,17 +60,7 @@ function Router() {
     setPlatform(tg.platform);
   }, []);
 
-  if (ausserhalb) {
-    return (
-      <Screen>
-        <div className="mt-16">
-          <Title>{t.browser.titel}</Title>
-          <Body>{t.browser.text}</Body>
-          <a href={EXPLORER_URL} className="mt-4 inline-block font-bold text-work underline">{t.browser.explorer}</a>
-        </div>
-      </Screen>
-    );
-  }
+  if (ausserhalb) return <AusserhalbTelegram />;
 
   // Startbild statt Ladetext: Der erste Eindruck der App ist die Marke,
   // nicht ein Platzhalter.

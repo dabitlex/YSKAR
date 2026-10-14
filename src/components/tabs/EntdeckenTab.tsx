@@ -9,6 +9,10 @@ import { useT } from '@/i18n';
 import { EPOCH_BLOCKS, SEASON_BLOCKS, INITIAL_REWARD } from '@/lib/core/params';
 import type { Summary } from '@/hooks/useMining';
 import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
+import NetzTab from '@/components/tabs/NetzTab';
+import { hashrateText } from '@/lib/format/hashrate';
+import { useZurueckTaste } from '@/lib/telegram/webapp';
+import { MAX_SUPPLY, DECIMALS } from '@/lib/core/params';
 
 /**
  * Entdecken.
@@ -18,13 +22,15 @@ import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
  * ersten Tag an etwas erzaehlt -- eine Nachrichtenliste waere leer.
  */
 
-type Ansicht = { art: 'liste' } | { art: 'artikel'; slug: string } | { art: 'faq'; i: number };
+type Ansicht = { art: 'liste' } | { art: 'artikel'; slug: string } | { art: 'faq'; i: number } | { art: 'netz' };
 
-export default function EntdeckenTab({ summary, decimals, symbol, onEinstellungen }: {
+export default function EntdeckenTab({ summary, decimals, symbol, onEinstellungen, meineAdresse }: {
   summary: Summary | null; decimals: number; symbol: string;
   onEinstellungen: () => void;
+  meineAdresse: string | null;
 }) {
   const [ansicht, setAnsicht] = useState<Ansicht>({ art: 'liste' });
+  useZurueckTaste(ansicht.art !== 'liste', () => setAnsicht({ art: 'liste' }));
   const { t, sprache, locale, zahl } = useT();
   const { ARTIKEL, FAQ, NEUIGKEITEN } = inhalte(sprache, locale);
   // Neuigkeiten vom Server (Tabelle chain2.news); bis sie da sind, die aus dem Code.
@@ -43,6 +49,14 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  if (ansicht.art === 'netz') {
+    return (
+      <>
+        <SubHeader titel={t.entdeckenNeu.details} onZurueck={() => setAnsicht({ art: 'liste' })} />
+        <NetzTab summary={summary} meineAdresse={meineAdresse} decimals={decimals} symbol={symbol} ohneKopf />
+      </>
+    );
+  }
   if (ansicht.art === 'artikel') {
     const a = ARTIKEL.find(x => x.slug === ansicht.slug);
     if (a) return <Artikel artikel={a} onZurueck={() => setAnsicht({ art: 'liste' })} />;
@@ -74,8 +88,10 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
                            border-line bg-surface text-dim">{Icon.Zahnrad}</button>
       } />
 
+      <NetzLive summary={summary} decimals={decimals} onDetails={() => setAnsicht({ art: 'netz' })} />
+
       <button onClick={() => setAnsicht({ art: 'artikel', slug: 'tokenomics' })}
-              className="hero rise w-full p-5 text-left active:scale-[.99]">
+              className="hero rise mt-3 w-full p-5 text-left active:scale-[.99]">
         <div className="flex items-baseline justify-between">
           <span className="label !text-white/60">{t.entdecken.halving}</span>
           <span className="text-[11.5px] font-bold text-white/70">
@@ -168,6 +184,58 @@ export function ThemenRaster({ onOeffnen }: { onOeffnen: (slug: string) => void 
           <span className="text-[12px] font-semibold leading-[1.45] text-dim">{a.teaser}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Das Netz in einer Karte -- frueher ein eigener Reiter. Die Einzelheiten
+ * (letzte Bloecke, Difficulty) liegen eine Ebene tiefer unter "Netz-Details".
+ */
+function NetzLive({ summary, decimals, onDetails }: {
+  summary: Summary | null; decimals: number; onDetails: () => void;
+}) {
+  const { t, zahl } = useT();
+  const gemint = Number(summary?.totalSupply ?? 0) / 10 ** decimals;
+  const max = Number(MAX_SUPPLY) / 10 ** DECIMALS;
+  const anteil = max > 0 ? gemint / max * 100 : 0;
+  const mio = (n: number) => zahl(n / 1e6, { maximumFractionDigits: 2 }) + ' M';
+  return (
+    <section className="rise flex flex-col gap-3 rounded-[22px] p-4 text-white"
+             style={{ background: 'linear-gradient(140deg, rgb(var(--work)), #163FA8)' }}>
+      <div className="flex items-center justify-between">
+        <span className="text-[11.5px] font-extrabold tracking-[.12em] text-white/75">{t.entdeckenNeu.netzLive}</span>
+        <span className="flex items-center gap-1.5 text-[12px] font-extrabold">
+          <span className="h-[7px] w-[7px] rounded-full bg-[#7CF0C0]" />
+          {summary?.height != null ? t.einstieg.block(`#${zahl(summary.height)}`) : '—'}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Wert zahl={hashrateText(summary?.hashrate ?? null)} name={t.entdeckenNeu.hashrate} />
+        <Wert zahl={typeof summary?.knoten === 'number' ? zahl(summary.knoten) : '—'} name={t.entdeckenNeu.knoten} />
+        <Wert zahl={summary ? zahl(summary.activeMiners) : '—'} name={t.entdeckenNeu.miner} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+          <div className="h-full rounded-full bg-white" style={{ width: `${Math.max(1.5, Math.min(100, anteil))}%` }} />
+        </div>
+        <span className="tnum text-[11.5px] font-semibold text-white/80">
+          {t.entdeckenNeu.gemint(mio(gemint), mio(max), zahl(anteil, { maximumFractionDigits: 1 }))}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={onDetails} className="text-[12.5px] font-extrabold">{t.entdeckenNeu.details} ›</button>
+        <ExternLink href={EXPLORER_URL} className="text-[12.5px] font-extrabold text-white/85">{t.entdeckenNeu.explorer} ›</ExternLink>
+      </div>
+    </section>
+  );
+}
+
+function Wert({ zahl, name }: { zahl: string; name: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-[18px] font-extrabold">{zahl}</span>
+      <span className="text-[11.5px] font-semibold text-white/75">{name}</span>
     </div>
   );
 }

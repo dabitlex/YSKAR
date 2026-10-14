@@ -43,6 +43,19 @@ export interface Vault {
   ciphertext: string;  // base64
   address: string;     // im Klartext -- die Adresse ist oeffentlich
   createdAt: string;
+  /**
+   * Hat der Nutzer die zwoelf Woerter nachweislich aufgeschrieben?
+   *
+   * Seit dem neuen Einstieg (Oktober 2026) wird die Wallet angelegt, BEVOR
+   * die Woerter gesichert sind -- das Mining soll sofort laufen. Senden ist
+   * gesperrt, bis die Sicherung erledigt ist.
+   *
+   * Fehlt das Feld, stammt der Tresor aus der Zeit davor: Damals ging es
+   * ohne bestandene Pruefung gar nicht weiter. Solche Tresore gelten als
+   * gesichert, ebenso jede Wiederherstellung -- wer die Woerter eingibt,
+   * hat sie.
+   */
+  gesichert?: boolean;
 }
 
 const enc = new TextEncoder();
@@ -64,7 +77,8 @@ async function deriveKey(pin: string, salt: Uint8Array): Promise<CryptoKey> {
   );
 }
 
-export async function seal(mnemonic: string, pin: string, address: string): Promise<Vault> {
+export async function seal(mnemonic: string, pin: string, address: string,
+                           gesichert = true): Promise<Vault> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(pin, salt);
@@ -75,6 +89,7 @@ export async function seal(mnemonic: string, pin: string, address: string): Prom
     version: 1,
     salt: toB64(salt), iv: toB64(iv), ciphertext: toB64(ciphertext),
     address, createdAt: new Date().toISOString(),
+    ...(gesichert ? {} : { gesichert: false }),
   };
 }
 
@@ -114,6 +129,23 @@ export function save(vault: Vault): void {
 
 export function wipe(): void {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+/** Gesichert, solange nicht ausdruecklich das Gegenteil im Tresor steht. */
+export function istGesichert(v: Vault | null): boolean {
+  return !v || v.gesichert !== false;
+}
+
+/**
+ * Die Sicherung ist erledigt. Nur das Merkmal aendert sich -- der
+ * verschluesselte Inhalt bleibt Byte fuer Byte derselbe, es braucht also
+ * keine PIN.
+ */
+export function alsGesichertMerken(): void {
+  const v = load();
+  if (!v || v.gesichert !== false) return;
+  const { gesichert: _weg, ...rest } = v;
+  save(rest as Vault);
 }
 
 export function hasWallet(): boolean {

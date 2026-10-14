@@ -33,9 +33,18 @@ interface WalletState {
   keypair: Keypair | null;
   /** Nur direkt nach dem Erstellen gesetzt, bis der Nutzer bestaetigt hat. */
   freshMnemonic: string | null;
+  /** Die zwoelf Woerter sind gesichert. Solange nicht, ist Senden gesperrt. */
+  gesichert: boolean;
 
   create: () => string;
   confirmAndSeal: (pin: string) => Promise<void>;
+  /**
+   * Neuer Einstieg: Woerter erzeugen und sofort mit der PIN versiegeln --
+   * als "noch nicht gesichert". Die Sicherung holt der Nutzer spaeter nach.
+   */
+  erstellenUndVersiegeln: (pin: string) => Promise<void>;
+  /** Die Sicherung ist bestanden. */
+  gesichertMelden: () => void;
   discardFresh: () => void;
   recover: (mnemonic: string, pin: string) => Promise<{ ok: boolean; reason?: string }>;
   unlock: (pin: string) => Promise<{ ok: boolean; reason?: string }>;
@@ -53,11 +62,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [keypair, setKeypair] = useState<Keypair | null>(null);
   const [freshMnemonic, setFreshMnemonic] = useState<string | null>(null);
   const [sitzung, setSitzung] = useState(false);
+  const [gesichert, setGesichert] = useState(true);
 
   useEffect(() => {
     const v = vault.load();
     if (!v) { setPhase('kein_tresor'); return; }
     setAddress(v.address);
+    setGesichert(vault.istGesichert(v));
     setPhase('gesperrt');
   }, []);
 
@@ -76,9 +87,27 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setKeypair(kp);
     setAddress(kp.address);
     setFreshMnemonic(null);
+    setGesichert(true);
     setPhase('offen');
     setSitzung(true);
   }, [freshMnemonic]);
+
+  const erstellenUndVersiegeln = useCallback(async (pin: string) => {
+    const m = createMnemonic(12);
+    const kp = keypairFromMnemonic(m);
+    vault.save(await vault.seal(m, pin, kp.address, false));
+    setKeypair(kp);
+    setAddress(kp.address);
+    setFreshMnemonic(null);
+    setGesichert(false);
+    setPhase('offen');
+    setSitzung(true);
+  }, []);
+
+  const gesichertMelden = useCallback(() => {
+    vault.alsGesichertMerken();
+    setGesichert(true);
+  }, []);
 
   const discardFresh = useCallback(() => setFreshMnemonic(null), []);
 
@@ -91,6 +120,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     vault.save(await vault.seal(clean, pin, kp.address));
     setKeypair(kp);
     setAddress(kp.address);
+    setGesichert(true);
     setPhase('offen');
     setSitzung(true);
     return { ok: true };
@@ -140,13 +170,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setAddress(null);
     setFreshMnemonic(null);
     setSitzung(false);
+    setGesichert(true);
     setPhase('kein_tresor');
   }, []);
 
   return (
     <Ctx.Provider value={{
-      phase, sitzung, address, keypair, freshMnemonic,
-      create, confirmAndSeal, discardFresh, recover, unlock, revealMnemonic,
+      phase, sitzung, address, keypair, freshMnemonic, gesichert,
+      create, confirmAndSeal, erstellenUndVersiegeln, gesichertMelden, discardFresh, recover, unlock, revealMnemonic,
       lock, forget,
     }}>
       {children}

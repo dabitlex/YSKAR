@@ -4,7 +4,10 @@ import type { Woerterbuch } from './de';
  * Türkçe. Same keys as de.ts -- `satisfies` makes a missing one a build
  * error, not a blank spot in the app.
  */
+import neu from './neu/tr';
+
 const tr = {
+  ...neu,
   name: 'Türkçe',
   locale: 'tr-TR',
 
@@ -30,7 +33,7 @@ const tr = {
     sprache: 'Dil',
   },
 
-  nav: { home: 'Ana sayfa', mining: 'Madencilik', wallet: 'Cüzdan', netz: 'Ağ', entdecken: 'Keşfet' },
+  nav: { home: 'Ana sayfa', mining: 'Madencilik', wallet: 'Cüzdan', netz: 'Ağ', entdecken: 'Keşfet', community: 'Topluluk' },
 
   splash: { laedt: 'ZİNCİR YÜKLENİYOR' },
 

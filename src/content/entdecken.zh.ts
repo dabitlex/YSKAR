@@ -10,6 +10,8 @@ import {
   INITIAL_REWARD, UNIT, MAX_SUPPLY, EPOCH_BLOCKS, SEASON_BLOCKS,
   TARGET_BLOCK_TIME, MIN_FEE, MAX_TXS_PER_BLOCK, DECIMALS,
 } from '@/lib/core/params';
+import { MAX_COINBASE_OUTPUTS } from '@/lib/core/params';
+import { MAX_FEE_BPS } from '@/lib/pool/settlement';
 import type { Inhalte, Artikel, Frage, Neuigkeit } from './entdecken';
 
 export default function inhalteZh(z: (n: number) => string): Inhalte {
@@ -64,8 +66,37 @@ const ARTIKEL: Artikel[] = [
       { art: 'absatz', text: '在 Telegram 中，挖矿期间屏幕保持常亮——一旦锁屏，' +
         '平台就会暂停 Worker。Android 应用在锁屏后仍会继续计算，' +
         '通知栏中会显示当前算力。' },
-      { art: 'hinweis', tone: 'work', text: 'Solo 和矿池地位平等。第一个矿池已经上线：' +
-        '区块本身直接向所有参与者支付——运营者从不经手他人的资金。' },
+      { art: 'hinweis', tone: 'work', text: '新用户在矿池中挖矿；Solo 仍可在' +
+        '“挖矿 → 高级”中使用。在矿池中，区块本身直接向所有参与者支付——' +
+        '运营者从不经手他人的资金。' },
+    ],
+  },
+  {
+    slug: 'pool-oder-solo', icon: 'Wuerfel', farbe: 'work',
+    titel: '矿池还是 Solo？',
+    teaser: '小额、定期的份额，或者全有或全无。',
+    lesezeit: '2 分钟',
+    einleitung: `平均每 ${Number(TARGET_BLOCK_TIME) / 60} 分钟，网络中会有一位矿工` +
+      `找到一个价值 ${REWARD} YSR 的区块。问题在于，你希望如何为你的那份工作获得报酬。`,
+    bausteine: [
+      { art: 'kennzahlen', werte: [
+        { label: '矿池', wert: '小额份额，定期到账' },
+        { label: 'Solo', wert: '整个区块，很少发生' },
+      ] },
+      { art: 'absatz', text: '在矿池中，许多设备共同挖矿。当矿池找到一个区块时，' +
+        '区块本身会按照最近的工作量分配奖励（PPLNS）。你的份额取决于' +
+        '你的算力在矿池算力中贡献了多少。' },
+      { art: 'absatz', text: '使用 Solo 时，你会得到整个区块——但前提是你的设备' +
+        '亲自找到它。面对全网，单台手机在每个区块中的机会非常小；' +
+        '可能要很长时间才会发生。' },
+      { art: 'schritte', titel: '关于矿池你应该知道的', punkte: [
+        `运营者设定的手续费在 0 到 ${MAX_FEE_BPS / 100} % 之间；应用会在你开始前显示它。`,
+        `一个矿池每个区块只能向有限数量的矿工支付（目前为 ${MAX_COINBASE_OUTPUTS - 1} 位）。` +
+          '如果已满，你可以选择另一个矿池。',
+        '每笔支付都在区块和区块浏览器中公开。',
+      ] },
+      { art: 'hinweis', tone: 'work', text: '新用户在矿池中挖矿。你可以在' +
+        '“挖矿 → 高级”中切换到 Solo。' },
     ],
   },
   {
@@ -152,33 +183,38 @@ const ARTIKEL: Artikel[] = [
           '跳池（Pool Hopping）无利可图。',
         '分配方案写在区块中，任何人都可以验证。',
       ] },
-      { art: 'hinweis', tone: 'work', text: '第一个矿池已经上线。在“挖矿”标签页中' +
-        '选择“矿池”并输入其地址——在你开始之前，矿池会显示算力、' +
+      { art: 'hinweis', tone: 'work', text: '在“挖矿”标签页中，应用会选择空位最多的' +
+        '矿池；在“更换”中你也可以自己选择。在你开始之前，矿池会显示算力、' +
         '矿工数量和手续费。' },
     ],
   },
   {
     slug: 'roadmap', icon: 'Pfeil', farbe: 'proof',
     titel: '路线图',
-    teaser: '微支付、适用于所有系统的 Node Core、带闪电网络钱包的应用。',
+    teaser: '先求稳定，再求增长，然后才是新功能。',
     lesezeit: '2 分钟',
     einleitung: '不给出无法兑现的日期。取而代之的是任何人都能在' +
       '区块浏览器和源代码中核实的进展状态。',
     bausteine: [
       { art: 'schritte', titel: '已完成', punkte: [
         '区块链、钱包、区块中的交易、手机上的挖矿程序。',
-        '手续费市场：根据实际排队情况给出建议。',
-        '共识版本 2：支持多个收款方的 Coinbase。',
-        '矿池挖矿，PPLNS 收益直接从区块中支付——第一个矿池已经上线。',
-        '全节点之间的 P2P；多个节点同时运行。',
-        '区块链存在于全节点上；服务器只是供应用使用的镜像。',
-        'Android 应用“YSKAR Wallet”：收款推送、生物识别、后台挖矿、' +
-          '应用内更新提示——以 APK 形式发布在 GitHub 上。',
+        '按字节计费的手续费，以及基于实际排队情况的手续费市场。',
+        '矿池挖矿，PPLNS 收益直接从区块中支付；应用内可选择矿池。',
+        '全节点之间的 P2P；多个独立节点同时运行。',
+        '支持后台挖矿的 Android 应用——以 APK 形式发布在 GitHub 上。',
+        '适用于 Windows 和 Linux 的 YSKAR Node Core 0.7.1。',
       ] },
-      { art: 'schritte', titel: '下一步', punkte: [
-        '微支付：快速、低成本地转账小额资金。',
-        'YSKAR Node Core：集成钱包和挖矿功能、适用于所有系统的发行版。',
-        'iOS 应用；两款应用均支持闪电网络钱包。',
+      { art: 'schritte', titel: '当前', punkte: [
+        '稳定网络并修复小问题。',
+      ] },
+      { art: 'schritte', titel: '计划中', punkte: [
+        'Node Core：同时使用多块 GPU，随后支持 AMD 和 Intel 的 GPU 挖矿（OpenCL）。',
+        `在区块 ${z(7000)} 进行网络升级（软分叉）。`,
+        'YSKAR Wallet 上架 Google Play。',
+      ] },
+      { art: 'schritte', titel: '以后', punkte: [
+        '当网络达到一定规模后，支持 Stratum 挖矿。',
+        '发送方与收款方之间的直接支付通道。',
       ] },
       { art: 'hinweis', tone: 'work', text: '源代码是公开的。这里的每一步' +
         '都对应代码仓库中的一份文档。' },
@@ -190,11 +226,14 @@ const FAQ: Frage[] = [
   { frage: 'YSKAR 是空投或点击赚币（Tap-to-Earn）吗？',
     antwort: '不是。这里没有什么可点击的，也不会白送任何东西。YSR 只会' +
       '作为真实计算工作的区块奖励而产生，而这些工作都经过节点重新验证。' },
-  { frage: '用手机能赚多少？',
-    antwort: '这取决于你的算力在全网算力中所占的比例。' +
-      `平均每 ${Number(TARGET_BLOCK_TIME) / 60} 分钟，网络中会有一台设备` +
-      `找到一个价值 ${REWARD} YSR 的区块。“网络”标签页会显示` +
-      '全网算力——你所占的份额就是你每个区块的预期机会。' },
+  { frage: '我的手机能得到多少？',
+    antwort: '在矿池中，你会按自己的工作量，从矿池找到的每个区块中获得一份：' +
+      '大约是你的算力除以矿池算力，乘以 ' +
+      `${REWARD} YSR，再减去手续费。“挖矿”标签页会用你的真实数值` +
+      '计算这个估算值。使用 Solo 时，一切取决于你的设备能否亲自找到区块。' },
+  { frage: 'YSR 有价格吗？',
+    antwort: '没有。YSR 没有价格，也没有在任何交易所交易。任何人都不应抱着' +
+      '这种情况会改变的期望去挖矿。' },
   { frage: '如果我丢失了 12 个助记词怎么办？',
     antwort: '余额将会丢失。这里没有“忘记密码”：无论是我们还是' +
       'Telegram 都无法恢复助记词。请把它们写在纸上——不要截图。' },
@@ -205,6 +244,13 @@ const FAQ: Frage[] = [
 ];
 
 const NEUIGKEITEN: Neuigkeit[] = [
+  {
+    datum: '2026-10-12',
+    titel: '适用于 Windows 和 Linux 的 Node Core 0.7.1',
+    text: '集成钱包和挖矿功能的桌面节点，现在分别提供 Windows 和 Linux ' +
+      '安装包。',
+    link: 'https://github.com/dabitlex/YSKAR/releases',
+  },
   {
     datum: '2026-09-30',
     titel: 'Android 应用“YSKAR Wallet”',

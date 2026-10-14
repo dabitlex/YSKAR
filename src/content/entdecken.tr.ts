@@ -10,6 +10,8 @@ import {
   INITIAL_REWARD, UNIT, MAX_SUPPLY, EPOCH_BLOCKS, SEASON_BLOCKS,
   TARGET_BLOCK_TIME, MIN_FEE, MAX_TXS_PER_BLOCK, DECIMALS,
 } from '@/lib/core/params';
+import { MAX_COINBASE_OUTPUTS } from '@/lib/core/params';
+import { MAX_FEE_BPS } from '@/lib/pool/settlement';
 import type { Inhalte, Artikel, Frage, Neuigkeit } from './entdecken';
 
 export default function inhalteTr(z: (n: number) => string): Inhalte {
@@ -68,9 +70,37 @@ const ARTIKEL: Artikel[] = [
       { art: 'absatz', text: 'Telegram’da madencilik sürerken ekran açık kalır — kilitlenirse ' +
         'platform worker’ı durdurur. Android uygulaması ekran kilitliyken de hesaplamaya ' +
         'devam eder; bunu hash gücünü gösteren bildirimden görebilirsin.' },
-      { art: 'hinweis', tone: 'work', text: 'Solo ve havuz eşit haklara sahiptir. İlk havuz ' +
-        'aktif: ödemeyi bloğun kendisi tüm katılımcılara yapar — işletmeci hiçbir ' +
-        'zaman başkasının parasını tutmaz.' },
+      { art: 'hinweis', tone: 'work', text: 'Yeni kullanıcılar havuzda madencilik yapar; solo ' +
+        '„Madencilik → Gelişmiş" altında kullanılabilir kalır. Havuzda ödemeyi bloğun kendisi tüm ' +
+        'katılımcılara yapar — işletmeci hiçbir zaman başkasının parasını tutmaz.' },
+    ],
+  },
+  {
+    slug: 'pool-oder-solo', icon: 'Wuerfel', farbe: 'work',
+    titel: 'Havuz mu, solo mu?',
+    teaser: 'Küçük, düzenli paylar ya da hep ya hiç.',
+    lesezeit: '2 dk',
+    einleitung: `Ortalama her ${Number(TARGET_BLOCK_TIME) / 60} dakikada ağdaki bir madenci ` +
+      `${REWARD} YSR değerinde bir blok bulur. Soru, kendi payın için nasıl ödeme almak istediğin.`,
+    bausteine: [
+      { art: 'kennzahlen', werte: [
+        { label: 'Havuz', wert: 'küçük paylar, düzenli' },
+        { label: 'Solo', wert: 'bütün blok, nadiren' },
+      ] },
+      { art: 'absatz', text: 'Havuzda birçok cihaz birlikte madencilik yapar. Havuz bir blok bulduğunda ' +
+        'ödülü bloğun kendisi son yapılan işe göre paylaştırır (PPLNS). Payın, hash gücünün ' +
+        'havuzun hash gücüne ne kadar katkı sağladığına bağlıdır.' },
+      { art: 'absatz', text: 'Soloda bütün blok senin olur — ama yalnızca cihazın onu kendisi ' +
+        'bulursa. Tek başına bir telefonun tüm ağa karşı blok başına şansı çok küçüktür; ' +
+        'bu uzun sürebilir.' },
+      { art: 'schritte', titel: 'Havuzlar hakkında bilmen gerekenler', punkte: [
+        `İşletmeci %0 ile %${MAX_FEE_BPS / 100} arasında bir ücret belirler; uygulama bunu başlamadan önce gösterir.`,
+        `Bir havuz blok başına yalnızca sınırlı sayıda madenciye ödeme yapabilir (şu anda ${MAX_COINBASE_OUTPUTS - 1}). ` +
+          'Doluysa başka bir havuz seçersin.',
+        'Her ödeme blokta ve gezginde herkese açıktır.',
+      ] },
+      { art: 'hinweis', tone: 'work', text: 'Yeni kullanıcılar havuzda madencilik yapar. Soloya ' +
+        '„Madencilik → Gelişmiş" altından geçersin.' },
     ],
   },
   {
@@ -157,33 +187,38 @@ const ARTIKEL: Artikel[] = [
           'Havuz değiştirmek (pool hopping) işe yaramaz.',
         'Paylaşım blokta durur; herkes doğrulayabilir.',
       ] },
-      { art: 'hinweis', tone: 'work', text: 'İlk havuz aktif. „Madencilik" sekmesinde ' +
-        '„Havuz" seç ve adresini gir — havuz, başlamadan önce hash gücünü, ' +
+      { art: 'hinweis', tone: 'work', text: '„Madencilik" sekmesinde uygulama en çok boş yeri ' +
+        'olan havuzu seçer; „Değiştir" altında kendin seçebilirsin. Havuz, başlamadan önce hash gücünü, ' +
         'madenci sayısını ve ücreti bildirir.' },
     ],
   },
   {
     slug: 'roadmap', icon: 'Pfeil', farbe: 'proof',
     titel: 'Yol haritası',
-    teaser: 'Mikro ödemeler, her sistem için Node Core, Lightning cüzdanlı uygulamalar.',
+    teaser: 'Önce istikrar, sonra büyüme, sonra yeni özellikler.',
     lesezeit: '2 dk',
     einleitung: 'Tutulmayacak tarih yok. Onun yerine herkesin gezginde ve kaynak ' +
       'kodda kontrol edebileceği durumlar.',
     bausteine: [
       { art: 'schritte', titel: 'Tamamlandı', punkte: [
         'Zincir, cüzdan, blokta işlemler, telefonda madenci.',
-        'Ücret piyasası: gerçek kuyruktan öneri.',
-        'Konsensüs sürümü 2: birden fazla alıcılı coinbase.',
-        'Doğrudan bloktan PPLNS ödemeli havuz madenciliği — ilk havuz aktif.',
-        'Tam düğümler arasında P2P; birden fazla düğüm aynı anda çalışıyor.',
-        'Zincir tam düğümlerde yaşar; sunucu artık yalnızca uygulama için bir ayna.',
-        '„YSKAR Wallet" Android uygulaması: gelen ödemelerde push bildirimi, biyometri, ' +
-          'arka planda madencilik, uygulama içi güncelleme uyarısı — GitHub’da APK olarak.',
+        'Bayt başına ücret ve gerçek kuyruğa dayalı ücret piyasası.',
+        'Doğrudan bloktan PPLNS ödemeli havuz madenciliği; uygulamalarda havuz seçimi.',
+        'Tam düğümler arasında P2P; birden fazla bağımsız düğüm aynı anda çalışıyor.',
+        'Arka planda madencilik yapan Android uygulaması — GitHub’da APK olarak.',
+        'Windows ve Linux için YSKAR Node Core 0.7.1.',
       ] },
-      { art: 'schritte', titel: 'Sırada', punkte: [
-        'Mikro ödemeler: küçük tutarları hızlı ve ucuz aktarma.',
-        'YSKAR Node Core: her sistem için entegre cüzdan ve madencilikle yayın.',
-        'iOS uygulaması; her iki uygulamada Lightning cüzdanı.',
+      { art: 'schritte', titel: 'Şimdi', punkte: [
+        'Ağı istikrarlı hale getirmek ve küçük sorunları gidermek.',
+      ] },
+      { art: 'schritte', titel: 'Planlanan', punkte: [
+        'Node Core: aynı anda birden fazla GPU, ardından AMD ve Intel için GPU madenciliği (OpenCL).',
+        `${z(7000)} numaralı blokta ağ yükseltmesi (soft fork).`,
+        'Google Play’de YSKAR Wallet.',
+      ] },
+      { art: 'schritte', titel: 'Daha sonra', punkte: [
+        'Ağ belirli bir büyüklüğe ulaştığında Stratum madenciliği.',
+        'Gönderen ve alıcı arasında doğrudan ödeme kanalları.',
       ] },
       { art: 'hinweis', tone: 'work', text: 'Kaynak kod açık. Buradaki her adımın ' +
         'depoda bir belgesi var.' },
@@ -196,11 +231,14 @@ const FAQ: Frage[] = [
     antwort: 'Hayır. Dokunulacak bir şey yok ve hiçbir şey dağıtılmıyor. YSR yalnızca ' +
       'düğümün yeniden hesaplayarak doğruladığı gerçek hesaplama işi için blok ödülü ' +
       'olarak var olur.' },
-  { frage: 'Telefonumla ne kadar kazanırım?',
-    antwort: 'Bu, hash gücünün tüm ağa oranına bağlı. ' +
-      `Ortalama her ${Number(TARGET_BLOCK_TIME) / 60} dakikada ağdaki bir cihaz ` +
-      `${REWARD} YSR değerinde bir blok bulur. „Ağ" sekmesi ağ hash gücünü gösterir — ` +
-      'senin payın, blok başına beklenen şansındır.' },
+  { frage: 'Telefonum ne kadar alır?',
+    antwort: 'Havuzda, havuzun bulduğu her bloktan yaptığın işe göre bir pay alırsın: ' +
+      'yaklaşık olarak hash gücünün havuzun hash gücüne oranı çarpı ' +
+      `${REWARD} YSR, eksi ücret. „Madencilik" sekmesi bu tahmini senin ` +
+      'gerçek değerlerinle hesaplar. Soloda her şey cihazının kendisinin bir blok bulup bulmamasına bağlıdır.' },
+  { frage: 'YSR’nin bir fiyatı var mı?',
+    antwort: 'Hayır. YSR’nin fiyatı yok ve hiçbir borsada işlem görmüyor. Kimse bunun ' +
+      'değişeceği beklentisiyle madencilik yapmamalı.' },
   { frage: 'On iki kelimemi kaybedersem ne olur?',
     antwort: 'Bakiye kaybolur. „Şifremi unuttum" diye bir şey yok: ne biz ne de ' +
       'Telegram kelimeleri geri getirebilir. Kâğıda yaz — ekran görüntüsü olarak değil.' },
@@ -211,6 +249,13 @@ const FAQ: Frage[] = [
 ];
 
 const NEUIGKEITEN: Neuigkeit[] = [
+  {
+    datum: '2026-10-12',
+    titel: 'Windows ve Linux için Node Core 0.7.1',
+    text: 'Cüzdanlı ve madencilikli masaüstü düğümü artık Windows ve Linux için ' +
+      'ayrı paketler halinde geliyor.',
+    link: 'https://github.com/dabitlex/YSKAR/releases',
+  },
   {
     datum: '2026-09-30',
     titel: '„YSKAR Wallet" Android uygulaması',

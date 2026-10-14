@@ -4,7 +4,10 @@ import type { Woerterbuch } from './de';
  * Português (Brasil). Mesmas chaves de de.ts -- `satisfies` transforma uma
  * chave ausente em erro de build, não em um espaço vazio no app.
  */
+import neu from './neu/pt';
+
 const pt = {
+  ...neu,
   name: 'Português',
   locale: 'pt-BR',
 
@@ -30,7 +33,7 @@ const pt = {
     sprache: 'Idioma',
   },
 
-  nav: { home: 'Início', mining: 'Mineração', wallet: 'Carteira', netz: 'Rede', entdecken: 'Descobrir' },
+  nav: { home: 'Início', mining: 'Mineração', wallet: 'Carteira', netz: 'Rede', entdecken: 'Descobrir', community: 'Comunidade' },
 
   splash: { laedt: 'CARREGANDO A CADEIA' },
 

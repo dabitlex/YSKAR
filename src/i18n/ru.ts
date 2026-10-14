@@ -4,7 +4,10 @@ import type { Woerterbuch } from './de';
  * Russian. Same keys as de.ts -- `satisfies` makes a missing one a build
  * error, not a blank spot in the app.
  */
+import neu from './neu/ru';
+
 const ru = {
+  ...neu,
   name: 'Русский',
   locale: 'ru-RU',
 
@@ -30,7 +33,7 @@ const ru = {
     sprache: 'Язык',
   },
 
-  nav: { home: 'Главная', mining: 'Майнинг', wallet: 'Кошелёк', netz: 'Сеть', entdecken: 'Обзор' },
+  nav: { home: 'Главная', mining: 'Майнинг', wallet: 'Кошелёк', netz: 'Сеть', entdecken: 'Обзор', community: 'Сообщество' },
 
   splash: { laedt: 'ЗАГРУЗКА ЦЕПОЧКИ' },
 

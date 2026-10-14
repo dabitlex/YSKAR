@@ -25,6 +25,13 @@ export const EXPLORER_URL = 'https://www.yskar.app/explorer';
 export function externOeffnen(url: string): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tg = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+  // Kanal, Gruppe, Bot: in Telegram selbst oeffnen, nicht ueber den Browser.
+  // openLink mit einer t.me-Adresse schliesst sonst je nach Client die Mini
+  // App oder zeigt erst eine Webseite mit "Open in Telegram".
+  if (/^https:\/\/t\.me\//.test(url) && tg?.openTelegramLink) {
+    try { tg.openTelegramLink(url); return; }
+    catch { /* dann der gewoehnliche Weg */ }
+  }
   if (tg?.openLink) {
     try { tg.openLink(url, { try_instant_view: false }); return; }
     catch { /* dann der gewoehnliche Weg */ }

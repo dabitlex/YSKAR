@@ -140,13 +140,21 @@ export function waehlbar(s: Pick<PoolStand, 'status' | 'dabei'>): boolean {
 }
 
 /**
- * Welchen Pool die App vorschlaegt, solange niemand gewaehlt hat: den ersten
- * offenen der Liste, sonst den ersten, der wenigstens antwortet.
+ * Welchen Pool die App vorschlaegt, solange niemand gewaehlt hat: den
+ * offenen mit den meisten freien Plaetzen, sonst den ersten, der wenigstens
+ * antwortet. Bei Gleichstand gilt die Reihenfolge der Liste.
+ *
+ * Die meisten freien Plaetze, nicht der erste offene: Kommen viele neue
+ * Nutzer auf einmal (eine Anzeige), verteilen sie sich so ueber die Pools,
+ * statt den ersten zu fuellen und dann vor "voll" zu stehen.
  */
 export function vorschlag(pools: PoolStand[]): PoolStand | null {
-  return pools.find(p => p.status === 'offen')
-      ?? pools.find(p => p.status === 'unbekannt')
-      ?? null;
+  let best: PoolStand | null = null;
+  for (const p of pools) {
+    if (p.status !== 'offen') continue;
+    if (!best || (p.frei ?? 0) > (best.frei ?? 0)) best = p;
+  }
+  return best ?? pools.find(p => p.status === 'unbekannt') ?? null;
 }
 
 /**

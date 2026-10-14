@@ -4,10 +4,14 @@ import Image from 'next/image';
 
 import { useEffect, useRef, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
-import { Screen, Title, Body, Button, Notice } from '@/components/ui/Primitives';
+import { Button, Notice } from '@/components/ui/Primitives';
+import PinFeld, { PinTasten, PIN_LAENGE } from '@/components/PinFeld';
 import { biometrieAktiv, biometriePin, biometrieDeaktivieren } from '@/lib/native/biometrie';
 import { useT, fehlerText } from '@/i18n';
 import { vorladen } from '@/lib/vorladen';
+import { haptik, telegramFarben } from '@/lib/telegram/webapp';
+import { leistenFaerben } from '@/lib/native/leisten';
+import { useThema } from '@/lib/useThema';
 
 /**
  * Entsperren.
@@ -25,11 +29,17 @@ export default function Unlock({ ebene = false }: { ebene?: boolean }) {
   const [bio, setBio] = useState(false);
   const bioVersucht = useRef(false);
   const { t } = useT();
+  const { dunkel } = useThema();
+  // Die Sperre ist dunkel wie der Einstieg -- auch Telegram- und Systemleisten.
+  useEffect(() => {
+    telegramFarben(true); leistenFaerben(true);
+    return () => { telegramFarben(dunkel); leistenFaerben(dunkel); };
+  }, [dunkel]);
 
   const oeffnen = async () => {
     setBusy(true); setFehler(null);
     const r = await wallet.unlock(pin);
-    if (!r.ok) { setFehler(fehlerText(r.reason, t)); setPin(''); setBusy(false); }
+    if (!r.ok) { haptik('warnung'); setFehler(fehlerText(r.reason, t)); setPin(''); setBusy(false); }
   };
 
   /*
@@ -63,65 +73,65 @@ export default function Unlock({ ebene = false }: { ebene?: boolean }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Beim sechsten Punkt sofort pruefen -- ein Knopf "Oeffnen" waere ein Tipp mehr.
+  useEffect(() => {
+    if (pin.length === PIN_LAENGE && !busy) oeffnen();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin]);
+
   const inhalt = (
-    <Screen>
-      <div className="mt-8">
-        <Image src="/marke/kristall.png" alt="" width={120} height={78} priority
-               className="zoom mx-auto mb-6" style={{ width: 120, height: 78, objectFit: 'contain' }} />
-        <Title>{t.unlock.titel}</Title>
-        {wallet.address && (
-          <p className="mb-6 mt-3 break-all font-mono text-[12.5px] text-faint">{wallet.address}</p>
-        )}
-
-        <input
-          inputMode="numeric" maxLength={6} value={pin} autoFocus
-          onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-          onKeyDown={e => { if (e.key === 'Enter' && pin.length === 6) oeffnen(); }}
-          className="tnum sunk w-full px-4 py-5 text-center font-mono text-[26px]
-                     tracking-[0.5em] outline-none transition-colors focus:border-work"
-        />
-
-        {fehler && <div className="mt-4"><Notice tone="risk">{fehler}</Notice></div>}
-
-        <div className="mt-6 space-y-3">
-          <Button onClick={oeffnen} disabled={pin.length !== 6 || busy}>
-            {busy ? t.unlock.oeffnet : t.unlock.oeffnen}
-          </Button>
-          {bio && (
-            <Button variant="quiet" onClick={mitBiometrie} disabled={busy}>
-              <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
-                   strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 6.5a8 8 0 0 1 12 0M3.5 10a10 10 0 0 1 15 0M7 13a5 5 0 0 1 8 0M11 11v6M8.5 16.5a4 4 0 0 0 5 0" />
-              </svg>
-              {t.unlock.biometrie}
-            </Button>
-          )}
-        </div>
-
-        {!zeigeNotausgang ? (
-          <button
-            onClick={() => setZeigeNotausgang(true)}
-            className="mt-8 w-full text-center text-[13.5px] font-bold text-dim"
-          >
-            {t.unlock.vergessen}
-          </button>
-        ) : (
-          <div className="mt-8 space-y-4">
-            <Notice tone="risk">{t.unlock.notausgang}</Notice>
-            <Button variant="risk" onClick={() => {
-              if (confirm(t.unlock.loeschenFrage)) {
-                wallet.forget();
-              }
-            }}>
-              {t.unlock.loeschen}
-            </Button>
-          </div>
-        )}
+    <main className="thema-dunkel rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[calc(28px+var(--unten))]">
+      <div className="mt-11 flex justify-center">
+        <Image src="/marke/kristall.png" alt="" width={84} height={54} priority
+               className="zoom" style={{ width: 84, height: 54, objectFit: 'contain' }} />
       </div>
-    </Screen>
+      <h1 className="mt-[22px] text-center text-[24px] font-extrabold">{t.unlock.titel}</h1>
+      {ebene && (
+        <div className="mt-2.5 flex justify-center">
+          <span className="flex items-center gap-1.5 rounded-full bg-work/15 px-3 py-1.5 text-[12px] font-extrabold text-work">
+            <span className="h-1.5 w-1.5 rounded-full bg-work" />{t.einstellungen.sperreKurz}
+          </span>
+        </div>
+      )}
+
+      <div className="mt-[30px]"><PinFeld wert={pin} onChange={setPin} gesperrt={busy} fehler={!!fehler && pin === ''} /></div>
+      <p className="mt-3.5 min-h-[18px] text-center text-[12.5px] font-semibold text-risk">
+        {busy ? <span className="text-faint">{t.unlock.oeffnet}</span> : fehler}
+      </p>
+
+      {bio && (
+        <button type="button" onClick={mitBiometrie} disabled={busy}
+                className="mx-auto mt-2 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-[13px] font-extrabold disabled:opacity-50">
+          <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
+               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 6.5a8 8 0 0 1 12 0M3.5 10a10 10 0 0 1 15 0M7 13a5 5 0 0 1 8 0M11 11v6M8.5 16.5a4 4 0 0 0 5 0" />
+          </svg>
+          {t.unlock.biometrie}
+        </button>
+      )}
+
+      <div className="min-h-6 flex-1" />
+      <PinTasten wert={pin} onChange={v => { setPin(v); setFehler(null); }} gesperrt={busy} />
+
+      {!zeigeNotausgang ? (
+        <button onClick={() => setZeigeNotausgang(true)}
+                className="mt-4 w-full text-center text-[13px] font-bold text-dim">
+          {t.unlock.vergessen}
+        </button>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <Notice tone="risk">{t.unlock.notausgang}</Notice>
+          <Button variant="risk" onClick={() => {
+            if (confirm(t.unlock.loeschenFrage)) wallet.forget();
+          }}>
+            {t.unlock.loeschen}
+          </Button>
+        </div>
+      )}
+    </main>
   );
   // Als Ebene ueber der laufenden App: deckt alles ab, auch die Navigation.
   return ebene
-    ? <div className="fixed inset-0 z-[70] overflow-y-auto bg-ink">{inhalt}</div>
+    ? <div className="thema-dunkel fixed inset-0 z-[70] overflow-y-auto">{inhalt}</div>
     : inhalt;
 }

@@ -4,7 +4,10 @@ import type { Woerterbuch } from './de';
  * Español. Mismas claves que de.ts -- `satisfies` convierte una clave que
  * falte en un error de compilación, no en un hueco en la app.
  */
+import neu from './neu/es';
+
 const es = {
+  ...neu,
   name: 'Español',
   locale: 'es-ES',
 
@@ -30,7 +33,7 @@ const es = {
     sprache: 'Idioma',
   },
 
-  nav: { home: 'Inicio', mining: 'Minería', wallet: 'Wallet', netz: 'Red', entdecken: 'Descubrir' },
+  nav: { home: 'Inicio', mining: 'Minería', wallet: 'Wallet', netz: 'Red', entdecken: 'Descubrir', community: 'Comunidad' },
 
   splash: { laedt: 'CARGANDO LA CADENA' },
 

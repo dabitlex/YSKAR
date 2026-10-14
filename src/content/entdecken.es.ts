@@ -10,6 +10,8 @@ import {
   INITIAL_REWARD, UNIT, MAX_SUPPLY, EPOCH_BLOCKS, SEASON_BLOCKS,
   TARGET_BLOCK_TIME, MIN_FEE, MAX_TXS_PER_BLOCK, DECIMALS,
 } from '@/lib/core/params';
+import { MAX_COINBASE_OUTPUTS } from '@/lib/core/params';
+import { MAX_FEE_BPS } from '@/lib/pool/settlement';
 import type { Inhalte, Artikel, Frage, Neuigkeit } from './entdecken';
 
 export default function inhalteEs(z: (n: number) => string): Inhalte {
@@ -69,9 +71,37 @@ const ARTIKEL: Artikel[] = [
       { art: 'absatz', text: 'En Telegram la pantalla permanece encendida mientras se mina; ' +
         'si se bloquea, la plataforma detiene el worker. La app de Android sigue calculando ' +
         'con la pantalla bloqueada, visible en la notificación con el hashrate.' },
-      { art: 'hinweis', tone: 'work', text: 'Solo y pool están en igualdad. El primer pool ' +
-        'está activo: el propio bloque paga a todos los participantes, el operador ' +
-        'nunca retiene dinero ajeno.' },
+      { art: 'hinweis', tone: 'work', text: 'Los usuarios nuevos minan en un pool; el modo solo sigue ' +
+        'disponible en «Minería → Avanzado». En un pool, el propio bloque paga a todos los participantes: el ' +
+        'operador nunca retiene dinero ajeno.' },
+    ],
+  },
+  {
+    slug: 'pool-oder-solo', icon: 'Wuerfel', farbe: 'work',
+    titel: '¿Pool o solo?',
+    teaser: 'Partes pequeñas y regulares, o todo o nada.',
+    lesezeit: '2 min',
+    einleitung: `De media, cada ${Number(TARGET_BLOCK_TIME) / 60} minutos un minero de la ` +
+      `red encuentra un bloque de ${REWARD} YSR. La pregunta es cómo quieres que se te pague tu parte.`,
+    bausteine: [
+      { art: 'kennzahlen', werte: [
+        { label: 'Pool', wert: 'partes pequeñas, con regularidad' },
+        { label: 'Solo', wert: 'bloque entero, rara vez' },
+      ] },
+      { art: 'absatz', text: 'En un pool, muchos dispositivos minan juntos. Cuando el pool encuentra un bloque, ' +
+        'el propio bloque reparte el reward según el trabajo reciente (PPLNS). Tu parte depende de cuánto ' +
+        'aporta tu hashrate a la potencia del pool.' },
+      { art: 'absatz', text: 'En solo, te llevas el bloque entero, pero solo si tu dispositivo lo encuentra ' +
+        'por sí mismo. Un teléfono solo tiene una probabilidad muy pequeña por bloque frente a toda la red; ' +
+        'puede pasar mucho tiempo hasta que ocurra.' },
+      { art: 'schritte', titel: 'Lo que deberías saber sobre los pools', punkte: [
+        `El operador fija una comisión entre 0 y ${MAX_FEE_BPS / 100} %; la app la muestra antes de empezar.`,
+        `Un pool solo puede pagar a un número limitado de mineros por bloque (actualmente ${MAX_COINBASE_OUTPUTS - 1}). ` +
+          'Si está lleno, eliges otro.',
+        'Cada pago es público en el bloque y en el explorador.',
+      ] },
+      { art: 'hinweis', tone: 'work', text: 'Los usuarios nuevos minan en un pool. El modo solo se activa en ' +
+        '«Minería → Avanzado».' },
     ],
   },
   {
@@ -159,33 +189,38 @@ const ARTIKEL: Artikel[] = [
           'encontrados. El pool hopping no compensa.',
         'El reparto está en el bloque, verificable por cualquiera.',
       ] },
-      { art: 'hinweis', tone: 'work', text: 'El primer pool está activo. En la pestaña «Minería» ' +
-        'elige «Pool» e introduce su dirección: el pool informa de potencia, ' +
+      { art: 'hinweis', tone: 'work', text: 'En la pestaña «Minería» la app elige el pool con ' +
+        'más plazas libres; en «Cambiar» eliges uno tú mismo. El pool informa de potencia, ' +
         'número de mineros y comisión antes de que empieces.' },
     ],
   },
   {
     slug: 'roadmap', icon: 'Pfeil', farbe: 'proof',
     titel: 'Roadmap',
-    teaser: 'Micropagos, Node Core para todos los sistemas, apps con wallet Lightning.',
+    teaser: 'Primero estabilizar, luego crecer, después nuevas funciones.',
     lesezeit: '2 min',
     einleitung: 'Ninguna fecha que no se vaya a cumplir. En su lugar, estados que ' +
       'cualquiera puede comprobar en el explorador y en el código fuente.',
     bausteine: [
       { art: 'schritte', titel: 'Hecho', punkte: [
         'Cadena, wallet, transacciones en el bloque, minero en el teléfono.',
-        'Mercado de comisiones: recomendación a partir de la cola real.',
-        'Versión de consenso 2: coinbase con varios destinatarios.',
-        'Minería en pool con pago PPLNS directamente desde el bloque; el primer pool está activo.',
-        'P2P entre nodos completos; varios nodos funcionan a la vez.',
-        'La cadena vive en los nodos completos; el servidor es solo un espejo para la app.',
-        'App de Android «YSKAR Wallet»: push para pagos entrantes, biometría, minería en ' +
-          'segundo plano, aviso de actualización en la app; como APK en GitHub.',
+        'Comisión por byte y un mercado de comisiones basado en la cola real.',
+        'Minería en pool con pago PPLNS directamente desde el bloque; selección de pool en las apps.',
+        'P2P entre nodos completos; varios nodos independientes funcionan a la vez.',
+        'App de Android con minería en segundo plano, como APK en GitHub.',
+        'YSKAR Node Core 0.7.1 para Windows y Linux.',
       ] },
-      { art: 'schritte', titel: 'Lo siguiente', punkte: [
-        'Micropagos: transferir cantidades pequeñas de forma rápida y barata.',
-        'YSKAR Node Core: publicación con wallet y minería integradas para todos los sistemas.',
-        'App para iOS; wallet Lightning en ambas apps.',
+      { art: 'schritte', titel: 'Ahora', punkte: [
+        'Estabilizar la red y corregir pequeños problemas.',
+      ] },
+      { art: 'schritte', titel: 'Previsto', punkte: [
+        'Node Core: varias GPU a la vez, y después minería por GPU para AMD e Intel (OpenCL).',
+        `Actualización de la red (soft fork) en el bloque ${z(7000)}.`,
+        'YSKAR Wallet en Google Play.',
+      ] },
+      { art: 'schritte', titel: 'Más adelante', punkte: [
+        'Minería Stratum, cuando la red haya alcanzado cierto tamaño.',
+        'Canales de pago directos entre remitente y destinatario.',
       ] },
       { art: 'hinweis', tone: 'work', text: 'El código es abierto. Cada paso de esta lista ' +
         'corresponde a un documento en el repositorio.' },
@@ -198,11 +233,14 @@ const FAQ: Frage[] = [
     antwort: 'No. No hay nada que tocar y no se reparte nada. Los YSR solo ' +
       'nacen como reward de bloque por trabajo de cálculo real que el nodo ' +
       'ha vuelto a verificar.' },
-  { frage: '¿Cuánto gano con mi teléfono?',
-    antwort: 'Depende de tu hashrate en relación con toda la red. ' +
-      `De media, cada ${Number(TARGET_BLOCK_TIME) / 60} minutos un dispositivo de la ` +
-      `red encuentra un bloque de ${REWARD} YSR. La pestaña «Red» muestra el ` +
-      'hashrate de la red: tu parte de él es tu probabilidad esperada por bloque.' },
+  { frage: '¿Cuánto recibe mi teléfono?',
+    antwort: 'En un pool recibes una parte de cada bloque que encuentra el pool, según tu trabajo: ' +
+      'aproximadamente tu hashrate dividido por el del pool, por ' +
+      `${REWARD} YSR, menos la comisión. La pestaña «Minería» calcula esta estimación con tus ` +
+      'valores reales. En solo, todo depende de que tu dispositivo encuentre un bloque por sí mismo.' },
+  { frage: '¿YSR tiene precio?',
+    antwort: 'No. YSR no tiene precio y no se negocia en ningún exchange. Nadie debería minar ' +
+      'esperando que eso cambie.' },
   { frage: '¿Qué pasa si pierdo mis doce palabras?',
     antwort: 'El saldo se pierde. No existe «olvidé mi contraseña»: ni nosotros ni ' +
       'Telegram podemos restaurar las palabras. Escríbelas en papel, no como captura de pantalla.' },
@@ -213,6 +251,13 @@ const FAQ: Frage[] = [
 ];
 
 const NEUIGKEITEN: Neuigkeit[] = [
+  {
+    datum: '2026-10-12',
+    titel: 'Node Core 0.7.1 para Windows y Linux',
+    text: 'El nodo de escritorio con wallet y minería se distribuye ahora en paquetes ' +
+      'separados para Windows y Linux.',
+    link: 'https://github.com/dabitlex/YSKAR/releases',
+  },
   {
     datum: '2026-09-30',
     titel: 'App de Android «YSKAR Wallet»',

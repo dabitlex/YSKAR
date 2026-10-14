@@ -23,9 +23,11 @@ interface Blockzeile {
 
 const rate = hashrateText;
 
-export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
+export default function NetzTab({ summary, meineAdresse, decimals, symbol, ohneKopf = false }: {
   summary: Summary | null; meineAdresse: string | null;
   decimals: number; symbol: string;
+  /** Unter "Entdecken → Netz-Details": Der Titel steht dort schon. */
+  ohneKopf?: boolean;
 }) {
   const [blocks, setBlocks] = useState<Blockzeile[]>([]);
   const [meinHex, setMeinHex] = useState<string | null>(null);
@@ -61,11 +63,15 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol }: {
 
   return (
     <>
-      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
-      <header className="relative mb-5 flex items-center justify-between">
-        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.netz.titel}</h1>
-        <Pille tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? t.allgemein.live : t.allgemein.laedt}</Pille>
-      </header>
+      {!ohneKopf && (
+        <>
+          <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
+          <header className="relative mb-5 flex items-center justify-between">
+            <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.netz.titel}</h1>
+            <Pille tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? t.allgemein.live : t.allgemein.laedt}</Pille>
+          </header>
+        </>
+      )}
 
       <section className="relative rise flex items-center justify-between gap-3 px-0.5">
         <div className="flex min-w-0 flex-col gap-1.5">

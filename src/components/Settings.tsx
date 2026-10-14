@@ -20,8 +20,10 @@ import { istNativ } from '@/lib/native/plattform';
  * Woerter erneut anzeigen und die Wallet vom Geraet entfernen. Beide sind
  * hinter der PIN beziehungsweise einer ausdruecklichen Bestaetigung.
  */
-export default function Settings({ onZurueck, anteil, workers, summary }: {
+export default function Settings({ onZurueck, anteil, workers, summary, onSichern }: {
   onZurueck: () => void; anteil: number; workers: number; summary: Summary | null;
+  /** Gesetzt, solange die Woerter nicht gesichert sind: Die Zeile fuehrt zur Sicherung. */
+  onSichern?: () => void;
 }) {
   const wallet = useWallet();
   const [modus, setModus] = useState<'liste' | 'woerter' | 'entfernen'>('liste');
@@ -169,7 +171,9 @@ export default function Settings({ onZurueck, anteil, workers, summary }: {
 
       <p className="label mb-2 mt-7 px-0.5">{t.app.sicherheit}</p>
       <ul className="panel mt-2 !py-0.5 px-4">
-        <Eintrag onClick={() => setModus('woerter')}>{t.einstellungen.woerterZeigen}</Eintrag>
+        {onSichern
+          ? <Eintrag onClick={onSichern} wert={t.sicherung.offen}>{t.sicherung.einstellungen}</Eintrag>
+          : <Eintrag onClick={() => setModus('woerter')}>{t.einstellungen.woerterZeigen}</Eintrag>}
         <Eintrag onClick={() => setBlatt('sperre')} wert={sperreText(sperre)} unter={t.einstellungen.sperreKurz}>
           {t.einstellungen.sperre}
         </Eintrag>

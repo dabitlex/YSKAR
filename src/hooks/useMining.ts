@@ -78,6 +78,8 @@ export interface Summary {
   nextReward: string;
   mempool: number;
   activeMiners: number;
+  /** Erreichbare Knoten laut Netzstatistik -- aeltere Server liefern das nicht. */
+  knoten?: number;
 }
 
 export interface Wartend {

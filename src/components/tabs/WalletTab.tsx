@@ -1,5 +1,6 @@
 'use client';
 
+import { SicherungsHinweis } from '@/components/Sicherung';
 import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/ui/Primitives';
 import type { Account, Wartend } from '@/hooks/useMining';
@@ -68,13 +69,15 @@ function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
 }
 
 export default function WalletTab({ account, symbol, decimals, address, hoehe,
-                                    onSenden, onScannen, onEmpfangen, onEinstellungen }: {
+                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onSichern }: {
   account: (Account & { history?: HistoryEintrag[]; historyWeiter?: string | null; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
   /** Aktuelle Hoehe der Kette -- fuer "n Bloecke danach" in den Einzelheiten. */
   hoehe: number | null;
   onSenden: () => void; onScannen: () => void; onEmpfangen: () => void;
   onEinstellungen: () => void;
+  /** Gesetzt, solange die Woerter nicht gesichert sind: zeigt den Hinweis. */
+  onSichern?: () => void;
 }) {
   // Ausgewaehlte Transaktion. Als Blatt und nicht als eigene Seite: Man
   // will danach wieder in derselben Liste stehen, an derselben Stelle.
@@ -510,6 +513,8 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
           {Zeichen.Runter(20, 2.1)}<span className="truncate">{t.wallet.empfangen}</span>
         </button>
       </div>
+
+      {onSichern && <div className="rise rise-1 mt-3.5"><SicherungsHinweis kurz onClick={onSichern} /></div>}
 
       {hatEinnahmen && einnahmen && (
         <Einnahmen tage={einnahmen} symbol={symbol} decimals={decimals} verborgen={verborgen} />

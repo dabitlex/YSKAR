@@ -10,6 +10,8 @@ import {
   INITIAL_REWARD, UNIT, MAX_SUPPLY, EPOCH_BLOCKS, SEASON_BLOCKS,
   TARGET_BLOCK_TIME, MIN_FEE, MAX_TXS_PER_BLOCK, DECIMALS,
 } from '@/lib/core/params';
+import { MAX_COINBASE_OUTPUTS } from '@/lib/core/params';
+import { MAX_FEE_BPS } from '@/lib/pool/settlement';
 import type { Inhalte, Artikel, Frage, Neuigkeit } from './entdecken';
 
 export default function inhalteFr(z: (n: number) => string): Inhalte {
@@ -68,9 +70,37 @@ const ARTIKEL: Artikel[] = [
       { art: 'absatz', text: 'Dans Telegram, l’écran reste allumé pendant le minage — s’il se ' +
         'verrouille, la plateforme suspend le worker. L’app Android continue de calculer ' +
         'écran verrouillé, avec le hashrate affiché dans la notification.' },
-      { art: 'hinweis', tone: 'work', text: 'Solo et pool sont à égalité. Le premier pool est ' +
-        'en ligne : c’est le bloc lui-même qui paie tous les participants — l’opérateur ne ' +
-        'détient jamais l’argent des autres.' },
+      { art: 'hinweis', tone: 'work', text: 'Les nouveaux utilisateurs minent dans un pool ; le solo reste disponible ' +
+        'sous « Minage → Avancé ». Dans un pool, c’est le bloc lui-même qui paie tous les participants — ' +
+        'l’opérateur ne détient jamais l’argent des autres.' },
+    ],
+  },
+  {
+    slug: 'pool-oder-solo', icon: 'Wuerfel', farbe: 'work',
+    titel: 'Pool ou solo ?',
+    teaser: 'De petites parts régulières, ou tout ou rien.',
+    lesezeit: '2 min',
+    einleitung: `En moyenne toutes les ${Number(TARGET_BLOCK_TIME) / 60} minutes, un mineur du ` +
+      `réseau trouve un bloc de ${REWARD} YSR. La question est de savoir comment tu veux être payé pour ta part.`,
+    bausteine: [
+      { art: 'kennzahlen', werte: [
+        { label: 'Pool', wert: 'petites parts, régulièrement' },
+        { label: 'Solo', wert: 'bloc entier, rarement' },
+      ] },
+      { art: 'absatz', text: 'Dans un pool, de nombreux appareils minent ensemble. Quand le pool trouve un bloc, ' +
+        'c’est le bloc lui-même qui répartit la récompense selon le travail récent (PPLNS). Ta part dépend ' +
+        'de ce que ton hashrate ajoute à la puissance du pool.' },
+      { art: 'absatz', text: 'En solo, tu reçois le bloc entier — mais seulement si ton appareil le trouve ' +
+        'lui-même. Un téléphone seul a une très faible chance par bloc face à tout le réseau ; ' +
+        'cela peut prendre longtemps.' },
+      { art: 'schritte', titel: 'Ce qu’il faut savoir sur les pools', punkte: [
+        `L’opérateur fixe des frais entre 0 et ${MAX_FEE_BPS / 100} % ; l’app les affiche avant que tu commences.`,
+        `Un pool ne peut payer qu’un nombre limité de mineurs par bloc (actuellement ${MAX_COINBASE_OUTPUTS - 1}). ` +
+          'S’il est complet, tu en choisis un autre.',
+        'Chaque paiement est public dans le bloc et dans l’explorateur.',
+      ] },
+      { art: 'hinweis', tone: 'work', text: 'Les nouveaux utilisateurs minent dans un pool. Tu passes en solo ' +
+        'sous « Minage → Avancé ».' },
     ],
   },
   {
@@ -157,33 +187,38 @@ const ARTIKEL: Artikel[] = [
           'Le pool hopping ne paie pas.',
         'La répartition figure dans le bloc, vérifiable par tous.',
       ] },
-      { art: 'hinweis', tone: 'work', text: 'Le premier pool est en ligne. Dans l’onglet « Minage », ' +
-        'choisis « Pool » et saisis son adresse — le pool indique puissance de hash, ' +
+      { art: 'hinweis', tone: 'work', text: 'Dans l’onglet « Minage », l’app choisit le pool qui a ' +
+        'le plus de places libres ; sous « Changer », tu en choisis un toi-même. Le pool indique puissance de hash, ' +
         'nombre de mineurs et frais avant que tu commences.' },
     ],
   },
   {
     slug: 'roadmap', icon: 'Pfeil', farbe: 'proof',
     titel: 'Feuille de route',
-    teaser: 'Micropaiements, Node Core pour tous les systèmes, apps avec portefeuille Lightning.',
-    lesezeit: '2 min',
+    teaser: 'D’abord stabiliser, puis grandir, puis de nouvelles fonctions.',
+    lesezeit: '2 min',
     einleitung: 'Pas de dates qui ne seront pas tenues. À la place, des états que chacun peut ' +
       'vérifier dans l’explorateur et dans le code source.',
     bausteine: [
       { art: 'schritte', titel: 'Fait', punkte: [
         'Chaîne, portefeuille, transactions dans le bloc, mineur sur le téléphone.',
-        'Marché des frais : recommandation basée sur la file d’attente réelle.',
-        'Consensus version 2 : coinbase à plusieurs destinataires.',
-        'Minage en pool avec paiement PPLNS directement depuis le bloc — le premier pool est en ligne.',
-        'P2P entre nœuds complets ; plusieurs nœuds tournent en parallèle.',
-        'La chaîne vit sur les nœuds complets ; le serveur n’est qu’un miroir pour l’app.',
-        'App Android « YSKAR Wallet » : notifications pour les paiements reçus, biométrie, minage ' +
-          'en arrière-plan, alerte de mise à jour dans l’app — en APK sur GitHub.',
+        'Frais par octet et marché des frais basé sur la file d’attente réelle.',
+        'Minage en pool avec paiement PPLNS directement depuis le bloc ; choix du pool dans les apps.',
+        'P2P entre nœuds complets ; plusieurs nœuds indépendants tournent en parallèle.',
+        'App Android avec minage en arrière-plan — en APK sur GitHub.',
+        'YSKAR Node Core 0.7.1 pour Windows et Linux.',
       ] },
-      { art: 'schritte', titel: 'Ensuite', punkte: [
-        'Micropaiements : transférer de petits montants rapidement et à bas coût.',
-        'YSKAR Node Core : version avec portefeuille et minage intégrés pour tous les systèmes.',
-        'App iOS ; portefeuille Lightning dans les deux apps.',
+      { art: 'schritte', titel: 'En cours', punkte: [
+        'Stabiliser le réseau et corriger les petits problèmes.',
+      ] },
+      { art: 'schritte', titel: 'Prévu', punkte: [
+        'Node Core : plusieurs GPU à la fois, puis minage GPU pour AMD et Intel (OpenCL).',
+        `Mise à niveau du réseau (soft fork) au bloc ${z(7000)}.`,
+        'YSKAR Wallet sur Google Play.',
+      ] },
+      { art: 'schritte', titel: 'Plus tard', punkte: [
+        'Minage Stratum, une fois que le réseau aura atteint une certaine taille.',
+        'Canaux de paiement directs entre expéditeur et destinataire.',
       ] },
       { art: 'hinweis', tone: 'work', text: 'Le code source est ouvert. Chaque étape ici ' +
         'correspond à un document dans le dépôt.' },
@@ -196,11 +231,14 @@ const FAQ: Frage[] = [
     antwort: 'Non. Il n’y a rien à taper et rien n’est distribué. Les YSR ne ' +
       'naissent que comme récompenses de bloc pour un vrai travail de calcul que le ' +
       'nœud a revérifié.' },
-  { frage: 'Combien je gagne avec mon téléphone ?',
-    antwort: 'Ça dépend de ton hashrate par rapport à l’ensemble du réseau. ' +
-      `En moyenne, toutes les ${Number(TARGET_BLOCK_TIME) / 60} minutes, un appareil du ` +
-      `réseau trouve un bloc qui rapporte ${REWARD} YSR. L’onglet « Réseau » affiche le ` +
-      'hashrate du réseau — ta part de celui-ci est ta chance attendue par bloc.' },
+  { frage: 'Combien reçoit mon téléphone ?',
+    antwort: 'Dans un pool, tu reçois une part de chaque bloc trouvé par le pool, selon ton travail : ' +
+      'à peu près ton hashrate divisé par celui du pool, multiplié par ' +
+      `${REWARD} YSR, moins les frais. L’onglet « Minage » calcule cette estimation avec tes ` +
+      'valeurs réelles. En solo, tout dépend de si ton appareil trouve lui-même un bloc.' },
+  { frage: 'Le YSR a-t-il un prix ?',
+    antwort: 'Non. Le YSR n’a pas de prix et ne s’échange sur aucune plateforme. Personne ne devrait ' +
+      'miner en espérant que cela change.' },
   { frage: 'Que se passe-t-il si je perds mes douze mots ?',
     antwort: 'Le solde est perdu. Il n’y a pas de « mot de passe oublié » : ni nous ni ' +
       'Telegram ne pouvons restaurer les mots. Écris-les sur papier — pas en capture d’écran.' },
@@ -211,6 +249,13 @@ const FAQ: Frage[] = [
 ];
 
 const NEUIGKEITEN: Neuigkeit[] = [
+  {
+    datum: '2026-10-12',
+    titel: 'Node Core 0.7.1 pour Windows et Linux',
+    text: 'Le nœud de bureau avec portefeuille et minage est désormais proposé en paquets ' +
+      'séparés pour Windows et Linux.',
+    link: 'https://github.com/dabitlex/YSKAR/releases',
+  },
   {
     datum: '2026-09-30',
     titel: 'App Android « YSKAR Wallet »',

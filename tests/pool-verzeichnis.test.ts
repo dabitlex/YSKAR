@@ -117,7 +117,7 @@ test('Stand: ein Name, der so nicht in einem Block stehen kann, wird nicht gegla
     'meldet der Knoten einen gueltigen Namen, gilt der');
 });
 
-test('Vorschlag: der erste offene, sonst der erste, der antwortet', () => {
+test('Vorschlag: der offene mit den meisten freien Plaetzen, sonst der erste, der antwortet', () => {
   const p = (host: string, status: PoolStand['status']): PoolStand => ({
     host, name: host, kette: null, status, belegt: null, plaetze: null, frei: null,
     hashrate: null, feeBps: null, bloecke: null });
@@ -125,6 +125,11 @@ test('Vorschlag: der erste offene, sonst der erste, der antwortet', () => {
   assert.equal(vorschlag([p('a', 'voll'), p('b', 'unbekannt'), p('c', 'aus')])?.host, 'b');
   assert.equal(vorschlag([p('a', 'voll'), p('b', 'aus'), p('c', 'keinPool')]), null);
   assert.equal(vorschlag([]), null);
+  // Unter den offenen der mit den meisten freien Plaetzen, bei Gleichstand der erste.
+  const frei = (host: string, n: number): PoolStand => ({ ...p(host, 'offen'), frei: n });
+  assert.equal(vorschlag([frei('a', 3), frei('b', 40), frei('c', 12)])?.host, 'b');
+  assert.equal(vorschlag([frei('a', 5), frei('b', 5)])?.host, 'a');
+  assert.equal(vorschlag([p('a', 'unbekannt'), frei('b', 1)])?.host, 'b');
 });
 
 test('Eigene Adresse: gesaeubert oder abgelehnt', () => {

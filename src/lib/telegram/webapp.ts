@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+
 /**
  * Was die App von Telegram ueber den Nutzer wissen darf -- nur im Browser,
  * nur was der Client ohnehin mitliefert. Nichts davon wird gespeichert;
@@ -66,4 +68,81 @@ export function telegramScan(text: string): Promise<string | null> | undefined {
       ende(null);
     }
   });
+}
+
+/* ------------------------------------------------------------------------
+   Einstieg (Oktober 2026): Zurueck-Taste, Haptik, Teilen, Kampagne.
+   Jede Funktion tut ausserhalb von Telegram einfach nichts -- oder nimmt
+   den Weg, den die Android-App und der Browser haben.
+   ------------------------------------------------------------------------ */
+
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const webApp = (): any => (typeof window !== 'undefined' ? window.Telegram?.WebApp : null);
+
+/**
+ * Telegrams eigene Zurueck-Taste (oben links im Client, und die Zurueck-
+ * Geste auf Android). Sichtbar, solange `aktiv`; ein Tipp ruft `zurueck`.
+ *
+ * Die kleinen Pfeile in der App bleiben -- die Taste ist der zweite Weg,
+ * den Telegram-Nutzer ohnehin gewohnt sind.
+ */
+export function useZurueckTaste(aktiv: boolean, zurueck: () => void): void {
+  const ref = useRef(zurueck); ref.current = zurueck;
+  useEffect(() => {
+    const knopf = webApp()?.BackButton;
+    if (!knopf || !aktiv) return;
+    const tipp = () => ref.current();
+    try { knopf.onClick(tipp); knopf.show(); } catch { return; }
+    return () => { try { knopf.offClick(tipp); knopf.hide(); } catch { /* egal */ } };
+  }, [aktiv]);
+}
+
+/** Kurzes Vibrieren, wo Telegram es anbietet. Sonst nichts. */
+export function haptik(art: 'tipp' | 'erfolg' | 'warnung'): void {
+  const h = webApp()?.HapticFeedback;
+  if (!h) return;
+  try {
+    if (art === 'tipp') h.impactOccurred('light');
+    else h.notificationOccurred(art === 'erfolg' ? 'success' : 'warning');
+  } catch { /* aeltere Clients */ }
+}
+
+/**
+ * Einen Link teilen. In Telegram ueber den Teilen-Dialog des Clients, sonst
+ * ueber das Teilen des Systems, zuletzt in die Zwischenablage.
+ *
+ * Liefert, was passiert ist -- damit die Oberflaeche "kopiert" sagen kann.
+ */
+export async function teilen(url: string, text: string): Promise<'geteilt' | 'kopiert' | 'nichts'> {
+  const tg = webApp();
+  if (tg?.openTelegramLink) {
+    try {
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+      return 'geteilt';
+    } catch { /* weiter */ }
+  }
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try { await navigator.share({ url, text }); return 'geteilt'; } catch { /* abgebrochen */ }
+  }
+  try { await navigator.clipboard.writeText(`${text} ${url}`); return 'kopiert'; } catch { return 'nichts'; }
+}
+
+const KAMPAGNE = 'yskar.kampagne';
+
+/**
+ * Woher jemand kam: der Parameter aus t.me/YSKAR_bot?startapp=<code>.
+ *
+ * Gemerkt wird nur der ERSTE Code, nur auf diesem Geraet, und er verlaesst
+ * das Geraet nicht. Ob und wie er je gezaehlt wird, ist eine eigene
+ * Entscheidung (anonym, ohne Telegram-Kennung) -- hier wird nur nichts
+ * verloren.
+ */
+export function kampagneMerken(): void {
+  const code = webApp()?.initDataUnsafe?.start_param;
+  if (typeof code !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(code)) return;
+  try {
+    if (localStorage.getItem(KAMPAGNE)) return;
+    localStorage.setItem(KAMPAGNE, JSON.stringify({ code, am: new Date().toISOString() }));
+  } catch { /* privates Fenster */ }
 }

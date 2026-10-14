@@ -12,7 +12,10 @@ const odm = (n: number, one: string, few: string, many: string) => {
   return j >= 2 && j <= 4 && (d < 12 || d > 14) ? few : many;
 };
 
+import neu from './neu/pl';
+
 const pl = {
+  ...neu,
   name: 'Polski',
   locale: 'pl-PL',
 
@@ -38,7 +41,7 @@ const pl = {
     sprache: 'Język',
   },
 
-  nav: { home: 'Start', mining: 'Mining', wallet: 'Portfel', netz: 'Sieć', entdecken: 'Odkrywaj' },
+  nav: { home: 'Start', mining: 'Mining', wallet: 'Portfel', netz: 'Sieć', entdecken: 'Odkrywaj', community: 'Społeczność' },
 
   splash: { laedt: 'ŁADOWANIE ŁAŃCUCHA' },
 

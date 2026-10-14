@@ -44,7 +44,8 @@
   Grund aufgehellt, sonst faellt Blau auf Blau zusammen. Gesetzt wird das
   Attribut von src/lib/thema.ts -- vor dem ersten Zeichnen.
 */
-:root[data-thema="dunkel"] {
+:root[data-thema="dunkel"],
+.thema-dunkel {
   --ink:     10 16 28;      /* #0A101C */
   --sunk:    15 23 40;      /* #0F1728  Eingabefelder */
   --surface: 19 28 46;      /* #131C2E  Karten */
@@ -60,7 +61,9 @@
   --proof: 46 190 133;      /* #2EBE85 */
   --risk:  240 97 107;      /* #F0616B */
 }
-:root[data-thema="dunkel"] { color-scheme: dark; }
+:root[data-thema="dunkel"], .thema-dunkel { color-scheme: dark; }
+/* Einstieg: immer dunkel, egal welches Thema -- die Marke steht auf Nacht. */
+.thema-dunkel { background: rgb(var(--ink)); color: rgb(var(--text)); }
 
 /*
   Systemleisten. Seit Android 15 zeichnet die App bis unter Statusleiste
@@ -247,6 +250,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   100% { top: 6% }
 }
 .scanline { animation: scanline 2.6s ease-in-out infinite; }
+
+/* Falsche PIN: kurz seitlich, wie ein Kopfschuetteln. */
+@keyframes zittern {
+  0%, 100% { transform: none }
+  20%, 60% { transform: translateX(-7px) }
+  40%, 80% { transform: translateX(7px) }
+}
+.zittern { animation: zittern .36s ease-in-out; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

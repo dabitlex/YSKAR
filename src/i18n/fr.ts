@@ -8,7 +8,10 @@ import type { Woerterbuch } from './de';
 /** Pluriel français : 0 et 1 au singulier, à partir de 2 au pluriel. */
 const pl = (n: number, un: string, plusieurs: string) => (Math.abs(n) < 2 ? un : plusieurs);
 
+import neu from './neu/fr';
+
 const fr = {
+  ...neu,
   name: 'Français',
   locale: 'fr-FR',
 
@@ -34,7 +37,7 @@ const fr = {
     sprache: 'Langue',
   },
 
-  nav: { home: 'Accueil', mining: 'Minage', wallet: 'Portefeuille', netz: 'Réseau', entdecken: 'Découvrir' },
+  nav: { home: 'Accueil', mining: 'Minage', wallet: 'Portefeuille', netz: 'Réseau', entdecken: 'Découvrir', community: 'Communauté' },
 
   splash: { laedt: 'CHARGEMENT DE LA CHAÎNE' },
 

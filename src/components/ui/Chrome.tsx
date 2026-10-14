@@ -9,7 +9,7 @@ import { useThema } from '@/lib/useThema';
  * Rahmen der App: Navigationsleiste, Kopfzeile, Startbild.
  */
 
-export type Tab = 'home' | 'mining' | 'wallet' | 'netz' | 'entdecken';
+export type Tab = 'home' | 'mining' | 'wallet' | 'entdecken' | 'community';
 
 const PUNKTE: { key: Tab; pfad: React.ReactNode }[] = [
   { key: 'home',
@@ -18,10 +18,12 @@ const PUNKTE: { key: Tab; pfad: React.ReactNode }[] = [
     pfad: <path d="M12 2 5 13h5l-1 7 8-11h-5l1-7z" /> },
   { key: 'wallet',
     pfad: <><rect x="2.5" y="5.5" width="17" height="12" rx="3" /><path d="M15 11.5h2.5" /></> },
-  { key: 'netz',
-    pfad: <path d="M11 3 4 7v8l7 4 7-4V7zM4 7l7 4 7-4M11 11v8" /> },
   { key: 'entdecken',
     pfad: <><circle cx="11" cy="11" r="8.5" /><path d="m14 8-1.5 4.5L8 14l1.5-4.5z" /></> },
+  // Der Reiter "Netz" ist seit Oktober 2026 ein Abschnitt in Entdecken;
+  // sein Platz gehoert der Community.
+  { key: 'community',
+    pfad: <path d="M7.5 6a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zM15 6a2.75 2.75 0 1 0 0 5.5A2.75 2.75 0 0 0 15 6zM2.5 18c.8-2.8 2.8-4.2 5-4.2s4.2 1.4 5 4.2M10.6 14.3c1.1-.4 2.1-.5 4.4-.5 2.3 0 4.3 1.4 5 4.2" /> },
 ];
 
 /**
