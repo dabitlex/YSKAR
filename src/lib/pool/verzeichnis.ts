@@ -35,6 +35,7 @@ export interface PoolEintrag {
 /** Reihenfolge = Reihenfolge in der App. */
 export const POOLS: PoolEintrag[] = [
   { host: 'yskar-main.dynv6.net', name: 'YSKAR Main', kette: 'yskar-main.dynv6.net' },
+  { host: 'teamplay.duckdns.org', name: 'ODW.Serv', kette: 'ODW.Serv' },
 ];
 
 /**
