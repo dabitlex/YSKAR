@@ -128,7 +128,7 @@ export default function AppShell({ platform }: { platform: string }) {
   const blattRef = useRef(pool.setBlatt); blattRef.current = pool.setBlatt;
   const hatVorschlag = !!pool.gewaehlt;
   useEffect(() => {
-    if (!autostart || autoVersucht.current || wallet.phase !== 'offen') return;
+    if (!autostart || autoVersucht.current || wallet.phase !== 'offen' || !pool.geladen) return;
     if (pool.modus === 'solo' || hatVorschlag) { autoVersucht.current = true; startenRef.current(); return; }
     const id = setTimeout(() => {
       if (autoVersucht.current) return;
@@ -136,7 +136,7 @@ export default function AppShell({ platform }: { platform: string }) {
       blattRef.current(true);
     }, 8000);
     return () => clearTimeout(id);
-  }, [autostart, wallet.phase, pool.modus, hatVorschlag]);
+  }, [autostart, wallet.phase, pool.geladen, pool.modus, hatVorschlag]);
 
   const startStopp = () => { if (m.mining) m.stop(); else starten(); };
 

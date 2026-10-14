@@ -95,10 +95,13 @@ export function usePoolAuswahl({ address, sichtbar, mining, fehler, stop }: {
   const fehlerRef = useRef(fehler); fehlerRef.current = fehler;
   useEffect(() => { if (!fehler) setUeberholt(null); }, [fehler]);
 
+  /** Die gemerkte Wahl ist gelesen -- vorher ist `modus` nur die Vorgabe. */
+  const [geladen, setGeladen] = useState(false);
   // Gemerkte Wahl erst im Browser lesen, nicht beim Rendern auf dem Server.
   useEffect(() => {
     setWahl(wahlLesen());
     try { if (localStorage.getItem(MODUS) === 'pool') setModusRoh('pool'); } catch { /* solo */ }
+    setGeladen(true);
   }, []);
 
   const setModus = useCallback((v: 'solo' | 'pool') => {
@@ -312,6 +315,8 @@ export function usePoolAuswahl({ address, sichtbar, mining, fehler, stop }: {
 
   return {
     modus, setModus,
+    /** Erst ab hier ist `modus` die gemerkte Wahl (wichtig fuer den Autostart). */
+    geladen,
     /** null, solange weder gewaehlt noch ein Vorschlag da ist. */
     gewaehlt,
     waehlen,
