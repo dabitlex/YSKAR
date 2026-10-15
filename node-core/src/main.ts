@@ -32,7 +32,7 @@ import qrKern from 'qrcode/lib/core/qrcode.js';
 import { WalletDienst, WalletFehler } from './Wallet.ts';
 import { leseVerlauf, tagVon, NamenZaehler, type KettenVerlauf } from './WalletKette.ts';
 import { PoolQuelle, PoolEndgueltig, fragePool, poolSchnittstelle } from './PoolQuelle.ts';
-import { POOLS, hostAusEingabe, waehlbar, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
+import { POOLS, hostAusEingabe, waehlbar, aktuelleAdresse, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
 import { PoolCoordinator } from '../../src/lib/pool/PoolCoordinator.ts';
 import { fensterGroesse } from '../../src/lib/pool/pplns.ts';
 import {
@@ -131,7 +131,16 @@ const TOKEN_COOKIE = 'yskar_zugang';
 const TOKEN_PLATZ = '__YSKAR_ZUGANG__';
 const DEFAULT_NODE_PORT = 8645;
 const DEFAULT_P2P_PORT = 8646;
-const DEFAULT_SEED = 'yskar-main.dynv6.net:8646';
+const DEFAULT_SEED = 'pool.yskar.app:8646';
+/**
+ * Seeds, die heute unter einer anderen Adresse erreichbar sind: alt -> neu.
+ * Eine gespeicherte Einstellung mit der alten Adresse wird beim Laden
+ * umgestellt -- nicht ergaenzt: Beide Namen zeigen auf denselben Rechner,
+ * und zwei Eintraege belegten dort zwei Plaetze (siehe WEITERE_SEEDS).
+ */
+export const SEED_UMGEZOGEN: Readonly<Record<string, string>> = {
+  'yskar-main.dynv6.net:8646': 'pool.yskar.app:8646',
+};
 /**
  * Weitere fest eingebaute Seeds des Hauptnetzes.
  *
@@ -603,7 +612,8 @@ export class NodeCoreApp {
         }
         if (typeof r.seed === 'string') {
           const seed = r.seed.trim();
-          try { if (seed) this.parseSeed(seed); this.config.seed = seed; } catch { /* Vorgabe bleibt */ }
+          const heute = SEED_UMGEZOGEN[seed] ?? seed;
+          try { if (heute) this.parseSeed(heute); this.config.seed = heute; } catch { /* Vorgabe bleibt */ }
         }
         this.configured = true;
       } catch {
@@ -635,7 +645,11 @@ export class NodeCoreApp {
       if (typeof d.address === 'string' && isValidAddress(d.address)) this.mining_.address = d.address;
       if (d.mode === 'cpu' || d.mode === 'gpu' || d.mode === 'beide') this.mining_.mode = d.mode;
       if (d.ziel === 'solo' || d.ziel === 'pool') this.mining_.ziel = d.ziel;
-      if (typeof d.poolHost === 'string') this.mining_.poolHost = hostAusEingabe(d.poolHost) ?? '';
+      if (typeof d.poolHost === 'string') {
+        const host = hostAusEingabe(d.poolHost);
+        // Umgezogener Pool der Liste: gleich unter der neuen Adresse (verzeichnis.ts).
+        this.mining_.poolHost = host ? aktuelleAdresse(host) : '';
+      }
       if (typeof d.lief === 'boolean') this.mining_.lief = d.lief;
       if (Number.isInteger(d.cpuWorkers)) this.mining_.cpuWorkers = Math.max(1, Math.min(kerne, Number(d.cpuWorkers)));
       if (Number.isFinite(d.cpuIntensity)) this.mining_.cpuIntensity = Math.max(10, Math.min(100, Number(d.cpuIntensity)));

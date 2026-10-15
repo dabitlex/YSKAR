@@ -319,7 +319,7 @@ After=network-online.target
 WorkingDirectory=/opt/yskar
 Environment=NEXT_PUBLIC_SUPABASE_URL=https://….supabase.co
 Environment=SUPABASE_SERVICE_ROLE_KEY=…
-Environment=YSKAR_FULLNODE_URL=https://yskar-main.dynv6.net
+Environment=YSKAR_FULLNODE_URL=https://pool.yskar.app
 Environment=FCM_SERVICE_ACCOUNT_FILE=/etc/yskar/fcm.json
 ExecStart=/usr/bin/node --experimental-strip-types scripts/push-watcher.ts
 Restart=always

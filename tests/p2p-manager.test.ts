@@ -301,7 +301,7 @@ test('Ein Seed mit Namen wird nicht immer wieder neu verbunden', async () => {
     Regressionstest für ausgehendZiele.
 
     Ein Seed kann ein Name sein, dessen Socket danach eine IP meldet --
-    bei YSKAR yskar-main.dynv6.net, der sich als IP-Adresse meldet. Hier
+    bei YSKAR pool.yskar.app, der sich als IP-Adresse meldet. Hier
     nachgestellt mit "localhost", das sich als 127.0.0.1 meldet.
 
     Ohne ausgehendZiele erkannte der PeerManager den Namen nach der

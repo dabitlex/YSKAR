@@ -155,7 +155,10 @@ test('config.json von Hand verändert: nichts Unzulässiges wird übernommen', a
     ['[1,2,3]', { configured: false }],
     ['{kaputt', { configured: false }],
     [JSON.stringify({ dataDir: {}, nodePort: 80, p2pPort: 'abc', seed: 'ohne-port' }),
-      { configured: true, nodePort: 8645, p2pPort: 8646, seed: 'yskar-main.dynv6.net:8646' }],
+      { configured: true, nodePort: 8645, p2pPort: 8646, seed: 'pool.yskar.app:8646' }],
+    // Die alte Adresse des Hauptknotens wird beim Laden umgestellt, nicht ergaenzt.
+    [JSON.stringify({ dataDir: '/tmp/w', seed: 'yskar-main.dynv6.net:8646' }),
+      { configured: true, seed: 'pool.yskar.app:8646' }],
     [JSON.stringify({ dataDir: '/tmp/x', nodePort: 9000, p2pPort: 9000, seed: '' }),
       { configured: true, nodePort: 8645, p2pPort: 8646, seed: '' }],
     [JSON.stringify({ dataDir: '/tmp/y', nodePort: -7.5, p2pPort: 70000 }),
@@ -176,7 +179,7 @@ test('config.json von Hand verändert: nichts Unzulässiges wird übernommen', a
 });
 
 test('Seeds: Im Hauptnetz kommt der fest eingebaute dazu, in einem Testnetz nie', async () => {
-  const erster = 'yskar-main.dynv6.net:8646';
+  const erster = 'pool.yskar.app:8646';
   assert.ok(WEITERE_SEEDS.length >= 1);
   for (const s of WEITERE_SEEDS) assert.match(s, /^[a-zA-Z0-9.-]+:\d{2,5}$/, `${s} ist nicht rechner:port`);
 

@@ -208,7 +208,7 @@ node src/selbsttest.mjs</code></pre>
 <p data-t="an.pc.s2Text">There is nothing else to install. The self-test checks that your computer computes hashes correctly.</p>
 <h3 data-t="an.pc.s3">3. Start mining</h3>
 <p data-t="an.pc.s3Text">Replace the address with your own YSKAR address (it starts with ysr1). With the pool:</p>
-<pre><code>node src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool</code></pre>
+<pre><code>node src/cli.mjs --address ysr1… --api https://pool.yskar.app --mode pool</code></pre>
 <p data-t="an.pc.solo">Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.</p>
 <h3 data-t="an.pc.s4">4. Graphics card (optional)</h3>
 <p data-th="an.pc.s4Text">With an NVIDIA card, add <code>--gpu</code>. This needs the GPU program <code>yskar-cuda</code>. For Linux it is attached to every Node Core release as <code>yskar-cuda-…-linux-x86_64</code>; on Windows, build it as described in the repository under <code>node-core/gpu</code>.</p>
@@ -251,7 +251,7 @@ npm run build</code></pre>
 <p data-t="an.node.win">On Windows, use npm.cmd instead of npm.</p>
 <h3 data-t="an.node.s2">2. Start and connect to the network</h3>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
-  --seed yskar-main.dynv6.net:8646 \
+  --seed pool.yskar.app:8646 \
   --seed yskar-seed2.dynv6.net:8646 --no-upstream</code></pre>
 <p data-t="an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.</p>
 <h3 data-t="an.node.s3">3. Mine against your own node</h3>
@@ -259,7 +259,7 @@ npm run build</code></pre>
 <h3 data-t="an.node.s4">4. Run a pool (optional)</h3>
 <p data-t="an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
-  --seed yskar-main.dynv6.net:8646 \
+  --seed pool.yskar.app:8646 \
   --seed yskar-seed2.dynv6.net:8646 --no-upstream \
   --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</code></pre>
 <p data-t="an.node.s4Fuss">--pool-fee is in basis points: 100 = 1.00 %, at most 500.</p>
@@ -292,7 +292,7 @@ npm run build</code></pre>
 </ul>
 <p data-t="an.pool.start">Start the node as a pool. It listens only on the machine itself; the web server stands in front of it.</p>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
-  --seed yskar-main.dynv6.net:8646 \
+  --seed pool.yskar.app:8646 \
   --seed yskar-seed2.dynv6.net:8646 --no-upstream \
   --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</code></pre>
 <p data-t="an.pool.caddy">The configuration for Caddy. Replace the name with yours; it must point to your machine first.</p>

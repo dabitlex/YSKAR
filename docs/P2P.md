@@ -272,7 +272,7 @@ This is everything the code does to find other nodes:
 
 - **Seeds.** The addresses given with `--seed` are put into the address book at start. The
   command-line node has no built-in seed. The main network has two fixed seeds,
-  `yskar-main.dynv6.net:8646` and `yskar-seed2.dynv6.net:8646`, on two different machines;
+  `pool.yskar.app:8646` and `yskar-seed2.dynv6.net:8646`, on two different machines;
   Node Core has both built in.
 - **One `getaddr` per connection.** A node asks a peer for addresses once, at the moment the
   connection becomes ready. It does not ask again while the connection stays open.
@@ -507,7 +507,7 @@ list of light headers does not hold up the real chain; and the deletion of deep 
 ### In the node
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 The node network runs next to the mining interface and independently of it. A node without

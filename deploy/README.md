@@ -32,12 +32,13 @@ The unit files contain the values of the main node. They are an example, not def
 | `WorkingDirectory` | `/home/yskar/YSKAR/node` | the `node` folder of your checkout |
 | `ReadWritePaths` | `/home/yskar/YSKAR/node/knoten` | your data folder (`--data`, resolved against the working directory) |
 | Path to Node.js in `ExecStart` | `/usr/bin/node` | the output of `which node` |
-| Start command in `ExecStart` | `mine --data ./knoten --bind 127.0.0.1 --port 8645 --p2p-port 8646 --pool yskar-main.dynv6.net --pool-fee 100 --pool-payout ysr1lfn8dw6st25jxv653vypcp929xs9lzg44954zz` | see below |
+| Start command in `ExecStart` | `mine --data ./knoten --bind 127.0.0.1 --port 8645 --p2p-port 8646 --pool "YSKAR MAIN" --pool-fee 100 --pool-payout ysr1lfn8dw6st25jxv653vypcp929xs9lzg44954zz` | see below |
 | `CPUQuota` | `80%` of one processor core | what suits your machine, or remove the line |
 
 The start command in `yskar-node.service` is the one of the main node. It has no `--seed` and no
 `--no-upstream`, because the main node is the node that writes to the mirror, and it runs the
-public pool under the name `yskar-main.dynv6.net` with a fee of 1 % (`--pool-fee 100`, in basis
+public pool under the name `YSKAR MAIN` (until October 2026 `yskar-main.dynv6.net`; the explorer
+shows both as YSKAR MAIN) with a fee of 1 % (`--pool-fee 100`, in basis
 points) that is paid to the address given with `--pool-payout`. The main node runs on a server
 with a fixed address. If you copy the file for a pool of your own, change the pool name and the
 payout address, otherwise your pool pays its fee to that address.
@@ -45,7 +46,7 @@ payout address, otherwise your pool pays its fee to that address.
 **Every other node uses the standard start command** with both seeds and `--no-upstream`:
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 In the unit file that becomes:
@@ -53,7 +54,7 @@ In the unit file that becomes:
 ```ini
 ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --data ./knoten \
-    --seed yskar-main.dynv6.net:8646 \
+    --seed pool.yskar.app:8646 \
     --seed yskar-seed2.dynv6.net:8646 \
     --no-upstream
 ```

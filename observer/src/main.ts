@@ -44,7 +44,7 @@ interface Optionen {
 }
 
 /** Vorgabe fuer --compare: der oeffentliche Hauptknoten. */
-const VORGABE_VERGLEICH = 'https://yskar-main.dynv6.net';
+const VORGABE_VERGLEICH = 'https://pool.yskar.app';
 
 function argumente(argv: string[]): Optionen {
   const o: Optionen = {

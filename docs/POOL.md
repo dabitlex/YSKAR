@@ -36,11 +36,11 @@ not listed goes into "Your own pool address".
 **Command-line miner.** From the `miner/` folder of the repository:
 
 ```bash
-node src/cli.mjs --address <your-address> --api https://yskar-main.dynv6.net --mode pool
+node src/cli.mjs --address <your-address> --api https://pool.yskar.app --mode pool
 ```
 
-`--api` is the address of the pool node. `https://yskar-main.dynv6.net` is the public pool "YSKAR
-Main"; for another pool, put its address there. `--mode pool` asks for a pool session; without it
+`--api` is the address of the pool node. `https://pool.yskar.app` is the public pool "YSKAR
+MAIN"; for another pool, put its address there. `--mode pool` asks for a pool session; without it
 the miner mines solo. The miner needs only your address (it begins with `ysr1`), never a key. All
 options are described in [the miner guide](../miner/README.md).
 
@@ -119,7 +119,7 @@ Build the node as described in [FULLNODE.md](FULLNODE.md). Then start it with th
 of a full node, followed by the pool flags:
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream \
+node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream \
   --pool my-pool-name --pool-fee 100 --pool-payout <address>
 ```
 
@@ -317,7 +317,7 @@ a maintained list. It is in `src/lib/pool/verzeichnis.ts`:
 
 ```ts
 export const POOLS: PoolEintrag[] = [
-  { host: 'yskar-main.dynv6.net', name: 'YSKAR Main', kette: 'yskar-main.dynv6.net' },
+  { host: 'pool.yskar.app', name: 'YSKAR MAIN', kette: 'YSKAR MAIN' },
 ];
 ```
 

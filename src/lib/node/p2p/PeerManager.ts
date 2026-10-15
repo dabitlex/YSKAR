@@ -86,7 +86,7 @@ export class PeerManager {
    *
    * Ein Seed kann ein Name sein, dessen Socket danach eine IP meldet:
    *
-   *   Ziel beim connect():          yskar-main.dynv6.net:8646
+   *   Ziel beim connect():          pool.yskar.app:8646
    *   Tatsaechliche Socket-Adresse: 203.0.113.7:8646   (Beispiel, RFC 5737)
    *
    * PeerConnection kennt nur die zweite Adresse. Ohne diese Zuordnung

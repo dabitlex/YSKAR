@@ -46,7 +46,7 @@ ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --bind 127.0.0.1 \
     --port 8645 \
     --p2p-port 8646 \
-    --pool yskar-main.dynv6.net \
+    --pool "YSKAR MAIN" \
     --pool-fee 100 \
     --pool-payout ysr1lfn8dw6st25jxv653vypcp929xs9lzg44954zz
 

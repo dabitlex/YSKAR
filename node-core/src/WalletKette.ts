@@ -18,7 +18,7 @@ import { encodeAddress } from '../../src/lib/core/address.ts';
 import { toHex } from '../../src/lib/core/codec.ts';
 import { notizAusHex } from '../../src/lib/wallet/notiz.ts';
 import { VERLAUF_TIEFE } from '../../src/lib/node/fullnode/ReadApi.ts';
-import { finderName } from '../../src/lib/chain/finderName.ts';
+import { finderName, finderAnzeige } from '../../src/lib/chain/finderName.ts';
 import type { ChainStore } from '../../src/lib/node/fullnode/ChainStore.ts';
 
 /** Mehr einzelne Ueberweisungen zeigt die Ansicht nicht. */
@@ -94,7 +94,7 @@ export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
         if (t.outputs.length === 1) e.solo++; else {
           e.pool++;
           // Rueckwaerts gelesen: Der erste Treffer ist der juengste.
-          letztePool ??= { hoehe: h, zeit, betrag: meiner.amount.toString(), name: finderName(toHex(t.extra)) };
+          letztePool ??= { hoehe: h, zeit, betrag: meiner.amount.toString(), name: finderAnzeige(finderName(toHex(t.extra))) };
         }
         e.summe += meiner.amount;
         continue;
@@ -157,7 +157,7 @@ export class NamenZaehler {
     const b = store.mainAt(h);
     if (!b) return null;
     const cb = deserializeBlock(b.body).txs[0];
-    return cb && cb.type === TX_COINBASE ? finderName(toHex(cb.extra)) : null;
+    return cb && cb.type === TX_COINBASE ? finderAnzeige(finderName(toHex(cb.extra))) : null;
   }
 
   /** Den festen Teil nachfuehren -- in Etappen, im Hintergrund. */

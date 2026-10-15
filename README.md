@@ -178,7 +178,7 @@ git clone https://github.com/dabitlex/YSKAR.git
 cd YSKAR/node
 npm install
 npm run build
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 The node connects to the seed nodes, downloads the chain, checks every block and then
@@ -199,7 +199,7 @@ node src/cli.mjs --address ysr1... --api http://127.0.0.1:8645
 Or mine in the public pool without running a node:
 
 ```bash
-node src/cli.mjs --address ysr1... --api https://yskar-main.dynv6.net --mode pool
+node src/cli.mjs --address ysr1... --api https://pool.yskar.app --mode pool
 ```
 
 Replace `ysr1...` with your own address. All options are described in

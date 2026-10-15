@@ -21,7 +21,7 @@ import { encodeAddress, decodeAddress } from '../../core/address.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
-import { finderName } from '../../chain/finderName.ts';
+import { finderName, finderAnzeige } from '../../chain/finderName.ts';
 import { marktlage, position } from '../../core/feemarket.ts';
 import { FEE_V3_HEIGHT } from '../../core/params.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
@@ -228,7 +228,8 @@ export class ReadApi {
       minerAddress: cb.outputs.length === 1
         ? encodeAddress(cb.outputs[0].to) : null,
       // Wie auf dem Server: Selbstauskunft aus dem extra-Feld, meist null.
-      finder: finderName(toHex(cb.extra)),
+      finder: finderAnzeige(finderName(toHex(cb.extra))),
+      finderRoh: finderName(toHex(cb.extra)),
       recipients: cb.outputs.length,
       sizeBytes: b.body.length,
       extranonce: String(block.header.extranonce),

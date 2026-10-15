@@ -41,7 +41,7 @@ const VERSION = '0.1.0';
 const STRIDE = 4096;   // Nonce-Abstand zwischen den Threads
 const WIEDER_MS = 15_000;   // Abstand zwischen zwei Anmeldeversuchen nach einer Unterbrechung
 /** Knoten, wenn --api fehlt: der oeffentliche Hauptknoten (Pool YSKAR Main). */
-const VORGABE_API = 'https://yskar-main.dynv6.net';
+const VORGABE_API = 'https://pool.yskar.app';
 
 // --------------------------------------------------------------- Argumente
 
@@ -95,7 +95,7 @@ Optionen
   -w, --workers <n>      Rechen-Threads (Vorgabe: Kerne minus 1)
   -i, --intensity <1-100>  Anteil der Rechenzeit (Vorgabe: 100)
       --einfach          ohne festen Kopf — dafür bleibt der Verlauf scrollbar
-      --api <url>        Knoten (Vorgabe: https://yskar-main.dynv6.net)
+      --api <url>        Knoten (Vorgabe: https://pool.yskar.app)
       --mode <solo|pool> Solo oder Pool (Vorgabe: solo)
       --gpu              mit der Grafikkarte rechnen statt mit der CPU
       --cpu-gpu          mit beidem gleichzeitig

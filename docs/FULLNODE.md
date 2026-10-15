@@ -109,7 +109,7 @@ npm start -- status --data ./knoten
 All commands in this document are run inside the `node/` folder.
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 | Part | Meaning |

@@ -73,3 +73,25 @@ export function nameToExtra(name: string): Uint8Array {
   }
   return new Uint8Array(bytes);
 }
+
+/**
+ * Frueherer Name -> heutiger Name, nur fuer die ANZEIGE.
+ *
+ * Der Hauptpool schrieb bis Oktober 2026 seine Adresse in die Bloecke
+ * ("yskar-main.dynv6.net"), seitdem "YSKAR MAIN". Was in einem Block steht,
+ * bleibt dort fuer immer; gezeigt und gezaehlt werden beide unter dem
+ * heutigen Namen. Wer den Rohwert sehen will, findet ihn in der
+ * Blockansicht (finderRoh) und im extra-Feld der Coinbase.
+ *
+ * Nur Namen, die nachweislich derselbe Betreiber umbenannt hat -- nie
+ * einen fremden Namen auf einen anderen abbilden.
+ */
+export const FRUEHERE_FINDER_NAMEN: Readonly<Record<string, string>> = {
+  'yskar-main.dynv6.net': 'YSKAR MAIN',
+};
+
+/** Der Name, unter dem ein Finder angezeigt und gezaehlt wird. */
+export function finderAnzeige(name: string | null | undefined): string | null {
+  if (!name) return null;
+  return FRUEHERE_FINDER_NAMEN[name] ?? name;
+}

@@ -34,9 +34,27 @@ export interface PoolEintrag {
 
 /** Reihenfolge = Reihenfolge in der App. */
 export const POOLS: PoolEintrag[] = [
-  { host: 'yskar-main.dynv6.net', name: 'YSKAR Main', kette: 'yskar-main.dynv6.net' },
+  { host: 'pool.yskar.app', name: 'YSKAR MAIN', kette: 'YSKAR MAIN' },
   { host: 'teamplay.duckdns.org', name: 'ODW.Serv', kette: 'ODW.Serv' },
 ];
+
+/**
+ * Pools, die heute unter einer anderen Adresse erreichbar sind: alt -> neu.
+ *
+ * Der Hauptpool lief bis Oktober 2026 unter einem dynamischen DNS-Namen.
+ * Als dessen Anbieter ausfiel, war er fuer alle ohne IPv6 nicht mehr zu
+ * finden -- obwohl er lief. Seitdem steht er unter der eigenen Domain.
+ * Gespeicherte Wahlen (App, Node Core) werden beim Lesen umgestellt; die
+ * alte Adresse bedient der Server weiter, solange es sie gibt.
+ */
+export const UMGEZOGEN: Readonly<Record<string, string>> = {
+  'yskar-main.dynv6.net': 'pool.yskar.app',
+};
+
+/** Die heutige Adresse eines Pools (unveraendert, wenn er nicht umgezogen ist). */
+export function aktuelleAdresse(host: string): string {
+  return UMGEZOGEN[host] ?? host;
+}
 
 /**
  *   offen      nimmt neue Adressen an

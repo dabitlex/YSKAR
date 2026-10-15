@@ -1,6 +1,7 @@
 import { db } from '@/lib/db/service';
 import { POOLS, type PoolStand } from '@/lib/pool/verzeichnis';
 import { poolFragen } from '@/lib/pool/abfrage';
+import { finderAnzeige } from '@/lib/chain/finderName';
 
 /**
  * Stand aller Pools der Liste -- fuer die Pool-Auswahl in der App.
@@ -52,7 +53,10 @@ function bloeckeZaehlen(): Promise<Map<string, number> | null> {
       const zahlen = new Map<string, number>();
       for (const z of data as { name?: unknown; bloecke?: unknown }[]) {
         const n = Number(z.bloecke);
-        if (typeof z.name === 'string' && Number.isSafeInteger(n) && n >= 0) zahlen.set(z.name, n);
+        if (typeof z.name !== 'string' || !Number.isSafeInteger(n) || n < 0) continue;
+        // Umbenannte Finder zaehlen unter ihrem heutigen Namen (finderName.ts).
+        const name = finderAnzeige(z.name)!;
+        zahlen.set(name, (zahlen.get(name) ?? 0) + n);
       }
       bloeckeMerker = { bis: Date.now() + BLOECKE_GILT_MS, zahlen };
       return zahlen;
@@ -105,7 +109,7 @@ export async function poolListe(): Promise<PoolListe> {
           ...s,
           // Ohne Namen gibt es nichts zu zaehlen. Mit Namen und ohne
           // Treffer sind es null Bloecke -- das ist eine Aussage.
-          bloecke: bloecke && s.kette ? bloecke.get(s.kette) ?? 0 : null,
+          bloecke: bloecke && s.kette ? bloecke.get(finderAnzeige(s.kette)!) ?? 0 : null,
         })),
       };
       merker = { bis: Date.now() + GILT_MS, liste };

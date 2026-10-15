@@ -271,7 +271,7 @@ interface calls the program folder:
 The blockchain is in the data folder, by default `%LOCALAPPDATA%\YSKAR\Node`
 (Linux: `~/.yskar/node`).
 
-Defaults: P2P port 8646, node API port 8645, seed `yskar-main.dynv6.net:8646`.
+Defaults: P2P port 8646, node API port 8645, seed `pool.yskar.app:8646`.
 
 On the main network a second seed, `yskar-seed2.dynv6.net:8646`, is built in
 and is used in addition to the configured one (`WEITERE_SEEDS` in

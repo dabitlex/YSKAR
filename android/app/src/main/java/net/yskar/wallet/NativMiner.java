@@ -51,7 +51,7 @@ final class NativMiner {
     }
 
     static final class Einstellung {
-        String basis;       // z.B. https://yskar-main.dynv6.net
+        String basis;       // z.B. https://pool.yskar.app
         String adresse;     // ysr1...
         String modus;       // "solo" | "pool"
         String plattform;   // "android"

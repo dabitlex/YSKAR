@@ -163,7 +163,7 @@ test('Im Pool: anmelden, Shares liefern, Auszahlung in der Kette', async () => {
     assert.equal(eigen.feeBps, 100);
     assert.equal(eigen.kette, 'Testpool Nord');
     assert.equal(eigen.anzeige, 'Testpool Nord');
-    assert.equal(liste.pools[0].anzeige, 'YSKAR Main', 'Pools der Liste heißen wie in der Liste');
+    assert.equal(liste.pools[0].anzeige, 'YSKAR MAIN', 'Pools der Liste heißen wie in der Liste');
     assert.equal(eigen.dabei, undefined, 'Die Liste fragt ohne Adresse');
     assert.equal((await A.GET('/api/pool/liste?eigen=' + encodeURIComponent('kein pool'))).json.eigenFehler !== null, true);
 

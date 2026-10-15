@@ -94,7 +94,7 @@ There are two choices.
 ### In the public pool
 
 ```bash
-node src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool
+node src/cli.mjs --address ysr1… --api https://pool.yskar.app --mode pool
 ```
 
 In a pool, the reward of every block the pool finds is split among the miners by the work they
@@ -115,7 +115,7 @@ describes how to set one up.
 
 ### Without `--api`
 
-Without `--api` the miner contacts the public main node, `https://yskar-main.dynv6.net`, in the
+Without `--api` the miner contacts the public main node, `https://pool.yskar.app`, in the
 mode given by `--mode` (solo unless you choose `pool`). Until 9 October 2026 the default was
 `https://yskar.vercel.app`, which no longer hands out mining work and answers every request for a
 mining session with HTTP 410 (issue #8).
@@ -132,7 +132,7 @@ server or the mode, so `--mode pool` is still needed on every start, and `--api`
 not use the public main node:
 
 ```bash
-node src/cli.mjs --api https://yskar-main.dynv6.net --mode pool
+node src/cli.mjs --api https://pool.yskar.app --mode pool
 ```
 
 The saved values are used only when `--address` is not given. `--forget` deletes the file.
@@ -218,7 +218,7 @@ Options can be written as `--option value` or `--option=value`.
 | `--address <ysr1…>` | `-a` | Address that receives the reward | Required, unless saved in `yskar-miner.json` or entered at the prompt |
 | `--workers <n>` | `-w` | Number of CPU threads | CPU cores minus 1, at least 1 |
 | `--intensity <1-100>` | `-i` | Share of the time the CPU threads compute, in percent | `100` |
-| `--api <url>` | | Server that hands out work: a pool or your own full node | `https://yskar-main.dynv6.net` (the public main node) |
+| `--api <url>` | | Server that hands out work: a pool or your own full node | `https://pool.yskar.app` (the public main node) |
 | `--mode <solo\|pool>` | | Mine solo or in the pool of the node. Any value other than `pool` means solo. | `solo` |
 | `--gpu` | | Compute with the graphics card instead of the CPU | Off |
 | `--cpu-gpu` | | Compute with CPU and graphics card at the same time | Off |
@@ -233,10 +233,10 @@ An unknown option ends the miner with an error and the help text.
 
 ```bash
 # Mine in the background without slowing the computer down much
-node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool -w 2 -i 50
+node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool -w 2 -i 50
 
 # Use eight threads at full intensity
-node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool -w 8 -i 100
+node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool -w 8 -i 100
 ```
 
 By default the miner uses all cores but one, so that the computer stays usable.
@@ -254,10 +254,10 @@ for Windows. See [node-core/gpu/README.md](../node-core/gpu/README.md).
 
 ```bash
 # Graphics card only
-node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool --gpu
+node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool --gpu
 
 # CPU and graphics card together
-node src/cli.mjs -a ysr1… --api https://yskar-main.dynv6.net --mode pool --cpu-gpu
+node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool --cpu-gpu
 ```
 
 The miner looks for the program in these places, in this order:
@@ -325,7 +325,7 @@ To make `yskar-miner` available from any folder:
 ```bash
 cd YSKAR/miner
 npm link
-yskar-miner -a ysr1… --api https://yskar-main.dynv6.net --mode pool
+yskar-miner -a ysr1… --api https://pool.yskar.app --mode pool
 ```
 
 Undo it with `npm unlink -g yskar-miner`.
@@ -340,7 +340,7 @@ Description=YSKAR miner
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/node /path/to/YSKAR/miner/src/cli.mjs --address ysr1… --api https://yskar-main.dynv6.net --mode pool --intensity 80
+ExecStart=/usr/bin/node /path/to/YSKAR/miner/src/cli.mjs --address ysr1… --api https://pool.yskar.app --mode pool --intensity 80
 Restart=always
 RestartSec=15
 User=your-user
@@ -373,12 +373,12 @@ be reached. Check that `--api` is set and correct. The miner prints the address 
 public pool:
 
 ```bash
-curl https://yskar-main.dynv6.net/api/v2/summary
+curl https://pool.yskar.app/api/v2/summary
 ```
 
 If the message continues with `Mining und Transaktionen laufen nicht mehr über diese Adresse`,
 you are talking to `https://yskar.vercel.app`, the old default of miner versions before 9 October
-2026: update the miner or set `--api https://yskar-main.dynv6.net`. If it continues with
+2026: update the miner or set `--api https://pool.yskar.app`. If it continues with
 `Pool voll`, all seats of the pool are taken by active miners; a seat of a miner who stops
 becomes free again after a few minutes.
 

@@ -10,7 +10,7 @@
  *
  * Umgebung:
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   Geraeteliste, Stand, News
- *   YSKAR_FULLNODE_URL                                    z.B. https://yskar-main.dynv6.net
+ *   YSKAR_FULLNODE_URL                                    z.B. https://pool.yskar.app
  *   FCM_SERVICE_ACCOUNT_FILE                              Pfad zur JSON des Firebase-Dienstkontos
  *   PUSH_TAKT_MS                                          Abfrageintervall, Vorgabe 8000
  *

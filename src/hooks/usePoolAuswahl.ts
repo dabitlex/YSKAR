@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { POOLS, vorschlag, waehlbar, type PoolStand } from '@/lib/pool/verzeichnis';
+import { POOLS, vorschlag, waehlbar, aktuelleAdresse, type PoolStand } from '@/lib/pool/verzeichnis';
 import { poolFragen } from '@/lib/pool/abfrage';
 
 /**
@@ -38,8 +38,12 @@ const WARTEN_MS = 4_000;
 function wahlLesen(): PoolWahl | null {
   try {
     const w = JSON.parse(localStorage.getItem(WAHL) ?? 'null');
-    return w && typeof w.host === 'string' && w.host.trim() !== ''
-      ? { host: w.host, eigen: w.eigen === true } : null;
+    if (!w || typeof w.host !== 'string' || w.host.trim() === '') return null;
+    // Umgezogener Pool (verzeichnis.ts): gleich unter der neuen Adresse merken.
+    const host = aktuelleAdresse(w.host);
+    const wahl = { host, eigen: w.eigen === true && host === w.host };
+    if (host !== w.host) merken(WAHL, JSON.stringify(wahl));
+    return wahl;
   } catch { return null; }
 }
 

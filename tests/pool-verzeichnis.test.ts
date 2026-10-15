@@ -169,3 +169,29 @@ test('Basis-URL: HTTPS, ausser http steht ausdruecklich da', () => {
   assert.equal(poolBasis('http://192.168.1.20:8645'), 'http://192.168.1.20:8645');
   assert.equal(poolBasis('https://pool.example.net'), 'https://pool.example.net');
 });
+
+test('Umzug: alte Adresse des Hauptpools fuehrt zur neuen, alles andere bleibt', async () => {
+  const { aktuelleAdresse, UMGEZOGEN } = await import('../src/lib/pool/verzeichnis.ts');
+  assert.equal(aktuelleAdresse('yskar-main.dynv6.net'), 'pool.yskar.app');
+  assert.equal(aktuelleAdresse('pool.yskar.app'), 'pool.yskar.app');
+  assert.equal(aktuelleAdresse('teamplay.duckdns.org'), 'teamplay.duckdns.org');
+  // Jedes Ziel steht in der Liste -- sonst landete eine gespeicherte Wahl im Leeren.
+  for (const neu of Object.values(UMGEZOGEN)) assert.ok(POOLS.some(p => p.host === neu), `${neu} fehlt in POOLS`);
+  // Keine alte Adresse steht noch in der Liste.
+  for (const alt of Object.keys(UMGEZOGEN)) assert.ok(!POOLS.some(p => p.host === alt), `${alt} steht noch in POOLS`);
+});
+
+test('Finder-Anzeige: frueherer Name des Hauptpools wird als YSKAR MAIN gezeigt', async () => {
+  const { finderAnzeige, FRUEHERE_FINDER_NAMEN } = await import('../src/lib/chain/finderName.ts');
+  assert.equal(finderAnzeige('yskar-main.dynv6.net'), 'YSKAR MAIN');
+  assert.equal(finderAnzeige('YSKAR MAIN'), 'YSKAR MAIN');
+  assert.equal(finderAnzeige('ODW.Serv'), 'ODW.Serv');
+  assert.equal(finderAnzeige(null), null);
+  // Der heutige Name muss sich in einen Block schreiben und wieder lesen lassen.
+  for (const neu of Object.values(FRUEHERE_FINDER_NAMEN)) {
+    assert.equal(finderName(toHex(nameToExtra(neu))), neu);
+  }
+  // Und der Hauptpool der Liste zaehlt unter genau diesem Namen.
+  const haupt = POOLS.find(p => p.host === 'pool.yskar.app');
+  assert.equal(haupt?.kette, 'YSKAR MAIN');
+});

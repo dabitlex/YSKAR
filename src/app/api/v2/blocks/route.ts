@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db/service';
-import { finderName } from '@/lib/chain/finderName';
+import { finderName, finderAnzeige } from '@/lib/chain/finderName';
 import { unprefix } from '@/lib/node/hex';
 
 export const runtime = 'nodejs';
@@ -77,7 +77,8 @@ export async function GET(req: Request) {
           Eine Selbstauskunft, keine Zusicherung -- nachpruefbar ist nur,
           dass dieser Finder Bloecke gefunden hat.
         */
-        finder: cb ? finderName(cb.memo) : null,
+        finder: cb ? finderAnzeige(finderName(cb.memo)) : null,
+        finderRoh: cb ? finderName(cb.memo) : null,
         /** Wie viele Empfaenger die Coinbase hat. 1 = solo, mehr = Pool. */
         recipients: cb?.coinbase_outputs
           ? (cb.coinbase_outputs as unknown[]).length : 1,

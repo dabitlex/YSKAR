@@ -1969,7 +1969,7 @@ function zeichneBlock(b){
       </div>
       <div class="fakten">
         ${fakt(T.gefunden,uhr(b.timestamp),alter(b.timestamp))}
-        ${fakt(T.finderL,finder,pool?T.pool+' · '+T.empfaenger(b.recipients):T.solo,false,b.finder?b.finder+' · '+T.selbstauskunft:'')}
+        ${fakt(T.finderL,finder,pool?T.pool+' · '+T.empfaenger(b.recipients):T.solo,false,b.finder?(b.finderRoh&&b.finderRoh!==b.finder?b.finderRoh+' → '+b.finder:b.finder)+' · '+T.selbstauskunft:'')}
         ${fakt(T.belohnung,b.reward!=null?ysr(b.reward,0,8)+' '+sym:'—',gebuehren?T.inklGebuehr(ysr(gebuehren,0,8)+' '+sym):'')}
         ${fakt(T.kBlockzeit,abstand!=null?dauer(abstand)+' '+T.minKurz:'—',T.zumVorgaenger)}
         ${fakt(T.difficulty,nfGross(b.difficultyWert??b.difficulty),c.erreicht!==undefined?T.erreicht+' '+nfGross(c.erreicht):dAend)}

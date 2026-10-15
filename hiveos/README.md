@@ -37,7 +37,7 @@ Under **Setup Miner Config** of the custom miner:
 | Installation URL | `https://github.com/dabitlex/YSKAR/releases/download/node-core-v<version>/yskar-hiveos-<version>.tar.gz` |
 | Hash algorithm | leave empty |
 | Wallet and worker template | `%WAL%` |
-| Pool URL | `https://yskar-main.dynv6.net` (the public pool), or the address of your own pool |
+| Pool URL | `https://pool.yskar.app` (the public pool), or the address of your own pool |
 | Extra config arguments | `MODE=pool` (see below) |
 
 The miner name must be exactly `yskar-hiveos`. HiveOS takes it from the file name of the
@@ -47,7 +47,7 @@ If your HiveOS offers **Import from Clipboard** on the flight sheet page, this d
 (replace `<version>` twice, then choose your own wallet):
 
 ```json
-{"isFavorite":false,"items":[{"coin":"YSR","pool_ssl":false,"dpool_ssl":false,"miner":"custom","miner_alt":"yskar-hiveos","miner_config":{"url":"https://yskar-main.dynv6.net","miner":"yskar-hiveos","template":"%WAL%","install_url":"https://github.com/dabitlex/YSKAR/releases/download/node-core-v<version>/yskar-hiveos-<version>.tar.gz","user_config":"MODE=pool"},"pool_geo":[]}]}
+{"isFavorite":false,"items":[{"coin":"YSR","pool_ssl":false,"dpool_ssl":false,"miner":"custom","miner_alt":"yskar-hiveos","miner_config":{"url":"https://pool.yskar.app","miner":"yskar-hiveos","template":"%WAL%","install_url":"https://github.com/dabitlex/YSKAR/releases/download/node-core-v<version>/yskar-hiveos-<version>.tar.gz","user_config":"MODE=pool"},"pool_geo":[]}]}
 ```
 
 ## Extra config arguments

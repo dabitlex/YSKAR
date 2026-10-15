@@ -9,7 +9,7 @@ operator of the main node and for anyone who wants to know which component is au
 | Component | Where | Task | Authoritative for |
 |---|---|---|---|
 | Full nodes | anywhere; connected over P2P on port 8646 | validate every block, build blocks, hold the mempool (the pending transfers) | which blocks are valid and which chain is active |
-| Main node | `yskar-main.dynv6.net`, a server with the fixed address `45.84.199.206` | a full node like any other, with extra duties (below) | nothing beyond what any full node decides |
+| Main node | `pool.yskar.app`, a server with the fixed address `45.84.199.206` | a full node like any other, with extra duties (below) | nothing beyond what any full node decides |
 | Mirror (German "Spiegel") | Supabase, schema `chain2` | read-only database copy of the chain for fast queries | nothing |
 | App project | Vercel, `https://yskar.vercel.app` | serves the web app, the explorer and the read API; writes blocks into the mirror | nothing |
 | Website project | Vercel, `https://www.yskar.app` | static website with guides and whitepaper | nothing |
@@ -30,8 +30,8 @@ chain:
 - It is the only node that writes blocks into the mirror.
 - It is the node the Vercel server asks for live data (variable `YSKAR_FULLNODE_URL`).
 - It is the node the web app sends solo mining sessions and transfers to (variable
-  `NEXT_PUBLIC_MINING_BASE`), and it runs the public pool "YSKAR Main".
-- It is the first seed of the main network, `yskar-main.dynv6.net:8646`. Without a name lookup
+  `NEXT_PUBLIC_MINING_BASE`), and it runs the public pool "YSKAR MAIN".
+- It is the first seed of the main network, `pool.yskar.app:8646`. Without a name lookup
   it is reached as `45.84.199.206:8646`.
 
 The second seed, `yskar-seed2.dynv6.net:8646`, is an ordinary full node on a different machine
@@ -43,7 +43,7 @@ none of the duties above. It is run by the same operator as the main node.
         ^
         |  P2P, port 8646
         v
-  main node (yskar-main.dynv6.net)  <---  miners, app: mining sessions and transfers
+  main node (pool.yskar.app)        <---  miners, app: mining sessions and transfers
         |                                 (HTTPS proxy in front of 127.0.0.1:8645)
         |  every accepted block: POST /api/v2/block
         v
@@ -115,8 +115,8 @@ catch-all `src/app/api/v1/[...pfad]/route.ts`). The addresses in this example de
 {
   "error": "moved_to_fullnode",
   "detail": "Mining und Transaktionen laufen nicht mehr über diese Adresse. Der Full Node ist die Wahrheit; hier liegt nur noch ein Lesespiegel.",
-  "fullnode": "https://yskar-main.dynv6.net",
-  "stattdessen": "https://yskar-main.dynv6.net/api/v2/session"
+  "fullnode": "https://pool.yskar.app",
+  "stattdessen": "https://pool.yskar.app/api/v2/session"
 }
 ```
 
@@ -127,7 +127,7 @@ The reason is the rule that only one place may hand out work. A mining job fixes
 the transactions and the state root; it lives 90 seconds and must stand on the current tip. A
 mirror is behind by definition and must not issue jobs.
 
-The command-line miner's default `--api` is the public main node, `https://yskar-main.dynv6.net`.
+The command-line miner's default `--api` is the public main node, `https://pool.yskar.app`.
 Until 9 October 2026 it was `https://yskar.vercel.app`, which answers 410 (issue #8).
 
 The other routes under `/api/v1` (`/api/v1/chain/…` and `/api/v1/auth/telegram`, which issued
@@ -261,7 +261,7 @@ Every full node that is not the main node is therefore started with both seeds a
 `--no-upstream`:
 
 ```bash
-node dist/yskar-node.cjs mine --data ./knoten --seed yskar-main.dynv6.net:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
+node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
 ```
 
 Such a node gets the chain over P2P and announces its blocks to other nodes. The main node
@@ -336,7 +336,7 @@ way as a lost block.
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Address of the Supabase project. Read by `src/lib/db/service.ts`. |
 | `SUPABASE_SERVICE_ROLE_KEY` | yes | Service role key for the database. Bypasses row level security; it must never reach a browser. |
-| `YSKAR_FULLNODE_URL` | yes | Base address of the full node the server reads live data from, without a trailing slash, for example `https://yskar-main.dynv6.net`. Used by `/summary`, `/fees`, `/account/:address` and named in the 410 answers. |
+| `YSKAR_FULLNODE_URL` | yes | Base address of the full node the server reads live data from, without a trailing slash, for example `https://pool.yskar.app`. Used by `/summary`, `/fees`, `/account/:address` and named in the 410 answers. |
 | `NEXT_PUBLIC_MINING_BASE` | yes | Address of the full node the web app uses for solo mining sessions and for submitting transfers. It is built into the client code, so a change takes effect only with a new build. If it is empty, the app sends these requests to its own server, which answers 410. Pool mining goes to the address of the chosen pool instead. |
 | `YSKAR_SPIEGEL_TOKEN` | no | Mirror token, see above. |
 | `YSKAR_ADMIN_TOKEN` | no | Token for `POST /api/v2/news`. Without it that route answers 401 to every request. |
@@ -418,8 +418,13 @@ curl https://node.example.org/api/v2/summary
 ```
 
 The host name must point to the machine before Caddy can obtain a certificate. The main node
-runs on a server with a fixed address, and its name `yskar-main.dynv6.net` points to that
-address permanently. A machine at home with a changing address needs a dynamic DNS name
+runs on a server with a fixed address, and its name `pool.yskar.app` points to that address
+with fixed records (`A` and `AAAA`) in the DNS of the project's own domain. Until October 2026
+it was reached as `yskar-main.dynv6.net`, a dynamic DNS name; when that provider stopped
+handing out the IPv4 address on 15 October 2026, the node kept running but everybody without
+IPv6 lost it, including the Vercel server. Caddy still serves the old name next to the new one
+(`yskar-main.dynv6.net, pool.yskar.app { … }`), so older miners keep working while that name
+resolves. A machine at home with a changing address needs a dynamic DNS name
 instead, and every change of address interrupts the service until all name servers hand out
 the new one.
 
@@ -534,8 +539,8 @@ Run these checks after a deployment of the app project or a restart of the main 
 6. **The node answers from outside.**
 
    ```bash
-   curl -s https://yskar-main.dynv6.net/api/v2/status
-   curl -s https://yskar-main.dynv6.net/api/v2/pool
+   curl -s https://pool.yskar.app/api/v2/status
+   curl -s https://pool.yskar.app/api/v2/pool
    ```
 
 7. **The website passes the API through.**
