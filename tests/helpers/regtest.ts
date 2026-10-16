@@ -15,9 +15,9 @@ import { serializeHeader, headerHash, serializeBlock, type Block }
 import { emptyState, applyBlock, cloneState, type State }
   from '../../src/lib/core/state.ts';
 import { targetFromDifficulty } from '../../src/lib/core/params.ts';
-import { REGTEST } from '../../src/lib/core/networks.ts';
+import { REGTEST, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { decodeAddress } from '../../src/lib/core/address.ts';
-import type { Transfer } from '../../src/lib/core/tx.ts';
+import type { Spend } from '../../src/lib/core/tx.ts';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { createHash } from 'node:crypto';
 
@@ -52,9 +52,13 @@ export function mineBlock(opts: {
   extranonce?: bigint;
   extra?: string;
   /** Ueberweisungen, die in den Block sollen -- fuer Mempool-Tests. */
-  mempool?: Transfer[];
+  mempool?: Spend[];
+  /** Netz; Vorgabe REGTEST. REGTEST_V6 fuer Konsensfassung 6. */
+  params?: ConsensusParams;
+  anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[];
 }): Gemint {
-  const difficulty = opts.difficulty ?? REGTEST.genesisDifficulty;
+  const params = opts.params ?? REGTEST;
+  const difficulty = opts.difficulty ?? params.genesisDifficulty;
   const gebaut = buildBlock({
     height: opts.height,
     prevHash: opts.prevHash,
@@ -65,7 +69,8 @@ export function mineBlock(opts: {
     difficulty,
     extranonce: opts.extranonce ?? 0n,
     coinbaseExtra: new TextEncoder().encode(opts.extra ?? 'regtest'),
-    params: REGTEST,
+    params,
+    anteile: opts.anteile,
   });
 
   /*
@@ -110,8 +115,9 @@ export interface Kette {
  * die Tests haetten einen Nebeneffekt, der nichts mit ihnen zu tun hat.
  */
 export function baueKette(n: number, opts: {
-  start?: bigint; miner?: Uint8Array; extra?: string;
+  start?: bigint; miner?: Uint8Array; extra?: string; params?: ConsensusParams;
 } = {}): Kette {
+  const params = opts.params ?? REGTEST;
   const start = opts.start ?? 1_788_912_000n;
   const state = emptyState();
   const bloecke: Gemint[] = [];
@@ -120,10 +126,10 @@ export function baueKette(n: number, opts: {
   for (let h = 0; h < n; h++) {
     const g = mineBlock({
       height: h, prevHash: prev, state,
-      timestamp: start + BigInt(h) * REGTEST.targetBlockTime,
-      miner: opts.miner, extra: opts.extra,
+      timestamp: start + BigInt(h) * params.targetBlockTime,
+      miner: opts.miner, extra: opts.extra, params,
     });
-    const r = applyBlock(state, g.block, REGTEST);
+    const r = applyBlock(state, g.block, params);
     if (!r.ok) throw new Error(`Testkette: Block ${h} nicht anwendbar: ${r.error?.reason}`);
     bloecke.push(g);
     prev = g.hash;

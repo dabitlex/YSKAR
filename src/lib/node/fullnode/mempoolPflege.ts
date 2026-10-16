@@ -25,7 +25,7 @@
  * soll vom Mempool nichts wissen muessen.
  */
 import { deserializeBlock } from '../../core/block.ts';
-import { TX_COINBASE, type Transfer } from '../../core/tx.ts';
+import { TX_COINBASE, type Spend } from '../../core/tx.ts';
 import type { State } from '../../core/state.ts';
 import type { StoredBlock } from './ChainStore.ts';
 import type { TxPool } from './TxPool.ts';
@@ -45,13 +45,13 @@ export interface PflegeErgebnis {
 }
 
 /** Die Ueberweisungen eines Blocks -- ohne die Coinbase. */
-function transfers(bloecke: StoredBlock[]): Transfer[] {
-  const out: Transfer[] = [];
+function transfers(bloecke: StoredBlock[]): Spend[] {
+  const out: Spend[] = [];
   for (const b of bloecke) {
     let txs;
     try { txs = deserializeBlock(b.body).txs; }
     catch { continue; }   // Unlesbar gespeichert: Das ist nicht die Sorge des Mempools.
-    for (const t of txs) if (t.type !== TX_COINBASE) out.push(t as Transfer);
+    for (const t of txs) if (t.type !== TX_COINBASE) out.push(t as Spend);
   }
   return out;
 }

@@ -2,7 +2,8 @@ import { Writer, Reader } from './codec.ts';
 import { sha256d, merkleRoot } from './hash.ts';
 import { serializeTx, deserializeTx, txid, type Tx, TX_COINBASE } from './tx.ts';
 import {
-  targetFromDifficulty, bytesToBig, MAX_TXS_PER_BLOCK, encodeDifficulty, decodeDifficulty,
+  targetFromDifficulty, bytesToBig, MAX_TXS_PER_BLOCK_V6, encodeDifficulty, decodeDifficulty,
+  blockVersionAt, maxTxsAt, V6_HEIGHT, BLOCK_VERSION_V6,
 } from './params.ts';
 
 /**
@@ -36,6 +37,7 @@ import {
 export const HEADER_SIZE = 136;
 export const NONCE_OFFSET = 128;
 export const MIDSTATE_PREFIX = 128;
+/** Blockversion bis Konsensfassung 6. Ab v6Height gilt blockVersionAt() (params.ts). */
 export const BLOCK_VERSION = 1;
 
 export interface BlockHeader {
@@ -124,7 +126,9 @@ export function deserializeBlock(bytes: Uint8Array): Block {
   const header = deserializeHeader(bytes.slice(0, HEADER_SIZE));
   const r = new Reader(bytes.slice(HEADER_SIZE));
   const count = r.u32();
-  if (count > MAX_TXS_PER_BLOCK) throw new Error('zu viele Transaktionen');
+  // Strukturelles Maximum aller Fassungen; die Grenze je Hoehe prueft
+  // checkBlockStructure (CONSENSUS_V6.md 6.1).
+  if (count > MAX_TXS_PER_BLOCK_V6) throw new Error('zu viele Transaktionen');
   const txs: Tx[] = [];
   for (let i = 0; i < count; i++) txs.push(deserializeTx(r.bytes(r.u32())));
   return { header, txs };
@@ -139,14 +143,53 @@ export type BlockStructureError =
   | 'no_coinbase' | 'multiple_coinbase' | 'coinbase_height'
   | 'merkle_mismatch' | 'pow_failed';
 
+/** Netzabhaengiger Teil: nur die Aktivierungshoehe der Fassung 6. */
+export interface StructureParams { v6Height?: number }
+
+/**
+ * Versionsregel je Hoehe (CONSENSUS_V6.md 2.2): genau 1 darunter, genau 6
+ * ab v6Height. Exakt, nicht "mindestens" -- so ist jede Fork-Grenze
+ * eindeutig. Liefert null, 'bad_version' oder 'higher_revision', wenn der
+ * Block eine Fassung nennt, die dieser Knoten noch nicht kennt (11.1).
+ */
+export function checkHeaderVersion(
+  h: BlockHeader, params: StructureParams = {},
+): 'bad_version' | 'higher_revision' | null {
+  const erwartet = blockVersionAt(h.height, params.v6Height ?? V6_HEIGHT);
+  if (h.version === erwartet) return null;
+  // Hoeher als die hoechste Fassung, die dieser Code kennt: der Block kann
+  // echt sein und wir veraltet. Alles andere ist schlicht falsch.
+  return h.version > BLOCK_VERSION_V6 ? 'higher_revision' : 'bad_version';
+}
+
+/**
+ * Nur der Header, bevor der Body gelesen wird (CONSENSUS_V6.md 2.3): lesbar,
+ * Proof of Work gegen die GENANNTE Difficulty, dann die Versionsregel. Ob
+ * die Difficulty die richtige ist, prueft der Aufrufer mit der Vorgeschichte.
+ */
+export function precheckHeader(
+  raw: Uint8Array, params: StructureParams = {},
+): { header: BlockHeader; error: 'unlesbar' | 'pow_failed' | 'bad_version' | 'higher_revision' | null; detail?: string } {
+  let header: BlockHeader;
+  try {
+    header = deserializeHeader(raw.slice(0, HEADER_SIZE));
+    if (!meetsTarget(sha256d(raw.slice(0, HEADER_SIZE)), header.difficulty)) {
+      return { header, error: 'pow_failed' };
+    }
+  } catch (e) {
+    return { header: null as unknown as BlockHeader, error: 'unlesbar', detail: String((e as Error).message) };
+  }
+  return { header, error: checkHeaderVersion(header, params) };
+}
+
 /**
  * Strukturpruefung ohne Kenntnis des Zustands: Aufbau, Merkle-Root und
  * Proof of Work. Guthaben, Nonces und der Reward-Betrag werden in state.ts
  * geprueft, weil sie den Kontostand brauchen.
  */
-export function checkBlockStructure(b: Block): BlockStructureError | null {
-  if (b.header.version !== BLOCK_VERSION) return 'bad_version';
-  if (b.txs.length > MAX_TXS_PER_BLOCK) return 'too_many_txs';
+export function checkBlockStructure(b: Block, params: StructureParams = {}): BlockStructureError | null {
+  if (checkHeaderVersion(b.header, params)) return 'bad_version';
+  if (b.txs.length > maxTxsAt(b.header.height, params.v6Height ?? V6_HEIGHT)) return 'too_many_txs';
   if (b.header.txCount !== b.txs.length) return 'tx_count_mismatch';
 
   if (b.txs.length === 0 || b.txs[0].type !== TX_COINBASE) return 'no_coinbase';

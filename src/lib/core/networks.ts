@@ -23,7 +23,7 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import {
   NETWORK, CHAIN_ID, TARGET_BLOCK_TIME, MIN_DIFFICULTY, GENESIS_DIFFICULTY,
-  LWMA_WINDOW, LWMA_CLAMP, SOLVETIME_CAP, COINBASE_V2_HEIGHT, FEE_V3_HEIGHT, V5_HEIGHT,
+  LWMA_WINDOW, LWMA_CLAMP, SOLVETIME_CAP, COINBASE_V2_HEIGHT, FEE_V3_HEIGHT, V5_HEIGHT, V6_HEIGHT,
 } from './params.ts';
 
 export interface ConsensusParams {
@@ -51,6 +51,11 @@ export interface ConsensusParams {
   feeV3Height: number;
   /** Ab dieser Hoehe: die Regeln der Konsensfassung 5 (params.ts, V5_HEIGHT). */
   v5Height: number;
+  /**
+   * Ab dieser Hoehe: Konsensfassung 6, der Hard Fork (docs/CONSENSUS_V6.md).
+   * Im Mainnet noch nicht gesetzt (V6_HEIGHT_UNSET).
+   */
+  v6Height: number;
 }
 
 /** Das laufende Netz. Exakt die Werte aus params.ts. */
@@ -66,6 +71,7 @@ export const MAINNET: ConsensusParams = {
   coinbaseV2Height: COINBASE_V2_HEIGHT,
   feeV3Height: FEE_V3_HEIGHT,
   v5Height: V5_HEIGHT,
+  v6Height: V6_HEIGHT,
 };
 
 /**
@@ -93,6 +99,22 @@ export const REGTEST: ConsensusParams = {
   feeV3Height: 0,
   // Und die Regeln der Fassung 5 ebenso.
   v5Height: 0,
+  // Fassung 6 NICHT: Dieses Netz prueft die Regeln bis Fassung 5 und bleibt
+  // die Grundlage der bestehenden Tests. Fassung 6 testet REGTEST_V6.
+  v6Height: V6_HEIGHT,
+};
+
+/**
+ * Regtest mit Konsensfassung 6 von Anfang an.
+ *
+ * Eigene Kennung und Chain-ID, damit sich Transaktionen und Bloecke der
+ * beiden Testnetze nie verwechseln lassen. Alles andere wie REGTEST.
+ */
+export const REGTEST_V6: ConsensusParams = {
+  ...REGTEST,
+  network: 'yskar-regtest-v6',
+  chainId: sha256(new TextEncoder().encode('yskar-regtest-v6')),
+  v6Height: 0,
 };
 
 export function istMainnet(p: ConsensusParams): boolean {

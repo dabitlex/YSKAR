@@ -1,11 +1,13 @@
 import {
-  type Tx, type Transfer, type Coinbase,
-  TX_COINBASE, TX_TRANSFER, TX_VERSION, checkTransfer, txid,
+  type Tx, type Spend, type Coinbase,
+  TX_COINBASE, TX_BATCH, TX_VERSION, checkSpend, txid, senderRaw, spendTotal, spendSigops,
 } from './tx.ts';
-import { type Block, type BlockHeader, serializeHeader, txMerkleRoot, BLOCK_VERSION } from './block.ts';
-import { type State, cloneState, getAccount, applyBlock, stateRoot } from './state.ts';
-import { rewardAt, MAX_TXS_PER_BLOCK, COINBASE_V2, MAX_COINBASE_OUTPUTS, DUST_LIMIT }
-  from './params.ts';
+import { type Block, type BlockHeader, serializeHeader, txMerkleRoot } from './block.ts';
+import { type State, cloneState, getAccount, applyBlock, stateRootAt } from './state.ts';
+import {
+  rewardAt, COINBASE_V2, DUST_LIMIT, maxTxsAt, maxCoinbaseOutputsAt, blockVersionAt,
+  MAX_BLOCK_SIGOPS,
+} from './params.ts';
 import { toHex } from './codec.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
 
@@ -32,7 +34,7 @@ export interface BuildParams {
   prevHash: Uint8Array;
   /** Zustand NACH dem Vorgaengerblock. */
   state: State;
-  mempool: Transfer[];
+  mempool: Spend[];
   minerAddress: Uint8Array;
   timestamp: bigint;
   difficulty: bigint;
@@ -56,7 +58,7 @@ export interface BuildParams {
 export interface BuildResult {
   block: Block;              // nonce = 0, noch ungeloest
   header: Uint8Array;        // 136 Byte, bereit fuer die Engine
-  included: Transfer[];
+  included: Spend[];
   rejected: { txid: string; reason: string }[];
   fees: bigint;
   stateRoot: Uint8Array;
@@ -77,18 +79,20 @@ export interface BuildResult {
  */
 export function selectTransactions(
   state: State,
-  mempool: Transfer[],
+  mempool: Spend[],
   height: number,
-  limit = MAX_TXS_PER_BLOCK - 1,   // ein Platz gehoert der Coinbase
+  limit?: number,
   params: ConsensusParams = MAINNET,
-): { included: Transfer[]; rejected: { txid: string; reason: string }[]; fees: bigint } {
+): { included: Spend[]; rejected: { txid: string; reason: string }[]; fees: bigint } {
+  // Ein Platz gehoert der Coinbase; die Grenze haengt an der Hoehe (Fassung 6).
+  const max = limit ?? maxTxsAt(height, params.v6Height) - 1;
   const rejected: { txid: string; reason: string }[] = [];
-  const bySender = new Map<string, Transfer[]>();
+  const bySender = new Map<string, Spend[]>();
 
   for (const t of mempool) {
-    const structural = checkTransfer(t, height, params);
+    const structural = checkSpend(t, height, params);
     if (structural) { rejected.push({ txid: toHex(txid(t)), reason: structural }); continue; }
-    const key = toHex(t.from);
+    const key = toHex(senderRaw(t));
     const list = bySender.get(key) ?? [];
     list.push(t);
     bySender.set(key, list);
@@ -100,7 +104,7 @@ export function selectTransactions(
     list.sort((a, b) => (a.nonce === b.nonce
       ? (b.fee > a.fee ? 1 : b.fee < a.fee ? -1 : 0)
       : (a.nonce < b.nonce ? -1 : 1)));
-    const unique: Transfer[] = [];
+    const unique: Spend[] = [];
     for (const t of list) {
       if (unique.length && unique[unique.length - 1].nonce === t.nonce) {
         rejected.push({ txid: toHex(txid(t)), reason: 'nonce_conflict' });
@@ -113,20 +117,24 @@ export function selectTransactions(
 
   const draft = cloneState(state);
   const cursor = new Map<string, number>();
-  const included: Transfer[] = [];
+  const included: Spend[] = [];
   let fees = 0n;
+  let sigops = 0;
+  const abV6 = height >= params.v6Height;
 
-  while (included.length < limit) {
-    let best: { key: string; tx: Transfer } | null = null;
+  while (included.length < max) {
+    let best: { key: string; tx: Spend } | null = null;
 
     for (const [key, list] of bySender) {
       const i = cursor.get(key) ?? 0;
       const t = list[i];
       if (!t) continue;
 
-      const acc = getAccount(draft, t.from);
+      const acc = getAccount(draft, senderRaw(t));
       if (t.nonce !== acc.nonce) continue;                 // noch nicht faellig
-      if (acc.balance < t.amount + t.fee) continue;        // reicht nicht
+      if (acc.balance < spendTotal(t)) continue;           // reicht nicht
+      // Signaturbudget des Blocks (CONSENSUS_V6.md 7.7).
+      if (abV6 && sigops + spendSigops(t) > MAX_BLOCK_SIGOPS) continue;
 
       if (!best || t.fee > best.tx.fee) best = { key, tx: t };
     }
@@ -134,13 +142,18 @@ export function selectTransactions(
     if (!best) break;
 
     const t = best.tx;
-    const from = getAccount(draft, t.from);
-    draft.set(toHex(t.from), { balance: from.balance - t.amount - t.fee, nonce: from.nonce + 1n });
-    const to = getAccount(draft, t.to);
-    draft.set(toHex(t.to), { ...to, balance: to.balance + t.amount });
+    const absender = senderRaw(t);
+    const from = getAccount(draft, absender);
+    draft.set(toHex(absender), { balance: from.balance - spendTotal(t), nonce: from.nonce + 1n });
+    const outputs = t.type === TX_BATCH ? t.outputs : [{ to: t.to, amount: t.amount }];
+    for (const o of outputs) {
+      const to = getAccount(draft, o.to);
+      draft.set(toHex(o.to), { ...to, balance: to.balance + o.amount });
+    }
 
     included.push(t);
     fees += t.fee;
+    if (abV6) sigops += spendSigops(t);
     cursor.set(best.key, (cursor.get(best.key) ?? 0) + 1);
   }
 
@@ -178,9 +191,11 @@ export function buildCoinbaseV2(
   anteile: { to: Uint8Array; amount: bigint }[],
   fees: bigint,
   extra?: Uint8Array,
+  v6Height?: number,
 ): Coinbase {
-  if (anteile.length < 1 || anteile.length > MAX_COINBASE_OUTPUTS) {
-    throw new Error(`Coinbase braucht 1 bis ${MAX_COINBASE_OUTPUTS} Empfaenger`);
+  const max = maxCoinbaseOutputsAt(height, v6Height);
+  if (anteile.length < 1 || anteile.length > max) {
+    throw new Error(`Coinbase braucht 1 bis ${max} Empfaenger`);
   }
   // Aufsteigend sortieren und auf Wiederholungen pruefen: Die Kette nimmt
   // nur diese eine Reihenfolge an.
@@ -231,7 +246,7 @@ export function waehleCoinbase(
   if (verteilt.length === 1 && verteilt[0].amount < DUST_LIMIT && height >= params.v5Height) {
     return buildCoinbase(height, verteilt[0].to, fees, extra);
   }
-  return buildCoinbaseV2(height, verteilt, fees, extra);
+  return buildCoinbaseV2(height, verteilt, fees, extra, params.v6Height);
 }
 
 export function buildBlock(p: BuildParams): BuildResult {
@@ -254,7 +269,7 @@ export function buildBlock(p: BuildParams): BuildResult {
   // Zustand nach diesem Block bestimmen -- daraus kommt state_root.
   const after = cloneState(p.state);
   const header: BlockHeader = {
-    version: BLOCK_VERSION,
+    version: blockVersionAt(p.height, (p.params ?? MAINNET).v6Height),
     height: p.height,
     prevHash: p.prevHash,
     merkleRoot: txMerkleRoot(txs),
@@ -271,7 +286,7 @@ export function buildBlock(p: BuildParams): BuildResult {
     throw new Error(`Blockbau fehlgeschlagen: ${applied.error?.reason} (tx ${applied.error?.tx})`);
   }
 
-  header.stateRoot = stateRoot(after);
+  header.stateRoot = stateRootAt(after, p.height, p.params ?? MAINNET);
   return {
     block: { header, txs },
     header: serializeHeader(header),

@@ -1,6 +1,6 @@
 import { type Block, type BlockHeader, checkBlockStructure, headerHash, meetsTarget, serializeBlock } from './block.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
-import { type State, cloneState, applyBlock, stateRoot } from './state.ts';
+import { type State, cloneState, applyBlock, stateRootAt } from './state.ts';
 import { txMerkleRoot } from './block.ts';
 import { nextDifficulty, effectiveDifficulty, checkTimestamp, type BlockTiming } from './difficulty.ts';
 import { GENESIS_DIFFICULTY, MIN_DIFFICULTY, MAX_BLOCK_BYTES, difficultyAtHeight } from './params.ts';
@@ -136,7 +136,7 @@ export function checkEncoding(
 
 export function validateBlock(block: Block, ctx: Context): ValidationError | null {
   // --- billig: Aufbau, Merkle, Proof of Work ---
-  const structural = checkBlockStructure(block);
+  const structural = checkBlockStructure(block, ctx.params ?? MAINNET);
   if (structural) return { code: 'structure', detail: structural };
 
   const h = block.header;
@@ -177,7 +177,8 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
     return { code: 'state', detail: `tx ${applied.error?.tx}: ${applied.error?.reason}` };
   }
 
-  const root = stateRoot(draft);
+  // Flacher Baum bis v6Height, Sparse-Merkle-Baum ab dort (state.ts).
+  const root = stateRootAt(draft, h.height, ctx.params ?? MAINNET);
   if (toHex(root) !== toHex(h.stateRoot)) {
     return {
       code: 'state_root',

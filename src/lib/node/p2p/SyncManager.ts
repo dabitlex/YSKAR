@@ -15,7 +15,7 @@
  * Koerper geholt -- sonst laedt man Bloecke herunter, die man gleich wieder
  * verwirft.
  */
-import { deserializeBlock, headerHash, deserializeHeader } from '../../core/block.ts';
+import { deserializeBlock, headerHash, deserializeHeader, HEADER_SIZE } from '../../core/block.ts';
 import { targetFromDifficulty } from '../../core/params.ts';
 import { sha256d } from '../../core/hash.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
@@ -32,7 +32,7 @@ import {
   encodeInv, decodeInv, encodeGetData, decodeGetData, encodeNotFound,
   INV_BLOCK, INV_TX, MAX_HEADERS, MAX_INV,
 } from './messages.ts';
-import { deserializeTx, serializeTx, txid, TX_COINBASE, type Transfer }
+import { deserializeTx, serializeTx, txid, TX_COINBASE, type Spend }
   from '../../core/tx.ts';
 import type { TxPool } from '../fullnode/TxPool.ts';
 import { mempoolNachziehen } from '../fullnode/mempoolPflege.ts';
@@ -248,6 +248,8 @@ export class SyncManager {
    * unabhaengig davon bei dem geholt, der sie ankuendigt.
    */
   private lieferant: PeerConnection | null = null;
+  /** Hoehere Konsensfassung schon gemeldet? Einmal reicht (CONSENSUS_V6.md 11.1). */
+  private fassungGemeldet = false;
   /**
    * Peers, die beim laufenden Aufholen eine Bestellung verfallen liessen
    * oder einen Block der Warteschlange nicht hatten. Bei ihnen wird nicht
@@ -662,7 +664,11 @@ export class SyncManager {
   private aufBlock(p: PeerConnection, roh: Uint8Array): void {
     let hash: string;
     let kopf;
-    try { kopf = deserializeBlock(roh).header; hash = toHex(headerHash(kopf)); }
+    // Nur der Header: Ein Block einer spaeteren Konsensfassung hat einen
+    // Body, den dieser Code nicht lesen kann -- und ist trotzdem kein Grund,
+    // den Peer zu trennen (CONSENSUS_V6.md 2.3, 11.1). accept() prueft den
+    // Header zuerst und meldet 'fassung_unbekannt'.
+    try { kopf = deserializeHeader(roh.slice(0, HEADER_SIZE)); hash = toHex(headerHash(kopf)); }
     catch { return void p.close('block_unlesbar'); }
 
     /*
@@ -699,6 +705,23 @@ export class SyncManager {
         // weitergeht: Dieser Block steht nicht mehr darin.
         this.mehrVermutet = true;
         this.frageHeader(p);
+        return;
+      }
+      if (r.grund === 'fassung_unbekannt') {
+        /*
+          Der Block nennt eine Konsensfassung, die dieser Knoten nicht kennt,
+          und traegt gueltigen Proof of Work: Wahrscheinlich sind WIR veraltet.
+          Einmal melden, Verbindung behalten, Block nicht noch einmal holen.
+          Ein Update-Hinweis statt eines Abbruchs -- so bleibt der Knoten
+          erreichbar, bis sein Betreiber aktualisiert (CONSENSUS_V6.md 11.1).
+        */
+        this.entferneMitNachfahren(hash);
+        this.merkeLeicht(hash);
+        if (!this.fassungGemeldet) {
+          this.fassungGemeldet = true;
+          this.log(`Block ${kopf.height} von ${p.host} nennt eine hoehere Konsensfassung `
+            + `(${r.detail ?? ''}). Dieser Knoten ist veraltet -- bitte aktualisieren.`);
+        }
         return;
       }
       // Alles andere ist ein ungueltiger Block. Getrennt, nicht gesperrt.
@@ -852,14 +875,14 @@ export class SyncManager {
   private aufTx(p: PeerConnection, payload: Uint8Array): void {
     if (!this.pool) return;
 
-    let tx: Transfer;
+    let tx: Spend;
     try {
       const roh = deserializeTx(payload);
       if (roh.type === TX_COINBASE) {
         // Eine Coinbase entsteht im Block und wird nie einzeln verschickt.
         return void p.close('coinbase_als_tx');
       }
-      tx = roh as Transfer;
+      tx = roh as Spend;
     } catch {
       return void p.close('tx_unlesbar');
     }

@@ -17,7 +17,9 @@
  * Deshalb: erst pruefen, dann aufnehmen, dann erst weitergeben. Nie
  * umgekehrt.
  */
-import { checkTransfer, txidHex, transferBytes, type Transfer } from '../../core/tx.ts';
+import {
+  checkSpend, txidHex, transferBytes, txBytes, senderRaw, spendTotal, type Spend,
+} from '../../core/tx.ts';
 import { MIN_FEE, RELAY_FEE_RATE, FEE_V3_HEIGHT } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
@@ -39,7 +41,7 @@ export type AddResult =
   | { ok: false; reason: RejectReason; detail?: string };
 
 interface Eintrag {
-  tx: Transfer;
+  tx: Spend;
   txid: string;
   from: string;
   nonce: bigint;
@@ -68,6 +70,12 @@ export class TxPool {
     if (height < (this.params.feeV3Height ?? FEE_V3_HEIGHT)) return MIN_FEE;
     return BigInt(transferBytes(memoBytes)) * this.relayFeeRate;
   }
+
+  /** Dasselbe fuer eine konkrete Transaktion: ihre tatsaechliche Groesse zaehlt. */
+  mindestGebuehrFuer(tx: Spend, height: number): bigint {
+    if (height < (this.params.feeV3Height ?? FEE_V3_HEIGHT)) return MIN_FEE;
+    return BigInt(txBytes(tx)) * this.relayFeeRate;
+  }
   /** Je Absender die wartenden Nonces -- fuer Ersetzung und Luecken. */
   private nachAbsender = new Map<string, Map<string, Eintrag>>();
 
@@ -85,10 +93,10 @@ export class TxPool {
 
   size(): number { return this.nachId.size; }
   has(id: string): boolean { return this.nachId.has(id); }
-  get(id: string): Transfer | null { return this.nachId.get(id)?.tx ?? null; }
+  get(id: string): Spend | null { return this.nachId.get(id)?.tx ?? null; }
 
   /** Alle wartenden Transaktionen, fuer den Blockbau. */
-  alle(): Transfer[] {
+  alle(): Spend[] {
     return [...this.nachId.values()].map(e => e.tx);
   }
 
@@ -99,26 +107,29 @@ export class TxPool {
    * Mikrosekunden, die Signaturpruefung Millisekunden. Wer das umdreht,
    * laedt jeden ein, den Knoten mit Muell zu beschaeftigen.
    */
-  add(tx: Transfer, state: State, height: number): AddResult {
+  add(tx: Spend, state: State, height: number): AddResult {
     const id = txidHex(tx);
     if (this.nachId.has(id)) return { ok: false, reason: 'duplicate' };
 
-    // Kostenlose Pruefungen zuerst. checkTransfer kommt ganz zum Schluss,
+    // Kostenlose Pruefungen zuerst. checkSpend kommt ganz zum Schluss,
     // weil es die Signatur prueft -- und eine Ed25519-Pruefung ist rund
     // tausendmal teurer als ein Kartenzugriff. Wer sie vorn ansetzt, laedt
     // jeden ein, den Knoten mit Muell zu beschaeftigen.
-    const mindest = this.mindestGebuehr(height, tx.memo.length);
+    const mindest = this.mindestGebuehrFuer(tx, height);
     if (tx.fee < mindest) {
       return { ok: false, reason: 'fee_too_low', detail: `${tx.fee} < ${mindest}` };
     }
-    if (tx.amount <= 0n) {
+    if (spendTotal(tx) - tx.fee <= 0n) {
       return { ok: false, reason: 'malformed', detail: 'bad_amount' };
     }
     if (tx.validUntil !== 0 && height > tx.validUntil) {
       return { ok: false, reason: 'expired', detail: `gueltig bis ${tx.validUntil}` };
     }
 
-    const absender = toHex(tx.from);
+    // Schluessel ist die Rohadresse des Absenders -- bei einem Skript-Konto
+    // 0x01 | Skript-Hash. Mempool und Wallets arbeiten mit (Absender, Nonce),
+    // nicht mit der txid (CONSENSUS_V6.md 7.6).
+    const absender = toHex(senderRaw(tx));
     const konto = state.get(absender);
     if (!konto) return { ok: false, reason: 'unknown_account' };
 
@@ -161,14 +172,14 @@ export class TxPool {
     const andere = [...wartend.values()]
       .filter(e => !(vorhanden && e.txid === vorhanden.txid));
     let gebunden = 0n;
-    for (const e of andere) gebunden += e.tx.amount + e.tx.fee;
-    if (konto.balance < gebunden + tx.amount + tx.fee) {
+    for (const e of andere) gebunden += spendTotal(e.tx);
+    if (konto.balance < gebunden + spendTotal(tx)) {
       return { ok: false, reason: 'insufficient_funds',
-               detail: `${konto.balance} deckt ${gebunden + tx.amount + tx.fee} nicht` };
+               detail: `${konto.balance} deckt ${gebunden + spendTotal(tx)} nicht` };
     }
 
-    // Teuerste Pruefung zuletzt: Struktur, Adressableitung und Signatur.
-    const strukturell = checkTransfer(tx, height, this.params);
+    // Teuerste Pruefung zuletzt: Struktur, Adressableitung und Signatur(en).
+    const strukturell = checkSpend(tx, height, this.params);
     if (strukturell) {
       return {
         ok: false,
@@ -217,7 +228,7 @@ export class TxPool {
    * Entfernt wird, was im Block steht -- und alles, was durch ihn ungueltig
    * geworden ist: zu niedrige Nonce oder keine Deckung mehr.
    */
-  nachBlock(enthalten: Transfer[], state: State): { entfernt: number; ungueltig: number } {
+  nachBlock(enthalten: Spend[], state: State): { entfernt: number; ungueltig: number } {
     let entfernt = 0;
     for (const t of enthalten) {
       if (this.remove(txidHex(t))) entfernt++;
@@ -230,9 +241,9 @@ export class TxPool {
       for (const e of [...wartend.values()].sort((a, b) => a.nonce < b.nonce ? -1 : 1)) {
         const weg = !konto
           || e.nonce < konto.nonce
-          || konto.balance < gebunden + e.tx.amount + e.tx.fee;
+          || konto.balance < gebunden + spendTotal(e.tx);
         if (weg) { this.remove(e.txid); ungueltig++; continue; }
-        gebunden += e.tx.amount + e.tx.fee;
+        gebunden += spendTotal(e.tx);
       }
     }
     return { entfernt, ungueltig };
@@ -247,7 +258,7 @@ export class TxPool {
    * ein Block gewonnen hat. Geprueft wird dabei erneut: Der neue Zweig kann
    * dieselbe Nonce anders belegt haben.
    */
-  zurueck(txs: Transfer[], state: State, height: number): number {
+  zurueck(txs: Spend[], state: State, height: number): number {
     let aufgenommen = 0;
     for (const t of txs) {
       if (this.add(t, state, height).ok) aufgenommen++;

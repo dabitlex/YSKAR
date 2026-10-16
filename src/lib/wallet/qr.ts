@@ -86,7 +86,7 @@ export function zahlungAusText(text: string, decimals = 8): Zahlung | null {
   }
   const codes = text.match(/(?:yskar|ysr):(?:\/\/)?ysr1[0-9a-z]+(?:\?[^\s]*)?/gi) ?? [];
   const blank = text.match(/ysr1[0-9a-z]{20,}/gi) ?? [];
-  const adressen = new Set(blank.map(a => a.toLowerCase()).filter(isValidAddress));
+  const adressen = new Set(blank.map(a => a.toLowerCase()).filter(a => isValidAddress(a)));
   if (adressen.size !== 1) return null;
   for (const c of codes) {
     const z = zahlungAusCode(c, decimals);

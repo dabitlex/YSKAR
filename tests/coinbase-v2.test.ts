@@ -177,6 +177,17 @@ test('Mehr als die Obergrenze an Empfängern wird abgelehnt', () => {
   roh[2] = T.TX_COINBASE;
   dv.setUint32(3, h, true);
   roh[7] = n;
+  // Seit Konsensfassung 6 liest der Leser bis 255 Empfaenger (das Maximum
+  // ab v6Height); ob 65 an DIESER Hoehe erlaubt sind, entscheidet die
+  // Pruefung (CONSENSUS_V6.md 6.1). Unter v6Height: abgelehnt.
+  const gelesen = deserializeTx(roh);
+  assert.equal(gelesen.type, T.TX_COINBASE);
+  assert.equal((gelesen as T.Coinbase).outputs.length, n);
+  const r = S.applyBlock(S.emptyState(), block(h, [gelesen]), REGTEST);
+  assert.equal(r.ok, false);
+  assert.match(r.error!.reason, /^coinbase_outputs:65/);
+  // Null Empfaenger liest auch der neue Leser nicht.
+  roh[7] = 0;
   assert.throws(() => deserializeTx(roh), /unzulaessig/);
 });
 

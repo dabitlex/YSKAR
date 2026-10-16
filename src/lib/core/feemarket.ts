@@ -30,7 +30,7 @@
  * hinein, und keine Stufe faellt darunter.
  * ---------------------------------------------------------------------
  */
-import { serializeTx, txid, type Transfer } from './tx.ts';
+import { serializeTx, txid, senderRaw, spendTotal, spendOutputs, type Spend } from './tx.ts';
 import { toHex } from './codec.ts';
 import { cloneState, getAccount, type State } from './state.ts';
 import { selectTransactions } from './builder.ts';
@@ -46,7 +46,7 @@ export const VORSCHAU_BLOECKE = 8;
  * nichts zu gewichten -- vbytes waeren schlicht diese Zahl. Eine
  * kuenstliche Gewichtung waere erfunden.
  */
-export const vbytes = (t: Transfer): number => serializeTx(t).length;
+export const vbytes = (t: Spend): number => serializeTx(t).length;
 
 export interface PlatzImStau {
   txid: string;
@@ -96,7 +96,7 @@ export interface Marktlage {
  * sie zahlt. Eine reine Gebuehrensortierung waere hier schlicht falsch.
  */
 export function projiziere(
-  state: State, mempool: Transfer[], hoehe: number,
+  state: State, mempool: Spend[], hoehe: number,
   bloecke = VORSCHAU_BLOECKE,
   limit = MAX_TXS_PER_BLOCK - 1,
 ): Map<string, number> {
@@ -116,12 +116,15 @@ export function projiziere(
 
       // Zustand fortschreiben, damit der naechste Block auf dem richtigen
       // Guthaben und der richtigen Nonce aufsetzt.
-      const von = getAccount(zustand, t.from);
-      zustand.set(toHex(t.from), {
-        balance: von.balance - t.amount - t.fee, nonce: von.nonce + 1n,
+      const absender = senderRaw(t);
+      const von = getAccount(zustand, absender);
+      zustand.set(toHex(absender), {
+        balance: von.balance - spendTotal(t), nonce: von.nonce + 1n,
       });
-      const an = getAccount(zustand, t.to);
-      zustand.set(toHex(t.to), { ...an, balance: an.balance + t.amount });
+      for (const o of spendOutputs(t)) {
+        const an = getAccount(zustand, o.to);
+        zustand.set(toHex(o.to), { ...an, balance: an.balance + o.amount });
+      }
     }
     rest = rest.filter(t => !drin.has(toHex(txid(t))));
   }
@@ -135,7 +138,7 @@ export function projiziere(
  * Anzeige auch sagen, statt drei erfundene Preise zu zeigen.
  */
 export function marktlage(
-  state: State, mempool: Transfer[], hoehe: number,
+  state: State, mempool: Spend[], hoehe: number,
   limit = MAX_TXS_PER_BLOCK - 1,
   /** Untergrenze, unter die keine Stufe faellt (Weiterleitungsgebuehr des Knotens). */
   boden: bigint = MIN_FEE,
@@ -207,7 +210,7 @@ export function marktlage(
  * nichts Neues dazukommt. Kommt gleich jemand mit hoeherer Gebuehr, rutscht
  * man nach hinten. Auch Bitcoin-Explorer koennen das nicht garantieren.
  */
-export function position(mempool: Transfer[], fee: bigint): { rang: number; von: number } {
+export function position(mempool: Spend[], fee: bigint): { rang: number; von: number } {
   let besser = 0;
   for (const t of mempool) if (t.fee > fee) besser++;
   return { rang: besser + 1, von: mempool.length + 1 };
@@ -221,12 +224,12 @@ export function position(mempool: Transfer[], fee: bigint): { rang: number; von:
  * weiss, zahlt eine hohe Gebuehr und wundert sich, dass nichts passiert.
  */
 export function blockiertDurch(
-  state: State, mempool: Transfer[], absender: Uint8Array, nonce: bigint,
+  state: State, mempool: Spend[], absender: Uint8Array, nonce: bigint,
 ): { txid: string; nonce: bigint; fee: bigint }[] {
   const key = toHex(absender);
   const naechste = getAccount(state, absender).nonce;
   return mempool
-    .filter(t => toHex(t.from) === key && t.nonce >= naechste && t.nonce < nonce)
+    .filter(t => toHex(senderRaw(t)) === key && t.nonce >= naechste && t.nonce < nonce)
     .sort((a, b) => (a.nonce < b.nonce ? -1 : 1))
     .map(t => ({ txid: toHex(txid(t)), nonce: t.nonce, fee: t.fee }));
 }

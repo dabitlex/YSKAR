@@ -40,20 +40,20 @@
  */
 import { selectTransactions, buildCoinbase, waehleCoinbase, type BuildResult }
   from '../../core/builder.ts';
-import { type Block, type BlockHeader, serializeHeader, txMerkleRoot, BLOCK_VERSION }
+import { type Block, type BlockHeader, serializeHeader, txMerkleRoot }
   from '../../core/block.ts';
-import { type State, type Account, cloneState, applyBlock, totalSupply } from '../../core/state.ts';
-import { rewardAt, MAX_SUPPLY, ADDRESS_BYTES, COINBASE_V2 } from '../../core/params.ts';
+import { type State, type Account, cloneState, applyBlock, totalSupply, stateRootV6 } from '../../core/state.ts';
+import { rewardAt, MAX_SUPPLY, ADDRESS_BYTES, COINBASE_V2, blockVersionAt } from '../../core/params.ts';
 import { sha256d } from '../../core/hash.ts';
 import { Writer, fromHex, toHex } from '../../core/codec.ts';
-import { type Transfer, type Tx } from '../../core/tx.ts';
+import { type Spend, type Tx, TX_BATCH, senderRaw } from '../../core/tx.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
 
 export interface JobVorlage {
   /** Kettenkopf, Hoehe und Mempool-Stand, fuer die diese Vorlage gilt. */
   schluessel: string;
   height: number;
-  included: Transfer[];
+  included: Spend[];
   rejected: { txid: string; reason: string }[];
   fees: bigint;
   /** Konten nach den Ueberweisungen, VOR der Coinbase. */
@@ -66,6 +66,8 @@ export interface JobVorlage {
   ebenen: Uint8Array[][];
   /** Geldmenge nach den Ueberweisungen (Gebuehren sind dabei verschwunden). */
   menge: bigint;
+  /** Ab Konsensfassung 6: Wurzel ist der Sparse-Merkle-Baum (state.ts). */
+  v6: boolean;
 }
 
 export interface JobAngaben {
@@ -89,7 +91,7 @@ export interface JobAngaben {
  * @param mempool  Was im Mempool wartet, in der Reihenfolge von pool.alle().
  */
 export function baueVorlage(
-  schluessel: string, state: State, mempool: Transfer[], height: number, params: ConsensusParams,
+  schluessel: string, state: State, mempool: Spend[], height: number, params: ConsensusParams,
 ): JobVorlage {
   // Erste Runde: wie createJob() -- aus dem ganzen Mempool.
   const erste = selectTransactions(state, mempool, height, undefined, params).included;
@@ -107,6 +109,7 @@ export function baueVorlage(
     schluessel, height, included, rejected, fees, konten, sortiert, position,
     ebenen: ebenenAus(blaetter),
     menge: totalSupply(konten),
+    v6: height >= params.v6Height,
   };
 }
 
@@ -124,10 +127,14 @@ export function baueVorlage(
  * Summe aus -- die Pruefung gilt damit fuer jeden Job aus der Vorlage.
  */
 function zwischenzustand(
-  state: State, included: Transfer[], height: number, fees: bigint, params: ConsensusParams,
+  state: State, included: Spend[], height: number, fees: bigint, params: ConsensusParams,
 ): State {
   const belegt = new Set<string>(state.keys());
-  for (const t of included) { belegt.add(toHex(t.from)); belegt.add(toHex(t.to)); }
+  for (const t of included) {
+    belegt.add(toHex(senderRaw(t)));
+    if (t.type === TX_BATCH) for (const o of t.outputs) belegt.add(toHex(o.to));
+    else belegt.add(toHex(t.to));
+  }
   let platzhalter: Uint8Array | null = null;
   for (let b = 0xff; b >= 0 && !platzhalter; b--) {
     const kandidat = new Uint8Array(ADDRESS_BYTES).fill(b);
@@ -137,7 +144,7 @@ function zwischenzustand(
 
   const probe: Block = {
     header: {
-      version: BLOCK_VERSION, height, prevHash: new Uint8Array(32),
+      version: blockVersionAt(height, params.v6Height), height, prevHash: new Uint8Array(32),
       merkleRoot: new Uint8Array(32), stateRoot: new Uint8Array(32),
       timestamp: 0n, difficulty: 1n, txCount: included.length + 1,
       extranonce: 0n, nonce: 0n,
@@ -182,7 +189,7 @@ export function baueAusVorlage(v: JobVorlage, p: JobAngaben): BuildResult & { ar
   const txs: Tx[] = [coinbase, ...v.included];
   const { wurzel, weg } = wurzelMitCoinbase(v, coinbase.outputs);
   const header: BlockHeader = {
-    version: BLOCK_VERSION,
+    version: blockVersionAt(height, p.params.v6Height),
     height,
     prevHash: p.prevHash,
     merkleRoot: txMerkleRoot(txs),
@@ -218,12 +225,26 @@ export function baueAusVorlage(v: JobVorlage, p: JobAngaben): BuildResult & { ar
  */
 export function wurzelMitCoinbase(
   v: JobVorlage, outputs: { to: Uint8Array; amount: bigint }[],
-): { wurzel: Uint8Array; weg: 'leer' | 'pfade' | 'ab-stelle' } {
+): { wurzel: Uint8Array; weg: 'leer' | 'pfade' | 'ab-stelle' | 'smt' } {
   const neu = new Map<string, Account>();
   for (const o of outputs) {
     const k = toHex(o.to);
     const alt = neu.get(k) ?? v.konten.get(k) ?? { balance: 0n, nonce: 0n };
     neu.set(k, { balance: alt.balance + o.amount, nonce: alt.nonce });
+  }
+  /*
+    Ab Konsensfassung 6 ist die Wurzel der Sparse-Merkle-Baum. Er wird hier
+    je Job vollstaendig gerechnet -- bei der heutigen Kontenzahl Bruchteile
+    einer Millisekunde, und derselbe Code wie in der Blockpruefung. Eine
+    pfadweise Aktualisierung kann spaeter dazukommen; sie darf die Wurzel
+    nicht aendern.
+  */
+  if (v.v6) {
+    const konten = cloneState(v.konten);
+    for (const [k, konto] of neu) {
+      if (konto.balance === 0n && konto.nonce === 0n) konten.delete(k); else konten.set(k, konto);
+    }
+    return { wurzel: stateRootV6(konten), weg: 'smt' };
   }
   // Wie setAccount(): Ein Konto mit null Guthaben und Nonce null gibt es
   // nicht. Das kann nur bei einer Coinbase ueber null an ein neues Konto

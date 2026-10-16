@@ -25,7 +25,7 @@ import { targetFromDifficulty, MAX_FUTURE_DRIFT, difficultyAtHeight, encodeDiffi
 import { medianTimePast, effectiveDifficulty } from '../../core/difficulty.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
-import { txidHex, coinbaseTotal, type Transfer, type Coinbase } from '../../core/tx.ts';
+import { txidHex, coinbaseTotal, type Spend, type Coinbase } from '../../core/tx.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore } from './ChainStore.ts';
@@ -86,7 +86,7 @@ export interface JobWunsch {
 interface OffenerJob {
   job: MiningJob;
   gebaut: BuildResult;
-  enthalten: Transfer[];
+  enthalten: Spend[];
 }
 
 export class MiningCoordinator {

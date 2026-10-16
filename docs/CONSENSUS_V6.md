@@ -65,9 +65,12 @@ Principles that every rule below follows:
 ### 2.1 Activation height
 
 Revision 6 applies to every block whose `height` is at least `V6_HEIGHT`. The value is not set in this
-draft. It will be set after the implementation has passed its tests, with a lead time of several
-thousand blocks between the release of the node software and the height. Regtest activates revision 6
-at height 0 (`v6Height: 0` in `REGTEST`), like every earlier revision.
+draft: until it is, the constant holds `V6_HEIGHT_UNSET` (0xffffffff), a height no block reaches, and
+the main network behaves exactly as revision 5. It will be set after the implementation has passed its
+tests, with a lead time of several thousand blocks between the release of the node software and the
+height. Two regtest networks exist: `REGTEST` keeps revision 6 unset and remains the basis of the
+existing test suite; `REGTEST_V6` (own network name and chain ID) activates revision 6 at height 0 and
+is the basis of `tests/konsens-v6.test.ts`.
 
 ### 2.2 Block header version
 
@@ -544,8 +547,10 @@ transaction. Per node:
   `validFrom != 0`, and rule 6 of 6.3 then puts the containing block at or above `validFrom`. `BEFORE`
   claimed: satisfied iff `tx.validUntil != 0 && tx.validUntil <= height`.
 - `THRESH(k, children)`: let `t` be the number of children that are touched (a child is touched if any
-  leaf below it has a slot that is not absent). The node is satisfied iff `t == k` and every touched
-  child is satisfied. If `t != k` the transaction is invalid with `witness_excess` (more than `k`) or
+  leaf below it has a slot that is not absent). If `t == 0` the node itself is untouched and
+  unsatisfied, like an absent leaf; this is how the unused branch of an OR (the refund branch of a swap
+  while claiming) is left alone. Otherwise the node is satisfied iff `t == k` and every touched child is
+  satisfied; if `t != k` the transaction is invalid with `witness_excess` (more than `k`) or
   `script_unsatisfied` (fewer than `k`).
 
 The transaction is valid only if the root is satisfied. Requiring `t == k` rather than `t >= k` makes
@@ -732,6 +737,20 @@ not of the consensus.
 | Mirror (Supabase) | Stores the raw address with its version; new tables or columns for scripts revealed in spends, for batch outputs, and for the account record fields. The mirror mirrors the state root; it never computes consensus. |
 | Node Core | Shows revision 6 and the activation height; version 1.0.0. |
 | Fee estimator | Counts per byte as before; a script spend or a batch is simply larger. |
+
+## 13a. Implementation status
+
+Implemented on the branch `consensus-v6` (not merged): `src/lib/core/params.ts` (constants, height
+helpers), `networks.ts` (`v6Height`, `REGTEST_V6`), `address.ts` (versions, raw form, wire form, HRPs),
+`script.ts` (encoding, well-formedness, witness, evaluation), `smt.ts` (state tree), `tx.ts` (transfer
+version 2, script spend, batch, v6 sighash, checks, sigops), `state.ts` (account record, `stateRootAt`,
+budget, limits), `block.ts` (`checkHeaderVersion`, `precheckHeader`, per-height limits),
+`validate.ts`, `builder.ts`; node layer: `ChainManager.accept()` (header first, `fassung_unbekannt`,
+`hoehereFassungGesehen`), `SyncManager` (keeps the peer on an unknown revision), `TxPool` (all spend
+types, keyed by sender raw address and nonce), `jobVorlage` (state root by height), `ReadApi`,
+`kettenIndex`, `store` (mirror payload). Not yet implemented: the handshake fields of 11.4, the
+time-based update hints of 11.1, the status API fields of 13, the pool server's batch mode, wallet
+support, mirror schema. Test vectors (14) are not yet published.
 
 ## 14. Tests and test vectors
 

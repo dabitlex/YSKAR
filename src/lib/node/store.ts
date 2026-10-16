@@ -4,7 +4,7 @@ import {
   type Block, type BlockHeader, deserializeHeader, serializeBlock,
   serializeHeader, headerHash,
 } from '../core/block.ts';
-import { deserializeTx, serializeTx, txid, coinbaseTotal, type Transfer, TX_COINBASE }
+import { deserializeTx, serializeTx, txid, coinbaseTotal, senderRaw, spendOutputs, spendAmount, type Spend, TX_COINBASE, TX_BATCH }
   from '../core/tx.ts';
 import { type BlockTiming } from '../core/difficulty.ts';
 import { toHex, fromHex } from '../core/codec.ts';
@@ -85,11 +85,11 @@ export async function verifyStateConsistency(): Promise<
   return actual === expected ? { ok: true } : { ok: false, expected, actual };
 }
 
-export async function loadMempool(limit = 500): Promise<Transfer[]> {
+export async function loadMempool(limit = 500): Promise<Spend[]> {
   const { data } = await db().schema('chain2').from('mempool')
     .select('raw').order('fee', { ascending: false })
     .order('received_at', { ascending: true }).limit(limit);
-  const out: Transfer[] = [];
+  const out: Spend[] = [];
   for (const r of data ?? []) {
     try {
       const t = deserializeTx(un(r.raw));
@@ -172,10 +172,18 @@ export async function commitBlock(
           : null,
       };
     }
-    return { ...base, from: hx(t.from), to: hx(t.to),
-             amount: t.amount.toString(), fee: t.fee.toString(),
+    // Spiegel: Absender in Rohform; bei einer Sammelzahlung steht die
+    // Aufteilung in coinbase_outputs-Form daneben; Skript-Ausgaben tragen
+    // keinen Schluessel und keine einzelne Signatur.
+    const ausgaben = spendOutputs(t);
+    return { ...base, from: hx(senderRaw(t)), to: ausgaben.length === 1 ? hx(ausgaben[0].to) : null,
+             amount: spendAmount(t).toString(), fee: t.fee.toString(),
              nonce: t.nonce.toString(), valid_until: t.validUntil,
-             memo: hx(t.memo), public_key: hx(t.publicKey), signature: hx(t.signature) };
+             memo: hx(t.memo),
+             public_key: 'publicKey' in t ? hx(t.publicKey) : null,
+             signature: 'signature' in t ? hx(t.signature) : null,
+             coinbase_outputs: t.type === TX_BATCH
+               ? t.outputs.map(o => ({ to: hx(o.to), amount: o.amount.toString() })) : null };
   });
 
   const { data, error } = await db().schema('chain2').rpc('commit_block', {

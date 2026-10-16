@@ -15,7 +15,7 @@
  * Kette.
  */
 import { deserializeBlock, headerHash } from '../../core/block.ts';
-import { coinbaseTotal, txid, TX_COINBASE, type Coinbase, type Transfer }
+import { coinbaseTotal, txid, TX_COINBASE, TX_BATCH, TX_SCRIPT_SPEND, senderRaw, spendOutputs, spendAmount, type Tx, type Coinbase }
   from '../../core/tx.ts';
 import { encodeAddress, decodeAddress } from '../../core/address.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
@@ -256,10 +256,12 @@ export class ReadApi {
     };
   }
 
-  private txAnsicht(t: Transfer | Coinbase, idx: number, b: StoredBlock) {
+  private txAnsicht(t: Tx, idx: number, b: StoredBlock) {
     const basis = {
       txid: toHex(txid(t)), idx,
-      type: t.type === TX_COINBASE ? 'coinbase' : 'transfer',
+      type: t.type === TX_COINBASE ? 'coinbase'
+        : t.type === TX_SCRIPT_SPEND ? 'script_spend'
+        : t.type === TX_BATCH ? 'batch' : 'transfer',
     };
     if (t.type === TX_COINBASE) {
       const mehrere = t.outputs.length > 1;
@@ -279,15 +281,31 @@ export class ReadApi {
           : null,
       };
     }
+    if (t.type === TX_BATCH) {
+      let summe = 0n;
+      for (const o of t.outputs) summe += o.amount;
+      return {
+        ...basis,
+        from: encodeAddress(t.from),
+        to: null,
+        amount: summe.toString(),
+        fee: t.fee.toString(),
+        nonce: String(t.nonce),
+        memo: toHex(t.memo),
+        recipients: t.outputs.map(o => ({ address: encodeAddress(o.to), amount: o.amount.toString() })),
+      };
+    }
     return {
       ...basis,
-      from: encodeAddress(t.from),
+      // Bei einer Skript-Ausgabe ist der Absender die Adresse der Version 1.
+      from: encodeAddress(senderRaw(t)),
       to: encodeAddress(t.to),
       amount: t.amount.toString(),
       fee: t.fee.toString(),
       nonce: String(t.nonce),
       memo: toHex(t.memo),
       recipients: null,
+      ...(t.type === TX_SCRIPT_SPEND ? { script: toHex(t.script) } : {}),
     };
   }
 
@@ -421,12 +439,20 @@ export class ReadApi {
             });
             continue;
           }
-          const ein = toHex(t.to) === key;
+          // Eingang: der eigene Anteil (bei einer Sammelzahlung nur der
+          // eigene Ausgang). Ausgang: die Summe; Gegenpartei nur, wenn es
+          // genau eine gibt.
+          const absender = senderRaw(t);
+          const meine = spendOutputs(t).filter(o => toHex(o.to) === key);
+          const ein = meine.length > 0 && toHex(absender) !== key;
+          let eingang = 0n;
+          for (const o of meine) eingang += o.amount;
+          const einziger = spendOutputs(t).length === 1 ? spendOutputs(t)[0].to : null;
           verlauf.push({
             txid: toHex(txid(t)), height: h, timestamp: String(b.blockTime),
             kind: ein ? 'in' : 'out',
-            counterparty: encodeAddress(ein ? t.from : t.to),
-            amount: t.amount.toString(), fee: t.fee.toString(), memo: toHex(t.memo),
+            counterparty: ein ? encodeAddress(absender) : einziger ? encodeAddress(einziger) : null,
+            amount: (ein ? eingang : spendAmount(t)).toString(), fee: t.fee.toString(), memo: toHex(t.memo),
           });
         }
       }
@@ -438,13 +464,13 @@ export class ReadApi {
     // Beide Richtungen: Der Absender sieht, dass seine Zahlung unterwegs
     // ist -- und der Empfaenger auch, nicht erst mit dem naechsten Block.
     const wartend = this.t.pool.alle()
-      .filter(t => toHex(t.from) === key || toHex(t.to) === key)
+      .filter(t => toHex(senderRaw(t)) === key || spendOutputs(t).some(o => toHex(o.to) === key))
       .map(t => ({
         txid: toHex(txid(t)),
-        kind: toHex(t.from) === key ? 'out' : 'in',
-        from: encodeAddress(t.from),
-        to: encodeAddress(t.to),
-        amount: t.amount.toString(),
+        kind: toHex(senderRaw(t)) === key ? 'out' : 'in',
+        from: encodeAddress(senderRaw(t)),
+        to: spendOutputs(t).length === 1 ? encodeAddress(spendOutputs(t)[0].to) : null,
+        amount: spendAmount(t).toString(),
         fee: t.fee.toString(),
         nonce: String(t.nonce),
         memo: toHex(t.memo),
@@ -517,7 +543,7 @@ export class ReadApi {
    * Eine Transaktion der aktiven Kette finden -- innerhalb derselben Tiefe
    * wie bisher, aber ueber das Verzeichnis: ein Block statt bis zu 5.000.
    */
-  private sucheTx(hex: string): { hoehe: number; tx: Transfer | Coinbase } | null {
+  private sucheTx(hex: string): { hoehe: number; tx: Tx } | null {
     const tip = this.t.chain.tip();
     if (!tip) return null;
     const bis = Math.max(0, tip.height - (this.t.verlaufTiefe ?? VERLAUF_TIEFE));
@@ -556,10 +582,14 @@ export class ReadApi {
         status: 200,
         body: {
           txid: hex, status: 'pending', height: null, blockHash: null,
-          timestamp: null, type: 'transfer',
-          from: encodeAddress(offen.from), to: encodeAddress(offen.to),
-          amount: offen.amount.toString(), fee: offen.fee.toString(),
-          nonce: String(offen.nonce), memo: toHex(offen.memo), recipients: null,
+          timestamp: null,
+          type: offen.type === TX_SCRIPT_SPEND ? 'script_spend' : offen.type === TX_BATCH ? 'batch' : 'transfer',
+          from: encodeAddress(senderRaw(offen)),
+          to: spendOutputs(offen).length === 1 ? encodeAddress(spendOutputs(offen)[0].to) : null,
+          amount: spendAmount(offen).toString(), fee: offen.fee.toString(),
+          nonce: String(offen.nonce), memo: toHex(offen.memo),
+          recipients: offen.type === TX_BATCH
+            ? offen.outputs.map(o => ({ address: encodeAddress(o.to), amount: o.amount.toString() })) : null,
         },
       };
     }

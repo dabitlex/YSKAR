@@ -27,7 +27,7 @@
  * tests/kettenindex.test.ts vergleicht beide Wege, auch ueber Reorgs.
  */
 import { deserializeBlock, type Block } from '../../core/block.ts';
-import { txid, TX_COINBASE } from '../../core/tx.ts';
+import { txid, TX_COINBASE, TX_BATCH, senderRaw } from '../../core/tx.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 
 import type { ChainManager } from './ChainManager.ts';
@@ -111,9 +111,17 @@ export class KettenIndex {
         }
         return;
       }
-      const von = toHex(t.from), an = toHex(t.to);
+      // Absender in Rohform (bei Skript-Konten 0x01 | Hash); eine
+      // Sammelzahlung hat viele Empfaenger.
+      const von = toHex(senderRaw(t));
       this.dazu(von, packe(h, stelle, ART_UEBERWEISUNG));
-      if (an !== von) this.dazu(an, packe(h, stelle, ART_UEBERWEISUNG));
+      const empfaenger = t.type === TX_BATCH ? t.outputs.map(o => toHex(o.to)) : [toHex(t.to)];
+      const gesehen = new Set<string>([von]);
+      for (const an of empfaenger) {
+        if (gesehen.has(an)) continue;
+        gesehen.add(an);
+        this.dazu(an, packe(h, stelle, ART_UEBERWEISUNG));
+      }
     });
     this.hashes.push(hashHex);
   }
@@ -127,7 +135,9 @@ export class KettenIndex {
         if (this.txHoehe.get(id) === h) this.txHoehe.delete(id);
         const beteiligt = t.type === TX_COINBASE
           ? t.outputs.map(o => toHex(o.to))
-          : [toHex(t.from), toHex(t.to)];
+          : t.type === TX_BATCH
+            ? [toHex(t.from), ...t.outputs.map(o => toHex(o.to))]
+            : [toHex(senderRaw(t)), toHex(t.to)];
         for (const k of beteiligt) this.wegOben(k, h);
       }
     } else {

@@ -15,11 +15,11 @@
  * Historische Bloecke werden nie veraendert oder geloescht. Ein Reorg
  * markiert nur um, welcher Zweig gerade gilt.
  */
-import { deserializeBlock, headerHash, checkBlockStructure, serializeBlock, type Block, type BlockHeader }
+import { deserializeBlock, headerHash, checkBlockStructure, serializeBlock, precheckHeader, type Block, type BlockHeader }
   from '../../core/block.ts';
 import { validateBlock, checkDifficulty, checkEncoding, checkParentTimestamp, type ValidationError } from '../../core/validate.ts';
 import { checkTimestamp, type BlockTiming } from '../../core/difficulty.ts';
-import { emptyState, applyBlock, stateRoot, cloneState, type State }
+import { emptyState, applyBlock, stateRootAt, cloneState, type State }
   from '../../core/state.ts';
 import { toHex } from '../../core/codec.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
@@ -133,6 +133,17 @@ export class ChainManager {
   private zweigMerker: { hash: Uint8Array; state: State } | null = null;
 
   /**
+   * Hat dieser Knoten einen Block einer Fassung gesehen, die er nicht kennt
+   * (CONSENSUS_V6.md 11.1)? Dann ist er veraltet: Er lehnt solche Bloecke
+   * ab, meldet es und bleibt erreichbar. Gesetzt wird das nur nach gueltigem
+   * Proof of Work -- ein Header ohne Arbeit kann niemanden "veraltet" machen.
+   */
+  private _hoehereFassungGesehen: { version: number; height: number } | null = null;
+  get hoehereFassungGesehen(): { version: number; height: number } | null {
+    return this._hoehereFassungGesehen;
+  }
+
+  /**
    * Ohne Angabe gilt das Mainnet. Die Parameter gibt es nur, damit Fork-
    * und Reorg-Tests im Testnetz durch die volle Validierung laufen koennen.
    */
@@ -177,6 +188,25 @@ export class ChainManager {
       Header neu und werfen bei einem Feld, das sich so nicht schreiben
       laesst (etwa Difficulty 0). Das ist ein unlesbarer Block, kein Absturz.
     */
+    /*
+      Konsensfassung 6, Abschnitt 2.3: Erst der Header allein -- lesbar,
+      Proof of Work gegen die genannte Difficulty, Versionsregel --, dann der
+      Body. Ein Block einer SPAETEREN Fassung traegt Transaktionen, die dieser
+      Code nicht lesen kann; wuerde der Body zuerst gelesen, hiesse das
+      Ergebnis 'unlesbar' und der Peer wuerde getrennt. So heisst es
+      'fassung_unbekannt', der Knoten merkt sich, dass er veraltet ist, und
+      der Aufrufer (SyncManager) behaelt die Verbindung.
+    */
+    const vor = precheckHeader(roh, this.params);
+    if (vor.error === 'unlesbar') return { ok: false, grund: 'unlesbar', detail: vor.detail };
+    if (vor.error === 'pow_failed') return { ok: false, grund: 'struktur', detail: 'pow_failed' };
+    if (vor.error === 'higher_revision') {
+      this._hoehereFassungGesehen = { version: vor.header.version, height: vor.header.height };
+      return { ok: false, grund: 'fassung_unbekannt',
+               detail: `version ${vor.header.version} bei Hoehe ${vor.header.height}` };
+    }
+    if (vor.error === 'bad_version') return { ok: false, grund: 'struktur', detail: 'bad_version' };
+
     try {
       block = deserializeBlock(roh);
       hash = headerHash(block.header);
@@ -194,7 +224,7 @@ export class ChainManager {
     const kodierung = checkEncoding(roh, block, this.params);
     if (kodierung) return { ok: false, grund: 'kodierung', detail: kodierung };
 
-    const strukturfehler = checkBlockStructure(block);
+    const strukturfehler = checkBlockStructure(block, this.params);
     if (strukturfehler) return { ok: false, grund: 'struktur', detail: strukturfehler };
 
     // Genesis hat keinen Vorgaenger; alles andere braucht einen bekannten.
@@ -282,7 +312,7 @@ export class ChainManager {
 
     // Der Pruefstein: Der selbst errechnete Zustand muss zu der Wurzel
     // passen, die IM BLOCK steht.
-    const meine = stateRoot(nachher);
+    const meine = stateRootAt(nachher, block.header.height, this.params);
     if (toHex(meine) !== toHex(block.header.stateRoot)) {
       return { ok: false, grund: 'state_root',
                detail: `errechnet ${toHex(meine).slice(0, 16)}…` };
@@ -400,7 +430,7 @@ export class ChainManager {
 
     if (tip.height % SNAPSHOT_INTERVAL === 0) {
       this.store.putSnapshot({
-        hash: tip.hash, height: tip.height, stateRoot: stateRoot(state),
+        hash: tip.hash, height: tip.height, stateRoot: stateRootAt(state, tip.height, this.params),
         accounts: [...state].map(([a, k]) => [a, { ...k }]),
       });
     }
@@ -493,7 +523,7 @@ export class ChainManager {
       for (const [adr, k] of marke.accounts) zustand.set(adr, { ...k });
       // Der Marke nicht blind glauben: Passt ihre Wurzel nicht, ist die
       // Ablage beschaedigt, und dann wird von vorn gerechnet.
-      if (toHex(stateRoot(zustand)) === toHex(marke.stateRoot)) {
+      if (toHex(stateRootAt(zustand, marke.height, this.params)) === toHex(marke.stateRoot)) {
         ab = marke.height + 1;
       } else {
         zustand = emptyState();
@@ -510,13 +540,13 @@ export class ChainManager {
       }
       if (h % SNAPSHOT_INTERVAL === 0) {
         this.store.putSnapshot({
-          hash: b.hash, height: h, stateRoot: stateRoot(zustand),
+          hash: b.hash, height: h, stateRoot: stateRootAt(zustand, h, this.params),
           accounts: [...zustand].map(([a, k]) => [a, { ...k }]),
         });
       }
     }
 
-    const wurzel = stateRoot(zustand);
+    const wurzel = stateRootAt(zustand, tip.height, this.params);
     if (toHex(wurzel) !== toHex(tip.stateRoot)) {
       throw new Error(
         `Zustandswurzel weicht ab: errechnet ${toHex(wurzel).slice(0, 16)}…, ` +
@@ -609,7 +639,7 @@ export class ChainManager {
       for (const [adr, k] of marke.accounts) state.set(adr, { ...k });
       const block = this.store.get(marke.hash);
       const passt = block !== null && block.mainChain && block.height === marke.height
-        && toHex(stateRoot(state)) === toHex(block.stateRoot);
+        && toHex(stateRootAt(state, marke.height, this.params)) === toHex(block.stateRoot);
       if (passt) ab = marke.height + 1;
       else state = emptyState();
     }

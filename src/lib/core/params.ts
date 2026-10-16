@@ -243,3 +243,50 @@ export const COINBASE_V2 = 2;
 export const V5_HEIGHT = 7_000;
 export const MAX_BLOCK_BYTES = 1_048_576;
 export const MAX_COINBASE_EXTRA = 32;
+
+/*
+ * Konsensfassung 6 -- ein Hard Fork (docs/CONSENSUS_V6.md).
+ *
+ * Ab V6_HEIGHT: Blockversion 6 statt 1, Fork-Kennung in jeder Signatur,
+ * Adressen mit Version, Bedingungsskripte (Typ 2), Sammelzahlungen (Typ 3),
+ * Ueberweisung in Fassung 2, Zustandsbaum als Sparse-Merkle-Baum, hoehere
+ * Grenzen. Darunter gilt alles wie bisher, byteweise.
+ *
+ * DIE HOEHE IST NOCH NICHT GESETZT. Bis dahin steht hier ein Wert, den kein
+ * Block erreicht: Das Mainnet verhaelt sich exakt wie Fassung 5. Gesetzt
+ * wird sie erst, wenn Umsetzung und Tests abgeschlossen sind, mit mehreren
+ * tausend Bloecken Vorlauf.
+ */
+export const V6_HEIGHT_UNSET = 0xffff_ffff;
+export const V6_HEIGHT = V6_HEIGHT_UNSET;
+/** Zeitpunkt der Aktivierung (Unixsekunden) -- fuer die Update-Hinweise
+ *  alter Knoten (CONSENSUS_V6.md 11.1). Gesetzt zusammen mit der Hoehe. */
+export const V6_TIMESTAMP = 0n;
+
+/** Fork-Kennung, zweites Feld jedes Sighash ab Fassung 6 (ZIP 200). */
+export const FORK_ID_V6 = 6;
+/** Blockversion ab Fassung 6; darunter 1. */
+export const BLOCK_VERSION_V6 = 6;
+
+export const MAX_TXS_PER_BLOCK_V6 = 5_000;
+export const MAX_COINBASE_OUTPUTS_V6 = 255;
+export const MAX_BATCH_OUTPUTS = 1_000;
+export const MAX_SCRIPT_BYTES = 1_024;
+export const MAX_SCRIPT_KEYS = 16;
+export const MAX_SCRIPT_DEPTH = 3;
+export const MAX_THRESH_ARITY = 16;
+/** Platzhalter bis zum Benchmark auf dem Hauptknoten (CONSENSUS_V6.md 7.7). */
+export const MAX_BLOCK_SIGOPS = 8_000;
+
+/** Die Blockversion, die an einer Hoehe genau verlangt wird (6, Abschnitt 2.2). */
+export function blockVersionAt(height: number, v6Height = V6_HEIGHT): number {
+  return height >= v6Height ? BLOCK_VERSION_V6 : 1;
+}
+
+export function maxTxsAt(height: number, v6Height = V6_HEIGHT): number {
+  return height >= v6Height ? MAX_TXS_PER_BLOCK_V6 : MAX_TXS_PER_BLOCK;
+}
+
+export function maxCoinbaseOutputsAt(height: number, v6Height = V6_HEIGHT): number {
+  return height >= v6Height ? MAX_COINBASE_OUTPUTS_V6 : MAX_COINBASE_OUTPUTS;
+}
