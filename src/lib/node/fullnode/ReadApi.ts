@@ -23,7 +23,7 @@ import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
 import { finderName, finderAnzeige } from '../../chain/finderName.ts';
 import { marktlage, position } from '../../core/feemarket.ts';
-import { FEE_V3_HEIGHT } from '../../core/params.ts';
+import { FEE_V3_HEIGHT, maxTxsAt } from '../../core/params.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
 
 import type { ChainManager } from './ChainManager.ts';
@@ -324,7 +324,8 @@ export class ReadApi {
     // Untergrenze fuer eine Ueberweisung ohne Notiz; die App rechnet ihre
     // eigene Groesse (Notiz) mit mindestJeByte selbst nach.
     const boden = this.t.pool.mindestGebuehr(hoehe, 0);
-    const m = marktlage(this.t.chain.state(), mempool, hoehe, undefined, boden);
+    // Plaetze je Block haengen an der Hoehe (2.000 bis Fassung 6, 5.000 ab v6Height).
+    const m = marktlage(this.t.chain.state(), mempool, hoehe, maxTxsAt(hoehe, this.t.params?.v6Height) - 1, boden);
     const jeByte = hoehe >= (this.t.params?.feeV3Height ?? FEE_V3_HEIGHT) ? this.t.pool.relayFeeRate : null;
 
     const roh = such.get('fee');

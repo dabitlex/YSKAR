@@ -34,6 +34,14 @@ const kp = (n: number): Keypair => keypairFromSeed(new Uint8Array(32).fill(n));
 const ALICE = kp(1), BOB = kp(2), CAROL = kp(3), DAVE = kp(4);
 const V6 = REGTEST_V6;
 
+// Testvektoren -- werden einmal erzeugt und dann festgeschrieben (siehe letzter Test).
+const VEKTOR_ALICE = '01f5c342bb922ef3b00bc3c78a687c3ce2cb5f269b7c39270958071cc7f2aeb6';
+const VEKTOR_BOB = 'f94804a21dfa5a45eb8193d7ecc0889bf726c3400e2657664335a158a84ad048';
+const VEKTOR_SIGHASH = 'd50aa0b8afee28c7fd97133ac5ef0c0bdab7ffabea0a051e3ebe98d26378f977';
+const VEKTOR_TXID = '595b251ceb0a88f4f711f3b6d899f7d41203429029c1dc0ebe5ae382e44ed27f';
+const VEKTOR_MULTISIG = 'ysr1pg95f6ku4e4d7us6xnf5l456uwmc8aerjd02ck72eh7szku28qjqqynpjww';
+const VEKTOR_SMT = '51be0642ee68cd9f90a66f8e22ed2de2106789d5f6b40b0ce371e5052493df26';
+
 /** Zustand mit Guthaben fuer die genannten Konten. */
 function zustand(konten: [Uint8Array, bigint][]): S.State {
   const s = S.emptyState();
@@ -341,7 +349,8 @@ test('Sammelzahlung: sortiert, ohne Duplikate, 1.000 ja, 1.001 nein, Wirkung auf
   assert.equal(S.getAccount(nach, ALICE.addressRaw).balance, 100_000_000n - 100_000n - 50_000n);
   assert.equal(S.getAccount(nach, ALICE.addressRaw).nonce, 1n);
   assert.equal(T.checkBatch(bauen(1_001), 10, V6), 'bad_output_count');
-  assert.throws(() => T.deserializeTx(T.serializeTx(bauen(1_001))), /unzulaessig/);
+  // Der Leser liest 1.001 noch (6.1); die Pruefung lehnt ab.
+  assert.equal(T.checkBatch(T.deserializeTx(T.serializeTx(bauen(1_001))) as T.Batch, 10, V6), 'bad_output_count');
   // Unsortiert oder doppelt: ungueltig.
   const zwei = bauen(2);
   const vertauscht = { ...zwei, outputs: [zwei.outputs[1], zwei.outputs[0]] };
@@ -517,10 +526,140 @@ test('Prueffolge: hoehere Fassung mit gueltiger Arbeit = veraltet, ohne Arbeit =
   const r2 = chain2.accept(roh);
   assert.equal((r2 as { grund: string }).grund, 'struktur');
   assert.equal(chain2.hoehereFassungGesehen, null);
-  // Version 1 an einer V6-Hoehe: schlicht falsch.
+  // Version 1 an einer V6-Hoehe mit gueltiger Arbeit: schlicht falsch, kein Veraltet-Signal.
   dv.setUint32(0, 1, true);
-  assert.equal((chain2.accept(roh) as { grund: string }).grund, 'struktur');
+  for (let n = 0; ; n++) {
+    dv.setBigUint64(128, BigInt(n), true);
+    if (precheckHeader(roh, V6).error !== 'pow_failed') break;
+  }
+  const r3 = chain2.accept(roh);
+  assert.deepEqual(r3, { ok: false, grund: 'struktur', detail: 'bad_version' });
+  assert.equal(chain2.hoehereFassungGesehen, null);
   store.close();
+});
+
+test('Hoehere Fassung ohne bekannten Vorgaenger oder mit falscher Difficulty macht niemanden veraltet', () => {
+  const k = baueKette(2, { params: V6, miner: ALICE.addressRaw });
+  const chain = new ChainManager(new ChainStore(':memory:'), V6);
+  for (const b of k.bloecke) assert.equal(chain.accept(b.body).ok, true);
+  // Version 7, Arbeit gegen Difficulty 1 gueltig, aber prevHash unbekannt.
+  const roh = k.bloecke[1].body.slice();
+  const dv = new DataView(roh.buffer, roh.byteOffset);
+  dv.setUint32(0, 7, true);
+  roh[8] ^= 0xff;   // prevHash verfaelscht
+  for (let n = 0; ; n++) {
+    dv.setBigUint64(128, BigInt(n), true);
+    if (precheckHeader(roh, V6).error !== 'pow_failed') break;
+  }
+  assert.equal((chain.accept(roh) as { grund: string }).grund, 'struktur');
+  assert.equal(chain.hoehereFassungGesehen, null);
+});
+
+test('Mainnet-Parameter: Fassung 6 ist nirgends aktiv', () => {
+  const b = block(100, [coinbase(100, MINER_A)], MAINNET);
+  assert.equal(b.header.version, 1);
+  assert.equal(checkHeaderVersion({ ...b.header, version: 6 }, MAINNET), 'bad_version');
+  const pool = new TxPool(MAINNET);
+  const s = zustand([[ALICE.addressRaw, 10_000_000n]]);
+  const batch = T.buildBatch({ from: ALICE.addressRaw, outputs: [{ to: BOB.addressRaw, amount: 500n }],
+    fee: 100_000n, nonce: 0n, publicKey: ALICE.publicKey, privateKey: ALICE.privateKey });
+  const r = pool.add(batch, s, 5_000);
+  assert.equal(r.ok, false);
+  assert.equal((r as { detail?: string }).detail, 'unknown_tx_type');
+});
+
+test('Sammelzahlung mit gemischten Adressversionen sortiert nach der Leitungsform', () => {
+  // Rohform: v0 = 20 Byte ohne Versionsbyte, v1 = 0x01 | 32 Byte. In der
+  // Leitungsform traegt v0 das Byte 0x00 voran und steht deshalb VOR jeder
+  // v1-Adresse -- auch wenn ihr erstes Rohbyte groesser als 0x01 ist.
+  const script = SC.encodeScript(SC.multisig(1, [BOB.publicKey]));
+  const v1 = A.rawAddressFromScript(script);
+  const v0 = new Uint8Array(20).fill(0x05);
+  const batch = T.buildBatch({ from: ALICE.addressRaw, outputs: [{ to: v1, amount: 100n }, { to: v0, amount: 100n }],
+    fee: 1_000n, nonce: 0n, publicKey: ALICE.publicKey, privateKey: ALICE.privateKey, chainId: V6.chainId });
+  assert.equal(toHex(batch.outputs[0].to), toHex(v0));
+  assert.equal(T.checkBatch(batch, 10, V6), null);
+  const falsch = { ...batch, outputs: [batch.outputs[1], batch.outputs[0]] };
+  assert.equal(T.checkBatch(falsch, 10, V6), 'outputs_unsorted');
+  const s = zustand([[ALICE.addressRaw, 10_000_000n]]);
+  assert.equal(anwenden(S.cloneState(s), 10, [batch]).ok, true);
+});
+
+test('Blockbau haelt die Blockgroesse ein: 40 Sammelzahlungen passen nicht alle in 1 MiB', () => {
+  const an = (b: number, i: number) => { const a = new Uint8Array(20); a[0] = b; a[1] = i >> 8; a[2] = i & 0xff; return a; };
+  const absender = Array.from({ length: 40 }, (_, i) => kp(100 + i));
+  const s = zustand(absender.map(k => [k.addressRaw, 10n ** 12n]));
+  const mempool = absender.map((k, j) => T.buildBatch({ from: k.addressRaw,
+    outputs: Array.from({ length: 1_000 }, (_, i) => ({ to: an(0x60 + j, i), amount: 100n })),
+    fee: 50_000n, nonce: 0n, publicKey: k.publicKey, privateKey: k.privateKey, chainId: V6.chainId }));
+  const gebaut = buildBlock({ height: 10, prevHash: new Uint8Array(32), state: s, mempool, minerAddress: MINER_A,
+    timestamp: 1n, difficulty: 1n, extranonce: 0n, params: V6 });
+  const bytes = serializeBlock(gebaut.block).length;
+  assert.ok(bytes <= P.MAX_BLOCK_BYTES, `${bytes} Byte`);
+  assert.ok(gebaut.included.length >= 30 && gebaut.included.length < 40, `${gebaut.included.length} aufgenommen`);
+});
+
+test('Signaturbudget genau: 8.000 ja, 8.016 nein, und die ueberzaehlige Transaktion wird nie geprueft', () => {
+  const keys = Array.from({ length: 16 }, (_, i) => kp(60 + i));
+  const script = SC.encodeScript(SC.multisig(16, keys.map(k => k.publicKey)));
+  const sortiert = SC.sortKeys(keys.map(k => k.publicKey)).map(pk => keys.find(k => toHex(k.publicKey) === toHex(pk))!);
+  const konto = A.rawAddressFromScript(script);
+  const s = zustand([[konto, 10n ** 15n]]);
+  const eine = (nonce: bigint) => skriptAusgabe(script, h => sortiert.map(k => sig(k, h)), { nonce, fee: 5_000n });
+  const fuenfhundert = Array.from({ length: 500 }, (_, i) => eine(BigInt(i)));
+  assert.equal(anwenden(S.cloneState(s), 10, fuenfhundert).ok, true);
+  // Nummer 501 traegt 16 UNGUELTIGE Signaturen: Waere sie geprueft, hiesse
+  // der Fehler script_unsatisfied. Das Budget greift vorher.
+  const kaputt = skriptAusgabe(script, () => sortiert.map(() => ({ kind: 'sig', signature: randomBytes(64) } as SC.WitnessSlot)), { nonce: 500n, fee: 5_000n });
+  const r = anwenden(S.cloneState(s), 10, [...fuenfhundert, kaputt]);
+  assert.equal(r.ok, false);
+  assert.match(r.error!.reason, /^too_many_sigops:8016/);
+  assert.equal(r.error!.tx, 501);
+});
+
+test('Witness-Form wird vor der Kryptografie geprueft: 16 gueltige Signaturen an THRESH(1) sind ein Formfehler', () => {
+  const keys = Array.from({ length: 16 }, (_, i) => kp(80 + i));
+  const script = SC.encodeScript(SC.multisig(1, keys.map(k => k.publicKey)));
+  const sortiert = SC.sortKeys(keys.map(k => k.publicKey)).map(pk => keys.find(k => toHex(k.publicKey) === toHex(pk))!);
+  // Alle 16 belegt, aber mit Zufallsbytes: Bei Pruefung vor der Form hiesse
+  // das script_unsatisfied; die Form sagt witness_excess.
+  const t = skriptAusgabe(script, () => sortiert.map(() => ({ kind: 'sig', signature: randomBytes(64) } as SC.WitnessSlot)));
+  assert.equal(T.checkScriptSpend(t, 10, V6), 'witness_excess');
+  // Slotbyte 0x02 und abgeschnittener Slot: bad_witness.
+  const gut = skriptAusgabe(script, h => [sig(sortiert[0], h), ...Array(15).fill(absent)]);
+  const w2 = gut.witness.slice(); w2[0] = 2;
+  assert.equal(T.checkScriptSpend({ ...gut, witness: w2 }, 10, V6), 'bad_witness');
+  assert.equal(T.checkScriptSpend({ ...gut, witness: gut.witness.slice(0, 30) }, 10, V6), 'bad_witness');
+});
+
+test('Mempool: eine Rueckzahlung mit validFrom in der Zukunft wartet draussen', () => {
+  const script = SC.encodeScript(SC.timelocked(ALICE.publicKey, 50));
+  const s = zustand([[A.rawAddressFromScript(script), 1_000_000n]]);
+  const pool = new TxPool(V6);
+  const t = skriptAusgabe(script, h => [sig(ALICE, h), { kind: 'claim' }], { validFrom: 50, fee: 3_000n });
+  assert.equal(pool.add(t, s, 40).ok, false);
+  assert.equal(pool.add(t, s, 50).ok, true);
+});
+
+test('Feste Vektoren: Sighash und txid der Fassung 6 aendern sich nicht', () => {
+  // Diese Werte sind die Testvektoren der Spezifikation (Abschnitt 14).
+  // Wer sie aendert, aendert den Konsens.
+  const t = T.buildTransfer({ from: ALICE.addressRaw, to: BOB.addressRaw, amount: 1_000n, fee: 1_000n,
+    nonce: 7n, validFrom: 5, validUntil: 50, memo: new TextEncoder().encode('v6'),
+    publicKey: ALICE.publicKey, privateKey: ALICE.privateKey, chainId: V6.chainId, version: 2 });
+  const { signature: _s, publicKey: _p, ...u } = t;
+  const vektoren = {
+    alice: toHex(ALICE.publicKey), bob: toHex(BOB.publicKey),
+    transferV2Sighash: toHex(T.sighash(u, V6.chainId)),
+    transferV2Txid: toHex(T.txid(t)),
+    multisig23Address: A.addressForScript(SC.encodeScript(SC.multisig(2, [ALICE.publicKey, BOB.publicKey, CAROL.publicKey]))),
+    smtRootZweiKonten: toHex(S.stateRootV6(zustand([[ALICE.addressRaw, 5n], [BOB.addressRaw, 7n]]))),
+  };
+  assert.deepEqual(vektoren, {
+    alice: VEKTOR_ALICE, bob: VEKTOR_BOB,
+    transferV2Sighash: VEKTOR_SIGHASH, transferV2Txid: VEKTOR_TXID,
+    multisig23Address: VEKTOR_MULTISIG, smtRootZweiKonten: VEKTOR_SMT,
+  });
 });
 
 test('Alte Bloecke unter V6 bleiben byteweise gueltig: REGTEST-Kette unveraendert', () => {

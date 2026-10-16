@@ -131,6 +131,27 @@ export function addressWireBytes(raw: Uint8Array): number {
   return 1 + splitRaw(raw).program.length;
 }
 
+/** Das Feld, wie es auf der Leitung steht: `u8 version | programm`. */
+export function addressWire(raw: Uint8Array): Uint8Array {
+  const { version, program } = splitRaw(raw);
+  const out = new Uint8Array(1 + program.length);
+  out[0] = version;
+  out.set(program, 1);
+  return out;
+}
+
+/**
+ * Vergleich zweier Rohadressen in der Reihenfolge ihrer LEITUNGSFORM
+ * (CONSENSUS_V6.md 6.4): So sortiert eine Sammelzahlung ihre Empfaenger.
+ * Die Rohform taugt dafuer nicht, weil Version 0 kein Versionsbyte traegt.
+ */
+export function compareAddressWire(a: Uint8Array, b: Uint8Array): number {
+  const x = addressWire(a), y = addressWire(b);
+  const n = Math.min(x.length, y.length);
+  for (let i = 0; i < n; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return x.length - y.length;
+}
+
 // ------------------------------------------------------------- Textform
 
 /** Textform der Version 0 -- unveraendert seit Genesis. */

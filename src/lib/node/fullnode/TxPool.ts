@@ -18,7 +18,7 @@
  * umgekehrt.
  */
 import {
-  checkSpend, txidHex, transferBytes, txBytes, senderRaw, spendTotal, type Spend,
+  checkSpend, txidHex, transferBytesAt, txBytes, senderRaw, spendTotal, type Spend,
 } from '../../core/tx.ts';
 import { MIN_FEE, RELAY_FEE_RATE, FEE_V3_HEIGHT } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
@@ -68,7 +68,8 @@ export class TxPool {
    */
   mindestGebuehr(height: number, memoBytes = 0): bigint {
     if (height < (this.params.feeV3Height ?? FEE_V3_HEIGHT)) return MIN_FEE;
-    return BigInt(transferBytes(memoBytes)) * this.relayFeeRate;
+    // 168 Byte bis Fassung 6, 174 ab v6Height (Ueberweisung Fassung 2).
+    return BigInt(transferBytesAt(height, memoBytes, this.params.v6Height)) * this.relayFeeRate;
   }
 
   /** Dasselbe fuer eine konkrete Transaktion: ihre tatsaechliche Groesse zaehlt. */
@@ -124,6 +125,13 @@ export class TxPool {
     }
     if (tx.validUntil !== 0 && height > tx.validUntil) {
       return { ok: false, reason: 'expired', detail: `gueltig bis ${tx.validUntil}` };
+    }
+    // Noch nicht faellig (validFrom in der Zukunft): nicht aufnehmen -- der
+    // Mempool haelt nur, was in den NAECHSTEN Block passt. Wer eine
+    // Rueckzahlung nach Ablauf will, reicht sie ab der Hoehe ein.
+    const validFrom = 'validFrom' in tx ? (tx.validFrom ?? 0) : 0;
+    if (validFrom !== 0 && height < validFrom) {
+      return { ok: false, reason: 'malformed', detail: `not_yet_valid:${validFrom}` };
     }
 
     // Schluessel ist die Rohadresse des Absenders -- bei einem Skript-Konto

@@ -305,7 +305,12 @@ validator applies the per-height rules; a type 2 or 3 transaction in a block bel
 therefore `unknown_tx_type` from the validator, not `unlesbar` from the decoder. For a script spend the
 decoder reads `scriptLen` and `script` and takes the rest of the frame as opaque witness bytes; parsing
 the script and the witness is part of validation (7.2, 7.3), so a malformed script yields `bad_script`
-and a malformed witness `bad_witness`, never an undecodable block.
+and a malformed witness `bad_witness`, never an undecodable block. The same holds for `scriptLen`
+(any value the frame allows is read; 0 or more than 1,024 is `bad_script`) and for the batch `count`
+(0 or more than 1,000 is `bad_output_count`). The order in which the checks of 6.3 to 6.5 run in the
+reference code is: address fields, then version and flags, memo length, fee, validity window, then
+amounts and the rest; it differs slightly from the numbering below, which lists rules, not an order.
+A different order never changes validity, only which error a rejected transaction is given.
 
 ### 6.2 Signing preimage and transaction ID
 
@@ -411,7 +416,7 @@ addition:
 - the outputs are in strictly ascending order of their raw address bytes (`u8 version | program`,
   compared as byte strings) (`outputs_unsorted`). This forbids duplicates and gives a set of payments
   exactly one encoding and one transaction ID; it is the rule the version 2 coinbase already follows;
-- the sum of the outputs does not overflow 64 bits (`bad_amount`).
+- the sum of the outputs, and the sum plus `fee`, do not overflow 64 bits (`bad_amount`).
 
 Effect: the sender's balance decreases by the sum plus `fee`, its nonce increases by 1, every recipient's
 balance increases by its amount, `fee` is added to the fee total of the block.
@@ -553,6 +558,13 @@ transaction. Per node:
   satisfied; if `t != k` the transaction is invalid with `witness_excess` (more than `k`) or
   `script_unsatisfied` (fewer than `k`).
 
+The reference implementation runs this in two passes: first the shape alone (which leaves are
+touched, slot kinds, `t == k` at every touched `THRESH`), without looking at any signature or preimage;
+only when the shape is right are signatures verified and preimages hashed. A witness with sixteen
+signatures at a `THRESH(1)` therefore costs the counting, not sixteen verifications. The shape errors
+(`bad_witness`, `witness_excess`, `script_unsatisfied` from a count) take precedence over a failed
+signature.
+
 The transaction is valid only if the root is satisfied. Requiring `t == k` rather than `t >= k` makes
 the witness canonical and bounds the signature checks to what the script needs; a transaction carrying
 more signatures than its script uses is invalid, as on Stellar. A touched child that is unsatisfied is
@@ -564,11 +576,11 @@ Sizes are script bytes; transaction sizes assume a version 0 recipient and no me
 
 | Account | Script | Script bytes | Spend size |
 |---|---|---|---|
-| 2 of 3 | `THRESH(2, [PK A, PK B, PK C])` | 102 | 324 |
-| 3 of 5 | `THRESH(3, [PK ×5])` | 168 | 456 |
-| Swap (HTLC) | `THRESH(1, [THRESH(2, [PK B, HASH h]), THRESH(2, [PK A, AFTER T])])` | 113 | 304 (claim) / 272 (refund) |
-| Savings, locked until `T` | `THRESH(2, [PK A, AFTER T])` | 41 | 198 |
-| Channel funding | `THRESH(2, [PK A, PK B])` | 69 | 290 |
+| 2 of 3 | `THRESH(2, [PK A, PK B, PK C])` | 102 | 325 |
+| 3 of 5 | `THRESH(3, [PK ×5])` | 168 | 457 |
+| Swap (HTLC) | `THRESH(1, [THRESH(2, [PK B, HASH h]), THRESH(2, [PK A, AFTER T])])` | 113 | 305 (claim) / 273 (refund) |
+| Savings, locked until `T` | `THRESH(2, [PK A, AFTER T])` | 41 | 199 |
+| Channel funding | `THRESH(2, [PK A, PK B])` | 69 | 291 |
 
 The spend size is 92 bytes of fixed fields (4 version, type, flags + 32 from + 21 to + 24 amount, fee,
 nonce + 8 window + 1 memoLen + 2 scriptLen) plus script plus witness. For 2 of 3 the witness is
@@ -677,8 +689,10 @@ block closes the connection (`ungueltiger_block`), for this one case. A node tha
 reachable and can be updated instead of dropping off the network.
 
 The proof-of-work condition matters: without it, anyone could send a header with `version` 99 and no
-work and make every node on the network report itself outdated. A header with a higher version and
-invalid or insufficient work is treated as any invalid block today, and the peer is disconnected.
+work and make every node on the network report itself outdated. The condition is the full one of 2.3:
+the parent is known and valid, the height follows it, and the difficulty is the one the chain requires
+there, not merely the one the header states. A header with a higher version that fails any of this is
+treated as any invalid block today (`bad_version`), and the peer is disconnected.
 
 Independently of what it sees, a node compares the current time with the timestamp of the last
 revision it knows (`V6_TIMESTAMP`, set when the height is set): after 180 days it reports
@@ -730,7 +744,9 @@ not of the consensus.
 | Place | Change |
 |---|---|
 | Wallets | Create and display version 1 addresses; build version 2 transfers (always, from the height; before the height version 1); create multi-signature and time-locked accounts; co-sign: exchange the unsigned transaction (or its sighash) between devices and assemble the witness. The transport (QR, file, message) is the wallet's choice. A wallet checks every script against 7.2 before it shows the address (4.4 rule 3), writes `PK` children in ascending key order (7.1), tracks pending script spends by sighash (7.6), and never derives anything from the first character after `ysr1` (4.2). |
-| Mempool (`TxPool`) | Keys pending transactions by `(sender raw address, nonce)` (7.6); checks the signature budget of a candidate block before verifying signatures; stops at the first invalid `PK` slot. |
+| Mempool (`TxPool`) | Keys pending transactions by `(sender raw address, nonce)` (7.6); minimum fee from the actual size; refuses a transaction whose `validFrom` lies in the future (the refund branch of a swap is submitted once its height is reached); the witness shape check (7.4) stops a script spend before any signature is verified. |
+| Block building (`selectTransactions`) | Respects the signature budget and the 1 MiB limit while choosing transactions, reserving room for the largest coinbase of the height. |
+| Fee hints (`/fees`) | The floor is the size of a version 2 transfer (174 bytes) from the height; slots per block follow the height. |
 | Pool server | Up to 254 miners paid in the coinbase; above that, or for pools that settle over several blocks, a batch transfer from the pool account. The pool reports its mode (`coinbase` or `batch`) to the directory, and the directory shows it, so that a miner knows whether the pool holds funds between block and payout. |
 | Mining jobs | Header `version` 6 from the height. The 136-byte layout and the midstate optimisation are unchanged. |
 | Node status API | `revision`, `nextActivationHeight`, `revision_status` (`current`, `outdated`, `update_recommended`, `probably_forked`). |
@@ -747,7 +763,8 @@ version 2, script spend, batch, v6 sighash, checks, sigops), `state.ts` (account
 budget, limits), `block.ts` (`checkHeaderVersion`, `precheckHeader`, per-height limits),
 `validate.ts`, `builder.ts`; node layer: `ChainManager.accept()` (header first, `fassung_unbekannt`,
 `hoehereFassungGesehen`), `SyncManager` (keeps the peer on an unknown revision), `TxPool` (all spend
-types, keyed by sender raw address and nonce), `jobVorlage` (state root by height), `ReadApi`,
+types, keyed by sender raw address and nonce, fee by actual size, `validFrom` in the future refused),
+`builder.selectTransactions` (signature budget and block size), `jobVorlage` (state root by height), `ReadApi`,
 `kettenIndex`, `store` (mirror payload). Not yet implemented: the handshake fields of 11.4, the
 time-based update hints of 11.1, the status API fields of 13, the pool server's batch mode, wallet
 support, mirror schema. Test vectors (14) are not yet published.
@@ -758,11 +775,23 @@ Every rule above gets a test in the pattern of `tests/konsens-v5.test.ts`: with 
 height 0) the invalid case is rejected and the valid case accepted; with the activation moved beyond the
 test height the old rule applies. In addition, before the activation height is set:
 
-- **Test vectors**, published in this document: a version 1 address from a given script; the sighash and
-  transaction ID of one transfer version 2, one batch, one 2-of-3 spend, one swap claim and one swap
-  refund, all from fixed keys; the state root of a fixed small state; the state root of the main
-  network's state at a fixed height computed with the new tree. These vectors are also the basis for any
-  later hardware-wallet or third-party implementation.
+- **Test vectors**, published in this document and pinned in `tests/konsens-v6.test.ts`. The first set,
+  on `REGTEST_V6` (chain ID `sha256("yskar-regtest-v6")`), with keys derived by `keypairFromSeed` from a
+  32-byte seed of all `0x01` (Alice), `0x02` (Bob), `0x03` (Carol):
+
+  | Vector | Value |
+  |---|---|
+  | Alice public key | `01f5c342bb922ef3b00bc3c78a687c3ce2cb5f269b7c39270958071cc7f2aeb6` |
+  | Bob public key | `f94804a21dfa5a45eb8193d7ecc0889bf726c3400e2657664335a158a84ad048` |
+  | Transfer v2 Alice → Bob, 1,000 units, fee 1,000, nonce 7, validFrom 5, validUntil 50, memo `v6`: sighash | `d50aa0b8afee28c7fd97133ac5ef0c0bdab7ffabea0a051e3ebe98d26378f977` |
+  | the same transfer: transaction ID | `595b251ceb0a88f4f711f3b6d899f7d41203429029c1dc0ebe5ae382e44ed27f` |
+  | 2-of-3 address of Alice, Bob, Carol (keys sorted) | `ysr1pg95f6ku4e4d7us6xnf5l456uwmc8aerjd02ck72eh7szku28qjqqynpjww` |
+  | State root (5.2) of {Alice: 5, Bob: 7}, nonces 0 | `51be0642ee68cd9f90a66f8e22ed2de2106789d5f6b40b0ce371e5052493df26` |
+
+  Still to add: a batch, a 2-of-3 spend, a swap claim and a swap refund with fixed secrets, and the
+  main network's state at a fixed height under the new tree. Main-network vectors follow once the chain
+  ID and height are fixed. These vectors are the basis for any later hardware-wallet or third-party
+  implementation.
 - **Script checker**: a fuzzing harness that generates random trees and witnesses and compares the
   reference evaluator against an independent re-implementation; every well-formedness rule has a
   negative test; `needsKey` is tested on every example of 7.5 and on adversarial shapes.

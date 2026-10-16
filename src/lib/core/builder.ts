@@ -1,13 +1,26 @@
 import {
   type Tx, type Spend, type Coinbase,
-  TX_COINBASE, TX_BATCH, TX_VERSION, checkSpend, txid, senderRaw, spendTotal, spendSigops,
+  TX_COINBASE, TX_BATCH, TX_VERSION, checkSpend, txid, senderRaw, spendTotal, spendSigops, txBytes,
 } from './tx.ts';
 import { type Block, type BlockHeader, serializeHeader, txMerkleRoot } from './block.ts';
 import { type State, cloneState, getAccount, applyBlock, stateRootAt } from './state.ts';
 import {
   rewardAt, COINBASE_V2, DUST_LIMIT, maxTxsAt, maxCoinbaseOutputsAt, blockVersionAt,
-  MAX_BLOCK_SIGOPS,
+  MAX_BLOCK_SIGOPS, MAX_BLOCK_BYTES, MAX_COINBASE_EXTRA, ADDRESS_BYTES,
 } from './params.ts';
+import { HEADER_SIZE } from './block.ts';
+
+/**
+ * Bytes, die ein Block ohne Ausgaben hoechstens braucht: Header, Zaehler,
+ * Rahmen und eine Coinbase der Fassung 2 mit der groessten Empfaengerzahl
+ * der Hoehe und vollem `extra`. Was darueber frei bleibt, duerfen die
+ * Ausgaben fuellen -- sonst sprengt der eigene Block MAX_BLOCK_BYTES und
+ * jeder Peer lehnt ihn ab (block_zu_gross).
+ */
+export function blockBytesOhneAusgaben(height: number, v6Height?: number): number {
+  const coinbase = 2 + 1 + 4 + 1 + maxCoinbaseOutputsAt(height, v6Height) * (ADDRESS_BYTES + 8) + 1 + MAX_COINBASE_EXTRA;
+  return HEADER_SIZE + 4 + 4 + coinbase;
+}
 import { toHex } from './codec.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
 
@@ -120,6 +133,7 @@ export function selectTransactions(
   const included: Spend[] = [];
   let fees = 0n;
   let sigops = 0;
+  let bytes = blockBytesOhneAusgaben(height, params.v6Height);
   const abV6 = height >= params.v6Height;
 
   while (included.length < max) {
@@ -133,8 +147,10 @@ export function selectTransactions(
       const acc = getAccount(draft, senderRaw(t));
       if (t.nonce !== acc.nonce) continue;                 // noch nicht faellig
       if (acc.balance < spendTotal(t)) continue;           // reicht nicht
-      // Signaturbudget des Blocks (CONSENSUS_V6.md 7.7).
+      // Signaturbudget (CONSENSUS_V6.md 7.7) und Blockgroesse (Fassung 5):
+      // je Transaktion 4 Byte Rahmen plus ihre Bytes.
       if (abV6 && sigops + spendSigops(t) > MAX_BLOCK_SIGOPS) continue;
+      if (bytes + 4 + txBytes(t) > MAX_BLOCK_BYTES) continue;
 
       if (!best || t.fee > best.tx.fee) best = { key, tx: t };
     }
@@ -154,6 +170,7 @@ export function selectTransactions(
     included.push(t);
     fees += t.fee;
     if (abV6) sigops += spendSigops(t);
+    bytes += 4 + txBytes(t);
     cursor.set(best.key, (cursor.get(best.key) ?? 0) + 1);
   }
 

@@ -164,6 +164,17 @@ export class ChainManager {
    * kaputter Header kostet Mikrosekunden, eine Signaturpruefung
    * Millisekunden. Wer das umdreht, macht sich angreifbar.
    */
+  /** Vorgaenger bekannt und gueltig, Hoehe passt, Difficulty wie verlangt? */
+  private istPlausibelerNachfolger(h: BlockHeader): boolean {
+    const vorgaenger = this.store.get(h.prevHash);
+    if (!vorgaenger || vorgaenger.status !== 'valid' || h.height !== vorgaenger.height + 1) return false;
+    try {
+      const vorKopf = deserializeBlock(vorgaenger.body).header;
+      const { timings } = vorgeschichte(this.store, vorgaenger, this.params);
+      return checkDifficulty(h, vorKopf, timings, this.params) === null;
+    } catch { return false; }
+  }
+
   accept(roh: Uint8Array): AcceptResult {
     let block: Block;
     let hash: Uint8Array;
@@ -201,9 +212,19 @@ export class ChainManager {
     if (vor.error === 'unlesbar') return { ok: false, grund: 'unlesbar', detail: vor.detail };
     if (vor.error === 'pow_failed') return { ok: false, grund: 'struktur', detail: 'pow_failed' };
     if (vor.error === 'higher_revision') {
-      this._hoehereFassungGesehen = { version: vor.header.version, height: vor.header.height };
-      return { ok: false, grund: 'fassung_unbekannt',
-               detail: `version ${vor.header.version} bei Hoehe ${vor.header.height}` };
+      /*
+        Als "veraltet" merken wir uns das nur, wenn der Block echt sein kann:
+        bekannter, gueltiger Vorgaenger, passende Hoehe, und die Arbeit
+        gegen die Difficulty, die die Kette an dieser Stelle verlangt --
+        nicht nur gegen die, die der Header selbst nennt. Sonst koennte ein
+        Header mit Difficulty 1 und Version 99 jeden Knoten veraltet melden.
+      */
+      if (this.istPlausibelerNachfolger(vor.header)) {
+        this._hoehereFassungGesehen = { version: vor.header.version, height: vor.header.height };
+        return { ok: false, grund: 'fassung_unbekannt',
+                 detail: `version ${vor.header.version} bei Hoehe ${vor.header.height}` };
+      }
+      return { ok: false, grund: 'struktur', detail: 'bad_version' };
     }
     if (vor.error === 'bad_version') return { ok: false, grund: 'struktur', detail: 'bad_version' };
 

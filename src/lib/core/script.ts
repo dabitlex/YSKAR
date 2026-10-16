@@ -241,6 +241,16 @@ export interface EvalContext {
 export function evaluateScript(
   root: ScriptNode, slots: WitnessSlot[], ctx: EvalContext,
 ): ScriptError | null {
+  /*
+    Erst die FORM des Witness pruefen, ohne eine Signatur anzusehen: Welche
+    Blaetter sind belegt, hat jeder beruehrte THRESH genau k beruehrte
+    Kinder, passt der Slot zum Blatt? Erst wenn die Form stimmt, kostet die
+    Transaktion Kryptografie. So zahlt ein Angreifer mit 16 Signaturen an
+    einem THRESH(1) nur das Zaehlen, nicht 16 Pruefungen (7.4, 7.7).
+  */
+  const form = pruefeForm(root, slots);
+  if (form) return form;
+
   let i = 0;   // laufender Slot-Index
 
   // Liefert { touched, satisfied } oder einen Fehler.
@@ -281,6 +291,35 @@ export function evaluateScript(
   const r = pruefe(root);
   if (typeof r === 'string') return r;
   if (!r.touched || !r.ok) return 'script_unsatisfied';
+  return null;
+}
+
+/** Formpruefung ohne Kryptografie. Liefert den ersten Formfehler, Tiefe zuerst. */
+function pruefeForm(root: ScriptNode, slots: WitnessSlot[]): ScriptError | null {
+  let i = 0;
+  function geh(n: ScriptNode): boolean | ScriptError {   // true = beruehrt
+    if (n.op !== OP_THRESH) {
+      const slot = slots[i++];
+      if (!slot || slot.kind === 'absent') return false;
+      if (n.op === OP_PK && slot.kind !== 'sig') return 'bad_witness';
+      if (n.op === OP_HASH && slot.kind !== 'preimage') return 'bad_witness';
+      if ((n.op === OP_AFTER || n.op === OP_BEFORE) && slot.kind !== 'claim') return 'bad_witness';
+      return true;
+    }
+    let touched = 0;
+    for (const c of n.children) {
+      const r = geh(c);
+      if (typeof r === 'string') return r;
+      if (r) touched++;
+    }
+    if (touched === 0) return false;
+    if (touched > n.k) return 'witness_excess';
+    if (touched < n.k) return 'script_unsatisfied';
+    return true;
+  }
+  const r = geh(root);
+  if (typeof r === 'string') return r;
+  if (!r) return 'script_unsatisfied';
   return null;
 }
 

@@ -2,12 +2,12 @@ import { Writer, Reader, toHex } from './codec.ts';
 import { sha256d } from './hash.ts';
 import { sign, verifySignature } from './wallet.ts';
 import {
-  addressFromPublicKey, rawAddress, splitRaw, isRawAddress, readAddress, writeAddress,
+  addressFromPublicKey, rawAddress, isRawAddress, readAddress, writeAddress, compareAddressWire,
   ADDRESS_V1, SCRIPT_PROGRAM_BYTES,
 } from './address.ts';
 import {
   CHAIN_ID, MAX_MEMO_BYTES, MIN_FEE, ADDRESS_BYTES, FEE_V3_HEIGHT, DUST_LIMIT, minFeeAt,
-  COINBASE_V2, MAX_COINBASE_OUTPUTS_V6, V6_HEIGHT, FORK_ID_V6, MAX_BATCH_OUTPUTS, MAX_SCRIPT_BYTES,
+  COINBASE_V2, MAX_COINBASE_OUTPUTS_V6, V6_HEIGHT, FORK_ID_V6, MAX_BATCH_OUTPUTS,
 } from './params.ts';
 import {
   decodeScript, decodeWitness, evaluateScript, scriptHash, witnessSigops, type ScriptNode,
@@ -264,6 +264,12 @@ export function spendSighash(t: Spend, chainId: Uint8Array = CHAIN_ID): Uint8Arr
 /** Groesse einer Ueberweisung der Fassung 1 auf der Leitung: 168 Byte plus Notiz. */
 export const TRANSFER_BASE_BYTES = 2 + 1 + ADDRESS_BYTES * 2 + 8 + 8 + 8 + 4 + 1 + 32 + 64;
 export const transferBytes = (memoLength: number): number => TRANSFER_BASE_BYTES + memoLength;
+/** Fassung 2 mit Empfaenger der Version 0: 174 Byte plus Notiz (flags, validFrom, Versionsbyte). */
+export const TRANSFER_V2_BASE_BYTES = TRANSFER_BASE_BYTES + 1 + 4 + 1;
+/** Groesse einer gewoehnlichen Ueberweisung an der Hoehe -- fuer Gebuehrenauskuenfte. */
+export function transferBytesAt(height: number, memoLength: number, v6Height = V6_HEIGHT): number {
+  return (height >= v6Height ? TRANSFER_V2_BASE_BYTES : TRANSFER_BASE_BYTES) + memoLength;
+}
 
 /** Uebertragungsformat. CHAIN_ID steckt nur im Sighash, nicht auf der Leitung. */
 export function serializeTx(t: Tx): Uint8Array {
@@ -391,11 +397,9 @@ export function deserializeTx(bytes: Uint8Array): Tx {
       const validFrom = r.u32();
       const validUntil = r.u32();
       const memo = r.bytes(r.u8());
-      const scriptLen = r.u16();
-      if (scriptLen < 1 || scriptLen > MAX_SCRIPT_BYTES) {
-        throw new Error(`Skript mit ${scriptLen} Byte ist unzulaessig`);
-      }
-      const script = r.bytes(scriptLen);
+      // Laenge nur durch den Rahmen begrenzt; ob sie zulaessig ist, sagt
+      // die Pruefung (bad_script), nicht der Leser (6.1).
+      const script = r.bytes(r.u16());
       const witness = r.bytes(r.rest);
       return { type: TX_SCRIPT_SPEND, version, flags, from, to, amount, fee, nonce,
                validFrom, validUntil, memo, script, witness };
@@ -403,10 +407,9 @@ export function deserializeTx(bytes: Uint8Array): Tx {
     case TX_BATCH: {
       const flags = r.u8();
       const from = r.bytes(ADDRESS_BYTES);
+      // Anzahl nur durch den Rahmen begrenzt; die Grenze prueft checkBatch
+      // (bad_output_count), nicht der Leser (6.1).
       const count = r.u16();
-      if (count < 1 || count > MAX_BATCH_OUTPUTS) {
-        throw new Error(`Sammelzahlung mit ${count} Empfaengern ist unzulaessig`);
-      }
       const outputs: BatchOutput[] = [];
       for (let i = 0; i < count; i++) outputs.push({ to: readAddress(r), amount: r.u64() });
       const fee = r.u64();
@@ -478,7 +481,7 @@ export function buildBatch(params: {
 }): Batch {
   // Streng aufsteigend nach Rohadresse -- die einzige Kodierung, die die
   // Kette annimmt (6.4). Doppelte Empfaenger vorher zusammenfassen.
-  const outputs = [...params.outputs].sort((a, b) => (toHex(a.to) < toHex(b.to) ? -1 : 1));
+  const outputs = [...params.outputs].sort((a, b) => compareAddressWire(a.to, b.to));
   const base: Omit<Batch, 'publicKey' | 'signature'> = {
     type: TX_BATCH, version: 1, flags: 0,
     from: params.from, outputs,
@@ -600,13 +603,15 @@ function checkV6Common(
 /** Ausgabe aus einem Skript-Konto (6.5). Ohne Hoehe nicht pruefbar. */
 export function checkScriptSpend(t: ScriptSpend, atHeight: number, params: CheckParams = {}): TxError | null {
   const chainId = params.chainId ?? CHAIN_ID;
-  const gemeinsam = checkV6Common(t, atHeight, params);
-  if (gemeinsam) return gemeinsam;
+  // Adressen zuerst: Alles Weitere serialisiert die Transaktion und braucht
+  // dafuer lesbare Adressen.
+  if (t.from.length !== SCRIPT_PROGRAM_BYTES) return 'bad_address_length';
   const adr = checkAddress(t.to);
   if (adr) return adr;
+  const gemeinsam = checkV6Common(t, atHeight, params);
+  if (gemeinsam) return gemeinsam;
   if (t.amount <= 0n) return 'bad_amount';
   if (t.amount < DUST_LIMIT) return 'dust';
-  if (t.from.length !== SCRIPT_PROGRAM_BYTES) return 'bad_address_length';
   if (toHex(scriptHash(t.script)) !== toHex(t.from)) return 'script_mismatch';
   const script = decodeScript(t.script);
   if (!script) return 'bad_script';
@@ -623,21 +628,23 @@ export function checkScriptSpend(t: ScriptSpend, atHeight: number, params: Check
 /** Sammelzahlung (6.4). Ohne Hoehe nicht pruefbar. */
 export function checkBatch(t: Batch, atHeight: number, params: CheckParams = {}): TxError | null {
   const chainId = params.chainId ?? CHAIN_ID;
-  const gemeinsam = checkV6Common(t, atHeight, params);
-  if (gemeinsam) return gemeinsam;
+  if (t.from.length !== ADDRESS_BYTES) return 'bad_address_length';
   if (t.outputs.length < 1 || t.outputs.length > MAX_BATCH_OUTPUTS) return 'bad_output_count';
-  let summe = 0n;
-  let vorher: string | null = null;
-  const fromHex = toHex(t.from);
   for (const o of t.outputs) {
     const adr = checkAddress(o.to);
     if (adr) return adr;
+  }
+  const gemeinsam = checkV6Common(t, atHeight, params);
+  if (gemeinsam) return gemeinsam;
+  let summe = 0n;
+  const fromHex = toHex(t.from);
+  for (let i = 0; i < t.outputs.length; i++) {
+    const o = t.outputs[i];
     if (o.amount <= 0n) return 'bad_amount';
     if (o.amount < DUST_LIMIT) return 'dust';
-    const hex = toHex(o.to);
-    if (hex === fromHex) return 'self_transfer';
-    if (vorher !== null && hex <= vorher) return 'outputs_unsorted';
-    vorher = hex;
+    if (toHex(o.to) === fromHex) return 'self_transfer';
+    // Streng aufsteigend in der Leitungsform `u8 version | programm` (6.4).
+    if (i > 0 && compareAddressWire(t.outputs[i - 1].to, o.to) >= 0) return 'outputs_unsorted';
     summe += o.amount;
     if (summe > 0xffff_ffff_ffff_ffffn) return 'bad_amount';
   }
