@@ -774,6 +774,7 @@ their bytes.
 | 3 | `FEE_V3_HEIGHT` = 4000 | Applies from height 4,000 | Minimum fee of 1 unit per byte instead of a fixed 0.001 YSR; smallest amount 100 units | [CONSENSUS_V3.md](CONSENSUS_V3.md) |
 | 4 | `DIFF_V4_HEIGHT` = 6000 | Applies from height 6,000 | The difficulty field can express values above 2^32 - 1, up to `MAX_DIFFICULTY` | [CONSENSUS_V4.md](CONSENSUS_V4.md) |
 | 5 | `V5_HEIGHT` = 7000 | Applies from height 7,000 | Soft fork: timestamp not before the parent; canonical encoding and at most 1 MiB per block; coinbase version 1 or 2 and `extra` at most 32 bytes; no version 2 coinbase output below 100 units | [CONSENSUS_V5.md](CONSENSUS_V5.md) |
+| 6 | `V6_HEIGHT` (not yet set) | Draft, not in effect | Hard fork: block version names the revision; fork identifier in every signature; versioned addresses; accounts controlled by condition scripts (multi-signature, hash and height locks); batch transfers; sparse Merkle state tree; 5,000 transactions and 255 coinbase outputs per block | [CONSENSUS_V6.md](CONSENSUS_V6.md) |
 
 Together with revision 3 the code began to verify signatures against the chain ID of the network the
 node runs on instead of a fixed constant. On the main network the value is the same as before, so this
