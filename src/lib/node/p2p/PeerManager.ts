@@ -26,6 +26,7 @@ import {
 } from './messages.ts';
 import type { Command, Frame } from './wire.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
+import { IMPLEMENTIERTE_FASSUNG, imVerdraengungsfenster, netzGruppe } from '../fassung.ts';
 
 /** Ausgehende Verbindungen -- selbst ausgesucht. */
 export const MAX_AUS = 8;
@@ -246,7 +247,16 @@ export class PeerManager {
    *
    * Zuerst einen vermerkten Peer. Gibt es keinen, den mit der laengsten
    * Verbindung ohne abgeschlossenen Handschlag -- der belegt einen Platz,
-   * ohne etwas beizutragen. Sonst niemanden.
+   * ohne etwas beizutragen.
+   *
+   * In den letzten 1.000 Bloecken vor einer Aktivierung (CONSENSUS_V6.md
+   * 11.4, nach ZIP 201) danach einen Peer, dessen Fassung die kommende
+   * Hoehe nicht traegt: Er faellt an der Hoehe ohnehin ab, und sein Platz
+   * ist fuer einen Peer frei, der danach noch Bloecke liefert. Nie den
+   * letzten Peer seiner Netzgruppe -- sonst koennte ein Netz mit vielen
+   * Adressen alle anderen verdraengen lassen.
+   *
+   * Sonst niemanden.
    */
   private verdraengungsopfer(): PeerConnection | null {
     const ein = this.alle().filter(p => p.richtung === 'ein');
@@ -255,7 +265,20 @@ export class PeerManager {
 
     const unfertig = ein.filter(p => !p.ready)
       .sort((a, b) => a.info().seit - b.info().seit);
-    return unfertig[0] ?? null;
+    if (unfertig[0]) return unfertig[0];
+
+    if (imVerdraengungsfenster(this.opt.kette().height, this.opt.params)) {
+      const gruppen = new Map<string, number>();
+      for (const p of this.alle()) {
+        const g = netzGruppe(p.host);
+        gruppen.set(g, (gruppen.get(g) ?? 0) + 1);
+      }
+      const alt = ein.filter(p => p.ready && p.fremdeFassung() < IMPLEMENTIERTE_FASSUNG
+        && (gruppen.get(netzGruppe(p.host)) ?? 0) > 1)
+        .sort((a, b) => a.info().seit - b.info().seit);
+      if (alt[0]) return alt[0];
+    }
+    return null;
   }
 
   // ------------------------------------------------------------ Ausgehend

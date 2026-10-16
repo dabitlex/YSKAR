@@ -245,6 +245,7 @@ const pt = {
     leistung: 'Hashrate',
     bloecke: 'Blocos',
     gebuehr: 'Taxa',
+    haeltGuthaben: 'O pool guarda os teus ganhos até ao pagamento em lote',
     frei: (n: number): string => (n === 1 ? '1 vaga livre' : `${n} vagas livres`),
     keinPlatz: 'Nenhuma vaga livre',
     dabei: 'Você já faz parte',
@@ -402,6 +403,7 @@ const pt = {
 
   senden: {
     staub: 'Muito pequeno — mínimo 0,000001 YSR.',
+    wechselPause: 'A rede está prestes a mudar para a revisão de consenso 6. Tenta novamente daqui a cerca de meia hora.',
     titel: 'Enviar',
     empfaenger: 'Destinatário',
     scannen: 'Escanear',

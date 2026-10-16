@@ -290,6 +290,8 @@ export function baue(ctx) {
       // Eine eigene Adresse nennt sich selbst -- deshalb steht sie immer dabei.
       p.eigen ? el('span.hinweis', t('pool.eigenKurz'), p.anzeige !== p.host ? [' · ', el('span.mono', p.host)] : null) : null,
       p.hier ? el('span.hinweis', t('pool.hier')) : null,
+      // Nur wenn der Pool Geld haelt (Sammelauszahlung, CONSENSUS_V6.md 13).
+      p.modus === 'batch' ? el('span.hinweis', t('pool.haeltGuthaben')) : null,
       zahlen, balken);
   }
 

@@ -245,6 +245,7 @@ const en = {
     leistung: 'Hash power',
     bloecke: 'Blocks',
     gebuehr: 'Fee',
+    haeltGuthaben: 'The pool holds your earnings until the batch payout',
     frei: (n: number): string => (n === 1 ? '1 place free' : `${n} places free`),
     keinPlatz: 'No place free',
     dabei: 'You are already in',
@@ -402,6 +403,7 @@ const en = {
 
   senden: {
     staub: 'Too small — at least 0.000001 YSR.',
+    wechselPause: 'The network is about to switch to consensus revision 6. Please try again in about half an hour.',
     titel: 'Send',
     empfaenger: 'Recipient',
     scannen: 'Scan',

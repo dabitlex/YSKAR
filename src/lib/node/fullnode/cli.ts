@@ -14,7 +14,8 @@
  * Bloecke kommen bis dahin ueber die oeffentliche Leseschnittstelle --
  * geprueft werden sie trotzdem vollstaendig und ohne dem Server zu glauben.
  */
-import { stateRoot, totalSupply } from '../../core/state.ts';
+import { stateRootAt, totalSupply } from '../../core/state.ts';
+import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { NETWORK } from '../../core/params.ts';
 import { ChainStore } from './ChainStore.ts';
@@ -352,11 +353,19 @@ async function spiegel(
     : gelb(`\n  ${nf(geschafft)} von ${nf(eigene - dort)} nachgeschoben.\n`));
 }
 
-function status(store: ChainStore, chain: ChainManager): void {
+function status(store: ChainStore, chain: ChainManager, params: ConsensusParams = MAINNET): void {
   const tip = chain.tip();
   console.log(fett(`\nYSKAR Full Node ${VERSION}`));
   console.log(grau('─'.repeat(56)));
   console.log(`  Netz            ${NETWORK}`);
+  const aktivierung = naechsteAktivierung(params);
+  const stand = fassungsStatus(chain.hoehereFassungGesehen !== null);
+  console.log(`  Konsensfassung  ${IMPLEMENTIERTE_FASSUNG}` +
+    (aktivierung ? grau(`  (Fassung 6 ab Block ${nf(aktivierung)})`) : grau('  (Aktivierungshöhe von Fassung 6 noch nicht gesetzt)')));
+  if (stand !== 'current') {
+    console.log(gelb(`  Fassungsstand   ${stand}` +
+      (stand === 'outdated' ? ' – ein Block einer höheren Fassung wurde gesehen, Update nötig' : ' – Update prüfen')));
+  }
   console.log(`  Höhe            ${tip ? nf(tip.height) : '—'}`);
   console.log(`  Bester Block    ${tip ? toHex(tip.hash) : '—'}`);
   console.log(`  Chain Work      ${tip ? nf(tip.chainWork) : '—'}`);
@@ -364,7 +373,7 @@ function status(store: ChainStore, chain: ChainManager): void {
   console.log(`  Blöcke gespeichert ${nf(store.count())}`);
   console.log(`  Zweigenden      ${store.tips().length}`);
   if (tip) {
-    console.log(`  Zustandswurzel  ${toHex(stateRoot(chain.state()))}`);
+    console.log(`  Zustandswurzel  ${toHex(stateRootAt(chain.state(), chain.height(), params))}`);
     console.log(`  Im Umlauf       ${nf(Number(totalSupply(chain.state())) / 1e8)} YSR`);
     const alter = Math.round(Date.now() / 1000 - Number(tip.blockTime));
     console.log(`  Letzter Block   vor ${alter < 90 ? alter + ' s' : Math.round(alter / 60) + ' min'}`);
@@ -709,7 +718,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
         fee = stand.feeBps > 0 && !auszahlung ? 0 : stand.feeBps;
       }
       const pk = new PoolCoordinator({
-        name: opt.poolName, feeBps: fee, payoutAddress: auszahlung,
+        name: opt.poolName, feeBps: fee, payoutAddress: auszahlung, v6Height: params.v6Height,
         // Unsinn ("--pool-max abc") landet als NaN hier und laesst den Start
         // scheitern -- besser als stillschweigend ohne Grenze zu laufen.
         ...(opt.poolMax !== null ? { maxMiner: opt.poolMax } : {}),
@@ -834,7 +843,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     await netz?.stop();
     await server.close();
     console.log('');
-    status(store, chain);
+    status(store, chain, params);
     store.close();
     process.exit(0);
   };
@@ -924,7 +933,7 @@ async function main(): Promise<void> {
   }
 
   if (opt.befehl === 'mine') { await mine(opt, store, chain); return; }
-  if (opt.befehl === 'status') { status(store, chain); store.close(); return; }
+  if (opt.befehl === 'status') { status(store, chain, params); store.close(); return; }
   if (opt.befehl === 'chain') { chainListe(store); store.close(); return; }
   if (opt.befehl === 'tips') { tipsListe(store); store.close(); return; }
   if (opt.befehl === 'spiegel') { await spiegel(opt, store, chain); store.close(); return; }
@@ -958,7 +967,7 @@ async function main(): Promise<void> {
   }
 
   console.log('');
-  status(store, chain);
+  status(store, chain, params);
   store.close();
 }
 

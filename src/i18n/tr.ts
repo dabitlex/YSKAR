@@ -245,6 +245,7 @@ const tr = {
     leistung: 'Hash gücü',
     bloecke: 'Blok',
     gebuehr: 'Ücret',
+    haeltGuthaben: 'Havuz, toplu ödemeye kadar kazancını tutar',
     frei: (n: number): string => `${n} boş yer`,
     keinPlatz: 'Boş yer yok',
     dabei: 'Zaten bu havuzdasın',
@@ -402,6 +403,7 @@ const tr = {
 
   senden: {
     staub: 'Çok küçük — en az 0,000001 YSR.',
+    wechselPause: 'Ağ birazdan konsensüs sürümü 6’ya geçiyor. Lütfen yaklaşık yarım saat sonra tekrar dene.',
     titel: 'Gönder',
     empfaenger: 'Alıcı',
     scannen: 'Tara',

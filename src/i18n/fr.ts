@@ -249,6 +249,7 @@ const fr = {
     leistung: 'Puissance',
     bloecke: 'Blocs',
     gebuehr: 'Frais',
+    haeltGuthaben: 'Le pool garde tes gains jusqu’au paiement groupé',
     frei: (n: number): string => `${n} ${pl(n, 'place libre', 'places libres')}`,
     keinPlatz: 'Aucune place libre',
     dabei: 'Tu en fais déjà partie',
@@ -406,6 +407,7 @@ const fr = {
 
   senden: {
     staub: 'Trop faible — au moins 0,000001 YSR.',
+    wechselPause: 'Le réseau passe bientôt à la révision de consensus 6. Réessaie dans une demi-heure environ.',
     titel: 'Envoyer',
     empfaenger: 'Destinataire',
     scannen: 'Scanner',

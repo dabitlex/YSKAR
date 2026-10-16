@@ -79,11 +79,18 @@ export function mempoolNachziehen(
   state: State,
   hoehe: number,
 ): PflegeErgebnis {
+  /*
+    `hoehe` ist die Hoehe des Kopfes. Geprueft wird fuer den NAECHSTEN Block:
+    Dort muesste eine Transaktion stehen. An einer Aktivierungshoehe macht
+    das den Unterschied -- der Block auf dem Kopf folgt schon den neuen
+    Regeln (CONSENSUS_V6.md 3).
+  */
+  const naechste = hoehe + 1;
   const zurueck = wechsel.verdraengt.length > 0
-    ? pool.zurueck(transfers(wechsel.verdraengt), state, hoehe)
+    ? pool.zurueck(transfers(wechsel.verdraengt), state, naechste)
     : 0;
 
-  const { entfernt, ungueltig } = pool.nachBlock(transfers(wechsel.neu), state);
+  const { entfernt, ungueltig } = pool.nachBlock(transfers(wechsel.neu), state, naechste);
   const verfallen = pool.aufraeumen(MEMPOOL_MAX_ALTER);
 
   return { entfernt, ungueltig, zurueck, verfallen };

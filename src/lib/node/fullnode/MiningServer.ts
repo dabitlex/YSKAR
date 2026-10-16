@@ -419,10 +419,19 @@ export class MiningServer {
     if (!pk) return null;
     const e = pk.einstellungen();
     const { verbunden, belegt, hashrate } = this.poolBelegung();
-    const plaetze = pk.plaetze();
+    const plaetze = pk.plaetze(this.chain.height() + 1);
     return {
       name: e.name, feeBps: e.feeBps,
       feeBpsNext: e.feeBpsAbNaechstem,
+      /*
+        Wie der Pool auszahlt (CONSENSUS_V6.md 13): `coinbase` -- jeder Block
+        zahlt die Miner direkt, der Pool haelt nie Geld. `batch` -- der Pool
+        sammelt auf einem eigenen Konto und zahlt mit Sammelzahlungen aus;
+        dann haelt er Geld zwischen Block und Auszahlung. Dieser Knoten kann
+        bisher nur `coinbase`; das Verzeichnis zeigt den Modus an, damit ein
+        Miner weiss, worauf er sich einlaesst.
+      */
+      modus: 'coinbase',
       // `miner` hiess schon immer "Adressen mit offener Pool-Sitzung" und
       // bleibt das -- aeltere Fassungen der App zeigen genau diese Zahl.
       miner: verbunden.size, hashrate,
@@ -818,7 +827,7 @@ export class MiningServer {
     */
     if (modus === 'pool' && this.poolKoordinator) {
       const { belegt } = this.poolBelegung();
-      const plaetze = this.poolKoordinator.plaetze();
+      const plaetze = this.poolKoordinator.plaetze(this.chain.height() + 1);
       if (!belegt.has(addressHex) && belegt.size >= plaetze) {
         const nativ = NATIV_MINER.test(String(req.headers['user-agent'] ?? ''));
         return { status: nativ ? 200 : 409, body: {

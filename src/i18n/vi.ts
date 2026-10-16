@@ -245,6 +245,7 @@ const vi = {
     leistung: 'Sức tính toán',
     bloecke: 'Block',
     gebuehr: 'Phí',
+    haeltGuthaben: 'Pool giữ thu nhập của bạn cho đến khi trả gộp',
     frei: (n: number): string => `Còn ${n} chỗ trống`,
     keinPlatz: 'Hết chỗ trống',
     dabei: 'Bạn đã tham gia',
@@ -402,6 +403,7 @@ const vi = {
 
   senden: {
     staub: 'Quá nhỏ — tối thiểu 0,000001 YSR.',
+    wechselPause: 'Mạng sắp chuyển sang phiên bản đồng thuận 6. Vui lòng thử lại sau khoảng nửa giờ.',
     titel: 'Gửi',
     empfaenger: 'Người nhận',
     scannen: 'Quét',

@@ -271,6 +271,32 @@ export function transferBytesAt(height: number, memoLength: number, v6Height = V
   return (height >= v6Height ? TRANSFER_V2_BASE_BYTES : TRANSFER_BASE_BYTES) + memoLength;
 }
 
+/**
+ * Welche Fassung eine Wallet fuer eine Ueberweisung an `height` (dem
+ * naechsten Block) waehlt: 1 vor, 2 ab der Aktivierungshoehe von Fassung 6.
+ * Keine Uebergangsfrist (CONSENSUS_V6.md 16): Fassung 1 ist ab der Hoehe
+ * ungueltig, Fassung 2 davor.
+ */
+export function transferVersionAt(height: number, v6Height = V6_HEIGHT): number {
+  return height >= v6Height ? TRANSFER_V2 : TX_VERSION;
+}
+
+/**
+ * So viele Bloecke vor der Aktivierungshoehe sendet eine Wallet nichts mehr.
+ *
+ * Eine Ueberweisung der Fassung 1, die an der Grenze noch wartet, faellt
+ * aus dem Mempool und muesste neu unterschrieben werden; eine der Fassung 2
+ * nimmt vor der Hoehe kein Knoten an. In diesem kurzen Fenster -- rund eine
+ * halbe Stunde bei zehn Minuten je Block -- zeigt die Wallet an, dass das
+ * Netz gleich wechselt, statt etwas einzureichen, das haengen bleibt.
+ */
+export const WECHSEL_PAUSE_BLOECKE = 3;
+
+/** Liegt `height` (der naechste Block) in der Pause vor der Aktivierung? */
+export function sendepause(height: number, v6Height = V6_HEIGHT): boolean {
+  return height < v6Height && height + WECHSEL_PAUSE_BLOECKE >= v6Height;
+}
+
 /** Uebertragungsformat. CHAIN_ID steckt nur im Sighash, nicht auf der Leitung. */
 export function serializeTx(t: Tx): Uint8Array {
   const w = new Writer().u16(t.version).u8(t.type);

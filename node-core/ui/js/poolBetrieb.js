@@ -37,7 +37,9 @@ export function baue(ctx) {
   const gebuehrText = el('span.mono', { style: 'font-size:13px' });
   const gebuehrBald = el('div.notiz', { hidden: true });
   const gehtAn = el('div.box.karte-kopf', { style: 'font-size:13.5px' });
-  const plaetze = el('input', { id: 'b-plaetze', type: 'range', min: 1, max: 64, step: 1, value: 64 });
+  // Bis 255: die Grenze ab Konsensfassung 6. Vor der Aktivierungshöhe gibt
+  // die Kette 64 her; der Knoten nimmt je Höhe das Kleinere.
+  const plaetze = el('input', { id: 'b-plaetze', type: 'range', min: 1, max: 255, step: 1, value: 64 });
   const plaetzeText = el('span.mono', { style: 'font-size:13px' });
   const fehler = el('div.fehler', { hidden: true, role: 'alert' });
   const neustart = el('div.warnung', { hidden: true }, zeichen('info', 18),
@@ -60,9 +62,9 @@ export function baue(ctx) {
 
   const formular = () => ({ name: name.value.trim(), feeBps: Number(gebuehr.value), plaetze: Number(plaetze.value) });
 
-  /** Mit Gebühr gehört ein Platz dem Betreiber: höchstens 63 statt 64. */
+  /** Mit Gebühr gehört ein Platz dem Betreiber: höchstens 254 statt 255. */
   function zeigeRegler() {
-    const grenze = Number(gebuehr.value) > 0 ? 63 : 64;
+    const grenze = Number(gebuehr.value) > 0 ? 254 : 255;
     plaetze.max = grenze;
     if (Number(plaetze.value) > grenze) plaetze.value = grenze;
     text(gebuehrText, prozent(Number(gebuehr.value)));

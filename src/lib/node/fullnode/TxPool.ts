@@ -236,7 +236,7 @@ export class TxPool {
    * Entfernt wird, was im Block steht -- und alles, was durch ihn ungueltig
    * geworden ist: zu niedrige Nonce oder keine Deckung mehr.
    */
-  nachBlock(enthalten: Spend[], state: State): { entfernt: number; ungueltig: number } {
+  nachBlock(enthalten: Spend[], state: State, naechsteHoehe?: number): { entfernt: number; ungueltig: number } {
     let entfernt = 0;
     for (const t of enthalten) {
       if (this.remove(txidHex(t))) entfernt++;
@@ -247,7 +247,17 @@ export class TxPool {
       const konto = state.get(absender);
       let gebunden = 0n;
       for (const e of [...wartend.values()].sort((a, b) => a.nonce < b.nonce ? -1 : 1)) {
+        /*
+          Mit der Hoehe des naechsten Blocks faellt auch heraus, was die
+          Regeln dort nicht mehr zulassen -- vor allem eine Ueberweisung der
+          Fassung 1 an der Aktivierungshoehe von Fassung 6 (CONSENSUS_V6.md
+          3). Der Blockbau liesse sie ohnehin liegen; hier verschwindet sie
+          aus der Warteliste, statt eine Stunde als "wartend" zu stehen.
+        */
+        const regelbruch = naechsteHoehe !== undefined
+          && checkSpend(e.tx, naechsteHoehe, this.params) !== null;
         const weg = !konto
+          || regelbruch
           || e.nonce < konto.nonce
           || konto.balance < gebunden + spendTotal(e.tx);
         if (weg) { this.remove(e.txid); ungueltig++; continue; }

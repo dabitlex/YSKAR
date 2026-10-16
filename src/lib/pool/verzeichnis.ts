@@ -16,7 +16,7 @@
  * Was die Liste NICHT ist: eine Empfehlung oder eine Pruefung. Gebuehr,
  * Minerzahl und Leistung meldet der Pool selbst.
  */
-import { MAX_COINBASE_OUTPUTS } from '../core/params.ts';
+import { MAX_COINBASE_OUTPUTS_V6 } from '../core/params.ts';
 import { MAX_FEE_BPS } from './settlement.ts';
 
 export interface PoolEintrag {
@@ -82,8 +82,22 @@ export interface PoolStand {
   feeBps: number | null;
   /** Gefundene Bloecke laut Kette, gezaehlt ueber den Namen. */
   bloecke: number | null;
+  /**
+   * Wie der Pool auszahlt (CONSENSUS_V6.md 13). `coinbase`: jeder Block
+   * zahlt die Miner direkt, der Pool haelt nie Geld. `batch`: der Pool
+   * sammelt auf einem Konto und zahlt per Sammelzahlung aus -- er haelt
+   * Geld zwischen Block und Auszahlung. null: der Knoten meldet es nicht
+   * (aeltere Fassung); das war immer `coinbase`.
+   */
+  modus: PoolModus | null;
   /** Nur bei einer Abfrage mit Adresse: Hat sie schon einen Platz? */
   dabei?: boolean;
+}
+
+export type PoolModus = 'coinbase' | 'batch';
+
+function poolModus(x: unknown): PoolModus | null {
+  return x === 'coinbase' || x === 'batch' ? x : null;
 }
 
 const ganz = (x: unknown, min: number, max: number): number | null => {
@@ -112,7 +126,7 @@ export function standAusAntwort(eintrag: PoolEintrag, http: number | null, body:
   const leer: PoolStand = {
     host: eintrag.host, name: eintrag.name, kette: eintrag.kette ?? null,
     status: 'aus', belegt: null, plaetze: null, frei: null,
-    hashrate: null, feeBps: null, bloecke: null,
+    hashrate: null, feeBps: null, bloecke: null, modus: null,
   };
   if (http === null) return leer;
   const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
@@ -127,7 +141,8 @@ export function standAusAntwort(eintrag: PoolEintrag, http: number | null, body:
   }
   if (http !== 200) return leer;
 
-  const plaetze = ganz(b.plaetze, 1, MAX_COINBASE_OUTPUTS);
+  // Bis 255: ab Konsensfassung 6 traegt eine Coinbase so viele Empfaenger.
+  const plaetze = ganz(b.plaetze, 1, MAX_COINBASE_OUTPUTS_V6);
   // `belegt` kann kurz ueber `plaetze` liegen (Gebuehr angekuendigt: ein
   // Platz weniger). Angezeigt wird hoechstens "voll".
   const belegtRoh = ganz(b.belegt, 0, 1_000_000);
@@ -147,6 +162,7 @@ export function standAusAntwort(eintrag: PoolEintrag, http: number | null, body:
     ...leer, kette,
     status: belegt >= plaetze ? 'voll' : 'offen',
     belegt, plaetze, frei: plaetze - belegt, hashrate, feeBps,
+    modus: poolModus(b.modus),
   };
   if (typeof b.dabei === 'boolean') stand.dabei = b.dabei;
   return stand;

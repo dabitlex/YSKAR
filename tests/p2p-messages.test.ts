@@ -28,7 +28,7 @@ test('version überlebt Hin- und Rückweg', () => {
     chainWork: '76967472',
     nonce: 0x0123456789abcdefn,
     port: 8646,
-    timestamp: 1788912000n,
+    timestamp: 1788912000n, revision: 6, nextActivationHeight: 0,
   };
   const zurueck = M.decodeVersion(M.encodeVersion(v));
   assert.equal(zurueck.network, v.network);
@@ -45,7 +45,7 @@ test('Chain Work muss eine Zahl sein', () => {
   // niemand damit rechnet.
   const v: M.Version = {
     protocol: 1, network: 'x', chainId: MAINNET.chainId, agent: 'a',
-    height: 1, chainWork: '12; drop table', nonce: 0n, port: 1, timestamp: 0n,
+    height: 1, chainWork: '12; drop table', nonce: 0n, port: 1, timestamp: 0n, revision: 6, nextActivationHeight: 0,
   };
   // Beim Verpacken geht es noch durch -- beim Auspacken nicht.
   assert.throws(() => M.decodeVersion(M.encodeVersion(v)), /keine Zahl/);
@@ -55,7 +55,7 @@ test('Eine übergroße Kennung wird abgewiesen', () => {
   const v: M.Version = {
     protocol: 1, network: 'x', chainId: MAINNET.chainId,
     agent: 'a'.repeat(M.MAX_AGENT + 1),
-    height: 1, chainWork: '1', nonce: 0n, port: 1, timestamp: 0n,
+    height: 1, chainWork: '1', nonce: 0n, port: 1, timestamp: 0n, revision: 6, nextActivationHeight: 0,
   };
   assert.throws(() => M.encodeVersion(v), /zu lang/);
 });

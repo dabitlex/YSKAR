@@ -756,18 +756,51 @@ not of the consensus.
 
 ## 13a. Implementation status
 
-Implemented on the branch `consensus-v6` (not merged): `src/lib/core/params.ts` (constants, height
-helpers), `networks.ts` (`v6Height`, `REGTEST_V6`), `address.ts` (versions, raw form, wire form, HRPs),
-`script.ts` (encoding, well-formedness, witness, evaluation), `smt.ts` (state tree), `tx.ts` (transfer
-version 2, script spend, batch, v6 sighash, checks, sigops), `state.ts` (account record, `stateRootAt`,
-budget, limits), `block.ts` (`checkHeaderVersion`, `precheckHeader`, per-height limits),
-`validate.ts`, `builder.ts`; node layer: `ChainManager.accept()` (header first, `fassung_unbekannt`,
-`hoehereFassungGesehen`), `SyncManager` (keeps the peer on an unknown revision), `TxPool` (all spend
-types, keyed by sender raw address and nonce, fee by actual size, `validFrom` in the future refused),
-`builder.selectTransactions` (signature budget and block size), `jobVorlage` (state root by height), `ReadApi`,
-`kettenIndex`, `store` (mirror payload). Not yet implemented: the handshake fields of 11.4, the
-time-based update hints of 11.1, the status API fields of 13, the pool server's batch mode, wallet
-support, mirror schema. Test vectors (14) are not yet published.
+Implemented on the branch `consensus-v6` (not merged):
+
+*Consensus (phases 1 to 4):* `src/lib/core/params.ts` (constants, height helpers), `networks.ts`
+(`v6Height`, `REGTEST_V6`), `address.ts` (versions, raw form, wire form, HRPs), `script.ts` (encoding,
+well-formedness, witness, evaluation), `smt.ts` (state tree), `tx.ts` (transfer version 2, script
+spend, batch, v6 sighash, checks, sigops), `state.ts` (account record, `stateRootAt`, budget, limits),
+`block.ts` (`checkHeaderVersion`, `precheckHeader`, per-height limits), `validate.ts`, `builder.ts`.
+
+*Node (phase 5):* `ChainManager.accept()` (header first, `fassung_unbekannt`, `hoehereFassungGesehen`),
+`SyncManager` (keeps the peer on an unknown revision; does not order blocks at or above the height
+from a peer of a lower revision, 11.4), `TxPool` (all spend types, keyed by sender raw address and
+nonce, fee by actual size, `validFrom` in the future refused; after each block, entries the next
+height no longer allows are dropped, so a version 1 transfer leaves the queue at the activation
+height), `builder.selectTransactions` (signature budget and block size), `jobVorlage` (state root by
+height), `ReadApi` (`/summary` with `revision`, `nextActivationHeight`, `revision_status`; `/fees`
+with `fassung`, `basisBytes`, `sendepause`, `aktivierung` for wallets), `kettenIndex`, `store` (mirror
+payload with `flags`, `valid_from`, `script`, `witness`), `src/lib/node/fassung.ts` (revision status
+of 11.1, eviction window and block-source rule of 11.4), P2P handshake fields of 11.4
+(`messages.ts`, `PeerConnection`, `PeerManager`; documented in [P2P.md](P2P.md)), command-line node
+status, Node Core 1.0.0 (status API, settings page with revision and activation height, peer list
+with revision).
+
+*Pool server:* coinbase with up to 255 outputs from the height (`settlement.abrechnen` takes the
+limit, `PoolCoordinator.plaetze(height)`, `aufteilung` by height); the pool reports `modus:
+"coinbase"` under `/pool`; the directory (`verzeichnis.ts`) reads `modus` and both apps show a note
+when a pool holds funds (`batch`). The batch payout mode itself (pool account, batch transfers,
+owed-balance ledger) is **not** implemented: it needs a hot key on the pool server and is only
+required above 254 miners per block; see 16.
+
+*Wallets:* `tx.ts` offers `transferVersionAt` and `sendepause` (3 blocks before the height, no
+transfer is submitted: a version 1 would be left in the queue at the boundary, a version 2 is not
+yet accepted). Node Core wallet and Mini App (`Send.tsx`) pick the version from the node's `/fees`
+answer and show the pause. `src/lib/wallet/mehrfach.ts` implements k-of-n accounts (7.1), the
+co-signing file (JSON with hex fields: unsigned transaction, signatures per key), signing, and the
+assembly of the witness with exactly k slots in script order; `tests/wallet-mehrfach.test.ts` runs
+the full 2-of-3 flow through the mempool. **No user interface for it yet** in Mini App, Node Core
+or the command-line node; address input and display already accept version 1 addresses everywhere.
+
+*Mirror:* `supabase/migrations/00027_konsensfassung_6.sql` (not applied): address lengths 20 or 33 in
+transactions, accounts and mempool; types 2 and 3; columns `flags`, `valid_from`, `script`,
+`witness`; `commit_block` writes them and accepts a missing `to_addr` for a batch. Prefix search of
+version 1 addresses in the explorer is not adapted (a full address works).
+
+Not yet done: batch payout mode, multi-signature user interfaces, signature budget benchmark (14),
+remaining test vectors (14), `V6_HEIGHT` and `V6_TIMESTAMP`.
 
 ## 14. Tests and test vectors
 
@@ -855,6 +888,10 @@ Open, to be settled before the activation height is set:
 4. **Mirror schema.** To be designed with the implementation; not consensus.
 5. **Signature budget value.** 8,000 is a placeholder of the right order of magnitude; the final value
    follows from the performance test in 14 on the main node's hardware.
+6. **Pool batch payout mode.** Not consensus, but a product decision: in this mode the pool holds
+   miners' funds between block and payout and needs a signing key on the server. The directory and
+   both apps already show the mode; the mode itself is built only if a pool actually approaches 254
+   miners per block. Leaning: later, and only on request of a pool operator.
 
 ## 17. References
 

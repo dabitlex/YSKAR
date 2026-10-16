@@ -129,7 +129,11 @@ test('Plätze: Der Betreiber kann weniger anbieten, aber nicht mehr', () => {
     { name: 'p', feeBps: 100, payoutAddress: new Uint8Array(20).fill(9), maxMiner: 64 });
   assert.equal(zuViel.plaetze(), 63, 'mehr als die Kette auszahlt, geht nicht');
 
-  for (const falsch of [0, -1, 65, 1.5, Number.NaN]) {
+  // Einstellbar bis 255 (Fassung 6); vor der Hoehe wirkt davon hoechstens 64.
+  const hoch = new PoolCoordinator({ name: 'p', feeBps: 0, payoutAddress: null, maxMiner: 200 });
+  assert.equal(hoch.plaetze(), 64, 'ohne Aktivierung bleibt es bei 64');
+
+  for (const falsch of [0, -1, 256, 1.5, Number.NaN]) {
     assert.throws(
       () => new PoolCoordinator({ name: 'p', feeBps: 0, payoutAddress: null, maxMiner: falsch }),
       /Platzzahl/, `maxMiner ${falsch} muss abgelehnt werden`);

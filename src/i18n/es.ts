@@ -245,6 +245,7 @@ const es = {
     leistung: 'Potencia',
     bloecke: 'Bloques',
     gebuehr: 'Comisión',
+    haeltGuthaben: 'El pool guarda tus ganancias hasta el pago por lotes',
     frei: (n: number): string => (n === 1 ? '1 plaza libre' : `${n} plazas libres`),
     keinPlatz: 'Sin plazas libres',
     dabei: 'Ya estás dentro',
@@ -402,6 +403,7 @@ const es = {
 
   senden: {
     staub: 'Demasiado pequeño — mínimo 0,000001 YSR.',
+    wechselPause: 'La red está a punto de cambiar a la revisión de consenso 6. Inténtalo de nuevo en media hora aproximadamente.',
     titel: 'Enviar',
     empfaenger: 'Destinatario',
     scannen: 'Escanear',

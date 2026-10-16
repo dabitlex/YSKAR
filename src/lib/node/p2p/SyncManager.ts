@@ -17,6 +17,7 @@
  */
 import { deserializeBlock, headerHash, deserializeHeader, HEADER_SIZE } from '../../core/block.ts';
 import { targetFromDifficulty } from '../../core/params.ts';
+import { liefertBloeckeAb, IMPLEMENTIERTE_FASSUNG } from '../fassung.ts';
 import { sha256d } from '../../core/hash.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
@@ -641,6 +642,7 @@ export class SyncManager {
     }
 
     const wunsch: { typ: number; hash: Uint8Array }[] = [];
+    let alteFassung = 0;
 
     for (const w of this.warteschlange) {
       // offen enthaelt schon, was in diesem Durchlauf bestellt wird (siehe
@@ -651,6 +653,9 @@ export class SyncManager {
       if (this.offen.has(w.key) || this.store.has(w.hash)) continue;
       // Ein Zweig unter der Mindestarbeit wird nicht geholt (S7).
       if (!w.frei) continue;
+      // Ein Peer alter Fassung hat keine Bloecke ab der Aktivierungshoehe
+      // (CONSENSUS_V6.md 11.4) -- bei ihm zu bestellen hiesse warten.
+      if (!liefertBloeckeAb(fassung(p), w.hoehe, this.params)) { alteFassung++; continue; }
       wunsch.push({ typ: INV_BLOCK, hash: w.hash });
       this.offen.set(w.key, { peer: p, seit: Date.now() });
     }
@@ -658,6 +663,10 @@ export class SyncManager {
     if (wunsch.length > 0) {
       this.lieferant = p;
       p.send('getdata', encodeGetData(wunsch));
+    } else if (alteFassung > 0) {
+      // Dieser Peer kann nichts von dem liefern, was fehlt. Beim naechsten
+      // Takt (pruefeOffene) kommt ein anderer an die Reihe.
+      this.meiden.add(p);
     }
   }
 
@@ -1156,6 +1165,11 @@ export class SyncManager {
 function gespeichert(store: ChainStore, hash: Uint8Array): { hoehe: number; arbeit: bigint } | undefined {
   const b = store.get(hash);
   return b ? { hoehe: b.height, arbeit: b.chainWork } : undefined;
+}
+
+/** Konsensfassung eines Peers -- die eigene, wenn die Verbindung sie nicht nennen kann. */
+function fassung(p: PeerConnection): number {
+  return typeof p.fremdeFassung === 'function' ? p.fremdeFassung() : IMPLEMENTIERTE_FASSUNG;
 }
 
 /** Sendepuffer eines Peers -- 0, wenn die Verbindung ihn nicht nennen kann. */

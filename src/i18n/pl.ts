@@ -253,6 +253,7 @@ const pl = {
     leistung: 'Moc',
     bloecke: 'Bloki',
     gebuehr: 'Opłata',
+    haeltGuthaben: 'Pool przechowuje Twoje zarobki do zbiorczej wypłaty',
     frei: (n: number): string => `${n} ${odm(n, 'wolne miejsce', 'wolne miejsca', 'wolnych miejsc')}`,
     keinPlatz: 'Brak wolnych miejsc',
     dabei: 'Już jesteś w tym poolu',
@@ -410,6 +411,7 @@ const pl = {
 
   senden: {
     staub: 'Za mało — co najmniej 0,000001 YSR.',
+    wechselPause: 'Sieć zaraz przejdzie na wersję konsensusu 6. Spróbuj ponownie za około pół godziny.',
     titel: 'Wyślij',
     empfaenger: 'Odbiorca',
     scannen: 'Skanuj',

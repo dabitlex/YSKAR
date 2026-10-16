@@ -245,6 +245,7 @@ const id = {
     leistung: 'Daya hash',
     bloecke: 'Blok',
     gebuehr: 'Biaya',
+    haeltGuthaben: 'Pool menahan hasilmu sampai pembayaran kolektif',
     frei: (n: number): string => `${n} slot kosong`,
     keinPlatz: 'Tidak ada slot kosong',
     dabei: 'Kamu sudah bergabung',
@@ -402,6 +403,7 @@ const id = {
 
   senden: {
     staub: 'Terlalu kecil — minimal 0,000001 YSR.',
+    wechselPause: 'Jaringan akan segera beralih ke revisi konsensus 6. Coba lagi dalam sekitar setengah jam.',
     titel: 'Kirim',
     empfaenger: 'Penerima',
     scannen: 'Pindai',

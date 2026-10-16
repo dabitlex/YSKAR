@@ -46,7 +46,22 @@ export interface Version {
   /** Port, auf dem dieser Knoten selbst lauscht. 0 = nimmt nichts an. */
   port: number;
   timestamp: bigint;
+  /**
+   * Hoechste Konsensfassung, die der Peer umsetzt (CONSENSUS_V6.md 11.4).
+   *
+   * Angehaengt hinter dem Zeitstempel, zusammen mit nextActivationHeight.
+   * Ein Knoten ohne diese Felder liest nur bis zum Zeitstempel und laesst
+   * den Rest liegen -- deshalb bleibt PROTOCOL_VERSION bei 1, und ein alter
+   * Knoten trennt nicht. Fehlen die Felder, gilt der Peer als Fassung 5:
+   * die letzte, die ohne sie ausgeliefert wurde.
+   */
+  revision: number;
+  /** Naechste Aktivierungshoehe, die der Peer kennt. 0 = keine. */
+  nextActivationHeight: number;
 }
+
+/** Fassung eines Peers, dessen Handschlag die Felder noch nicht traegt. */
+export const FASSUNG_OHNE_FELDER = 5;
 
 export function encodeVersion(v: Version): Uint8Array {
   if (v.agent.length > MAX_AGENT) throw new Error('Kennung zu lang');
@@ -66,6 +81,8 @@ export function encodeVersion(v: Version): Uint8Array {
     .u64(v.nonce)
     .u32(v.port)
     .u64(v.timestamp)
+    .u8(v.revision)
+    .u32(v.nextActivationHeight)
     .finish();
 }
 
@@ -86,7 +103,19 @@ export function decodeVersion(b: Uint8Array): Version {
   const nonce = r.u64();
   const port = r.u32();
   const timestamp = r.u64();
-  return { protocol, network, chainId, agent, height, chainWork, nonce, port, timestamp };
+  // Die Felder von 11.4 sind freiwillig: Ein Peer vor ihrer Einfuehrung
+  // schickt sie nicht. Ein halbes Feld dagegen ist ein Fehler.
+  let revision = FASSUNG_OHNE_FELDER;
+  let nextActivationHeight = 0;
+  if (r.rest > 0) {
+    if (r.rest < 5) throw new Error('Fassungsfelder unvollstaendig');
+    revision = r.u8();
+    nextActivationHeight = r.u32();
+  }
+  return {
+    protocol, network, chainId, agent, height, chainWork, nonce, port, timestamp,
+    revision, nextActivationHeight,
+  };
 }
 
 // --------------------------------------------------------- Lebenszeichen

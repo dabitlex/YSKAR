@@ -245,6 +245,7 @@ const it = {
     leistung: 'Potenza',
     bloecke: 'Blocchi',
     gebuehr: 'Commissione',
+    haeltGuthaben: 'Il pool trattiene i tuoi guadagni fino al pagamento cumulativo',
     frei: (n: number): string => (n === 1 ? '1 posto libero' : `${n} posti liberi`),
     keinPlatz: 'Nessun posto libero',
     dabei: 'Ne fai già parte',
@@ -402,6 +403,7 @@ const it = {
 
   senden: {
     staub: 'Troppo poco: almeno 0,000001 YSR.',
+    wechselPause: 'La rete sta per passare alla revisione di consenso 6. Riprova tra circa mezz’ora.',
     titel: 'Invia',
     empfaenger: 'Destinatario',
     scannen: 'Scansiona',

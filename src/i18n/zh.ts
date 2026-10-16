@@ -245,6 +245,7 @@ const zh = {
     leistung: '算力',
     bloecke: '区块',
     gebuehr: '手续费',
+    haeltGuthaben: '矿池会保留你的收益，直到批量支付',
     frei: (n: number): string => `剩余 ${n} 个名额`,
     keinPlatz: '没有剩余名额',
     dabei: '你已在此矿池中',
@@ -402,6 +403,7 @@ const zh = {
 
   senden: {
     staub: '金额太小——至少 0.000001 YSR。',
+    wechselPause: '网络即将切换到共识版本 6。请在大约半小时后重试。',
     titel: '发送',
     empfaenger: '收款方',
     scannen: '扫码',

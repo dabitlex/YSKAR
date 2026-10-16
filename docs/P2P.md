@@ -74,7 +74,7 @@ checksum) closes the connection. Reading on after such an error would be guessin
 
 | Command | Payload | Purpose |
 |---|---|---|
-| `version` | `u32 protocol`, network name (length byte + text), `chainId(32)`, agent (length byte + text), `u32 height`, chain work (length byte + decimal text), `u64 nonce`, `u32 port`, `u64 timestamp` | Handshake: who am I, which chain, how much work |
+| `version` | `u32 protocol`, network name (length byte + text), `chainId(32)`, agent (length byte + text), `u32 height`, chain work (length byte + decimal text), `u64 nonce`, `u32 port`, `u64 timestamp`, then optionally `u8 revision`, `u32 nextActivationHeight` | Handshake: who am I, which chain, how much work, which consensus revision |
 | `verack` | empty | Handshake: acknowledged |
 | `ping` | `u64 nonce` | Keep-alive |
 | `pong` | `u64 nonce` | Answer to `ping` with the same nonce |
@@ -184,6 +184,21 @@ stay open forever and achieve nothing.
 
 **The protocol version.** It must be 1. As long as there is only one version, leniency would be
 guessing.
+
+**Consensus revision and activation height** (since Node Core 1.0.0, [CONSENSUS_V6.md](CONSENSUS_V6.md)
+section 11.4). Two fields follow the timestamp: `u8 revision`, the highest consensus revision the
+node implements, and `u32 nextActivationHeight`, the next activation height it knows (0 if none).
+They are appended rather than inserted, and the protocol version stays 1, because a node from before
+these fields reads up to the timestamp and ignores the rest; it keeps the connection. A `version`
+without the fields is read as revision 5 with no known activation. A `version` with only part of
+the fields is unreadable.
+
+What the fields change: in the last 1,000 blocks before an activation height, a node whose inbound
+slots are full prefers to evict a peer whose revision is below the one the height requires (after
+a flagged peer and after a peer that never finished the handshake), never the last peer of a
+network group (/16 for IPv4, /32 for IPv6). From the height on, a peer that announces a lower
+revision is not asked for blocks at or above the height; it is neither banned nor disconnected, and
+it remains a source for blocks below the height.
 
 ### Order is part of the protection
 

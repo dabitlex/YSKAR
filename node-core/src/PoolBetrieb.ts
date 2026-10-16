@@ -15,8 +15,8 @@
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 
-import { MAX_COINBASE_OUTPUTS } from '../../src/lib/core/params.ts';
-import { MAX_FEE_BPS, MAX_MINERS_JE_BLOCK } from '../../src/lib/pool/settlement.ts';
+import { MAX_COINBASE_OUTPUTS, MAX_COINBASE_OUTPUTS_V6 } from '../../src/lib/core/params.ts';
+import { MAX_FEE_BPS, minerPlaetze } from '../../src/lib/pool/settlement.ts';
 import { nameToExtra } from '../../src/lib/chain/finderName.ts';
 import { KernFehler } from './Programm.ts';
 
@@ -27,7 +27,11 @@ export interface BetriebEinstellung {
   name: string;
   /** Gebuehr in Basispunkten, 0 bis 500. */
   feeBps: number;
-  /** So viele Adressen nimmt der Pool hoechstens auf, 1 bis 64. */
+  /**
+   * So viele Adressen nimmt der Pool hoechstens auf, 1 bis 255. Was die
+   * Kette an der jeweiligen Hoehe traegt (64, ab Konsensfassung 6 255),
+   * begrenzt zusaetzlich -- siehe PoolCoordinator.plaetze().
+   */
   plaetze: number;
   /** Die Schnittstelle des Knotens auch fuer andere Geraete im eigenen Netz oeffnen. */
   heimnetz: boolean;
@@ -40,9 +44,13 @@ export const VORGABE_BETRIEB: BetriebEinstellung = {
 /** Die Gebuehr laesst sich in Schritten von einem Viertelprozent einstellen. */
 export const GEBUEHR_SCHRITT_BPS = 25;
 
-/** Wie viele Adressen die Kette bei dieser Gebuehr je Block auszahlen kann. */
+/**
+ * Wie viele Adressen die Kette bei dieser Gebuehr je Block hoechstens
+ * auszahlen kann -- die Grenze der Fassung 6. Vor ihrer Aktivierung gilt die
+ * kleinere Grenze der Kette; die zieht PoolCoordinator.plaetze() je Hoehe.
+ */
 export function platzGrenze(feeBps: number): number {
-  return feeBps > 0 ? MAX_MINERS_JE_BLOCK : MAX_COINBASE_OUTPUTS;
+  return minerPlaetze(MAX_COINBASE_OUTPUTS_V6, feeBps);
 }
 
 /** Ist das ein Name, der in einem Block stehen kann? Wirft mit dem Grund. */
@@ -79,8 +87,8 @@ export function pruefeBetrieb(roh: unknown, basis: BetriebEinstellung, streng: b
   }
   if (r.plaetze !== undefined) {
     const n = Number(r.plaetze);
-    if (Number.isInteger(n) && n >= 1 && n <= MAX_COINBASE_OUTPUTS) e.plaetze = n;
-    else nein('betrieb_plaetze', `Die Zahl der Plätze liegt zwischen 1 und ${MAX_COINBASE_OUTPUTS}.`, [MAX_COINBASE_OUTPUTS]);
+    if (Number.isInteger(n) && n >= 1 && n <= MAX_COINBASE_OUTPUTS_V6) e.plaetze = n;
+    else nein('betrieb_plaetze', `Die Zahl der Plätze liegt zwischen 1 und ${MAX_COINBASE_OUTPUTS_V6}.`, [MAX_COINBASE_OUTPUTS_V6]);
   }
   if (typeof r.heimnetz === 'boolean') e.heimnetz = r.heimnetz;
   if (typeof r.aktiv === 'boolean') e.aktiv = r.aktiv;

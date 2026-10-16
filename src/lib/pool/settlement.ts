@@ -15,7 +15,7 @@
  * verschiedenen Ergebnissen. Gerechnet wird in der kleinsten Einheit.
  */
 import { toHex } from '../core/codec.ts';
-import { MAX_COINBASE_OUTPUTS, DUST_LIMIT } from '../core/params.ts';
+import { MAX_COINBASE_OUTPUTS, MAX_COINBASE_OUTPUTS_V6, DUST_LIMIT } from '../core/params.ts';
 
 /** Hoechste zulaessige Gebuehr: 500 Basispunkte, also 5,00 %. */
 export const MAX_FEE_BPS = 500;
@@ -26,8 +26,18 @@ export const MAX_FEE_BPS = 500;
  * Ein Platz geht an die Gebuehr des Betreibers, sofern sie groesser als null
  * ist. Wer nicht hineinpasst, bekommt in DIESEM Block nichts (siehe
  * `ausgelassen` in Abrechnung). Einen Ausgleich dafuer gibt es nicht.
+ *
+ * Bis Konsensfassung 6 sind es 63 (64 Empfaenger), ab der Aktivierungshoehe
+ * 254 (255 Empfaenger, CONSENSUS_V6.md 6.5). Die Konstanten nennen die
+ * Grenze vor der Hoehe; wer die Hoehe kennt, rechnet mit minerPlaetze().
  */
 export const MAX_MINERS_JE_BLOCK = MAX_COINBASE_OUTPUTS - 1;
+export const MAX_MINERS_JE_BLOCK_V6 = MAX_COINBASE_OUTPUTS_V6 - 1;
+
+/** Plaetze fuer Miner bei `maxOutputs` Coinbase-Empfaengern und dieser Gebuehr. */
+export function minerPlaetze(maxOutputs: number, feeBps: number): number {
+  return feeBps > 0 ? maxOutputs - 1 : maxOutputs;
+}
 
 export interface Anteil {
   /** Adresse, an die ausgezahlt wird -- 20 Byte. */
@@ -97,8 +107,13 @@ export function abrechnen(
   anteile: Anteil[],
   feeBps: number,
   betreiber: Uint8Array | null,
+  /** Empfaenger, die die Coinbase an dieser Hoehe traegt: 64 oder ab Fassung 6 255. */
+  maxOutputs: number = MAX_COINBASE_OUTPUTS,
 ): Abrechnung {
   if (brutto <= 0n) throw new Error('Bruttobetrag muss positiv sein');
+  if (!Number.isInteger(maxOutputs) || maxOutputs < 1 || maxOutputs > MAX_COINBASE_OUTPUTS_V6) {
+    throw new Error(`Empfaengergrenze ${maxOutputs} liegt nicht zwischen 1 und ${MAX_COINBASE_OUTPUTS_V6}`);
+  }
 
   const mitArbeit = anteile.filter(a => a.work > 0n);
   if (mitArbeit.length === 0) {
@@ -135,7 +150,7 @@ export function abrechnen(
     die Adresse, damit das Ergebnis deterministisch ist. Zwei Knoten
     muessen bei derselben Runde dieselbe Auswahl treffen.
   */
-  const platz = fee > 0n ? MAX_MINERS_JE_BLOCK : MAX_COINBASE_OUTPUTS;
+  const platz = minerPlaetze(maxOutputs, fee > 0n ? 1 : 0);
   const sortiert = [...summiert.values()].sort((x, y) =>
     x.work !== y.work ? (x.work > y.work ? -1 : 1)
                       : (toHex(x.to) < toHex(y.to) ? -1 : 1));
@@ -201,8 +216,8 @@ export function abrechnen(
   if (summe !== brutto) {
     throw new Error(`Aufteilung ergibt ${summe}, erwartet ${brutto}`);
   }
-  if (outputs.length > MAX_COINBASE_OUTPUTS) {
-    throw new Error(`${outputs.length} Empfaenger, hoechstens ${MAX_COINBASE_OUTPUTS}`);
+  if (outputs.length > maxOutputs) {
+    throw new Error(`${outputs.length} Empfaenger, hoechstens ${maxOutputs}`);
   }
 
   return { outputs, fee, verteilt: verteilbar, ausgelassen };

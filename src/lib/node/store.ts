@@ -4,7 +4,7 @@ import {
   type Block, type BlockHeader, deserializeHeader, serializeBlock,
   serializeHeader, headerHash,
 } from '../core/block.ts';
-import { deserializeTx, serializeTx, txid, coinbaseTotal, senderRaw, spendOutputs, spendAmount, type Spend, TX_COINBASE, TX_BATCH }
+import { deserializeTx, serializeTx, txid, coinbaseTotal, senderRaw, spendOutputs, spendAmount, type Spend, TX_COINBASE, TX_BATCH, TX_SCRIPT_SPEND }
   from '../core/tx.ts';
 import { type BlockTiming } from '../core/difficulty.ts';
 import { toHex, fromHex } from '../core/codec.ts';
@@ -183,7 +183,12 @@ export async function commitBlock(
              public_key: 'publicKey' in t ? hx(t.publicKey) : null,
              signature: 'signature' in t ? hx(t.signature) : null,
              coinbase_outputs: t.type === TX_BATCH
-               ? t.outputs.map(o => ({ to: hx(o.to), amount: o.amount.toString() })) : null };
+               ? t.outputs.map(o => ({ to: hx(o.to), amount: o.amount.toString() })) : null,
+             // Fassung 6 (Migration 00027): ein aelterer Spiegel ignoriert unbekannte Felder.
+             flags: 'flags' in t && t.flags !== undefined ? t.flags : null,
+             valid_from: 'validFrom' in t && t.validFrom !== undefined ? t.validFrom : null,
+             script: t.type === TX_SCRIPT_SPEND ? hx(t.script) : null,
+             witness: t.type === TX_SCRIPT_SPEND ? hx(t.witness) : null };
   });
 
   const { data, error } = await db().schema('chain2').rpc('commit_block', {

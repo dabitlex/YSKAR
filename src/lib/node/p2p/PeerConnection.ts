@@ -29,6 +29,7 @@ import {
 } from './messages.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
+import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung } from '../fassung.ts';
 
 /** Wie lange der Handschlag dauern darf. */
 export const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -79,6 +80,10 @@ export interface PeerInfo {
   agent: string;
   height: number;
   chainWork: bigint;
+  /** Hoechste Konsensfassung der Gegenseite (11.4); 5 ohne die Felder. */
+  revision: number;
+  /** Naechste Aktivierungshoehe, die die Gegenseite kennt; 0 = keine. */
+  nextActivationHeight: number;
   seit: number;
   empfangen: number;
   gesendet: number;
@@ -196,6 +201,8 @@ export class PeerConnection {
       agent: this.fern?.agent ?? '',
       height: this.fern?.height ?? 0,
       chainWork: this.fern ? BigInt(this.fern.chainWork) : 0n,
+      revision: this.fremdeFassung(),
+      nextActivationHeight: this.fern?.nextActivationHeight ?? 0,
       seit: this.seit, empfangen: this.empfangen, gesendet: this.gesendet,
     };
   }
@@ -203,6 +210,8 @@ export class PeerConnection {
   /** Kumulierte Arbeit der Gegenseite -- entscheidet, wer aufholt. */
   fremdeArbeit(): bigint { return this.fern ? BigInt(this.fern.chainWork) : 0n; }
   fremdeHoehe(): number { return this.fern?.height ?? 0; }
+  /** Konsensfassung der Gegenseite; vor dem Handschlag 0. */
+  fremdeFassung(): number { return this.fern?.revision ?? 0; }
   nonce(): bigint { return this.eigeneNonce; }
 
   send(command: Command, payload: Uint8Array): boolean {
@@ -285,6 +294,8 @@ export class PeerConnection {
       nonce: this.eigeneNonce,
       port: this.eigenerPort,
       timestamp: BigInt(Math.floor(Date.now() / 1000)),
+      revision: IMPLEMENTIERTE_FASSUNG,
+      nextActivationHeight: naechsteAktivierung(this.params),
     }));
   }
 

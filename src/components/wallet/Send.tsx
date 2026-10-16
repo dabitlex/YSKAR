@@ -16,6 +16,12 @@ interface Markt {
   minFee: string;
   /** Weiterleitungs-Satz je Byte ab Konsensfassung 3, sonst null. */
   mindestJeByte?: string | null;
+  /** Fassung der Ueberweisung fuer den naechsten Block: 1, ab Konsensfassung 6 2. Aeltere Knoten nennen sie nicht. */
+  fassung?: number;
+  /** Groesse ohne Notiz an dieser Hoehe (168 oder 174 Byte). */
+  basisBytes?: number;
+  /** Die letzten Bloecke vor der Aktivierung von Fassung 6: jetzt nichts einreichen. */
+  sendepause?: boolean;
   wartend: number;
   andrang: boolean;
   stufen: Record<'langsam' | 'normal' | 'schnell', { fee: string; block: number }>;
@@ -162,7 +168,12 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   // Ohne Auskunft vom Knoten: alte Mindestgebühr -- die deckt jede Regel.
   // Mit Auskunft: Stufe des Marktes, aber nie unter dem Satz je Byte für
   // die tatsächliche Größe dieser Transaktion (die Notiz macht sie länger).
-  const bodenJeByte = markt?.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(transferBytes(notizBytes(notiz))) : 0n;
+  const bodenJeByte = markt?.mindestJeByte
+    ? BigInt(markt.mindestJeByte) * BigInt((markt.basisBytes ?? transferBytes(0)) + notizBytes(notiz)) : 0n;
+  // Fassung 2 ab der Aktivierungshoehe von Konsensfassung 6, Fassung 1 davor
+  // (CONSENSUS_V6.md 3). Der Knoten sagt, was der naechste Block verlangt.
+  const fassung = markt?.fassung === 2 ? 2 : 1;
+  const wechselPause = markt?.sendepause === true;
   const stufenGebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
   const gebuehr = stufenGebuehr > bodenJeByte ? stufenGebuehr : bodenJeByte;
   const zielBlock = markt ? markt.stufen[stufe].block : 1;
@@ -196,7 +207,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const staub = !!markt?.mindestJeByte && einheiten > 0n && einheiten < DUST_LIMIT;
   const summe = einheiten + gebuehr;
   const reicht = einheiten > 0n && summe <= guthaben;
-  const bereit = zielGueltig && !eigene && reicht && !staub;
+  const bereit = zielGueltig && !eigene && reicht && !staub && !wechselPause;
 
   const genau = (v: bigint) => betragGenau(v, locale, decimals);
   // Gebühren sind seit Fassung 3 winzig: so viele Stellen wie nötig, mindestens vier.
@@ -309,6 +320,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         publicKey: kp.publicKey,
         privateKey: kp.privateKey,
         memo: notiz ? new TextEncoder().encode(notizKuerzen(notiz)) : undefined,
+        version: fassung,
       });
 
       /*
@@ -470,7 +482,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         {/* Das Guthaben kann sich aendern, waehrend man hier liest (eine andere
             Zahlung geht hinaus). Dann nicht senden lassen, was der Knoten ablehnt. */}
         {!bereit ? (
-          <div className="mt-3"><Notice tone="risk">{staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
+          <div className="mt-3"><Notice tone="risk">{wechselPause ? t.senden.wechselPause : staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
         ) : (
           <p className="rise rise-1 mx-1 mt-3 text-[12.5px] font-semibold leading-[1.45] text-dim">{t.senden.warnung}</p>
         )}
@@ -535,6 +547,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
             <p className="text-[12.5px] font-bold text-risk">{t.senden.zuViel(fmtGebuehr(gebuehr))}</p>
           ) : staub ? (
             <p className="text-[12.5px] font-bold text-risk">{t.senden.staub}</p>
+          ) : wechselPause ? (
+            <p className="text-[12.5px] font-bold text-risk">{t.senden.wechselPause}</p>
           ) : ausCode ? (
             <p className="text-[12.5px] font-semibold text-work">{t.senden.ausCode}</p>
           ) : null}

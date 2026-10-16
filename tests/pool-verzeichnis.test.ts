@@ -89,7 +89,7 @@ test('Stand: Knoten ohne Pool und stumme Knoten sind nicht waehlbar', () => {
 
 test('Stand: unbrauchbare Zahlen werden verworfen, nicht angezeigt', () => {
   for (const kaputt of [
-    { plaetze: 0 }, { plaetze: 65 }, { plaetze: 1.5 }, { plaetze: 'viele' }, { plaetze: null },
+    { plaetze: 0 }, { plaetze: 256 }, { plaetze: 1.5 }, { plaetze: 'viele' }, { plaetze: null },
     { belegt: -1 }, { belegt: 2.5 }, { belegt: undefined },
   ]) {
     const s = standAusAntwort(E, 200, { ...gut, ...kaputt });

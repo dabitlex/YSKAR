@@ -13,7 +13,7 @@
  * neuer Block kommt.
  */
 import { deserializeBlock } from '../../src/lib/core/block.ts';
-import { TX_COINBASE, txid } from '../../src/lib/core/tx.ts';
+import { TX_COINBASE, TX_BATCH, txid, senderRaw, spendOutputs } from '../../src/lib/core/tx.ts';
 import { encodeAddress } from '../../src/lib/core/address.ts';
 import { toHex } from '../../src/lib/core/codec.ts';
 import { notizAusHex } from '../../src/lib/wallet/notiz.ts';
@@ -99,18 +99,30 @@ export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
         e.summe += meiner.amount;
         continue;
       }
-      const ein = toHex(t.to) === adresseHex;
-      const aus = toHex(t.from) === adresseHex;
-      if (!ein && !aus) continue;
-      if (aus) gesendetAn.add(encodeAddress(t.to));
-      if (ueberweisungen.length >= UEBERWEISUNGEN_MAX) continue;
-      ueberweisungen.push({
-        txid: toHex(txid(t)), hoehe: h, zeit,
-        art: aus ? 'aus' : 'ein',
-        gegen: encodeAddress(aus ? t.to : t.from),
-        betrag: t.amount.toString(), gebuehr: t.fee.toString(),
-        notiz: notizAusHex(toHex(t.memo)),
-      });
+      /*
+        Ab Fassung 6 kann ein Posten mehrere Empfaenger haben (Sammelzahlung)
+        und der Absender ein Skriptkonto sein. Fuer die eigene Adresse
+        zaehlt je Ausgang ein Eintrag; eine Sammelzahlung von uns selbst
+        erscheint einmal je Empfaenger.
+      */
+      const absender = senderRaw(t);
+      const aus = toHex(absender) === adresseHex;
+      const ausgaenge = spendOutputs(t);
+      const meine = ausgaenge.filter(o => toHex(o.to) === adresseHex);
+      if (!aus && meine.length === 0) continue;
+      const notiz = t.type === TX_BATCH ? '' : notizAusHex(toHex(t.memo));
+      const id = toHex(txid(t));
+      for (const o of aus ? ausgaenge : meine) {
+        if (aus) gesendetAn.add(encodeAddress(o.to));
+        if (ueberweisungen.length >= UEBERWEISUNGEN_MAX) break;
+        ueberweisungen.push({
+          txid: id, hoehe: h, zeit,
+          art: aus ? 'aus' : 'ein',
+          gegen: encodeAddress(aus ? o.to : absender),
+          betrag: o.amount.toString(), gebuehr: t.fee.toString(),
+          notiz,
+        });
+      }
     }
   }
 

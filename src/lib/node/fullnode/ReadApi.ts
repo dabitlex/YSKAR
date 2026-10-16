@@ -15,16 +15,18 @@
  * Kette.
  */
 import { deserializeBlock, headerHash } from '../../core/block.ts';
-import { coinbaseTotal, txid, TX_COINBASE, TX_BATCH, TX_SCRIPT_SPEND, senderRaw, spendOutputs, spendAmount, type Tx, type Coinbase }
+import { coinbaseTotal, txid, TX_COINBASE, TX_BATCH, TX_SCRIPT_SPEND, senderRaw, spendOutputs, spendAmount,
+  transferVersionAt, transferBytesAt, sendepause, type Tx, type Coinbase }
   from '../../core/tx.ts';
 import { encodeAddress, decodeAddress } from '../../core/address.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
-import { stateRoot, totalSupply, getAccount } from '../../core/state.ts';
+import { stateRootAt, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
 import { finderName, finderAnzeige } from '../../chain/finderName.ts';
 import { marktlage, position } from '../../core/feemarket.ts';
 import { FEE_V3_HEIGHT, maxTxsAt } from '../../core/params.ts';
-import type { ConsensusParams } from '../../core/networks.ts';
+import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
+import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore, StoredBlock } from './ChainStore.ts';
@@ -131,7 +133,8 @@ export class ReadApi {
       this.jeKopf = { hash: kopfHash, menge: totalSupply(state), hashrate: this.hashrateAusKette() };
     }
     const wurzel = !tip ? null
-      : this.t.chain.height() === tip.height ? toHex(tip.stateRoot) : toHex(stateRoot(state));
+      : this.t.chain.height() === tip.height ? toHex(tip.stateRoot)
+      : toHex(stateRootAt(state, this.t.chain.height(), this.params));
 
     return {
       token: { token_name: 'YSKAR', token_symbol: 'YSR', decimals: 8 },
@@ -164,8 +167,19 @@ export class ReadApi {
       // Nur der Knoten kennt sie: Die App zeigt sie nicht, der Explorer
       // koennte es. Zusaetzliche Felder stoeren nicht -- fehlende schon.
       chainWork: tip ? tip.chainWork.toString() : '0',
+      /*
+        Fassungsstand (CONSENSUS_V6.md 13): welche Fassung dieser Knoten
+        umsetzt, welche Aktivierung er kennt, und ob er sich fuer veraltet
+        haelt. Meldungen, kein Konsens -- und nicht beeinflussbar von
+        aussen: `outdated` setzt nur ein Block mit gueltiger Arbeit (11.1).
+      */
+      revision: IMPLEMENTIERTE_FASSUNG,
+      nextActivationHeight: naechsteAktivierung(this.params),
+      revision_status: fassungsStatus(this.t.chain.hoehereFassungGesehen !== null),
     };
   }
+
+  private get params(): ConsensusParams { return this.t.params ?? MAINNET; }
 
   /**
    * Hashrate aus der Kette selbst -- Arbeit geteilt durch Zeit.
@@ -335,11 +349,22 @@ export class ReadApi {
       eigene = { fee: roh, rang: p.rang, von: p.von };
     }
 
+    const v6 = this.params.v6Height;
     return {
       minFee: boden.toString(),
       /** Weiterleitungs-Satz je Byte ab der Aktivierung, sonst null. */
       mindestJeByte: jeByte === null ? null : jeByte.toString(),
       hoehe,
+      /*
+        Was eine Wallet fuer den naechsten Block bauen muss (CONSENSUS_V6.md
+        3 und 16): Fassung 1 vor, 2 ab der Aktivierungshoehe; die Groesse
+        ohne Notiz dazu, damit sie die Gebuehr je Byte selbst rechnet. In
+        den letzten Bloecken vor der Hoehe `sendepause`: nichts einreichen.
+      */
+      fassung: transferVersionAt(hoehe, v6),
+      basisBytes: transferBytesAt(hoehe, 0, v6),
+      sendepause: sendepause(hoehe, v6),
+      aktivierung: naechsteAktivierung(this.params),
       wartend: m.wartend,
       plaetzeJeBlock: m.plaetzeJeBlock,
       andrang: m.andrang,

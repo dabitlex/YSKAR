@@ -21,7 +21,7 @@ import { MiningServer } from '../../src/lib/node/fullnode/MiningServer.ts';
 import { NetzStatistik, type LokaleStatistik } from '../../src/lib/node/fullnode/NetzStatistik.ts';
 import { ReadApi } from '../../src/lib/node/fullnode/ReadApi.ts';
 import { EPOCH_BLOCKS, rewardAt, DUST_LIMIT, FEE_V3_HEIGHT } from '../../src/lib/core/params.ts';
-import { txid, buildTransfer, transferBytes } from '../../src/lib/core/tx.ts';
+import { txid, buildTransfer, transferBytesAt, transferVersionAt, sendepause, senderRaw, spendOutputs, spendAmount, TX_BATCH } from '../../src/lib/core/tx.ts';
 import { encodeAddress } from '../../src/lib/core/address.ts';
 import { getAccount } from '../../src/lib/core/state.ts';
 import { notizKuerzen, notizAusHex } from '../../src/lib/wallet/notiz.ts';
@@ -44,7 +44,8 @@ import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
 import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
 import { MAINNET, istMainnet, type ConsensusParams } from '../../src/lib/core/networks.ts';
-import { stateRoot, totalSupply } from '../../src/lib/core/state.ts';
+import { stateRootAt, totalSupply } from '../../src/lib/core/state.ts';
+import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
 import { toHex } from '../../src/lib/core/codec.ts';
 import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
 import { cpus } from 'node:os';
@@ -99,12 +100,12 @@ interface MiningEinstellung {
   lief: boolean;
 }
 
-export const VERSION = '0.7.1';
+export const VERSION = '1.0.0';
 /**
  * Stand der Konsensregeln, die dieses Programm kennt (docs/CONSENSUS_V*.md).
  * Nur fuer die Anzeige -- die Regeln selbst stehen in src/lib/core.
  */
-const KONSENSFASSUNG = 5;
+const KONSENSFASSUNG = IMPLEMENTIERTE_FASSUNG;
 const GUI_PORT = 8650;
 /** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
 const STATS_TAKT_MS = 30_000;
@@ -1037,7 +1038,9 @@ export class NodeCoreApp {
         fee = stand.feeBps > 0 && !auszahlung ? 0 : stand.feeBps;
       }
       const pk = new PoolCoordinator({
-        name, feeBps: fee, payoutAddress: auszahlung,
+        name, feeBps: fee, payoutAddress: auszahlung, v6Height: this.params.v6Height,
+        // Die Einstellung reicht bis 255; vor der Aktivierung von Fassung 6
+        // nimmt plaetze() davon hoechstens, was die Kette an der Hoehe traegt.
         maxMiner: Math.min(this.betrieb.plaetze, platzGrenze(Math.max(fee, this.betrieb.feeBps))),
       });
       if (fee !== this.betrieb.feeBps) pk.setzeGebuehr(this.betrieb.feeBps, auszahlung);
@@ -1934,7 +1937,7 @@ export class NodeCoreApp {
       blocksStored: this.store?.count() ?? 0,
       tips: this.store?.tips().length ?? 0,
       totalSupply: state ? totalSupply(state).toString() : '0',
-      stateRoot: tip && state ? toHex(stateRoot(state)) : null,
+      stateRoot: tip && state ? toHex(stateRootAt(state, this.chain?.height() ?? 0, this.params)) : null,
       peers: this.peerListe(),
       peerCount: peers.length,
       outboundPeers: this.peers?.zahlAus() ?? 0,
@@ -1951,6 +1954,11 @@ export class NodeCoreApp {
       zielBlockzeit: Number(this.params.targetBlockTime),
       guiPort: this.guiPort,
       konsensfassung: KONSENSFASSUNG,
+      // Fassungsstand (CONSENSUS_V6.md 13) -- dieselben Felder wie /summary.
+      revision: IMPLEMENTIERTE_FASSUNG,
+      nextActivationHeight: naechsteAktivierung(this.params),
+      revision_status: fassungsStatus(!!this.chain?.hoehereFassungGesehen),
+      hoehereFassungGesehen: this.chain?.hoehereFassungGesehen ?? null,
       dataDirBytes: this.datenBytes(),
       programmOrdner: this.basis,
       huelle: this.huelleStatus(),
@@ -1987,6 +1995,7 @@ export class NodeCoreApp {
         richtung: p.richtung,
         hoehe: p.height,
         programm: p.agent,
+        fassung: p.revision,
         seit: p.seit,
       };
     });
@@ -2019,8 +2028,9 @@ export class NodeCoreApp {
       if (!this.txGesehen.has(id)) this.txGesehen.set(id, jetzt);
       return {
         txid: id,
-        from: encodeAddress(tx.from), to: encodeAddress(tx.to),
-        amount: tx.amount.toString(), fee: tx.fee.toString(),
+        from: encodeAddress(senderRaw(tx)), to: encodeAddress(spendOutputs(tx)[0]?.to ?? senderRaw(tx)),
+        amount: spendAmount(tx).toString(), fee: tx.fee.toString(),
+        outputs: spendOutputs(tx).length,
         seit: this.txGesehen.get(id)!,
       };
     });
@@ -2064,19 +2074,29 @@ export class NodeCoreApp {
   private walletWartend(adresse: string) {
     const hex = toHex(decodeAddress(adresse));
     const gesehen = new Map(this.mempoolListe().wartend.map(w => [w.txid, w.seit]));
-    return (this.pool?.alle() ?? [])
-      .filter(t => toHex(t.from) === hex || toHex(t.to) === hex)
-      .map(t => {
-        const id = toHex(txid(t));
-        const aus = toHex(t.from) === hex;
-        const gegen = encodeAddress(aus ? t.to : t.from);
-        return {
-          txid: id, art: aus ? 'aus' as const : 'ein' as const, gegen,
+    const liste: {
+      txid: string; art: 'aus' | 'ein'; gegen: string; name: string | null;
+      betrag: string; gebuehr: string; notiz: string; seit: number;
+    }[] = [];
+    for (const t of this.pool?.alle() ?? []) {
+      const absender = senderRaw(t);
+      const aus = toHex(absender) === hex;
+      const ausgaenge = spendOutputs(t);
+      const meine = ausgaenge.filter(o => toHex(o.to) === hex);
+      if (!aus && meine.length === 0) continue;
+      const id = toHex(txid(t));
+      const notiz = t.type === TX_BATCH ? '' : notizAusHex(toHex(t.memo));
+      for (const o of aus ? ausgaenge : meine) {
+        const gegen = encodeAddress(aus ? o.to : absender);
+        liste.push({
+          txid: id, art: aus ? 'aus' : 'ein', gegen,
           name: this.wallet.kontaktName(gegen),
-          betrag: t.amount.toString(), gebuehr: t.fee.toString(),
-          notiz: notizAusHex(toHex(t.memo)), seit: gesehen.get(id) ?? Date.now(),
-        };
-      });
+          betrag: o.amount.toString(), gebuehr: t.fee.toString(),
+          notiz, seit: gesehen.get(id) ?? Date.now(),
+        });
+      }
+    }
+    return liste;
   }
 
   /** Guthaben und was davon frei ist: Wartende eigene Zahlungen zaehlen schon ab. */
@@ -2148,9 +2168,19 @@ export class NodeCoreApp {
     const stufe = body.stufe === 'langsam' || body.stufe === 'schnell' ? body.stufe : 'normal';
 
     const hoehe = this.chain.height() + 1;
+    /*
+      Die letzten Bloecke vor der Aktivierung von Fassung 6 (CONSENSUS_V6.md
+      16): Eine Ueberweisung der Fassung 1 bliebe an der Grenze haengen,
+      eine der Fassung 2 nimmt noch niemand an. Lieber kurz warten lassen.
+    */
+    if (sendepause(hoehe, this.params.v6Height)) {
+      throw new WalletFehler('wechsel_pause',
+        'Das Netz wechselt in Kürze auf Konsensfassung 6. Bitte in etwa einer halben Stunde noch einmal versuchen.');
+    }
     const markt = this.lesen.fees(new URLSearchParams());
     let gebuehr = BigInt(markt.stufen[stufe].fee);
-    const jeByte = markt.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(transferBytes(memo.length)) : 0n;
+    const jeByte = markt.mindestJeByte
+      ? BigInt(markt.mindestJeByte) * BigInt(transferBytesAt(hoehe, memo.length, this.params.v6Height)) : 0n;
     if (jeByte > gebuehr) gebuehr = jeByte;
     const boden = this.pool.mindestGebuehr(hoehe, memo.length);
     if (boden > gebuehr) gebuehr = boden;
@@ -2201,6 +2231,8 @@ export class NodeCoreApp {
       from: paar.addressRaw, to: decodeAddress(r.an),
       amount: r.betrag, fee: r.gebuehr, nonce: r.naechsteNonce, memo: r.memo,
       publicKey: paar.publicKey, privateKey: paar.privateKey,
+      // Fassung 2 ab der Aktivierungshoehe, Fassung 1 davor (CONSENSUS_V6.md 3).
+      version: transferVersionAt(this.chain!.height() + 1, this.params.v6Height),
     });
     paar.privateKey.fill(0);
 

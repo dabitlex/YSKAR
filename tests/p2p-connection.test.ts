@@ -176,7 +176,7 @@ test('Zwischen version und verack wird nichts anderes angenommen', async () => {
   const M = magicFor(REGTEST.chainId);
   a.write(encodeFrame(M, 'version', encodeVersion({
     protocol: PROTOCOL_VERSION, network: REGTEST.network, chainId: REGTEST.chainId,
-    agent: 'x', height: 1, chainWork: '1', nonce: 7n, port: 1, timestamp: 0n,
+    agent: 'x', height: 1, chainWork: '1', nonce: 7n, port: 1, timestamp: 0n, revision: 6, nextActivationHeight: 0,
   })));
   // verack fehlt, stattdessen sofort getaddr.
   await warte(100);
@@ -199,7 +199,7 @@ test('Ein zweites version wird abgewiesen', async () => {
   const M = magicFor(REGTEST.chainId);
   const v = encodeFrame(M, 'version', encodeVersion({
     protocol: PROTOCOL_VERSION, network: REGTEST.network, chainId: REGTEST.chainId,
-    agent: 'x', height: 1, chainWork: '1', nonce: 7n, port: 1, timestamp: 0n,
+    agent: 'x', height: 1, chainWork: '1', nonce: 7n, port: 1, timestamp: 0n, revision: 6, nextActivationHeight: 0,
   }));
   a.write(v);
   await warte(100);

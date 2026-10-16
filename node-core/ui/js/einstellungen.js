@@ -171,6 +171,20 @@ export function baue(ctx) {
     } catch { /* nächster Takt */ }
   }
 
+  /*
+    Fassungsstand (docs/CONSENSUS_V6.md 13): die Fassung, dazu die
+    Aktivierungshoehe, sobald sie gesetzt ist, und ein Hinweis, wenn der
+    Knoten sich fuer veraltet haelt.
+  */
+  function fassungsText(s) {
+    let txt = t('einst.fassung', s.konsensfassung);
+    if (s.nextActivationHeight) txt += ' · ' + t('einst.fassungAb', s.nextActivationHeight.toLocaleString());
+    if (s.revision_status && s.revision_status !== 'current') {
+      txt += ' · ' + t('einst.fassungsstand.' + s.revision_status);
+    }
+    return txt;
+  }
+
   function aktualisiere(s) {
     if (!gefuellt) {
       f.ordner.value = s.dataDir; f.api.value = s.nodePort; f.p2p.value = s.p2pPort; f.seed.value = s.seed || '';
@@ -178,7 +192,7 @@ export function baue(ctx) {
     }
     text(ueber.programm, 'YSKAR Node Core ' + s.version);
     text(ueber.netz, netzName(s.network));
-    text(ueber.regeln, t('einst.fassung', s.konsensfassung));
+    text(ueber.regeln, fassungsText(s));
     text(belegt, s.dataDirBytes !== null && s.dataDirBytes !== undefined ? t('einst.ordnerBelegt', groesse(s.dataDirBytes)) : '');
     if (autostart && s.huelle.autostart !== null) autostart.setAttribute('aria-checked', s.huelle.autostart ? 'true' : 'false');
     zeigeUpdate(s);

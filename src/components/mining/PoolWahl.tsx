@@ -156,6 +156,10 @@ function Karte({ s, gewaehlt, eigen, laedt, onWaehlen }: {
           <Wert name={t.pool.bloecke}>{s.bloecke !== null ? zahl(s.bloecke) : '—'}</Wert>
           <Wert name={t.pool.gebuehr}>{s.feeBps !== null ? prozent(s.feeBps) : '—'}</Wert>
         </div>
+        {/* Nur wenn der Pool Geld haelt (Sammelauszahlung): Das soll man wissen, bevor man beitritt. */}
+        {s.modus === 'batch' && (
+          <p className="mt-2.5 text-[12px] font-semibold text-dim">{t.pool.haeltGuthaben}</p>
+        )}
 
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-raised" aria-hidden="true">
           <div className={`h-full rounded-full ${s.status === 'voll' ? 'bg-risk' : 'bg-work'}`}
@@ -270,7 +274,8 @@ export function PoolBlatt({ pool, offen, onSchliessen, voll }: {
             {g?.eigen && (
               <Karte eigen gewaehlt laedt={!g.stand} onWaehlen={() => {}}
                      s={g.stand ?? { host: g.host, name: g.host, kette: null, status: 'aus', belegt: null,
-                                     plaetze: null, frei: null, hashrate: null, feeBps: null, bloecke: null }} />
+                                     plaetze: null, frei: null, hashrate: null, feeBps: null, bloecke: null,
+                                     modus: null }} />
             )}
           </ul>
 

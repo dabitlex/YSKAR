@@ -249,6 +249,7 @@ const de = {
     leistung: 'Leistung',
     bloecke: 'Blöcke',
     gebuehr: 'Gebühr',
+    haeltGuthaben: 'Der Pool hält dein Guthaben bis zur Sammelauszahlung',
     frei: (n: number): string => (n === 1 ? '1 Platz frei' : `${n} Plätze frei`),
     keinPlatz: 'Kein Platz frei',
     dabei: 'Du bist schon dabei',
@@ -406,6 +407,7 @@ const de = {
 
   senden: {
     staub: 'Zu klein — mindestens 0,000001 YSR.',
+    wechselPause: 'Das Netz wechselt gleich auf Konsensfassung 6. Bitte in etwa einer halben Stunde noch einmal versuchen.',
     titel: 'Senden',
     empfaenger: 'Empfänger',
     scannen: 'Scannen',
