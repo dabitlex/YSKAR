@@ -834,6 +834,7 @@ Decided on 2026-10-16 (design record in the project notes):
 | Scope | Foundation + addresses + scripts + state tree + batch + limits in one hard fork; split into 6a/6b only if no second reviewer is found |
 | Activation | Fixed height with lead time; miner signalling not used (veto risk at two or three pools) |
 | Replay protection | Fork identifier in every signature; transfer version 1 invalid from the height |
+| Transfer version 1 transition | No grace period (decided 2026-10-16). Version 1 is invalid from `V6_HEIGHT` onward; a grace window would reopen replay for its duration. The transition is carried by lead time instead: wallets ship transfer version 2 before the height is announced and pick the version by chain height; nodes and wallets show the update hint (11.1) ahead of the height; wallets stop sending version 1 a few blocks before the height so no version 1 transaction is left in the mempool at the boundary. Nothing is lost for an outdated wallet: keys, addresses and balances are unchanged, it can send again after updating |
 | Address version 1 | 32-byte program; HRPs `ysr` / `tysr` / `rysr` |
 | Scripts | Five node kinds; height-based locks only; checked against the validity window; every branch needs a key; excess witness is invalid |
 | State tree | Binary sparse Merkle tree over `SHA-256(raw address)`; record with two reserved 32-byte fields |
@@ -850,11 +851,9 @@ Open, to be settled before the activation height is set:
    revision, or leave it to revision 7. Leaning: revision 7, to keep the coinbase untouched here.
 2. **Batch from a script account.** A multi-signature pool treasury paying miners needs it. Options:
    type 3 version 2 with script authorization in a later revision. Leaning: later.
-3. **Grace period for transfer version 1.** This draft makes version 1 invalid at the height. A grace
-   window would ease the wallet transition but reopens replay for its duration. Leaning: no grace period.
-4. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set after 14 is complete.
-5. **Mirror schema.** To be designed with the implementation; not consensus.
-6. **Signature budget value.** 8,000 is a placeholder of the right order of magnitude; the final value
+3. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set after 14 is complete.
+4. **Mirror schema.** To be designed with the implementation; not consensus.
+5. **Signature budget value.** 8,000 is a placeholder of the right order of magnitude; the final value
    follows from the performance test in 14 on the main node's hardware.
 
 ## 17. References
