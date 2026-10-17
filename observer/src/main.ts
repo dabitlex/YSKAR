@@ -25,7 +25,7 @@ import { join } from 'node:path';
 
 import { deserializeBlock, headerHash, checkBlockStructure } from '../../src/lib/core/block.ts';
 import { validateBlock, expectedDifficulty, checkEncoding } from '../../src/lib/core/validate.ts';
-import { emptyState, applyBlock, stateRoot, totalSupply, cloneState,
+import { emptyState, applyBlock, stateRootAt, totalSupply, cloneState,
          type State } from '../../src/lib/core/state.ts';
 import { toHex, fromHex } from '../../src/lib/core/codec.ts';
 import { NETWORK, LWMA_WINDOW } from '../../src/lib/core/params.ts';
@@ -171,7 +171,7 @@ function pruefpunktAus(
   zeiten: bigint[], diffs: bigint[],
 ): Pruefpunkt {
   return {
-    netz: NETWORK, hoehe, tipHash, stateRoot: toHex(stateRoot(zustand)),
+    netz: NETWORK, hoehe, tipHash, stateRoot: toHex(stateRootAt(zustand, hoehe)),
     konten: [...zustand].map(([a, k]) =>
       [a, { balance: k.balance.toString(), nonce: k.nonce.toString() }]),
     zeitstempel: zeiten.map(String),
@@ -283,7 +283,7 @@ function pruefeUndWende(lauf: Lauf, roh: Uint8Array, erwarteterHash: string): Bl
   // passen, die IM BLOCK steht. Stimmt das nicht, ist entweder der Block
   // falsch oder meine Buchfuehrung -- in beiden Faellen darf es nicht
   // stillschweigend weitergehen.
-  const meine = toHex(stateRoot(lauf.zustand));
+  const meine = toHex(stateRootAt(lauf.zustand, hoehe));
   const seine = toHex(block.header.stateRoot);
   if (meine !== seine) {
     lauf.zustand = vorher;
@@ -339,7 +339,7 @@ async function main() {
       if (existsSync(pfad)) lauf.letzterBlock = deserializeBlock(readFileSync(pfad));
       melde(grau(`Prüfpunkt geladen: Höhe ${p.hoehe}, ` +
         `Zustandswurzel ${p.stateRoot.slice(0, 16)}…`));
-      if (toHex(stateRoot(lauf.zustand)) !== p.stateRoot) {
+      if (toHex(stateRootAt(lauf.zustand, p.hoehe)) !== p.stateRoot) {
         melde(rot('Prüfpunkt beschädigt — beginne bei Block 0.'));
         lauf.zustand = emptyState(); lauf.hoehe = -1; lauf.tipHash = null;
         lauf.zeiten = []; lauf.diffs = []; lauf.letzterBlock = null;

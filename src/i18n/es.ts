@@ -403,6 +403,7 @@ const es = {
 
   senden: {
     staub: 'Demasiado pequeño — mínimo 0,000001 YSR.',
+    fassungUnbekannt: 'No se puede contactar con el nodo en este momento, así que no está claro qué formato exige el próximo bloque. Inténtalo de nuevo en breve.',
     wechselPause: 'La red está a punto de cambiar a la revisión de consenso 6. Inténtalo de nuevo en media hora aproximadamente.',
     titel: 'Enviar',
     empfaenger: 'Destinatario',

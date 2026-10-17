@@ -790,6 +790,13 @@ It cannot build a competing chain of any weight for long, because every pool and
 will have updated, but it also receives no new blocks. This is why the lead time and the update of every
 pool before the height matter.
 
+A node that mined or accepted blocks under the old rules above the height (an outdated pool or solo
+miner) holds blocks of version 1 at heights where version 6 is required. When it is updated to
+revision 6, it marks every such block, and every block built on one, as invalid and removes it from
+the active chain at start-up. The active chain then ends at height − 1 and the node fetches the
+correct blocks from its peers; nothing is deleted. The check runs once per store
+(`ChainManager.alteFassungAbschneiden`, test `tests/v6-grenze.test.ts`).
+
 ### 11.4 Peer handshake
 
 The handshake carries two new fields: the highest revision the node implements and the next activation
@@ -875,10 +882,18 @@ pinned toolchain, reproducible build), `tests/zip215.test.ts`, `tests/fixtures/e
 *Mirror:* `supabase/migrations/00027_konsensfassung_6.sql` (not applied): address lengths 20 or 33 in
 transactions, accounts and mempool; types 2 and 3; columns `flags`, `valid_from`, `script`,
 `witness`; `commit_block` writes them and accepts a missing `to_addr` for a batch. Prefix search of
-version 1 addresses in the explorer is not adapted (a full address works).
+version 1 addresses in the explorer is not adapted (a full address works). The mirror's reports
+(`einnahmen_tage`, `eingaenge_tage`, `verlauf`, `verlauf_suche`) tell a batch (type 3) apart from a
+pool coinbase: a share of a batch is an incoming payment with a sender, not mining income. A batch is
+mirrored with an empty `to_addr`, even with a single recipient. The mirror route and the observer
+check the state root by height (`stateRootAt`) and the route checks signatures with the WASM module.
 
-Not yet done: batch payout mode, multi-signature user interfaces, signature budget benchmark (14),
-remaining test vectors (14), `V6_HEIGHT` and `V6_TIMESTAMP`.
+Tests across a real activation height (`tests/v6-grenze.test.ts`, height 5): a chain across the
+height, a reorg between two branches that both cross it, a restart after old-rule blocks above the
+height, the mempool and the send pause at the boundary.
+
+Not yet done: batch payout mode, multi-signature user interfaces, private test network with old and
+new nodes side by side, `V6_HEIGHT` and `V6_TIMESTAMP`.
 
 ## 14. Tests and test vectors
 

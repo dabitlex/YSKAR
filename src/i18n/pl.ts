@@ -411,6 +411,7 @@ const pl = {
 
   senden: {
     staub: 'Za mało — co najmniej 0,000001 YSR.',
+    fassungUnbekannt: 'Węzeł jest teraz nieosiągalny, więc nie wiadomo, jakiego formatu wymaga następny blok. Spróbuj ponownie za chwilę.',
     wechselPause: 'Sieć zaraz przejdzie na wersję konsensusu 6. Spróbuj ponownie za około pół godziny.',
     titel: 'Wyślij',
     empfaenger: 'Odbiorca',

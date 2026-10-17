@@ -3,12 +3,18 @@ import { NextResponse } from 'next/server';
 import { deserializeBlock, headerHash, checkBlockStructure } from '@/lib/core/block';
 import { coinbaseTotal, type Coinbase } from '@/lib/core/tx';
 import { validateBlock, checkEncoding } from '@/lib/core/validate';
-import { applyBlock, cloneState, stateRoot } from '@/lib/core/state';
+import { applyBlock, cloneState, stateRootAt } from '@/lib/core/state';
+import { aktiviereZip215Wasm } from '@/lib/node/zip215';
 import { toHex, fromHex } from '@/lib/core/codec';
 import { LWMA_WINDOW } from '@/lib/core/params';
 import { loadTip, loadState, loadTimings, commitBlock } from '@/lib/node/store';
 
 export const runtime = 'nodejs';
+
+// Signaturen ueber das WASM-Modul pruefen (CONSENSUS_V6.md 7.8): dieselbe
+// Regel wie noble, ein voller Block in einem Bruchteil der Zeit. Faellt bei
+// jedem Ladefehler auf noble zurueck.
+aktiviereZip215Wasm();
 export const dynamic = 'force-dynamic';
 
 const CORS = {
@@ -174,7 +180,9 @@ export async function POST(req: Request) {
   const angewandt = applyBlock(state, block);
   if (!angewandt.ok) return fail('apply_failed', angewandt.error?.reason);
 
-  const meine = toHex(stateRoot(state));
+  // Ab der Aktivierungshoehe von Fassung 6 traegt der Block die Wurzel des
+  // Sparse-Merkle-Baums, davor die des flachen Baums (CONSENSUS_V6.md 10).
+  const meine = toHex(stateRootAt(state, block.header.height));
   if (meine !== toHex(block.header.stateRoot)) {
     return fail('state_root', `errechnet ${meine.slice(0, 16)}…`);
   }

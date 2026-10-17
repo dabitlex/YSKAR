@@ -275,7 +275,7 @@ export const MAX_SCRIPT_BYTES = 1_024;
 export const MAX_SCRIPT_KEYS = 16;
 export const MAX_SCRIPT_DEPTH = 3;
 export const MAX_THRESH_ARITY = 16;
-/** Platzhalter bis zum Benchmark auf dem Hauptknoten (CONSENSUS_V6.md 7.7). */
+/** Gemessen und bestaetigt, auch auf einem alten Laptop (CONSENSUS_V6.md 7.7). */
 export const MAX_BLOCK_SIGOPS = 8_000;
 
 /** Die Blockversion, die an einer Hoehe genau verlangt wird (6, Abschnitt 2.2). */

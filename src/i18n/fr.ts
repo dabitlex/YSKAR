@@ -407,6 +407,7 @@ const fr = {
 
   senden: {
     staub: 'Trop faible — au moins 0,000001 YSR.',
+    fassungUnbekannt: 'Le nœud est injoignable pour le moment ; on ne sait donc pas quel format le prochain bloc exige. Réessaie dans un instant.',
     wechselPause: 'Le réseau passe bientôt à la révision de consensus 6. Réessaie dans une demi-heure environ.',
     titel: 'Envoyer',
     empfaenger: 'Destinataire',

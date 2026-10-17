@@ -403,6 +403,7 @@ const it = {
 
   senden: {
     staub: 'Troppo poco: almeno 0,000001 YSR.',
+    fassungUnbekannt: 'Il nodo non è raggiungibile in questo momento, quindi non è chiaro quale formato richieda il prossimo blocco. Riprova tra poco.',
     wechselPause: 'La rete sta per passare alla revisione di consenso 6. Riprova tra circa mezz’ora.',
     titel: 'Invia',
     empfaenger: 'Destinatario',

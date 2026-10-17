@@ -407,6 +407,7 @@ const de = {
 
   senden: {
     staub: 'Zu klein — mindestens 0,000001 YSR.',
+    fassungUnbekannt: 'Der Knoten ist gerade nicht erreichbar, deshalb ist unklar, welches Format der nächste Block verlangt. Bitte gleich noch einmal versuchen.',
     wechselPause: 'Das Netz wechselt gleich auf Konsensfassung 6. Bitte in etwa einer halben Stunde noch einmal versuchen.',
     titel: 'Senden',
     empfaenger: 'Empfänger',

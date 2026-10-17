@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
-import { MIN_FEE, DUST_LIMIT } from '@/lib/core/params';
+import { MIN_FEE, DUST_LIMIT, V6_HEIGHT, V6_HEIGHT_UNSET } from '@/lib/core/params';
 import { transferBytes } from '@/lib/core/tx';
 
 /** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
@@ -174,6 +174,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   // (CONSENSUS_V6.md 3). Der Knoten sagt, was der naechste Block verlangt.
   const fassung = markt?.fassung === 2 ? 2 : 1;
   const wechselPause = markt?.sendepause === true;
+  // Ohne Antwort des Knotens ist unbekannt, welche Fassung der naechste Block
+  // verlangt. Solange keine Aktivierungshoehe gesetzt ist, ist es immer
+  // Fassung 1; danach wird nicht geraten -- eine falsch gewaehlte Fassung
+  // lehnt jeder Knoten ab.
+  const fassungUnbekannt = !markt && V6_HEIGHT !== V6_HEIGHT_UNSET;
   const stufenGebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
   const gebuehr = stufenGebuehr > bodenJeByte ? stufenGebuehr : bodenJeByte;
   const zielBlock = markt ? markt.stufen[stufe].block : 1;
@@ -207,7 +212,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const staub = !!markt?.mindestJeByte && einheiten > 0n && einheiten < DUST_LIMIT;
   const summe = einheiten + gebuehr;
   const reicht = einheiten > 0n && summe <= guthaben;
-  const bereit = zielGueltig && !eigene && reicht && !staub && !wechselPause;
+  const bereit = zielGueltig && !eigene && reicht && !staub && !wechselPause && !fassungUnbekannt;
 
   const genau = (v: bigint) => betragGenau(v, locale, decimals);
   // Gebühren sind seit Fassung 3 winzig: so viele Stellen wie nötig, mindestens vier.
@@ -482,7 +487,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         {/* Das Guthaben kann sich aendern, waehrend man hier liest (eine andere
             Zahlung geht hinaus). Dann nicht senden lassen, was der Knoten ablehnt. */}
         {!bereit ? (
-          <div className="mt-3"><Notice tone="risk">{wechselPause ? t.senden.wechselPause : staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
+          <div className="mt-3"><Notice tone="risk">{wechselPause ? t.senden.wechselPause : fassungUnbekannt ? t.senden.fassungUnbekannt : staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
         ) : (
           <p className="rise rise-1 mx-1 mt-3 text-[12.5px] font-semibold leading-[1.45] text-dim">{t.senden.warnung}</p>
         )}
@@ -549,6 +554,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
             <p className="text-[12.5px] font-bold text-risk">{t.senden.staub}</p>
           ) : wechselPause ? (
             <p className="text-[12.5px] font-bold text-risk">{t.senden.wechselPause}</p>
+          ) : fassungUnbekannt ? (
+            <p className="text-[12.5px] font-bold text-risk">{t.senden.fassungUnbekannt}</p>
           ) : ausCode ? (
             <p className="text-[12.5px] font-semibold text-work">{t.senden.ausCode}</p>
           ) : null}

@@ -403,6 +403,7 @@ const id = {
 
   senden: {
     staub: 'Terlalu kecil — minimal 0,000001 YSR.',
+    fassungUnbekannt: 'Node sedang tidak dapat dihubungi, jadi belum jelas format apa yang diminta blok berikutnya. Silakan coba lagi sebentar lagi.',
     wechselPause: 'Jaringan akan segera beralih ke revisi konsensus 6. Coba lagi dalam sekitar setengah jam.',
     titel: 'Kirim',
     empfaenger: 'Penerima',

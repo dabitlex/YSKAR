@@ -931,6 +931,10 @@ async function main(): Promise<void> {
     console.error(grau(`  Ordner ${opt.daten} entfernen und neu synchronisieren.\n`));
     process.exit(1);
   }
+  if (chain.alteBloeckeVerworfen > 0) {
+    console.log(gelb(`\n${chain.alteBloeckeVerworfen} Block/Bloecke alter Fassung ab der ` +
+      `Aktivierungshoehe ${params.v6Height} verworfen. Die richtigen Bloecke kommen von den Peers.`));
+  }
 
   if (opt.befehl === 'mine') { await mine(opt, store, chain); return; }
   if (opt.befehl === 'status') { status(store, chain, params); store.close(); return; }

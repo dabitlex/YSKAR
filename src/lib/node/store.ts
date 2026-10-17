@@ -1,5 +1,5 @@
 import { db } from '../db/service.ts';
-import { type State, emptyState, stateRoot, totalSupply, getAccount, cloneState } from '../core/state.ts';
+import { type State, emptyState, stateRootAt, totalSupply, getAccount, cloneState } from '../core/state.ts';
 import {
   type Block, type BlockHeader, deserializeHeader, serializeBlock,
   serializeHeader, headerHash,
@@ -80,7 +80,7 @@ export async function verifyStateConsistency(): Promise<
     db().schema('chain2').from('state_meta').select('state_root, height').eq('id', 1).single(),
   ]);
   if (!meta?.state_root) return { ok: true };   // noch nichts festgeschrieben
-  const actual = toHex(stateRoot(state));
+  const actual = toHex(stateRootAt(state, meta.height ?? -1));
   const expected = toHex(un(meta.state_root));
   return actual === expected ? { ok: true } : { ok: false, expected, actual };
 }
@@ -176,7 +176,10 @@ export async function commitBlock(
     // Aufteilung in coinbase_outputs-Form daneben; Skript-Ausgaben tragen
     // keinen Schluessel und keine einzelne Signatur.
     const ausgaben = spendOutputs(t);
-    return { ...base, from: hx(senderRaw(t)), to: ausgaben.length === 1 ? hx(ausgaben[0].to) : null,
+    // Sammelzahlung: Empfaenger NUR in coinbase_outputs, auch bei einem
+    // einzigen -- sonst zaehlten Verlauf und Eingaenge ihn doppelt (00027).
+    return { ...base, from: hx(senderRaw(t)),
+             to: t.type !== TX_BATCH && ausgaben.length === 1 ? hx(ausgaben[0].to) : null,
              amount: spendAmount(t).toString(), fee: t.fee.toString(),
              nonce: t.nonce.toString(), valid_until: t.validUntil,
              memo: hx(t.memo),

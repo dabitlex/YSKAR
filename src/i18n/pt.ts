@@ -403,6 +403,7 @@ const pt = {
 
   senden: {
     staub: 'Muito pequeno — mínimo 0,000001 YSR.',
+    fassungUnbekannt: 'O nó não está acessível agora, por isso não se sabe que formato o próximo bloco exige. Tenta de novo daqui a pouco.',
     wechselPause: 'A rede está prestes a mudar para a revisão de consenso 6. Tenta novamente daqui a cerca de meia hora.',
     titel: 'Enviar',
     empfaenger: 'Destinatário',

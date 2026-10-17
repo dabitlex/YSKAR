@@ -403,6 +403,7 @@ const zh = {
 
   senden: {
     staub: '金额太小——至少 0.000001 YSR。',
+    fassungUnbekannt: '暂时无法连接节点，因此不清楚下一个区块要求哪种格式。请稍后再试。',
     wechselPause: '网络即将切换到共识版本 6。请在大约半小时后重试。',
     titel: '发送',
     empfaenger: '收款方',

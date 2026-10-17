@@ -1742,6 +1742,10 @@ export class NodeCoreApp {
     const db = join(resolve(this.config.dataDir), 'chain.db');
     this.store = new ChainStore(db, { network: params.network, chainId: params.chainId });
     this.chain = new ChainManager(this.store, params);
+    if (this.chain.alteBloeckeVerworfen > 0) {
+      this.log(`${this.chain.alteBloeckeVerworfen} Block/Bloecke alter Fassung ab der Aktivierungshoehe ` +
+        `${params.v6Height} verworfen. Die richtigen Bloecke kommen von den Peers.`);
+    }
     this.pool = new TxPool(params);
     this.mining = new MiningCoordinator(this.chain, this.store, this.pool, params, this.uhr);
     this.miningServer = new KernServer({ chain: this.chain, store: this.store, pool: this.pool, mining: this.mining }, {

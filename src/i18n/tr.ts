@@ -403,6 +403,7 @@ const tr = {
 
   senden: {
     staub: 'Çok küçük — en az 0,000001 YSR.',
+    fassungUnbekannt: 'Düğüme şu anda ulaşılamıyor; bu yüzden sonraki bloğun hangi biçimi istediği belli değil. Lütfen birazdan tekrar dene.',
     wechselPause: 'Ağ birazdan konsensüs sürümü 6’ya geçiyor. Lütfen yaklaşık yarım saat sonra tekrar dene.',
     titel: 'Gönder',
     empfaenger: 'Alıcı',

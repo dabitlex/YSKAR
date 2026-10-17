@@ -17,7 +17,7 @@
 --   * Die neuen Felder: flags, valid_from, script, witness. Die Aufteilung
 --     einer Sammelzahlung steht in coinbase_outputs (dieselbe Form wie bei
 --     einer Pool-Coinbase; die Spalte heisst historisch so).
---   * Der Kontodatensatz traegt zwei reservierte Felder (Abschnitt 8); sie
+--   * Der Kontodatensatz traegt zwei reservierte Felder (Abschnitt 5.1); sie
 --     sind in dieser Fassung immer leer und werden deshalb nicht gespiegelt.
 --
 -- Verbindlich bleibt `raw`. Wer eine Frage hat, die die Spalten nicht
@@ -175,3 +175,249 @@ begin
   return jsonb_build_object('height', v_height, 'txs', v_written,
                             'hash', encode(v_hash, 'hex'));
 end $$;
+
+-- ------------------------------------------- Auswertungen: Sammelzahlungen
+--
+-- Ab Fassung 6 stehen in coinbase_outputs nicht nur die Empfaenger einer
+-- Pool-Coinbase (Typ 0), sondern auch die einer Sammelzahlung (Typ 3). Die
+-- Auswertungen aus 00021, 00022 und 00024 lasen die Spalte bisher als
+-- "Mining-Anteil". Ohne die Aenderungen unten zaehlte eine empfangene
+-- Sammelzahlung als Mining-Einnahme, fehlte bei den Eingaengen und stand im
+-- Verlauf als Pool-Anteil ohne Absender.
+--
+-- Eine Sammelzahlung hat to_addr immer leer (store.ts, auch bei nur einem
+-- Empfaenger); ihre Empfaenger stehen nur in coinbase_outputs.
+--
+-- Grundlage: die Fassungen der Funktionen, wie sie am 17.10.2026 in der
+-- Datenbank stehen (gelesen mit pg_get_functiondef). Geaendert ist jeweils
+-- nur, was mit "Fassung 6" markiert ist. Fuer Bloecke der Fassungen 1 bis 5
+-- ist das Ergebnis unveraendert: Dort gibt es keinen Typ 3.
+
+-- Mining-Einnahmen: nur Coinbase-Anteile.
+create or replace function chain2.einnahmen_tage(
+  p_addr bytea, p_tage integer default 30, p_zone text default 'UTC'::text
+) returns table(tag date, summe text, bloecke integer)
+language plpgsql
+stable
+set search_path to 'chain2', 'pg_temp'
+as $function$
+declare
+  v_zone  text    := coalesce(nullif(btrim(p_zone), ''), 'UTC');
+  v_tage  integer := least(greatest(coalesce(p_tage, 30), 1), 90);
+  v_heute date;
+  v_erster date;
+  v_ab    bigint;
+begin
+  begin
+    perform now() at time zone v_zone;
+  exception when others then
+    v_zone := 'UTC';
+  end;
+
+  v_heute  := (now() at time zone v_zone)::date;
+  v_erster := v_heute - (v_tage - 1);
+  -- Mitternacht des ersten Tages in der Zone, als Unix-Sekunden.
+  v_ab := extract(epoch from (v_erster::timestamp at time zone v_zone))::bigint;
+
+  return query
+  with ertraege as (
+    select t.block_height as hoehe, t.amount::numeric as betrag
+      from chain2.transactions t
+     where t.type = 0 and t.to_addr = p_addr
+    union all
+    select t.block_height, (o->>'amount')::numeric
+      from chain2.transactions t
+      cross join lateral jsonb_array_elements(t.coinbase_outputs) o
+     where t.type = 0                                   -- Fassung 6
+       and t.coinbase_outputs @> jsonb_build_array(jsonb_build_object('to', encode(p_addr, 'hex')))
+       and o->>'to' = encode(p_addr, 'hex')
+  ),
+  je_tag as (
+    select (to_timestamp(b.block_time) at time zone v_zone)::date as d,
+           sum(e.betrag) as s,
+           count(distinct e.hoehe)::integer as n
+      from ertraege e
+      join chain2.blocks b on b.height = e.hoehe
+     where b.block_time >= v_ab
+     group by 1
+  )
+  select g.d::date, coalesce(j.s, 0)::text, coalesce(j.n, 0)
+    from generate_series(v_erster::timestamp, v_heute::timestamp, interval '1 day') as g(d)
+    left join je_tag j on j.d = g.d::date
+   order by 1;
+end
+$function$;
+
+-- Eingaenge: Ueberweisungen und Skript-Ausgaben wie bisher, dazu der eigene
+-- Anteil an einer Sammelzahlung.
+create or replace function chain2.eingaenge_tage(
+  p_addr bytea, p_tage integer default 30, p_zone text default 'UTC'::text
+) returns table(tag date, summe text)
+language plpgsql
+stable
+set search_path to 'chain2', 'pg_temp'
+as $function$
+declare
+  v_zone  text    := coalesce(nullif(btrim(p_zone), ''), 'UTC');
+  v_tage  integer := least(greatest(coalesce(p_tage, 30), 1), 90);
+  v_heute date;
+  v_erster date;
+  v_ab    bigint;
+begin
+  begin
+    perform now() at time zone v_zone;
+  exception when others then
+    v_zone := 'UTC';
+  end;
+
+  v_heute  := (now() at time zone v_zone)::date;
+  v_erster := v_heute - (v_tage - 1);
+  v_ab := extract(epoch from (v_erster::timestamp at time zone v_zone))::bigint;
+
+  return query
+  with eingang as (
+    select t.block_height as hoehe, t.amount::numeric as betrag
+      from chain2.transactions t
+     where t.type <> 0 and t.to_addr = p_addr
+    union all                                           -- Fassung 6
+    select t.block_height, (o->>'amount')::numeric
+      from chain2.transactions t
+      cross join lateral jsonb_array_elements(t.coinbase_outputs) o
+     where t.type = 3
+       and t.coinbase_outputs @> jsonb_build_array(jsonb_build_object('to', encode(p_addr, 'hex')))
+       and o->>'to' = encode(p_addr, 'hex')
+  ),
+  je_tag as (
+    select (to_timestamp(b.block_time) at time zone v_zone)::date as d,
+           sum(e.betrag) as s
+      from eingang e
+      join chain2.blocks b on b.height = e.hoehe
+     where b.block_time >= v_ab
+     group by 1
+  )
+  select g.d::date, coalesce(j.s, 0)::text
+    from generate_series(v_erster::timestamp, v_heute::timestamp, interval '1 day') as g(d)
+    left join je_tag j on j.d = g.d::date
+   order by 1;
+end
+$function$;
+
+-- Verlauf: Ein Anteil an einer Sammelzahlung ist kein Pool-Anteil und hat
+-- einen Absender.
+create or replace function chain2.verlauf(
+  p_addr bytea, p_richtung text default 'alle'::text, p_vor_hoehe integer default null::integer,
+  p_vor_idx integer default null::integer, p_limit integer default 40
+) returns table(txid bytea, block_height integer, idx integer, type smallint, from_addr bytea,
+                to_addr bytea, amount bigint, fee bigint, memo bytea, pool boolean,
+                empfaenger integer, block_time bigint)
+language sql
+stable
+set search_path to 'chain2', 'pg_temp'
+as $function$
+  with direkt as (
+    select t.txid, t.block_height, t.idx, t.type, t.from_addr, t.to_addr,
+           t.amount, t.fee, t.memo, false as pool, 1 as empfaenger
+      from chain2.transactions t
+     where (p_richtung in ('alle', 'aus') and t.from_addr = p_addr)
+        or (p_richtung in ('alle', 'ein') and t.to_addr = p_addr)
+  ),
+  anteile as (
+    select t.txid, t.block_height, t.idx, t.type,
+           case when t.type = 3 then t.from_addr end,   -- Fassung 6
+           null::bytea,
+           (o->>'amount')::bigint, 0::bigint, t.memo,
+           t.type = 0,                                  -- Fassung 6
+           jsonb_array_length(t.coinbase_outputs)
+      from chain2.transactions t
+      cross join lateral jsonb_array_elements(t.coinbase_outputs) o
+     where p_richtung in ('alle', 'ein')
+       and t.coinbase_outputs @> jsonb_build_array(jsonb_build_object('to', encode(p_addr, 'hex')))
+       and o->>'to' = encode(p_addr, 'hex')
+  ),
+  zusammen as (
+    select * from direkt
+    union all
+    select * from anteile
+  )
+  select z.txid, z.block_height, z.idx, z.type, z.from_addr, z.to_addr,
+         z.amount, z.fee, z.memo, z.pool, z.empfaenger, b.block_time
+    from zusammen z
+    join chain2.blocks b on b.height = z.block_height
+   where p_vor_hoehe is null
+      or (z.block_height, z.idx) < (p_vor_hoehe, coalesce(p_vor_idx, 2147483647))
+   order by z.block_height desc, z.idx desc
+   limit least(greatest(coalesce(p_limit, 40), 1), 200)
+$function$;
+
+create or replace function chain2.verlauf_suche(
+  p_addr bytea, p_richtung text default 'alle'::text, p_vor_hoehe integer default null::integer,
+  p_vor_idx integer default null::integer, p_limit integer default 40,
+  p_von_zeit bigint default null::bigint, p_bis_zeit bigint default null::bigint,
+  p_hoehe integer default null::integer, p_tx_lo bytea default null::bytea,
+  p_tx_hi bytea default null::bytea, p_gegen_lo bytea default null::bytea,
+  p_gegen_hi bytea default null::bytea, p_memo text default null::text
+) returns table(txid bytea, block_height integer, idx integer, type smallint, from_addr bytea,
+                to_addr bytea, amount bigint, fee bigint, memo bytea, pool boolean,
+                empfaenger integer, block_time bigint)
+language sql
+stable
+set search_path to 'chain2', 'pg_temp'
+as $function$
+  with direkt as (
+    select t.txid, t.block_height, t.idx, t.type, t.from_addr, t.to_addr,
+           t.amount, t.fee, t.memo, false as pool, 1 as empfaenger,
+           case when t.to_addr = p_addr then t.from_addr else t.to_addr end as gegen
+      from chain2.transactions t
+     where (p_richtung in ('alle', 'aus') and t.from_addr = p_addr)
+        or (p_richtung in ('alle', 'ein') and t.to_addr = p_addr)
+  ),
+  anteile as (
+    select t.txid, t.block_height, t.idx, t.type,
+           case when t.type = 3 then t.from_addr end,   -- Fassung 6
+           null::bytea,
+           (o->>'amount')::bigint, 0::bigint, t.memo,
+           t.type = 0,                                  -- Fassung 6
+           jsonb_array_length(t.coinbase_outputs),
+           case when t.type = 3 then t.from_addr end    -- Fassung 6: Gegenseite
+      from chain2.transactions t
+      cross join lateral jsonb_array_elements(t.coinbase_outputs) o
+     where p_richtung in ('alle', 'ein')
+       and t.coinbase_outputs @> jsonb_build_array(jsonb_build_object('to', encode(p_addr, 'hex')))
+       and o->>'to' = encode(p_addr, 'hex')
+  ),
+  zusammen as (
+    select * from direkt
+    union all
+    select * from anteile
+  )
+  select z.txid, z.block_height, z.idx, z.type, z.from_addr, z.to_addr,
+         z.amount, z.fee, z.memo, z.pool, z.empfaenger, b.block_time
+    from zusammen z
+    join chain2.blocks b on b.height = z.block_height
+   where (p_vor_hoehe is null
+          or (z.block_height, z.idx) < (p_vor_hoehe, coalesce(p_vor_idx, 2147483647)))
+     and (p_von_zeit is null or b.block_time >= p_von_zeit)
+     and (p_bis_zeit is null or b.block_time <  p_bis_zeit)
+     and (
+           (p_hoehe is null and p_tx_lo is null and p_gegen_lo is null and p_memo is null)
+        or (p_hoehe is not null and z.block_height = p_hoehe)
+        or (p_tx_lo is not null and z.txid between p_tx_lo and p_tx_hi)
+        or (p_gegen_lo is not null and z.gegen between p_gegen_lo and p_gegen_hi)
+        or (p_memo is not null and z.type <> 0
+            and strpos(lower(chain2.memo_text(z.memo)), lower(p_memo)) > 0)
+     )
+   order by z.block_height desc, z.idx desc
+   limit least(greatest(coalesce(p_limit, 40), 1), 200)
+$function$;
+
+-- Rechte wie in 00021, 00022, 00024 und 00026: nur service_role.
+revoke all on function chain2.einnahmen_tage(bytea, integer, text) from public, anon, authenticated;
+revoke all on function chain2.eingaenge_tage(bytea, integer, text) from public, anon, authenticated;
+revoke all on function chain2.verlauf(bytea, text, integer, integer, integer) from public, anon, authenticated;
+revoke all on function chain2.verlauf_suche(bytea, text, integer, integer, integer,
+  bigint, bigint, integer, bytea, bytea, bytea, bytea, text) from public, anon, authenticated;
+grant execute on function chain2.einnahmen_tage(bytea, integer, text) to service_role;
+grant execute on function chain2.eingaenge_tage(bytea, integer, text) to service_role;
+grant execute on function chain2.verlauf(bytea, text, integer, integer, integer) to service_role;
+grant execute on function chain2.verlauf_suche(bytea, text, integer, integer, integer,
+  bigint, bigint, integer, bytea, bytea, bytea, bytea, text) to service_role;

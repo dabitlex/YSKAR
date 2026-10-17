@@ -403,6 +403,7 @@ const en = {
 
   senden: {
     staub: 'Too small — at least 0.000001 YSR.',
+    fassungUnbekannt: 'The node cannot be reached right now, so it is unclear which format the next block requires. Please try again shortly.',
     wechselPause: 'The network is about to switch to consensus revision 6. Please try again in about half an hour.',
     titel: 'Send',
     empfaenger: 'Recipient',

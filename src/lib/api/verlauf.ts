@@ -90,7 +90,11 @@ export async function verlaufLaden(
   const eigen = toHex(raw);
   const zeilen = (data ?? []) as Zeile[];
   const eintraege = zeilen.map((t): VerlaufEintrag => {
-    const eingang = unprefix(t.to_addr) === eigen;
+    // Sammelzahlung (Typ 3, Fassung 6): to_addr ist leer, die Empfaenger
+    // stehen in coinbase_outputs. Eine Zeile, deren Absender nicht man
+    // selbst ist, ist der eigene Anteil daran -- ein Eingang.
+    const eingang = unprefix(t.to_addr) === eigen
+      || (t.type === 3 && unprefix(t.from_addr) !== eigen);
     // Als bech32m, nicht als Rohbytes: Der Nutzer soll dieselbe
     // Zeichenkette sehen wie in seiner Wallet und sie vergleichen koennen.
     const gegenHex = unprefix(eingang ? t.from_addr : t.to_addr);

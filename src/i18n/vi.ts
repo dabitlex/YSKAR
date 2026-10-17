@@ -403,6 +403,7 @@ const vi = {
 
   senden: {
     staub: 'Quá nhỏ — tối thiểu 0,000001 YSR.',
+    fassungUnbekannt: 'Hiện không kết nối được với nút, nên chưa rõ khối tiếp theo yêu cầu định dạng nào. Vui lòng thử lại sau ít phút.',
     wechselPause: 'Mạng sắp chuyển sang phiên bản đồng thuận 6. Vui lòng thử lại sau khoảng nửa giờ.',
     titel: 'Gửi',
     empfaenger: 'Người nhận',

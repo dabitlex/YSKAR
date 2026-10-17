@@ -24,7 +24,7 @@ import { emptyState, applyBlock, stateRootAt, cloneState, type State }
 import { toHex } from '../../core/codec.ts';
 import { aktiviereZip215Wasm } from '../zip215.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
-import { MEDIAN_TIME_BLOCKS } from '../../core/params.ts';
+import { MEDIAN_TIME_BLOCKS, blockVersionAt } from '../../core/params.ts';
 
 import { ChainStore, alsTip, type StoredBlock } from './ChainStore.ts';
 import { blockWork, compareTips } from './ChainWork.ts';
@@ -154,8 +154,79 @@ export class ChainManager {
     aktiviereZip215Wasm();
     this.store = store;
     this.params = params;
+    this.alteFassungAbschneiden();
     this.zustandHerstellen();
   }
+
+  /** Meta-Schluessel: Die Bloecke ab der v6-Hoehe sind geprueft. */
+  private static readonly V6_GEPRUEFT = 'v6_alte_bloecke_geprueft';
+
+  /**
+   * Bloecke alter Fassung oberhalb der Aktivierungshoehe verwerfen
+   * (CONSENSUS_V6.md 11.3).
+   *
+   * Ein Knoten, der nicht rechtzeitig aktualisiert wurde, kann nach der
+   * Hoehe weiter Bloecke nach den alten Regeln gebaut oder angenommen haben.
+   * Nach dem Update sind sie ungueltig: Sie tragen Blockversion 1, wo ab
+   * der Hoehe 6 verlangt ist. Ohne diesen Schritt brach der Start mit
+   * "laesst sich nicht anwenden" oder "Zustandswurzel weicht ab" ab, und
+   * der Betreiber haette seine Ablage von Hand loeschen muessen.
+   *
+   * Statt dessen: Jeder Block ab der Hoehe mit falscher Version wird als
+   * ungueltig markiert und aus der aktiven Kette genommen, ebenso alles,
+   * was auf ihm aufbaut. Die aktive Kette endet dann bei der Hoehe - 1, und
+   * der Knoten holt die richtigen Bloecke von seinen Peers. Nichts wird
+   * geloescht.
+   *
+   * Laeuft einmal je Ablage vollstaendig: Danach kann kein solcher Block mehr
+   * hinein (precheckHeader lehnt die falsche Version ab), und das Ergebnis
+   * wird in meta vermerkt.
+   */
+  private alteFassungAbschneiden(): void {
+    const v6 = this.params.v6Height;
+    const hoechste = this.store.height();
+    if (hoechste < v6) return;
+    if (this.store.meta(ChainManager.V6_GEPRUEFT) === String(v6)) return;
+
+    const verworfen = new Set<string>();
+    this.store.transaktion(() => {
+      for (let h = v6; h <= hoechste; h++) {
+        for (const b of this.store.atHeight(h)) {
+          let falsch: boolean;
+          if (verworfen.has(toHex(b.prevHash))) {
+            falsch = true;
+          } else {
+            try {
+              falsch = deserializeBlock(b.body).header.version !== blockVersionAt(h, v6);
+            } catch {
+              falsch = true;
+            }
+          }
+          if (!falsch) continue;
+          verworfen.add(toHex(b.hash));
+          this.store.setStatus(b.hash, 'invalid');
+          this.store.setMainChain(b.hash, false);
+        }
+      }
+      if (verworfen.size > 0) {
+        // Was ueber der ersten Luecke noch als aktiv markiert ist, haengt an
+        // einem verworfenen Block und gehoert nicht mehr zur aktiven Kette.
+        let ende = v6;
+        while (ende <= hoechste && this.store.mainAt(ende)) ende++;
+        for (let h = ende; h <= hoechste; h++) {
+          const b = this.store.mainAt(h);
+          if (b) this.store.setMainChain(b.hash, false);
+        }
+        this.store.dropSnapshotsAbove(ende - 1);
+      }
+      this.store.setMeta(ChainManager.V6_GEPRUEFT, String(v6));
+    });
+    this._alteBloeckeVerworfen = verworfen.size;
+  }
+
+  private _alteBloeckeVerworfen = 0;
+  /** Wie viele Bloecke alter Fassung beim Start verworfen wurden. */
+  get alteBloeckeVerworfen(): number { return this._alteBloeckeVerworfen; }
 
   tip(): StoredBlock | null { return this.store.mainTip(); }
   height(): number { return this.zustandHoehe; }
