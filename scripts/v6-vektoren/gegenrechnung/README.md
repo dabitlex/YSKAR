@@ -1,6 +1,6 @@
-# Unabhängige Gegenrechnung der V6-Testvektoren
+# Gegenrechnung der V6-Testvektoren
 
-Eine zweite Umsetzung des Transaktionsformats der Konsensfassung 6 in Python. Sie entstand am 17.10.2026 **allein aus der Spezifikation** (`docs/CONSENSUS_V6.md`, `docs/PROTOCOL.md`), ohne Zugriff auf den YSKAR-Code. Geschrieben hat sie ein KI-Agent in eigenem, frischem Kontext. Das ist unabhängiger als derselbe Code, ersetzt aber kein menschliches Review.
+Eine zweite Umsetzung des Transaktionsformats der Konsensfassung 6 in Python. Sie entstand am 17.10.2026 **allein aus der Spezifikation** (`docs/CONSENSUS_V6.md`, `docs/PROTOCOL.md`), ohne Zugriff auf den YSKAR-Code. Sie ist eine Gegenprobe des Projekts selbst und ersetzt kein Review durch andere.
 
 ```bash
 pip install cryptography          # nur fuer Ed25519 (RFC 8032)

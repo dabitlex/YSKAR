@@ -918,15 +918,14 @@ test height the old rule applies. In addition, before the activation height is s
   | HTLC refund → Alice 60,000, fee 5,000, validFrom 100, memo `zurueck`: txid | `0c1668617f62908bcacfb5766ea9d9716566b3a1f7cd110b1c3d6245a1bdd6d8` |
   | State root of {Alice 5/0, Bob 7/3, multisig 9/2} (balance/nonce) | `645a52c94aadcb6fb3a668bfb73b8fa2dcaf476b8f091219953e4cd0354d5f71` |
 
-  **Independent recomputation.** The second set was recomputed by a separate implementation in Python
+  **Recomputation.** The second set was recomputed by a separate implementation in Python
   (standard library, `cryptography` for Ed25519, bech32m written from BIP 350), built from this
   document alone without access to the YSKAR source. All 46 values match. The same pass found ten
   unclear passages, corrected on 2026-10-17: the batch sort order (6.4), the version rule of the batch
   (6.4), the `self_transfer` comparison (6.3, 6.4, 6.5), the address length per HRP (4.2), the order of
   non-key script children (7.1), the collision argument of the state tree (5.2), the framing of the
   transaction ID (6.2), the witness wording (13a), and the key derivation and HRP of the first set
-  (below). The recomputing implementation was written by an AI agent in a fresh context; a human
-  review remains desirable.
+  (below). This is the project's own cross-check; a review by others remains desirable.
 
   Note on the first set: its keys come from YSKAR's wallet derivation (SLIP-0010 path
   `m/44'/9077'/0'/0'/0'` with the 32 bytes as seed, PROTOCOL.md), which is not consensus, and its 2-of-3
