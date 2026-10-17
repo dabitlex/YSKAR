@@ -36,6 +36,7 @@ export interface PoolEintrag {
 export const POOLS: PoolEintrag[] = [
   { host: 'pool.yskar.app', name: 'YSKAR MAIN', kette: 'YSKAR MAIN' },
   { host: 'teamplay.duckdns.org', name: 'ODW.Serv', kette: 'ODW.Serv' },
+  { host: 'ysr.pool.gozero.trade:8443', name: 'Gozero', kette: 'Gozero' },
 ];
 
 /**
