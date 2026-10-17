@@ -1,6 +1,6 @@
-# ZIP-215-Modul (Ed25519-Prüfung für Knoten)
+# Signaturmodul (Ed25519-Prüfung für Knoten)
 
-WebAssembly-Hülle um [`ed25519-zebra`](https://github.com/ZcashFoundation/ed25519-zebra) 5.0.0 der Zcash Foundation. Knoten prüfen damit Signaturen nach [ZIP 215](https://zips.z.cash/zip-0215), der Regel, die YSKAR seit Genesis anwendet (bisher über `@noble/curves`). Einzeln etwa zehnmal, im Stapel etwa dreißigmal schneller, bei gleichem Ergebnis. Hintergrund und Messwerte: [docs/CONSENSUS_V6.md](../../docs/CONSENSUS_V6.md), Abschnitte 7.7 und 7.8.
+WebAssembly-Hülle um die Rust-Bibliothek `ed25519-zebra` 5.0.0 (von crates.io, festgelegt in `Cargo.lock`). Knoten prüfen damit Signaturen nach der Signaturregel aus [docs/CONSENSUS_V6.md](../../docs/CONSENSUS_V6.md), Abschnitt 7.8, der Regel, die YSKAR seit Genesis anwendet (bisher über `@noble/curves`). Einzeln etwa zehnmal, im Stapel etwa dreißigmal schneller, bei gleichem Ergebnis. Messwerte: Abschnitt 7.7.
 
 ## Bauen
 

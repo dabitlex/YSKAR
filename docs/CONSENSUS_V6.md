@@ -83,8 +83,9 @@ The header keeps its 136 bytes and its layout. The rule for the `version` field 
 
 A block whose `version` differs from the value required at its height is invalid (`bad_version`). The
 check is exact, not "at least": a revision 7 will require exactly 7 from its own height, so revision
-boundaries are unambiguous and a block can never claim a revision its height does not have. This follows
-Monero's hard-fork table. The bits above the low byte are reserved: a later revision may give them a
+boundaries are unambiguous and a block can never claim a revision its height does not have. Each
+revision is one row of a table of activation heights, and the header version is read from that table,
+never from the block itself. The bits above the low byte are reserved: a later revision may give them a
 meaning (for example miner signalling); until then they are zero because the whole field is compared.
 
 `BLOCK_VERSION` in `src/lib/core/block.ts` becomes a function of the height.
@@ -113,7 +114,8 @@ The fork identifier is the second item of every signing preimage defined in this
 type byte, before the chain ID). A transaction signed under revision 6 is therefore never valid on a chain
 that did not activate revision 6, and a transaction signed under revision 5 rules (transfer version 1)
 is never valid from `V6_HEIGHT` (see 6.3). After a chain split at the fork, nothing can be replayed
-from one side to the other. This follows Zcash's consensus branch ID (ZIP 200).
+from one side to the other. The identifier is part of what is signed, not a field a sender could
+leave out, so a signature itself states the revision it was made for.
 
 The chain ID stays. It separates networks; the fork identifier separates revisions of one network.
 
@@ -130,8 +132,9 @@ An address is a version and a program. Two versions exist in revision 6:
 | 2 to 15 | reserved | Defined by later revisions | — |
 
 The program of version 1 is 32 bytes and not 20, because the script of a multi-party account contains
-keys chosen by several parties, and 20 bytes would give a party only 80 bits of collision resistance
-against the others (the argument BIP 341 gives for 32-byte witness programs).
+keys chosen by several parties. A party that chooses its own key last can try many keys until two
+different scripts share an address; with 20 bytes such a collision costs about 2^80 hash evaluations,
+which is within reach of a determined attacker. With 32 bytes it costs about 2^128.
 
 ### 4.2 Text form
 
@@ -145,7 +148,8 @@ version v:  bech32m(hrp, [v] | program)   for v = 1..15    version 1: 63 charact
 ```
 
 `[v]` is one 5-bit data value; bech32m writes the value 1 as the character `p`. The program follows as
-5-bit groups with the padding rules of BIP 173 (padding shorter than 5 bits, all zero).
+5-bit groups, most significant bit first; the last group is padded with fewer than 5 zero bits, and a
+decoder rejects padding of 5 bits or more and any padding bit that is not zero.
 
 **Only the length tells the versions apart, never the prefix.** A version 0 address also begins with
 `ysr1p` whenever the first five bits of its hash are `00001` (PROTOCOL.md's own test vector
@@ -226,9 +230,9 @@ both 0 and `codeHash` and `storageRoot` are both zero, so the state does not dep
 were touched in the past (as today). The script of a version 1 account is not stored in the state: the
 address is its hash, and the spending transaction reveals it (6.5).
 
-The two reserved fields are the fields an Ethereum-style account carries for contract code and contract
-storage (EIP-6800 lays out the same record). They are in the record now so that a later revision can fill
-them without changing the key or the tree.
+The two reserved fields are meant for contract code (the hash of the code) and contract storage (the
+root of its own tree). They are in the record now so that a later revision can fill them without
+changing the key or the tree.
 
 ### 5.2 State tree
 
@@ -252,8 +256,7 @@ stateRoot       = hash(0, all accounts)
 ```
 
 A subtree with exactly one account has the hash of that account's leaf, at any depth. This is sound
-because the leaf commits to the full key, so its position is implied; it is the construction of the
-Jellyfish Merkle tree and it makes the cost of updating one account proportional to the depth at which
+because the leaf commits to the full key, so its position is implied. Collapsing such subtrees makes the cost of updating one account proportional to the depth at which
 its key stops sharing a prefix with any other key, about `log2(number of accounts)` hashes, instead of
 256. With 35,000 accounts changed in one block (the worst case for 1 MiB of batches) that is about half a
 million `sha256d` calls, within reach of the reference implementation in TypeScript; a non-compacted tree
@@ -327,7 +330,8 @@ and every preimage begins with the same five fields:
 u8 type | u32 FORK_ID_V6 | chainId(32) | u16 version | u8 flags | …type-specific fields…
 ```
 
-The type byte comes first so that a signature can never be valid for a different type (EIP-2718). The
+The type byte comes first so that a signature can never be valid for a different type: two types
+never share a preimage, whatever their remaining fields are. The
 fork identifier and the chain ID follow, then `version` and `flags`, then the type-specific fields in
 their wire order, without the authorization data (public key and signature for a key account; witness
 for a script account). Note that the preimage prefix is not in wire order: on the wire `version` comes
@@ -475,8 +479,9 @@ Effect: as 6.3.
 ## 7. Condition scripts
 
 A condition script is a tree of five kinds of node. It has no loops, no storage and no arithmetic;
-checking it takes time proportional to its size, and its size is bounded. The design follows Cardano's
-native scripts (Allegra) and Bitcoin's Miniscript policy language.
+checking it takes time proportional to its size, and its size is bounded. A script describes who must
+agree and within which heights, not a computation: it is either satisfied by the transaction that
+carries it or not, and the answer never depends on anything outside that transaction.
 
 ### 7.1 Encoding
 
@@ -506,8 +511,8 @@ address.
 of the block. Together with rule 6 of 6.3 (the block height lies inside the window) this gives the
 intended meaning (`AFTER(X)`: the transaction is in a block at height at least `X`; `BEFORE(X)`: at most
 `X`) while the script evaluation depends only on the transaction, and a satisfied script cannot become
-unsatisfied by a reorganization that moves the transaction to another height inside its window. This is
-Cardano's construction. Heights only; there is no time-based lock, and no rule mixes heights and
+unsatisfied by a reorganization that moves the transaction to another height inside its window.
+Heights only; there is no time-based lock, and no rule mixes heights and
 timestamps.
 
 ### 7.2 Well-formedness
@@ -577,7 +582,8 @@ signature.
 
 The transaction is valid only if the root is satisfied. Requiring `t == k` rather than `t >= k` makes
 the witness canonical and bounds the signature checks to what the script needs; a transaction carrying
-more signatures than its script uses is invalid, as on Stellar. A touched child that is unsatisfied is
+more signatures than its script uses is invalid. Otherwise a third party could add or swap a surplus
+signature and change the transaction's bytes without changing its effect. A touched child that is unsatisfied is
 an error, never ignored: a wrong signature cannot be "padded around".
 
 ### 7.5 Examples
@@ -616,8 +622,8 @@ Consequences that implementations must respect:
   can hold at the same time.
 
 The alternative, a transaction ID that excludes the witness, would need a separate commitment to the
-witness in the block (Bitcoin's witness commitment) and is more machinery than the problem warrants at
-this size. It can be added in a later revision if needed.
+witness in the block header or the coinbase, and is more machinery than the problem warrants at this
+size. It can be added in a later revision if needed.
 
 ### 7.7 Signature budget
 
@@ -640,8 +646,8 @@ signature checks alone:
 | Verifier | 8,000 signatures | Full block, 4,999 transfers (`applyBlock`) |
 |---|---|---|
 | `@noble/curves` (JavaScript) | about 10 s | about 6.7 s |
-| ed25519-zebra as WebAssembly, one by one | about 0.85 s (Electron 38: 0.7 s) | — |
-| ed25519-zebra as WebAssembly, batch (7.8) | about 0.27 s | about 0.52 s |
+| `ed25519-zebra` as WebAssembly, one by one | about 0.85 s (Electron 38: 0.7 s) | — |
+| `ed25519-zebra` as WebAssembly, batch (7.8) | about 0.27 s | about 0.52 s |
 
 The limit of 8,000 is chosen for the batch verifier of 7.8. With JavaScript verification alone it would
 be too high; nodes therefore use the WebAssembly verifier.
@@ -655,8 +661,8 @@ stays at 8,000.
 
 ### 7.8 Signature verification rule
 
-Every Ed25519 signature in YSKAR, in every revision, is valid if and only if it satisfies **ZIP 215**
-(Zcash, activated with the Canopy upgrade):
+Every Ed25519 signature in YSKAR, in every revision, is valid if and only if it satisfies these four
+conditions, the **YSKAR signature rule**:
 
 1. `A` (public key) and `R` (first half of the signature) are 32-byte encodings of points on the
    curve. Non-canonical encodings (y not reduced modulo p) are accepted.
@@ -670,22 +676,24 @@ since genesis; revision 6 writes it down so that it no longer depends on a libra
 
 **Why it matters.** Ed25519 implementations do not agree on these edge cases. OpenSSL (Node 22) and
 BoringSSL (Electron 38), for example, check the equation without the cofactor and reject some of the
-encodings above: of the 196 official ZIP 215 vectors they decide 184 differently. A node that verified
+encodings above: of the 196 published reference vectors for this rule (`tests/fixtures/ed25519-vektoren.json`)
+they decide 184 differently. A node that verified
 with such a library would disagree with the others on blocks an attacker can build on purpose. Such a
 library must not be used for consensus, not even as a shortcut.
 
-**Implementation.** Nodes verify with `ed25519-zebra` 5.0.0 (Zcash Foundation), the library Zcash's
-node Zebra uses, compiled to WebAssembly (`crypto/zip215`, embedded in `src/lib/node/zip215Wasm.ts`).
-It decides exactly like `@noble/curves` in every test (`tests/zip215.test.ts`): the 196 official
-ZIP 215 vectors, the 12 cases of ed25519-speccheck (Chalkias, Garillot, Nikolaenko, *Taming the many
+**Implementation.** Nodes verify with `ed25519-zebra` 5.0.0, an open-source Rust implementation of
+exactly this rule, compiled to WebAssembly (`crypto/zip215`, embedded in `src/lib/node/zip215Wasm.ts`).
+It decides exactly like `@noble/curves` in every test (`tests/zip215.test.ts`): the 196 published
+reference vectors, the 12 cases of ed25519-speccheck (Chalkias, Garillot, Nikolaenko, *Taming the many
 EdDSAs*, 2020), about 90 constructed edge cases (small and mixed order, non-canonical encodings,
 `S + L`), 3,000 seeded random edge cases, and 1,000 real and tampered signatures. The module is loaded
 only after a checksum and a self-test; if either fails, the node falls back to `@noble/curves`. The
 Mini App and wallets keep `@noble/curves`, which signs and, where needed, verifies by the same rule.
 
 **Batch verification.** Before applying a block, a node verifies all of its signatures in one batch
-(random coefficients from a cryptographic source, fresh per call). ZIP 215 guarantees that batch and
-single verification give the same result. If the batch fails, the node verifies one by one as before,
+(random coefficients from a cryptographic source, fresh per call). Because condition 3 uses the
+cofactored equation, a batch accepts exactly the signatures that pass one by one; with the equation
+without the cofactor this would not hold. If the batch fails, the node verifies one by one as before,
 so the error and its position are the same as without the batch. A block's validity never depends on
 whether it was batched; only the time does.
 
@@ -693,7 +701,7 @@ whether it was batched; only the time does.
 compiler (`rust-toolchain.toml`) and dependencies (`Cargo.lock`) and compares the SHA-256 with the
 embedded file (`12b6e504…a769bd3`). A rebuild in a different directory gives the same bytes.
 
-Updating ed25519-zebra, the compiler or `@noble/curves` is a consensus decision and requires
+Updating `ed25519-zebra`, the compiler or `@noble/curves` is a consensus decision and requires
 `tests/zip215.test.ts` to pass unchanged.
 
 ## 8. Coinbase
@@ -746,8 +754,8 @@ at the same height.
 
 Everything below `V6_HEIGHT` is validated with the rules of revisions 1 to 5 and the flat state tree. A
 revision 6 node therefore contains both state-root procedures, both transfer layouts and both header
-version rules, and selects by height. This is the principle of Cardano's hard-fork combinator applied in
-the simplest possible form: no block is re-interpreted, no history is rewritten.
+version rules, and selects by height. Each height has exactly one set of rules: no block is
+re-interpreted, no history is rewritten.
 
 ## 11. Behaviour of nodes around the fork
 
@@ -768,11 +776,11 @@ treated as any invalid block today (`bad_version`), and the peer is disconnected
 
 Independently of what it sees, a node compares the current time with the timestamp of the last
 revision it knows (`V6_TIMESTAMP`, set when the height is set): after 180 days it reports
-`update_recommended`, after 365 days `probably_forked`. Both are reports, never a reason to stop. These
-two mechanisms follow Monero's `hardfork.cpp`.
+`update_recommended`, after 365 days `probably_forked`. Both are reports, never a reason to stop. A
+node can thereby notice that it is outdated even when no peer of a newer revision reaches it.
 
-A forced shutdown of old binaries at a fixed height (Zcash's end-of-service halt) is **not** adopted. It
-is noted as an option for a later revision.
+A forced shutdown of old binaries at a fixed height (a node that stops on its own after a set number of
+blocks) is **not** adopted. It is noted as an option for a later revision.
 
 ### 11.2 Before the activation height
 
@@ -802,7 +810,8 @@ correct blocks from its peers; nothing is deleted. The check runs once per store
 The handshake carries two new fields: the highest revision the node implements and the next activation
 height it knows (0 if none). Peers whose revision is lower than the activation height requires are
 preferred for eviction when inbound slots are full in the last 1,000 blocks before `V6_HEIGHT`, never the
-last peer of a network group (ZIP 201). After the height, a peer that announces a revision below 6 is
+last peer of a network group (/16 for IPv4, /32 for IPv6), so that eviction cannot be used to cut a node
+off from a whole network range. After the height, a peer that announces a revision below 6 is
 not banned, but is not asked for blocks. The handshake is part of the network protocol ([P2P.md](P2P.md)),
 not of the consensus.
 
@@ -874,7 +883,7 @@ the full 2-of-3 flow through the mempool. **No user interface for it yet** in Mi
 or the command-line node; address input and display already accept version 1 addresses everywhere.
 
 *Signature verification (7.8):* `src/lib/core/sigcheck.ts` (the one place signatures are checked,
-ZIP 215, batch pre-check per block), `src/lib/node/zip215.ts` (WebAssembly verifier with checksum,
+the rule of 7.8, batch pre-check per block), `src/lib/node/zip215.ts` (WebAssembly verifier with checksum,
 self-test and fallback; activated by `ChainManager` and `TxPool`), `crypto/zip215` (Rust source,
 pinned toolchain, reproducible build), `tests/zip215.test.ts`, `tests/fixtures/ed25519-vektoren.json`
 (official vectors with source and licence).
@@ -934,7 +943,7 @@ test height the old rule applies. In addition, before the activation height is s
   | State root of {Alice 5/0, Bob 7/3, multisig 9/2} (balance/nonce) | `645a52c94aadcb6fb3a668bfb73b8fa2dcaf476b8f091219953e4cd0354d5f71` |
 
   **Recomputation.** The second set was recomputed by a separate implementation in Python
-  (standard library, `cryptography` for Ed25519, bech32m written from BIP 350), built from this
+  (standard library, `cryptography` for Ed25519, bech32m written from its specification), built from this
   document alone without access to the YSKAR source. All 46 values match. The same pass found ten
   unclear passages, corrected on 2026-10-17: the batch sort order (6.4), the version rule of the batch
   (6.4), the `self_transfer` comparison (6.3, 6.4, 6.5), the address length per HRP (4.2), the order of
@@ -1018,18 +1027,13 @@ Open, to be settled before the activation height is set:
 
 ## 17. References
 
-- Zcash ZIP 200 (activation height, consensus branch ID), ZIP 201 (peer eviction around upgrades)
-- Monero `src/hardforks/hardforks.cpp`, `src/cryptonote_basic/hardfork.cpp` (height table, exact header
-  version, update hints)
-- Ethereum EIP-155 (chain ID in signatures), EIP-2124 (fork ID in the handshake), EIP-2718 (typed
-  transaction envelope), EIP-6800 (account record layout), EIP-7864 (binary state tree)
-- Bitcoin BIP 173 and BIP 350 (bech32m, witness versions, padding), BIP 341 (32-byte programs),
-  Miniscript (condition trees, "every branch needs a key", no mixing of lock types)
-- Cardano native scripts (Allegra): `sig`, `all`, `any`, `atLeast`, `after`, `before` checked against the
-  transaction validity interval; the hard-fork combinator
-- Algorand multi-signature addresses (hash of threshold and keys), validity windows
-- Zcash ZIP 215 (Ed25519 validation rules for consensus); ZcashFoundation/ed25519-zebra (implementation
-  and the 196 small-order vectors); Chalkias, Garillot, Nikolaenko, "Taming the many EdDSAs" (2020) and
-  novifinancial/ed25519-speccheck
-- Stellar: excess signatures invalid
-- Jellyfish Merkle tree (Diem/Aptos): node keys by version and path
+Standards this document builds on, without which an independent implementation could not reproduce
+its bytes:
+
+- RFC 8032: Ed25519 (keys, signing, the verification equation); 7.8 states the exact rule YSKAR applies
+- FIPS 180-4: SHA-256 and SHA-512
+- bech32m: the checksum constant `0x2bc830a3` over the bech32 alphabet; the text form of 4.2
+- BIP39 mnemonic words and SLIP-0010 key derivation for Ed25519: unchanged wallet derivation
+  (PROTOCOL.md)
+- Chalkias, Garillot, Nikolaenko, "Taming the many EdDSAs" (2020), and the test suite ed25519-speccheck:
+  the edge cases of 7.8
