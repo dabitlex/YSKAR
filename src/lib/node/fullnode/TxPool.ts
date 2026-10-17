@@ -23,6 +23,7 @@ import {
 import { MIN_FEE, RELAY_FEE_RATE, FEE_V3_HEIGHT } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
+import { aktiviereZip215Wasm } from '../zip215.ts';
 import type { State } from '../../core/state.ts';
 
 /** Obergrenze. Bei 168 Byte je Transaktion (ohne Memo) sind das rund 840 KB. */
@@ -56,6 +57,9 @@ export class TxPool {
   readonly relayFeeRate: bigint;
 
   constructor(params: ConsensusParams = MAINNET, relayFeeRate: bigint = RELAY_FEE_RATE) {
+    // Signaturen nach ZIP 215 ueber das WASM-Modul pruefen (CONSENSUS_V6.md 7.8);
+    // dieselbe Regel wie noble, nur schneller. Mehrfacher Aufruf ist harmlos.
+    aktiviereZip215Wasm();
     this.params = params;
     this.relayFeeRate = relayFeeRate;
   }

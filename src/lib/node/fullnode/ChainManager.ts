@@ -22,6 +22,7 @@ import { checkTimestamp, type BlockTiming } from '../../core/difficulty.ts';
 import { emptyState, applyBlock, stateRootAt, cloneState, type State }
   from '../../core/state.ts';
 import { toHex } from '../../core/codec.ts';
+import { aktiviereZip215Wasm } from '../zip215.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { MEDIAN_TIME_BLOCKS } from '../../core/params.ts';
 
@@ -148,6 +149,9 @@ export class ChainManager {
    * und Reorg-Tests im Testnetz durch die volle Validierung laufen koennen.
    */
   constructor(store: ChainStore, params: ConsensusParams = MAINNET) {
+    // Signaturen nach ZIP 215 ueber das WASM-Modul pruefen (CONSENSUS_V6.md 7.8);
+    // dieselbe Regel wie noble, nur schneller. Mehrfacher Aufruf ist harmlos.
+    aktiviereZip215Wasm();
     this.store = store;
     this.params = params;
     this.zustandHerstellen();

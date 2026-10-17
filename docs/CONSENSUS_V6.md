@@ -624,6 +624,61 @@ slots that are present (`0x01`) in every script spend. A block above the limit i
 (`too_many_sigops`). A node checks the budget before it verifies any signature. The mempool stops
 verifying a script spend at its first invalid signature.
 
+Measured cost on the reference machine (cloud VM, 2 vCPU Intel Xeon at 2.1 GHz, 2026-10-17), for the
+signature checks alone:
+
+| Verifier | 8,000 signatures | Full block, 4,999 transfers (`applyBlock`) |
+|---|---|---|
+| `@noble/curves` (JavaScript) | about 10 s | about 6.7 s |
+| ed25519-zebra as WebAssembly, one by one | about 0.85 s (Electron 38: 0.7 s) | — |
+| ed25519-zebra as WebAssembly, batch (7.8) | about 0.27 s | about 0.52 s |
+
+The limit of 8,000 is chosen for the batch verifier of 7.8. With JavaScript verification alone it would
+be too high; nodes therefore use the WebAssembly verifier.
+
+### 7.8 Signature verification rule
+
+Every Ed25519 signature in YSKAR, in every revision, is valid if and only if it satisfies **ZIP 215**
+(Zcash, activated with the Canopy upgrade):
+
+1. `A` (public key) and `R` (first half of the signature) are 32-byte encodings of points on the
+   curve. Non-canonical encodings (y not reduced modulo p) are accepted.
+2. `S` (second half) is an integer below the group order L, in little-endian. `S ≥ L` is invalid.
+3. With `k = SHA-512(R ‖ A ‖ M)` over the bytes exactly as given, the cofactored equation
+   `[8][S]B = [8]R + [8][k]A` holds. The equation without the cofactor must not be used.
+4. Public keys and `R` of small or mixed order are not rejected for that reason.
+
+This is not a new rule. It is the rule `@noble/curves` has applied with its default (`zip215: true`)
+since genesis; revision 6 writes it down so that it no longer depends on a library.
+
+**Why it matters.** Ed25519 implementations do not agree on these edge cases. OpenSSL (Node 22) and
+BoringSSL (Electron 38), for example, check the equation without the cofactor and reject some of the
+encodings above: of the 196 official ZIP 215 vectors they decide 184 differently. A node that verified
+with such a library would disagree with the others on blocks an attacker can build on purpose. Such a
+library must not be used for consensus, not even as a shortcut.
+
+**Implementation.** Nodes verify with `ed25519-zebra` 5.0.0 (Zcash Foundation), the library Zcash's
+node Zebra uses, compiled to WebAssembly (`crypto/zip215`, embedded in `src/lib/node/zip215Wasm.ts`).
+It decides exactly like `@noble/curves` in every test (`tests/zip215.test.ts`): the 196 official
+ZIP 215 vectors, the 12 cases of ed25519-speccheck (Chalkias, Garillot, Nikolaenko, *Taming the many
+EdDSAs*, 2020), about 90 constructed edge cases (small and mixed order, non-canonical encodings,
+`S + L`), 3,000 seeded random edge cases, and 1,000 real and tampered signatures. The module is loaded
+only after a checksum and a self-test; if either fails, the node falls back to `@noble/curves`. The
+Mini App and wallets keep `@noble/curves`, which signs and, where needed, verifies by the same rule.
+
+**Batch verification.** Before applying a block, a node verifies all of its signatures in one batch
+(random coefficients from a cryptographic source, fresh per call). ZIP 215 guarantees that batch and
+single verification give the same result. If the batch fails, the node verifies one by one as before,
+so the error and its position are the same as without the batch. A block's validity never depends on
+whether it was batched; only the time does.
+
+**Reproducible build.** `node crypto/zip215/build.mjs --pruefen` rebuilds the module with the pinned
+compiler (`rust-toolchain.toml`) and dependencies (`Cargo.lock`) and compares the SHA-256 with the
+embedded file (`12b6e504…a769bd3`). A rebuild in a different directory gives the same bytes.
+
+Updating ed25519-zebra, the compiler or `@noble/curves` is a consensus decision and requires
+`tests/zip215.test.ts` to pass unchanged.
+
 ## 8. Coinbase
 
 The coinbase keeps both layouts and all rules of revisions 2 and 5, with one change:
@@ -794,6 +849,12 @@ assembly of the witness with exactly k slots in script order; `tests/wallet-mehr
 the full 2-of-3 flow through the mempool. **No user interface for it yet** in Mini App, Node Core
 or the command-line node; address input and display already accept version 1 addresses everywhere.
 
+*Signature verification (7.8):* `src/lib/core/sigcheck.ts` (the one place signatures are checked,
+ZIP 215, batch pre-check per block), `src/lib/node/zip215.ts` (WebAssembly verifier with checksum,
+self-test and fallback; activated by `ChainManager` and `TxPool`), `crypto/zip215` (Rust source,
+pinned toolchain, reproducible build), `tests/zip215.test.ts`, `tests/fixtures/ed25519-vektoren.json`
+(official vectors with source and licence).
+
 *Mirror:* `supabase/migrations/00027_konsensfassung_6.sql` (not applied): address lengths 20 or 33 in
 transactions, accounts and mempool; types 2 and 3; columns `flags`, `valid_from`, `script`,
 `witness`; `commit_block` writes them and accepts a missing `to_addr` for a batch. Prefix search of
@@ -886,8 +947,8 @@ Open, to be settled before the activation height is set:
    type 3 version 2 with script authorization in a later revision. Leaning: later.
 3. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set after 14 is complete.
 4. **Mirror schema.** To be designed with the implementation; not consensus.
-5. **Signature budget value.** 8,000 is a placeholder of the right order of magnitude; the final value
-   follows from the performance test in 14 on the main node's hardware.
+5. **Signature budget value.** 8,000, chosen for the batch verifier (7.7, 7.8). Still to do: one
+   measurement on weak hardware (an older laptop or a mini PC) to confirm the margin.
 6. **Pool batch payout mode.** Not consensus, but a product decision: in this mode the pool holds
    miners' funds between block and payout and needs a signing key on the server. The directory and
    both apps already show the mode; the mode itself is built only if a pool actually approaches 254
@@ -905,5 +966,8 @@ Open, to be settled before the activation height is set:
 - Cardano native scripts (Allegra): `sig`, `all`, `any`, `atLeast`, `after`, `before` checked against the
   transaction validity interval; the hard-fork combinator
 - Algorand multi-signature addresses (hash of threshold and keys), validity windows
+- Zcash ZIP 215 (Ed25519 validation rules for consensus); ZcashFoundation/ed25519-zebra (implementation
+  and the 196 small-order vectors); Chalkias, Garillot, Nikolaenko, "Taming the many EdDSAs" (2020) and
+  novifinancial/ed25519-speccheck
 - Stellar: excess signatures invalid
 - Jellyfish Merkle tree (Diem/Aptos): node keys by version and path

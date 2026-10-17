@@ -1,6 +1,6 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import { Reader, Writer, toHex } from './codec.ts';
-import { verifySignature } from './wallet.ts';
+import { verifySignature } from './sigcheck.ts';
 import { MAX_SCRIPT_BYTES, MAX_SCRIPT_KEYS, MAX_SCRIPT_DEPTH, MAX_THRESH_ARITY } from './params.ts';
 
 /**

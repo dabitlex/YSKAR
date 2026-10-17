@@ -1,8 +1,9 @@
 import { Writer, toHex, fromHex } from './codec.ts';
 import { merkleRoot } from './hash.ts';
-import { checkSpend, coinbaseTotal, isSpend, senderRaw, spendTotal, spendSigops, TX_COINBASE, TX_BATCH }
+import { checkSpend, coinbaseTotal, isSpend, senderRaw, spendTotal, spendSigops, signaturTripel, TX_COINBASE, TX_BATCH }
   from './tx.ts';
 import { type Block } from './block.ts';
+import { mitVorpruefung } from './sigcheck.ts';
 import {
   rewardAt, ADDRESS_BYTES, MAX_SUPPLY, COINBASE_V2, MAX_COINBASE_EXTRA, DUST_LIMIT,
   maxCoinbaseOutputsAt, MAX_BLOCK_SIGOPS, V6_HEIGHT,
@@ -118,6 +119,38 @@ export function applyBlock(
   state: State,
   block: Block,
   params: ConsensusParams = MAINNET,
+): ApplyResult {
+  /*
+    Alle Signaturen des Blocks vorab im Stapel pruefen (CONSENSUS_V6.md 7.8).
+    Das aendert kein Ergebnis -- faellt der Stapel durch, wird wie bisher
+    einzeln geprueft --, nur die Zeit: Mit dem WASM-Pruefer eines Knotens
+    kostet ein voller Block einen Bruchteil. Ohne Stapel-Pruefer (Mini App,
+    noble) passiert hier nichts.
+
+    Das Signaturbudget gilt trotzdem VOR jeder Rechnung: Ein Block ueber dem
+    Budget wird abgelehnt, ohne dass der Stapel geprueft wird.
+  */
+  const abV6Vorab = block.header.height >= (params.v6Height ?? V6_HEIGHT);
+  const ueberBudget = abV6Vorab && blockSigops(block) > MAX_BLOCK_SIGOPS;
+  const tripel = ueberBudget ? [] : block.txs.slice(1).filter(isSpend)
+    .flatMap(t => signaturTripel(t, params.chainId));
+  return mitVorpruefung(tripel, () => applyBlockEinzeln(state, block, params));
+}
+
+/** Signaturen eines Blocks nach Abschnitt 7.7; Coinbase zaehlt nicht. */
+function blockSigops(block: Block): number {
+  let n = 0;
+  for (let i = 1; i < block.txs.length; i++) {
+    const t = block.txs[i];
+    if (isSpend(t)) n += spendSigops(t);
+  }
+  return n;
+}
+
+function applyBlockEinzeln(
+  state: State,
+  block: Block,
+  params: ConsensusParams,
 ): ApplyResult {
   const draft = cloneState(state);
   let fees = 0n;

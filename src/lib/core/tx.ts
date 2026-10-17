@@ -1,6 +1,7 @@
 import { Writer, Reader, toHex } from './codec.ts';
 import { sha256d } from './hash.ts';
-import { sign, verifySignature } from './wallet.ts';
+import { sign } from './wallet.ts';
+import { verifySignature, type SignaturTripel } from './sigcheck.ts';
 import {
   addressFromPublicKey, rawAddress, isRawAddress, readAddress, writeAddress, compareAddressWire,
   ADDRESS_V1, SCRIPT_PROGRAM_BYTES,
@@ -10,7 +11,8 @@ import {
   COINBASE_V2, MAX_COINBASE_OUTPUTS_V6, V6_HEIGHT, FORK_ID_V6, MAX_BATCH_OUTPUTS,
 } from './params.ts';
 import {
-  decodeScript, decodeWitness, evaluateScript, scriptHash, witnessSigops, type ScriptNode,
+  decodeScript, decodeWitness, evaluateScript, scriptHash, witnessSigops, leaves as leavesOf,
+  OP_PK as OP_PK_TX, type ScriptNode,
 } from './script.ts';
 
 /**
@@ -702,6 +704,39 @@ export function spendSigops(t: Spend): number {
   if (!script) return 0;
   const slots = decodeWitness(script, t.witness);
   return slots ? witnessSigops(slots) : 0;
+}
+
+/**
+ * Alle Signaturen einer Ausgabe als (Signatur, Nachricht, Schluessel) -- fuer
+ * die Stapelpruefung eines Blocks (sigcheck.mitVorpruefung).
+ *
+ * Nur eine Vorpruefung: Was hier fehlt oder falsch ist, prueft checkSpend()
+ * trotzdem einzeln. Deshalb wirft die Funktion nie, und bei einer
+ * Skript-Ausgabe, deren Skript oder Witness nicht lesbar ist, liefert sie
+ * einfach nichts.
+ */
+export function signaturTripel(t: Spend, chainId: Uint8Array = CHAIN_ID): SignaturTripel[] {
+  try {
+    if (t.type !== TX_SCRIPT_SPEND) {
+      return [{ signature: t.signature, message: spendSighash(t, chainId), publicKey: t.publicKey }];
+    }
+    const script = decodeScript(t.script);
+    if (!script) return [];
+    const slots = decodeWitness(script, t.witness);
+    if (!slots) return [];
+    const message = spendSighash(t, chainId);
+    const blaetter = leavesOf(script);
+    const out: SignaturTripel[] = [];
+    slots.forEach((slot, i) => {
+      const blatt = blaetter[i];
+      if (slot.kind === 'sig' && blatt && blatt.op === OP_PK_TX) {
+        out.push({ signature: slot.signature, message, publicKey: blatt.pubkey });
+      }
+    });
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 export type { ScriptNode };

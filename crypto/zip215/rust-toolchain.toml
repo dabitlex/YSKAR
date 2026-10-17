@@ -1,0 +1,6 @@
+# Feste Compiler-Fassung: Dieselbe Quelle soll byteweise dieselbe WASM-Datei
+# ergeben. Wer nachbaut, bekommt mit rustup automatisch genau diese Fassung.
+[toolchain]
+channel = "1.97.0"
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"
