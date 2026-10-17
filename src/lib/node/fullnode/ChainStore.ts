@@ -263,6 +263,12 @@ export class ChainStore {
     return tip ? tip.height : -1;
   }
 
+  /** Hoechste Hoehe irgendeines gespeicherten Blocks, auch auf Seitenzweigen. */
+  maxHeight(): number {
+    const z = this.db.prepare('SELECT MAX(height) AS h FROM blocks').get() as { h: number | null };
+    return z.h ?? -1;
+  }
+
   count(): number {
     const z = this.db.prepare('SELECT COUNT(*) AS n FROM blocks').get() as { n: number };
     return z.n;

@@ -21,6 +21,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { ChainStore } from '../src/lib/node/fullnode/ChainStore.ts';
 import { ChainManager } from '../src/lib/node/fullnode/ChainManager.ts';
 import { TxPool } from '../src/lib/node/fullnode/TxPool.ts';
+import { workToBytes } from '../src/lib/node/fullnode/ChainWork.ts';
 import { REGTEST, MAINNET, type ConsensusParams } from '../src/lib/core/networks.ts';
 import { V6_HEIGHT_UNSET, V6_HEIGHT } from '../src/lib/core/params.ts';
 import { emptyState, applyBlock, cloneState, stateRoot, stateRootV6, stateRootAt, type State }
@@ -171,6 +172,44 @@ test('Grenze: alte Bloecke ueber der Hoehe werden beim Start nach dem Update ver
   const nochmal = new ChainManager(store, GRENZE);
   assert.equal(nochmal.alteBloeckeVerworfen, 0);
   assert.equal(nochmal.height(), 7);
+  store.close();
+});
+
+test('Grenze: auch ein hoeherer, aber leichterer Seitenzweig alter Fassung wird verworfen', () => {
+  // Alter Knoten: Hauptkette A bis 7, Seitenzweig B ab 3 bis 8.
+  const basis = emptyState();
+  const gemeinsam = mine(ALT, basis, new Uint8Array(32), 0, 3, { extra: 'alt' });
+  const za = cloneState(basis);
+  const a = mine(ALT, za, gemeinsam[2].hash, 3, 8, { miner: MINER_A, extra: 'a' });
+  const zb = cloneState(basis);
+  const b = mine(ALT, zb, gemeinsam[2].hash, 3, 9, { miner: MINER_B, extra: 'b' });
+
+  const store = neueAblage(GRENZE);
+  const vorUpdate = new ChainManager(store, ALT);
+  for (const g of [...gemeinsam, ...a]) assert.ok(vorUpdate.accept(g.body).ok);
+  for (const g of b) vorUpdate.accept(g.body);
+  // B leichter machen als A, obwohl hoeher (wie bei abweichenden
+  // Zeitstempeln unter LWMA): A bleibt aktiv, B8 liegt ueber der Spitze.
+  const db = (store as unknown as { db: { prepare(q: string): { run(...a: unknown[]): void } } }).db;
+  for (const g of b) db.prepare('UPDATE blocks SET chain_work = ?, main_chain = 0 WHERE hash = ?').run(workToBytes(1n), g.hash);
+  for (const g of [...gemeinsam, ...a]) db.prepare('UPDATE blocks SET main_chain = 1 WHERE hash = ?').run(g.hash);
+  assert.equal(store.height(), 7);
+  assert.equal(store.maxHeight(), 8);
+
+  const nachUpdate = new ChainManager(store, GRENZE);
+  assert.equal(nachUpdate.height(), HOEHE - 1);
+  for (const h of [5, 6, 7, 8]) {
+    for (const blk of store.atHeight(h)) assert.equal(blk.status, 'invalid', `Hoehe ${h}`);
+  }
+  // Der beste gueltige Tip liegt nicht ueber der Hoehe - 1.
+  assert.ok(store.bestTip()!.height <= HOEHE - 1);
+
+  // Richtige Bloecke werden angenommen, ein Neustart laeuft durch.
+  const zNeu = emptyState();
+  for (const g of [...gemeinsam, ...a.slice(0, 2)]) applyBlock(zNeu, g.block, GRENZE);
+  const richtig = mine(GRENZE, zNeu, a[1].hash, HOEHE, 7, { extra: 'neu' });
+  for (const g of richtig) assert.ok(nachUpdate.accept(g.body).ok, zeig(g.block.header.height));
+  assert.equal(new ChainManager(store, GRENZE).height(), 6);
   store.close();
 });
 

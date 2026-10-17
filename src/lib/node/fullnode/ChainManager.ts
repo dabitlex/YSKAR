@@ -184,7 +184,11 @@ export class ChainManager {
    */
   private alteFassungAbschneiden(): void {
     const v6 = this.params.v6Height;
-    const hoechste = this.store.height();
+    // Ueber ALLE gespeicherten Bloecke, nicht nur bis zur aktiven Spitze: Ein
+    // leichterer, aber hoeherer Seitenzweig alter Fassung bliebe sonst
+    // 'valid', bestTip() koennte ihn spaeter waehlen, und der Start braeche
+    // wieder ab.
+    const hoechste = this.store.maxHeight();
     if (hoechste < v6) return;
     if (this.store.meta(ChainManager.V6_GEPRUEFT) === String(v6)) return;
 

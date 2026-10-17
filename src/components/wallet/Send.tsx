@@ -155,14 +155,29 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   */
   const [stufe, setStufe] = useState<'langsam' | 'normal' | 'schnell'>('normal');
   const [markt, setMarkt] = useState<Markt | null>(null);
+  const [marktFehlt, setMarktFehlt] = useState(false);
 
   useEffect(() => {
     let lebt = true;
-    fetch('/api/v2/fees')
-      .then(r => r.json())
-      .then(d => { if (lebt && !d.error) setMarkt(d); })
-      .catch(() => { /* ohne Auskunft bleibt es bei der Mindestgebühr */ });
-    return () => { lebt = false; };
+    let wieder: ReturnType<typeof setTimeout> | undefined;
+    const holen = () => {
+      fetch('/api/v2/fees')
+        .then(r => r.json())
+        .then(d => {
+          if (!lebt) return;
+          if (!d.error) { setMarkt(d); setMarktFehlt(false); return; }
+          throw new Error(d.error);
+        })
+        .catch(() => {
+          // Ohne Auskunft bleibt es bei der Mindestgebühr. Ist eine
+          // Aktivierungshoehe gesetzt, wird nachgefragt, bis der Knoten antwortet.
+          if (!lebt) return;
+          setMarktFehlt(true);
+          if (V6_HEIGHT !== V6_HEIGHT_UNSET) wieder = setTimeout(holen, 15_000);
+        });
+    };
+    holen();
+    return () => { lebt = false; if (wieder) clearTimeout(wieder); };
   }, []);
 
   // Ohne Auskunft vom Knoten: alte Mindestgebühr -- die deckt jede Regel.
@@ -179,6 +194,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   // Fassung 1; danach wird nicht geraten -- eine falsch gewaehlte Fassung
   // lehnt jeder Knoten ab.
   const fassungUnbekannt = !markt && V6_HEIGHT !== V6_HEIGHT_UNSET;
+  // Die Meldung erst, wenn die Anfrage gescheitert ist -- nicht waehrend sie laeuft.
+  const fassungMeldung = fassungUnbekannt && marktFehlt;
   const stufenGebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
   const gebuehr = stufenGebuehr > bodenJeByte ? stufenGebuehr : bodenJeByte;
   const zielBlock = markt ? markt.stufen[stufe].block : 1;
@@ -486,8 +503,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
 
         {/* Das Guthaben kann sich aendern, waehrend man hier liest (eine andere
             Zahlung geht hinaus). Dann nicht senden lassen, was der Knoten ablehnt. */}
-        {!bereit ? (
-          <div className="mt-3"><Notice tone="risk">{wechselPause ? t.senden.wechselPause : fassungUnbekannt ? t.senden.fassungUnbekannt : staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
+        {!bereit && !(fassungUnbekannt && !marktFehlt) ? (
+          <div className="mt-3"><Notice tone="risk">{wechselPause ? t.senden.wechselPause : fassungMeldung ? t.senden.fassungUnbekannt : staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
         ) : (
           <p className="rise rise-1 mx-1 mt-3 text-[12.5px] font-semibold leading-[1.45] text-dim">{t.senden.warnung}</p>
         )}
@@ -554,7 +571,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
             <p className="text-[12.5px] font-bold text-risk">{t.senden.staub}</p>
           ) : wechselPause ? (
             <p className="text-[12.5px] font-bold text-risk">{t.senden.wechselPause}</p>
-          ) : fassungUnbekannt ? (
+          ) : fassungMeldung ? (
             <p className="text-[12.5px] font-bold text-risk">{t.senden.fassungUnbekannt}</p>
           ) : ausCode ? (
             <p className="text-[12.5px] font-semibold text-work">{t.senden.ausCode}</p>
