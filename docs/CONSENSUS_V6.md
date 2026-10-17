@@ -141,7 +141,7 @@ version character only for versions 1 and up:
 
 ```text
 version 0:  bech32m(hrp, program(20))                      42 characters, as today
-version v:  bech32m(hrp, [v] | program)   for v = 1..15    version 1: 63 characters
+version v:  bech32m(hrp, [v] | program)   for v = 1..15    version 1: 63 characters with ysr, 64 with tysr or rysr
 ```
 
 `[v]` is one 5-bit data value; bech32m writes the value 1 as the character `p`. The program follows as
@@ -259,8 +259,9 @@ its key stops sharing a prefix with any other key, about `log2(number of account
 million `sha256d` calls, within reach of the reference implementation in TypeScript; a non-compacted tree
 of depth 256 would need roughly fifteen times as much and is not used.
 
-Keys of version 0 and version 1 accounts cannot collide: they are hashes of inputs of different lengths
-(20 bytes against 33 bytes). The root of an empty state is `EMPTY`; the state is never empty on the main
+Keys of version 0 and version 1 accounts are SHA-256 of inputs of different lengths (20 bytes against
+33 bytes). A collision between them is as unlikely as any SHA-256 collision; the different lengths do not
+add to that, they only rule out that one raw address is the other. The root of an empty state is `EMPTY`; the state is never empty on the main
 network, because the zero address holds a balance from genesis.
 
 The hash function and the domain prefixes `0x00` and `0x01` are the ones the existing Merkle tree uses
@@ -332,7 +333,9 @@ their wire order, without the authorization data (public key and signature for a
 for a script account). Note that the preimage prefix is not in wire order: on the wire `version` comes
 before `type`. The script of a script spend is part of the preimage, because it defines the sender.
 
-The transaction ID stays `sha256d(wire bytes)`, authorization included. For a script spend this means
+The transaction ID stays `sha256d(wire bytes)`, authorization included. The wire bytes are the
+transaction alone, starting with `u16 version`; the `u32` length that frames each transaction inside a
+block body (PROTOCOL.md) is not part of them. For a script spend this means
 the witness is part of the transaction ID and of the block's Merkle root; the consequence for
 malleability is discussed in 7.6.
 
@@ -372,7 +375,8 @@ Validity, in the order of the code (`h` is the height of the containing block):
 6. If `validFrom != 0`: `h >= validFrom` (`not_yet_valid`). If `validUntil != 0`: `h <= validUntil`
    (`expired`). If both are non-zero: `validFrom <= validUntil` (`bad_validity_window`).
 7. First 20 bytes of `SHA-256(publicKey)` equal `from` (`pubkey_mismatch`).
-8. `to` is not the raw form of `from` (`self_transfer`).
+8. The raw form (4.3) of `to` differs from the raw form of `from` (`self_transfer`). `to` is compared
+   after decoding from `u8 version | program`, not as wire bytes.
 9. Signature valid over the sighash (`bad_signature`).
 10. With the state: `nonce` equals the sender's nonce (`nonce_mismatch`); balance at least
     `amount + fee` (`insufficient_funds`).
@@ -405,16 +409,18 @@ payouts beyond the coinbase (8) and any other many-recipient payment.
 preimage is the common prefix followed by `from | count | outputs | fee | nonce | validFrom | validUntil
 | memoLen | memo`.
 
-Validity: rules 1, 4, 5, 6, 7, 9, 10 of 6.3 apply with `amount` replaced by the sum of all outputs. In
-addition:
+Validity: `version` is 1 and `flags` is 0 (`bad_version`, `bad_flags`); rules 4, 5, 6, 7, 9 and 10 of
+6.3 apply with `amount` replaced by the sum of all outputs. In addition:
 
 - `count` is 1 to 1,000 (`bad_output_count`);
 - every output has a known address version and the matching length (`unknown_address_version`,
   `bad_address_length`);
 - every output `amount >= DUST_LIMIT` (`dust`);
-- no output is the raw form of `from` (`self_transfer`);
-- the outputs are in strictly ascending order of their raw address bytes (`u8 version | program`,
-  compared as byte strings) (`outputs_unsorted`). This forbids duplicates and gives a set of payments
+- no output's raw form (4.3) equals the raw form of `from` (`self_transfer`);
+- the outputs are in strictly ascending order of their address in **wire form** (`u8 version |
+  program`, so a version 0 address is compared as `0x00 | 20 bytes`), compared as byte strings
+  (`outputs_unsorted`). The raw form of 4.3 is not used for this order, because version 0 carries no
+  version byte there and would sort differently. This forbids duplicates and gives a set of payments
   exactly one encoding and one transaction ID; it is the rule the version 2 coinbase already follows;
 - the sum of the outputs, and the sum plus `fee`, do not overflow 64 bits (`bad_amount`).
 
@@ -459,7 +465,7 @@ Validity, in the order of the code:
 5. Validity window as in 6.3 rule 6.
 6. `SHA-256(script) == from` (`script_mismatch`).
 7. The script is well formed (7.2) (`bad_script`).
-8. `to` is not the raw form of `from` (`self_transfer`).
+8. The raw form of `to` differs from the raw form of `from`, `0x01 | from` (`self_transfer`).
 9. The witness satisfies the script for this transaction (7.4) (`script_unsatisfied`,
    `witness_excess`).
 10. With the state: nonce and balance as in 6.3, with the sender keyed by `0x01 | from`.
@@ -490,7 +496,11 @@ The bytes and the tree correspond one to one, but a policy and its bytes do not:
 PK B])` and `THRESH(2, [PK B, PK A])` are different scripts with different addresses. So that an address
 can be rebuilt from its keys without guessing, wallets write the `PK` children of a `THRESH` in
 ascending order of the public key bytes, and write other children after the keys in the order `HASH`,
-`AFTER`, `BEFORE`, nested `THRESH` (13). The consensus does not enforce this order.
+`AFTER`, `BEFORE`, nested `THRESH` (13). The consensus does not enforce this order. The rule fixes the
+order only of keys and of the kinds of children; several `HASH`, `AFTER` or nested `THRESH` children
+keep the order their creator chose. An address of such a script can therefore not be rebuilt from its
+parts alone: the participants exchange the script bytes, and each checks that their hash is the
+address.
 
 `AFTER` and `BEFORE` compare against the validity window the transaction states, not against the height
 of the block. Together with rule 6 of 6.3 (the block height lies inside the window) this gives the
@@ -852,7 +862,7 @@ transfer is submitted: a version 1 would be left in the queue at the boundary, a
 yet accepted). Node Core wallet and Mini App (`Send.tsx`) pick the version from the node's `/fees`
 answer and show the pause. `src/lib/wallet/mehrfach.ts` implements k-of-n accounts (7.1), the
 co-signing file (JSON with hex fields: unsigned transaction, signatures per key), signing, and the
-assembly of the witness with exactly k slots in script order; `tests/wallet-mehrfach.test.ts` runs
+assembly of the witness with one slot per leaf (7.3), of which exactly k `PK` slots are filled, the first k signers in script order; `tests/wallet-mehrfach.test.ts` runs
 the full 2-of-3 flow through the mempool. **No user interface for it yet** in Mini App, Node Core
 or the command-line node; address input and display already accept version 1 addresses everywhere.
 
@@ -876,7 +886,8 @@ Every rule above gets a test in the pattern of `tests/konsens-v5.test.ts`: with 
 height 0) the invalid case is rejected and the valid case accepted; with the activation moved beyond the
 test height the old rule applies. In addition, before the activation height is set:
 
-- **Test vectors**, published in this document and pinned in `tests/konsens-v6.test.ts`. The first set,
+- **Test vectors**, published in this document and pinned in `tests/konsens-v6.test.ts` and
+  `tests/v6-vektoren.test.ts`. The first set,
   on `REGTEST_V6` (chain ID `sha256("yskar-regtest-v6")`), with keys derived by `keypairFromSeed` from a
   32-byte seed of all `0x01` (Alice), `0x02` (Bob), `0x03` (Carol):
 
@@ -889,10 +900,41 @@ test height the old rule applies. In addition, before the activation height is s
   | 2-of-3 address of Alice, Bob, Carol (keys sorted) | `ysr1pg95f6ku4e4d7us6xnf5l456uwmc8aerjd02ck72eh7szku28qjqqynpjww` |
   | State root (5.2) of {Alice: 5, Bob: 7}, nonces 0 | `51be0642ee68cd9f90a66f8e22ed2de2106789d5f6b40b0ce371e5052493df26` |
 
-  Still to add: a batch, a 2-of-3 spend, a swap claim and a swap refund with fixed secrets, and the
-  main network's state at a fixed height under the new tree. Main-network vectors follow once the chain
-  ID and height are fixed. These vectors are the basis for any later hardware-wallet or third-party
-  implementation.
+  The second set (2026-10-17), on the same network, covers every new transaction type. All inputs and
+  every intermediate value (wire bytes, sighash, signature, witness) are in
+  `tests/fixtures/v6-vektoren.json`; the table lists the end results:
+
+  | Vector | Value |
+  |---|---|
+  | Alice, Bob, Carol, Dave: Ed25519 secret key | 32 bytes of 0x11, 0x22, 0x33, 0x44 (raw RFC 8032 secret, no derivation) |
+  | Alice public key | `d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737` |
+  | Alice address (main-net HRP) | `ysr1zzaxsty26y6389c73dtgsx4t30ts9wuq55e0fh` |
+  | 2-of-3 script of Alice, Bob, Carol: address (main-net HRP) | `ysr1pdrxef4yzmkz4wklhfu5yqrh68nxd5natshha6t9cqhg24a06rvsq74ljqn` |
+  | HTLC script (Bob with secret, else Alice from height 100): address (main-net HRP) | `ysr1pt9zrgtr6pjp5zukzek92ctq8t6lrneqjtcfvff85fa0ug582d3cq6m6ujn` |
+  | Transfer v2 Alice → Bob, 1,000,000 units, fee 2,000, nonce 7, validFrom 5, validUntil 50, memo `v6`: txid | `fd4b2bba303efad4ed057384c8ce42ccaaabd166524065e13f2cc3a322cbbc03` |
+  | Batch Alice → Carol 30,000, multisig 50,000, Bob 20,000, fee 3,000, nonce 8, memo `Auszahlung`: txid | `f97adc7e3faf3379f6958b456b3d805b0316e8caf1dc0bfea8bd1b3c456aa0cf` |
+  | 2-of-3 spend → Dave 40,000, fee 4,000, nonce 2, memo `2von3`, signed by Alice and Carol: txid | `864e04e712e452fd1bcc0a19300c28bf4d9a04137dec73cd9cdd684a65a3fe88` |
+  | HTLC claim → Bob 60,000, fee 5,000, validUntil 90, with the secret: txid | `a0d55b92ae0a8f8cf764b8864f1085238ad437932ea77aa6b3f37e8e90fc60a5` |
+  | HTLC refund → Alice 60,000, fee 5,000, validFrom 100, memo `zurueck`: txid | `0c1668617f62908bcacfb5766ea9d9716566b3a1f7cd110b1c3d6245a1bdd6d8` |
+  | State root of {Alice 5/0, Bob 7/3, multisig 9/2} (balance/nonce) | `645a52c94aadcb6fb3a668bfb73b8fa2dcaf476b8f091219953e4cd0354d5f71` |
+
+  **Independent recomputation.** The second set was recomputed by a separate implementation in Python
+  (standard library, `cryptography` for Ed25519, bech32m written from BIP 350), built from this
+  document alone without access to the YSKAR source. All 46 values match. The same pass found ten
+  unclear passages, corrected on 2026-10-17: the batch sort order (6.4), the version rule of the batch
+  (6.4), the `self_transfer` comparison (6.3, 6.4, 6.5), the address length per HRP (4.2), the order of
+  non-key script children (7.1), the collision argument of the state tree (5.2), the framing of the
+  transaction ID (6.2), the witness wording (13a), and the key derivation and HRP of the first set
+  (below). The recomputing implementation was written by an AI agent in a fresh context; a human
+  review remains desirable.
+
+  Note on the first set: its keys come from YSKAR's wallet derivation (SLIP-0010 path
+  `m/44'/9077'/0'/0'/0'` with the 32 bytes as seed, PROTOCOL.md), which is not consensus, and its 2-of-3
+  address is written with the main-net HRP `ysr`. The second set uses raw keys for that reason.
+
+  Still to add: the main network's state at a fixed height under the new tree, and main-network vectors
+  once the chain ID and height are fixed. These vectors are the basis for any later hardware-wallet or
+  third-party implementation.
 - **Script checker**: a fuzzing harness that generates random trees and witnesses and compares the
   reference evaluator against an independent re-implementation; every well-formedness rule has a
   negative test; `needsKey` is tested on every example of 7.5 and on adversarial shapes.

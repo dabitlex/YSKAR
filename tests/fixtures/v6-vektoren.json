@@ -1,0 +1,210 @@
+{
+ "hinweis": "Testvektoren der Konsensfassung 6 (docs/CONSENSUS_V6.md 14). Erzeugt von scripts/v6-vektoren/erzeugen.ts; nicht von Hand aendern. Zahlen als Text, weil sie ueber 2^53 liegen koennen.",
+ "eingaben": {
+  "netz": {
+   "name": "yskar-regtest-v6",
+   "chainId": "491a94b5242e52994ff9cc8d74ecc06073c0690eafcb0677a7ff076525b4640f",
+   "chainIdHerleitung": "SHA-256 ueber den ASCII-Text des Netznamens"
+  },
+  "forkId": 6,
+  "schluessel": {
+   "alice": {
+    "geheim": "1111111111111111111111111111111111111111111111111111111111111111"
+   },
+   "bob": {
+    "geheim": "2222222222222222222222222222222222222222222222222222222222222222"
+   },
+   "carol": {
+    "geheim": "3333333333333333333333333333333333333333333333333333333333333333"
+   },
+   "dave": {
+    "geheim": "4444444444444444444444444444444444444444444444444444444444444444"
+   }
+  },
+  "ueberweisung": {
+   "von": "alice",
+   "an": "bob",
+   "betrag": "1000000",
+   "gebuehr": "2000",
+   "nonce": "7",
+   "validFrom": 5,
+   "validUntil": 50,
+   "notiz": "v6"
+  },
+  "skripte": {
+   "multisig": {
+    "art": "THRESH(2; PK(alice), PK(bob), PK(carol)), Schluessel aufsteigend sortiert (7.1)"
+   },
+   "htlc": {
+    "art": "THRESH(1; THRESH(2; PK(bob), HASH(sha256(geheimnis))), THRESH(2; PK(alice), AFTER(100)))",
+    "geheimnis": "59534b41522d48544c432d5465737467656865696d6e69732d33322d42797465"
+   }
+  },
+  "sammelzahlung": {
+   "von": "alice",
+   "ausgaenge": [
+    {
+     "an": "carol",
+     "betrag": "30000"
+    },
+    {
+     "an": "skript:multisig",
+     "betrag": "50000"
+    },
+    {
+     "an": "bob",
+     "betrag": "20000"
+    }
+   ],
+   "gebuehr": "3000",
+   "nonce": "8",
+   "validFrom": 0,
+   "validUntil": 0,
+   "notiz": "Auszahlung",
+   "hinweis": "Ausgaenge in der Reihenfolge der Eingabe; die Transaktion sortiert sie nach 6.4."
+  },
+  "zweiVonDrei": {
+   "skript": "multisig",
+   "an": "dave",
+   "betrag": "40000",
+   "gebuehr": "4000",
+   "nonce": "2",
+   "validFrom": 0,
+   "validUntil": 0,
+   "notiz": "2von3",
+   "unterschreiben": [
+    "alice",
+    "carol"
+   ],
+   "hinweis": "Witness: ein Slot je Blatt in Skriptreihenfolge (7.3); Bob bleibt leer."
+  },
+  "htlcEinloesen": {
+   "skript": "htlc",
+   "an": "bob",
+   "betrag": "60000",
+   "gebuehr": "5000",
+   "nonce": "0",
+   "validFrom": 0,
+   "validUntil": 90,
+   "notiz": "",
+   "unterschreiben": [
+    "bob"
+   ],
+   "hinweis": "Zweig 1: Bobs Signatur und das Geheimnis; Zweig 2 bleibt leer."
+  },
+  "htlcZurueck": {
+   "skript": "htlc",
+   "an": "alice",
+   "betrag": "60000",
+   "gebuehr": "5000",
+   "nonce": "0",
+   "validFrom": 100,
+   "validUntil": 0,
+   "notiz": "zurueck",
+   "unterschreiben": [
+    "alice"
+   ],
+   "hinweis": "Zweig 2: Alices Signatur und AFTER(100) beansprucht; gueltig ab Hoehe 100, nicht vorher."
+  },
+  "zustand": {
+   "konten": [
+    {
+     "konto": "alice",
+     "guthaben": "5",
+     "nonce": "0"
+    },
+    {
+     "konto": "bob",
+     "guthaben": "7",
+     "nonce": "3"
+    },
+    {
+     "konto": "skript:multisig",
+     "guthaben": "9",
+     "nonce": "2"
+    }
+   ],
+   "hinweis": "Zustandsbaum nach 5.2, Kontodatensatz nach 5.1."
+  }
+ },
+ "erwartet": {
+  "schluessel": {
+   "alice": {
+    "oeffentlich": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+    "rohadresse": "10ba682c8ad13513971e8b56881aab8bd702bb80",
+    "textMainnet": "ysr1zzaxsty26y6389c73dtgsx4t30ts9wuq55e0fh",
+    "textRegtest": "rysr1zzaxsty26y6389c73dtgsx4t30ts9wuqgzcrgs"
+   },
+   "bob": {
+    "oeffentlich": "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0",
+    "rohadresse": "1325b850c2871916eae203f0efc3c8987f64e5e3",
+    "textMainnet": "ysr1zvjms5xzsuv3d6hzq0cwls7gnplkfe0r843smq",
+    "textRegtest": "rysr1zvjms5xzsuv3d6hzq0cwls7gnplkfe0rmrsu68"
+   },
+   "carol": {
+    "oeffentlich": "17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce",
+    "rohadresse": "6c8f8607dbe87077a62a2990ce07d94aaf749df7",
+    "textMainnet": "ysr1dj8cvp7mapc80f329xgvup7ef2hhf80hhe9h6t",
+    "textRegtest": "rysr1dj8cvp7mapc80f329xgvup7ef2hhf80ht0ymmv"
+   },
+   "dave": {
+    "oeffentlich": "d759793bbc13a2819a827c76adb6fba8a49aee007f49f2d0992d99b825ad2c48",
+    "rohadresse": "b14705888f4a68391a09aa5968dd25d16c3bba7b",
+    "textMainnet": "ysr1k9rstzy0ff5rjxsf4fvk3hf969krhwnmkum4qj",
+    "textRegtest": "rysr1k9rstzy0ff5rjxsf4fvk3hf969krhwnm226ep4"
+   }
+  },
+  "ueberweisung": {
+   "sighash": "4efc596dc8b2a98c8fff5e77a82f477015c01ac289cee03a53a8ec2f6f621e36",
+   "signatur": "0302fd551603f728031d7293d2c6f67f55ad3ab2d2c5977f4578dd565043597f84e6e8943375dd40357e493746b5e0d588422261e628431563a3b6b110fcab0c",
+   "leitung": "0200010010ba682c8ad13513971e8b56881aab8bd702bb80001325b850c2871916eae203f0efc3c8987f64e5e340420f0000000000d00700000000000007000000000000000500000032000000027636d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c97787370302fd551603f728031d7293d2c6f67f55ad3ab2d2c5977f4578dd565043597f84e6e8943375dd40357e493746b5e0d588422261e628431563a3b6b110fcab0c",
+   "txid": "fd4b2bba303efad4ed057384c8ce42ccaaabd166524065e13f2cc3a322cbbc03"
+  },
+  "skripte": {
+   "multisig": {
+    "skript": "0202030117cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce01a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f001d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+    "rohadresse": "0168cd94d482dd85575bf74f28400efa3cccda4fab85efdd2cb805d0aaf5fa1b20",
+    "textMainnet": "ysr1pdrxef4yzmkz4wklhfu5yqrh68nxd5natshha6t9cqhg24a06rvsq74ljqn",
+    "textRegtest": "rysr1pdrxef4yzmkz4wklhfu5yqrh68nxd5natshha6t9cqhg24a06rvsq0r856w"
+   },
+   "htlc": {
+    "skript": "02010202020201a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f003935bf2e30181703b31a36bfa9aa8cf2eb5f5bb857db9ee9216fbeeb1c4eb5b5e02020201d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c97787370464000000",
+    "hash": "935bf2e30181703b31a36bfa9aa8cf2eb5f5bb857db9ee9216fbeeb1c4eb5b5e",
+    "rohadresse": "015944342c7a0c834172c2cd8aac2c075ebe39e4125e12c4a4f44f5fc450ea6c70",
+    "textMainnet": "ysr1pt9zrgtr6pjp5zukzek92ctq8t6lrneqjtcfvff85fa0ug582d3cq6m6ujn"
+   }
+  },
+  "sammelzahlung": {
+   "reihenfolge": [
+    "1325b850c2871916eae203f0efc3c8987f64e5e3",
+    "6c8f8607dbe87077a62a2990ce07d94aaf749df7",
+    "0168cd94d482dd85575bf74f28400efa3cccda4fab85efdd2cb805d0aaf5fa1b20"
+   ],
+   "sighash": "1d01b6ece4834f3def9578e1b10c0e2ed6daa34326c25a39229d4a415f529b6b",
+   "signatur": "634c6cfd17b6158e0ddfe511693edf33b2a2b926ad956619d303b58769fbd9b4d1cdee661add7b0ffcb43bcd65efb89835071266c2c94d7911d619b2ec305c06",
+   "leitung": "0100030010ba682c8ad13513971e8b56881aab8bd702bb800300001325b850c2871916eae203f0efc3c8987f64e5e3204e000000000000006c8f8607dbe87077a62a2990ce07d94aaf749df730750000000000000168cd94d482dd85575bf74f28400efa3cccda4fab85efdd2cb805d0aaf5fa1b2050c3000000000000b80b000000000000080000000000000000000000000000000a4175737a61686c756e67d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737634c6cfd17b6158e0ddfe511693edf33b2a2b926ad956619d303b58769fbd9b4d1cdee661add7b0ffcb43bcd65efb89835071266c2c94d7911d619b2ec305c06",
+   "txid": "f97adc7e3faf3379f6958b456b3d805b0316e8caf1dc0bfea8bd1b3c456aa0cf"
+  },
+  "zweiVonDrei": {
+   "sighash": "8a41fd2738a6baff9b55ec23756b0d60eedf3d233f19cc746e9d1f2f9f172cba",
+   "witness": "0106736a43cbe4c5db5407d15c97e0b572e8693e1f4d6475ff15ad8fd87e87d2bfa442f709ab6946d7aadc6ffa912feefebcd42d3feda8314cfa27e7f256d96b0d0001ee009279f60b188158ad8d0dfb54975dd08ecbbaa16689566e3976f678575a6193af9b52c9180183ffe00ce9241702f3b74c3be7641dc6f2d1edad70d2538a06",
+   "leitung": "0100020068cd94d482dd85575bf74f28400efa3cccda4fab85efdd2cb805d0aaf5fa1b2000b14705888f4a68391a09aa5968dd25d16c3bba7b409c000000000000a00f000000000000020000000000000000000000000000000532766f6e3366000202030117cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce01a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f001d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c97787370106736a43cbe4c5db5407d15c97e0b572e8693e1f4d6475ff15ad8fd87e87d2bfa442f709ab6946d7aadc6ffa912feefebcd42d3feda8314cfa27e7f256d96b0d0001ee009279f60b188158ad8d0dfb54975dd08ecbbaa16689566e3976f678575a6193af9b52c9180183ffe00ce9241702f3b74c3be7641dc6f2d1edad70d2538a06",
+   "txid": "864e04e712e452fd1bcc0a19300c28bf4d9a04137dec73cd9cdd684a65a3fe88"
+  },
+  "htlcEinloesen": {
+   "sighash": "fece6754cab23e7d01a2efeb51570ab8942d47c124923390d2904afb311702a4",
+   "witness": "01a2a239cd97d0d65eafdd70984eb183b81d8cd33533c5dbcf8987f5a9f9bb77026f6284666adaa3b6559774fcdf924d5a1530780580298b7cd76ac54d1a1291070159534b41522d48544c432d5465737467656865696d6e69732d33322d427974650000",
+   "leitung": "010002005944342c7a0c834172c2cd8aac2c075ebe39e4125e12c4a4f44f5fc450ea6c70001325b850c2871916eae203f0efc3c8987f64e5e360ea00000000000088130000000000000000000000000000000000005a00000000710002010202020201a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f003935bf2e30181703b31a36bfa9aa8cf2eb5f5bb857db9ee9216fbeeb1c4eb5b5e02020201d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737046400000001a2a239cd97d0d65eafdd70984eb183b81d8cd33533c5dbcf8987f5a9f9bb77026f6284666adaa3b6559774fcdf924d5a1530780580298b7cd76ac54d1a1291070159534b41522d48544c432d5465737467656865696d6e69732d33322d427974650000",
+   "txid": "a0d55b92ae0a8f8cf764b8864f1085238ad437932ea77aa6b3f37e8e90fc60a5"
+  },
+  "htlcZurueck": {
+   "sighash": "26d50933882d3aab41472d393ff470e5ddeae3e99e5e95e67a50231ae4964eaf",
+   "witness": "00000109e711ec11f8940572e8150ac8a46fae5628dc30f79a314b8498db3025beb23892c11473e3e1c8ff46f1b6e95bb3c183301769024e2a8561c5c9f33053831d0101",
+   "leitung": "010002005944342c7a0c834172c2cd8aac2c075ebe39e4125e12c4a4f44f5fc450ea6c700010ba682c8ad13513971e8b56881aab8bd702bb8060ea000000000000881300000000000000000000000000006400000000000000077a75727565636b710002010202020201a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f003935bf2e30181703b31a36bfa9aa8cf2eb5f5bb857db9ee9216fbeeb1c4eb5b5e02020201d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737046400000000000109e711ec11f8940572e8150ac8a46fae5628dc30f79a314b8498db3025beb23892c11473e3e1c8ff46f1b6e95bb3c183301769024e2a8561c5c9f33053831d0101",
+   "txid": "0c1668617f62908bcacfb5766ea9d9716566b3a1f7cd110b1c3d6245a1bdd6d8"
+  },
+  "zustand": {
+   "wurzel": "645a52c94aadcb6fb3a668bfb73b8fa2dcaf476b8f091219953e4cd0354d5f71"
+  }
+ }
+}

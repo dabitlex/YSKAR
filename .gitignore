@@ -47,3 +47,7 @@ crypto/zip215/target/
 
 # Erzeugt von scripts/signatur-messung/bauen.mjs
 scripts/signatur-messung/signatur-messung.html
+
+# Ergebnisse der Python-Gegenrechnung
+scripts/v6-vektoren/gegenrechnung/ergebnis*.json
+scripts/v6-vektoren/gegenrechnung/__pycache__/
