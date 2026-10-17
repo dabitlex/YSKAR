@@ -636,6 +636,13 @@ signature checks alone:
 The limit of 8,000 is chosen for the batch verifier of 7.8. With JavaScript verification alone it would
 be too high; nodes therefore use the WebAssembly verifier.
 
+Confirmed on weak hardware on 2026-10-17 with `scripts/signatur-messung` (older Windows 10 laptop,
+4 cores, Chrome 155): all 208 test vectors correct; 8,000 signatures one by one 1.59 to 1.66 s, as a
+batch 0.51 to 0.55 s. The worst case for a node is a block whose batch fails because of one invalid
+signature at the end: batch plus single verification, about 2.2 s on that laptop, and such a block
+still needs valid proof of work. Against a block time of 600 s this leaves a wide margin; the limit
+stays at 8,000.
+
 ### 7.8 Signature verification rule
 
 Every Ed25519 signature in YSKAR, in every revision, is valid if and only if it satisfies **ZIP 215**
@@ -932,7 +939,7 @@ Decided on 2026-10-16 (design record in the project notes):
 | Address version 1 | 32-byte program; HRPs `ysr` / `tysr` / `rysr` |
 | Scripts | Five node kinds; height-based locks only; checked against the validity window; every branch needs a key; excess witness is invalid |
 | State tree | Binary sparse Merkle tree over `SHA-256(raw address)`; record with two reserved 32-byte fields |
-| Limits | 5,000 transactions per block; 255 coinbase outputs; 1,000 batch outputs; 8,000 signature operations per block (added after review, 2026-10-16) |
+| Limits | 5,000 transactions per block; 255 coinbase outputs; 1,000 batch outputs; 8,000 signature operations per block (added after review, 2026-10-16; confirmed on weak hardware, 2026-10-17, 7.7) |
 | Witness malleability | Accepted and documented (7.6); mempool and wallets key by sender and nonce or by sighash; no separate witness commitment in this revision |
 | Node behaviour | Header version checked after proof of work and before body decoding; reject, warn, stay connected; time-based update hints; no forced halt |
 | Node software | 1.0.0 |
@@ -946,13 +953,12 @@ Open, to be settled before the activation height is set:
 2. **Batch from a script account.** A multi-signature pool treasury paying miners needs it. Options:
    type 3 version 2 with script authorization in a later revision. Leaning: later.
 3. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set after 14 is complete.
-4. **Mirror schema.** To be designed with the implementation; not consensus.
-5. **Signature budget value.** 8,000, chosen for the batch verifier (7.7, 7.8). Still to do: one
-   measurement on weak hardware (an older laptop or a mini PC) to confirm the margin.
-6. **Pool batch payout mode.** Not consensus, but a product decision: in this mode the pool holds
-   miners' funds between block and payout and needs a signing key on the server. The directory and
-   both apps already show the mode; the mode itself is built only if a pool actually approaches 254
-   miners per block. Leaning: later, and only on request of a pool operator.
+4. **Mirror schema.** Written (`supabase/migrations/00027_konsensfassung_6.sql`), not yet applied.
+5. **Pool batch payout mode.** Decided on 2026-10-17: YSKAR does not build it into its pool server. In
+   this mode a pool holds miners' funds between block and payout and needs a signing key on the
+   server; an operator who wants it builds it with type 3 (6.4). YSKAR provides a guide in
+   [POOL.md](POOL.md) and test vectors (14), both still to be written. The directory and both apps
+   already show the mode.
 
 ## 17. References
 
