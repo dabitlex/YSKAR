@@ -278,10 +278,12 @@ the workflows in `.github/workflows/`.
 Named plainly, so that nobody expects more than there is.
 
 - **A young, small network.** The network has two seed nodes, the first of which also runs the
-  public pool; both are run by the same operator. At least one independent pool mines as well. Proof of work protects a chain only as long as no single party controls most of
-  the hash power. [docs/SECURITY.md](docs/SECURITY.md) lists the known limits.
-- **Node Core exists for Windows only.** On Linux and macOS the full node runs from the command
-  line.
+  public pool YSKAR MAIN; both are run by the same operator. Two independent pools run by
+  community members, ODW.Serv and Gozero, mine as well. Proof of work protects a chain only as
+  long as no single party controls most of the hash power. [docs/SECURITY.md](docs/SECURITY.md)
+  lists the known limits.
+- **Node Core exists for Windows and 64-bit Linux (x86-64).** There is no Node Core for macOS
+  or ARM computers such as the Raspberry Pi; there the full node runs from the command line.
 - **The Android app is distributed as an APK** through GitHub Releases. It is not in an app
   store. There is no iOS app.
 - **Open source under the MIT License.** The source code is public and can be read, verified
@@ -291,3 +293,7 @@ Named plainly, so that nobody expects more than there is.
 
 YSR has no price and no market, and it is not listed on any exchange. Nothing here promises that
 this will change, and nobody should mine in that expectation.
+
+## License
+
+YSKAR is released under the [MIT License](LICENSE). Copyright (c) 2026 The YSKAR developers.
