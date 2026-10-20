@@ -917,8 +917,23 @@ Tests across a real activation height (`tests/v6-grenze.test.ts`, height 5): a c
 height, a reorg between two branches that both cross it, a restart after old-rule blocks above the
 height, the mempool and the send pause at the boundary.
 
-Not yet done: batch payout mode, multi-signature user interfaces, private test network with old and
-new nodes side by side, `V6_HEIGHT` and `V6_TIMESTAMP`.
+*Higher revision (2026-10-20, audit findings A-1 and A-2):* the timestamp rules in the check of 11.1
+(`ChainManager.istPlausibelerNachfolger`), follow-up headers of a higher revision against a bounded
+memory of 256 headers (11.1), and in `SyncManager` blocks already rejected as a higher revision are not
+fetched again through header sync (`tests/hoehere-fassung.test.ts`, `tests/hoehere-fassung-folge.test.ts`).
+A CI workflow (`.github/workflows/pruefen.yml`) runs both type checks and the test suite on `main` and
+`consensus-v6`.
+
+*Transition test:* `--v6-height <n>`, only with `--regtest` (`regtestMitV6` in `networks.ts`), gives a
+regtest node revision 6 from block `n` with the regtest network name and chain ID, so that old and new
+nodes run side by side on one machine ([FULLNODE.md](FULLNODE.md), "Testing the revision 6 transition
+on one machine"; `tests/regtest-v6-hoehe.test.ts`). A first run on 2026-10-21 with two nodes built
+from `main` and two from `consensus-v6` split at the chosen height as expected (14, "Fork behaviour");
+transactions across the height were not part of that run.
+
+Not yet done: batch payout mode, multi-signature user interfaces, the full fork-behaviour test of 14
+(transactions signed under revision 5 and 6 across the height, longer runs), `V6_HEIGHT` and
+`V6_TIMESTAMP`.
 
 ## 14. Tests and test vectors
 

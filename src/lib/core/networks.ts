@@ -119,6 +119,26 @@ export const REGTEST_V6: ConsensusParams = {
   v6Height: 0,
 };
 
+/**
+ * Regtest, in dem Fassung 6 ab einer frei gewaehlten Hoehe gilt.
+ *
+ * Fuer den Uebergangstest mit alten und neuen Knoten nebeneinander
+ * (CONSENSUS_V6.md 14, "Fork behaviour"): Netzkennung und Chain-ID sind
+ * die von REGTEST. Ein Knoten mit diesen Parametern verbindet sich deshalb
+ * mit einem Regtest-Knoten alter Fassung, und beide folgen derselben Kette
+ * bis zur Hoehe. Ab der Hoehe trennen sich die Regeln -- genau das soll der
+ * Test zeigen. Das Mainnet beruehrt das nicht: Es hat eine andere Chain-ID.
+ *
+ * Hoehe 0 ist ausgeschlossen: Dann gaebe es keine gemeinsame Kette vor der
+ * Grenze (dafuer gibt es REGTEST_V6 mit eigener Chain-ID).
+ */
+export function regtestMitV6(hoehe: number): ConsensusParams {
+  if (!Number.isSafeInteger(hoehe) || hoehe < 1 || hoehe >= V6_HEIGHT_UNSET) {
+    throw new Error(`Aktivierungshoehe fuer Fassung 6 muss eine ganze Zahl ab 1 sein, nicht "${hoehe}"`);
+  }
+  return { ...REGTEST, v6Height: hoehe };
+}
+
 export function istMainnet(p: ConsensusParams): boolean {
   return p.network === NETWORK;
 }

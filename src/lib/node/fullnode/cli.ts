@@ -24,7 +24,7 @@ import { ChainManager } from './ChainManager.ts';
 import { TxPool } from './TxPool.ts';
 import { MiningCoordinator } from './MiningCoordinator.ts';
 import { MiningServer } from './MiningServer.ts';
-import { MAINNET, REGTEST, type ConsensusParams } from '../../core/networks.ts';
+import { MAINNET, REGTEST, regtestMitV6, type ConsensusParams } from '../../core/networks.ts';
 import { PeerManager } from '../p2p/PeerManager.ts';
 import type { PeerConnection } from '../p2p/PeerConnection.ts';
 import { encodeStats, decodeStats, STATS_FAEHIG } from '../p2p/messages.ts';
@@ -84,6 +84,11 @@ interface Optionen {
    * keine Grenzen je Absender.
    */
   absender: 'proxy' | 'socket' | null;
+  /**
+   * Nur mit --regtest: Fassung 6 ab dieser Hoehe statt nie (--v6-height).
+   * Fuer den Uebergangstest mit alten und neuen Knoten nebeneinander.
+   */
+  v6Hoehe?: string;
 }
 
 function argumente(argv: string[]): Optionen {
@@ -126,10 +131,26 @@ function argumente(argv: string[]): Optionen {
         o.absender = w;
         break;
       }
+      case '--v6-height': o.v6Hoehe = nimm(); break;
       case '--help': case '-h': o.help = true; break;
     }
   }
   return o;
+}
+
+/**
+ * Die Konsensparameter fuer diesen Lauf.
+ *
+ * --v6-height gilt nur im Testnetz: Die Aktivierungshoehe des Mainnets
+ * steht im Code (V6_HEIGHT) und laesst sich nicht von aussen setzen.
+ */
+function netzParameter(opt: Optionen): ConsensusParams {
+  if (opt.v6Hoehe !== undefined) {
+    if (!opt.regtest) throw new Error('--v6-height gibt es nur zusammen mit --regtest');
+    const hoehe = /^\d+$/.test(opt.v6Hoehe) ? Number(opt.v6Hoehe) : NaN;
+    return regtestMitV6(hoehe);
+  }
+  return opt.regtest ? REGTEST : MAINNET;
 }
 
 const HILFE = `
@@ -153,6 +174,7 @@ Optionen
       --bind <adresse>  für "mine" (Vorgabe: 127.0.0.1)
       --port <nummer>   für "mine" (Vorgabe: 8645)
       --regtest         eigenes Testnetz statt der echten Kette
+      --v6-height <n>   nur mit --regtest: Fassung 6 ab Block n (Übergangstest)
       --upstream <url>  wohin gefundene Blöcke gehen (Vorgabe: --api)
       --no-upstream     gefundene Blöcke nur lokal behalten
       --p2p-port <nr>   Lauschport für andere Knoten (Vorgabe: 8646)
@@ -516,7 +538,7 @@ async function sync(
  * unveraendert dagegen.
  */
 async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Promise<void> {
-  const params: ConsensusParams = opt.regtest ? REGTEST : MAINNET;
+  const params = netzParameter(opt);
   const pool = new TxPool(params);
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
@@ -910,7 +932,12 @@ async function main(): Promise<void> {
   const opt = argumente(process.argv.slice(2));
   if (opt.help) { console.log(HILFE); return; }
 
-  const params: ConsensusParams = opt.regtest ? REGTEST : MAINNET;
+  let params: ConsensusParams;
+  try { params = netzParameter(opt); }
+  catch (e) {
+    console.error(rot(`\n${(e as Error).message}\n`));
+    process.exit(1);
+  }
   /*
     Die erwartete Kennung kommt aus den Parametern, nicht aus einer
     Konstante. Sonst liesse sich ein Testnetz-Ordner nur einmal oeffnen:

@@ -266,6 +266,7 @@ ignored without a message.
 | `--bind <address>` | `127.0.0.1` | `mine` | Address the HTTP interface listens on |
 | `--port <number>` | `8645` | `mine` | Port of the HTTP interface |
 | `--regtest` | off | all | Use the regtest network instead of the main network |
+| `--v6-height <n>` | not set | all, only with `--regtest` | Consensus revision 6 applies from block `n` (a whole number from 1). Network name and chain ID stay those of regtest, so the node connects to regtest nodes without revision 6. For the transition test in [The regtest network](#the-regtest-network). Without `--regtest` the node stops with an error; the main network's activation height cannot be set from outside |
 | `--upstream <url>` | value of `--api`; none with `--regtest` | `mine`, `spiegel` | Server that receives accepted blocks |
 | `--no-upstream` | off | `mine` | No forwarding and no HTTP fetching |
 | `--p2p-port <number>` | `8646` | `mine` | Port for inbound node connections. `0` means outbound connections only |
@@ -727,6 +728,46 @@ To watch blocks travel and forks resolve, run two regtest nodes on one machine:
 node dist/yskar-node.cjs mine --regtest --data ./testnetz-a --port 8645 --p2p-port 8646
 node dist/yskar-node.cjs mine --regtest --data ./testnetz-b --port 8655 --p2p-port 8656 --seed 127.0.0.1:8646
 ```
+
+### Testing the revision 6 transition on one machine
+
+`--v6-height <n>` makes a regtest node apply consensus revision 6 from block `n`. Its network name
+and chain ID stay those of regtest, so it connects to regtest nodes built from code without
+revision 6 (the current `main`). Both share one chain up to block `n − 1`; from block `n` the
+rules differ and the chain splits. This is the test of [CONSENSUS_V6.md](CONSENSUS_V6.md) section
+14 ("Fork behaviour"), run without the main network.
+
+Build the node twice, once from `main` (old) and once from `consensus-v6` (new), in two separate
+folders. Then, on one machine, each node with its own data directory and its own two ports:
+
+```bash
+# old (built from main)
+node dist/yskar-node.cjs mine --regtest --data ./alt-a --port 8645 --p2p-port 8646
+node dist/yskar-node.cjs mine --regtest --data ./alt-b --port 8655 --p2p-port 8656 --seed 127.0.0.1:8646
+# new (built from consensus-v6)
+node dist/yskar-node.cjs mine --regtest --v6-height 10 --data ./neu-c --port 8665 --p2p-port 8666 --seed 127.0.0.1:8646
+node dist/yskar-node.cjs mine --regtest --v6-height 10 --data ./neu-d --port 8675 --p2p-port 8676 --seed 127.0.0.1:8666
+```
+
+and one miner on an old and one on a new node (`--api http://127.0.0.1:8645` and
+`--api http://127.0.0.1:8665`). Use the same `--v6-height` for every new node and keep it when
+restarting one; regtest blocks never reach the main network.
+
+What to expect (observed on 2026-10-21 with exactly this setup, height 10):
+
+- Up to block 9 all four nodes follow the same chain.
+- A block 10 mined by an old node is accepted by the old nodes and rejected by the new ones
+  (`struktur bad_version`). The new node closes that connection and the old node reconnects at once.
+- A block 10 mined by a new node is accepted by the new nodes and rejected by the old ones
+  (`struktur bad_version`), as described in 11.3 of the specification.
+- From then on there are two chains. `chain` and `status` show different best blocks on old and
+  new nodes; `status` on a new node shows `Fassung 6 ab Block 10`.
+- Regtest aims at 600 seconds per block like the main network. The first blocks come within
+  seconds, then the difficulty rises to the miners' hash rate. After the split each side has only
+  its own miners, so blocks come more slowly until the difficulty has adjusted again. In the test
+  run (2 vCPU, one worker per miner, about 1.4 MH/s each) block 10 of the new side came about 26
+  minutes after block 10 of the old side. Choose a
+  small height (5 to 10) so the boundary is reached while blocks are still fast.
 
 Notes:
 
