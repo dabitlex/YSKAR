@@ -1,0 +1,59 @@
+name: Prüfen
+
+# Tests und Typprüfung für jeden Stand von main und consensus-v6.
+#
+# Bisher lief die Testsuite nur von Hand. Die anderen Workflows bauen und
+# veröffentlichen (Android-App, Node Core) und starten nur bei Tags,
+# Veröffentlichungen oder den Zweigen node-core-*; der Node-Core-Workflow
+# prüft dabei nur seine eigenen Tests und einen Teil der Mining-Tests. Dieser
+# Workflow ersetzt keinen davon und überschneidet sich mit keinem: Er baut
+# nichts, veröffentlicht nichts und braucht keine Secrets.
+#
+# Was er prüft:
+#   - npm test: die gesamte Suite unter tests/ (Konsens, Knoten, Pool, P2P)
+#   - tsc für das Hauptprojekt und für node-core
+# Schlägt einer der Schritte fehl, schlägt der Lauf fehl.
+#
+# Abhängigkeiten kommen mit npm ci genau aus package-lock.json, wie im
+# Node-Core-Workflow. Node 22: node:sqlite und --experimental-strip-types
+# brauchen es.
+
+on:
+  push:
+    branches: ['main', 'consensus-v6']
+  pull_request:
+    branches: ['main', 'consensus-v6']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Ein neuer Stand auf demselben Zweig bricht den alten Lauf ab.
+concurrency:
+  group: pruefen-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruefen:
+    name: Tests und Typen
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      - name: Typen prüfen (Hauptprojekt)
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Typen prüfen (node-core)
+        run: npx tsc --noEmit -p node-core/tsconfig.json
+
+      - name: Tests
+        run: npm test

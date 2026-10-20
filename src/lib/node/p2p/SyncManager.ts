@@ -138,6 +138,11 @@ export const MINDESTARBEIT_BLOECKE = 144;
 export const ZWEIG_FRIST_MS = 120_000;
 /** Wie viele zu leichte Bloecke im Gedaechtnis bleiben (nicht neu holen). */
 export const LEICHT_RING = 1_024;
+/**
+ * Wie viele Bloecke hoeherer, unbekannter Fassung im Gedaechtnis bleiben
+ * (nicht neu holen, auch nicht ueber den Header-Abgleich).
+ */
+export const FREMDE_FASSUNG_RING = 1_024;
 
 export interface SyncOptionen {
   chain: ChainManager;
@@ -273,6 +278,15 @@ export class SyncManager {
   /** Kuerzlich als zu leicht abgelehnte Bloecke -- nicht gleich wieder holen. */
   private leicht = new Set<string>();
   private leichtRing: string[] = [];
+  /**
+   * Bloecke, die accept() als hoehere, unbekannte Fassung gemeldet hat
+   * (CONSENSUS_V6.md 11.1). Getrennt von `leicht`: Ein zu leichter Block kann
+   * spaeter gebraucht werden, wenn sein Zweig genug Arbeit bekommt -- ein
+   * Block hoeherer Fassung wird fuer dieses Programm nie gueltig. Deshalb
+   * ueberspringt der Header-Abgleich nur diese, nicht die zu leichten.
+   */
+  private fremdeFassung = new Set<string>();
+  private fremdeFassungRing: string[] = [];
   /** getheaders je Peer: Beginn des laufenden Fensters und Anzahl darin. */
   private getheadersZaehler = new WeakMap<PeerConnection, { ab: number; n: number }>();
   /** Je Peer die letzte getheaders-Anfrage, die noch nicht beantwortet werden durfte. */
@@ -559,6 +573,12 @@ export class SyncManager {
 
       letzter = hash;
       if (this.store.has(hash)) continue;
+      /*
+        Schon als hoehere Fassung abgelehnt: nicht noch einmal holen. Er
+        bleibt in inNachricht, damit ein NEUER Folge-Header dieser Nachricht
+        an ihn anschliesst (accept() prueft den gegen den gemerkten Header).
+      */
+      if (this.fremdeFassung.has(key)) continue;
       neu.push({ hash, hoehe: kopf.height, key, vor: kopf.prevHash, versuche: 0,
                  arbeit, frei: this.reichtArbeit(arbeit), seit: Date.now() });
     }
@@ -726,6 +746,7 @@ export class SyncManager {
         */
         this.entferneMitNachfahren(hash);
         this.merkeLeicht(hash);
+        this.merkeFremdeFassung(hash);
         if (!this.fassungGemeldet) {
           this.fassungGemeldet = true;
           this.log(`Block ${kopf.height} von ${p.host} nennt eine hoehere Konsensfassung `
@@ -1070,6 +1091,16 @@ export class SyncManager {
     while (this.leichtRing.length > LEICHT_RING) {
       const raus = this.leichtRing.shift();
       if (raus !== undefined) this.leicht.delete(raus);
+    }
+  }
+
+  private merkeFremdeFassung(hash: string): void {
+    if (this.fremdeFassung.has(hash)) return;
+    this.fremdeFassung.add(hash);
+    this.fremdeFassungRing.push(hash);
+    while (this.fremdeFassungRing.length > FREMDE_FASSUNG_RING) {
+      const raus = this.fremdeFassungRing.shift();
+      if (raus !== undefined) this.fremdeFassung.delete(raus);
     }
   }
 

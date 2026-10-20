@@ -79,6 +79,18 @@ export function vorgeschichte(
   return { zeitstempel, timings };
 }
 
+/**
+ * So viele Header hoeherer Fassungen merkt sich ein Knoten hoechstens, um
+ * Folge-Header desselben Pfads pruefen zu koennen (11.1). 256 Header sind
+ * bei zehn Minuten je Block rund 42 Stunden einer neueren Kette. Ein Eintrag
+ * (Header, 11 Zeitstempel, lwmaWindow + 1 Loesungszeiten) belegt wenige
+ * Kilobyte, alle zusammen also hoechstens wenige Megabyte.
+ */
+export const HOEHERE_FASSUNG_MERKEN = 256;
+
+/** Ein gemerkter Header hoeherer Fassung mit der Vorgeschichte fuer seinen Nachfolger. */
+interface HoehererKopf { kopf: BlockHeader; zeitstempel: bigint[]; timings: BlockTiming[] }
+
 export type AcceptResult =
   | { ok: true; stored: true; reorg: boolean; height: number; tip: Uint8Array;
       /**
@@ -143,6 +155,26 @@ export class ChainManager {
   get hoehereFassungGesehen(): { version: number; height: number } | null {
     return this._hoehereFassungGesehen;
   }
+
+  /**
+   * Header hoeherer Fassungen, die als plausibel erkannt wurden (11.1),
+   * mit der Vorgeschichte, die ein NACHFOLGER fuer Zeit- und Difficulty-
+   * Regel braucht (letzte 11 Zeitstempel, letzte lwmaWindow + 1
+   * Loesungszeiten, diesen Header eingeschlossen). Nur damit ein Folge-
+   * Header desselben Pfads gegen seinen Vorgaenger geprueft werden kann,
+   * obwohl dieser nie gespeichert wird.
+   *
+   * Das ist kein Teil der Kette und kein Zustand: Nichts davon landet im
+   * ChainStore, nichts davon wird angewandt oder als gueltig gefuehrt.
+   * Begrenzt auf HOEHERE_FASSUNG_MERKEN Eintraege; der aelteste weicht.
+   * Ein Folge-Header braucht nur seinen direkten Vorgaenger -- eine neuere
+   * Kette laesst sich also beliebig lang verfolgen, solange sie
+   * zusammenhaengt. Fehlt der Vorgaenger, gilt die Regel ohne bekannten
+   * Vorgaenger: bad_version, Trennung.
+   */
+  private hoehereKoepfe = new Map<string, HoehererKopf>();
+  /** Wie viele Header hoeherer Fassungen gerade gemerkt sind. Fuer Tests. */
+  get hoehereFassungGemerkt(): number { return this.hoehereKoepfe.size; }
 
   /**
    * Ohne Angabe gilt das Mainnet. Die Parameter gibt es nur, damit Fork-
@@ -243,15 +275,71 @@ export class ChainManager {
    * kaputter Header kostet Mikrosekunden, eine Signaturpruefung
    * Millisekunden. Wer das umdreht, macht sich angreifbar.
    */
-  /** Vorgaenger bekannt und gueltig, Hoehe passt, Difficulty wie verlangt? */
-  private istPlausibelerNachfolger(h: BlockHeader): boolean {
-    const vorgaenger = this.store.get(h.prevHash);
-    if (!vorgaenger || vorgaenger.status !== 'valid' || h.height !== vorgaenger.height + 1) return false;
+  /**
+   * Vorgaenger bekannt und gueltig, Hoehe passt, Zeitstempel und Difficulty
+   * wie verlangt?
+   *
+   * Die Zeitstempelregeln stehen VOR der Difficulty und sind dieselben wie
+   * in accept() (Median der letzten Bloecke, hoechstens MAX_FUTURE_DRIFT in
+   * der Zukunft, nicht vor dem Vorgaenger). Ohne sie liesse sich die
+   * verlangte Difficulty ueber einen Zeitstempel weit in der Zukunft per
+   * Notfallregel bis auf minDifficulty senken -- und mit fast keiner Arbeit
+   * jeder Knoten als veraltet melden (Audit 20.10.2026, Befund A-1).
+   */
+  private istPlausibelerNachfolger(h: BlockHeader): HoehererKopf | null {
     try {
-      const vorKopf = deserializeBlock(vorgaenger.body).header;
-      const { timings } = vorgeschichte(this.store, vorgaenger, this.params);
-      return checkDifficulty(h, vorKopf, timings, this.params) === null;
-    } catch { return false; }
+      const basis = this.vorgeschichteHoehererFassung(h);
+      if (!basis) return null;
+      const { vorKopf, zeitstempel, timings } = basis;
+      if (h.height !== vorKopf.height + 1) return null;
+      const jetzt = BigInt(Math.floor(Date.now() / 1000));
+      if (checkTimestamp(h.timestamp, zeitstempel, jetzt) !== null) return null;
+      if (checkParentTimestamp(h, vorKopf, this.params) !== null) return null;
+      if (checkDifficulty(h, vorKopf, timings, this.params) !== null) return null;
+      // Plausibel. Die Vorgeschichte fuer einen Nachfolger: dieser Header dazu.
+      return {
+        kopf: h,
+        zeitstempel: [...zeitstempel, h.timestamp].slice(-MEDIAN_TIME_BLOCKS),
+        timings: [...timings, { solveSeconds: h.timestamp - vorKopf.timestamp, difficulty: h.difficulty }]
+          .slice(-this.params.lwmaWindow - 1),
+      };
+    } catch { return null; }
+  }
+
+  /**
+   * Vorgaenger-Header und Vorgeschichte fuer einen Header hoeherer Fassung.
+   *
+   * Zwei Faelle, sonst null:
+   *  1. Der Vorgaenger ist ein gespeicherter, gueltiger Block -- wie bisher.
+   *  2. Der Vorgaenger ist ein schon als plausibel erkannter Header hoeherer
+   *     Fassung (hoehereKoepfe). Dann gilt dessen gemerkte Vorgeschichte --
+   *     dieselben Ausschnitte, die vorgeschichte() fuer einen gespeicherten
+   *     Vorgaenger liefert. So gelten fuer den Folge-Header dieselben Regeln
+   *     fuer Zeit und Difficulty wie fuer den ersten.
+   */
+  private vorgeschichteHoehererFassung(h: BlockHeader):
+    { vorKopf: BlockHeader; zeitstempel: bigint[]; timings: BlockTiming[] } | null {
+    const gespeichert = this.store.get(h.prevHash);
+    if (gespeichert) {
+      if (gespeichert.status !== 'valid') return null;
+      return { vorKopf: deserializeBlock(gespeichert.body).header,
+               ...vorgeschichte(this.store, gespeichert, this.params) };
+    }
+    const gemerkt = this.hoehereKoepfe.get(toHex(h.prevHash));
+    if (!gemerkt) return null;
+    return { vorKopf: gemerkt.kopf, zeitstempel: gemerkt.zeitstempel, timings: gemerkt.timings };
+  }
+
+  /** Einen plausiblen Header hoeherer Fassung merken, begrenzt. */
+  private merkeHoehereFassung(eintrag: HoehererKopf): void {
+    const schluessel = toHex(headerHash(eintrag.kopf));
+    this.hoehereKoepfe.delete(schluessel);
+    this.hoehereKoepfe.set(schluessel, eintrag);
+    while (this.hoehereKoepfe.size > HOEHERE_FASSUNG_MERKEN) {
+      const aeltester = this.hoehereKoepfe.keys().next().value;
+      if (aeltester === undefined) break;
+      this.hoehereKoepfe.delete(aeltester);
+    }
   }
 
   accept(roh: Uint8Array): AcceptResult {
@@ -298,8 +386,10 @@ export class ChainManager {
         nicht nur gegen die, die der Header selbst nennt. Sonst koennte ein
         Header mit Difficulty 1 und Version 99 jeden Knoten veraltet melden.
       */
-      if (this.istPlausibelerNachfolger(vor.header)) {
+      const plausibel = this.istPlausibelerNachfolger(vor.header);
+      if (plausibel) {
         this._hoehereFassungGesehen = { version: vor.header.version, height: vor.header.height };
+        this.merkeHoehereFassung(plausibel);
         return { ok: false, grund: 'fassung_unbekannt',
                  detail: `version ${vor.header.version} bei Hoehe ${vor.header.height}` };
       }

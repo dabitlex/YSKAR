@@ -770,9 +770,25 @@ reachable and can be updated instead of dropping off the network.
 
 The proof-of-work condition matters: without it, anyone could send a header with `version` 99 and no
 work and make every node on the network report itself outdated. The condition is the full one of 2.3:
-the parent is known and valid, the height follows it, and the difficulty is the one the chain requires
-there, not merely the one the header states. A header with a higher version that fails any of this is
-treated as any invalid block today (`bad_version`), and the peer is disconnected.
+the parent is known and valid, the height follows it, the timestamp satisfies the timestamp rules of
+a block at that height (after the median of the last 11 blocks, at most two minutes in the future, not
+before the parent), and the difficulty is the one the chain requires there, not merely the one the
+header states. The timestamp rules come first because the required difficulty depends on the
+timestamp: a timestamp far in the future would lower it through the emergency rule down to the
+minimum. A header with a higher version that fails any of this is treated as any invalid block today
+(`bad_version`), and the peer is disconnected.
+
+A chain of the higher revision does not stop after one block, so the next header's parent is the
+previous higher-revision header, which the node never stores. For this, the node keeps the headers of
+the higher revision it found plausible in a bounded memory (at most 256), each with the timestamps and
+block times the rules above need for its successor. A header whose parent is in this memory is checked
+by the same rules (proof of work, height, timestamp, required difficulty) against that parent instead
+of a stored block. If it passes, it is handled like the first one: rejected, peer kept. If it fails,
+it is invalid as above. The memory is not part of the chain: nothing in it is stored, counts as
+valid, joins the active chain or changes the state, and it is lost on restart. When it is full, the
+oldest entry is dropped; a later successor of a dropped header then has an unknown parent and is
+treated as invalid, which costs a peer of the newer revision at most its connection, never the
+node's chain.
 
 Independently of what it sees, a node compares the current time with the timestamp of the last
 revision it knows (`V6_TIMESTAMP`, set when the height is set): after 180 days it reports
