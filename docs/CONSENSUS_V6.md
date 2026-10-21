@@ -259,7 +259,8 @@ A subtree with exactly one account has the hash of that account's leaf, at any d
 because the leaf commits to the full key, so its position is implied. Collapsing such subtrees makes the cost of updating one account proportional to the depth at which
 its key stops sharing a prefix with any other key, about `log2(number of accounts)` hashes, instead of
 256. With 35,000 accounts changed in one block (the worst case for 1 MiB of batches) that is about half a
-million `sha256d` calls, within reach of the reference implementation in TypeScript; a non-compacted tree
+million `sha256d` calls when the tree is updated incrementally (the reference implementation
+currently recomputes the root from all accounts; see the measurement in 14); a non-compacted tree
 of depth 256 would need roughly fifteen times as much and is not used.
 
 Keys of version 0 and version 1 accounts are SHA-256 of inputs of different lengths (20 bytes against
@@ -1008,6 +1009,13 @@ test height the old rule applies. In addition, before the activation height is s
 - **State tree**: the main network's state is replayed from genesis to the current height with both
   procedures running side by side from the activation height of a regtest copy; roots must match the
   reference implementation at every block.
+  *Done on 2026-10-21* (`scripts/zustandsbaum-abgleich/`): the main network from genesis to height
+  5,709 (5,710 blocks, 96 accounts at the end) was replayed; after every block the old root equals
+  the root in the header (5,710 of 5,710), and the new root of 5.2 over the same state, computed by
+  `smt.ts`, equals the one computed by the independent Python implementation of
+  `scripts/v6-vektoren/gegenrechnung/v6.py` (5,710 of 5,710; root at height 5,709:
+  `75a8a20a0f614b307c552042a4183b6e02657bc2a2db05ab482e614fca78154d`). A balance changed by one unit
+  at one height is reported at exactly that height. To be repeated at the height finally chosen.
 - **Fork behaviour**: a revision 5 node and a revision 6 node in one regtest before the height agree on
   every block; at the height the old node rejects and stays connected to nothing it cannot follow, the
   new node continues; a transaction signed under revision 5 is rejected after the height and one signed
@@ -1023,6 +1031,16 @@ test height the old rule applies. In addition, before the activation height is s
 - **Performance**: the reference implementation verifies a 1 MiB block at the signature budget and
   applies a block that changes 35,000 accounts within a fixed time on the main node's hardware
   (2 vCores, 4 GB); the budget is set from this measurement before the activation height.
+  *First measurement on 2026-10-21* (`scripts/zustandsbaum-messung/messen.ts`, cloud VM with
+  2 vCPU Intel Xeon at 2.8 GHz, 8 GB, Node 22; not yet the main node). The worst block (35 batches,
+  35,000 new accounts, 1,020,465 bytes): applying it and computing the new root took 1.2 s with an
+  otherwise empty state, 3.8 s with 100,000 accounts before it and 30 s with 1,000,000. The root
+  alone, old against new: 1,000 accounts 17 / 20 ms, 10,000 168 / 207 ms, 100,000 1.8 / 2.5 s,
+  500,000 8.2 / 13.1 s, 1,000,000 17.9 / 27.7 s. The cost grows with the number of accounts in
+  the state, not with the number a block changes, because `smt.ts` recomputes the root from all
+  accounts (as the flat tree does today). With today's 96 accounts this does not matter. Before
+  the state reaches about 100,000 accounts, the tree has to be updated incrementally (only the
+  paths of changed accounts); the root, and so the consensus, stays the same.
 
 The existing test suite must pass unchanged for heights below the activation height.
 
