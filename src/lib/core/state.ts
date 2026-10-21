@@ -134,9 +134,22 @@ export interface ZustandsBaumOptionen {
   und die Abweichung wird laut gemeldet: Sie waere ein Fehler im Code, kein
   Fehlverhalten eines Peers.
 */
+const U64_MAX = 0xffffffffffffffffn;
+
 export class ZustandsBaum {
   private baum: SmtBaum;
-  private stand = new Map<string, { balance: bigint; nonce: bigint; key: Uint8Array }>();
+  /*
+    Der Stand, den der Baum abbildet: je Konto eine Zeile in drei Feldern
+    (Guthaben, Nonce, Schluessel im Baum) statt eines Objekts je Konto.
+    Die Map fuehrt nur noch von der Adresse zur Zeile.
+  */
+  private stand = new Map<string, number>();
+  private kap = 0;
+  private hoch = 0;
+  private frei: number[] = [];
+  private guthaben = new BigUint64Array(0);
+  private nonces = new BigUint64Array(0);
+  private schluessel = new Uint8Array(0);
   private letztePruefung = -Infinity;
   private readonly neuerBaum: () => SmtBaum;
   private readonly jetzt: () => number;
@@ -168,6 +181,8 @@ export class ZustandsBaum {
       `Das ist ein Fehler im Knoten -- bitte melden.`);
     this.baum = this.neuerBaum();
     this.stand.clear();
+    this.frei = [];
+    this.hoch = 0;
     this.ausBaum(s);
     return referenz;
   }
@@ -181,29 +196,62 @@ export class ZustandsBaum {
   private ausBaum(s: State): Uint8Array {
     let gesehen = 0;
     for (const [adresse, konto] of s) {
-      const alt = this.stand.get(adresse);
-      if (alt) {
-        gesehen++;
-        if (alt.balance === konto.balance && alt.nonce === konto.nonce) continue;
-        alt.balance = konto.balance; alt.nonce = konto.nonce;
-        this.baum.set(alt.key, serializeAccount(konto));
+      gesehen++;
+      const z = this.stand.get(adresse);
+      if (z !== undefined) {
+        if (this.guthaben[z] === konto.balance && this.nonces[z] === konto.nonce) continue;
+        // Erst den Eintrag bauen (wirft bei ungueltigen Werten), dann merken --
+        // sonst liefen Stand und Baum nach einem Fehler auseinander.
+        const wert = serializeAccount(konto);
+        this.baum.set(this.schluessel.subarray(z * 32, z * 32 + 32), wert);
+        this.merke(z, konto);
       } else {
-        gesehen++;
+        const wert = serializeAccount(konto);
         const key = smtKey(fromHex(adresse));
-        this.stand.set(adresse, { balance: konto.balance, nonce: konto.nonce, key });
-        this.baum.set(key, serializeAccount(konto));
+        this.baum.set(key, wert);
+        const neu = this.neueZeile();
+        this.schluessel.set(key, neu * 32);
+        this.merke(neu, konto);
+        this.stand.set(adresse, neu);
       }
     }
     // Konten, die es im uebergebenen Zustand nicht (mehr) gibt.
     if (gesehen < this.stand.size) {
-      for (const [adresse, alt] of this.stand) {
+      for (const [adresse, z] of this.stand) {
         if (s.has(adresse)) continue;
-        this.baum.delete(alt.key);
+        this.baum.delete(this.schluessel.subarray(z * 32, z * 32 + 32));
         this.stand.delete(adresse);
+        this.frei.push(z);
       }
     }
     // Eine Kopie: Der Baum behaelt seine Hashes, niemand soll sie von aussen aendern.
     return this.baum.wurzel().slice();
+  }
+
+  /**
+   * Guthaben und Nonce einer Zeile setzen. BigUint64Array wuerde Werte
+   * ausserhalb von u64 still abschneiden -- solche Werte kann es in einem
+   * gueltigen Zustand nicht geben, und serializeAccount lehnt sie ohnehin ab.
+   */
+  private merke(z: number, konto: Account): void {
+    if (konto.balance < 0n || konto.balance > U64_MAX || konto.nonce < 0n || konto.nonce > U64_MAX) {
+      throw new Error(`Konto ausserhalb von u64: ${konto.balance}/${konto.nonce}`);
+    }
+    this.guthaben[z] = konto.balance;
+    this.nonces[z] = konto.nonce;
+  }
+
+  private neueZeile(): number {
+    const f = this.frei.pop();
+    if (f !== undefined) return f;
+    if (this.hoch === this.kap) {
+      const kap = Math.max(1_024, this.kap * 2);
+      const g = new BigUint64Array(kap); g.set(this.guthaben); this.guthaben = g;
+      const n = new BigUint64Array(kap); n.set(this.nonces); this.nonces = n;
+      const k = new Uint8Array(kap * 32); k.set(this.schluessel); this.schluessel = k;
+      this.kap = kap;
+    }
+    return this.hoch++;
   }
 }
 

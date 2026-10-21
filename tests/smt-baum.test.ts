@@ -203,3 +203,23 @@ test('Selbstpruefung: wann geprueft wird', () => {
   assert.equal(zb.pruefungen, 5);
   assert.equal(zb.abweichungen, 0);
 });
+
+test('SmtBaum: wachsende Felder und wiederverwendete Zeilen -- viele Eintraege, viel Abbau, wieder Aufbau', () => {
+  const r = zufall(99);
+  const b = new SmtBaum();
+  const m = new Map<string, SmtEntry>();
+  // Aufbau ueber mehrere Verdopplungen der Felder (1.024 -> 8.192 Zeilen).
+  for (let i = 0; i < 3_000; i++) { const k = schluessel(10_000 + i); const v = wert(i); b.set(k, v); m.set(hex(k), { key: k, value: v }); }
+  assert.equal(hex(b.wurzel()), referenz(m), 'nach Aufbau');
+  // Zwei Drittel wieder weg -- deren Zeilen werden frei.
+  for (let i = 0; i < 3_000; i++) if (i % 3 !== 0) { const k = schluessel(10_000 + i); b.delete(k); m.delete(hex(k)); }
+  assert.equal(hex(b.wurzel()), referenz(m), 'nach Abbau');
+  // Neue Schluessel fuellen die freien Zeilen; dazwischen Aenderungen.
+  for (let i = 0; i < 2_500; i++) {
+    const k = schluessel(50_000 + Math.floor(r() * 4_000)); const v = wert(Math.floor(r() * 1e6));
+    if (r() < 0.8) { b.set(k, v); m.set(hex(k), { key: k, value: v }); } else { b.delete(k); m.delete(hex(k)); }
+    if (i % 250 === 0) assert.equal(hex(b.wurzel()), referenz(m), `Schritt ${i}`);
+  }
+  assert.equal(hex(b.wurzel()), referenz(m), 'am Ende');
+  assert.equal(b.size, m.size);
+});

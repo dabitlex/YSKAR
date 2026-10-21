@@ -112,47 +112,46 @@ function hashRange(s: SmtEntry[], lo: number, hi: number, d: number): Uint8Array
   sha256d pro uebersprungenem Bit ("Huelle"). Ein Blatt hat in jeder Tiefe
   den Hash seines Blatts (Kompaktierung).
 
+  Kompakt abgelegt (21.10.2026): Die Knoten liegen nicht als einzelne
+  Objekte im Speicher, sondern als Zeilen in wenigen grossen Feldern
+  (Typed Arrays). Ein Blatt haelt nur Schluessel und Blatt-Hash -- der
+  Wert wird beim Setzen sofort gehasht und nicht aufbewahrt. Ein innerer
+  Knoten haelt Trennbit, beide Kinder, seinen Hash und die zuletzt
+  gerechnete Huelle. Freie Zeilen werden wiederverwendet.
+
   Die Pruefung, dass beide Wege gleich rechnen, steht in
   tests/smt-baum.test.ts (zufaellige Folgen, gezielte Grenzfaelle) und in
   scripts/zustandsbaum-abgleich (echte Kette gegen die Gegenrechnung).
 */
 
-interface Blatt {
-  blatt: true;
-  key: Uint8Array;
-  value: Uint8Array;
-  hash: Uint8Array | null;
-}
+const KEIN = -1;
+const BLATT = 1;          // Kennzeichen: Zeile ist ein Blatt
+const HASH_GUELTIG = 2;   // Kennzeichen: innerer Knoten, Hash ist aktuell
 
-interface Innen {
-  blatt: false;
-  /** Erstes Bit, in dem sich die Schluessel darunter unterscheiden. */
-  bit: number;
-  links: Knoten;
-  rechts: Knoten;
-  /** hash(bit, S) -- null, solange darunter etwas geaendert wurde. */
-  hash: Uint8Array | null;
-  /** Ein Schluessel darunter: die ersten `bit` Bits gelten fuer alle. */
-  probe: Uint8Array;
-  /** Zuletzt gerechnete Huelle: hash(huelleTiefe, S). */
-  huelleTiefe: number;
-  huelle: Uint8Array | null;
-}
-
-type Knoten = Blatt | Innen;
-
-function erstesAnderesBit(a: Uint8Array, b: Uint8Array): number {
+function erstesAnderesBit(a: Uint8Array, ao: number, b: Uint8Array, bo: number): number {
   for (let i = 0; i < 32; i++) {
-    const x = a[i] ^ b[i];
+    const x = a[ao + i] ^ b[bo + i];
     if (x !== 0) return i * 8 + Math.clz32(x) - 24;
   }
   return -1;
 }
 
-function probeVon(k: Knoten): Uint8Array { return k.blatt ? k.key : k.probe; }
+function bitIn(feld: Uint8Array, o: number, d: number): number {
+  return (feld[o + (d >> 3)] >> (7 - (d & 7))) & 1;
+}
 
 export class SmtBaum {
-  private wurzelKnoten: Knoten | null = null;
+  private kap = 0;
+  private hoch = 0;                         // hoechste je benutzte Zeile + 1
+  private frei: number[] = [];
+  private art = new Uint8Array(0);          // BLATT | HASH_GUELTIG
+  private links = new Int32Array(0);
+  private rechts = new Int32Array(0);
+  private bit = new Int16Array(0);          // Trennbit (innerer Knoten)
+  private huelleTiefe = new Int16Array(0);  // Tiefe der gemerkten Huelle, -1 = keine
+  private hashFeld = new Uint8Array(0);     // 32 Byte je Zeile: Blatt- bzw. Knoten-Hash
+  private zweit = new Uint8Array(0);        // 32 Byte je Zeile: Schluessel (Blatt) bzw. Huelle (innen)
+  private wurzelZeile = KEIN;
   private zahl = 0;
 
   /** Wie viele Eintraege im Baum stehen. */
@@ -161,95 +160,156 @@ export class SmtBaum {
   /** Eintrag setzen oder ersetzen. Schluessel: 32 Byte. */
   set(key: Uint8Array, value: Uint8Array): void {
     if (key.length !== 32) throw new Error('Schluessel im Zustandsbaum muss 32 Byte haben');
-    const neuesBlatt: Blatt = { blatt: true, key, value, hash: null };
-    if (!this.wurzelKnoten) { this.wurzelKnoten = neuesBlatt; this.zahl = 1; return; }
+    const blattHash = smtLeaf(key, value);
 
-    // Zum naechstgelegenen Blatt absteigen.
-    let n: Knoten = this.wurzelKnoten;
-    while (!n.blatt) n = bit(key, n.bit) === 0 ? n.links : n.rechts;
-    const c = erstesAnderesBit(key, n.key);
-
-    if (c < 0) {
-      // Derselbe Schluessel: Wert ersetzen, Pfad als geaendert markieren.
-      this.markiere(key, (vor, kind) => {
-        if (kind.blatt) { kind.value = value; kind.hash = null; }
-        return vor;
-      });
+    if (this.wurzelZeile === KEIN) {
+      this.wurzelZeile = this.neuesBlatt(key, blattHash);
+      this.zahl = 1;
       return;
     }
 
-    // Neuer Schluessel: einfuegen, wo das Trennbit c in den Pfad passt.
-    const einfuegen = (k: Knoten): Knoten => {
-      if (k.blatt || k.bit > c) {
-        const neuLinks = bit(key, c) === 0;
-        return {
-          blatt: false, bit: c,
-          links: neuLinks ? neuesBlatt : k,
-          rechts: neuLinks ? k : neuesBlatt,
-          hash: null, probe: key, huelleTiefe: -1, huelle: null,
-        };
-      }
-      if (bit(key, k.bit) === 0) k.links = einfuegen(k.links); else k.rechts = einfuegen(k.rechts);
-      k.hash = null; k.huelle = null;
-      return k;
-    };
-    this.wurzelKnoten = einfuegen(this.wurzelKnoten);
+    // Zum naechstgelegenen Blatt absteigen, unterwegs nichts aendern.
+    let n = this.wurzelZeile;
+    while (!(this.art[n] & BLATT)) n = bitIn(key, 0, this.bit[n]) === 0 ? this.links[n] : this.rechts[n];
+    const c = erstesAnderesBit(key, 0, this.zweit, n * 32);
+
+    if (c < 0) {
+      // Derselbe Schluessel: Blatt-Hash ersetzen, Pfad als geaendert markieren.
+      this.hashFeld.set(blattHash, n * 32);
+      this.markierePfad(key);
+      return;
+    }
+
+    // Neuer Schluessel: dort einfuegen, wo das Trennbit c in den Pfad passt.
+    const blatt = this.neuesBlatt(key, blattHash);
+    let eltern = KEIN, linksVomEltern = false;
+    let k = this.wurzelZeile;
+    while (!(this.art[k] & BLATT) && this.bit[k] < c) {
+      this.vergiss(k);
+      eltern = k;
+      linksVomEltern = bitIn(key, 0, this.bit[k]) === 0;
+      k = linksVomEltern ? this.links[k] : this.rechts[k];
+    }
+    const innen = this.neueZeile();
+    this.art[innen] = 0;
+    this.bit[innen] = c;
+    this.huelleTiefe[innen] = -1;
+    if (bitIn(key, 0, c) === 0) { this.links[innen] = blatt; this.rechts[innen] = k; }
+    else { this.links[innen] = k; this.rechts[innen] = blatt; }
+    if (eltern === KEIN) this.wurzelZeile = innen;
+    else if (linksVomEltern) this.links[eltern] = innen;
+    else this.rechts[eltern] = innen;
     this.zahl++;
   }
 
   /** Eintrag entfernen. Gibt es ihn nicht, aendert sich nichts. */
   delete(key: Uint8Array): boolean {
-    if (!this.wurzelKnoten) return false;
-    let gefunden = false;
-    const entferne = (k: Knoten): Knoten | null => {
-      if (k.blatt) {
-        if (erstesAnderesBit(k.key, key) >= 0) return k;
-        gefunden = true;
-        return null;
-      }
-      const links = bit(key, k.bit) === 0;
-      const kind = entferne(links ? k.links : k.rechts);
-      if (!gefunden) return k;
-      if (kind === null) return links ? k.rechts : k.links;   // Geschwister rueckt auf
-      if (links) k.links = kind; else k.rechts = kind;
-      k.hash = null; k.huelle = null;
-      return k;
-    };
-    this.wurzelKnoten = entferne(this.wurzelKnoten);
-    if (gefunden) this.zahl--;
-    return gefunden;
+    if (this.wurzelZeile === KEIN) return false;
+    // Erst finden, ohne etwas zu aendern.
+    let grosseltern = KEIN, eltern = KEIN, n = this.wurzelZeile;
+    while (!(this.art[n] & BLATT)) {
+      grosseltern = eltern; eltern = n;
+      n = bitIn(key, 0, this.bit[n]) === 0 ? this.links[n] : this.rechts[n];
+    }
+    if (erstesAnderesBit(key, 0, this.zweit, n * 32) >= 0) return false;
+
+    this.zahl--;
+    this.gibFrei(n);
+    if (eltern === KEIN) { this.wurzelZeile = KEIN; return true; }
+    // Das Geschwister rueckt an die Stelle des Elternknotens.
+    const geschwister = this.links[eltern] === n ? this.rechts[eltern] : this.links[eltern];
+    this.gibFrei(eltern);
+    if (grosseltern === KEIN) this.wurzelZeile = geschwister;
+    else if (this.links[grosseltern] === eltern) this.links[grosseltern] = geschwister;
+    else this.rechts[grosseltern] = geschwister;
+    this.markierePfad(key, geschwister);
+    return true;
   }
 
   /** Die Wurzel nach 5.2 -- gleich smtRoot() ueber dieselben Eintraege. */
   wurzel(): Uint8Array {
-    return this.wurzelKnoten ? this.hashIn(this.wurzelKnoten, 0) : SMT_EMPTY;
+    if (this.wurzelZeile === KEIN) return SMT_EMPTY;
+    return this.hashIn(this.wurzelZeile, 0).slice();
   }
 
-  /** Pfad zu `key` als geaendert markieren (Hashes vergessen). */
-  private markiere(key: Uint8Array, amBlatt: (vor: Knoten, kind: Knoten) => Knoten): void {
-    let n = this.wurzelKnoten!;
-    while (!n.blatt) {
-      n.hash = null; n.huelle = null;
-      n = bit(key, n.bit) === 0 ? n.links : n.rechts;
+  // ---------------------------------------------------------------- intern
+
+  /** Hashes auf dem Pfad zu `key` vergessen -- bis zum Blatt oder bis zur Zeile `bis`. */
+  private markierePfad(key: Uint8Array, bis = KEIN): void {
+    let n = this.wurzelZeile;
+    while (n !== KEIN && n !== bis && !(this.art[n] & BLATT)) {
+      this.vergiss(n);
+      n = bitIn(key, 0, this.bit[n]) === 0 ? this.links[n] : this.rechts[n];
     }
-    amBlatt(n, n);
   }
 
-  /** hash(d, S) fuer die Blaetter unter k, die alle die ersten d Bits teilen. */
-  private hashIn(k: Knoten, d: number): Uint8Array {
-    if (k.blatt) {
-      if (!k.hash) k.hash = smtLeaf(k.key, k.value);
-      return k.hash;
+  private vergiss(n: number): void {
+    this.art[n] &= ~HASH_GUELTIG;
+    this.huelleTiefe[n] = -1;
+  }
+
+  /** hash(d, S) fuer die Blaetter unter Zeile n, die alle die ersten d Bits teilen. Ein Blick ins Feld. */
+  private hashIn(n: number, d: number): Uint8Array {
+    if (this.art[n] & BLATT) return this.hashFeld.subarray(n * 32, n * 32 + 32);
+    if (!(this.art[n] & HASH_GUELTIG)) {
+      // smtNode kopiert beide Eingaben, bevor es hasht -- die Blicke ins Feld sind sicher.
+      const h = smtNode(this.hashIn(this.links[n], this.bit[n] + 1), this.hashIn(this.rechts[n], this.bit[n] + 1));
+      this.hashFeld.set(h, n * 32);
+      this.art[n] |= HASH_GUELTIG;
+      this.huelleTiefe[n] = -1;
     }
-    if (!k.hash) k.hash = smtNode(this.hashIn(k.links, k.bit + 1), this.hashIn(k.rechts, k.bit + 1));
-    if (d === k.bit) return k.hash;
-    if (k.huelle && k.huelleTiefe === d) return k.huelle;
-    // Bits d .. bit-1 teilen alle Blaetter: je Bit ein Knoten mit EMPTY daneben.
-    let h = k.hash;
-    for (let t = k.bit - 1; t >= d; t--) {
-      h = bit(probeVon(k), t) === 0 ? smtNode(h, SMT_EMPTY) : smtNode(SMT_EMPTY, h);
+    const b = this.bit[n];
+    if (d === b) return this.hashFeld.subarray(n * 32, n * 32 + 32);
+    if (this.huelleTiefe[n] === d) return this.zweit.subarray(n * 32, n * 32 + 32);
+    // Bits d .. b-1 teilen alle Blaetter darunter: je Bit ein Knoten mit EMPTY daneben.
+    const probe = this.blattUnter(n) * 32;
+    let h: Uint8Array = this.hashFeld.slice(n * 32, n * 32 + 32);
+    for (let t = b - 1; t >= d; t--) {
+      h = bitIn(this.zweit, probe, t) === 0 ? smtNode(h, SMT_EMPTY) : smtNode(SMT_EMPTY, h);
     }
-    k.huelleTiefe = d; k.huelle = h;
-    return h;
+    this.zweit.set(h, n * 32);
+    this.huelleTiefe[n] = d;
+    return this.zweit.subarray(n * 32, n * 32 + 32);
+  }
+
+  /** Irgendein Blatt unter Zeile n: seine ersten bit[n] Bits gelten fuer alle darunter. */
+  private blattUnter(n: number): number {
+    while (!(this.art[n] & BLATT)) n = this.links[n];
+    return n;
+  }
+
+  private neuesBlatt(key: Uint8Array, blattHash: Uint8Array): number {
+    const n = this.neueZeile();
+    this.art[n] = BLATT;
+    this.links[n] = KEIN; this.rechts[n] = KEIN;
+    this.zweit.set(key, n * 32);
+    this.hashFeld.set(blattHash, n * 32);
+    return n;
+  }
+
+  private neueZeile(): number {
+    const f = this.frei.pop();
+    if (f !== undefined) return f;
+    if (this.hoch === this.kap) this.wachse();
+    return this.hoch++;
+  }
+
+  private gibFrei(n: number): void {
+    this.art[n] = 0;
+    this.frei.push(n);
+  }
+
+  /** Alle Felder auf die doppelte Groesse (mindestens 1.024 Zeilen). */
+  private wachse(): void {
+    const kap = Math.max(1_024, this.kap * 2);
+    const gross = <T extends Uint8Array | Int16Array | Int32Array>(alt: T, neu: T): T => { neu.set(alt); return neu; };
+    this.art = gross(this.art, new Uint8Array(kap));
+    this.links = gross(this.links, new Int32Array(kap));
+    this.rechts = gross(this.rechts, new Int32Array(kap));
+    this.bit = gross(this.bit, new Int16Array(kap));
+    this.huelleTiefe = gross(this.huelleTiefe, new Int16Array(kap));
+    this.hashFeld = gross(this.hashFeld, new Uint8Array(kap * 32));
+    this.zweit = gross(this.zweit, new Uint8Array(kap * 32));
+    this.kap = kap;
   }
 }
