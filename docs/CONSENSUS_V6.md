@@ -1041,6 +1041,12 @@ test height the old rule applies. In addition, before the activation height is s
   accounts (as the flat tree does today). With today's 96 accounts this does not matter. Before
   the state reaches about 100,000 accounts, the tree has to be updated incrementally (only the
   paths of changed accounts); the root, and so the consensus, stays the same.
+  *On the main node's hardware, 2026-10-21* (2 vCPU AMD EPYC, 4 GB, Node 22.23, run beside the
+  live node): the worst block took 1.19 s with an otherwise empty state and 3.2 s with 100,000
+  accounts before it. The root alone, old against new: 1,000 accounts 10 / 15 ms, 10,000
+  111 / 178 ms, 100,000 1.25 / 2.06 s, 200,000 2.8 / 4.8 s. The 1,000,000 case was not run
+  there (about 3 GB of memory beside the live node). This matches the first measurement; the
+  conclusion above stands.
 
 The existing test suite must pass unchanged for heights below the activation height.
 
