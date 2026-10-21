@@ -758,10 +758,16 @@ restarting one; regtest blocks never reach the main network.
 What to expect (observed on 2026-10-21 with exactly this setup, height 10):
 
 - Up to block 9 all four nodes follow the same chain.
-- A block 10 mined by an old node is accepted by the old nodes and rejected by the new ones
-  (`struktur bad_version`). The new node closes that connection and the old node reconnects at once.
+- A block 10 mined by an old node is accepted by the old nodes. The new nodes do not fetch it: from
+  the height they ask a peer of an older revision for no blocks and keep none of its headers
+  (11.4 of the specification). Before 2026-10-21 they fetched it on its announcement, rejected it
+  (`struktur bad_version`) and closed the connection.
 - A block 10 mined by a new node is accepted by the new nodes and rejected by the old ones
-  (`struktur bad_version`), as described in 11.3 of the specification.
+  (`struktur bad_version`), as described in 11.3 of the specification. The old node then closes
+  the connection and connects again; in the test run this repeated about every 30 seconds
+  (22 times in about ten minutes with five revision 6 blocks), apparently because the old code
+  fetches the same block again after each new connection. Nothing breaks; it is the
+  behaviour of the old code and stops once every node runs revision 6.
 - From then on there are two chains. `chain` and `status` show different best blocks on old and
   new nodes; `status` on a new node shows `Fassung 6 ab Block 10`.
 - Transfers across the height, with `testkonto` and `ueberweisen` from the new build (observed on

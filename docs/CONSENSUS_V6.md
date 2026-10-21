@@ -936,6 +936,14 @@ accepted and mined on both sides and version 2 rejected by both; from it, the ne
 version 1 and mined version 2 in block 13, while the old node kept accepting and mining version 1 and
 rejected version 2.
 
+*Peers of an older revision (2026-10-21):* the first transition run showed that 11.4 ("not asked for
+blocks") was applied only when blocks were ordered from the queue. `SyncManager` now also orders
+nothing on an announcement (`inv`) from such a peer once the node's next block is at or above the
+height, and keeps none of its headers at or above the height (`tests/alte-peers-v6.test.ts`). A run
+with one old and one new node confirmed it: no rejected blocks and no repeated header requests on
+the new node. The old node still drops and reopens the connection after each revision 6 block it
+fetches (11.3); that is the old code and ends once it is updated.
+
 Not yet done: batch payout mode, multi-signature user interfaces, longer and repeated runs of the
 fork-behaviour test (script spends and batches across the height, restarts), `V6_HEIGHT` and
 `V6_TIMESTAMP`.

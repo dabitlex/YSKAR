@@ -579,6 +579,14 @@ export class SyncManager {
         an ihn anschliesst (accept() prueft den gegen den gemerkten Header).
       */
       if (this.fremdeFassung.has(key)) continue;
+      /*
+        Ein Peer alter Fassung hat ab der Aktivierungshoehe keinen Block, den
+        dieser Knoten annimmt (CONSENSUS_V6.md 11.4). Seine Header dort nicht
+        vormerken: frageBloecke() bestellt sie bei ihm ohnehin nicht, sie
+        laegen nur herum, fielen nach einer Weile heraus und loesten eine
+        neue Header-Anfrage aus -- im Uebergangstest jede Minute.
+      */
+      if (!liefertBloeckeAb(fassung(p), kopf.height, this.params)) continue;
       neu.push({ hash, hoehe: kopf.height, key, vor: kopf.prevHash, versuche: 0,
                  arbeit, frei: this.reichtArbeit(arbeit), seit: Date.now() });
     }
@@ -846,10 +854,22 @@ export class SyncManager {
       Von einem Block, der nicht in der Warteschlange steht, kennen wir den
       Vorgaenger nicht. Der wird wie bisher geholt.
     */
+    /*
+      Ein Peer alter Fassung wird ab der Aktivierungshoehe nicht nach
+      Bloecken gefragt (CONSENSUS_V6.md 11.4) -- auch nicht auf seine
+      Ankuendigung hin. Die nennt nur den Hash, keine Hoehe; massgeblich ist
+      deshalb der naechste Block dieses Knotens. Vorher wurde der Block
+      bestellt, als ungueltig abgelehnt und der Peer getrennt, der sich
+      gleich wieder verband: bei jedem seiner Bloecke von vorn.
+    */
+    const naechsteHoehe = (this.chain.tip()?.height ?? -1) + 1;
+    const bloeckeVonIhm = liefertBloeckeAb(fassung(p), naechsteHoehe, this.params);
+
     const wunsch: typeof eintraege = [];
     const gewuenscht = new Set<string>();
     for (const e of eintraege) {
       if (e.typ !== INV_BLOCK || this.store.has(e.hash)) continue;
+      if (!bloeckeVonIhm) continue;
       const k = toHex(e.hash);
       if (this.offen.has(k) || gewuenscht.has(k) || this.leicht.has(k)) continue;
       const w = this.wartend.get(k);
