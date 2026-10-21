@@ -1006,6 +1006,17 @@ test height the old rule applies. In addition, before the activation height is s
 - **Script checker**: a fuzzing harness that generates random trees and witnesses and compares the
   reference evaluator against an independent re-implementation; every well-formedness rule has a
   negative test; `needsKey` is tested on every example of 7.5 and on adversarial shapes.
+  *Done on 2026-10-21* (`scripts/skript-gegenpruefung/`): 200,000 random cases (four seeds of
+  50,000) with scripts at and beyond every limit of 7.2, damaged script and witness bytes,
+  witnesses that satisfy the script, miss it by one slot or one bit, or are random, and validity
+  windows on, below and above the heights in the script. `script.ts` and the independent Python
+  implementation of `scripts/v6-vektoren/gegenrechnung/v6.py` (signatures with `cryptography`)
+  agreed on every decision and on every error name: 137,611 not well-formed, 27,085 satisfied,
+  32,133 `script_unsatisfied`, 2,106 `bad_witness`, 1,065 `witness_excess`. Seven faults put into
+  `script.ts` on purpose (both time bounds, the excess rule, height 0, the key rule, duplicate keys,
+  trailing bytes) were each reported as a difference. Not covered: crafted edge-case signatures,
+  where RFC 8032 and the rule of 7.8 differ on purpose (`tests/zip215.test.ts`). A review by
+  others remains desirable.
 - **State tree**: the main network's state is replayed from genesis to the current height with both
   procedures running side by side from the activation height of a regtest copy; roots must match the
   reference implementation at every block.
