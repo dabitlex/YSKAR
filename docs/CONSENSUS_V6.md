@@ -259,8 +259,8 @@ A subtree with exactly one account has the hash of that account's leaf, at any d
 because the leaf commits to the full key, so its position is implied. Collapsing such subtrees makes the cost of updating one account proportional to the depth at which
 its key stops sharing a prefix with any other key, about `log2(number of accounts)` hashes, instead of
 256. With 35,000 accounts changed in one block (the worst case for 1 MiB of batches) that is about half a
-million `sha256d` calls when the tree is updated incrementally (the reference implementation
-currently recomputes the root from all accounts; see the measurement in 14); a non-compacted tree
+million `sha256d` calls when the tree is updated incrementally, as the reference implementation
+does (`SmtBaum`; measurement in 14); a non-compacted tree
 of depth 256 would need roughly fifteen times as much and is not used.
 
 Keys of version 0 and version 1 accounts are SHA-256 of inputs of different lengths (20 bytes against
@@ -1047,6 +1047,21 @@ test height the old rule applies. In addition, before the activation height is s
   111 / 178 ms, 100,000 1.25 / 2.06 s, 200,000 2.8 / 4.8 s. The 1,000,000 case was not run
   there (about 3 GB of memory beside the live node). This matches the first measurement; the
   conclusion above stands.
+  *Incremental tree, 2026-10-21:* `SmtBaum` (`smt.ts`) keeps the tree in memory; `stateRootV6`
+  compares the state with the one it last saw (balance and nonce per account, no hashing) and
+  rehashes only the paths of changed, new and removed accounts. The root is the same: checked
+  against `smtRoot` with random sequences and with keys that share up to 255 bits
+  (`tests/smt-baum.test.ts`), and against the independent Python implementation on all 5,710
+  blocks of the main network. Measured on the cloud VM: the worst block's root with 1,000,000
+  accounts before it takes 2.8 s instead of 28.6 s, with 100,000 accounts 1.3 s instead of 3.1 s;
+  one changed account with 1,000,000 accounts 0.23 s (comparing the state) instead of 26.7 s. The
+  first build after a node starts costs about 1.4 times a full recomputation (39 s for 1,000,000
+  accounts, 3.4 s for 100,000), once. The flat tree below the activation height is unchanged.
+  Self-check: up to 1,000 accounts every root from the tree is also recomputed from all accounts
+  and compared, up to 50,000 accounts at most once every ten minutes. On a difference the
+  recomputed root is used, the tree is rebuilt and the node reports it as an error of its own
+  code (`ZustandsBaum` in `state.ts`). Replaying the main network ran 5,711 such checks without a
+  difference.
 
 The existing test suite must pass unchanged for heights below the activation height.
 

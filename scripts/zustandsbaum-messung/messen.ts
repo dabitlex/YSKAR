@@ -10,10 +10,18 @@
  * die ein Knoten fuer einen solchen Block mehr tut als fuer einen leeren. Das
  * fuer verschieden viele Konten, die schon VOR dem Block im Zustand stehen.
  *
- * Teil B -- die Zustandswurzel allein, alt (flacher Baum) und neu (5.2), bei
- * wachsender Kontenzahl. smt.ts rechnet die Wurzel bei jedem Block aus ALLEN
- * Konten neu; die Zeit waechst deshalb mit der Kontenzahl, nicht mit der
- * Zahl der Aenderungen.
+ * Teil B -- die Zustandswurzel allein bei wachsender Kontenzahl:
+ *   alt        flacher Baum von heute, aus allen Konten neu (PROTOCOL.md)
+ *   neu voll   Baum aus 5.2, aus allen Konten neu (stateRootV6Voll)
+ *   Aufbau     der Baum im Speicher wird zum ersten Mal gefuellt -- einmal
+ *              je Knotenstart
+ *   1 / 35.000 der Baum im Speicher, nachdem sich 1 bzw. 35.000 Konten
+ *              geaendert haben -- der Normalbetrieb (stateRootV6)
+ *
+ * In Teil A ist "neue Wurzel" der Normalbetrieb: Der Baum kennt den Zustand
+ * vor dem Block schon (wie im Knoten, der den vorigen Block geprueft hat),
+ * und traegt die Aenderungen des Blocks nach. Zum Vergleich steht daneben
+ * die Neuberechnung aus allen Konten.
  *
  * Je Wert der Median aus drei Laeufen. Ohne --gross bis 200.000 Konten, mit
  * --gross bis 1.000.000.
@@ -22,7 +30,7 @@ import { cpus, totalmem } from 'node:os';
 
 import { REGTEST_V6 } from '../../src/lib/core/networks.ts';
 import * as T from '../../src/lib/core/tx.ts';
-import { emptyState, cloneState, applyBlock, stateRoot, stateRootV6, type State } from '../../src/lib/core/state.ts';
+import { emptyState, cloneState, applyBlock, stateRoot, stateRootV6, stateRootV6Voll, type State } from '../../src/lib/core/state.ts';
 import { buildBlock } from '../../src/lib/core/builder.ts';
 import { serializeBlock } from '../../src/lib/core/block.ts';
 import { keypairFromSeed } from '../../src/lib/core/wallet.ts';
@@ -67,12 +75,16 @@ for (const n of groessenA) {
     minerAddress: adresse(0x01, 1), timestamp: 1n, difficulty: 1n, extranonce: 0n, params: V6 });
   const bytes = serializeBlock(gebaut.block).length;
   const ausgaben = gebaut.included.reduce((s, t) => s + ((t as T.Batch).outputs?.length ?? 0), 0);
-  const anwenden: number[] = [], wurzel: number[] = [];
+  const anwenden: number[] = [], wurzel: number[] = [], voll: number[] = [];
   let nachher = 0;
   for (let lauf = 0; lauf < 3; lauf++) {
+    stateRootV6(basis);                        // Baum kennt den Zustand vor dem Block (nicht gemessen)
     const s = cloneState(basis);
     anwenden.push(ms(() => { const r = applyBlock(s, gebaut.block, V6); if (!r.ok) throw new Error(JSON.stringify(r.error)); }));
-    wurzel.push(ms(() => stateRootV6(s)));
+    let w1 = new Uint8Array(0), w2 = new Uint8Array(0);
+    wurzel.push(ms(() => { w1 = stateRootV6(s); }));
+    voll.push(ms(() => { w2 = stateRootV6Voll(s); }));
+    if (Buffer.compare(w1, w2) !== 0) throw new Error('Baum und Neuberechnung liefern verschiedene Wurzeln');
     nachher = s.size;
   }
   const z = {
@@ -80,11 +92,13 @@ for (const n of groessenA) {
     neue_konten: ausgaben, blockgroesse: bytes, grenze: MAX_BLOCK_BYTES,
     anwenden_ms: Math.round(median(anwenden)), neue_wurzel_ms: Math.round(median(wurzel)),
     zusammen_ms: Math.round(median(anwenden) + median(wurzel)),
+    zum_vergleich_neuberechnung_ms: Math.round(median(voll)),
   };
   ergebnisA.push(z);
   console.log(`  ${String(z.konten_vorher).padStart(9)} Konten vorher: ${z.sammelzahlungen} Sammelzahlungen, ` +
     `${z.neue_konten} neue Konten, ${z.blockgroesse} Byte | anwenden ${z.anwenden_ms} ms, ` +
-    `neue Wurzel ${z.neue_wurzel_ms} ms, zusammen ${z.zusammen_ms} ms`);
+    `neue Wurzel ${z.neue_wurzel_ms} ms, zusammen ${z.zusammen_ms} ms ` +
+    `(Neuberechnung aus allen Konten waeren ${z.zum_vergleich_neuberechnung_ms} ms)`);
 }
 
 // ------------------------------------------------------------------ Teil B
@@ -94,10 +108,34 @@ const ergebnisB: Record<string, unknown>[] = [];
 for (const n of groessenB) {
   const s = hintergrund(n);
   const alt = [0, 1, 2].map(() => ms(() => stateRoot(s)));
-  const neu = [0, 1, 2].map(() => ms(() => stateRootV6(s)));
-  const z = { konten: n, alte_wurzel_ms: Math.round(median(alt)), neue_wurzel_ms: Math.round(median(neu)) };
+  const neuVoll = [0, 1, 2].map(() => ms(() => stateRootV6Voll(s)));
+  // Erster Aufbau: ein Zustand, den der Baum noch nie gesehen hat (andere Adressen).
+  const fremd = emptyState();
+  for (const [k, v] of s) fremd.set('ff' + k.slice(2), v);
+  const aufbau = ms(() => stateRootV6(fremd));
+  stateRootV6(s);
+  const geaendert = (k: number) => [0, 1, 2].map(lauf => {
+    const t = cloneState(s);
+    let i = 0;
+    for (const [adresse, konto] of t) {
+      if (i++ >= k) break;
+      t.set(adresse, { balance: konto.balance + 1n + BigInt(lauf), nonce: konto.nonce });
+    }
+    stateRootV6(s);                           // Ausgangslage: Baum kennt s
+    const zeit = ms(() => stateRootV6(t));
+    if (Buffer.compare(stateRootV6(t), stateRootV6Voll(t)) !== 0) throw new Error('Wurzeln verschieden');
+    return zeit;
+  });
+  const z = {
+    konten: n, alte_wurzel_ms: Math.round(median(alt)), neu_voll_ms: Math.round(median(neuVoll)),
+    aufbau_ms: Math.round(aufbau),
+    nach_1_aenderung_ms: +median(geaendert(1)).toFixed(1),
+    nach_35000_aenderungen_ms: Math.round(median(geaendert(Math.min(35_000, n)))),
+  };
   ergebnisB.push(z);
-  console.log(`  ${String(n).padStart(9)} Konten: alt ${z.alte_wurzel_ms} ms, neu ${z.neue_wurzel_ms} ms`);
+  console.log(`  ${String(n).padStart(9)} Konten: alt ${z.alte_wurzel_ms} ms, neu voll ${z.neu_voll_ms} ms, ` +
+    `Aufbau ${z.aufbau_ms} ms | im Betrieb: 1 Aenderung ${z.nach_1_aenderung_ms} ms, ` +
+    `${Math.min(35_000, n)} Aenderungen ${z.nach_35000_aenderungen_ms} ms`);
 }
 
 console.log('\n' + JSON.stringify({ rechner: { kerne: cpus().length, modell: cpus()[0]?.model, gb: Math.round(totalmem() / 2 ** 30), node: process.version }, teilA: ergebnisA, teilB: ergebnisB }));

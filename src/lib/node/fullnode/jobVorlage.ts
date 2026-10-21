@@ -233,11 +233,10 @@ export function wurzelMitCoinbase(
     neu.set(k, { balance: alt.balance + o.amount, nonce: alt.nonce });
   }
   /*
-    Ab Konsensfassung 6 ist die Wurzel der Sparse-Merkle-Baum. Er wird hier
-    je Job vollstaendig gerechnet -- bei der heutigen Kontenzahl Bruchteile
-    einer Millisekunde, und derselbe Code wie in der Blockpruefung. Eine
-    pfadweise Aktualisierung kann spaeter dazukommen; sie darf die Wurzel
-    nicht aendern.
+    Ab Konsensfassung 6 ist die Wurzel der Sparse-Merkle-Baum -- derselbe
+    Code wie in der Blockpruefung (stateRootV6). Der Baum liegt im Speicher;
+    nachgetragen werden nur die Konten, in denen sich dieser Zustand vom
+    zuletzt gerechneten unterscheidet, hier also die der Coinbase.
   */
   if (v.v6) {
     const konten = cloneState(v.konten);

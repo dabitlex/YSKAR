@@ -27,7 +27,7 @@ import { join } from 'node:path';
 import { ChainStore } from '../../src/lib/node/fullnode/ChainStore.ts';
 import { MAINNET } from '../../src/lib/core/networks.ts';
 import { deserializeBlock } from '../../src/lib/core/block.ts';
-import { emptyState, applyBlock, stateRoot, stateRootV6, type State } from '../../src/lib/core/state.ts';
+import { emptyState, applyBlock, stateRoot, stateRootV6, zustandsbaumPruefung, type State } from '../../src/lib/core/state.ts';
 import { toHex } from '../../src/lib/core/codec.ts';
 
 function arg(name: string): string {
@@ -94,6 +94,7 @@ const zusammenfassung = {
   alte_wurzel_ungleich_bei: altUngleich,
   neue_wurzel_am_ende: toHex(stateRootV6(zustand)),
   nulladresse_im_zustand: zustand.has(nullAdresse),
+  selbstpruefung_des_baums: zustandsbaumPruefung(),
   rechenzeit_ms: { alte_wurzel: Math.round(zeitAltMs), neue_wurzel: Math.round(zeitNeuMs), gesamt: Date.now() - beginn },
 };
 writeFileSync(join(aus, 'zusammenfassung.json'), JSON.stringify(zusammenfassung, null, 2) + '\n');

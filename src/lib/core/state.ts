@@ -9,7 +9,7 @@ import {
   maxCoinbaseOutputsAt, MAX_BLOCK_SIGOPS, V6_HEIGHT,
 } from './params.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
-import { smtRoot, smtKey } from './smt.ts';
+import { smtRoot, smtKey, SmtBaum } from './smt.ts';
 
 /**
  * Kontozustand.
@@ -84,12 +84,139 @@ export function serializeAccount(a: Account): Uint8Array {
     .bytes(new Uint8Array(32)).bytes(new Uint8Array(32)).finish();
 }
 
-/** Zustandswurzel ab Konsensfassung 6: Sparse-Merkle-Baum (smt.ts). */
-export function stateRootV6(s: State): Uint8Array {
+/**
+ * Zustandswurzel ab Konsensfassung 6, aus allen Konten neu gerechnet
+ * (smtRoot). Die Referenz: stateRootV6 muss immer dasselbe liefern.
+ */
+export function stateRootV6Voll(s: State): Uint8Array {
   return smtRoot([...s.entries()].map(([addrHex, acc]) => ({
     key: smtKey(fromHex(addrHex)),
     value: serializeAccount(acc),
   })));
+}
+
+/**
+ * Der Zustandsbaum, im Speicher gehalten (SmtBaum), samt dem Stand, den er
+ * zuletzt abgebildet hat.
+ *
+ * Bei jeder Anfrage wird der uebergebene Zustand mit diesem Stand
+ * verglichen: Guthaben und Nonce je Konto, als Kopie gemerkt -- so faellt
+ * auch ein Konto auf, das an Ort und Stelle veraendert wurde. Der Vergleich
+ * kostet keinen Hash. Nur geaenderte, neue und verschwundene Konten werden
+ * im Baum nachgetragen, und nur ihre Pfade werden neu gehasht.
+ *
+ * Es gibt EINEN solchen Baum je Prozess. Kommen abwechselnd verschiedene
+ * Zustaende (die Kette, eine Mining-Vorlage, ein Nebenzweig), traegt er
+ * jeweils den Unterschied nach. Das Ergebnis haengt davon nicht ab -- es ist
+ * immer die Wurzel des uebergebenen Zustands --, nur die Zeit.
+ */
+/** Bis zu so vielen Konten wird JEDE Wurzel gegen die Neuberechnung geprueft (rund 20 ms). */
+export const SELBSTPRUEFUNG_IMMER_BIS = 1_000;
+/** Bis zu so vielen Konten hoechstens einmal je SELBSTPRUEFUNG_ABSTAND_MS (rund 1 s). */
+export const SELBSTPRUEFUNG_ZEITWEISE_BIS = 50_000;
+export const SELBSTPRUEFUNG_ABSTAND_MS = 10 * 60 * 1000;
+
+export interface ZustandsBaumOptionen {
+  /** Neuer, leerer Baum -- fuer Tests austauschbar. */
+  neuerBaum?: () => SmtBaum;
+  /** Uhr in Millisekunden -- fuer Tests austauschbar. */
+  jetzt?: () => number;
+  /** Wohin eine Abweichung gemeldet wird. Vorgabe: console.error. */
+  melde?: (text: string) => void;
+}
+
+/*
+  Selbstpruefung (21.10.2026): Der Baum im Speicher ist neuer Code an einer
+  konsenskritischen Stelle. Solange die Kontenzahl klein ist, rechnet der
+  Knoten die Wurzel zusaetzlich aus allen Konten neu (stateRootV6Voll, die
+  Referenz) und vergleicht. Weicht der Baum ab, gilt die Neuberechnung --
+  der Knoten bleibt richtig --, der Baum wird verworfen und neu aufgebaut,
+  und die Abweichung wird laut gemeldet: Sie waere ein Fehler im Code, kein
+  Fehlverhalten eines Peers.
+*/
+export class ZustandsBaum {
+  private baum: SmtBaum;
+  private stand = new Map<string, { balance: bigint; nonce: bigint; key: Uint8Array }>();
+  private letztePruefung = -Infinity;
+  private readonly neuerBaum: () => SmtBaum;
+  private readonly jetzt: () => number;
+  private readonly melde: (text: string) => void;
+  /** Wie oft der Baum von der Neuberechnung abwich. Sollte immer 0 sein. */
+  abweichungen = 0;
+  /** Wie oft verglichen wurde. */
+  pruefungen = 0;
+
+  constructor(o: ZustandsBaumOptionen = {}) {
+    this.neuerBaum = o.neuerBaum ?? (() => new SmtBaum());
+    this.jetzt = o.jetzt ?? (() => Date.now());
+    this.melde = o.melde ?? (text => console.error(text));
+    this.baum = this.neuerBaum();
+  }
+
+  wurzel(s: State): Uint8Array {
+    const ausBaum = this.ausBaum(s);
+    if (!this.sollPruefen(s.size)) return ausBaum;
+
+    this.pruefungen++;
+    this.letztePruefung = this.jetzt();
+    const referenz = stateRootV6Voll(s);
+    if (toHex(referenz) === toHex(ausBaum)) return ausBaum;
+
+    this.abweichungen++;
+    this.melde(`ZUSTANDSBAUM WEICHT AB bei ${s.size} Konten: Baum ${toHex(ausBaum)}, ` +
+      `Neuberechnung ${toHex(referenz)}. Es gilt die Neuberechnung; der Baum wird neu aufgebaut. ` +
+      `Das ist ein Fehler im Knoten -- bitte melden.`);
+    this.baum = this.neuerBaum();
+    this.stand.clear();
+    this.ausBaum(s);
+    return referenz;
+  }
+
+  private sollPruefen(konten: number): boolean {
+    if (konten <= SELBSTPRUEFUNG_IMMER_BIS) return true;
+    if (konten > SELBSTPRUEFUNG_ZEITWEISE_BIS) return false;
+    return this.jetzt() - this.letztePruefung >= SELBSTPRUEFUNG_ABSTAND_MS;
+  }
+
+  private ausBaum(s: State): Uint8Array {
+    let gesehen = 0;
+    for (const [adresse, konto] of s) {
+      const alt = this.stand.get(adresse);
+      if (alt) {
+        gesehen++;
+        if (alt.balance === konto.balance && alt.nonce === konto.nonce) continue;
+        alt.balance = konto.balance; alt.nonce = konto.nonce;
+        this.baum.set(alt.key, serializeAccount(konto));
+      } else {
+        gesehen++;
+        const key = smtKey(fromHex(adresse));
+        this.stand.set(adresse, { balance: konto.balance, nonce: konto.nonce, key });
+        this.baum.set(key, serializeAccount(konto));
+      }
+    }
+    // Konten, die es im uebergebenen Zustand nicht (mehr) gibt.
+    if (gesehen < this.stand.size) {
+      for (const [adresse, alt] of this.stand) {
+        if (s.has(adresse)) continue;
+        this.baum.delete(alt.key);
+        this.stand.delete(adresse);
+      }
+    }
+    // Eine Kopie: Der Baum behaelt seine Hashes, niemand soll sie von aussen aendern.
+    return this.baum.wurzel().slice();
+  }
+}
+
+const zustandsBaum = new ZustandsBaum();
+
+/** Stand der Selbstpruefung des Zustandsbaums (fuer Status und Tests). */
+export function zustandsbaumPruefung(): { pruefungen: number; abweichungen: number } {
+  return { pruefungen: zustandsBaum.pruefungen, abweichungen: zustandsBaum.abweichungen };
+}
+
+/** Zustandswurzel ab Konsensfassung 6: Sparse-Merkle-Baum (smt.ts, 5.2). */
+export function stateRootV6(s: State): Uint8Array {
+  return zustandsBaum.wurzel(s);
 }
 
 /**
