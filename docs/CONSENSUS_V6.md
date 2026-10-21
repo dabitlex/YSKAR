@@ -928,11 +928,16 @@ A CI workflow (`.github/workflows/pruefen.yml`) runs both type checks and the te
 regtest node revision 6 from block `n` with the regtest network name and chain ID, so that old and new
 nodes run side by side on one machine ([FULLNODE.md](FULLNODE.md), "Testing the revision 6 transition
 on one machine"; `tests/regtest-v6-hoehe.test.ts`). A first run on 2026-10-21 with two nodes built
-from `main` and two from `consensus-v6` split at the chosen height as expected (14, "Fork behaviour");
-transactions across the height were not part of that run.
+from `main` and two from `consensus-v6` split at the chosen height as expected (14, "Fork behaviour").
+`testkonto` and `ueberweisen` (regtest only, `testnetzUeberweisung.ts`,
+`tests/testnetz-ueberweisung.test.ts`) sign and send transfers on regtest. A second run on 2026-10-21
+(one old and one new node, height 12) covered transfers across the height: before it, version 1 was
+accepted and mined on both sides and version 2 rejected by both; from it, the new node rejected
+version 1 and mined version 2 in block 13, while the old node kept accepting and mining version 1 and
+rejected version 2.
 
-Not yet done: batch payout mode, multi-signature user interfaces, the full fork-behaviour test of 14
-(transactions signed under revision 5 and 6 across the height, longer runs), `V6_HEIGHT` and
+Not yet done: batch payout mode, multi-signature user interfaces, longer and repeated runs of the
+fork-behaviour test (script spends and batches across the height, restarts), `V6_HEIGHT` and
 `V6_TIMESTAMP`.
 
 ## 14. Tests and test vectors

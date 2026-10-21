@@ -209,6 +209,8 @@ command is `sync`.
 | `status` | Prints the state of the local store: network, height, best block hash, chain work, difficulty, number of stored blocks, number of branch tips, state root, supply, age of the last block |
 | `chain` | Prints the last 15 blocks of the active chain with hash and difficulty, and marks heights that have blocks on other branches |
 | `tips` | Prints every known branch tip with height, hash and chain work; the active one is marked `aktiv` |
+| `testkonto` | Only with `--regtest`. Creates a test key in the file given by `--key` (default `./testkonto.json`), or reads it if the file exists, and prints its address. The key is stored unencrypted; the file is never overwritten. For the transition test only |
+| `ueberweisen` | Only with `--regtest`. Signs a transfer from the test key with the regtest chain ID and sends it to the node given by `--api` (`POST /api/v2/tx`). Options `--to`, `--amount` (YSR), `--fee` (YSR, default 0.001), `--tx-version 1\|2` (default: by the height of the next block and `--v6-height`), `--memo`. Prints the node's answer |
 
 `status`, `chain` and `tips` do not change the chain. The store runs in SQLite's write-ahead-log
 mode, so you can run them while a node is running on the same data directory. If the data
@@ -762,6 +764,20 @@ What to expect (observed on 2026-10-21 with exactly this setup, height 10):
   (`struktur bad_version`), as described in 11.3 of the specification.
 - From then on there are two chains. `chain` and `status` show different best blocks on old and
   new nodes; `status` on a new node shows `Fassung 6 ab Block 10`.
+- Transfers across the height, with `testkonto` and `ueberweisen` from the new build (observed on
+  2026-10-21, height 12, miners paying to the test key): before the height a version 1 transfer is
+  accepted by the new node and relayed to the old one; a version 2 transfer is rejected by the new
+  node (`bad_version`) and by the old node, which reads it with the old layout (`unknown_account`).
+  From the height the new node rejects version 1 and accepts version 2; the old node keeps
+  accepting version 1 and rejects version 2.
+
+  ```bash
+  node dist/yskar-node.cjs testkonto --regtest --key ./sender.json
+  node dist/yskar-node.cjs ueberweisen --regtest --v6-height 10 --key ./sender.json \
+       --to ysr1… --amount 1 --api http://127.0.0.1:8665
+  node dist/yskar-node.cjs ueberweisen --regtest --key ./sender.json \
+       --to ysr1… --amount 1 --tx-version 2 --api http://127.0.0.1:8645
+  ```
 - Regtest aims at 600 seconds per block like the main network. The first blocks come within
   seconds, then the difficulty rises to the miners' hash rate. After the split each side has only
   its own miners, so blocks come more slowly until the difficulty has adjusted again. In the test

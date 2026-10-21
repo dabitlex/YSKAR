@@ -89,6 +89,10 @@ interface Optionen {
    * Fuer den Uebergangstest mit alten und neuen Knoten nebeneinander.
    */
   v6Hoehe?: string;
+  /** testkonto / ueberweisen (nur --regtest): Datei mit dem Testschluessel. */
+  schluessel: string;
+  /** ueberweisen: Empfaenger, Betrag und Gebuehr in YSR, erzwungene Fassung, Notiz. */
+  an?: string; betrag?: string; gebuehr?: string; txFassung?: string; memo?: string;
 }
 
 function argumente(argv: string[]): Optionen {
@@ -99,7 +103,7 @@ function argumente(argv: string[]): Optionen {
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false,
     poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null,
-    absender: null,
+    absender: null, schluessel: './testkonto.json',
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -132,6 +136,12 @@ function argumente(argv: string[]): Optionen {
         break;
       }
       case '--v6-height': o.v6Hoehe = nimm(); break;
+      case '--key': o.schluessel = nimm(); break;
+      case '--to': o.an = nimm(); break;
+      case '--amount': o.betrag = nimm(); break;
+      case '--fee': o.gebuehr = nimm(); break;
+      case '--tx-version': o.txFassung = nimm(); break;
+      case '--memo': o.memo = nimm(); break;
       case '--help': case '-h': o.help = true; break;
     }
   }
@@ -165,6 +175,8 @@ Befehle
   status    Stand des lokalen Knotens
   chain     die letzten Blöcke der aktiven Kette
   tips      alle bekannten Zweigenden
+  testkonto Testschlüssel anlegen oder zeigen (nur --regtest)
+  ueberweisen  Überweisung im Testnetz signieren und senden (nur --regtest)
 
 Optionen
   -d, --data <ordner>   Ablage (Vorgabe: ./knoten)
@@ -180,6 +192,15 @@ Optionen
       --p2p-port <nr>   Lauschport für andere Knoten (Vorgabe: 8646)
       --seed host:port  ein bekannter Knoten, mehrfach angebbar
       --no-p2p          ohne Knotennetz laufen
+
+Testnetz-Überweisungen (nur mit --regtest)
+      --key <datei>     Testschlüssel (Vorgabe: ./testkonto.json)
+      --to <ysr1…>      Empfänger
+      --amount <ysr>    Betrag in YSR, z. B. 10 oder 0.5
+      --fee <ysr>       Gebühr in YSR (Vorgabe: 0.001)
+      --tx-version <n>  Fassung 1 oder 2 erzwingen (Vorgabe: nach Höhe)
+      --memo <text>     Notiz, höchstens 32 Byte
+      --api <url>       der Knoten, z. B. http://127.0.0.1:18665
 
 Spiegel nachziehen
   yskar-node spiegel --data ./knoten
@@ -926,6 +947,59 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   await new Promise(() => { /* bis Strg+C */ });
 }
 
+// --------------------------------------------------- Testnetz-Ueberweisungen
+
+/**
+ * testkonto und ueberweisen. Nur im Testnetz: Der Schluessel liegt
+ * unverschluesselt in einer Datei (testnetzUeberweisung.ts).
+ */
+async function testnetzBefehl(opt: Optionen, params: ConsensusParams): Promise<void> {
+  if (!opt.regtest) {
+    console.error(rot(`\n${opt.befehl} gibt es nur zusammen mit --regtest.\n`));
+    process.exit(1);
+  }
+  const { testkonto, ueberweise, ysrInEinheiten, einheitenInYsr } = await import('./testnetzUeberweisung.ts');
+  let konto: ReturnType<typeof testkonto>;
+  try { konto = testkonto(opt.schluessel); }
+  catch (e) { console.error(rot(`\n${(e as Error).message}\n`)); process.exit(1); }
+
+  if (opt.befehl === 'testkonto') {
+    console.log(`\n  ${konto.neu ? 'Neuer Testschlüssel in' : 'Testschlüssel aus'} ${opt.schluessel}`);
+    console.log(`  Adresse  ${fett(konto.schluessel.address)}`);
+    console.log(grau(`  Nur für das Testnetz -- der Schlüssel liegt unverschlüsselt in der Datei.\n`));
+    return;
+  }
+
+  if (!opt.an || !opt.betrag) {
+    console.error(rot(`\nueberweisen braucht --to <ysr1…> und --amount <ysr>.\n`));
+    process.exit(1);
+  }
+  let ergebnis;
+  try {
+    const fassung = opt.txFassung === undefined ? undefined : Number(opt.txFassung);
+    ergebnis = await ueberweise({
+      api: opt.api, schluessel: konto.schluessel, an: opt.an,
+      betrag: ysrInEinheiten(opt.betrag),
+      gebuehr: opt.gebuehr === undefined ? undefined : ysrInEinheiten(opt.gebuehr),
+      fassung, memo: opt.memo, params,
+    });
+  } catch (e) {
+    console.error(rot(`\nÜberweisung nicht gesendet: ${(e as Error).message}\n`));
+    process.exit(1);
+  }
+  const a = ergebnis.antwort;
+  console.log(`\n  Knoten        ${opt.api} (Höhe ${nf(ergebnis.hoehe)}, nächster Block ${nf(ergebnis.hoehe + 1)})`);
+  console.log(`  Von           ${konto.schluessel.address} (Guthaben ${einheitenInYsr(ergebnis.guthaben)} YSR, Nonce ${ergebnis.nonce})`);
+  console.log(`  Fassung       ${ergebnis.fassung}${ergebnis.automatisch ? grau(' (nach Höhe gewählt)') : gelb(' (erzwungen)')}`);
+  console.log(`  Transaktion   ${ergebnis.txid}`);
+  if (ergebnis.sendepause && ergebnis.automatisch) {
+    console.log(gelb(`  Hinweis       Sendepause vor der Aktivierungshöhe -- eine Wallet würde jetzt nicht senden.`));
+  }
+  if (a.accepted === true) console.log(`  Ergebnis      ${fett('angenommen')}`);
+  else console.log(`  Ergebnis      ${rot('abgelehnt')}: ${String(a.reason ?? a.error ?? '?')}${a.detail ? ` (${String(a.detail)})` : ''}`);
+  console.log('');
+}
+
 // --------------------------------------------------------------------- Lauf
 
 async function main(): Promise<void> {
@@ -938,6 +1012,11 @@ async function main(): Promise<void> {
     console.error(rot(`\n${(e as Error).message}\n`));
     process.exit(1);
   }
+  if (opt.befehl === 'testkonto' || opt.befehl === 'ueberweisen') {
+    await testnetzBefehl(opt, params);
+    return;
+  }
+
   /*
     Die erwartete Kennung kommt aus den Parametern, nicht aus einer
     Konstante. Sonst liesse sich ein Testnetz-Ordner nur einmal oeffnen:
