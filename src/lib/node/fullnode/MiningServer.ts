@@ -1335,7 +1335,9 @@ export class MiningServer {
       const tx = deserializeTx(fromHex(b.raw));
       if (tx.type !== 1) return { accepted: false, reason: 'not_a_transfer' };
       const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
-      if (!r.ok) return { accepted: false, reason: r.reason, detail: r.detail };
+      // `required`: die Gebuehr, die jetzt reichen wuerde (Untergrenze bei
+      // Andrang, Ersetzung). Die Wallet bietet sie zum Erhoehen an.
+      if (!r.ok) return { accepted: false, reason: r.reason, detail: r.detail, required: r.noetig?.toString() ?? null };
 
       // Den Peers sagen, dass es sie gibt -- sonst kennt sie nur dieser Knoten.
       try { this.onNeueTx?.(txid(tx)); }

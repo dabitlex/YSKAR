@@ -6,7 +6,7 @@
  * Maschine (V8) benutzen -- die Zahlen sind damit uebertragbar.
  *
  * Misst, was ein Knoten bei einem vollen Block tut:
- *   1. Richtigkeit: alle 196 ZIP-215-Vektoren und 12 speccheck-Faelle
+ *   1. Richtigkeit: alle 196 veroeffentlichten Grenzfaelle und 12 speccheck-Faelle
  *      mit dem WASM-Modul -- sonst sind die Zeiten wertlos.
  *   2. 8.000 Signaturen einzeln (WASM), drei Durchlaeufe.
  *   3. 8.000 Signaturen als Stapel (WASM), drei Durchlaeufe.
@@ -109,7 +109,6 @@ async function start() {
   zeile('');
   zeile(`ERGEBNIS: Stapel schlechtester Lauf ${maxStapel.toFixed(0)} ms, einzeln ${maxEinzeln.toFixed(0)} ms`);
   zeile(falsch === 0 && gekippt ? 'Messung gueltig.' : 'MESSUNG UNGUELTIG.');
-  zeile('Bitte diesen ganzen Text kopieren und an Claude schicken.');
   knopf.disabled = false;
   kopieren.hidden = false;
 }

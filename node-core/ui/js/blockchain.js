@@ -169,7 +169,8 @@ export function baue(ctx) {
     try {
       const r = await hole('/api/kette/mempool');
       const w = r.wartend;
-      text(wartendText, w.length ? t('kette.wartendText', w.length) : t('kette.wartendLeer'));
+      const anzahl = r.anzahl ?? w.length;
+      text(wartendText, anzahl ? t('kette.wartendText', anzahl) : t('kette.wartendLeer'));
       fuelle(wartend, w.length ? w.map(x => el('tr', el('td.mono', adresse(x.from)), el('td.mono', adresse(x.to)),
         el('td.r.mono', ysr(x.amount)), el('td.r.mono', ysr(x.fee, 0)), el('td.r.dim', vor(x.seit))))
         : el('tr', el('td.leer', { colspan: 5 }, t('kette.wartendKeine'))));

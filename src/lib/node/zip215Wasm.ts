@@ -1,7 +1,7 @@
 /**
  * ERZEUGT von crypto/zip215/build.mjs -- nicht von Hand aendern.
  *
- * ed25519-zebra 5.0.0 (Zcash Foundation) als WebAssembly, Quelle in
+ * ed25519-zebra 5.0.0 als WebAssembly, Quelle in
  * crypto/zip215. Nachbau-Probe: node crypto/zip215/build.mjs --pruefen
  */
 export const ZIP215_WASM_SHA256 = '12b6e5044fd48dcd0fc4191960bc2e0a8cbc093435978cc5067d0b50fa769bd3';

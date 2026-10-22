@@ -5,7 +5,7 @@ import { toHex } from './codec.ts';
  * Signaturpruefung -- die eine Stelle, an der der Konsens Ed25519 prueft
  * (docs/CONSENSUS_V6.md, Abschnitt 7.8).
  *
- * DIE REGEL IST ZIP 215 (Zcash): Punkte duerfen nicht-kanonisch kodiert sein,
+ * DIE REGEL (7.8): Punkte duerfen nicht-kanonisch kodiert sein,
  * S muss kleiner als die Gruppenordnung sein, und es gilt die Gleichung mit
  * Kofaktor [8][S]B = [8]R + [8][k]A. Genau das prueft @noble/curves mit seiner
  * Vorgabe (zip215: true) -- und das hat YSKAR seit Genesis geprueft. Diese
@@ -13,10 +13,10 @@ import { toHex } from './codec.ts';
  *
  * Wie geprueft wird, ist austauschbar, was gilt, nicht: Ohne weiteres prueft
  * noble (reines JavaScript, langsam, laeuft ueberall -- auch in der Mini App).
- * Knoten setzen mit setzePruefer() das WASM-Modul aus ed25519-zebra ein
+ * Knoten setzen mit setzePruefer() das WASM-Modul (crypto/zip215) ein
  * (src/lib/node/zip215.ts), das dieselbe Regel rund zehnmal schneller prueft
  * und Stapel pruefen kann. Dass beide gleich entscheiden, belegen die
- * Testvektoren in tests/zip215.test.ts, darunter die 196 offiziellen aus ZIP 215.
+ * Testvektoren in tests/zip215.test.ts, darunter 196 veroeffentlichte Grenzfaelle.
  *
  * NICHT erlaubt ist ein Pruefer, der eine andere Regel umsetzt -- etwa
  * OpenSSL/node:crypto. Er entscheidet in Grenzfaellen anders, und ein
@@ -32,10 +32,10 @@ export interface SignaturTripel {
 
 export interface Pruefer {
   name: string;
-  /** Eine Signatur nach ZIP 215. Wirft nie. */
+  /** Eine Signatur nach der Regel aus 7.8. Wirft nie. */
   einzeln(signature: Uint8Array, message: Uint8Array, publicKey: Uint8Array): boolean;
   /**
-   * Alle oder keine: true nur, wenn JEDE Signatur nach ZIP 215 gueltig ist.
+   * Alle oder keine: true nur, wenn JEDE Signatur nach der Regel aus 7.8 gueltig ist.
    * Fehlt die Funktion, wird einzeln geprueft.
    */
   stapel?(eintraege: SignaturTripel[]): boolean;

@@ -181,7 +181,7 @@ export class ChainManager {
    * und Reorg-Tests im Testnetz durch die volle Validierung laufen koennen.
    */
   constructor(store: ChainStore, params: ConsensusParams = MAINNET) {
-    // Signaturen nach ZIP 215 ueber das WASM-Modul pruefen (CONSENSUS_V6.md 7.8);
+    // Signaturen nach der Regel aus 7.8 ueber das WASM-Modul pruefen (CONSENSUS_V6.md 7.8);
     // dieselbe Regel wie noble, nur schneller. Mehrfacher Aufruf ist harmlos.
     aktiviereZip215Wasm();
     this.store = store;

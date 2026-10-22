@@ -16,6 +16,8 @@ import { gruppiere, tagSchluessel, type Zeile } from '@/lib/wallet/verlaufGruppe
 import { useKontakte } from '@/lib/wallet/kontakte';
 import { useGuthabenVerborgen } from '@/lib/wallet/verborgen';
 import { useEinnahmen, heuteDazu } from '@/lib/wallet/useEinnahmen';
+import { useEigeneZahlungen } from '@/hooks/useEigeneZahlungen';
+import type { EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
 import Einnahmen from '@/components/wallet/Einnahmen';
 import Detail from '@/components/wallet/Detail';
 import { Gegenkachel, Kappe, MiningKachel, PUNKTE, Zeichen } from '@/components/wallet/Teile';
@@ -69,7 +71,7 @@ function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
 }
 
 export default function WalletTab({ account, symbol, decimals, address, hoehe,
-                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onSichern }: {
+                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onSichern, onErhoehen }: {
   account: (Account & { history?: HistoryEintrag[]; historyWeiter?: string | null; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
   /** Aktuelle Hoehe der Kette -- fuer "n Bloecke danach" in den Einzelheiten. */
@@ -78,6 +80,8 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   onEinstellungen: () => void;
   /** Gesetzt, solange die Woerter nicht gesichert sind: zeigt den Hinweis. */
   onSichern?: () => void;
+  /** Eine festhaengende eigene Zahlung mit hoeherer Gebuehr ersetzen. */
+  onErhoehen?: (z: EigeneZahlung) => void;
 }) {
   // Ausgewaehlte Transaktion. Als Blatt und nicht als eigene Seite: Man
   // will danach wieder in derselben Liste stehen, an derselben Stelle.
@@ -303,6 +307,13 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   const guthabenGroesse = Math.max(24, Math.min(46, Math.floor(270 / (zeichen * 0.58))));
 
   const pending = account?.pending ?? [];
+  // Eigene Zahlungen nachhalten: erneut einreichen, Festhaengendes melden.
+  const { fest } = useEigeneZahlungen(address, account);
+  // Wann ist eine wartende Zahlung dran? Der Knoten rechnet es aus seiner
+  // Warteschlange; ohne Angabe (aeltere Knoten) bleibt der bisherige Text.
+  const wannText = (p: Wartend, n: number) => p.block != null && p.block > 1
+    ? t.wallet.unterwegsVoraus(p.block, Math.round(p.block * 10))
+    : t.wallet.unterwegsBlock(n);
   // Was gerade das Konto verlaesst -- die Betraege, wie sie auch in der Karte
   // darunter stehen. (Senden rechnet zusaetzlich die Gebuehren ab.)
   const unterwegs = pending.filter(p => p.kind === 'out')
@@ -520,6 +531,21 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
         <Einnahmen tage={einnahmen} symbol={symbol} decimals={decimals} verborgen={verborgen} />
       )}
 
+      {fest.length > 0 && onErhoehen && (
+        <section aria-label={t.wallet.festTitel}
+                 className="warte rise rise-2 mt-3.5 flex flex-col gap-2 rounded-[20px] px-4 py-[13px]">
+          <span className="text-[14px] font-extrabold">{t.wallet.festTitel}</span>
+          <span className="text-[12.5px] font-semibold leading-[1.4] text-text">{t.wallet.festText}</span>
+          {fest.slice(0, 3).map(z => (
+            <button key={z.txid} type="button" onClick={() => onErhoehen(z)}
+                    className="flex h-11 items-center justify-between gap-2 rounded-[14px] bg-surface px-3.5 text-[13.5px] font-extrabold active:scale-[.985]">
+              <span className="tnum truncate">{t.wallet.unterwegsAn(zeigen(z.betrag), symbol, wer(z.an))}</span>
+              <span className="shrink-0 text-work">{t.wallet.erhoehen}</span>
+            </button>
+          ))}
+        </section>
+      )}
+
       {pending.length > 0 && (
         <section aria-label={t.wallet.unterwegsTitel(pending.length)}
                  className="warte rise rise-2 mt-3.5 flex items-center gap-3 rounded-[20px] px-4 py-[13px]">
@@ -533,7 +559,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
                 {p.kind === 'out'
                   ? t.wallet.unterwegsAn(zeigen(p.amount), symbol, wer(p.to))
                   : t.wallet.unterwegsVon(zeigen(p.amount), symbol, wer(p.from))}
-                {pending.length === 1 && ` · ${t.wallet.unterwegsBlock(1)}`}
+                {(pending.length === 1 || (p.block != null && p.block > 1)) && ` · ${wannText(p, 1)}`}
               </span>
             ))}
             {pending.length > 1 && (

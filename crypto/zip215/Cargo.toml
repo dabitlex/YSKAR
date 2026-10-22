@@ -3,7 +3,7 @@ name = "yskar-zip215"
 version = "1.0.0"
 edition = "2021"
 publish = false
-description = "Ed25519-Pruefung nach ZIP 215 fuer YSKAR (Konsensfassung 6), als WebAssembly"
+description = "Ed25519-Pruefung nach Abschnitt 7.8 fuer YSKAR (Konsensfassung 6), als WebAssembly"
 license = "MIT"
 
 [lib]
@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 path = "src/lib.rs"
 
 [dependencies]
-# Die Bibliothek der Zcash Foundation, mit der Zebra (Zcash) Signaturen prueft.
+# Quelloffene Rust-Bibliothek, die genau die Regel aus Abschnitt 7.8 umsetzt.
 # Exakte Version: Ein Update ist eine Konsensentscheidung und wird gegen alle
 # Testvektoren geprueft (tests/zip215.test.ts), nicht automatisch uebernommen.
 ed25519-zebra = { version = "=5.0.0", default-features = false, features = ["alloc"] }

@@ -32,6 +32,7 @@ document wins; PROTOCOL.md will be updated when the revision is implemented.
 11. [Behaviour of nodes around the fork](#11-behaviour-of-nodes-around-the-fork)
 12. [Compatibility](#12-compatibility)
 13. [Outside the consensus](#13-outside-the-consensus)
+    - [13b. The mempool under load](#13b-the-mempool-under-load)
 14. [Tests and test vectors](#14-tests-and-test-vectors)
 15. [What does not change](#15-what-does-not-change)
 16. [Decisions and open questions](#16-decisions-and-open-questions)
@@ -271,8 +272,8 @@ network, because the zero address holds a balance from genesis.
 The hash function and the domain prefixes `0x00` and `0x01` are the ones the existing Merkle tree uses
 (`hash.ts`). An implementation is free to store the tree as it likes (nodes keyed by height and path,
 batch updates that share upper paths, cached subtrees); the root is defined by the construction above
-and nothing else. The reason for a binary tree over a hexary or Patricia trie is given in the design
-notes: smaller proofs, no RLP, no extension nodes, and far less code.
+and nothing else. The reason for a binary tree over a hexary trie is given in the design
+notes: smaller proofs, no extra node encoding, no extension nodes, and far less code.
 
 Below `V6_HEIGHT` the `stateRoot` is the flat tree of PROTOCOL.md, unchanged. A node contains both
 procedures and chooses by height (see 10).
@@ -850,14 +851,82 @@ not of the consensus.
 |---|---|
 | Wallets | Create and display version 1 addresses; build version 2 transfers (always, from the height; before the height version 1); create multi-signature and time-locked accounts; co-sign: exchange the unsigned transaction (or its sighash) between devices and assemble the witness. The transport (QR, file, message) is the wallet's choice. A wallet checks every script against 7.2 before it shows the address (4.4 rule 3), writes `PK` children in ascending key order (7.1), tracks pending script spends by sighash (7.6), and never derives anything from the first character after `ysr1` (4.2). |
 | Mempool (`TxPool`) | Keys pending transactions by `(sender raw address, nonce)` (7.6); minimum fee from the actual size; refuses a transaction whose `validFrom` lies in the future (the refund branch of a swap is submitted once its height is reached); the witness shape check (7.4) stops a script spend before any signature is verified. |
-| Block building (`selectTransactions`) | Respects the signature budget and the 1 MiB limit while choosing transactions, reserving room for the largest coinbase of the height. |
-| Fee hints (`/fees`) | The floor is the size of a version 2 transfer (174 bytes) from the height; slots per block follow the height. |
+| Block building (`selectTransactions`) | Respects the signature budget and the 1 MiB limit while choosing transactions, reserving room for the largest coinbase of the height. Orders by fee per byte (13b). |
+| Fee hints (`/fees`) | The floor is the size of a version 2 transfer (174 bytes) from the height; slots per block follow the height. Tiers per byte, the node's current floor, and the next blocks of the queue (13b). |
 | Pool server | Up to 254 miners paid in the coinbase; above that, or for pools that settle over several blocks, a batch transfer from the pool account. The pool reports its mode (`coinbase` or `batch`) to the directory, and the directory shows it, so that a miner knows whether the pool holds funds between block and payout. |
 | Mining jobs | Header `version` 6 from the height. The 136-byte layout and the midstate optimisation are unchanged. |
 | Node status API | `revision`, `nextActivationHeight`, `revision_status` (`current`, `outdated`, `update_recommended`, `probably_forked`). |
 | Mirror (Supabase) | Stores the raw address with its version; new tables or columns for scripts revealed in spends, for batch outputs, and for the account record fields. The mirror mirrors the state root; it never computes consensus. |
 | Node Core | Shows revision 6 and the activation height; version 1.0.0. |
 | Fee estimator | Counts per byte as before; a script spend or a batch is simply larger. |
+
+## 13b. The mempool under load
+
+Everything in this section is node policy, not consensus. Two nodes with different limits still
+agree on every block. It ships together with revision 6 because the larger blocks and the
+batch transfer change what a full mempool looks like.
+
+**Goal.** A user never sees "the queue is full". Whoever pays the current price gets in; whoever
+pays less is told the exact fee that would be enough. A wallet that asks `/fees` first always
+proposes a fee that is accepted.
+
+**Limit in bytes.** The mempool is bounded by the serialized size of its transactions, by default
+32 MiB (about 190,000 transfers, roughly 38 full blocks from the height). A batch with 1,000
+outputs counts as what it is: about 40 KB, not one slot. Operators set the limit with
+`--mempool-mb`. The limit per sender stays at 32 pending transactions.
+
+**Eviction instead of rejection.** When a new transaction does not fit, the node looks for room:
+
+1. Candidates are the *last* pending nonce of each sender. Evicting a middle nonce would leave
+   every later one unexecutable, so a gap never arises.
+2. The cheapest candidate by fee per byte is evicted, then the next, until there is room. The
+   sender of the new transaction is skipped, so that its own predecessor is never removed.
+3. Every candidate must pay less per byte than the new transaction minus an increment of
+   0.1 × the relay rate (at least 1 unit per byte). If that is not the case, nothing is evicted and
+   the node answers `pool_min_fee` with `required`: the fee that would be enough.
+4. Nothing is evicted before the new transaction has passed every check, signature included.
+
+**Rising floor.** After an eviction the node's floor rises to the highest evicted rate plus the
+increment. Otherwise the evicted transaction would come straight back on the next relay. The
+floor halves every 3 hours; while the mempool is at most half full it halves every 45 minutes,
+and close to the relay rate it resets. A transaction below the floor is refused with
+`pool_min_fee` before its signature is checked. `/fees` reports the floor as `mindestJeByte`,
+so wallets that multiply it by their size are never below it.
+
+**Own transactions.** Transactions of the node's own wallet are marked local. They are never
+evicted, never expire, are saved to disk and announced to peers again every ten minutes. If the
+mempool holds nothing else that could make room, a local transaction may exceed the limit.
+
+**Expiry.** Remote transactions are dropped after 72 hours, together with their later nonces.
+Wallets resubmit their own signed bytes until the transaction is confirmed (see Wallets below).
+
+**Selection and preview.** Block building takes, among the next due transaction of every sender,
+the one with the highest fee per byte; on equal rates, the sender that appeared first. Senders sit
+in a heap, so one step costs the logarithm of the number of senders. The same selection, run on
+over several blocks with the state carried forward, is the preview behind `/fees`: for each of
+the next blocks the number of transactions and the lowest fee per byte, and for every pending
+transaction the block it is expected in. The preview is cached per tip and refreshed at most every
+ten computation times (at least every two seconds), so that a wave of requests does not recompute
+it each time. For a full mempool (199,728 transfers, 10,000 senders) one block selection takes
+about 0.2 s, the preview of all 40 blocks about 1 to 2.5 s (`scripts/mempool-last/last.ts`).
+
+**Wallets.**
+
+- The tiers `langsam`, `normal` and `schnell` carry `jeByte`; a wallet multiplies by its actual
+  size (a memo makes it larger).
+- If a node answers `pool_min_fee` or `fee_not_higher` with `required`, the wallet takes that fee,
+  shows it and asks again. It never sends a higher fee without a new confirmation.
+- The wallet keeps the signed bytes of every own transaction until it is confirmed and resubmits
+  them while the node knows neither a pending nor a confirmed transaction with that nonce.
+- A transaction that the node no longer accepts at its old fee, or that has no block in the
+  preview, is shown with "raise fee": the same transfer (recipient, amount, memo, nonce) with a
+  higher fee. It replaces the old one; only one of them can ever be in the chain.
+- `GET /tx/<txid>` and `/account/<address>` report for a pending transaction the expected block,
+  its height and the approximate minutes (`warteplatz`, `block`).
+
+**Explorer.** The block in progress shows the queue: the next blocks with their number of
+transactions, the lowest fee for a transfer without memo and the approximate time. A pending
+transaction shows its expected block.
 
 ## 13a. Implementation status
 

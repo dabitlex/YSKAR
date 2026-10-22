@@ -1,5 +1,5 @@
 /**
- * Baut das ZIP-215-Modul und bettet es ein (docs/CONSENSUS_V6.md 7.8).
+ * Baut das Modul fuer die Signaturpruefung und bettet es ein (docs/CONSENSUS_V6.md 7.8).
  *
  *   node crypto/zip215/build.mjs            bauen und src/lib/node/zip215Wasm.ts schreiben
  *   node crypto/zip215/build.mjs --pruefen  bauen und nur vergleichen (Nachbau-Probe)
@@ -57,7 +57,7 @@ if (process.argv.includes('--pruefen')) {
 writeFileSync(ziel, `/**
  * ERZEUGT von crypto/zip215/build.mjs -- nicht von Hand aendern.
  *
- * ed25519-zebra 5.0.0 (Zcash Foundation) als WebAssembly, Quelle in
+ * ed25519-zebra 5.0.0 als WebAssembly, Quelle in
  * crypto/zip215. Nachbau-Probe: node crypto/zip215/build.mjs --pruefen
  */
 export const ZIP215_WASM_SHA256 = '${sha}';

@@ -112,6 +112,11 @@ export class MiningCoordinator {
    * eins von beidem, wird sie beim naechsten Job neu gerechnet.
    */
   private vorlage: JobVorlage | null = null;
+  /** Woraus die Vorlage gebaut ist -- der volle Bau zum Vergleich nimmt dasselbe. */
+  private vorlageAus: Spend[] = [];
+  private vorlageStand = -1;
+  private vorlageUm = 0;
+  private vorlageDauer = 0;
   /**
    * Welche Rechenwege dieser Vorlage schon gegen buildBlock() geprueft sind.
    *
@@ -226,13 +231,18 @@ export class MiningCoordinator {
   private vollerBau(hoehe: number, prevHash: Uint8Array, minerAddress: Uint8Array,
                     zeitstempel: bigint, difficulty: bigint, extranonce: bigint,
                     extra: Uint8Array,
-                    anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[]): BuildResult {
+                    anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[],
+                    mempool?: Spend[]): BuildResult {
     const state = this.chain.state();
-    const { included } = selectTransactions(state, this.pool.alle(), hoehe, undefined, this.params);
+    // fuerBlock() liefert nur, was an dieser Hoehe checkSpend besteht; die
+    // Signaturen sind bei der Aufnahme geprueft. applyBlock prueft den Block
+    // in buildBlock trotzdem voll.
+    const aus = mempool ?? this.pool.fuerBlock(hoehe);
+    const { included } = selectTransactions(state, aus, hoehe, undefined, this.params, { vorgeprueft: true });
     return buildBlock({
       height: hoehe, prevHash, state, mempool: included, minerAddress,
       timestamp: zeitstempel, difficulty, extranonce, coinbaseExtra: extra, anteile,
-      params: this.params,
+      params: this.params, vorgeprueft: true,
     });
   }
 
@@ -249,18 +259,40 @@ export class MiningCoordinator {
                      zeitstempel: bigint, difficulty: bigint, extranonce: bigint,
                      extra: Uint8Array,
                      anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[]): BuildResult {
-    const schluessel = `${toHex(prevHash)}:${hoehe}:${this.pool.version()}`;
-    if (this.vorlage?.schluessel !== schluessel) {
-      this.vorlage = baueVorlage(schluessel, this.chain.state(), this.pool.alle(), hoehe, this.params);
+    /*
+      Neu gerechnet wird bei einem neuen Kettenkopf immer. Bei einem neuen
+      Mempool-Stand sofort, solange der Bau billig ist; dauert er laenger
+      (voller Mempool, Andrang), hoechstens alle 20 Baudauern, laengstens
+      alle 10 s. Sonst kostete bei einer Welle jede einzelne neue
+      Transaktion einen vollen Blockbau. Ein Job aus einer etwas aelteren
+      Vorlage ist trotzdem gueltig: Nur ein neuer Block macht eine
+      enthaltene Transaktion ungueltig, und der erzwingt eine neue Vorlage.
+    */
+    const schluessel = `${toHex(prevHash)}:${hoehe}`;
+    const stand = this.pool.version();
+    const jetzt = Date.now();
+    const neu = this.vorlage?.schluessel !== schluessel
+      || (stand !== this.vorlageStand
+          && (this.vorlageDauer < 50
+              || jetzt - this.vorlageUm >= Math.min(10_000, 20 * this.vorlageDauer)));
+    if (neu) {
+      const anfang = Date.now();
+      this.vorlageAus = this.pool.fuerBlock(hoehe);
+      this.vorlage = baueVorlage(schluessel, this.chain.state(), this.vorlageAus, hoehe, this.params,
+        { vorgeprueft: true });
+      this.vorlageStand = stand;
+      this.vorlageUm = Date.now();
+      this.vorlageDauer = this.vorlageUm - anfang;
       this.vorlageGeprueft.clear();
     }
-    const { art, ...gebaut } = baueAusVorlage(this.vorlage, {
+    const { art, ...gebaut } = baueAusVorlage(this.vorlage!, {
       prevHash, minerAddress, timestamp: zeitstempel, difficulty, extranonce,
       coinbaseExtra: extra, anteile, params: this.params,
     });
     if (this.vorlageGeprueft.has(art)) return gebaut;
 
-    const voll = this.vollerBau(hoehe, prevHash, minerAddress, zeitstempel, difficulty, extranonce, extra, anteile);
+    const voll = this.vollerBau(hoehe, prevHash, minerAddress, zeitstempel, difficulty, extranonce, extra, anteile,
+      this.vorlageAus);
     const gleich = toHex(serializeBlock(voll.block)) === toHex(serializeBlock(gebaut.block))
       && voll.fees === gebaut.fees;
     if (!gleich) {

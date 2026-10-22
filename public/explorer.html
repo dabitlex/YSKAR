@@ -351,6 +351,9 @@ details.empf .tx{border-top:0}
 .empf-liste div>span:last-child{flex:none;white-space:nowrap}
 .empf-liste .mono:first-child{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .empf-liste a{font-weight:400}
+/* Warteschlange: Hoehe links in voller Laenge, rechts Anzahl, Gebuehr, Zeit. */
+.empf-liste.ws .mono:first-child{flex:none;overflow:visible}
+.empf-liste.ws div>span:last-child{white-space:normal;text-align:right}
 .empf-liste a:hover{color:var(--work);opacity:1}
 .leer{padding:26px 16px;text-align:center;color:var(--faint);font-size:13px;font-weight:600}
 .ff{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
@@ -688,6 +691,9 @@ en:{
   transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Reward',
   serialisierung:'Serialization',hashGeprueft:'Hash recomputed',pow:'Proof of work',verkettung:'Chain link',
   wirdGeradeGesucht:'Currently being searched',wartendeTx:'Pending transactions',
+  warteschlange:'Queue',wsZeile:(n,g,m)=>n+' tx · from '+g+' · ~'+m+' min',wsLeer:'Nothing is waiting — the next block takes everything.',
+  wsMehr:(n,b)=>n+' transactions in '+b+' blocks in total.',wsHinweis:'Expected order by fee per byte, assuming nothing new arrives. The fee is for a transfer without a memo.',
+  voraussichtlich:(h,m)=>'Expected in block #'+h+', in about '+m+' min. Assuming nothing with a higher fee arrives.',wsUnbekannt:'Further back in the queue than the preview reaches.',
   bauLeer:'The mempool is empty, so this block only contains the coinbase so far.',
   bauVoll:'The pending payments go into this block as far as they fit.',bauWer:'Who finds it is not yet known.',
   kHoehe:'Height',kHoeheUnter:h=>'State recomputed up to '+h,kDifficultyUnter:'Recalculated at every block (LWMA over 45 blocks).',
@@ -738,6 +744,9 @@ de:{
   transaktionen:'Transaktionen',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Belohnung',
   serialisierung:'Serialisierung',hashGeprueft:'Hash nachgerechnet',pow:'Proof of Work',verkettung:'Verkettung',
   wirdGeradeGesucht:'Wird gerade gesucht',wartendeTx:'Wartende Transaktionen',
+  warteschlange:'Warteschlange',wsZeile:(n,g,m)=>n+' Tx · ab '+g+' · ~'+m+' Min.',wsLeer:'Nichts wartet — der nächste Block nimmt alles mit.',
+  wsMehr:(n,b)=>n+' Transaktionen in insgesamt '+b+' Blöcken.',wsHinweis:'Voraussichtliche Reihenfolge nach Gebühr je Byte, unter der Annahme, dass nichts Neues dazukommt. Die Gebühr gilt für eine Überweisung ohne Notiz.',
+  voraussichtlich:(h,m)=>'Voraussichtlich in Block #'+h+', in etwa '+m+' Min. Unter der Annahme, dass nichts mit höherer Gebühr dazukommt.',wsUnbekannt:'Weiter hinten in der Warteschlange, als die Vorschau reicht.',
   bauLeer:'Der Mempool ist leer, also enthält dieser Block bisher nur die Coinbase.',
   bauVoll:'Die wartenden Zahlungen kommen in diesen Block, soweit sie hineinpassen.',bauWer:'Wer ihn findet, steht noch nicht fest.',
   kHoehe:'Höhe',kHoeheUnter:h=>'Zustand bis '+h+' nachgerechnet',kDifficultyUnter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).',
@@ -788,6 +797,9 @@ es:{
   transaktionen:'Transacciones',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
   serialisierung:'Serialización',hashGeprueft:'Hash recalculado',pow:'Prueba de trabajo',verkettung:'Encadenamiento',
   wirdGeradeGesucht:'Se está buscando ahora',wartendeTx:'Transacciones pendientes',
+  warteschlange:'Cola',wsZeile:(n,g,m)=>n+' tx · desde '+g+' · ~'+m+' min',wsLeer:'No hay nada esperando: el próximo bloque se lo lleva todo.',
+  wsMehr:(n,b)=>n+' transacciones en '+b+' bloques en total.',wsHinweis:'Orden previsto según la comisión por byte, suponiendo que no llega nada nuevo. La comisión es para una transferencia sin nota.',
+  voraussichtlich:(h,m)=>'Previsto en el bloque #'+h+', en unos '+m+' min. Suponiendo que no llegue nada con comisión más alta.',wsUnbekannt:'Más atrás en la cola de lo que alcanza la previsión.',
   bauLeer:'El mempool está vacío, así que este bloque por ahora solo contiene la coinbase.',
   bauVoll:'Los pagos pendientes entran en este bloque en la medida en que quepan.',bauWer:'Aún no se sabe quién lo encontrará.',
   kHoehe:'Altura',kHoeheUnter:h=>'Estado recalculado hasta '+h,kDifficultyUnter:'Se recalcula en cada bloque (LWMA sobre 45 bloques).',
@@ -838,6 +850,9 @@ pt:{
   transaktionen:'Transações',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
   serialisierung:'Serialização',hashGeprueft:'Hash recalculado',pow:'Prova de trabalho',verkettung:'Encadeamento',
   wirdGeradeGesucht:'Sendo procurado agora',wartendeTx:'Transações pendentes',
+  warteschlange:'Fila',wsZeile:(n,g,m)=>n+' tx · a partir de '+g+' · ~'+m+' min',wsLeer:'Nada está esperando — o próximo bloco leva tudo.',
+  wsMehr:(n,b)=>n+' transações em '+b+' blocos no total.',wsHinweis:'Ordem prevista pela taxa por byte, supondo que nada novo chegue. A taxa vale para uma transferência sem nota.',
+  voraussichtlich:(h,m)=>'Previsto no bloco #'+h+', em cerca de '+m+' min. Supondo que nada com taxa maior chegue.',wsUnbekannt:'Mais atrás na fila do que a previsão alcança.',
   bauLeer:'O mempool está vazio, então este bloco por enquanto só contém a coinbase.',
   bauVoll:'Os pagamentos pendentes entram neste bloco na medida em que couberem.',bauWer:'Ainda não se sabe quem vai encontrá-lo.',
   kHoehe:'Altura',kHoeheUnter:h=>'Estado recalculado até '+h,kDifficultyUnter:'Recalculada a cada bloco (LWMA sobre 45 blocos).',
@@ -888,6 +903,9 @@ ru:{
   transaktionen:'Транзакции',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Награда',
   serialisierung:'Сериализация',hashGeprueft:'Хеш пересчитан',pow:'Proof of Work',verkettung:'Связь цепочки',
   wirdGeradeGesucht:'Сейчас ищется',wartendeTx:'Ожидающие транзакции',
+  warteschlange:'Очередь',wsZeile:(n,g,m)=>n+' tx · от '+g+' · ~'+m+' мин',wsLeer:'Ничего не ждёт — следующий блок заберёт всё.',
+  wsMehr:(n,b)=>'Всего '+n+' транзакций в '+b+' блоках.',wsHinweis:'Ожидаемый порядок по комиссии за байт, если ничего нового не придёт. Комиссия указана для перевода без заметки.',
+  voraussichtlich:(h,m)=>'Ожидается в блоке #'+h+', примерно через '+m+' мин. Если не придёт ничего с более высокой комиссией.',wsUnbekannt:'Дальше в очереди, чем охватывает прогноз.',
   bauLeer:'Мемпул пуст, поэтому пока в этом блоке только coinbase.',
   bauVoll:'Ожидающие платежи попадут в этот блок, насколько поместятся.',bauWer:'Кто его найдёт, пока неизвестно.',
   kHoehe:'Высота',kHoeheUnter:h=>'Состояние пересчитано до '+h,kDifficultyUnter:'Пересчитывается на каждом блоке (LWMA по 45 блокам).',
@@ -940,6 +958,9 @@ tr:{
   transaktionen:'İşlemler',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ödül',
   serialisierung:'Serileştirme',hashGeprueft:'Hash yeniden hesaplandı',pow:'İş kanıtı',verkettung:'Zincir bağı',
   wirdGeradeGesucht:'Şu anda aranıyor',wartendeTx:'Bekleyen işlemler',
+  warteschlange:'Kuyruk',wsZeile:(n,g,m)=>n+' işlem · en az '+g+' · ~'+m+' dk',wsLeer:'Bekleyen bir şey yok — sonraki blok hepsini alır.',
+  wsMehr:(n,b)=>'Toplam '+b+' blokta '+n+' işlem.',wsHinweis:'Bayt başına ücrete göre beklenen sıra; yeni bir şey gelmeyeceği varsayılır. Ücret, notsuz bir transfer içindir.',
+  voraussichtlich:(h,m)=>'Tahminen #'+h+' numaralı blokta, yaklaşık '+m+' dk içinde. Daha yüksek ücretli bir şey gelmezse.',wsUnbekannt:'Kuyrukta önizlemenin ulaştığından daha geride.',
   bauLeer:'Mempool boş, bu yüzden bu blok şimdilik yalnızca coinbase içeriyor.',
   bauVoll:'Bekleyen ödemeler sığdıkları ölçüde bu bloğa girer.',bauWer:'Kimin bulacağı henüz belli değil.',
   kHoehe:'Yükseklik',kHoeheUnter:h=>'Durum '+h+'’e kadar yeniden hesaplandı',kDifficultyUnter:'Her blokta yeniden hesaplanır (45 blok üzerinden LWMA).',
@@ -990,6 +1011,9 @@ fr:{
   transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Récompense',
   serialisierung:'Sérialisation',hashGeprueft:'Hash recalculé',pow:'Proof of Work',verkettung:'Lien de chaîne',
   wirdGeradeGesucht:'En cours de recherche',wartendeTx:'Transactions en attente',
+  warteschlange:'File d\'attente',wsZeile:(n,g,m)=>n+' tx · dès '+g+' · ~'+m+' min',wsLeer:'Rien n’attend — le prochain bloc prend tout.',
+  wsMehr:(n,b)=>n+' transactions dans '+b+' blocs au total.',wsHinweis:'Ordre prévu selon les frais par octet, en supposant que rien de nouveau n’arrive. Les frais valent pour un transfert sans note.',
+  voraussichtlich:(h,m)=>'Prévu dans le bloc #'+h+', dans environ '+m+' min. En supposant que rien avec des frais plus élevés n’arrive.',wsUnbekannt:'Plus loin dans la file que ne va l’aperçu.',
   bauLeer:'Le mempool est vide, ce bloc ne contient donc pour l’instant que la coinbase.',
   bauVoll:'Les paiements en attente entrent dans ce bloc dans la limite de la place disponible.',bauWer:'On ne sait pas encore qui le trouvera.',
   kHoehe:'Hauteur',kHoeheUnter:h=>'État recalculé jusqu’à '+h,kDifficultyUnter:'Recalculée à chaque bloc (LWMA sur 45 blocs).',
@@ -1040,6 +1064,9 @@ it:{
   transaktionen:'Transazioni',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ricompensa',
   serialisierung:'Serializzazione',hashGeprueft:'Hash ricalcolato',pow:'Proof of Work',verkettung:'Collegamento',
   wirdGeradeGesucht:'In ricerca ora',wartendeTx:'Transazioni in attesa',
+  warteschlange:'Coda',wsZeile:(n,g,m)=>n+' tx · da '+g+' · ~'+m+' min',wsLeer:'Non c’è niente in attesa — il prossimo blocco prende tutto.',
+  wsMehr:(n,b)=>n+' transazioni in '+b+' blocchi in totale.',wsHinweis:'Ordine previsto in base alla commissione per byte, supponendo che non arrivi nulla di nuovo. La commissione vale per un trasferimento senza nota.',
+  voraussichtlich:(h,m)=>'Previsto nel blocco #'+h+', tra circa '+m+' min. Supponendo che non arrivi nulla con commissione più alta.',wsUnbekannt:'Più indietro nella coda di quanto arrivi l’anteprima.',
   bauLeer:'Il mempool è vuoto, quindi per ora questo blocco contiene solo la coinbase.',
   bauVoll:'I pagamenti in attesa entrano in questo blocco finché c’è posto.',bauWer:'Chi lo troverà non si sa ancora.',
   kHoehe:'Altezza',kHoeheUnter:h=>'Stato ricalcolato fino a '+h,kDifficultyUnter:'Ricalcolata a ogni blocco (LWMA su 45 blocchi).',
@@ -1090,6 +1117,9 @@ pl:{
   transaktionen:'Transakcje',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Nagroda',
   serialisierung:'Serializacja',hashGeprueft:'Hash przeliczony',pow:'Proof of Work',verkettung:'Powiązanie łańcucha',
   wirdGeradeGesucht:'Właśnie szukany',wartendeTx:'Oczekujące transakcje',
+  warteschlange:'Kolejka',wsZeile:(n,g,m)=>n+' tx · od '+g+' · ~'+m+' min',wsLeer:'Nic nie czeka — następny blok weźmie wszystko.',
+  wsMehr:(n,b)=>'Łącznie '+n+' transakcji w '+b+' blokach.',wsHinweis:'Przewidywana kolejność według opłaty za bajt, przy założeniu, że nic nowego nie dojdzie. Opłata dotyczy przelewu bez notatki.',
+  voraussichtlich:(h,m)=>'Przewidywanie: blok #'+h+', za około '+m+' min. Jeśli nie dojdzie nic z wyższą opłatą.',wsUnbekannt:'Dalej w kolejce, niż sięga podgląd.',
   bauLeer:'Mempool jest pusty, więc ten blok zawiera na razie tylko coinbase.',
   bauVoll:'Oczekujące płatności trafią do tego bloku, o ile się zmieszczą.',bauWer:'Nie wiadomo jeszcze, kto go znajdzie.',
   kHoehe:'Wysokość',kHoeheUnter:h=>'Stan przeliczony do '+h,kDifficultyUnter:'Przeliczana przy każdym bloku (LWMA z 45 bloków).',
@@ -1142,6 +1172,9 @@ zh:{
   transaktionen:'交易',nonce:'Nonce',extranonce:'Extranonce',belohnung:'奖励',
   serialisierung:'序列化',hashGeprueft:'哈希已重新计算',pow:'工作量证明',verkettung:'链接',
   wirdGeradeGesucht:'正在搜索中',wartendeTx:'待处理交易',
+  warteschlange:'队列',wsZeile:(n,g,m)=>n+' 笔 · 最低 '+g+' · 约 '+m+' 分钟',wsLeer:'没有等待中的交易 — 下一个区块会全部打包。',
+  wsMehr:(n,b)=>'共 '+n+' 笔交易，分布在 '+b+' 个区块。',wsHinweis:'按每字节手续费预计的顺序，假设没有新交易加入。手续费指不带备注的普通转账。',
+  voraussichtlich:(h,m)=>'预计进入区块 #'+h+'，约 '+m+' 分钟后。前提是没有更高手续费的交易加入。',wsUnbekannt:'排在预览范围之外的更后位置。',
   bauLeer:'交易池为空，因此该区块目前只包含 Coinbase。',
   bauVoll:'待处理的付款会尽可能多地放入这个区块。',bauWer:'尚不知道由谁找到它。',
   kHoehe:'高度',kHoeheUnter:h=>'状态已重新计算至 '+h,kDifficultyUnter:'每个区块重新计算（基于 45 个区块的 LWMA）。',
@@ -1260,7 +1293,27 @@ $('nav').addEventListener('click',e=>{
 
 // ---------------------------------------------------------------- Helfer
 // Identisch zu src/lib/core/params.ts.
-const MAX_TX=2000;      // MAX_TXS_PER_BLOCK
+const MAX_TX_ALT=2000, MAX_TX_V6=5000;   // Plaetze je Block bis bzw. ab Konsensfassung 6
+let V6_AB=0;            // Aktivierungshoehe von Fassung 6 laut /fees; 0 = noch nicht festgelegt
+const maxTxBei=h=>V6_AB>0&&h>=V6_AB?MAX_TX_V6:MAX_TX_ALT;
+/*
+  Die Warteschlange vom Knoten (/fees): die naechsten Bloecke, wie sie
+  voraussichtlich gefuellt werden -- nach Gebuehr je Byte, unter der Annahme,
+  dass nichts Neues dazukommt. Auch das kommt von fremder Seite und wird an
+  der Grenze in Form gebracht.
+*/
+let markt=null;
+function marktAus(f){
+  if(!f||f.error||!Array.isArray(f.bloecke)) return null;
+  const zahl=v=>{ const n=Number(v); return Number.isFinite(n)?n:0; };
+  return {
+    bloecke:f.bloecke.slice(0,12).map(b=>({block:zahl(b.block),hoehe:zahl(b.hoehe),anzahl:zahl(b.anzahl),minJeByte:zahl(b.minJeByte)}))
+      .filter(b=>Number.isInteger(b.hoehe)&&b.hoehe>0),
+    bloeckeGesamt:zahl(f.bloeckeGesamt), inVorschau:zahl(f.inVorschau), wartend:zahl(f.wartend),
+    blockzeit:zahl(f.blockzeit)||600, basisBytes:zahl(f.basisBytes)||168,
+    plaetze:zahl(f.plaetzeJeBlock), aktivierung:zahl(f.aktivierung),
+  };
+}
 const EPOCHE=12000;     // EPOCH_BLOCKS
 const N_BLOCKZEIT=45;   // Blockzeit: so viele Abstaende -- das Fenster, ueber das auch die Difficulty rechnet (LWMA)
 const N_DIFF=50;        // Difficulty: so viele Bloecke im Verlauf
@@ -1423,7 +1476,7 @@ let neuBis={};
 const blockVon=h=>blocks.find(x=>x.height===h)||neben[h]||null;
 const istAnsicht=(art,wert)=>ansicht&&ansicht.art===art&&(art==='bau'||ansicht.h===wert||ansicht.a===wert||ansicht.id===wert);
 const ysr=(n,min=2,max=8)=>(Number(n)/10**dec).toLocaleString(LOC,{minimumFractionDigits:min,maximumFractionDigits:max});
-const fuellung=b=>Math.min(100,(Number(b.txCount)||0)/MAX_TX*100);
+const fuellung=b=>Math.min(100,(Number(b.txCount)||0)/maxTxBei(b.height)*100);
 /** ok = hier nachgerechnet, bad = eine Pruefung schlug fehl, offen = noch nicht geprueft. */
 function zustand(c){
   if(!c) return 'offen';
@@ -1964,7 +2017,7 @@ function zeichneBlock(b){
   fensterZeigen('block-'+h,kopfHtml(`${T.block} #${nf(h)} `,{badge,nav})+`
     <div class="fs">
       <div class="fuellkasten">
-        <div class="zeile"><b>${T.voll(prozent(p))}</b><span>${T.vonTx(nf(b.txCount),nf(MAX_TX))}${groesse(b.sizeBytes)?' · '+groesse(b.sizeBytes):''}</span></div>
+        <div class="zeile"><b>${T.voll(prozent(p))}</b><span>${T.vonTx(nf(b.txCount),nf(maxTxBei(b.height)))}${groesse(b.sizeBytes)?' · '+groesse(b.sizeBytes):''}</span></div>
         <div class="meter"><i style="width:${p.toFixed(2)}%"></i></div>
       </div>
       <div class="fakten">
@@ -2017,8 +2070,8 @@ function zeigeBau(){
       nav:hoehe!=null?`<a class="rk" href="#block-${hoehe}" aria-label="${esc(T.blockZurueck)}" title="${esc(T.blockZurueck)}">${IC.links}</a>`:''})+`
     <div class="fs">
       <div class="fuellkasten">
-        <div class="zeile"><b>${T.voll(prozent(Math.min(100,(wartend+1)/MAX_TX*100)))}</b><span>${T.wartendeTx}: ${nf(wartend)}</span></div>
-        <div class="meter"><i style="width:${Math.min(100,(wartend+1)/MAX_TX*100).toFixed(2)}%"></i></div>
+        <div class="zeile"><b>${T.voll(prozent(Math.min(100,(wartend+1)/maxTxBei(hoehe+1)*100)))}</b><span>${T.wartendeTx}: ${nf(wartend)}</span></div>
+        <div class="meter"><i style="width:${Math.min(100,(wartend+1)/maxTxBei(hoehe+1)*100).toFixed(2)}%"></i></div>
       </div>
       <div class="fakten">
         ${fakt(T.vorgaenger,hoehe!=null?`<a href="#block-${hoehe}">#${nf(hoehe)}</a>`:'—')}
@@ -2026,7 +2079,27 @@ function zeigeBau(){
         ${fakt(T.wartendeTx,nf(wartend))}
       </div>
       <div class="absatz">${wartend===0?T.bauLeer:T.bauVoll} ${T.bauWer}</div>
+      ${warteschlangeHtml()}
     </div>`);
+}
+
+/*
+  Die naechsten Bloecke der Warteschlange: wie viele Transaktionen, ab
+  welcher Gebuehr (fuer eine Ueberweisung ohne Notiz) und in etwa wann.
+  Wer seine Gebuehr kennt, sieht daran, wo seine Transaktion steht.
+*/
+function warteschlangeHtml(){
+  if(!markt) return '';
+  if(markt.bloecke.length===0) return `<div class="ut">${T.warteschlange}</div><div class="absatz">${T.wsLeer}</div>`;
+  const zeilen=markt.bloecke.map(b=>{
+    const gebuehr=ysr(Math.ceil(b.minJeByte*markt.basisBytes),0,8)+' '+sym;
+    const min=Math.max(1,Math.round(b.block*markt.blockzeit/60));
+    return `<div><a class="mono" href="#neu">#${nf(b.hoehe)}</a><span class="mono tnum">${T.wsZeile(nf(b.anzahl),gebuehr,nf(min))}</span></div>`;
+  }).join('');
+  const mehr=markt.bloeckeGesamt>markt.bloecke.length?T.wsMehr(nf(markt.inVorschau),nf(markt.bloeckeGesamt))+' ':'';
+  return `<div class="ut">${T.warteschlange}</div>
+    <div class="empf-liste ws" style="margin-left:0">${zeilen}</div>
+    <div class="absatz">${mehr}${T.wsHinweis}</div>`;
 }
 
 // ---------------------------------------------------------------- Adresse
@@ -2147,6 +2220,9 @@ async function zeigeTx(id){
         ${fakt(T.status,status,t.timestamp?uhr(t.timestamp):'')}
         ${fakt(T.gebuehr,ysr(t.fee||0)+' '+sym,'')}
       </div>
+      ${t.status==='pending'&&t.warteplatz?`<div class="absatz">${t.warteplatz.hoehe!=null&&Number.isFinite(Number(t.warteplatz.hoehe))
+          ?T.voraussichtlich(nf(Number(t.warteplatz.hoehe)),nf(Math.max(1,Number(t.warteplatz.minuten)||0)))
+          :T.wsUnbekannt}</div>`:''}
       ${(t.from||t.to||memo)?`<div class="ut">${T.kennungen}</div>`:''}
       ${adr(T.von,t.from)}${adr(T.an,t.to)}
       ${memo?`<div class="hz"><span>${T.notiz}</span><span class="wert"><span>${esc(memo)}</span></span></div>`:''}
@@ -2229,9 +2305,13 @@ async function pruefeAlle(){
 
 async function load(){
   try{
-    const [s,b]=await Promise.all([holen('/summary'),holen('/blocks?limit='+N_LADEN)]);
+    const [s,b,f]=await Promise.all([holen('/summary'),holen('/blocks?limit='+N_LADEN),holen('/fees').catch(()=>null)]);
     if(s.error||b.error) throw new Error(s.detail||b.detail||s.error||b.error);
     sum=summeAus(s); blocks=bloeckeAus(b); $('err').textContent='';
+    // Die Warteschlange ist eine Zugabe: Fehlt sie, bleibt alles andere.
+    markt=marktAus(f)||markt;
+    if(markt&&markt.aktivierung>0) V6_AB=markt.aktivierung;
+    if(ansicht&&ansicht.art==='bau') zeigeBau();
     await pruefeAlle();
     renderStats(); renderVerdict(); renderKette();
     finderLaden();

@@ -37,7 +37,15 @@ const WORTE = 'abandon abandon abandon abandon abandon abandon abandon abandon '
 const K = [0, 1, 2, 3].map(i => keypairFromMnemonic(WORTE, '', 0, i));
 const fremd = (n: number) => new Uint8Array(20).fill(n);
 /** Wie JSON.stringify, aber bigint wird lesbar statt eines Fehlers. */
-const js = (x: unknown) => JSON.stringify(x, (_, v) => typeof v === 'bigint' ? `${v}n` : v);
+/*
+  Seit dem Mempool fuer Andrang (CONSENSUS_V6.md 13b) nennen /account und /tx
+  zu einer WARTENDEN Transaktion zusaetzlich den voraussichtlichen Block
+  (`block`, `warteplatz`). Das ist eine Zugabe aus dem Mempool, nicht aus dem
+  Verzeichnis; verglichen wird hier, was das Verzeichnis liefert.
+*/
+const ZUGABEN = new Set(['block', 'warteplatz']);
+const js = (x: unknown) => JSON.stringify(x, (k, v) =>
+  ZUGABEN.has(k) ? undefined : typeof v === 'bigint' ? `${v}n` : v);
 
 interface Stand { state: State; prev: Uint8Array; hoehe: number; zeit: bigint }
 

@@ -42,7 +42,7 @@ android/app/google-services.json
 *.jks.b64
 *.keystore
 
-# Rust-Bauordner des ZIP-215-Moduls; das Ergebnis steht eingebettet in src/lib/node/zip215Wasm.ts
+# Rust-Bauordner des Signatur-Moduls; das Ergebnis steht eingebettet in src/lib/node/zip215Wasm.ts
 crypto/zip215/target/
 
 # Erzeugt von scripts/signatur-messung/bauen.mjs

@@ -357,8 +357,11 @@ on the PC itself.
   the option `--sender-ip`, sessions without a share hold at most two seats per sender, and a
   sender keeps at most 32 sessions without a share; this needs a reverse proxy that sets
   `X-Forwarded-For` itself (Caddy does), or no proxy at all (`--sender-ip socket`).
-- **Mempool.** The mempool holds at most 5,000 transfers and at most 32 per sender. When it is
-  full, new transfers are refused; there is no eviction by fee.
+- **Mempool.** The mempool holds at most 32 MB of transactions and at most 32 per sender. When it
+  is full, a higher fee per byte evicts the cheapest pending transaction, and the node's floor
+  rises; a transfer below the floor is refused with `pool_min_fee` before its signature is
+  checked. Filling the mempool therefore costs the attacker a rising fee, and a transaction that
+  fails any check never evicts anything (CONSENSUS_V6.md 13b).
 - **The mirror cannot reorganize.** It is strictly linear: it accepts only the block that
   extends its own tip and answers `stale`, `height_gap` or `wrong_parent` otherwise. After a
   reorganization of the chain, what the app and the explorer display can differ from the chain

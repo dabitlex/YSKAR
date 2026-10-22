@@ -49,8 +49,20 @@ export class Reader {
   get offset() { return this.o; }
 }
 
-export const toHex = (b: Uint8Array) =>
-  Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+/** Zwei Hex-Zeichen je Bytewert, einmal gerechnet. */
+const HEX: string[] = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
+
+/**
+ * Kleingeschriebenes Hex. Ueber eine Tabelle statt Array.from/map/join:
+ * Der Mempool rechnet bei Andrang hunderttausende Schluessel, und die alte
+ * Form war dort der groesste Einzelposten. Ergebnis Zeichen fuer Zeichen
+ * dasselbe (tests/codec-hex.test.ts).
+ */
+export function toHex(b: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < b.length; i++) s += HEX[b[i]];
+  return s;
+}
 
 export function fromHex(s: string): Uint8Array {
   const c = s.startsWith('\\x') ? s.slice(2) : s;

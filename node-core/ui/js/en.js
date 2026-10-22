@@ -367,6 +367,11 @@ export const en = {
   'wal.gesendetAn': 'Sent to {0}',
   'wal.empfangenVon': 'Received from {0}',
   'wal.wartetBlock': 'waiting for the next block',
+  'wal.wartetNaechster': 'expected in the next block',
+  'wal.wartetVoraus': (b, m) => `expected in block +${b}, in about ${m} minutes`,
+  'wal.erhoehen': 'Raise fee',
+  'wal.erhoehenText': 'The same transfer with a higher fee (“fast” tier). It replaces the waiting one.',
+  'wal.erhoeht': g => `Fee raised to ${g} YSR.`,
   'wal.notizZeile': 'Note: {0}',
   'wal.gebuehrZeile': 'fee {0}',
 
@@ -658,6 +663,8 @@ export const en = {
   'srv.abgelehnt_nonce_too_low': 'An earlier transfer is still waiting. Please wait a moment and try again.',
   'srv.abgelehnt_unknown_account': 'There is no balance on this wallet yet.',
   'srv.abgelehnt_sender_limit': 'Too many transfers from this wallet are already waiting.',
-  'srv.abgelehnt_pool_full': 'The node’s queue is full. Please try again later.',
+  'srv.abgelehnt_pool_min_fee': 'The network is busy right now and the required fee has gone up. Please check again.',
+  'srv.abgelehnt_fee_not_higher': 'The new fee must be higher than the previous one.',
+  'srv.nicht_wartend': 'This transfer is no longer waiting -- it may already be in a block.',
   'srv.abgelehnt_duplicate': 'This transfer has already been submitted.',
 };

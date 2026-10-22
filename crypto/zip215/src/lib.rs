@@ -1,4 +1,4 @@
-//! Ed25519-Pruefung nach ZIP 215 fuer YSKAR (docs/CONSENSUS_V6.md, Abschnitt 7.8).
+//! Ed25519-Pruefung fuer YSKAR (docs/CONSENSUS_V6.md, Abschnitt 7.8).
 //!
 //! Duenne Huelle um `ed25519-zebra`. Keine eigene Kryptografie: Jede Zeile
 //! hier reicht nur Bytes weiter. Die Schnittstelle ist bewusst roh -- feste
@@ -13,7 +13,7 @@
 //!
 //! Die Stapelpruefung braucht unvorhersehbare Koeffizienten; sie kommen aus
 //! SAAT, die der Aufrufer bei jedem Aufruf frisch aus einer kryptografischen
-//! Quelle fuellt. ZIP 215 garantiert, dass Stapel und Einzelpruefung dasselbe
+//! Quelle fuellt. Die Regel aus 7.8 garantiert, dass Stapel und Einzelpruefung dasselbe
 //! Ergebnis liefern.
 
 use ed25519_zebra::{batch, Signature, VerificationKey, VerificationKeyBytes};

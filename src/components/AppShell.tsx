@@ -23,6 +23,7 @@ import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
 import { inhalte } from '@/content/entdecken';
 import { useT } from '@/i18n';
 import Send from '@/components/wallet/Send';
+import type { EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
 import Receive from '@/components/wallet/Receive';
 import Benchmark from '@/components/Benchmark';
 import { gespeichert, type BenchErgebnis } from '@/hooks/useBenchmark';
@@ -62,6 +63,8 @@ export default function AppShell({ platform }: { platform: string }) {
   const [autostart] = useState(einstiegAbholen);
   const [tab, setTab] = useState<Tab>(autostart ? 'mining' : 'home');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
+  // Gebuehr erhoehen: welche eigene Zahlung ersetzt wird (Send beginnt dann beim Pruefen).
+  const [ersetzen, setErsetzen] = useState<EigeneZahlung | null>(null);
   const [gesperrt, setGesperrt] = useState(false);
 
   useEffect(() => { kampagneMerken(); }, []);
@@ -141,7 +144,8 @@ export default function AppShell({ platform }: { platform: string }) {
   const startStopp = () => { if (m.mining) m.stop(); else starten(); };
 
   /** Senden nur mit gesicherten Woertern. */
-  const senden = (art: 'senden' | 'scannen') => {
+  const senden = (art: 'senden' | 'scannen', z: EigeneZahlung | null = null) => {
+    setErsetzen(z);
     if (wallet.gesichert) setAnsicht(art);
     else { haptik('warnung'); setGesperrt(true); }
   };
@@ -191,7 +195,8 @@ export default function AppShell({ platform }: { platform: string }) {
                      onEmpfangen={() => setAnsicht('empfangen')}
                      hoehe={m.summary?.height ?? null}
                      onEinstellungen={() => setAnsicht('einstellungen')}
-                     onSichern={wallet.gesichert ? undefined : () => setAnsicht('sichern')} />
+                     onSichern={wallet.gesichert ? undefined : () => setAnsicht('sichern')}
+                     onErhoehen={z => senden('senden', z)} />
         ) : tab === 'entdecken' ? (
           <EntdeckenTab summary={m.summary} decimals={dec} symbol={sym} meineAdresse={wallet.address}
                         onEinstellungen={() => setAnsicht('einstellungen')} />
@@ -207,7 +212,8 @@ export default function AppShell({ platform }: { platform: string }) {
       {/* Senden und Empfangen sind Blaetter ueber dem Reiter. */}
       <Blatt offen={ansicht === 'senden' || ansicht === 'scannen'} onSchliessen={() => setAnsicht(null)} grund="ink">
         {(ansicht === 'senden' || ansicht === 'scannen') && (
-          <Send account={m.account} decimals={dec} symbol={sym}
+          <Send account={m.account} decimals={dec} symbol={sym} ersetzen={ersetzen}
+                key={ersetzen?.txid ?? 'neu'}
                 scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}
                 onFertig={() => { m.refreshAccount(); setAnsicht(null); }}
                 onAbbruch={() => setAnsicht(null)} />

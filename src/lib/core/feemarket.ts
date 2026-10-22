@@ -12,28 +12,31 @@
  * niemand festgeschrieben hat.
  *
  * ---------------------------------------------------------------------
- * WARUM KEIN SATZ JE BYTE
+ * WARUM JE BYTE
  *
- * Bei Bitcoin kostet eine Transaktion mit 50 Eingaengen zwanzigmal so viel
- * Blockraum wie eine kleine -- deshalb rechnet man dort je Byte.
+ * Eine Ueberweisung ist 168 bis 206 Byte gross, eine Sammelzahlung bis
+ * etwa 40.000 Byte -- belegt aber nur EINEN der 4.999 Plaetze eines Blocks.
+ * Knapp sind zwei Dinge: Plaetze (bei Ueberweisungen) und Bytes (bei
+ * Sammelzahlungen, und im Speicher des Mempools). Die Gebuehr je Byte
+ * bewertet beides fair: Fuer zwei Ueberweisungen ist sie praktisch
+ * dasselbe wie die absolute Gebuehr, und eine grosse Sammelzahlung zahlt
+ * fuer den Raum, den sie belegt.
  *
- * Eine YSKAR-Ueberweisung ist zwischen 168 und 200 Byte gross, also 19 %
- * Unterschied. Und die Blockgrenze zaehlt TRANSAKTIONEN (2000), nicht
- * Bytes. Knapp ist hier also ein PLATZ, nicht ein Byte -- und der Preis
- * eines Platzes ist genau die absolute Gebuehr, die es schon gibt.
+ * Danach waehlt der Blockbau aus (builder.ts), danach verdraengt der
+ * Mempool (TxPool.ts), und danach rechnet diese Vorschau. Alle drei
+ * entscheiden gleich -- sonst stimmte die Vorhersage nicht.
  *
- * Seit Konsensfassung 3 (params.ts, FEE_V3_HEIGHT) ist die UNTERGRENZE
- * ein Satz je Byte -- Konsens 1 Einheit, Weiterleitung 10 Einheiten je
- * Byte. Der MARKT rechnet weiterhin je Platz, denn knapp ist der Platz.
- * Deshalb nimmt marktlage() die Untergrenze als `boden` entgegen: Der
- * Knoten reicht seine Weiterleitungsgebuehr fuer die betreffende Hoehe
- * hinein, und keine Stufe faellt darunter.
+ * Die UNTERGRENZE ist seit Konsensfassung 3 (params.ts, FEE_V3_HEIGHT) ein
+ * Satz je Byte -- Konsens 1 Einheit, Weiterleitung 10 Einheiten je Byte,
+ * bei Andrang die gestiegene Untergrenze des Knotens. marktlage() nimmt
+ * sie als `boden` entgegen, und keine Stufe faellt darunter.
  * ---------------------------------------------------------------------
  */
-import { serializeTx, txid, senderRaw, spendTotal, spendOutputs, type Spend } from './tx.ts';
+import { serializeTx, txid, senderRaw, type Spend } from './tx.ts';
 import { toHex } from './codec.ts';
-import { cloneState, getAccount, type State } from './state.ts';
-import { selectTransactions } from './builder.ts';
+import { getAccount, type State } from './state.ts';
+import { Auswahl, gebuehrJeByte, spendTxid, type AuswahlOptionen } from './builder.ts';
+import { MAINNET, type ConsensusParams } from './networks.ts';
 import { MAX_TXS_PER_BLOCK, MIN_FEE } from './params.ts';
 
 /** Wie viele Bloecke vorausgerechnet werden. Weiter waere geraten. */
@@ -58,8 +61,10 @@ export interface PlatzImStau {
 }
 
 export interface Stufe {
-  /** Was zu zahlen waere. */
+  /** Was zu zahlen waere (fuer die Basisgroesse). */
   fee: bigint;
+  /** Derselbe Preis je Byte -- fuer jede andere Groesse. */
+  jeByte: number;
   /** In welchem Block das voraussichtlich landet. */
   block: number;
 }
@@ -80,55 +85,76 @@ export interface Marktlage {
   normal: Stufe;
   schnell: Stufe;
   /** Voraussichtliche Verteilung: Zahl der Transaktionen je Block. */
-  bloecke: { block: number; anzahl: number; minFee: bigint }[];
+  bloecke: { block: number; anzahl: number; minFee: bigint; minJeByte: number }[];
+  /** Die Vorschau, aus der das alles stammt. */
+  vorschau: Vorschau;
 }
 
 /**
  * Den Mempool vorausrechnen -- Block fuer Block.
  *
- * Benutzt dieselbe Auswahl wie der echte Blockbau (selectTransactions).
+ * Benutzt dieselbe Auswahl wie der echte Blockbau (builder.ts, Auswahl).
  * Das ist der Punkt: Eine nachgebaute Sortierung koennte anders entscheiden
  * als der Blockbau, und die Vorhersage waere systematisch falsch.
  *
- * Dabei wird die NONCE-REIHENFOLGE beachtet, weil selectTransactions sie
+ * Dabei wird die NONCE-REIHENFOLGE beachtet, weil die Auswahl sie
  * beachtet: Im Kontenmodell haengen die Transaktionen eines Absenders
  * aneinander. Nonce 5 kann nicht vor Nonce 4 in einen Block, egal wie viel
  * sie zahlt. Eine reine Gebuehrensortierung waere hier schlicht falsch.
+ *
+ * Eine einzige Auswahl laeuft ueber alle Bloecke weiter -- der Zustand
+ * nach Block 1 ist der Ausgangspunkt fuer Block 2. Das kostet so viel wie
+ * ein Blockbau, nicht wie acht.
  */
+export interface Vorschau {
+  /** txid -> Block (1 = naechster). Was fehlt, passt in die Vorschau nicht. */
+  plaetze: Map<string, number>;
+  /** Je Block: Anzahl, kleinste Gebuehr, kleinste Gebuehr je Byte. */
+  bloecke: { block: number; anzahl: number; minFee: bigint; minJeByte: number }[];
+}
+
+export function vorschau(
+  state: State, mempool: Spend[], hoehe: number,
+  bloecke = VORSCHAU_BLOECKE,
+  limit = MAX_TXS_PER_BLOCK - 1,
+  params: ConsensusParams = MAINNET,
+  opt: AuswahlOptionen = {},
+): Vorschau {
+  const plaetze = new Map<string, number>();
+  const liste: Vorschau['bloecke'] = [];
+  const a = new Auswahl(state, mempool, hoehe, params, opt);
+  for (let b = 1; b <= bloecke && !a.leer(); b++) {
+    const { included } = a.naechsterBlock(limit, hoehe + b - 1);
+    if (included.length === 0) break;
+    let minFee = included[0].fee, minJeByte = Infinity;
+    for (const t of included) {
+      plaetze.set(spendTxid(t), b);
+      if (t.fee < minFee) minFee = t.fee;
+      const r = gebuehrJeByte(t);
+      if (r < minJeByte) minJeByte = r;
+    }
+    liste.push({ block: b, anzahl: included.length, minFee, minJeByte });
+  }
+  return { plaetze, bloecke: liste };
+}
+
+/** Nur die Zuordnung txid -> Block (fruehere Schnittstelle). */
 export function projiziere(
   state: State, mempool: Spend[], hoehe: number,
   bloecke = VORSCHAU_BLOECKE,
   limit = MAX_TXS_PER_BLOCK - 1,
 ): Map<string, number> {
-  const plaetze = new Map<string, number>();
-  let rest = [...mempool];
-  let zustand = cloneState(state);
+  return vorschau(state, mempool, hoehe, bloecke, limit).plaetze;
+}
 
-  for (let b = 1; b <= bloecke && rest.length > 0; b++) {
-    const { included } = selectTransactions(zustand, rest, hoehe + b - 1, limit);
-    if (included.length === 0) break;
-
-    const drin = new Set<string>();
-    for (const t of included) {
-      const id = toHex(txid(t));
-      plaetze.set(id, b);
-      drin.add(id);
-
-      // Zustand fortschreiben, damit der naechste Block auf dem richtigen
-      // Guthaben und der richtigen Nonce aufsetzt.
-      const absender = senderRaw(t);
-      const von = getAccount(zustand, absender);
-      zustand.set(toHex(absender), {
-        balance: von.balance - spendTotal(t), nonce: von.nonce + 1n,
-      });
-      for (const o of spendOutputs(t)) {
-        const an = getAccount(zustand, o.to);
-        zustand.set(toHex(o.to), { ...an, balance: an.balance + o.amount });
-      }
-    }
-    rest = rest.filter(t => !drin.has(toHex(txid(t))));
-  }
-  return plaetze;
+export interface MarktOptionen extends AuswahlOptionen {
+  params?: ConsensusParams;
+  /** Groesse, fuer die die Stufen als Betrag gelten (Ueberweisung ohne Notiz). */
+  basisBytes?: number;
+  /** Wie weit vorausgerechnet wird. */
+  bloecke?: number;
+  /** Fertige Vorschau, falls schon gerechnet. */
+  vorschau?: Vorschau;
 }
 
 /**
@@ -136,35 +162,34 @@ export function projiziere(
  *
  * Ohne Andrang sind alle drei Stufen die Mindestgebuehr -- und das soll die
  * Anzeige auch sagen, statt drei erfundene Preise zu zeigen.
+ *
+ * Mit Andrang gelten die Stufen je Byte: Wer eine Notiz anhaengt, zahlt fuer
+ * denselben Platz entsprechend mehr. `fee` ist der Betrag fuer `basisBytes`,
+ * `jeByte` der Satz fuer jede andere Groesse.
  */
 export function marktlage(
   state: State, mempool: Spend[], hoehe: number,
   limit = MAX_TXS_PER_BLOCK - 1,
-  /** Untergrenze, unter die keine Stufe faellt (Weiterleitungsgebuehr des Knotens). */
+  /** Untergrenze, unter die keine Stufe faellt (Untergrenze des Knotens fuer basisBytes). */
   boden: bigint = MIN_FEE,
+  opt: MarktOptionen = {},
 ): Marktlage {
-  const plaetze = projiziere(state, mempool, hoehe, VORSCHAU_BLOECKE, limit);
-
-  const jeBlock = new Map<number, bigint[]>();
-  for (const t of mempool) {
-    const b = plaetze.get(toHex(txid(t)));
-    if (b === undefined) continue;
-    const l = jeBlock.get(b) ?? [];
-    l.push(t.fee);
-    jeBlock.set(b, l);
-  }
-
-  const bloecke = [...jeBlock.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([block, fees]) => ({
-      block, anzahl: fees.length,
-      minFee: fees.reduce((m, f) => (f < m ? f : m), fees[0]),
-    }));
+  const basis = opt.basisBytes ?? 168;
+  const v = opt.vorschau ?? vorschau(state, mempool, hoehe, opt.bloecke ?? VORSCHAU_BLOECKE, limit,
+    opt.params ?? MAINNET, opt);
+  const bloecke = v.bloecke;
+  const bodenJeByte = Number(boden) / basis;
 
   const ersterBlock = bloecke.find(b => b.block === 1);
   const blockVoll = (ersterBlock?.anzahl ?? 0) >= limit;
   const kappung = blockVoll ? ersterBlock!.minFee : null;
   const andrang = mempool.length > limit || blockVoll;
+
+  const stufe = (jeByte: number, block: number): Stufe => {
+    const r = jeByte > bodenJeByte ? jeByte : bodenJeByte;
+    const fee = BigInt(Math.ceil(r * basis));
+    return { fee: fee > boden ? fee : boden, block, jeByte: r };
+  };
 
   if (!andrang) {
     /*
@@ -172,32 +197,48 @@ export function marktlage(
       Drei verschiedene Preise anzubieten, waere eine Erfindung -- der
       Nutzer wuerde mehr zahlen, ohne irgendetwas dafuer zu bekommen.
     */
-    const s: Stufe = { fee: boden, block: 1 };
+    const s = stufe(bodenJeByte, 1);
     return {
       wartend: mempool.length, plaetzeJeBlock: limit, kappung: null,
-      andrang: false, langsam: s, normal: s, schnell: s, bloecke,
+      andrang: false, langsam: s, normal: s, schnell: s, bloecke, vorschau: v,
     };
   }
 
-  // Mit Andrang: Preise aus den tatsaechlichen Grenzen ablesen.
-  const grenze = (block: number): bigint => {
-    const b = bloecke.find(x => x.block === block);
-    return b ? (b.minFee > boden ? b.minFee : boden) : boden;
-  };
-  // Ein Schritt ueber die Kappung -- sonst landet man gleichauf mit der
-  // schwaechsten Transaktion und haengt vom Zufall der Reihenfolge ab.
-  const schritt = boden / 10n > 0n ? boden / 10n : 1n;
+  // Mit Andrang: Preise aus den tatsaechlichen Grenzen ablesen. Ein Schritt
+  // ueber die Kappung -- sonst landet man gleichauf mit der schwaechsten
+  // Transaktion und haengt vom Zufall der Reihenfolge ab.
+  const schritt = Math.max(bodenJeByte / 10, 1 / basis);
+  const grenze = (block: number): number => bloecke.find(x => x.block === block)?.minJeByte ?? bodenJeByte;
+  const kappungJeByte = blockVoll ? ersterBlock!.minJeByte : bodenJeByte;
 
   return {
     wartend: mempool.length,
     plaetzeJeBlock: limit,
     kappung,
     andrang: true,
-    schnell: { fee: (kappung !== null && kappung > boden ? kappung : boden) + schritt, block: 1 },
-    normal: { fee: grenze(2), block: 2 },
-    langsam: { fee: boden, block: bloecke.length > 0 ? bloecke[bloecke.length - 1].block : 1 },
+    schnell: stufe(kappungJeByte + schritt, 1),
+    normal: stufe(grenze(2), 2),
+    langsam: stufe(bodenJeByte, bloecke.length > 0 ? bloecke[bloecke.length - 1].block : 1),
     bloecke,
+    vorschau: v,
   };
+}
+
+/**
+ * In welchem Block landet eine Gebuehr je Byte voraussichtlich? Der erste
+ * Block, dessen schwaechste Transaktion nicht mehr zahlt -- oder null, wenn
+ * die Vorschau dafuer nicht reicht.
+ */
+export function blockFuerSatz(v: Vorschau, jeByte: number, limit: number,
+                              bloeckeMax = VORSCHAU_BLOECKE): number | null {
+  for (const b of v.bloecke) {
+    if (b.anzahl < limit || jeByte > b.minJeByte) return b.block;
+  }
+  // Alle vorausgerechneten Bloecke sind voll und zahlen mehr. Endete die
+  // Vorschau, weil nichts mehr wartet, kommt der Satz danach dran; endete
+  // sie an ihrer Reichweite, ist der Block unbekannt.
+  if (v.bloecke.length < bloeckeMax) return v.bloecke.length + 1;
+  return null;
 }
 
 /**
@@ -208,7 +249,7 @@ export function marktlage(
  *
  * VORBEHALT, der mitgesagt gehoert: Die Zahl gilt unter der Annahme, dass
  * nichts Neues dazukommt. Kommt gleich jemand mit hoeherer Gebuehr, rutscht
- * man nach hinten. Auch Bitcoin-Explorer koennen das nicht garantieren.
+ * man nach hinten. Das kann keine Vorschau garantieren.
  */
 export function position(mempool: Spend[], fee: bigint): { rang: number; von: number } {
   let besser = 0;

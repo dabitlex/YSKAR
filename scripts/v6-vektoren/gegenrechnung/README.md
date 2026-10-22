@@ -7,7 +7,7 @@ pip install cryptography          # nur fuer Ed25519 (RFC 8032)
 python3 scripts/v6-vektoren/gegenrechnung/rechnen.py
 ```
 
-Liest die Eingaben aus `tests/fixtures/v6-vektoren.json`, rechnet alles selbst (Schlüssel, Adressen mit selbst geschriebenem bech32m nach BIP 350, Skripte, Leitung, Sighash, Signaturen, Witness, txid, Zustandswurzel) und vergleicht erst danach mit den erwarteten Werten. Ergebnis beim ersten Lauf: 46 von 46 gleich.
+Liest die Eingaben aus `tests/fixtures/v6-vektoren.json`, rechnet alles selbst (Schlüssel, Adressen mit selbst geschriebenem bech32m, Skripte, Leitung, Sighash, Signaturen, Witness, txid, Zustandswurzel) und vergleicht erst danach mit den erwarteten Werten. Ergebnis beim ersten Lauf: 46 von 46 gleich.
 
 Dieselbe Gegenrechnung fand zehn unklare Stellen in der Spezifikation; sie sind in Abschnitt 14 aufgezählt und korrigiert.
 

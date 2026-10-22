@@ -76,6 +76,8 @@ interface Optionen {
   poolAuszahlung: string;
   /** Hoechstzahl der Adressen im Pool. null = Grenze der Kette (64 bzw. 63). */
   poolMax: number | null;
+  /** Obergrenze des Mempools in MB (--mempool-mb). null = Vorgabe (32). */
+  mempoolMb: number | null;
   /** Wohin gefundene Bloecke gehen. Leer heisst: nirgends. */
   upstream?: string;
   /**
@@ -102,7 +104,7 @@ function argumente(argv: string[]): Optionen {
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false,
-    poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null,
+    poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null, mempoolMb: null,
     absender: null, schluessel: './testkonto.json',
   };
   for (let i = 0; i < argv.length; i++) {
@@ -126,6 +128,7 @@ function argumente(argv: string[]): Optionen {
       case '--pool-fee': o.poolFee = Number(nimm()); break;
       case '--pool-payout': o.poolAuszahlung = nimm(); break;
       case '--pool-max': o.poolMax = Number(nimm()); break;
+      case '--mempool-mb': o.mempoolMb = Number(nimm()); break;
       case '--sender-ip': {
         const w = nimm();
         if (w !== 'proxy' && w !== 'socket') {
@@ -214,6 +217,10 @@ Spiegel nachziehen
       --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
       --pool-max <n>    höchstens so viele Adressen aufnehmen (Vorgabe: 64,
                         mit Gebühr 63 -- mehr zahlt ein Block nicht aus)
+      --mempool-mb <n>  Obergrenze des Mempools in MB (Vorgabe: 32, rund
+                        190.000 Überweisungen). Ist er voll, verdrängt eine
+                        höhere Gebühr die niedrigste; abgewiesen wird nur,
+                        wer unter der dann gestiegenen Untergrenze bleibt.
       --sender-ip <q>   Absender von Mining-Anfragen erkennen und je
                         Absender begrenzen: "proxy" hinter Caddy o. ä.
                         (letzter Eintrag von X-Forwarded-For), "socket"
@@ -560,7 +567,11 @@ async function sync(
  */
 async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Promise<void> {
   const params = netzParameter(opt);
-  const pool = new TxPool(params);
+  const mb = opt.mempoolMb;
+  if (mb !== null && !(Number.isFinite(mb) && mb >= 1 && mb <= 4096)) {
+    throw new Error('--mempool-mb braucht eine Zahl von 1 bis 4096');
+  }
+  const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
     host: opt.bind, port: opt.port, params, absender: opt.absender,

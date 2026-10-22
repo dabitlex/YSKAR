@@ -66,6 +66,8 @@ export interface BuildParams {
    * ungueltigen Block.
    */
   anteile?: (brutto: bigint) => { to: Uint8Array; amount: bigint }[];
+  /** Siehe AuswahlOptionen.vorgeprueft. applyBlock prueft den Block trotzdem voll. */
+  vorgeprueft?: boolean;
 }
 
 export interface BuildResult {
@@ -77,106 +79,256 @@ export interface BuildResult {
   stateRoot: Uint8Array;
 }
 
+/** Groesse auf der Leitung, je Objekt einmal gerechnet (die Serialisierung kostet). */
+const BYTES = new WeakMap<Spend, number>();
+export function spendBytes(t: Spend): number {
+  let b = BYTES.get(t);
+  if (b === undefined) { b = txBytes(t); BYTES.set(t, b); }
+  return b;
+}
+
 /**
- * Auswahl aus dem Mempool.
+ * txid und Absender als Hex, je Objekt einmal gerechnet. Transaktionen sind
+ * nach dem Bau unveraenderlich (der Mempool haelt dieselben Objekte), und
+ * bei vollem Mempool sind Serialisierung und Hash sonst der groesste Posten
+ * jeder Auswahl und jeder Vorschau.
+ */
+const TXID = new WeakMap<Spend, string>();
+export function spendTxid(t: Spend): string {
+  let h = TXID.get(t);
+  if (h === undefined) { h = toHex(txid(t)); TXID.set(t, h); }
+  return h;
+}
+const ABSENDER = new WeakMap<Spend, string>();
+export function absenderHex(t: Spend): string {
+  let h = ABSENDER.get(t);
+  if (h === undefined) { h = toHex(senderRaw(t)); ABSENDER.set(t, h); }
+  return h;
+}
+
+/**
+ * Gebuehr je Byte -- danach waehlt der Blockbau aus und danach verdraengt der
+ * Mempool. Als Gleitkommazahl: Das ist eine Reihenfolge, kein Betrag, und
+ * keine Konsensregel haengt daran.
+ */
+export function gebuehrJeByte(t: Spend): number {
+  return Number(t.fee) / spendBytes(t);
+}
+
+export interface AuswahlOptionen {
+  /**
+   * Der Aufrufer sichert zu, dass checkSpend(t, height) fuer JEDE
+   * uebergebene Transaktion null ist -- so liefert es TxPool.fuerBlock().
+   * Dann entfaellt die Signaturpruefung hier. Der Block selbst wird beim
+   * Anwenden (applyBlock) trotzdem voll geprueft.
+   */
+  vorgeprueft?: boolean;
+}
+
+/** Ein Absender in der Auswahl: seine Transaktionen nach Nonce, und wie weit er ist. */
+interface Reihe {
+  key: string;
+  /** Erstes Auftreten im Mempool -- entscheidet bei gleicher Gebuehr je Byte. */
+  nr: number;
+  txs: Spend[];
+  i: number;
+}
+
+/**
+ * Auswahl aus dem Mempool, Block fuer Block.
  *
  * Zwei Regeln, die sich gegenseitig einschraenken:
  *   1. Je Absender muessen die Nonces luecken- und reihenfolgetreu sein --
  *      eine Transaktion mit Nonce 5 ist wertlos, solange 4 fehlt.
- *   2. Zwischen verschiedenen Absendern entscheidet die Gebuehr.
+ *   2. Zwischen verschiedenen Absendern entscheidet die Gebuehr je Byte.
  *
- * Deshalb wird greedy ausgewaehlt: In jedem Schritt kommt die naechste
- * faellige Transaktion desjenigen Absenders dran, der gerade die hoechste
- * Gebuehr bietet. Guthaben wird dabei laufend mitgefuehrt, damit eine Kette
- * von Ausgaben nicht am Ende umkippt.
+ * Greedy: In jedem Schritt kommt die naechste faellige Transaktion des
+ * Absenders dran, der gerade die hoechste Gebuehr je Byte bietet; bei
+ * Gleichstand der, der im Mempool zuerst auftaucht. Guthaben wird laufend
+ * mitgefuehrt, damit eine Kette von Ausgaben nicht am Ende umkippt, und
+ * eine Zahlung an einen Absender kann dessen eigene Ausgabe im selben Block
+ * erst moeglich machen.
+ *
+ * Die Absender liegen in einem Haufen (Heap), sortiert nach ihrer naechsten
+ * Transaktion. Ein Schritt kostet damit log(Absender) statt einen Durchlauf
+ * ueber alle -- bei vollem Mempool der Unterschied zwischen Millisekunden
+ * und einer Minute.
+ *
+ * Mehrere Bloecke hintereinander (naechsterBlock() mehrfach) liefern die
+ * Vorschau der Warteschlange: Der Zustand laeuft ueber die Bloecke weiter.
  */
+export class Auswahl {
+  readonly rejected: { txid: string; reason: string }[] = [];
+  private haufen: Reihe[] = [];
+  /** Wartet auf Guthaben: Absender -> Reihe. Eine Zahlung an ihn holt ihn zurueck. */
+  private geparkt = new Map<string, Reihe>();
+  /** Passte nicht mehr in diesen Block (Bytes, Signaturen): im naechsten wieder. */
+  private spaeter: Reihe[] = [];
+  private konten = new Map<string, { balance: bigint; nonce: bigint }>();
+
+  private state: State;
+  private height: number;
+  private params: ConsensusParams;
+
+  constructor(
+    state: State,
+    mempool: Spend[],
+    height: number,
+    params: ConsensusParams = MAINNET,
+    opt: AuswahlOptionen = {},
+  ) {
+    this.state = state;
+    this.height = height;
+    this.params = params;
+    const reihen = new Map<string, Reihe>();
+    let nr = 0;
+    for (const t of mempool) {
+      if (!opt.vorgeprueft) {
+        const structural = checkSpend(t, height, params);
+        if (structural) { this.rejected.push({ txid: spendTxid(t), reason: structural }); continue; }
+      }
+      const key = absenderHex(t);
+      let r = reihen.get(key);
+      if (!r) { r = { key, nr: nr++, txs: [], i: 0 }; reihen.set(key, r); }
+      r.txs.push(t);
+    }
+    // Je Absender nach Nonce sortieren; doppelte Nonces sind Konkurrenten,
+    // die hoehere Gebuehr gewinnt.
+    for (const r of reihen.values()) {
+      r.txs.sort((a, b) => (a.nonce === b.nonce
+        ? (b.fee > a.fee ? 1 : b.fee < a.fee ? -1 : 0)
+        : (a.nonce < b.nonce ? -1 : 1)));
+      const unique: Spend[] = [];
+      for (const t of r.txs) {
+        if (unique.length && unique[unique.length - 1].nonce === t.nonce) {
+          this.rejected.push({ txid: toHex(txid(t)), reason: 'nonce_conflict' });
+          continue;
+        }
+        unique.push(t);
+      }
+      r.txs = unique;
+      this.hinein(r);
+    }
+  }
+
+  private konto(key: string, raw: Uint8Array) {
+    return this.konten.get(key) ?? getAccount(this.state, raw);
+  }
+
+  // ------------------------------------------------ Haufen (groesste Rate oben)
+
+  private vor(a: Reihe, b: Reihe): boolean {
+    const ra = gebuehrJeByte(a.txs[a.i]), rb = gebuehrJeByte(b.txs[b.i]);
+    return ra !== rb ? ra > rb : a.nr < b.nr;
+  }
+
+  private hinein(r: Reihe): void {
+    const h = this.haufen;
+    h.push(r);
+    let i = h.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (!this.vor(h[i], h[p])) break;
+      [h[i], h[p]] = [h[p], h[i]];
+      i = p;
+    }
+  }
+
+  private heraus(): Reihe | undefined {
+    const h = this.haufen;
+    if (h.length === 0) return undefined;
+    const oben = h[0];
+    const letzter = h.pop()!;
+    if (h.length > 0) {
+      h[0] = letzter;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1;
+        let m = i;
+        if (l < h.length && this.vor(h[l], h[m])) m = l;
+        if (r < h.length && this.vor(h[r], h[m])) m = r;
+        if (m === i) break;
+        [h[i], h[m]] = [h[m], h[i]];
+        i = m;
+      }
+    }
+    return oben;
+  }
+
+  /** Ist noch etwas uebrig, das in einen spaeteren Block passen koennte? */
+  leer(): boolean {
+    return this.haufen.length === 0 && this.spaeter.length === 0;
+  }
+
+  /**
+   * Den naechsten Block fuellen. `hoehe` ist die Hoehe dieses Blocks --
+   * beim ersten Aufruf die aus dem Konstruktor, danach jeweils eins mehr.
+   */
+  naechsterBlock(limit?: number, hoehe: number = this.height): { included: Spend[]; fees: bigint } {
+    for (const r of this.spaeter) this.hinein(r);
+    this.spaeter = [];
+
+    // Ein Platz gehoert der Coinbase; die Grenze haengt an der Hoehe (Fassung 6).
+    const max = limit ?? maxTxsAt(hoehe, this.params.v6Height) - 1;
+    const included: Spend[] = [];
+    let fees = 0n;
+    let sigops = 0;
+    let bytes = blockBytesOhneAusgaben(hoehe, this.params.v6Height);
+    const abV6 = hoehe >= this.params.v6Height;
+
+    while (included.length < max) {
+      const r = this.heraus();
+      if (!r) break;
+      const t = r.txs[r.i];
+      const absender = senderRaw(t);
+      const acc = this.konto(r.key, absender);
+      // Noch nicht faellig oder schon verbraucht: Daran aendert in dieser
+      // Auswahl nur der Absender selbst etwas -- und dessen Reihe steht hier.
+      if (t.nonce !== acc.nonce) continue;
+      if (acc.balance < spendTotal(t)) { this.geparkt.set(r.key, r); continue; }
+      // Signaturbudget (CONSENSUS_V6.md 7.7) und Blockgroesse (Fassung 5):
+      // je Transaktion 4 Byte Rahmen plus ihre Bytes. Was nicht mehr passt,
+      // passt in diesem Block auch spaeter nicht -- beides waechst nur.
+      if ((abV6 && sigops + spendSigops(t) > MAX_BLOCK_SIGOPS)
+          || bytes + 4 + spendBytes(t) > MAX_BLOCK_BYTES) {
+        this.spaeter.push(r);
+        continue;
+      }
+
+      this.konten.set(r.key, { balance: acc.balance - spendTotal(t), nonce: acc.nonce + 1n });
+      const outputs = t.type === TX_BATCH ? t.outputs : [{ to: t.to, amount: t.amount }];
+      for (const o of outputs) {
+        const k = toHex(o.to);
+        const to = this.konto(k, o.to);
+        this.konten.set(k, { ...to, balance: to.balance + o.amount });
+        const wartet = this.geparkt.get(k);
+        if (wartet) { this.geparkt.delete(k); this.hinein(wartet); }
+      }
+
+      included.push(t);
+      fees += t.fee;
+      if (abV6) sigops += spendSigops(t);
+      bytes += 4 + spendBytes(t);
+      r.i++;
+      if (r.i < r.txs.length) this.hinein(r);
+    }
+    // Was uebrig blieb, ist nicht ungueltig -- es passte nur nicht in DIESEN
+    // Block. Der Mempool behaelt es.
+    return { included, fees };
+  }
+}
+
 export function selectTransactions(
   state: State,
   mempool: Spend[],
   height: number,
   limit?: number,
   params: ConsensusParams = MAINNET,
+  opt: AuswahlOptionen = {},
 ): { included: Spend[]; rejected: { txid: string; reason: string }[]; fees: bigint } {
-  // Ein Platz gehoert der Coinbase; die Grenze haengt an der Hoehe (Fassung 6).
-  const max = limit ?? maxTxsAt(height, params.v6Height) - 1;
-  const rejected: { txid: string; reason: string }[] = [];
-  const bySender = new Map<string, Spend[]>();
-
-  for (const t of mempool) {
-    const structural = checkSpend(t, height, params);
-    if (structural) { rejected.push({ txid: toHex(txid(t)), reason: structural }); continue; }
-    const key = toHex(senderRaw(t));
-    const list = bySender.get(key) ?? [];
-    list.push(t);
-    bySender.set(key, list);
-  }
-
-  // Je Absender nach Nonce sortieren; doppelte Nonces sind Konkurrenten,
-  // die hoehere Gebuehr gewinnt.
-  for (const [key, list] of bySender) {
-    list.sort((a, b) => (a.nonce === b.nonce
-      ? (b.fee > a.fee ? 1 : b.fee < a.fee ? -1 : 0)
-      : (a.nonce < b.nonce ? -1 : 1)));
-    const unique: Spend[] = [];
-    for (const t of list) {
-      if (unique.length && unique[unique.length - 1].nonce === t.nonce) {
-        rejected.push({ txid: toHex(txid(t)), reason: 'nonce_conflict' });
-        continue;
-      }
-      unique.push(t);
-    }
-    bySender.set(key, unique);
-  }
-
-  const draft = cloneState(state);
-  const cursor = new Map<string, number>();
-  const included: Spend[] = [];
-  let fees = 0n;
-  let sigops = 0;
-  let bytes = blockBytesOhneAusgaben(height, params.v6Height);
-  const abV6 = height >= params.v6Height;
-
-  while (included.length < max) {
-    let best: { key: string; tx: Spend } | null = null;
-
-    for (const [key, list] of bySender) {
-      const i = cursor.get(key) ?? 0;
-      const t = list[i];
-      if (!t) continue;
-
-      const acc = getAccount(draft, senderRaw(t));
-      if (t.nonce !== acc.nonce) continue;                 // noch nicht faellig
-      if (acc.balance < spendTotal(t)) continue;           // reicht nicht
-      // Signaturbudget (CONSENSUS_V6.md 7.7) und Blockgroesse (Fassung 5):
-      // je Transaktion 4 Byte Rahmen plus ihre Bytes.
-      if (abV6 && sigops + spendSigops(t) > MAX_BLOCK_SIGOPS) continue;
-      if (bytes + 4 + txBytes(t) > MAX_BLOCK_BYTES) continue;
-
-      if (!best || t.fee > best.tx.fee) best = { key, tx: t };
-    }
-
-    if (!best) break;
-
-    const t = best.tx;
-    const absender = senderRaw(t);
-    const from = getAccount(draft, absender);
-    draft.set(toHex(absender), { balance: from.balance - spendTotal(t), nonce: from.nonce + 1n });
-    const outputs = t.type === TX_BATCH ? t.outputs : [{ to: t.to, amount: t.amount }];
-    for (const o of outputs) {
-      const to = getAccount(draft, o.to);
-      draft.set(toHex(o.to), { ...to, balance: to.balance + o.amount });
-    }
-
-    included.push(t);
-    fees += t.fee;
-    if (abV6) sigops += spendSigops(t);
-    bytes += 4 + txBytes(t);
-    cursor.set(best.key, (cursor.get(best.key) ?? 0) + 1);
-  }
-
-  // Was uebrig blieb, ist nicht ungueltig -- es passte nur nicht in DIESEN
-  // Block. Der Mempool behaelt es.
-  return { included, rejected, fees };
+  const a = new Auswahl(state, mempool, height, params, opt);
+  const { included, fees } = a.naechsterBlock(limit, height);
+  return { included, rejected: a.rejected, fees };
 }
 
 export function buildCoinbase(
@@ -268,7 +420,8 @@ export function waehleCoinbase(
 
 export function buildBlock(p: BuildParams): BuildResult {
   const { included, rejected, fees } =
-    selectTransactions(p.state, p.mempool, p.height, undefined, p.params ?? MAINNET);
+    selectTransactions(p.state, p.mempool, p.height, undefined, p.params ?? MAINNET,
+      { vorgeprueft: p.vorgeprueft });
 
   /*
     Aufteilung erst hier, weil erst jetzt feststeht, wie viel zu verteilen

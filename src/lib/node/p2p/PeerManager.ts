@@ -250,7 +250,7 @@ export class PeerManager {
    * ohne etwas beizutragen.
    *
    * In den letzten 1.000 Bloecken vor einer Aktivierung (CONSENSUS_V6.md
-   * 11.4, nach ZIP 201) danach einen Peer, dessen Fassung die kommende
+   * 11.4) danach einen Peer, dessen Fassung die kommende
    * Hoehe nicht traegt: Er faellt an der Hoehe ohnehin ab, und sein Platz
    * ist fuer einen Peer frei, der danach noch Bloecke liefert. Nie den
    * letzten Peer seiner Netzgruppe -- sonst koennte ein Netz mit vielen

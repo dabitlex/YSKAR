@@ -29,10 +29,10 @@ import { type Writer, type Reader } from './codec.ts';
  * Transaktion, weil die Signatur sonst nicht pruefbar waere. Ein Hash macht
  * die Adresse kuerzer, ohne etwas zu verlieren.
  *
- * 20 Byte fuer Version 0 wie bei Bitcoin und Ethereum: Was hier zaehlt, ist
- * Zweitbild-Sicherheit. 32 Byte fuer Version 1, weil in einem Skript
+ * 20 Byte fuer Version 0: Was hier zaehlt, ist Zweitbild-Sicherheit, und
+ * dafuer reichen 160 Bit. 32 Byte fuer Version 1, weil in einem Skript
  * mehrere Parteien Schluessel waehlen und 20 Byte dann nur 80 Bit
- * Kollisionsschutz gegeneinander boeten (BIP 341).
+ * Kollisionsschutz gegeneinander boeten (Geburtstagsschranke).
  *
  * bech32m statt bech32: Es korrigiert den bekannten Schwachpunkt von bech32
  * bei Pruefsummen und erkennt Tippfehler zuverlaessig.

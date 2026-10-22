@@ -17,7 +17,7 @@ import { sha256d } from './hash.ts';
  *
  * Ein Teilbaum mit genau einem Konto hat den Hash seines Blatts. Das ist
  * sicher, weil das Blatt den vollen Schluessel enthaelt und damit seine
- * Position festlegt (Jellyfish Merkle Tree). Die Kosten je Aenderung sind
+ * Position festlegt. Die Kosten je Aenderung sind
  * dadurch etwa log2(Kontenzahl) Hashes statt 256.
  *
  * Zwei Wege zur selben Wurzel:

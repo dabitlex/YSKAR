@@ -24,7 +24,8 @@ interface Markt {
   sendepause?: boolean;
   wartend: number;
   andrang: boolean;
-  stufen: Record<'langsam' | 'normal' | 'schnell', { fee: string; block: number }>;
+  /** `fee` fuer eine Ueberweisung ohne Notiz, `jeByte` fuer jede andere Groesse (neuere Knoten). */
+  stufen: Record<'langsam' | 'normal' | 'schnell', { fee: string; block: number; jeByte?: string }>;
   hinweis: string;
 }
 import { toHex } from '@/lib/core/codec';
@@ -43,6 +44,7 @@ import { tippen, eingabeAnzeige, type Taste } from '@/lib/wallet/ziffern';
 import { zahlungAusText, type Zahlung } from '@/lib/wallet/qr';
 import { tagSchluessel } from '@/lib/wallet/verlaufGruppen';
 import { useKontakte } from '@/lib/wallet/kontakte';
+import { eigeneMerken, type EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
 
 /**
  * Senden -- vier Schritte, jeder mit einer Frage.
@@ -75,32 +77,41 @@ interface Ausgang {
 }
 
 export default function Send({ account, decimals, symbol, scanSofort, onGesendet,
-                               onFertig, onAbbruch }: {
+                               onFertig, onAbbruch, ersetzen }: {
   account: (Account & { history?: Ausgang[] }) | null; decimals: number; symbol: string;
   /** Aus der Wallet mit „Scannen" geoeffnet: Kamera zuerst, Formular danach. */
   scanSofort?: boolean;
   /** Der Knoten hat die Zahlung angenommen -- Konto neu lesen. */
   onGesendet?: () => void;
   onFertig: () => void; onAbbruch: () => void;
+  /**
+   * Gebuehr einer wartenden eigenen Zahlung erhoehen: dieselbe Zahlung
+   * (Empfaenger, Betrag, Notiz, Nonce) mit hoeherer Gebuehr. Beginnt direkt
+   * beim Pruefen; Empfaenger und Betrag stehen fest.
+   */
+  ersetzen?: EigeneZahlung | null;
 }) {
   const wallet = useWallet();
   const { t, locale } = useT();
   const { kontakte, name } = useKontakte();
   const zeichen = useMemo(() => dezimalZeichen(locale), [locale]);
-  const [schritt, setSchritt] = useState<Schritt>('empfaenger');
-  const [ziel, setZiel] = useState('');
+  const [schritt, setSchritt] = useState<Schritt>(ersetzen ? 'pruefen' : 'empfaenger');
+  const [ziel, setZiel] = useState(ersetzen?.an ?? '');
   // Ob die Adresse gescannt wurde -- im Pruefschritt steht das dabei, damit
   // klar ist, woher sie kommt und dass man sie trotzdem ganz lesen sollte.
   const [gescannt, setGescannt] = useState(false);
   const [scanner, setScanner] = useState(!!scanSofort);
-  const [betrag, setBetrag] = useState('');
+  const [betrag, setBetrag] = useState(() => ersetzen
+    ? einheitenEingabe(BigInt(ersetzen.betrag), dezimalZeichen(locale), STELLEN, STELLEN) : '');
   // "Alles": Der Betrag folgt dem Guthaben und der Gebuehr, bis man tippt.
   const [alles, setAlles] = useState(false);
   // Betrag bzw. Notiz stammen aus einem QR-Code oder der Zwischenablage,
   // nicht vom Nutzer -- sie gehoeren zu DIESEM Empfaenger und gehen mit ihm.
   const [ausCode, setAusCode] = useState(false);
   const [notizAusCode, setNotizAusCode] = useState(false);
-  const [notiz, setNotiz] = useState('');
+  const [notiz, setNotiz] = useState(ersetzen?.notiz ?? '');
+  // Nach einer Ablehnung wegen Andrang: die Gebuehr, die der Knoten nannte.
+  const [nachAblehnung, setNachAblehnung] = useState<bigint>(0n);
   const [pin, setPin] = useState('');
   // Biometrie (Android-App): Sensor statt PIN beim Signieren; PIN bleibt als Ausweg.
   const [bio, setBio] = useState(false);
@@ -153,10 +164,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     gleich der Mindestgebühr, und die Anzeige sagt das auch, statt drei
     erfundene Preise anzubieten.
   */
-  const [stufe, setStufe] = useState<'langsam' | 'normal' | 'schnell'>('normal');
+  const [stufe, setStufe] = useState<'langsam' | 'normal' | 'schnell'>(ersetzen ? 'schnell' : 'normal');
   const [markt, setMarkt] = useState<Markt | null>(null);
   const [marktFehlt, setMarktFehlt] = useState(false);
 
+  const [marktStand, setMarktStand] = useState(0);
   useEffect(() => {
     let lebt = true;
     let wieder: ReturnType<typeof setTimeout> | undefined;
@@ -177,14 +189,17 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         });
     };
     holen();
-    return () => { lebt = false; if (wieder) clearTimeout(wieder); };
-  }, []);
+    // Bei Andrang aendert sich die Lage von Block zu Block: einmal je Minute nachfragen.
+    const takt = setInterval(holen, 60_000);
+    return () => { lebt = false; clearInterval(takt); if (wieder) clearTimeout(wieder); };
+  }, [marktStand]);
 
   // Ohne Auskunft vom Knoten: alte Mindestgebühr -- die deckt jede Regel.
   // Mit Auskunft: Stufe des Marktes, aber nie unter dem Satz je Byte für
   // die tatsächliche Größe dieser Transaktion (die Notiz macht sie länger).
+  const groesse = (markt?.basisBytes ?? transferBytes(0)) + notizBytes(notiz);
   const bodenJeByte = markt?.mindestJeByte
-    ? BigInt(markt.mindestJeByte) * BigInt((markt.basisBytes ?? transferBytes(0)) + notizBytes(notiz)) : 0n;
+    ? BigInt(markt.mindestJeByte) * BigInt(groesse) : 0n;
   // Fassung 2 ab der Aktivierungshoehe von Konsensfassung 6, Fassung 1 davor
   // (CONSENSUS_V6.md 3). Der Knoten sagt, was der naechste Block verlangt.
   const fassung = markt?.fassung === 2 ? 2 : 1;
@@ -196,8 +211,19 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const fassungUnbekannt = !markt && V6_HEIGHT !== V6_HEIGHT_UNSET;
   // Die Meldung erst, wenn die Anfrage gescheitert ist -- nicht waehrend sie laeuft.
   const fassungMeldung = fassungUnbekannt && marktFehlt;
-  const stufenGebuehr = markt ? BigInt(markt.stufen[stufe].fee) : MIN_FEE;
-  const gebuehr = stufenGebuehr > bodenJeByte ? stufenGebuehr : bodenJeByte;
+  // Die Stufe gilt je Byte: Mit Notiz ist dieselbe Stufe entsprechend teurer.
+  const stufeJeByte = markt?.stufen[stufe].jeByte ? Number(markt.stufen[stufe].jeByte) : null;
+  const stufenGebuehr = !markt ? MIN_FEE
+    : stufeJeByte !== null ? BigInt(Math.ceil(stufeJeByte * groesse)) : BigInt(markt.stufen[stufe].fee);
+  const hoechste = (...xs: bigint[]) => xs.reduce((m, x) => (x > m ? x : m), 0n);
+  // Beim Erhoehen: mindestens alte Gebuehr plus Weiterleitungsgebuehr, sonst
+  // nimmt kein Knoten die Ersetzung an -- und mindestens, was der Knoten
+  // zuletzt als noetig genannt hat.
+  const ersatzBoden = ersetzen
+    ? BigInt(ersetzen.gebuehr) + (markt?.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(groesse) : MIN_FEE)
+    : 0n;
+  const gebuehr = hoechste(stufenGebuehr, bodenJeByte, ersatzBoden,
+    ersetzen?.noetig ? BigInt(ersetzen.noetig) : 0n, nachAblehnung);
   const zielBlock = markt ? markt.stufen[stufe].block : 1;
 
   // Verfuegbar ist, was nach den schon wartenden Zahlungen uebrig bleibt.
@@ -207,7 +233,10 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     .filter(p => p.kind === 'out')
     .reduce((s, p) => s + BigInt(p.amount) + BigInt(p.fee), 0n);
   const kontostand = BigInt(account?.balance ?? '0');
-  const guthaben = kontostand > wartendAus ? kontostand - wartendAus : 0n;
+  // Beim Erhoehen wird die wartende Zahlung ersetzt -- ihr Betrag und ihre
+  // Gebuehr sind dann wieder frei.
+  const frei = ersetzen ? BigInt(ersetzen.betrag) + BigInt(ersetzen.gebuehr) : 0n;
+  const guthaben = kontostand + frei > wartendAus ? kontostand + frei - wartendAus : 0n;
   const adresse = ziel.trim().toLowerCase();
   const zielGueltig = isValidAddress(adresse);
   const eigene = zielGueltig && wallet.address === adresse;
@@ -336,7 +365,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         // Zahlungen. Mit der reinen Zustands-Nonce gaelte eine zweite
         // Zahlung vor der Bestaetigung als Ersatz der ersten -- und der
         // Knoten lehnte sie ab, weil die Gebuehr nicht hoeher ist.
-        nonce: BigInt(account?.nextNonce
+        nonce: ersetzen ? BigInt(ersetzen.nonce) : BigInt(account?.nextNonce
           ?? String(BigInt(account?.nonce ?? '0')
                     + BigInt((account?.pending ?? []).filter(p => p.kind === 'out').length))),
         publicKey: kp.publicKey,
@@ -358,9 +387,32 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         body: JSON.stringify({ raw: toHex(serializeTx(tx)) }),
       });
       const body = await res.json();
-      if (!body.accepted) throw new Error(uebersetze(body.reason, t));
+      if (!body.accepted) {
+        // Andrang: Der Knoten nennt die Gebuehr, die jetzt reicht. Sie wird
+        // uebernommen und angezeigt; gesendet wird erst nach einem neuen Ja.
+        if ((body.reason === 'pool_min_fee' || body.reason === 'fee_too_low' || body.reason === 'fee_not_higher')
+            && typeof body.required === 'string' && /^\d+$/.test(body.required)) {
+          setNachAblehnung(BigInt(body.required));
+          setMarktStand(n => n + 1);
+          setPin('');
+          throw new Error(t.fehler.tx.pool_min_fee);
+        }
+        // Ohne `required` (selten: nichts im Mempool des Knotens kann weichen)
+        // gibt es keinen Betrag, der jetzt sicher reicht -- dann nichts versprechen.
+        throw new Error(body.reason === 'pool_min_fee' ? t.fehler.tx.sonst(body.reason) : uebersetze(body.reason, t));
+      }
+      const id = body.txid ?? toHex(txid(tx));
+      // Fuer den Fall, dass ein Knoten sie bei Andrang verdraengt oder nach
+      // einem Neustart vergisst: Die Wallet reicht dieselben Bytes erneut ein.
+      if (wallet.address) {
+        eigeneMerken(wallet.address, {
+          txid: id, raw: toHex(serializeTx(tx)), nonce: tx.nonce.toString(), an: adresse,
+          betrag: tx.amount.toString(), gebuehr: tx.fee.toString(),
+          notiz: notiz ? notizKuerzen(notiz) : '', um: Date.now(), zuletzt: Date.now(), noetig: null,
+        });
+      }
 
-      setErgebnis({ txid: body.txid ?? toHex(txid(tx)), um: Date.now(), betrag: tx.amount, an: adresse });
+      setErgebnis({ txid: id, um: Date.now(), betrag: tx.amount, an: adresse });
       setSchritt('fertig');
       onGesendet?.();
     } catch (e) {
@@ -453,7 +505,10 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   if (schritt === 'pruefen') {
     return (
       <div className={rahmen}>
-        <WKopf titel={t.senden.pruefenTitel} onZurueck={() => { setFehler(null); setSchritt('betrag'); }} rechts={<Schritte schritt={3} />} />
+        <WKopf titel={ersetzen ? t.senden.erhoehenTitel : t.senden.pruefenTitel}
+               onZurueck={() => { setFehler(null); if (ersetzen) onAbbruch(); else setSchritt('betrag'); }}
+               rechts={ersetzen ? undefined : <Schritte schritt={3} />} />
+        {ersetzen && <div className="mb-3"><Notice tone="work">{t.senden.erhoehenText}</Notice></div>}
 
         <section className="panel rise !rounded-[24px] px-[18px] pb-1.5 pt-4">
           <Kappe>{t.senden.duSendest}</Kappe>

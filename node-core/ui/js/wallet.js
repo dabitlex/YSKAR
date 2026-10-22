@@ -192,9 +192,14 @@ function baueUebersicht(ctx) {
           [teile.join(' · '), ' · ', el('a', { href: '#/blockchain/' + e.letzteHoehe }, t('wal.zuletztBlock', zahl(e.letzteHoehe)))],
           '+' + ysr(e.summe), '.gut'));
       } else if (e.wartend) {
+        // Wo sie in der Warteschlange steht: im wievielten Block, in etwa wie
+        // vielen Minuten (voraussichtlich, vom eigenen Knoten gerechnet).
+        const wann = e.block == null ? t('wal.wartetBlock')
+          : e.block === 1 ? t('wal.wartetNaechster') : t('wal.wartetVoraus', e.block, e.minuten);
         kinder.push(posten(symbol('uhr', 'background:rgba(240,185,90,.14);color:#F3C679'),
           t(e.art === 'aus' ? 'wal.gesendetAn' : 'wal.empfangenVon', wer(e.name, e.gegen)),
-          [t('wal.wartetBlock'), e.notiz ? ' · ' + t('wal.notizZeile', e.notiz) : ''],
+          [wann, e.notiz ? ' · ' + t('wal.notizZeile', e.notiz) : '',
+            e.art === 'aus' ? [' · ', el('a', { href: '#', onclick: ev => { ev.preventDefault(); erhoehenFormular(ev.target, e.txid); } }, t('wal.erhoehen'))] : ''],
           (e.art === 'aus' ? '−' : '+') + ysr(e.betrag), e.art === 'aus' ? '' : '.dim'));
       } else if (e.art === 'aus') {
         kinder.push(posten(symbol('hoch', 'background:#1A2740;color:#C9D5E8'), t('wal.gesendetAn', wer(e.name, e.gegen)),
@@ -209,6 +214,32 @@ function baueUebersicht(ctx) {
     fuelle(liste, kinder.length ? kinder : el('p.leer', suche.value.trim() || filter !== 'alle' ? t('wal.nichtsPassend') : t('wal.nochNichts')));
     mehr.hidden = alle.length <= grenze;
     text(fuss, daten.knotenLaeuft ? t('wal.ausKnoten') : t('fehler.knotenAus'));
+  }
+
+  /**
+   * Gebuehr einer wartenden eigenen Ueberweisung erhoehen: Passwort, dann
+   * ersetzt der Knoten sie durch dieselbe Ueberweisung mit der Gebuehr der
+   * Stufe "schnell" (mindestens alte Gebuehr plus Weiterleitungsgebuehr).
+   */
+  function erhoehenFormular(anker, id) {
+    const zeile = anker.closest('div');
+    if (!zeile || zeile.parentNode.querySelector('form[data-erhoehen="' + id + '"]')) return;
+    const pw = el('input.feld', { type: 'password', autocomplete: 'current-password', placeholder: t('wal.passwort'), style: 'flex:1 1 180px', 'aria-label': t('wal.passwort') });
+    const form = el('form.reihe.umbrechen', { 'data-erhoehen': id, style: 'gap:8px;padding:0 0 10px 50px' },
+      el('span.hinweis', { style: 'flex:1 1 100%' }, t('wal.erhoehenText')), pw,
+      el('button.knopf.haupt.klein', { type: 'submit' }, t('wal.erhoehen')),
+      knopf(t('allg.abbrechen'), () => form.remove(), 'klein'));
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      try {
+        const r = await sende('/api/wallet/erhoehen', { txid: id, passwort: pw.value });
+        melde(t('wal.erhoeht', ysr(r.gebuehr, 0)));
+        form.remove();
+        lade();
+      } catch (err) { melde(err.message, true); }
+    });
+    zeile.after(form);
+    pw.focus();
   }
 
   async function lade() {

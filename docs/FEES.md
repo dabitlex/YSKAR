@@ -77,28 +77,30 @@ plus the relay minimum of the new transfer. Otherwise it answers `fee_not_higher
 step a pending transfer could be re-announced across the network again and again for one unit
 more each time.
 
-**No eviction by fee.** A mempool holds at most 5,000 transfers and at most 32 per sender. A full
-mempool rejects new transfers with `pool_full`, whatever they pay. All mempool rules are listed
-in [FULLNODE.md](FULLNODE.md#the-mempool).
+**Eviction by fee per byte, rising floor.** A mempool holds at most 32 MB of transactions (about
+190,000 transfers) and at most 32 per sender. When it is full, a transfer that pays more per byte
+than the cheapest pending one, plus a small increment, evicts it. The node's floor then rises to
+the evicted rate plus the increment and sinks again over the following hours. A transfer below
+the floor is refused with `pool_min_fee` and `required`, the fee that would be accepted now;
+`/fees` reports the floor as `mindestJeByte`. There is no "queue full". All mempool rules are
+listed in [FULLNODE.md](FULLNODE.md#the-mempool) and
+[CONSENSUS_V6.md, 13b](CONSENSUS_V6.md#13b-the-mempool-under-load).
 
 ## The fee estimator
 
 The estimator is not a consensus rule and not a relay rule. Whoever pays less than it recommends
 waits longer; the transfer is not rejected for that.
 
-### The scarce resource is a slot, not a byte
+### Fee per byte
 
-A block holds at most 2,000 transactions, one of which is the coinbase. That leaves 1,999 slots
-for transfers. There is no consensus limit on the size of a block in bytes.
+A block holds at most 2,000 transactions (5,000 from revision 6), one of which is the coinbase,
+and at most 1 MiB. A transfer is between 168 and 206 bytes, so for transfers the scarce resource
+is the slot, and the fee per byte orders them practically like the absolute fee. A batch transfer
+with many outputs takes one slot but up to about 40 KB of the block and of the mempool's memory.
+The fee per byte prices both fairly.
 
-In Bitcoin, transactions differ widely in size and the block limit counts size, so fees there
-are priced per byte. In YSKAR a transfer is between 168 and 200 bytes, a spread of about 19 %,
-and the block limit counts **transactions**. What is scarce is a slot, and the price of a slot
-is the absolute fee. Sorting by fee per byte would give almost the same order.
-
-From height 4,000 the *minimum* is a rate per byte, in consensus and in the relay policy. The
-*market* above that minimum still counts per slot: block building picks transfers by their
-absolute fee, and so does the estimator.
+Block building, eviction in the mempool and the estimator all order by fee per byte. The
+*minimum* has been a rate per byte since height 4,000, in consensus and in the relay policy.
 
 ### How the tiers are derived
 
@@ -119,17 +121,22 @@ The estimator calls `selectTransactions()` from `src/lib/core/builder.ts`, the f
 uses to fill a real block. This is the point of the design. A separately written sorting could
 decide differently from block building, and the forecast would then be wrong systematically.
 
-The simulation looks at most 8 blocks ahead. After each simulated block it updates balances and
-nonces, so the next block starts from the right state.
+The simulation runs one selection over all blocks it looks at, 64 at most: after each simulated
+block the account state carries forward, so the next block starts from the right state. It
+costs about as much as building one block. The result is cached per tip and recomputed at most
+every ten computation times (at least every two seconds).
 
 From the result the estimator reads three tiers. "Minimum" below is the node's relay minimum for
 a transfer without memo; no tier falls below it.
 
 | Tier | Fee | Expected block |
 |---|---|---|
-| `schnell` (fast) | The cut-off or the minimum, whichever is higher, plus one step. A step is one tenth of the minimum, rounded down, and at least 1 unit | Next block |
-| `normal` | The lowest fee in the second simulated block, but at least the minimum | Second block |
-| `langsam` (slow) | The minimum | The last simulated block |
+| `schnell` (fast) | The cut-off rate or the minimum rate, whichever is higher, plus one step of one tenth of the minimum rate | Next block |
+| `normal` | The lowest rate in the second simulated block, but at least the minimum | Second block |
+| `langsam` (slow) | The minimum (the node's current floor) | The last simulated block |
+
+Each tier carries `fee` (for a transfer without memo) and `jeByte` (the rate per byte). A wallet
+multiplies `jeByte` by the size of its own transfer.
 
 The **cut-off** (`kappung`) is the lowest fee that still makes it into the next block when that
 block is full. If demand rises, it rises by itself. That is the market. The fast tier adds one
@@ -137,8 +144,12 @@ step, because a transfer that pays exactly the cut-off is level with the weakest
 block and its place depends on chance.
 
 A transfer with a memo is larger than the one the minimum was computed for. A wallet therefore
-computes its own floor, `mindestJeByte × (168 + memo length)`, and pays the higher of that floor
-and the fee of the chosen tier.
+computes its own floor, `mindestJeByte × (basisBytes + memo length)`, and pays the higher of that
+floor and the chosen tier for its size.
+
+`/fees` also lists the next blocks of the queue (`bloecke`: height, number of transactions,
+lowest fee and rate) and, for `?fee=`, the block that fee is expected in. For a pending
+transaction, `/tx/<txid>` and `/account/<address>` report its expected block.
 
 ### Without congestion there is nothing to choose
 
@@ -159,8 +170,7 @@ faster.
 
 ### The nonce chain
 
-This is the difference from a model with unspent outputs, and it has real consequences. YSKAR
-uses accounts, and every transfer carries the sender's next nonce. The transfers of one sender
+YSKAR uses accounts, and every transfer carries the sender's next nonce. The transfers of one sender
 therefore hang together: nonce 5 cannot enter a block before nonce 4, **whatever it pays**.
 Block building skips a transfer whose nonce is not due yet:
 

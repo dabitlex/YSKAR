@@ -367,6 +367,11 @@ export const de = {
   'wal.gesendetAn': 'Gesendet an {0}',
   'wal.empfangenVon': 'Empfangen von {0}',
   'wal.wartetBlock': 'wartet auf den nächsten Block',
+  'wal.wartetNaechster': 'voraussichtlich im nächsten Block',
+  'wal.wartetVoraus': (b, m) => `voraussichtlich in Block +${b}, in etwa ${m} Minuten`,
+  'wal.erhoehen': 'Gebühr erhöhen',
+  'wal.erhoehenText': 'Dieselbe Überweisung mit höherer Gebühr (Stufe „schnell“). Sie ersetzt die wartende.',
+  'wal.erhoeht': g => `Gebühr erhöht auf ${g} YSR.`,
   'wal.notizZeile': 'Notiz: {0}',
   'wal.gebuehrZeile': 'Gebühr {0}',
 
@@ -658,6 +663,8 @@ export const de = {
   'srv.abgelehnt_nonce_too_low': 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
   'srv.abgelehnt_unknown_account': 'Auf dieser Wallet liegt noch kein Guthaben.',
   'srv.abgelehnt_sender_limit': 'Von dieser Wallet warten schon zu viele Überweisungen.',
-  'srv.abgelehnt_pool_full': 'Die Warteschlange des Knotens ist voll. Bitte später noch einmal versuchen.',
+  'srv.abgelehnt_pool_min_fee': 'Gerade ist viel los im Netz, die nötige Gebühr ist gestiegen. Bitte noch einmal prüfen.',
+  'srv.abgelehnt_fee_not_higher': 'Die neue Gebühr muss höher sein als die bisherige.',
+  'srv.nicht_wartend': 'Diese Überweisung wartet nicht mehr -- vielleicht ist sie schon in einem Block.',
   'srv.abgelehnt_duplicate': 'Diese Überweisung wurde schon eingereicht.',
 };

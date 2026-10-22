@@ -1,5 +1,5 @@
 {
- "hinweis": "Testvektoren fuer die Ed25519-Pruefung nach ZIP 215 (docs/CONSENSUS_V6.md 7.8). Nicht von Hand aendern.",
+ "hinweis": "Testvektoren fuer die Ed25519-Pruefung nach docs/CONSENSUS_V6.md 7.8. Nicht von Hand aendern.",
  "zip215": {
   "quelle": "ZcashFoundation/ed25519-zebra, tests/small_order.rs (SMALL_ORDER_SIGS), Commit 76ab254104e1c9239b973bbdf1ab955b1d760a85, Lizenz MIT OR Apache-2.0. Nachricht: \"Zcash\". Alle nach ZIP 215 gueltig; legacy = Ergebnis der alten Zcash-Regel.",
   "faelle": [

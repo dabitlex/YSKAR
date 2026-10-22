@@ -8,8 +8,7 @@ import { MAX_SCRIPT_BYTES, MAX_SCRIPT_KEYS, MAX_SCRIPT_DEPTH, MAX_THRESH_ARITY }
  *
  * Ein Skript ist ein Baum aus fuenf Knotenarten. Keine Schleifen, kein
  * Speicher, keine Arithmetik: Die Pruefung ist linear in der Groesse, und
- * die Groesse ist begrenzt. Vorbilder: Cardanos Native Scripts und Bitcoins
- * Miniscript.
+ * die Groesse ist begrenzt.
  *
  *   0x01 PK(pubkey32)            Signatur dieses Schluessels ueber den Sighash
  *   0x02 THRESH(k, n, kinder..)  genau k der n Kinder beruehrt und erfuellt
@@ -20,7 +19,7 @@ import { MAX_SCRIPT_BYTES, MAX_SCRIPT_KEYS, MAX_SCRIPT_DEPTH, MAX_THRESH_ARITY }
  * AFTER und BEFORE pruefen gegen das Gueltigkeitsfenster der TRANSAKTION,
  * nicht gegen die Blockhoehe. Zusammen mit der Regel, dass der Block im
  * Fenster liegt, ergibt das dieselbe Bedeutung -- aber die Auswertung haengt
- * nur von der Transaktion ab (Cardano).
+ * nur von der Transaktion ab, nicht vom Block, in dem sie landet.
  *
  * Der Witness hat je Blatt einen Slot in Tiefe-zuerst-Reihenfolge:
  *   PK      0x00 | 0x01 sig64
@@ -31,7 +30,7 @@ import { MAX_SCRIPT_BYTES, MAX_SCRIPT_KEYS, MAX_SCRIPT_DEPTH, MAX_THRESH_ARITY }
  * Bei THRESH muessen GENAU k Kinder beruehrt sein (t == k), nicht
  * mindestens k: Das macht den Witness so kanonisch wie moeglich und
  * begrenzt die Signaturpruefungen auf das, was das Skript braucht
- * (Stellar: ueberzaehlige Signaturen sind ein Fehler).
+ * (ueberzaehlige Signaturen sind ein Fehler).
  */
 
 export const OP_PK = 0x01;

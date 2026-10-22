@@ -41,7 +41,8 @@ import {
  *
  * Jeder Sighash der Fassung 6 beginnt mit
  *   u8 typ | u32 FORK_ID_V6 | chainId(32) | u16 version | u8 flags
- * -- Typ zuerst (EIP-2718), dann die Fork-Kennung (ZIP 200), dann das Netz.
+ * -- Typ zuerst (er legt den Aufbau des Rests fest), dann die Fork-Kennung
+ * (trennt die Fassungen), dann das Netz.
  *
  * Auf der Leitung bleibt die Reihenfolge `u16 version | u8 typ`, damit der
  * Leser wie bisher erst Version und Typ sieht und dann das Layout kennt.

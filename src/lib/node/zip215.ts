@@ -1,7 +1,7 @@
 /**
- * ZIP-215-Pruefer aus WebAssembly fuer Knoten (docs/CONSENSUS_V6.md 7.8).
+ * Signaturpruefer aus WebAssembly fuer Knoten (docs/CONSENSUS_V6.md 7.8).
  *
- * ed25519-zebra 5.0.0 der Zcash Foundation, uebersetzt nach WebAssembly
+ * Die Rust-Bibliothek ed25519-zebra 5.0.0, uebersetzt nach WebAssembly
  * (Quelle und Bauanleitung: crypto/zip215). Prueft dieselbe Regel wie noble,
  * einzeln rund zehnmal und im Stapel rund dreissigmal schneller.
  *
@@ -100,8 +100,9 @@ export function ladeZip215Wasm(): Pruefer | null {
 function selbstprobe(p: Pruefer): boolean {
   const h = (s: string) => Uint8Array.from(Buffer.from(s, 'hex'));
   const msg = new TextEncoder().encode('Zcash');
-  // Aus den offiziellen ZIP-215-Vektoren: Schluessel und R kleiner Ordnung,
-  // S = 0 -- nach ZIP 215 gueltig, nach RFC 8032 nicht.
+  // Aus den veroeffentlichten Grenzfaellen: Schluessel und R kleiner Ordnung,
+  // S = 0 -- nach der Regel aus 7.8 gueltig, nach RFC 8032 nicht.
+  // Die Nachricht ist die, mit der die Vektoren erzeugt wurden.
   const klein: [string, string][] = [
     ['0100000000000000000000000000000000000000000000000000000000000000',
       '0100000000000000000000000000000000000000000000000000000000000000' + '00'.repeat(32)],

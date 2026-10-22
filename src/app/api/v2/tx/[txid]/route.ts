@@ -3,6 +3,7 @@ import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
 import { encodeAddress } from '@/lib/core/address';
 import { fromHex } from '@/lib/core/codec';
+import { fullnodeLesen } from '@/lib/api/fullnode';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,26 +64,20 @@ export async function GET(
     }, { headers: CORS });
   }
 
-  // Noch nicht in einem Block, aber eingereicht.
-  const { data: offen } = await db().schema('chain2').from('mempool')
-    .select('*').eq('txid', '\\x' + q).maybeSingle();
-
-  if (offen) {
-    return NextResponse.json({
-      txid: q,
-      status: 'pending',
-      height: null, blockHash: null, timestamp: null,
-      type: 'transfer',
-      from: adr(offen.from_addr),
-      to: adr(offen.to_addr),
-      amount: String(offen.amount),
-      fee: String(offen.fee),
-      nonce: String(offen.nonce),
-      validUntil: offen.valid_until,
-      memo: unprefix(offen.memo),
-      recipients: null,
-      raw: unprefix(offen.raw),
-    }, { headers: CORS });
+  /*
+    Noch nicht in einem Block, aber eingereicht: Das weiss nur der Full Node.
+    Der Mempool wird nicht nach Supabase gespiegelt -- er ist fluechtig und
+    aendert sich hundertmal schneller als die Kette. Der Knoten liefert
+    dazu den Warteplatz: im wievielten Block, an welcher Hoehe, in etwa wie
+    vielen Minuten.
+  */
+  try {
+    const offen = await fullnodeLesen<{ status?: string }>(`/api/v2/tx/${q}`);
+    if (offen && offen.status === 'pending') {
+      return NextResponse.json(offen, { headers: CORS });
+    }
+  } catch {
+    // Knoten nicht erreichbar oder kennt sie nicht: dann eben nicht gefunden.
   }
 
   return NextResponse.json({ error: 'not_found' }, { status: 404, headers: CORS });

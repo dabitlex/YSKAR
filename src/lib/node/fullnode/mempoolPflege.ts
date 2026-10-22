@@ -30,8 +30,13 @@ import type { State } from '../../core/state.ts';
 import type { StoredBlock } from './ChainStore.ts';
 import type { TxPool } from './TxPool.ts';
 
-/** Wie lange eine Transaktion in der Warteschlange stehen darf. */
-export const MEMPOOL_MAX_ALTER = 3600;
+/**
+ * Wie lange eine Transaktion in der Warteschlange stehen darf: 72 Stunden.
+ * Bei Andrang kann das Warten Stunden dauern; eine Stunde wie frueher hiesse,
+ * bezahlte Ueberweisungen zu verwerfen, die gerade an der Reihe waeren.
+ * Eigene Transaktionen des Knotens verfallen nie (TxPool, lokal).
+ */
+export const MEMPOOL_MAX_ALTER = 72 * 3600;
 
 export interface PflegeErgebnis {
   /** Aus der Warteschlange genommen, weil jetzt in der Kette. */

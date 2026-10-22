@@ -38,7 +38,7 @@
  * ersten Job jeder neuen Vorlage gegen buildBlock() und schaltet die
  * Vorlage bei der kleinsten Abweichung ab.
  */
-import { selectTransactions, buildCoinbase, waehleCoinbase, type BuildResult }
+import { selectTransactions, buildCoinbase, waehleCoinbase, type BuildResult, type AuswahlOptionen }
   from '../../core/builder.ts';
 import { type Block, type BlockHeader, serializeHeader, txMerkleRoot }
   from '../../core/block.ts';
@@ -92,12 +92,13 @@ export interface JobAngaben {
  */
 export function baueVorlage(
   schluessel: string, state: State, mempool: Spend[], height: number, params: ConsensusParams,
+  opt: AuswahlOptionen = {},
 ): JobVorlage {
   // Erste Runde: wie createJob() -- aus dem ganzen Mempool.
-  const erste = selectTransactions(state, mempool, height, undefined, params).included;
+  const erste = selectTransactions(state, mempool, height, undefined, params, opt).included;
   // Zweite Runde: wie buildBlock() -- aus der ersten Auswahl. Der Block
   // traegt die Reihenfolge DIESER Runde.
-  const { included, rejected, fees } = selectTransactions(state, erste, height, undefined, params);
+  const { included, rejected, fees } = selectTransactions(state, erste, height, undefined, params, opt);
 
   const konten = zwischenzustand(state, included, height, fees, params);
   const sortiert = [...konten.keys()].sort(vergleiche);

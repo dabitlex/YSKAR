@@ -3,6 +3,7 @@ import { db } from '@/lib/db/service';
 import { unprefix } from '@/lib/node/hex';
 import { decodeAddress, encodeAddress } from '@/lib/core/address';
 import { toHex, fromHex } from '@/lib/core/codec';
+import { fullnodeLesen } from '@/lib/api/fullnode';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -83,9 +84,13 @@ export async function GET(req: Request) {
       }, { headers: CORS });
     }
 
-    // Noch im Mempool? Dann gibt es sie, nur noch nicht in einem Block.
-    const { data: offen } = await db().schema('chain2').from('mempool')
-      .select('txid').eq('txid', bytea).maybeSingle();
+    // Noch im Mempool? Dann gibt es sie, nur noch nicht in einem Block. Den
+    // Mempool kennt nur der Full Node; er wird nicht gespiegelt.
+    let offen = false;
+    try {
+      const r = await fullnodeLesen<{ status?: string }>(`/api/v2/tx/${q}`);
+      offen = r?.status === 'pending';
+    } catch { /* Knoten nicht erreichbar: dann nicht gefunden */ }
     if (offen) {
       return NextResponse.json({
         kind: 'tx', txid: q, height: null, pending: true,

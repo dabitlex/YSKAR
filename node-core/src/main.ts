@@ -21,7 +21,8 @@ import { MiningServer } from '../../src/lib/node/fullnode/MiningServer.ts';
 import { NetzStatistik, type LokaleStatistik } from '../../src/lib/node/fullnode/NetzStatistik.ts';
 import { ReadApi } from '../../src/lib/node/fullnode/ReadApi.ts';
 import { EPOCH_BLOCKS, rewardAt, DUST_LIMIT, FEE_V3_HEIGHT } from '../../src/lib/core/params.ts';
-import { txid, buildTransfer, transferBytesAt, transferVersionAt, sendepause, senderRaw, spendOutputs, spendAmount, TX_BATCH } from '../../src/lib/core/tx.ts';
+import { txid, buildTransfer, transferBytesAt, transferVersionAt, sendepause, senderRaw, spendOutputs, spendAmount, TX_BATCH,
+  TX_TRANSFER, serializeTx, deserializeTx, txBytes, type Transfer, type Spend } from '../../src/lib/core/tx.ts';
 import { encodeAddress } from '../../src/lib/core/address.ts';
 import { getAccount } from '../../src/lib/core/state.ts';
 import { notizKuerzen, notizAusHex } from '../../src/lib/wallet/notiz.ts';
@@ -46,7 +47,8 @@ import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/m
 import { MAINNET, istMainnet, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { stateRootAt, totalSupply } from '../../src/lib/core/state.ts';
 import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
-import { toHex } from '../../src/lib/core/codec.ts';
+import { toHex, fromHex } from '../../src/lib/core/codec.ts';
+import { spendTxid } from '../../src/lib/core/builder.ts';
 import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
 import { cpus } from 'node:os';
 import { LocalMiner } from './LocalMiner.ts';
@@ -457,6 +459,11 @@ export interface NodeCoreOptionen {
 
 export type { Huelle } from './Programm.ts';
 
+/** Abstand, in dem eigene wartende Transaktionen erneut angekuendigt werden. */
+const EIGENE_TAKT_MS = 10 * 60_000;
+/** So viele wartende Transaktionen zeigt die Oberflaeche einzeln. */
+const MEMPOOL_ANZEIGE = 200;
+
 export class NodeCoreApp {
   private params: ConsensusParams;
   private guiPort: number;
@@ -474,6 +481,8 @@ export class NodeCoreApp {
   private sync: SyncManager | null = null;
   private statistik: NetzStatistik | null = null;
   private statsTakt: ReturnType<typeof setInterval> | null = null;
+  /** Eigene wartende Ueberweisungen sichern und erneut ankuendigen (alle zehn Minuten). */
+  private eigeneTakt: ReturnType<typeof setInterval> | null = null;
   private lesen: ReadApi | null = null;
   /** Wann eine wartende Ueberweisung hier zum ersten Mal gesehen wurde. */
   private txGesehen = new Map<string, number>();
@@ -1747,6 +1756,7 @@ export class NodeCoreApp {
         `${params.v6Height} verworfen. Die richtigen Bloecke kommen von den Peers.`);
     }
     this.pool = new TxPool(params);
+    this.ladeEigene();
     this.mining = new MiningCoordinator(this.chain, this.store, this.pool, params, this.uhr);
     this.miningServer = new KernServer({ chain: this.chain, store: this.store, pool: this.pool, mining: this.mining }, {
       host: '127.0.0.1', port: this.config.nodePort, params,
@@ -1859,6 +1869,8 @@ export class NodeCoreApp {
     this.sync.start();
     this.statsTakt = setInterval(() => this.meldeStats(), this.statsTaktMs);
     this.statsTakt.unref?.();
+    this.eigeneTakt = setInterval(() => this.eigeneErneut(), EIGENE_TAKT_MS);
+    this.eigeneTakt.unref?.();
     this.starteBetrieb();
     this.lauscht = this.lauschZiel();
     await this.miningServer.listen(this.lauscht, this.config.nodePort);
@@ -1899,6 +1911,9 @@ export class NodeCoreApp {
     try { await this.stopMining(); } catch { /* lief nicht */ }
     if (this.statsTakt) clearInterval(this.statsTakt);
     this.statsTakt = null;
+    if (this.eigeneTakt) clearInterval(this.eigeneTakt);
+    this.eigeneTakt = null;
+    this.sichereEigene();
     this.sync?.stop();
     await this.peers?.stop();
     try { this.stoppeBetrieb(); } catch { /* lief nicht */ }
@@ -2026,8 +2041,16 @@ export class NodeCoreApp {
     const jetzt = Date.now();
     const offen = this.pool?.alle() ?? [];
     const ids = new Set<string>();
-    const liste = offen.map(tx => {
-      const id = toHex(txid(tx));
+    // Bei Andrang stehen hier zehntausende. Die Oberflaeche zeigt die
+    // neuesten MEMPOOL_ANZEIGE; die Zahl insgesamt steht in `anzahl`.
+    for (const tx of offen) {
+      const id = spendTxid(tx);
+      ids.add(id);
+      if (!this.txGesehen.has(id)) this.txGesehen.set(id, jetzt);
+    }
+    for (const id of this.txGesehen.keys()) if (!ids.has(id)) this.txGesehen.delete(id);
+    const liste = offen.slice(-MEMPOOL_ANZEIGE).map(tx => {
+      const id = spendTxid(tx);
       ids.add(id);
       if (!this.txGesehen.has(id)) this.txGesehen.set(id, jetzt);
       return {
@@ -2038,8 +2061,7 @@ export class NodeCoreApp {
         seit: this.txGesehen.get(id)!,
       };
     });
-    for (const id of this.txGesehen.keys()) if (!ids.has(id)) this.txGesehen.delete(id);
-    return { wartend: liste.sort((x, y) => x.seit - y.seit) };
+    return { wartend: liste.sort((x, y) => x.seit - y.seit), anzahl: offen.length };
   }
 
   private setzeEinstellungen(body: Record<string, unknown>) {
@@ -2077,26 +2099,30 @@ export class NodeCoreApp {
   /** Was von dieser Adresse im Mempool wartet -- in beide Richtungen. */
   private walletWartend(adresse: string) {
     const hex = toHex(decodeAddress(adresse));
-    const gesehen = new Map(this.mempoolListe().wartend.map(w => [w.txid, w.seit]));
     const liste: {
       txid: string; art: 'aus' | 'ein'; gegen: string; name: string | null;
       betrag: string; gebuehr: string; notiz: string; seit: number;
+      nonce: string; block: number | null; minuten: number | null;
     }[] = [];
-    for (const t of this.pool?.alle() ?? []) {
+    // Nur, was dieses Konto betrifft -- nicht den ganzen Mempool durchsuchen.
+    for (const t of this.pool?.zuKonto(hex) ?? []) {
       const absender = senderRaw(t);
       const aus = toHex(absender) === hex;
       const ausgaenge = spendOutputs(t);
       const meine = ausgaenge.filter(o => toHex(o.to) === hex);
       if (!aus && meine.length === 0) continue;
       const id = toHex(txid(t));
+      if (!this.txGesehen.has(id)) this.txGesehen.set(id, Date.now());
       const notiz = t.type === TX_BATCH ? '' : notizAusHex(toHex(t.memo));
+      const platz = this.lesen?.warteplatz(id) ?? { block: null, minuten: null };
       for (const o of aus ? ausgaenge : meine) {
         const gegen = encodeAddress(aus ? o.to : absender);
         liste.push({
           txid: id, art: aus ? 'aus' : 'ein', gegen,
           name: this.wallet.kontaktName(gegen),
           betrag: o.amount.toString(), gebuehr: t.fee.toString(),
-          notiz, seit: gesehen.get(id) ?? Date.now(),
+          notiz, seit: this.txGesehen.get(id) ?? Date.now(),
+          nonce: t.nonce.toString(), block: platz.block, minuten: platz.minuten,
         });
       }
     }
@@ -2113,7 +2139,7 @@ export class NodeCoreApp {
       .reduce((summe, w) => summe + BigInt(w.betrag) + BigInt(w.gebuehr), 0n);
     const verfuegbar = konto.balance > gebunden ? konto.balance - gebunden : 0n;
     return { konto, wartend, gebunden, verfuegbar,
-             naechsteNonce: konto.nonce + BigInt(wartend.filter(w => w.art === 'aus').length) };
+             naechsteNonce: konto.nonce + BigInt(new Set(wartend.filter(w => w.art === 'aus').map(w => w.txid)).size) };
   }
 
   private walletUebersicht() {
@@ -2240,7 +2266,9 @@ export class NodeCoreApp {
     });
     paar.privateKey.fill(0);
 
-    const aufnahme = this.pool!.add(tx, this.chain!.state(), this.chain!.height() + 1);
+    // Lokal: Die eigene Ueberweisung weicht im eigenen Mempool nie und
+    // verfaellt nicht. Gesichert wird sie auch -- ein Neustart verliert sie nicht.
+    const aufnahme = this.pool!.add(tx, this.chain!.state(), this.chain!.height() + 1, { lokal: true });
     if (!aufnahme.ok) {
       const text: Record<string, string> = {
         insufficient_funds: 'Dafür reicht das Guthaben nicht.',
@@ -2249,19 +2277,108 @@ export class NodeCoreApp {
         nonce_too_low: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
         unknown_account: 'Auf dieser Wallet liegt noch kein Guthaben.',
         sender_limit: 'Von dieser Wallet warten schon zu viele Überweisungen.',
-        pool_full: 'Die Warteschlange des Knotens ist voll. Bitte später noch einmal versuchen.',
+        pool_min_fee: 'Gerade ist viel los im Netz, die nötige Gebühr ist gestiegen. Bitte noch einmal prüfen.',
+        fee_not_higher: 'Die neue Gebühr muss höher sein als die bisherige.',
         duplicate: 'Diese Überweisung wurde schon eingereicht.',
       };
       throw new WalletFehler('abgelehnt_' + aufnahme.reason,
         text[aufnahme.reason] ?? `Der Knoten hat die Überweisung abgelehnt (${aufnahme.reason}).`);
     }
     const n = this.sync?.kuendigeAnTx(txid(tx)) ?? 0;
+    this.sichereEigene();
     this.log(`Überweisung ${aufnahme.txid.slice(0, 16)}… eingereicht, an ${n} Peer${n === 1 ? '' : 's'} gemeldet`);
     return {
       txid: aufnahme.txid, an: r.an, name: r.name,
       betrag: r.betrag.toString(), gebuehr: r.gebuehr.toString(),
       peers: n,
     };
+  }
+
+  /**
+   * Gebuehr einer wartenden eigenen Ueberweisung erhoehen: dieselbe
+   * Ueberweisung (Empfaenger, Betrag, Notiz, Nonce) mit hoeherer Gebuehr.
+   * Sie ersetzt die alte in jedem Mempool, der sie annimmt.
+   *
+   * Neue Gebuehr: mindestens alte plus Weiterleitungsgebuehr (sonst nimmt
+   * kein Knoten die Ersetzung an), mindestens die Stufe "schnell" fuer ihre
+   * Groesse. Verlangt das Passwort -- jedes Mal.
+   */
+  private async walletErhoehen(body: Record<string, unknown>) {
+    const adresse = this.wallet.verlangeOffen();
+    const id = String(body.txid ?? '').toLowerCase();
+    const alt = /^[0-9a-f]{64}$/.test(id) ? this.pool?.get(id) : null;
+    if (!alt || alt.type !== TX_TRANSFER || encodeAddress(senderRaw(alt)) !== adresse) {
+      throw new WalletFehler('nicht_wartend', 'Diese Überweisung wartet nicht mehr -- vielleicht ist sie schon in einem Block.');
+    }
+    const hoehe = this.chain!.height() + 1;
+    const markt = this.lesen!.fees(new URLSearchParams());
+    const schnell = BigInt(Math.ceil(Number(markt.stufen.schnell.jeByte) * txBytes(alt)));
+    const mindest = alt.fee + this.pool!.mindestGebuehrFuer(alt, hoehe);
+    const gebuehr = schnell > mindest ? schnell : mindest;
+    const paar = await this.wallet.schluessel(body.passwort);
+    const neu = buildTransfer({
+      chainId: this.params.chainId,
+      from: paar.addressRaw, to: alt.to, amount: alt.amount, fee: gebuehr, nonce: alt.nonce,
+      memo: alt.memo, validUntil: alt.validUntil, validFrom: (alt as Transfer).validFrom,
+      publicKey: paar.publicKey, privateKey: paar.privateKey, version: alt.version,
+    });
+    paar.privateKey.fill(0);
+    const r = this.pool!.add(neu, this.chain!.state(), hoehe, { lokal: true });
+    if (!r.ok) {
+      throw new WalletFehler('abgelehnt_' + r.reason, r.reason === 'insufficient_funds'
+        ? 'Für die höhere Gebühr reicht das Guthaben nicht.'
+        : `Der Knoten hat die Erhöhung abgelehnt (${r.reason}).`);
+    }
+    const n = this.sync?.kuendigeAnTx(txid(neu)) ?? 0;
+    this.sichereEigene();
+    this.log(`Gebühr erhöht: ${id.slice(0, 16)}… ersetzt durch ${r.txid.slice(0, 16)}…, an ${n} Peer${n === 1 ? '' : 's'} gemeldet`);
+    return { txid: r.txid, ersetzt: id, gebuehr: gebuehr.toString(), peers: n };
+  }
+
+  /** Datei mit den eigenen wartenden Transaktionen. */
+  private get eigenePfad(): string { return join(resolve(this.config.dataDir), 'eigene-tx.json'); }
+
+  /**
+   * Eigene wartende Transaktionen sichern. Der Mempool lebt im Speicher;
+   * ohne diese Datei waere eine eingereichte Ueberweisung nach einem
+   * Neustart weg, solange sie noch kein anderer Knoten hat.
+   */
+  private sichereEigene(): void {
+    if (!this.pool) return;
+    try {
+      writeFileSync(this.eigenePfad, JSON.stringify(this.pool.lokale().map(x => toHex(serializeTx(x)))));
+    } catch (e) { this.log(`eigene-tx.json nicht gespeichert: ${(e as Error).message}`); }
+  }
+
+  /** Beim Start: gesicherte eigene Transaktionen wieder aufnehmen, soweit sie noch gelten. */
+  private ladeEigene(): void {
+    if (!this.pool || !this.chain || !existsSync(this.eigenePfad)) return;
+    let roh: unknown;
+    try { roh = JSON.parse(readFileSync(this.eigenePfad, 'utf8')); } catch { return; }
+    if (!Array.isArray(roh)) return;
+    const txs: Spend[] = [];
+    for (const h of roh) {
+      try { txs.push(deserializeTx(fromHex(String(h))) as Spend); } catch { /* unlesbar */ }
+    }
+    // Nach Nonce: Eine Luecke liesse alles Spaetere scheitern.
+    txs.sort((a, b) => (a.nonce < b.nonce ? -1 : a.nonce > b.nonce ? 1 : 0));
+    let wieder = 0;
+    for (const x of txs) {
+      if (this.pool.add(x, this.chain.state(), this.chain.height() + 1, { lokal: true }).ok) wieder++;
+    }
+    if (wieder > 0) this.log(`${wieder} eigene wartende Transaktion${wieder === 1 ? '' : 'en'} wieder aufgenommen`);
+  }
+
+  /**
+   * Alle zehn Minuten: eigene wartende Transaktionen erneut ankuendigen
+   * und sichern. Hat ein anderer Knoten sie bei Andrang verdraengt oder
+   * nach einem Neustart vergessen, bekommt er sie so wieder -- sobald seine
+   * Untergrenze es zulaesst.
+   */
+  private eigeneErneut(): void {
+    if (!this.pool) return;
+    for (const x of this.pool.lokale()) this.sync?.kuendigeAnTx(txid(x));
+    this.sichereEigene();
   }
 
   /** QR-Code der Adresse, auf Wunsch mit Betrag und Notiz -- im Format der App. */
@@ -2402,6 +2519,7 @@ export class NodeCoreApp {
           if (pfad === '/api/wallet/regung') { w.regung(); return json(res, w.stand()); }
           if (pfad === '/api/wallet/pruefen') return json(res, this.walletVorschau(b));
           if (pfad === '/api/wallet/senden') return json(res, await this.walletSenden(b));
+          if (pfad === '/api/wallet/erhoehen') return json(res, await this.walletErhoehen(b));
           if (pfad === '/api/wallet/woerter') return json(res, { woerter: await w.woerter(b.passwort) });
           if (pfad === '/api/wallet/passwort') { await w.passwortAendern(b.alt, b.neu); return json(res, { ok: true }); }
           if (pfad === '/api/wallet/entfernen') { await w.entfernen(b.passwort); this.walletGeaendert(); return json(res, w.stand()); }

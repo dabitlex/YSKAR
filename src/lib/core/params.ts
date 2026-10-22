@@ -263,7 +263,8 @@ export const V6_HEIGHT = V6_HEIGHT_UNSET;
  *  alter Knoten (CONSENSUS_V6.md 11.1). Gesetzt zusammen mit der Hoehe. */
 export const V6_TIMESTAMP = 0n;
 
-/** Fork-Kennung, zweites Feld jedes Sighash ab Fassung 6 (ZIP 200). */
+/** Fork-Kennung, zweites Feld jedes Sighash ab Fassung 6: Eine Signatur
+ *  der einen Fassung ist in der anderen nie gueltig. */
 export const FORK_ID_V6 = 6;
 /** Blockversion ab Fassung 6; darunter 1. */
 export const BLOCK_VERSION_V6 = 6;

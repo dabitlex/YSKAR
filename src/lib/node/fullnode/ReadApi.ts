@@ -23,7 +23,12 @@ import { toHex, fromHex } from '../../core/codec.ts';
 import { stateRootAt, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
 import { finderName, finderAnzeige } from '../../chain/finderName.ts';
-import { marktlage, position } from '../../core/feemarket.ts';
+import { marktlage, position, blockFuerSatz, type Marktlage } from '../../core/feemarket.ts';
+
+/** So weit rechnet die Vorschau voraus -- bei vollem Mempool rund 40 Bloecke. */
+export const VORSCHAU_TIEF = 64;
+/** So viele Bloecke nennt /fees einzeln. */
+export const VORSCHAU_ANZEIGE = 12;
 import { FEE_V3_HEIGHT, maxTxsAt } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
@@ -332,27 +337,78 @@ export class ReadApi {
    * abgelehnt wird er nicht. Würde eine Empfehlung zur Regel, hätten
    * verschiedene Knoten verschiedene Regeln.
    */
-  fees(such: URLSearchParams) {
-    const mempool = this.t.pool.alle();
+  /**
+   * Die Marktlage, zwischengespeichert.
+   *
+   * Neu gerechnet bei jedem neuen Kettenkopf. Bei neuem Mempool-Stand sofort,
+   * solange das billig ist; sonst hoechstens alle zehn Rechendauern,
+   * mindestens alle zwei Sekunden. Bei einer Welle von Transaktionen kostete
+   * sonst jede Abfrage einen vollen Durchlauf -- und die Abfragen kommen
+   * gerade dann von ueberall.
+   */
+  private marktSpeicher: { kopf: string; stand: number; um: number; dauer: number; m: Marktlage } | null = null;
+
+  markt(): { m: Marktlage; hoehe: number; limit: number; basis: number } {
     const hoehe = this.t.chain.height() + 1;
-    // Untergrenze fuer eine Ueberweisung ohne Notiz; die App rechnet ihre
-    // eigene Groesse (Notiz) mit mindestJeByte selbst nach.
-    const boden = this.t.pool.mindestGebuehr(hoehe, 0);
+    const v6 = this.params.v6Height;
     // Plaetze je Block haengen an der Hoehe (2.000 bis Fassung 6, 5.000 ab v6Height).
-    const m = marktlage(this.t.chain.state(), mempool, hoehe, maxTxsAt(hoehe, this.t.params?.v6Height) - 1, boden);
-    const jeByte = hoehe >= (this.t.params?.feeV3Height ?? FEE_V3_HEIGHT) ? this.t.pool.relayFeeRate : null;
+    const limit = maxTxsAt(hoehe, v6) - 1;
+    const basis = transferBytesAt(hoehe, 0, v6);
+    const stand = this.t.pool.version();
+    const jetzt = Date.now();
+    const sp = this.marktSpeicher;
+    // Kopf statt Hoehe: Ein Reorg auf gleicher Hoehe aendert den Zustand.
+    const kopf = toHex(this.t.chain.tip()?.hash ?? new Uint8Array(0));
+    const frisch = sp && sp.kopf === kopf
+      && (sp.stand === stand || (sp.dauer >= 20 && jetzt - sp.um < Math.max(2_000, 10 * sp.dauer)));
+    if (frisch) return { m: sp!.m, hoehe, limit, basis };
+
+    const anfang = Date.now();
+    // Untergrenze fuer eine Ueberweisung ohne Notiz -- bei Andrang die
+    // gestiegene des Mempools.
+    const boden = this.t.pool.mindestGebuehr(hoehe, 0);
+    const m = marktlage(this.t.chain.state(), this.t.pool.fuerBlock(hoehe), hoehe, limit, boden, {
+      params: this.params, basisBytes: basis, bloecke: VORSCHAU_TIEF, vorgeprueft: true,
+    });
+    const ende = Date.now();
+    this.marktSpeicher = { kopf, stand, um: ende, dauer: ende - anfang, m };
+    return { m, hoehe, limit, basis };
+  }
+
+  /**
+   * Marktlage -- dieselbe Form wie auf dem Server.
+   *
+   * KEINE Konsensregel. Wer weniger zahlt als empfohlen, wartet länger;
+   * abgelehnt wird er nicht. Würde eine Empfehlung zur Regel, hätten
+   * verschiedene Knoten verschiedene Regeln.
+   */
+  fees(such: URLSearchParams) {
+    const { m, hoehe, limit, basis } = this.markt();
+    const abV3 = hoehe >= (this.t.params?.feeV3Height ?? FEE_V3_HEIGHT);
+    // Untergrenze je Byte: der Weiterleitungs-Satz, bei Andrang die
+    // gestiegene Untergrenze. Auf ganze Einheiten aufgerundet -- wer damit
+    // rechnet, liegt nie darunter.
+    const untergrenze = Math.ceil(this.t.pool.untergrenzeJeByte());
+    const jeByte = abV3 ? BigInt(untergrenze) : null;
+    const boden = this.t.pool.mindestGebuehr(hoehe, 0);
 
     const roh = such.get('fee');
     let eigene = null;
     if (roh !== null && /^\d+$/.test(roh)) {
-      const p = position(mempool, BigInt(roh));
-      eigene = { fee: roh, rang: p.rang, von: p.von };
+      const p = position(this.t.pool.alle(), BigInt(roh));
+      const block = blockFuerSatz(m.vorschau, Number(roh) / basis, limit, VORSCHAU_TIEF);
+      eigene = { fee: roh, rang: p.rang, von: p.von, block, reicht: BigInt(roh) >= boden };
     }
 
     const v6 = this.params.v6Height;
+    const satz = (x: number) => (Math.ceil(x * 1000) / 1000).toString();
     return {
       minFee: boden.toString(),
-      /** Weiterleitungs-Satz je Byte ab der Aktivierung, sonst null. */
+      /**
+       * Untergrenze je Byte fuer jede Groesse. Seit Fassung 3 der
+       * Weiterleitungs-Satz -- bei Andrang die gestiegene Untergrenze des
+       * Mempools. Unter `mindestJeByte * Bytes` nimmt dieser Knoten nichts an.
+       */
       mindestJeByte: jeByte === null ? null : jeByte.toString(),
       hoehe,
       /*
@@ -362,7 +418,7 @@ export class ReadApi {
         den letzten Bloecken vor der Hoehe `sendepause`: nichts einreichen.
       */
       fassung: transferVersionAt(hoehe, v6),
-      basisBytes: transferBytesAt(hoehe, 0, v6),
+      basisBytes: basis,
       sendepause: sendepause(hoehe, v6),
       aktivierung: naechsteAktivierung(this.params),
       wartend: m.wartend,
@@ -370,17 +426,37 @@ export class ReadApi {
       andrang: m.andrang,
       kappung: m.kappung?.toString() ?? null,
       stufen: {
-        langsam: { fee: m.langsam.fee.toString(), block: m.langsam.block },
-        normal: { fee: m.normal.fee.toString(), block: m.normal.block },
-        schnell: { fee: m.schnell.fee.toString(), block: m.schnell.block },
+        langsam: { fee: m.langsam.fee.toString(), block: m.langsam.block, jeByte: satz(m.langsam.jeByte) },
+        normal: { fee: m.normal.fee.toString(), block: m.normal.block, jeByte: satz(m.normal.jeByte) },
+        schnell: { fee: m.schnell.fee.toString(), block: m.schnell.block, jeByte: satz(m.schnell.jeByte) },
       },
-      bloecke: m.bloecke.map(b => ({
-        block: b.block, anzahl: b.anzahl, minFee: b.minFee.toString(),
+      /** Die naechsten Bloecke der Warteschlange (hoechstens VORSCHAU_ANZEIGE). */
+      bloecke: m.bloecke.slice(0, VORSCHAU_ANZEIGE).map(b => ({
+        block: b.block, hoehe: hoehe + b.block - 1, anzahl: b.anzahl,
+        minFee: b.minFee.toString(), minJeByte: satz(b.minJeByte),
       })),
+      /** Wie viele Bloecke die ganze Vorschau braucht, und wie viele Transaktionen darin stehen. */
+      bloeckeGesamt: m.bloecke.length,
+      inVorschau: m.vorschau.plaetze.size,
+      vorschauTiefe: VORSCHAU_TIEF,
+      blockzeit: Number(TARGET_BLOCK_TIME),
+      mempoolBytes: this.t.pool.belegt(),
+      mempoolMaxBytes: this.t.pool.maxBytes,
       eigene,
       hinweis: m.andrang
         ? 'Voraussichtlich, unter der Annahme dass nichts Neues dazukommt.'
         : 'Kein Andrang -- die Mindestgebühr genügt für den nächsten Block.',
+    };
+  }
+
+  /** Wo steht eine wartende Transaktion, und wann ist sie voraussichtlich dran? */
+  warteplatz(hex: string): { block: number | null; hoehe: number | null; minuten: number | null } {
+    const { m, hoehe } = this.markt();
+    const b = m.vorschau.plaetze.get(hex) ?? null;
+    return {
+      block: b,
+      hoehe: b === null ? null : hoehe + b - 1,
+      minuten: b === null ? null : Math.round(b * Number(TARGET_BLOCK_TIME) / 60),
     };
   }
 
@@ -489,8 +565,7 @@ export class ReadApi {
     // der Nutzer soll sehen, dass sie unterwegs sind.
     // Beide Richtungen: Der Absender sieht, dass seine Zahlung unterwegs
     // ist -- und der Empfaenger auch, nicht erst mit dem naechsten Block.
-    const wartend = this.t.pool.alle()
-      .filter(t => toHex(senderRaw(t)) === key || spendOutputs(t).some(o => toHex(o.to) === key))
+    const wartend = this.t.pool.zuKonto(key)
       .map(t => ({
         txid: toHex(txid(t)),
         kind: toHex(senderRaw(t)) === key ? 'out' : 'in',
@@ -500,6 +575,8 @@ export class ReadApi {
         fee: t.fee.toString(),
         nonce: String(t.nonce),
         memo: toHex(t.memo),
+        /** Voraussichtlich im wievielten Block (1 = naechster), null = noch nicht absehbar. */
+        block: this.markt().m.vorschau.plaetze.get(toHex(txid(t))) ?? null,
       }));
     // Die Nonce, die die NAECHSTE Zahlung tragen muss: Zustand plus alles,
     // was von dieser Adresse schon wartet. Mit der reinen Zustands-Nonce
@@ -616,6 +693,10 @@ export class ReadApi {
           nonce: String(offen.nonce), memo: toHex(offen.memo),
           recipients: offen.type === TX_BATCH
             ? offen.outputs.map(o => ({ address: encodeAddress(o.to), amount: o.amount.toString() })) : null,
+          // Wo sie in der Warteschlange steht: im wievielten Block, an welcher
+          // Hoehe, in etwa wie vielen Minuten. Voraussichtlich -- kommt etwas
+          // mit hoeherer Gebuehr dazu, rutscht sie nach hinten.
+          warteplatz: this.warteplatz(hex),
         },
       };
     }

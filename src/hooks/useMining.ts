@@ -91,6 +91,8 @@ export interface Wartend {
   fee: string;
   nonce: string;
   memo?: string | null;
+  /** Voraussichtlich im wievielten Block (1 = naechster); null = noch nicht absehbar. Aeltere Knoten nennen es nicht. */
+  block?: number | null;
 }
 
 export interface Account {

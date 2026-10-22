@@ -122,7 +122,7 @@ export function sign(message: Uint8Array, privateKey: Uint8Array): Uint8Array {
 }
 
 /**
- * Signatur pruefen -- nach ZIP 215, ueber den Pruefer in sigcheck.ts
+ * Signatur pruefen -- nach der Regel aus 7.8, ueber den Pruefer in sigcheck.ts
  * (docs/CONSENSUS_V6.md 7.8). Hier nur weitergereicht, damit bestehende
  * Aufrufer unveraendert bleiben.
  */

@@ -5,7 +5,7 @@
  *      unabhaengigen Python-Umsetzung allein aus der Spezifikation
  *      nachgerechnet: 46 von 46 Werten gleich. Hier wird festgehalten, dass
  *      der Code sie weiter genau so erzeugt.
- *   2. Fremde Referenzen: BIP 350 (bech32m) und RFC 8032 (Ed25519) mit
+ *   2. Fremde Referenzen: die bech32m-Referenzvektoren und RFC 8032 (Ed25519) mit
  *      ihren offiziellen Vektoren.
  *   3. Eigenschaften mit festem Startwert: Hin- und Rueckweg aller Typen,
  *      jedes veraenderte Byte macht eine signierte Ausgabe ungueltig,
@@ -134,7 +134,7 @@ test('Vektor Zustandswurzel mit Konten beider Versionen', () => {
 
 // --------------------------------------------------- 2. Fremde Referenzen
 
-test('BIP 350: alle gueltigen bech32m-Zeichenketten werden gelesen, alle ungueltigen abgelehnt', () => {
+test('bech32m-Referenzvektoren: alle gueltigen bech32m-Zeichenketten werden gelesen, alle ungueltigen abgelehnt', () => {
   const gueltig = [
     'A1LQFN3A', 'a1lqfn3a',
     'an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6',

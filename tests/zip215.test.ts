@@ -1,12 +1,12 @@
 /**
- * Ed25519 nach ZIP 215 (docs/CONSENSUS_V6.md 7.8).
+ * Ed25519 nach der Regel aus docs/CONSENSUS_V6.md 7.8.
  *
  * Die Konsensregel ist seit Genesis die von @noble/curves (zip215). Knoten
  * pruefen ab jetzt mit dem WASM-Modul aus ed25519-zebra -- schneller, aber
  * nur zulaessig, wenn es in JEDEM Fall genauso entscheidet. Diese Datei ist
  * der Beleg dafuer:
  *
- *   - 196 offizielle Vektoren aus ZIP 215 (Zcash Foundation)
+ *   - 196 veroeffentlichte Grenzfaelle (Quelle in der Fixture-Datei)
  *   - 12 Faelle aus ed25519-speccheck ("Taming the many EdDSAs")
  *   - gezielt gebaute Grenzfaelle: kleine und gemischte Ordnung,
  *     nicht-kanonische Kodierungen, S >= L
@@ -40,7 +40,7 @@ test('Modul: geladen, Pruefsumme stimmt, Selbstprobe bestanden', () => {
   assert.equal(ZIP215_WASM_SHA256, '12b6e5044fd48dcd0fc4191960bc2e0a8cbc093435978cc5067d0b50fa769bd3');
 });
 
-test('ZIP 215: alle 196 offiziellen Vektoren -- noble und WASM entscheiden wie Zcash', () => {
+test('Regel 7.8: alle 196 veroeffentlichten Grenzfaelle -- noble und WASM entscheiden wie erwartet', () => {
   const msg = new TextEncoder().encode('Zcash');
   assert.equal(V.zip215.faelle.length, 196);
   for (const [i, c] of V.zip215.faelle.entries()) {

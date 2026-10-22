@@ -9,7 +9,7 @@
  *      kennt es als naechste? Beides geht in den Handschlag (11.4) und in
  *      die Status-API (13).
  *
- *   2. Ist dieser Knoten vermutlich veraltet? Nach Moneros hardfork.cpp:
+ *   2. Ist dieser Knoten vermutlich veraltet?
  *      Hat er einen Block mit hoeherer Fassung und gueltiger Arbeit
  *      gesehen, ist er es sicher (`outdated`). Davon unabhaengig vergleicht
  *      er die Uhr mit dem Zeitstempel der letzten Fassung, die er kennt:
@@ -78,7 +78,7 @@ export function liefertBloeckeAb(peerFassung: number, hoehe: number, params: Con
 /**
  * Liegt die eigene Hoehe in den letzten 1.000 Bloecken vor der Aktivierung?
  * Dann werden eingehende Plaetze bevorzugt bei Peers alter Fassung frei
- * gemacht (11.4, nach ZIP 201).
+ * gemacht (11.4).
  */
 export const VERDRAENGUNGSFENSTER = 1_000;
 

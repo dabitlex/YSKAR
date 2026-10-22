@@ -278,6 +278,7 @@ ignored without a message.
 | `--pool-fee <bp>` | `0` | `mine` | Pool fee in basis points, 0 to 500 (100 = 1.00 %) |
 | `--pool-payout <address>` | none | `mine` | Address that receives the pool fee. Required when the fee is above 0 |
 | `--pool-max <n>` | chain limit | `mine` | Highest number of addresses in the pool, 1 to 64. The chain limit is 64, or 63 when a fee is set |
+| `--mempool-mb <n>` | 32 | `mine` | Limit of the mempool in MB of serialized transactions, 1 to 4096. When it is full, a higher fee per byte evicts the cheapest (see [The mempool](#the-mempool)) |
 | `--sender-ip <proxy\|socket>` | none | `mine` | Recognize the sender of mining requests and apply the per-sender session limits. `proxy`: the last entry of `X-Forwarded-For`, for a node behind a reverse proxy that sets this header itself (Caddy does). `socket`: the address of the connection, only for a node without a proxy in front. Without this option there are no per-sender limits |
 | `-h`, `--help` | | | Print the help text and exit |
 
@@ -617,6 +618,7 @@ garbage.
 |---|---|---|
 | 1 | Not already in the mempool | `duplicate` |
 | 2 | Fee at least the node's relay minimum (see [FEES.md](FEES.md)) | `fee_too_low` |
+| 2a | Fee at least the node's current floor, which rises after an eviction (below) | `pool_min_fee`, with `required` |
 | 3 | Amount above zero | `malformed` |
 | 4 | Not expired (`validUntil`) | `expired` |
 | 5 | The sender account exists | `unknown_account` |
@@ -624,11 +626,20 @@ garbage.
 | 7 | Same sender and nonce already pending: the fee must be at least the old fee plus the relay minimum, then the new transfer replaces the old one | `fee_not_higher` |
 | 8 | Otherwise: the nonce continues the sender's pending transfers without a gap | `nonce_gap` |
 | 9 | At most 32 pending transfers per sender | `sender_limit` |
-| 10 | At most 5,000 transfers in the mempool | `pool_full` |
+| 10 | Room in the mempool (32 MB by default): if it is full, cheaper transactions are evicted (below); if none pays less per byte, the transfer is refused | `pool_min_fee`, with `required` |
 | 11 | The balance covers the amounts and fees of all the sender's pending transfers plus this one | `insufficient_funds` |
 | 12 | The consensus checks of a transfer, including the signature | `bad_signature`, `expired`, `fee_too_low` or `malformed` |
 
-A full mempool rejects new transfers regardless of their fee. It does not evict cheaper ones.
+**A full mempool never refuses in general.** A transfer that pays more per byte than the cheapest
+pending one (plus a small increment) evicts it. Only the last pending nonce of a sender can be
+evicted, so no gap arises, and the new transfer's own sender is skipped. After an eviction the
+node's floor rises to the evicted rate plus the increment and then halves every 3 hours (every 45
+minutes while the mempool is at most half full). `/fees` reports the floor as `mindestJeByte`.
+Every refusal for lack of fee carries `required`, the fee that would be accepted now.
+
+Transfers from the node's own wallet (Node Core) are local: never evicted, never expired, saved
+in `eigene-tx.json` and announced again every ten minutes. Details:
+[CONSENSUS_V6.md, 13b](CONSENSUS_V6.md#13b-the-mempool-under-load).
 
 After every accepted block, whether it came from a miner at this node, from another node or from
 the HTTP source, the node updates the mempool in this order:
@@ -637,12 +648,16 @@ the HTTP source, the node updates the mempool in this order:
    the new branch contains the same transfer, its nonce is already used and the check rejects it.
 2. Transfers that are now in the chain are removed, and so is every pending transfer whose nonce
    is too low or whose amount is no longer covered.
-3. Transfers that have waited longer than 3,600 seconds are dropped.
+3. Transfers that have waited longer than 72 hours are dropped, together with their later
+   nonces. Local transfers stay.
 
-**Block templates.** For a job the node picks at most 1,999 transfers; the remaining slot of the
-2,000 per block belongs to the coinbase. Transfers of one sender must be included in nonce
+**Block templates.** For a job the node picks at most 1,999 transfers (4,999 from revision 6);
+the remaining slot belongs to the coinbase. Transfers of one sender must be included in nonce
 order. The node therefore selects greedily: in each step it takes, among the next due transfer
-of every sender, the one with the highest fee.
+of every sender, the one with the highest fee per byte. Signatures were checked on admission;
+the finished block is checked in full once more. When building a template takes longer than
+50 ms (a full mempool), a new template is built at most every 20 build times, at most every
+10 seconds, instead of after every new transfer.
 
 ## Upstream and the mirror
 
