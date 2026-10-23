@@ -113,6 +113,7 @@
     whitepaperSprache();
     liveZeigen();
     document.documentElement.classList.remove('i18n-wartet');
+    try { document.dispatchEvent(new CustomEvent('yskar:sprache', { detail: { sprache: sprache } })); } catch (e) { /* alte Browser */ }
   }
 
   function laden(s, fertig) {
@@ -215,31 +216,49 @@
   }
 
   function liveZeigen() {
-    var feld = function (id, wert) { var e = document.getElementById(id); if (e) e.textContent = wert; };
     var loc = LOCALES[sprache];
+    // Jedes Feld kann mehrfach vorkommen (Laufband, Kennzahlen): data-live="name",
+    // aeltere Seiten nutzen noch id="live-name".
+    var feld = function (name, wert) {
+      var e = document.getElementById('live-' + name);
+      if (e) e.textContent = wert;
+      var alle = document.querySelectorAll('[data-live="' + name + '"]');
+      for (var i = 0; i < alle.length; i++) alle[i].textContent = wert;
+    };
     if (!live) {
-      if (liveFehler) feld('live-status', t('live.fehler') || '');
+      if (liveFehler) feld('status', t('live.fehler') || '');
       return;
     }
     var h = Number(live.height);
-    feld('live-hoehe', isFinite(h) ? '#' + h.toLocaleString(loc) : '—');
-    feld('live-rate', rate(Number(live.hashrate)));
-    var umlauf = Number(BigInt(live.totalSupply || '0') / 100000000n);
-    feld('live-umlauf', umlauf.toLocaleString(loc) + ' YSR');
+    feld('hoehe', isFinite(h) ? '#' + h.toLocaleString(loc) : '—');
+    feld('rate', rate(Number(live.hashrate)));
+    var einheiten = BigInt(live.totalSupply || '0');
+    var umlauf = Number(einheiten / 100000000n);
+    feld('umlauf', umlauf.toLocaleString(loc) + ' YSR');
+    feld('umlaufMio', (umlauf / 1e6).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     var naechste = (Math.floor(h / EPOCHE) + 1) * EPOCHE;
     var vorlage = t('live.blockN') || 'Block {n}';
-    feld('live-halbierung', vorlage.replace('{n}', naechste.toLocaleString(loc)));
-    feld('live-status', t('live.stand') || '');
-    // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke und der gesuchte.
+    feld('halbierung', vorlage.replace('{n}', naechste.toLocaleString(loc)));
+    // Bei 10 Minuten je Block; nur eine Schaetzung, die Seite sagt "etwa".
+    var tage = Math.round((naechste - h) * 600 / 86400);
+    feld('tage', isFinite(tage) ? '≈ ' + tage.toLocaleString(loc) : '—');
+    if (live.activeMiners != null) feld('miner', Number(live.activeMiners).toLocaleString(loc));
+    if (live.knoten != null) feld('knoten', Number(live.knoten).toLocaleString(loc));
+    var max = Number(BigInt(live.maxSupply || '2100000000000000') / 100000000n);
+    var anteil = max > 0 ? umlauf / max * 100 : 0;
+    feld('anteil', (t('supply.anteil') || '{p} % mined').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
+    feld('status', t('live.stand') || '');
+    // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke.
     var glieder = document.querySelectorAll('[data-kette]');
     for (var i = 0; i < glieder.length; i++) {
       var n = h + Number(glieder[i].getAttribute('data-kette'));
       glieder[i].textContent = isFinite(n) && n >= 0 ? '#' + n.toLocaleString(loc) : '#…';
     }
+    try { document.dispatchEvent(new CustomEvent('yskar:live', { detail: { hoehe: h, umlauf: umlauf, anteil: anteil } })); } catch (e) { /* alte Browser */ }
   }
 
   function liveHolen() {
-    if (!document.getElementById('live-hoehe')) return;
+    if (!document.getElementById('live-hoehe') && !document.querySelector('[data-live]')) return;
     fetch(API + '/summary', { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (d) { live = d; liveFehler = false; liveZeigen(); })
