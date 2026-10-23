@@ -14,7 +14,7 @@ export function sha256d(data: Uint8Array): Uint8Array {
  * ausgegeben werden kann.
  *
  * Bei ungerader Anzahl wird der letzte Knoten UNVERAENDERT hochgereicht,
- * statt ihn zu verdoppeln. Bitcoins Verdopplung erlaubt zwei verschiedene
+ * statt ihn zu verdoppeln. Eine Verdopplung erlaubte zwei verschiedene
  * Transaktionslisten mit demselben Root (CVE-2012-2459).
  */
 export function merkleRoot(leaves: Uint8Array[]): Uint8Array {

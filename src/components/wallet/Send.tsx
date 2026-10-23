@@ -44,7 +44,7 @@ import { tippen, eingabeAnzeige, type Taste } from '@/lib/wallet/ziffern';
 import { zahlungAusText, type Zahlung } from '@/lib/wallet/qr';
 import { tagSchluessel } from '@/lib/wallet/verlaufGruppen';
 import { useKontakte } from '@/lib/wallet/kontakte';
-import { eigeneMerken, type EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
+import { eigeneLesen, eigeneMerken, naechsteEigeneNonce, type EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
 
 /**
  * Senden -- vier Schritte, jeder mit einer Frage.
@@ -224,7 +224,9 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   // Beim Erhoehen: mindestens alte Gebuehr plus Weiterleitungsgebuehr, sonst
   // nimmt kein Knoten die Ersetzung an -- und mindestens, was der Knoten
   // zuletzt als noetig genannt hat.
-  const ersatzBoden = ersetzen
+  // Endgueltig abgelehnt (etwa alte Fassung nach der Aktivierung): Die alte
+  // gilt nirgends mehr, es gibt nichts zu ersetzen -- neu senden genuegt.
+  const ersatzBoden = ersetzen && !ersetzen.abgelehnt
     ? BigInt(ersetzen.gebuehr) + (markt?.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(groesse) : MIN_FEE)
     : 0n;
   const gebuehr = hoechste(stufenGebuehr, bodenJeByte, ersatzBoden,
@@ -240,7 +242,10 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const kontostand = BigInt(account?.balance ?? '0');
   // Beim Erhoehen wird die wartende Zahlung ersetzt -- ihr Betrag und ihre
   // Gebuehr sind dann wieder frei.
-  const frei = ersetzen ? BigInt(ersetzen.betrag) + BigInt(ersetzen.gebuehr) : 0n;
+  // Nur, wenn sie beim Knoten wirklich noch wartet: Sonst ist sie in
+  // `wartendAus` gar nicht enthalten und zaehlte doppelt.
+  const alteWartet = !!ersetzen && (account?.pending ?? []).some(p => p.txid === ersetzen.txid);
+  const frei = alteWartet ? BigInt(ersetzen!.betrag) + BigInt(ersetzen!.gebuehr) : 0n;
   const guthaben = kontostand + frei > wartendAus ? kontostand + frei - wartendAus : 0n;
   const adresse = ziel.trim().toLowerCase();
   const zielGueltig = isValidAddress(adresse);
@@ -373,9 +378,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         // Zahlungen. Mit der reinen Zustands-Nonce gaelte eine zweite
         // Zahlung vor der Bestaetigung als Ersatz der ersten -- und der
         // Knoten lehnte sie ab, weil die Gebuehr nicht hoeher ist.
-        nonce: ersetzen ? BigInt(ersetzen.nonce) : BigInt(account?.nextNonce
-          ?? String(BigInt(account?.nonce ?? '0')
-                    + BigInt((account?.pending ?? []).filter(p => p.kind === 'out').length))),
+        // Gemerkte eigene Zahlungen zaehlen mit: Hat der Knoten eine davon
+        // verdraengt, laege `nextNonce` auf ihrer Nonce, und die neue
+        // Zahlung ersetzte sie still (wartendeZahlungen.ts).
+        nonce: ersetzen ? BigInt(ersetzen.nonce)
+          : naechsteEigeneNonce(wallet.address ? eigeneLesen(wallet.address) : [], account),
         publicKey: kp.publicKey,
         privateKey: kp.privateKey,
         memo: notiz ? new TextEncoder().encode(notizKuerzen(notiz)) : undefined,
@@ -398,8 +405,12 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
       if (!body.accepted) {
         // Andrang: Der Knoten nennt die Gebuehr, die jetzt reicht. Sie wird
         // uebernommen und angezeigt; gesendet wird erst nach einem neuen Ja.
-        if ((body.reason === 'pool_min_fee' || body.reason === 'fee_too_low' || body.reason === 'fee_not_higher')
-            && typeof body.required === 'string' && /^\d+$/.test(body.required)) {
+        // `fee_not_higher` nur beim Erhoehen: Beim normalen Senden heisst es,
+        // dass schon eine andere Zahlung diese Nonce traegt -- sie zu
+        // ersetzen waere eine ganz andere Handlung als "Gebuehr anpassen".
+        const anpassbar = body.reason === 'pool_min_fee' || body.reason === 'fee_too_low'
+          || (body.reason === 'fee_not_higher' && !!ersetzen && !ersetzen.abgelehnt);
+        if (anpassbar && typeof body.required === 'string' && /^\d+$/.test(body.required)) {
           setNachAblehnung(BigInt(body.required));
           setMarktStand(n => n + 1);
           setPin('');
@@ -407,7 +418,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         }
         // Ohne `required` (selten: nichts im Mempool des Knotens kann weichen)
         // gibt es keinen Betrag, der jetzt sicher reicht -- dann nichts versprechen.
-        throw new Error(body.reason === 'pool_min_fee' ? t.fehler.tx.sonst(body.reason) : uebersetze(body.reason, t));
+        if (body.reason === 'pool_min_fee') {
+          const eigeneWarten = (account?.pending ?? []).some(p => p.kind === 'out');
+          throw new Error(eigeneWarten ? t.fehler.tx.pool_vorgaenger : t.fehler.tx.pool_voll);
+        }
+        throw new Error(uebersetze(body.reason, t));
       }
       const id = body.txid ?? toHex(txid(tx));
       // Fuer den Fall, dass ein Knoten sie bei Andrang verdraengt oder nach
@@ -416,7 +431,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         eigeneMerken(wallet.address, {
           txid: id, raw: toHex(serializeTx(tx)), nonce: tx.nonce.toString(), an: adresse,
           betrag: tx.amount.toString(), gebuehr: tx.fee.toString(),
-          notiz: notiz ? notizKuerzen(notiz) : '', um: Date.now(), zuletzt: Date.now(), noetig: null,
+          notiz: notiz ? notizKuerzen(notiz) : '', um: Date.now(), zuletzt: Date.now(), noetig: null, abgelehnt: null,
         });
       }
 
@@ -513,10 +528,10 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   if (schritt === 'pruefen') {
     return (
       <div className={rahmen}>
-        <WKopf titel={ersetzen ? t.senden.erhoehenTitel : t.senden.pruefenTitel}
+        <WKopf titel={ersetzen ? (ersetzen.abgelehnt ? t.wallet.neuSenden : t.senden.erhoehenTitel) : t.senden.pruefenTitel}
                onZurueck={() => { setFehler(null); if (ersetzen) onAbbruch(); else setSchritt('betrag'); }}
                rechts={ersetzen ? undefined : <Schritte schritt={3} />} />
-        {ersetzen && <div className="mb-3"><Notice tone="work">{t.senden.erhoehenText}</Notice></div>}
+        {ersetzen && <div className="mb-3"><Notice tone="work">{ersetzen.abgelehnt ? t.wallet.abgelehntText : t.senden.erhoehenText}</Notice></div>}
 
         <section className="panel rise !rounded-[24px] px-[18px] pb-1.5 pt-4">
           <Kappe>{t.senden.duSendest}</Kappe>

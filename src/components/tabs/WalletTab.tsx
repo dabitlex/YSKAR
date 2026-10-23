@@ -535,12 +535,17 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
         <section aria-label={t.wallet.festTitel}
                  className="warte rise rise-2 mt-3.5 flex flex-col gap-2 rounded-[20px] px-4 py-[13px]">
           <span className="text-[14px] font-extrabold">{t.wallet.festTitel}</span>
-          <span className="text-[12.5px] font-semibold leading-[1.4] text-text">{t.wallet.festText}</span>
+          {fest.some(z => !z.abgelehnt) && (
+            <span className="text-[12.5px] font-semibold leading-[1.4] text-text">{t.wallet.festText}</span>
+          )}
+          {fest.some(z => z.abgelehnt) && (
+            <span className="text-[12.5px] font-semibold leading-[1.4] text-text">{t.wallet.abgelehntText}</span>
+          )}
           {fest.slice(0, 3).map(z => (
             <button key={z.txid} type="button" onClick={() => onErhoehen(z)}
                     className="flex h-11 items-center justify-between gap-2 rounded-[14px] bg-surface px-3.5 text-[13.5px] font-extrabold active:scale-[.985]">
               <span className="tnum truncate">{t.wallet.unterwegsAn(zeigen(z.betrag), symbol, wer(z.an))}</span>
-              <span className="shrink-0 text-work">{t.wallet.erhoehen}</span>
+              <span className="shrink-0 text-work">{z.abgelehnt ? t.wallet.neuSenden : t.wallet.erhoehen}</span>
             </button>
           ))}
         </section>

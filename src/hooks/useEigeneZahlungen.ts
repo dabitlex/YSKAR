@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  eigeneLesen, eigeneSchreiben, lage, ERNEUT_MS, type EigeneZahlung,
+  eigeneLesen, eigeneSchreiben, lage, einordnen, ERNEUT_MS, type EigeneZahlung,
 } from '@/lib/wallet/wartendeZahlungen';
 
 /** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
@@ -22,7 +22,9 @@ interface Konto {
  * Fest haengt eine Zahlung, wenn der Knoten sie nicht wieder annimmt (die
  * Untergrenze liegt inzwischen hoeher) oder wenn sie wartet, aber in der
  * Vorschau des Knotens noch keinen Block hat. Fuer beide bietet die Wallet
- * "Gebuehr erhoehen" an.
+ * "Gebuehr erhoehen" an. Lehnt der Knoten sie endgueltig ab (etwa eine
+ * Ueberweisung der alten Fassung nach der Aktivierung), bietet sie "neu
+ * senden" an: dieselbe Zahlung, neu signiert.
  */
 export function useEigeneZahlungen(adresse: string | null, konto: Konto | null) {
   const [fest, setFest] = useState<EigeneZahlung[]>([]);
@@ -42,19 +44,22 @@ export function useEigeneZahlungen(adresse: string | null, konto: Konto | null) 
         if (l === 'bestaetigt' || l === 'ueberholt' || l === 'aufgegeben') { aenderung.set(z.txid, null); continue; }
         if (l !== 'erneut') {
           // Wartet sie, gilt eine frueher gemeldete Untergrenze nicht mehr.
-          if (l === 'wartet' && z.noetig) aenderung.set(z.txid, { ...z, noetig: null });
+          if (l === 'wartet' && (z.noetig != null || z.abgelehnt)) aenderung.set(z.txid, { ...z, noetig: null, abgelehnt: null });
           continue;
         }
+        // Endgueltig abgelehnt: dieselben Bytes nicht immer wieder schicken.
+        if (z.abgelehnt) continue;
         let neu: EigeneZahlung = { ...z, zuletzt: jetzt };
         try {
           const res = await fetch(`${MINING_BASIS}/api/v2/tx`, {
             method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ raw: z.raw }),
           });
-          const b = await res.json();
-          if (b.accepted || b.reason === 'duplicate') neu = { ...neu, noetig: null };
-          else if (b.reason === 'pool_min_fee' || b.reason === 'fee_too_low') neu = { ...neu, noetig: b.required ?? null };
-          else if (b.reason === 'nonce_too_low') { aenderung.set(z.txid, null); continue; }   // bestaetigt oder ersetzt
+          const e = einordnen(await res.json());
+          if (e.art === 'erledigt') { aenderung.set(z.txid, null); continue; }   // bestaetigt oder ersetzt
+          if (e.art === 'angenommen') neu = { ...neu, noetig: null, abgelehnt: null };
+          else if (e.art === 'noetig') neu = { ...neu, noetig: e.noetig ?? '' };
+          else if (e.art === 'abgelehnt') neu = { ...neu, abgelehnt: e.grund };
         } catch { /* Netz weg: beim naechsten Mal */ }
         aenderung.set(z.txid, neu);
       }
@@ -67,7 +72,9 @@ export function useEigeneZahlungen(adresse: string | null, konto: Konto | null) 
       eigeneSchreiben(adresse, behalten);
       const ohneBlock = new Set((konto.pending ?? [])
         .filter(p => p.kind === 'out' && p.block === null).map(p => p.txid));
-      setFest(behalten.filter(z => (z.noetig != null && z.noetig !== '') || ohneBlock.has(z.txid)));
+      // noetig === '': Andrang ohne Betrag, der jetzt sicher reicht -- auch dann
+      // haengt sie fest und wird angezeigt.
+      setFest(behalten.filter(z => z.noetig != null || !!z.abgelehnt || ohneBlock.has(z.txid)));
     } finally {
       laeuft.current = false;
     }

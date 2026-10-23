@@ -456,6 +456,8 @@ export type { Huelle } from './Programm.ts';
 
 /** Abstand, in dem eigene wartende Transaktionen erneut angekuendigt werden. */
 const EIGENE_TAKT_MS = 10 * 60_000;
+/** So lange wird eine eigene Transaktion, die der Mempool nicht nimmt, weiter versucht. */
+const EIGENE_OFFEN_MAX_MS = 72 * 3600_000;
 /** So viele wartende Transaktionen zeigt die Oberflaeche einzeln. */
 const MEMPOOL_ANZEIGE = 200;
 
@@ -2098,9 +2100,18 @@ export class NodeCoreApp {
       txid: string; art: 'aus' | 'ein'; gegen: string; name: string | null;
       betrag: string; gebuehr: string; notiz: string; seit: number;
       nonce: string; block: number | null; minuten: number | null;
+      /** Teil einer Sammelzahlung: eine Zeile je Empfaenger, die Gebuehr gilt fuer alle zusammen. */
+      sammel: boolean;
+      /** Im Mempool (false: eigene, die gerade nicht aufgenommen wird -- nicht erhoehbar). */
+      imPool: boolean;
     }[] = [];
     // Nur, was dieses Konto betrifft -- nicht den ganzen Mempool durchsuchen.
-    for (const t of this.pool?.zuKonto(hex) ?? []) {
+    // Dazu eigene, die der Mempool gerade nicht nimmt (eigeneOffen): Sie
+    // werden weiter eingereicht und binden Guthaben und Nonce genauso.
+    const imPool = this.pool?.zuKonto(hex) ?? [];
+    const ids = new Set(imPool.map(x => toHex(txid(x))));
+    const offen = this.eigeneOffen.filter(x => toHex(senderRaw(x)) === hex && !ids.has(toHex(txid(x))));
+    for (const t of [...imPool, ...offen]) {
       const absender = senderRaw(t);
       const aus = toHex(absender) === hex;
       const ausgaenge = spendOutputs(t);
@@ -2118,6 +2129,8 @@ export class NodeCoreApp {
           betrag: o.amount.toString(), gebuehr: t.fee.toString(),
           notiz, seit: this.txGesehen.get(id) ?? Date.now(),
           nonce: t.nonce.toString(), block: platz.block, minuten: platz.minuten,
+          sammel: t.type === TX_BATCH,
+          imPool: ids.has(id),
         });
       }
     }
@@ -2130,11 +2143,27 @@ export class NodeCoreApp {
       ? getAccount(this.chain.state(), decodeAddress(adresse))
       : { balance: 0n, nonce: 0n };
     const wartend = this.walletWartend(adresse);
-    const gebunden = wartend.filter(w => w.art === 'aus')
-      .reduce((summe, w) => summe + BigInt(w.betrag) + BigInt(w.gebuehr), 0n);
+    // Je Transaktion: alle Betraege, die Gebuehr EINMAL -- eine Sammelzahlung
+    // steht mit einer Zeile je Empfaenger in der Liste.
+    let gebunden = 0n;
+    const gezaehlt = new Set<string>();
+    for (const w of wartend) {
+      if (w.art !== 'aus') continue;
+      gebunden += BigInt(w.betrag);
+      if (!gezaehlt.has(w.txid)) { gezaehlt.add(w.txid); gebunden += BigInt(w.gebuehr); }
+    }
     const verfuegbar = konto.balance > gebunden ? konto.balance - gebunden : 0n;
-    return { konto, wartend, gebunden, verfuegbar,
-             naechsteNonce: konto.nonce + BigInt(new Set(wartend.filter(w => w.art === 'aus').map(w => w.txid)).size) };
+    // Die naechste Nonce: hinter der hoechsten eigenen, die wartet -- im
+    // Mempool oder in eigeneOffen. Eine Zahl wartender Transaktionen genuegte
+    // nicht: Haengt eine in eigeneOffen, entstuende sonst eine doppelte Nonce,
+    // und eine der beiden Zahlungen ginge verloren.
+    let naechsteNonce = konto.nonce;
+    for (const w of wartend) {
+      if (w.art !== 'aus') continue;
+      const n = BigInt(w.nonce) + 1n;
+      if (n > naechsteNonce) naechsteNonce = n;
+    }
+    return { konto, wartend, gebunden, verfuegbar, naechsteNonce };
   }
 
   private walletUebersicht() {
@@ -2258,9 +2287,45 @@ export class NodeCoreApp {
     };
   }
 
+  /**
+   * Senden und Erhoehen nacheinander: Beide ermitteln die Nonce bzw. die
+   * wartende Transaktion, warten dann auf den Schluessel (Passwort-Ableitung)
+   * und geben erst danach in den Mempool. Liefen zwei gleichzeitig, bekaemen
+   * sie dieselbe Nonce, und die zweite ersetzte die erste still.
+   */
+  private walletReihe: Promise<unknown> = Promise.resolve();
+  private walletNacheinander<T>(f: () => Promise<T>): Promise<T> {
+    const r = this.walletReihe.then(f, f);
+    this.walletReihe = r.catch(() => undefined);
+    return r;
+  }
+
   /** Unterschreiben und ins Netz geben. Verlangt das Passwort -- jedes Mal. */
   private async walletSenden(body: Record<string, unknown>) {
     const r = this.walletRechne(body);
+    /*
+      Die Gebuehr, die der Nutzer im Pruefschritt gesehen hat. Ist die
+      noetige inzwischen hoeher (Andrang), wird NICHT gesendet: neuer Betrag,
+      neue Bestaetigung (CONSENSUS_V6.md 13b). Ist sie gleich oder niedriger,
+      gilt die bestaetigte -- gesendet wird, was angezeigt war.
+    */
+    if (body.gebuehr !== undefined) {
+      const gesehen = typeof body.gebuehr === 'string' && /^\d{1,19}$/.test(body.gebuehr) ? BigInt(body.gebuehr) : null;
+      if (gesehen === null) throw new WalletFehler('gebuehr_fehlt', 'Die Gebühr wurde nicht bestätigt.');
+      if (r.gebuehr > gesehen) {
+        throw new WalletFehler('gebuehr_gestiegen', `Die nötige Gebühr ist gestiegen: jetzt ${r.gebuehr}. Bitte erneut bestätigen.`,
+          [r.gebuehr.toString()]);
+      }
+      if (gesehen > r.gebuehr) {
+        if (body.alles === true) r.betrag -= gesehen - r.gebuehr;
+        r.gebuehr = gesehen;
+        if (r.betrag <= 0n) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+        if (this.chain!.height() + 1 >= (this.params.feeV3Height ?? FEE_V3_HEIGHT) && r.betrag < DUST_LIMIT) {
+          throw new WalletFehler('betrag_staub', 'Der Betrag ist zu klein. Mindestens 0,000001 YSR.');
+        }
+        if (r.betrag + r.gebuehr > r.verfuegbar) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+      }
+    }
     const paar = await this.wallet.schluessel(body.passwort);
     const tx = buildTransfer({
       chainId: this.params.chainId,
@@ -2309,7 +2374,11 @@ export class NodeCoreApp {
    * kein Knoten die Ersetzung an), mindestens die Stufe "schnell" fuer ihre
    * Groesse. Verlangt das Passwort -- jedes Mal.
    */
-  private async walletErhoehen(body: Record<string, unknown>) {
+  /**
+   * Was das Erhoehen kosten wuerde: Stufe "schnell" fuer die Groesse der
+   * Ueberweisung, mindestens alte Gebuehr plus Weiterleitungsgebuehr.
+   */
+  private erhoehenRechnen(body: Record<string, unknown>) {
     const adresse = this.wallet.verlangeOffen();
     const id = String(body.txid ?? '').toLowerCase();
     const alt = /^[0-9a-f]{64}$/.test(id) ? this.pool?.get(id) : null;
@@ -2321,6 +2390,32 @@ export class NodeCoreApp {
     const schnell = BigInt(Math.ceil(Number(markt.stufen.schnell.jeByte) * txBytes(alt)));
     const mindest = alt.fee + this.pool!.mindestGebuehrFuer(alt, hoehe);
     const gebuehr = schnell > mindest ? schnell : mindest;
+    return { id, alt, hoehe, mindest, gebuehr };
+  }
+
+  /** Erhoehen, Schritt 1: den neuen Betrag nennen -- ohne Passwort, ohne zu senden. */
+  private walletErhoehenVorschau(body: Record<string, unknown>) {
+    const { alt, gebuehr } = this.erhoehenRechnen(body);
+    return { gebuehr: gebuehr.toString(), bisher: alt.fee.toString() };
+  }
+
+  /**
+   * Erhoehen, Schritt 2: mit Passwort und der BESTAETIGTEN Gebuehr. Gesendet
+   * wird genau dieser Betrag. Reicht er inzwischen nicht mehr (die Untergrenze
+   * ist gestiegen), wird nichts gesendet und der neue Betrag genannt -- nie
+   * eine hoehere Gebuehr ohne neue Bestaetigung (CONSENSUS_V6.md 13b).
+   */
+  private async walletErhoehen(body: Record<string, unknown>) {
+    const { id, alt, hoehe, mindest, gebuehr: vorschlag } = this.erhoehenRechnen(body);
+    const bestaetigt = typeof body.gebuehr === 'string' && /^\d{1,19}$/.test(body.gebuehr) ? BigInt(body.gebuehr) : null;
+    if (bestaetigt === null) {
+      throw new WalletFehler('gebuehr_fehlt', 'Die neue Gebühr wurde nicht bestätigt.');
+    }
+    if (bestaetigt < mindest) {
+      throw new WalletFehler('gebuehr_gestiegen', `Die nötige Gebühr ist gestiegen: jetzt ${vorschlag}. Bitte erneut bestätigen.`,
+        [vorschlag.toString()]);
+    }
+    const gebuehr = bestaetigt;
     const paar = await this.wallet.schluessel(body.passwort);
     const neu = buildTransfer({
       chainId: this.params.chainId,
@@ -2352,9 +2447,61 @@ export class NodeCoreApp {
   private sichereEigene(): void {
     if (!this.pool) return;
     try {
-      writeFileSync(this.eigenePfad, JSON.stringify(this.pool.lokale().map(x => toHex(serializeTx(x)))));
+      const alle = new Map<string, string>();
+      for (const x of [...this.pool.lokale(), ...this.eigeneOffen]) alle.set(toHex(txid(x)), toHex(serializeTx(x)));
+      writeFileSync(this.eigenePfad, JSON.stringify([...alle.values()]));
     } catch (e) { this.log(`eigene-tx.json nicht gespeichert: ${(e as Error).message}`); }
   }
+
+  /**
+   * Eigene Transaktionen, die der Mempool gerade nicht nimmt -- etwa weil die
+   * Kette nach einem Neustart noch nicht auf dem Stand ist. Sie bleiben in
+   * eigene-tx.json und werden alle zehn Minuten erneut versucht, bis sie
+   * angenommen oder bestaetigt sind. Nur endgueltig ungueltige fallen weg.
+   */
+  private eigeneOffen: Spend[] = [];
+
+  /** Eigene erneut in den Mempool geben; liefert, was weiter offen bleibt. */
+  private eigeneVersuchen(txs: Spend[]): { wieder: number; offen: Spend[] } {
+    const sortiert = [...txs].sort((a, b) => (a.nonce < b.nonce ? -1 : a.nonce > b.nonce ? 1 : 0));
+    let wieder = 0;
+    const offen: Spend[] = [];
+    /** Je Absender: ab dieser Nonce ist alles verworfen -- es haengt an einer Luecke, die nie mehr zugeht. */
+    const verworfenAb = new Map<string, bigint>();
+    const jetzt = Date.now();
+    for (const x of sortiert) {
+      const absender = toHex(senderRaw(x));
+      const id = toHex(txid(x));
+      const ab = verworfenAb.get(absender);
+      if (ab !== undefined && x.nonce >= ab) { this.eigeneSeit.delete(id); continue; }
+      const r = this.pool!.add(x, this.chain!.state(), this.chain!.height() + 1, { lokal: true });
+      if (r.ok) { wieder++; this.eigeneSeit.delete(id); continue; }
+      // Bestaetigt (Nonce verbraucht) oder schon da: erledigt.
+      if (r.reason === 'nonce_too_low' || r.reason === 'duplicate') { this.eigeneSeit.delete(id); continue; }
+      // Kann so nie gueltig werden (etwa Fassung 1 nach der Aktivierung) --
+      // oder wartet zu lange: verwerfen, und mit ihr alles Spaetere dieses
+      // Absenders. Sonst hinge jede neue Zahlung an ihrer Luecke.
+      const seit = this.eigeneSeit.get(id) ?? jetzt;
+      const endgueltig = r.reason === 'bad_signature' || r.reason === 'malformed' || r.reason === 'expired'
+        || r.reason === 'fee_too_low' || jetzt - seit > EIGENE_OFFEN_MAX_MS;
+      if (endgueltig) {
+        this.eigeneSeit.delete(id);
+        if (ab === undefined || x.nonce < ab) verworfenAb.set(absender, x.nonce);
+        this.log(`Eigene Transaktion ${id.slice(0, 16)}… verworfen (${r.reason})`);
+        continue;
+      }
+      this.eigeneSeit.set(id, seit);
+      offen.push(x);
+    }
+    // Was vor dem Verwerfen einer frueheren Nonce schon behalten wurde.
+    return { wieder, offen: offen.filter(x => {
+      const ab = verworfenAb.get(toHex(senderRaw(x)));
+      return ab === undefined || x.nonce < ab;
+    }) };
+  }
+
+  /** Seit wann eine eigene Transaktion in eigeneOffen haengt (nur im Speicher). */
+  private eigeneSeit = new Map<string, number>();
 
   /** Beim Start: gesicherte eigene Transaktionen wieder aufnehmen, soweit sie noch gelten. */
   private ladeEigene(): void {
@@ -2366,13 +2513,11 @@ export class NodeCoreApp {
     for (const h of roh) {
       try { txs.push(deserializeTx(fromHex(String(h))) as Spend); } catch { /* unlesbar */ }
     }
-    // Nach Nonce: Eine Luecke liesse alles Spaetere scheitern.
-    txs.sort((a, b) => (a.nonce < b.nonce ? -1 : a.nonce > b.nonce ? 1 : 0));
-    let wieder = 0;
-    for (const x of txs) {
-      if (this.pool.add(x, this.chain.state(), this.chain.height() + 1, { lokal: true }).ok) wieder++;
-    }
+    // Nach Nonce (in eigeneVersuchen): Eine Luecke liesse alles Spaetere scheitern.
+    const { wieder, offen } = this.eigeneVersuchen(txs);
+    this.eigeneOffen = offen;
     if (wieder > 0) this.log(`${wieder} eigene wartende Transaktion${wieder === 1 ? '' : 'en'} wieder aufgenommen`);
+    if (offen.length > 0) this.log(`${offen.length} eigene Transaktion${offen.length === 1 ? '' : 'en'} gerade nicht aufnehmbar -- neuer Versuch alle zehn Minuten`);
   }
 
   /**
@@ -2383,6 +2528,13 @@ export class NodeCoreApp {
    */
   private eigeneErneut(): void {
     if (!this.pool) return;
+    // In der Reihe mit Senden und Erhoehen: Die ermitteln die Nonce, waehrend
+    // sie auf den Schluessel warten -- dazwischen darf sich nichts aendern.
+    if (this.eigeneOffen.length > 0 && this.chain) {
+      void this.walletNacheinander(async () => {
+        if (this.pool && this.chain) this.eigeneOffen = this.eigeneVersuchen(this.eigeneOffen).offen;
+      }).catch(() => undefined);
+    }
     for (const x of this.pool.lokale()) this.sync?.kuendigeAnTx(txid(x));
     this.sichereEigene();
   }
@@ -2524,8 +2676,9 @@ export class NodeCoreApp {
           if (pfad === '/api/wallet/sperren') { w.sperren(); return json(res, w.stand()); }
           if (pfad === '/api/wallet/regung') { w.regung(); return json(res, w.stand()); }
           if (pfad === '/api/wallet/pruefen') return json(res, this.walletVorschau(b));
-          if (pfad === '/api/wallet/senden') return json(res, await this.walletSenden(b));
-          if (pfad === '/api/wallet/erhoehen') return json(res, await this.walletErhoehen(b));
+          if (pfad === '/api/wallet/senden') return json(res, await this.walletNacheinander(() => this.walletSenden(b)));
+          if (pfad === '/api/wallet/erhoehen/vorschau') return json(res, this.walletErhoehenVorschau(b));
+          if (pfad === '/api/wallet/erhoehen') return json(res, await this.walletNacheinander(() => this.walletErhoehen(b)));
           if (pfad === '/api/wallet/woerter') return json(res, { woerter: await w.woerter(b.passwort) });
           if (pfad === '/api/wallet/passwort') { await w.passwortAendern(b.alt, b.neu); return json(res, { ok: true }); }
           if (pfad === '/api/wallet/entfernen') { await w.entfernen(b.passwort); this.walletGeaendert(); return json(res, w.stand()); }

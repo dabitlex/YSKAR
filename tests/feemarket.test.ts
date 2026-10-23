@@ -171,7 +171,7 @@ test('Die Größe ist die serialisierte Länge, ohne Gewichtung', () => {
   });
   assert.equal(M.vbytes(mit), 200);
   // 19 % Spannweite — deshalb ist ein Satz je Byte hier noch nicht das
-  // richtige Maß. Bei Bitcoin sind es über 2000 %.
+  // richtige Maß.
   assert.ok(M.vbytes(mit) / M.vbytes(ohne) < 1.25);
 });
 

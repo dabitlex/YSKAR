@@ -674,3 +674,11 @@ test('Alte Bloecke unter V6 bleiben byteweise gueltig: REGTEST-Kette unveraender
     recentTimings: [{ solveSeconds: 600n, difficulty: 1n }], now: k.zeit, params: REGTEST };
   assert.equal(validateBlock(k.bloecke[2].block, ctx), null);
 });
+
+test('4.2: keine Adressversion darf 19 Byte Programm haben -- 32 Datenzeichen sind immer Version 0', async () => {
+  const { programLength, decodeAddressAny } = await import('../src/lib/core/address.ts');
+  for (let v = 1; v <= 15; v++) assert.notEqual(programLength(v), 19, `Version ${v}`);
+  const { bech32m } = await import('@scure/base');
+  const text = bech32m.encode('ysr', [2, ...bech32m.toWords(new Uint8Array(19).fill(0xab))]);
+  assert.equal(decodeAddressAny(text).version, 0, 'genau deshalb verboten: so gelesen ist es Version 0');
+});

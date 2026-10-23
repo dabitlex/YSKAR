@@ -183,8 +183,9 @@ export function decodeAddress(text: string, hrp: string = ADDRESS_HRP): Uint8Arr
 /**
  * Textform lesen, ohne die Version zu bewerten. Version 0 erkennt sich an
  * genau 32 Datenzeichen; alles andere ist `[v] | programm` mit v = 1..15 und
- * ganzen Bytes. 32 Datenzeichen koennen nie eine versionierte Adresse sein:
- * 31 Zeichen sind 155 Bit, keine ganzen Bytes.
+ * ganzen Bytes. Eine versionierte Adresse mit 19 Byte Programm haette
+ * ebenfalls 32 Datenzeichen (1 + 31, 152 Bit plus 3 Bit Auffuellung) --
+ * deshalb darf keine Version je 19 Byte festlegen (CONSENSUS_V6.md 4.2).
  */
 export function decodeAddressAny(text: string, hrp: string = ADDRESS_HRP): VersionedAddress {
   const { prefix, words } = bech32m.decode(text as `${string}1${string}`, 90);

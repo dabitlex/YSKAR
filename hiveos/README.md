@@ -14,8 +14,8 @@ The package contains:
 
 NVIDIA only. AMD and Intel cards are not supported yet.
 
-The stock HiveOS miners do not work with YSKAR. YSKAR's block header is 136 bytes long, not the
-80 bytes of Bitcoin, and the pool does not speak Stratum.
+The stock HiveOS miners do not work with YSKAR. YSKAR's block header is 136 bytes long, not 80,
+and the pool does not speak Stratum.
 
 ## Flight sheet
 

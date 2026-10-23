@@ -53,7 +53,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Shares, difficulty, blocks — how your device takes part.',
     lesezeit: '3 min',
     einleitung: 'Your phone computes SHA-256d hashes on a job from the network. ' +
-      'It is the same procedure as Bitcoin — only the difficulty is chosen so ' +
+      'It is real proof of work — and the difficulty is chosen so ' +
       'that a phone has a real chance.',
     bausteine: [
       { art: 'schritte', titel: 'How a block comes to be', punkte: [
@@ -123,10 +123,10 @@ const ARTIKEL: Artikel[] = [
         { label: `Epoch 3 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `An epoch is ${z(EPOCH_BLOCKS)} blocks, roughly ${EPOCHE_TAGE} days. ` +
-        'After that the reward halves — like Bitcoin, only faster.' },
+        'After that the reward halves.' },
       { art: 'absatz', text: `A season is ${z(SEASON_BLOCKS)} blocks, two seasons make an ` +
         'epoch. The reward is halved by a plain bit shift, no rounding — so the total ' +
-        `supply lands just below ${ysr(MAX_SUPPLY)}, exactly like Bitcoin.` },
+        `supply lands just below ${ysr(MAX_SUPPLY)}.` },
       { art: 'kennzahlen', werte: [
         { label: 'Minimum fee', wert: `${ysr(MIN_FEE)} YSR` },
         { label: 'Slots per block', wert: z(MAX_TXS_PER_BLOCK) },

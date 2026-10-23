@@ -159,12 +159,24 @@ test('Der eigene Vorgaenger wird nicht verdraengt', () => {
   assert.ok(pool.add(tx(1, MINDEST * 2n), s, H).ok);
   assert.ok(pool.add(tx(2, MINDEST * 3n), s, H).ok);
   // Konto 0, Nonce 1, sehr teuer: Konto 0 Nonce 0 darf nicht weichen,
-  // sonst waere die neue selbst eine Luecke. Weichen muss Konto 1.
+  // sonst waere die neue selbst eine Luecke. Und Konto 1 weicht auch nicht:
+  // Die neue kaeme erst mit Nonce 0 (10 je Byte) in einen Block, ihr
+  // wirksamer Satz ist 10 (mempool-schutz.test.ts).
   const r = pool.add(tx(0, MINDEST * 9n, 1n), s, H);
-  assert.ok(r.ok, JSON.stringify(r));
+  assert.equal(!r.ok && r.reason, 'pool_min_fee');
+  assert.equal(!r.ok ? r.noetig : 'x', undefined, 'kein Betrag: der Vorgaenger ist zu billig');
   assert.ok(pool.has(txidHex(tx(0, MINDEST, 0n))));
-  assert.ok(!pool.has(txidHex(tx(1, MINDEST * 2n))));
-  pruefeInvarianten(pool, s, 3 * GROESSE);
+  assert.ok(pool.has(txidHex(tx(1, MINDEST * 2n))));
+  // Ist der eigene Vorgaenger teuer genug, weicht der billigste FREMDE.
+  const pool2 = new TxPool(MAINNET, undefined, { maxBytes: 3 * GROESSE });
+  assert.ok(pool2.add(tx(0, MINDEST * 4n, 0n), s, H).ok);
+  assert.ok(pool2.add(tx(1, MINDEST * 2n), s, H).ok);
+  assert.ok(pool2.add(tx(2, MINDEST * 3n), s, H).ok);
+  const r2 = pool2.add(tx(0, MINDEST * 9n, 1n), s, H);
+  assert.ok(r2.ok, JSON.stringify(r2));
+  assert.ok(pool2.has(txidHex(tx(0, MINDEST * 4n, 0n))));
+  assert.ok(!pool2.has(txidHex(tx(1, MINDEST * 2n))));
+  pruefeInvarianten(pool2, s, 3 * GROESSE);
 });
 
 test('Eine Transaktion mit falscher Signatur verdraengt nichts', () => {
@@ -384,9 +396,12 @@ function referenzAuswahl(state: State, mempool: Spend[], limit: number): Spend[]
     let best: { k: string; t: Spend } | null = null;
     for (const k of reihenfolge) {
       if (raus.has(k)) continue;
-      const t = je.get(k)![pos.get(k) ?? 0];
+      let t = je.get(k)![pos.get(k) ?? 0];
       if (!t) continue;
       const a = konto(k, senderRaw(t));
+      // Verbrauchte Nonces ueberspringen, eine Luecke beendet die Reihe.
+      while (t && t.nonce < a.nonce) { pos.set(k, (pos.get(k) ?? 0) + 1); t = je.get(k)![pos.get(k)!]; }
+      if (!t) continue;
       if (t.nonce !== a.nonce) { raus.add(k); continue; }
       if (a.balance < spendTotal(t)) continue;
       if (!best || gebuehrJeByte(t) > gebuehrJeByte(best.t)) best = { k, t };

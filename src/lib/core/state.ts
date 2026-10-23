@@ -10,6 +10,7 @@ import {
 } from './params.ts';
 import { MAINNET, type ConsensusParams } from './networks.ts';
 import { smtRoot, smtKey, SmtBaum } from './smt.ts';
+import { Zustand, unterschiede, type ZustandsWurzel } from './zustand.ts';
 
 /**
  * Kontozustand.
@@ -31,7 +32,12 @@ export interface Account { balance: bigint; nonce: bigint }
  */
 export type State = Map<string, Account>;
 
-export function emptyState(): State { return new Map(); }
+/**
+ * Ein leerer Zustand. Ein Trie mit geteilten Teilen (zustand.ts): Kopien
+ * kosten nichts, und die Zustandswurzel traegt nur die Unterschiede nach.
+ * Eine gewoehnliche Map geht ueberall weiter -- nur ohne diese Abkuerzungen.
+ */
+export function emptyState(): State { return new Zustand(); }
 
 export function getAccount(s: State, addr: Uint8Array): Account {
   return s.get(toHex(addr)) ?? { balance: 0n, nonce: 0n };
@@ -45,7 +51,8 @@ function setAccount(s: State, addr: Uint8Array, a: Account): void {
 }
 
 export function cloneState(s: State): State {
-  return new Map([...s].map(([k, v]) => [k, { ...v }]));
+  if (s instanceof Zustand) return s.kopie();
+  return Zustand.aus(s);
 }
 
 /**
@@ -151,6 +158,15 @@ export class ZustandsBaum {
   private nonces = new BigUint64Array(0);
   private schluessel = new Uint8Array(0);
   private letztePruefung = -Infinity;
+  /**
+   * Bildet der Baum genau den Inhalt dieser Trie-Wurzel ab? Dann genuegt
+   * fuer den naechsten Zustand der Unterschied der beiden Wurzeln
+   * (zustand.ts, unterschiede) -- statt alle Konten zu vergleichen.
+   */
+  private standWurzel: ZustandsWurzel | undefined = undefined;
+  private standBekannt = false;
+  /** Wie oft der Baum nur den Unterschied nachtrug (fuer Tests). */
+  nurUnterschiede = 0;
   private readonly neuerBaum: () => SmtBaum;
   private readonly jetzt: () => number;
   private readonly melde: (text: string) => void;
@@ -183,6 +199,7 @@ export class ZustandsBaum {
     this.stand.clear();
     this.frei = [];
     this.hoch = 0;
+    this.standBekannt = false;
     this.ausBaum(s);
     return referenz;
   }
@@ -194,6 +211,22 @@ export class ZustandsBaum {
   }
 
   private ausBaum(s: State): Uint8Array {
+    if (s instanceof Zustand && this.standBekannt) {
+      // Nur die Konten, in denen sich die Trie-Wurzeln unterscheiden.
+      const ziel = s.wurzel;
+      // Waehrend des Nachtragens ist der Stand weder alt noch neu: Wirft
+      // eintragen() (Wert ausserhalb von u64), gilt er als unbekannt, und
+      // der naechste Aufruf vergleicht wieder alle Konten.
+      this.standBekannt = false;
+      unterschiede(this.standWurzel, ziel, (adresse, konto) => this.eintragen(adresse, konto));
+      this.standWurzel = ziel;
+      this.standBekannt = true;
+      this.nurUnterschiede++;
+      return this.baum.wurzel().slice();
+    }
+    // Bis der volle Vergleich durch ist, ist der Stand unbekannt -- ein
+    // Fehler mittendrin darf keinen falschen Stand hinterlassen.
+    this.standBekannt = false;
     let gesehen = 0;
     for (const [adresse, konto] of s) {
       gesehen++;
@@ -224,8 +257,33 @@ export class ZustandsBaum {
         this.frei.push(z);
       }
     }
+    if (s instanceof Zustand) { this.standWurzel = s.wurzel; this.standBekannt = true; }
     // Eine Kopie: Der Baum behaelt seine Hashes, niemand soll sie von aussen aendern.
     return this.baum.wurzel().slice();
+  }
+
+  /** Ein Konto im Baum und im Stand nachtragen; null = es gibt das Konto nicht (mehr). */
+  private eintragen(adresse: string, konto: Account | null): void {
+    const z = this.stand.get(adresse);
+    if (konto === null) {
+      if (z === undefined) return;
+      this.baum.delete(this.schluessel.subarray(z * 32, z * 32 + 32));
+      this.stand.delete(adresse);
+      this.frei.push(z);
+      return;
+    }
+    const wert = serializeAccount(konto);
+    if (z !== undefined) {
+      this.baum.set(this.schluessel.subarray(z * 32, z * 32 + 32), wert);
+      this.merke(z, konto);
+    } else {
+      const key = smtKey(fromHex(adresse));
+      this.baum.set(key, wert);
+      const neu = this.neueZeile();
+      this.schluessel.set(key, neu * 32);
+      this.merke(neu, konto);
+      this.stand.set(adresse, neu);
+    }
   }
 
   /**
@@ -258,8 +316,9 @@ export class ZustandsBaum {
 const zustandsBaum = new ZustandsBaum();
 
 /** Stand der Selbstpruefung des Zustandsbaums (fuer Status und Tests). */
-export function zustandsbaumPruefung(): { pruefungen: number; abweichungen: number } {
-  return { pruefungen: zustandsBaum.pruefungen, abweichungen: zustandsBaum.abweichungen };
+export function zustandsbaumPruefung(): { pruefungen: number; abweichungen: number; nurUnterschiede: number } {
+  return { pruefungen: zustandsBaum.pruefungen, abweichungen: zustandsBaum.abweichungen,
+           nurUnterschiede: zustandsBaum.nurUnterschiede };
 }
 
 /** Zustandswurzel ab Konsensfassung 6: Sparse-Merkle-Baum (smt.ts, 5.2). */
@@ -434,8 +493,14 @@ function applyBlockEinzeln(
 
   if (totalSupply(draft) > MAX_SUPPLY) return fail(0, 'supply_exceeded');
 
-  state.clear();
-  for (const [k, v] of draft) state.set(k, v);
+  // Uebernehmen. Beim Trie genuegt die Wurzel: draft teilt mit state alles,
+  // was der Block nicht beruehrt hat.
+  if (state instanceof Zustand && draft instanceof Zustand) {
+    state.wurzel = draft.wurzel;
+  } else {
+    state.clear();
+    for (const [k, v] of draft) state.set(k, v);
+  }
   return { ok: true, fees };
 
   function fail(tx: number, reason: string): ApplyResult {
@@ -444,6 +509,7 @@ function applyBlockEinzeln(
 }
 
 export function totalSupply(s: State): bigint {
+  if (s instanceof Zustand) return s.summe();
   let sum = 0n;
   for (const a of s.values()) sum += a.balance;
   return sum;

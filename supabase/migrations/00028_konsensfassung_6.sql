@@ -446,6 +446,19 @@ as $function$
             and z.gegen between p_gegen_lo and p_gegen_hi)
         or (p_gegen2_lo is not null and octet_length(z.gegen) = octet_length(p_gegen2_lo)
             and z.gegen between p_gegen2_lo and p_gegen2_hi)
+        -- Fassung 6: eine AUSGEHENDE Sammelzahlung hat keine einzelne
+        -- Gegenseite (to_addr ist leer). Sie gehoert zur Suche, wenn einer
+        -- ihrer Empfaenger im Bereich liegt.
+        or (z.type = 3 and z.from_addr = p_addr and (p_gegen_lo is not null or p_gegen2_lo is not null)
+            and exists (
+              select 1 from chain2.transactions t3
+               cross join lateral jsonb_array_elements(t3.coinbase_outputs) o3
+               cross join lateral (select decode(o3->>'to', 'hex') as an) e
+               where t3.txid = z.txid
+                 and ((p_gegen_lo is not null and octet_length(e.an) = octet_length(p_gegen_lo)
+                       and e.an between p_gegen_lo and p_gegen_hi)
+                   or (p_gegen2_lo is not null and octet_length(e.an) = octet_length(p_gegen2_lo)
+                       and e.an between p_gegen2_lo and p_gegen2_hi))))
         or (p_memo is not null and z.type <> 0
             and strpos(lower(chain2.memo_text(z.memo)), lower(p_memo)) > 0)
      )

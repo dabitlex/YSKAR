@@ -1,7 +1,7 @@
 /**
  * P2P-Rahmung.
  *
- * Aufgebaut wie Bitcoins Nachrichtenkopf. Geprüft wird vor allem, was
+ * Kopf fester Laenge. Geprüft wird vor allem, was
  * passiert, wenn die Gegenseite sich NICHT an das Protokoll hält — denn
  * genau dafür ist die Rahmung da.
  */
@@ -34,7 +34,7 @@ test('Eine Nachricht überlebt Hin- und Rückweg', () => {
   assert.equal(r.verbraucht, roh.length);
 });
 
-test('Der Kopf hat genau den Aufbau von Bitcoin', () => {
+test('Der Kopf hat genau den festen Aufbau', () => {
   const nutzlast = text('xy');
   const roh = encodeFrame(M, 'verack', nutzlast);
 

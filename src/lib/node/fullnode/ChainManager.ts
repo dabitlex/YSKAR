@@ -21,7 +21,7 @@ import { validateBlock, checkDifficulty, checkEncoding, checkParentTimestamp, ty
 import { checkTimestamp, type BlockTiming } from '../../core/difficulty.ts';
 import { emptyState, applyBlock, stateRootAt, cloneState, type State }
   from '../../core/state.ts';
-import { toHex } from '../../core/codec.ts';
+import { toHex, fromHex } from '../../core/codec.ts';
 import { aktiviereZip215Wasm } from '../zip215.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
 import { MEDIAN_TIME_BLOCKS, blockVersionAt, V6_HEIGHT_UNSET } from '../../core/params.ts';
@@ -126,6 +126,29 @@ export interface ChainState {
   tipHash: Uint8Array | null;
 }
 
+/**
+ * Zustand aus den Konten einer Marke. null, wenn sie sich nicht lesen
+ * laesst (etwa ein beschaedigter Schluessel) -- dann gilt die Marke als
+ * unbrauchbar, wie eine mit falscher Wurzel.
+ */
+function zustandAusMarke(konten: Iterable<[string, { balance: bigint; nonce: bigint }]>): State | null {
+  try {
+    const z = emptyState();
+    for (const [adr, k] of konten) z.set(adr, { balance: k.balance, nonce: k.nonce });
+    return z;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Die Ablage passt nicht zur Aktivierungshoehe dieses Programms
+ * (aktivierungPruefen). Die Ablage ist in Ordnung -- falsch ist das
+ * Programm. Wer hier den Datenordner loescht, synchronisiert mit der
+ * falschen Hoehe neu und landet auf einer anderen Kette.
+ */
+export class AktivierungsFehler extends Error {}
+
 export class ChainManager {
   private store: ChainStore;
   private params: ConsensusParams;
@@ -216,7 +239,7 @@ export class ChainManager {
     const gespeichert = this.store.meta(ChainManager.V6_ERREICHT);
     if (gespeichert !== null && gespeichert !== String(v6)) {
       const neu = v6 === V6_HEIGHT_UNSET ? 'keine' : String(v6);
-      throw new Error(
+      throw new AktivierungsFehler(
         `Diese Ablage hat Konsensfassung 6 an Hoehe ${gespeichert} aktiviert, dieses Programm verwendet ` +
         `${neu}. Eine erreichte Aktivierungshoehe laesst sich nicht verschieben -- bitte die passende ` +
         `Programmversion verwenden.`);
@@ -227,7 +250,7 @@ export class ChainManager {
         let version: number | null = null;
         try { version = deserializeBlock(kopf.body).header.version; } catch { /* prueft alteFassungAbschneiden */ }
         if (version !== null && version >= 6 && blockVersionAt(kopf.height, v6) < 6) {
-          throw new Error(
+          throw new AktivierungsFehler(
             `Die Ablage enthaelt an Hoehe ${kopf.height} einen Block der Fassung 6, dieses Programm ` +
             `aktiviert sie ${v6 === V6_HEIGHT_UNSET ? 'nicht' : 'erst an Hoehe ' + v6}. ` +
             `Die Ablage gehoert zu einer anderen Kette.`);
@@ -270,6 +293,7 @@ export class ChainManager {
    */
   private alteFassungAbschneiden(): void {
     const v6 = this.params.v6Height;
+    this.verworfeneFreigeben();
     // Ueber ALLE gespeicherten Bloecke, nicht nur bis zur aktiven Spitze: Ein
     // leichterer, aber hoeherer Seitenzweig alter Fassung bliebe sonst
     // 'valid', bestTip() koennte ihn spaeter waehlen, und der Start braeche
@@ -310,8 +334,38 @@ export class ChainManager {
         this.store.dropSnapshotsAbove(ende - 1);
       }
       this.store.setMeta(ChainManager.V6_GEPRUEFT, String(v6));
+      if (verworfen.size > 0) {
+        this.store.setMeta(ChainManager.V6_VERWORFEN, JSON.stringify({ hoehe: v6, bloecke: [...verworfen] }));
+      }
     });
     this._alteBloeckeVerworfen = verworfen.size;
+  }
+
+  /** Meta-Schluessel: welche Bloecke alteFassungAbschneiden fuer welche Hoehe verworfen hat. */
+  static readonly V6_VERWORFEN = 'v6_alte_bloecke_verworfen';
+
+  /**
+   * Verwirft der Start Bloecke alter Fassung fuer eine Hoehe, und startet der
+   * Knoten spaeter mit einer ANDEREN Hoehe (vor dem Erreichen erlaubt, 2.1),
+   * gelten diese Bloecke nach den neuen Regeln vielleicht wieder. Als
+   * 'invalid' gespeichert blieben sie das fuer immer: accept() meldete sie
+   * als bekannt, und der Knoten hinge eine Hoehe davor fest. Deshalb werden
+   * sie dann entfernt -- die Peers liefern sie wieder, und sie werden nach
+   * den Regeln dieses Programms neu geprueft.
+   */
+  private verworfeneFreigeben(): void {
+    const roh = this.store.meta(ChainManager.V6_VERWORFEN);
+    if (!roh) return;
+    let frueher: { hoehe: number; bloecke: string[] } | null = null;
+    try { frueher = JSON.parse(roh); } catch { frueher = null; }
+    if (frueher && frueher.hoehe === this.params.v6Height) return;
+    this.store.transaktion(() => {
+      for (const h of frueher?.bloecke ?? []) {
+        if (/^[0-9a-f]{64}$/.test(h)) this.store.entferneNebenblock(fromHex(h));
+      }
+      this.store.setMeta(ChainManager.V6_VERWORFEN, '');
+      this.store.setMeta(ChainManager.V6_GEPRUEFT, '');
+    });
   }
 
   private _alteBloeckeVerworfen = 0;
@@ -766,10 +820,12 @@ export class ChainManager {
     let ab = 0;
 
     if (marke) {
-      for (const [adr, k] of marke.accounts) zustand.set(adr, { ...k });
-      // Der Marke nicht blind glauben: Passt ihre Wurzel nicht, ist die
-      // Ablage beschaedigt, und dann wird von vorn gerechnet.
-      if (toHex(stateRootAt(zustand, marke.height, this.params)) === toHex(marke.stateRoot)) {
+      // Der Marke nicht blind glauben: Passt ihre Wurzel nicht -- oder ist sie
+      // gar nicht lesbar --, ist die Ablage beschaedigt, und dann wird von
+      // vorn gerechnet.
+      const gelesen = zustandAusMarke(marke.accounts);
+      if (gelesen) zustand = gelesen;
+      if (gelesen && toHex(stateRootAt(zustand, marke.height, this.params)) === toHex(marke.stateRoot)) {
         ab = marke.height + 1;
       } else {
         zustand = emptyState();
@@ -882,9 +938,10 @@ export class ChainManager {
     let ab = 0;
 
     if (marke) {
-      for (const [adr, k] of marke.accounts) state.set(adr, { ...k });
+      const gelesen = zustandAusMarke(marke.accounts);
+      if (gelesen) state = gelesen;
       const block = this.store.get(marke.hash);
-      const passt = block !== null && block.mainChain && block.height === marke.height
+      const passt = gelesen !== null && block !== null && block.mainChain && block.height === marke.height
         && toHex(stateRootAt(state, marke.height, this.params)) === toHex(block.stateRoot);
       if (passt) ab = marke.height + 1;
       else state = emptyState();

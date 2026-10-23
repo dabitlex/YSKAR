@@ -62,7 +62,7 @@
   "grund.etikett": "Inscribed in the genesis block",
   "grund.text": "Plenty of apps let you tap a button and watch a number go up. YSKAR is different: real computation, a real blockchain, and nothing you have to take our word for.",
   "grund.k1.titel": "Real work",
-  "grund.k1.text": "Your device computes double SHA-256, just like a Bitcoin miner. The node re-checks every result it receives.",
+  "grund.k1.text": "Your device computes double SHA-256, real proof of work. The node re-checks every result it receives.",
   "grund.k2.titel": "Check it yourself",
   "grund.k2.text": "The explorer rebuilds every block header in your browser, hashes it, checks the proof of work and follows the chain. Everything else – transfers, signatures, balances – a full node checks, and anyone can run one.",
   "grund.k3.titel": "Yours alone",

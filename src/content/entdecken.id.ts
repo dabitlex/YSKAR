@@ -53,7 +53,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Share, difficulty, blok — begini cara perangkatmu ikut serta.',
     lesezeit: '3 mnt',
     einleitung: 'Ponselmu menghitung hash SHA-256d untuk sebuah job dari jaringan. ' +
-      'Prosedurnya sama dengan Bitcoin — hanya difficulty-nya dipilih sedemikian rupa ' +
+      'Ini proof of work sungguhan — dan difficulty-nya dipilih sedemikian rupa ' +
       'sehingga ponsel punya peluang yang nyata.',
     bausteine: [
       { art: 'schritte', titel: 'Bagaimana sebuah blok tercipta', punkte: [
@@ -123,10 +123,10 @@ const ARTIKEL: Artikel[] = [
         { label: `Epoch 3 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `Satu epoch adalah ${z(EPOCH_BLOCKS)} blok, kira-kira ${EPOCHE_TAGE} hari. ` +
-        'Setelah itu reward turun setengah — seperti Bitcoin, hanya lebih cepat.' },
+        'Setelah itu reward turun setengah.' },
       { art: 'absatz', text: `Satu season adalah ${z(SEASON_BLOCKS)} blok, dua season membentuk satu ` +
         'epoch. Reward dibagi dua dengan bit shift biasa, tanpa pembulatan — sehingga total ' +
-        `suplai berakhir sedikit di bawah ${ysr(MAX_SUPPLY)}, persis seperti Bitcoin.` },
+        `suplai berakhir sedikit di bawah ${ysr(MAX_SUPPLY)}.` },
       { art: 'kennzahlen', werte: [
         { label: 'Biaya minimum', wert: `${ysr(MIN_FEE)} YSR` },
         { label: 'Slot per blok', wert: z(MAX_TXS_PER_BLOCK) },

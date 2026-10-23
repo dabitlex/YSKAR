@@ -254,6 +254,15 @@ export class ChainStore {
       .run(an ? 1 : 0, hash);
   }
 
+  /**
+   * Einen Block entfernen, der NICHT zur aktiven Kette gehoert. Nur fuer
+   * Bloecke, die der Start selbst verworfen hat (ChainManager,
+   * alteFassungAbschneiden) -- sie kommen bei Bedarf von den Peers wieder.
+   */
+  entferneNebenblock(hash: Uint8Array): void {
+    this.db.prepare('DELETE FROM blocks WHERE hash = ? AND main_chain = 0').run(hash);
+  }
+
   setStatus(hash: Uint8Array, status: BlockStatus): void {
     this.db.prepare('UPDATE blocks SET status = ? WHERE hash = ?').run(status, hash);
   }

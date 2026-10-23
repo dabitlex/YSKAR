@@ -282,8 +282,16 @@ export class Auswahl {
       const t = r.txs[r.i];
       const absender = senderRaw(t);
       const acc = this.konto(r.key, absender);
-      // Noch nicht faellig oder schon verbraucht: Daran aendert in dieser
-      // Auswahl nur der Absender selbst etwas -- und dessen Reihe steht hier.
+      // Schon verbraucht (etwa vom Block, der gerade kam, bevor der Mempool
+      // aufgeraeumt hat): nur DIESE ueberspringen, nicht die ganze Reihe --
+      // die naechste Nonce des Absenders kann genau die faellige sein.
+      if (t.nonce < acc.nonce) {
+        r.i++;
+        if (r.i < r.txs.length) this.hinein(r);
+        continue;
+      }
+      // Noch nicht faellig (Luecke): Daran aendert in dieser Auswahl nur der
+      // Absender selbst etwas -- und dessen Reihe steht hier.
       if (t.nonce !== acc.nonce) continue;
       if (acc.balance < spendTotal(t)) { this.geparkt.set(r.key, r); continue; }
       // Signaturbudget (CONSENSUS_V6.md 7.7) und Blockgroesse (Fassung 5):

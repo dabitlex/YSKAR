@@ -28,7 +28,9 @@ export function knotenText(code, werte, sonst) {
 
 /** Fehler des Knotens -- mit Text in der Sprache der Oberfläche, wenn sie das Kürzel kennt. */
 export class ApiFehler extends Error {
-  constructor(text, status, code) { super(text); this.status = status; this.code = code ?? null; }
+  constructor(text, status, code, werte) {
+    super(text); this.status = status; this.code = code ?? null; this.werte = Array.isArray(werte) ? werte : [];
+  }
 }
 
 export async function api(pfad, opt = {}) {
@@ -40,7 +42,8 @@ export async function api(pfad, opt = {}) {
   try { daten = await antwort.json(); } catch { /* keine JSON-Antwort */ }
   if (!antwort.ok || (daten && daten.error)) {
     const text = (daten && daten.error) || t('fehler.allgemein');
-    throw new ApiFehler(knotenText(daten && daten.code, daten && daten.werte, text), antwort.status, daten && daten.code);
+    throw new ApiFehler(knotenText(daten && daten.code, daten && daten.werte, text), antwort.status,
+      daten && daten.code, daten && daten.werte);
   }
   return daten;
 }

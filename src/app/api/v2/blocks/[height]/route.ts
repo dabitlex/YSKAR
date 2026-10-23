@@ -7,6 +7,9 @@ import { fromHex } from '@/lib/core/codec';
 /** Typ einer Transaktion wie in der Kette (tx.ts) -- dieselben Namen wie der Knoten (ReadApi). */
 const TYP_NAME: Record<number, string> = { 0: 'coinbase', 1: 'transfer', 2: 'script_spend', 3: 'batch' };
 
+/** Zeilen je Abfrage -- nicht mehr, als PostgREST in einer Antwort liefert. */
+const TX_SEITE = 1_000;
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +42,7 @@ export async function GET(
     header: string; size_bytes: number; received_at: string;
   };
 
-  const [{ data: rohBlock, error }, { data: txs }] = await Promise.all([
+  const [{ data: rohBlock, error }, seitenweise] = await Promise.all([
     /*
       extranonce und nonce ausdruecklich als TEXT holen.
 
@@ -57,8 +60,25 @@ export async function GET(
         + 'block_time, difficulty::text, tx_count, extranonce::text, nonce::text, '
         + 'header, size_bytes, received_at')
       .eq('height', height).maybeSingle(),
-    sb.from('transactions').select('*').eq('block_height', height).order('idx'),
+    /*
+      Seitenweise: PostgREST liefert je Abfrage hoechstens eine feste Zahl
+      Zeilen (Vorgabe 1.000) und schneidet den Rest STILL ab. Ab Fassung 6
+      hat ein Block bis zu 5.000 Transaktionen -- ohne Seiten fehlte der
+      Rest, waehrend txCount mehr nennt.
+    */
+    (async () => {
+      const alle: Record<string, unknown>[] = [];
+      for (let von = 0; ; von += TX_SEITE) {
+        const { data, error: e } = await sb.from('transactions').select('*')
+          .eq('block_height', height).order('idx', { ascending: true })
+          .range(von, von + TX_SEITE - 1);
+        if (e) return { txs: null, fehler: e.message };
+        alle.push(...(data ?? []));
+        if ((data?.length ?? 0) < TX_SEITE) return { txs: alle, fehler: null };
+      }
+    })(),
   ]);
+  const txs = seitenweise.txs;
 
   const block = rohBlock as unknown as BlockZeile | null;
 
@@ -67,6 +87,15 @@ export async function GET(
       { status: 503, headers: CORS });
   }
   if (!block) return NextResponse.json({ error: 'not_found' }, { status: 404, headers: CORS });
+  if (!txs) {
+    return NextResponse.json({ error: 'chain_unreachable', detail: seitenweise.fehler },
+      { status: 503, headers: CORS });
+  }
+  // Nie einen unvollstaendigen Block ausgeben, der sich als vollstaendig ausgibt.
+  if (txs.length !== block.tx_count) {
+    return NextResponse.json({ error: 'chain_unreachable', detail: `unvollstaendig: ${txs.length} von ${block.tx_count}` },
+      { status: 503, headers: CORS });
+  }
 
   const adr = (v: string | null) => {
     const hex = unprefix(v);
@@ -89,7 +118,7 @@ export async function GET(
     nonce: String(block.nonce),
     header: unprefix(block.header),
     sizeBytes: block.size_bytes,
-    txs: (txs ?? []).map(t => ({
+    txs: txs.map((t: Record<string, any>) => ({
       txid: unprefix(t.txid),
       idx: t.idx,
       // Ab Fassung 6 auch Skript-Ausgaben (2) und Sammelzahlungen (3).

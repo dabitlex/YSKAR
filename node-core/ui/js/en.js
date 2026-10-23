@@ -372,6 +372,10 @@ export const en = {
   'wal.erhoehen': 'Raise fee',
   'wal.erhoehenText': 'The same transfer with a higher fee (“fast” tier). It replaces the waiting one.',
   'wal.erhoeht': g => `Fee raised to ${g} YSR.`,
+  'wal.erhoehenRechnet': 'Calculating the new fee …',
+  'wal.erhoehenBetrag': (neu, alt) => alt ? `New fee: ${neu} YSR (was ${alt} YSR).` : `New fee: ${neu} YSR.`,
+  'srv.gebuehr_gestiegen': g => `The required fee has gone up. New amount above – please confirm again.`,
+  'srv.gebuehr_fehlt': 'The new fee was not confirmed.',
   'wal.notizZeile': 'Note: {0}',
   'wal.gebuehrZeile': 'fee {0}',
 

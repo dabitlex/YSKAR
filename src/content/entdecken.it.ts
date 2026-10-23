@@ -53,7 +53,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Share, difficulty, blocchi: come partecipa il tuo dispositivo.',
     lesezeit: '3 min',
     einleitung: 'Il tuo telefono calcola hash SHA-256d su un job ricevuto dalla rete. ' +
-      'È lo stesso procedimento di Bitcoin, solo che la difficulty è scelta in modo ' +
+      'È vero proof of work, e la difficulty è scelta in modo ' +
       'che anche un telefono abbia una possibilità reale.',
     bausteine: [
       { art: 'schritte', titel: 'Come nasce un blocco', punkte: [
@@ -123,11 +123,10 @@ const ARTIKEL: Artikel[] = [
         { label: `Epoca 3 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `Un’epoca dura ${z(EPOCH_BLOCKS)} blocchi, circa ${EPOCHE_TAGE} giorni. ` +
-        'Poi la ricompensa si dimezza: come in Bitcoin, solo più in fretta.' },
+        'Poi la ricompensa si dimezza.' },
       { art: 'absatz', text: `Una season dura ${z(SEASON_BLOCKS)} blocchi, due season fanno ` +
         'un’epoca. La ricompensa viene dimezzata con un semplice bit shift, senza ' +
-        `arrotondamenti: così l’offerta totale si ferma appena sotto ${ysr(MAX_SUPPLY)}, ` +
-        'esattamente come in Bitcoin.' },
+        `arrotondamenti: così l’offerta totale si ferma appena sotto ${ysr(MAX_SUPPLY)}.` },
       { art: 'kennzahlen', werte: [
         { label: 'Commissione minima', wert: `${ysr(MIN_FEE)} YSR` },
         { label: 'Slot per blocco', wert: z(MAX_TXS_PER_BLOCK) },

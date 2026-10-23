@@ -22,7 +22,7 @@ import { useT } from '@/i18n';
  *     Canvas. Langsamer, aber ueberall.
  *
  * Erkannt wird nur, was eine gueltige YSKAR-Adresse ist. Ein fremder Code
- * wird gemeldet, nicht uebernommen: Wer die Adresse eines Bitcoin-Zettels
+ * wird gemeldet, nicht uebernommen: Wer die Adresse einer anderen Kette
  * scannt, soll das sofort sehen.
  *
  * Ein Code aus "Empfangen -> Betrag anfordern" traegt zusaetzlich Betrag

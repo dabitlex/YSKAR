@@ -147,7 +147,7 @@ test('addr trägt Host, Port und Zeitpunkt', () => {
   ];
   const z = M.decodeAddr(M.encodeAddr(liste));
   assert.equal(z.length, 3);
-  // IPv4, IPv6 und Namen in derselben Form -- Bitcoin brauchte dafür vier.
+  // IPv4, IPv6 und Namen in derselben Form.
   assert.equal(z[1].host, '2001:db8::1');
   assert.equal(z[2].host, 'knoten.example');
   assert.equal(z[0].port, 8646);

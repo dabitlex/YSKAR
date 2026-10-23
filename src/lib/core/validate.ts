@@ -23,6 +23,13 @@ export interface Context {
   previous: BlockHeader | null;
   /** Zustand NACH dem Vorgaenger. */
   state: State;
+  /**
+   * `state` enthaelt nur die Konten, die der Block beruehrt (Spiegel mit
+   * vielen Konten, src/app/api/v2/block). Dann laesst sich die
+   * Zustandswurzel nicht nachrechnen und wird nicht verglichen -- alles
+   * andere schon. Fuer Knoten nie: Ein Knoten prueft immer die Wurzel.
+   */
+  nurBeruehrteKonten?: boolean;
   /** Zeitstempel der letzten Bloecke, aeltester zuerst. */
   recentTimestamps: bigint[];
   /** Difficulty und Loesungszeit der letzten Bloecke fuer LWMA. */
@@ -176,6 +183,8 @@ export function validateBlock(block: Block, ctx: Context): ValidationError | nul
   if (!applied.ok) {
     return { code: 'state', detail: `tx ${applied.error?.tx}: ${applied.error?.reason}` };
   }
+
+  if (ctx.nurBeruehrteKonten) return null;
 
   // Flacher Baum bis v6Height, Sparse-Merkle-Baum ab dort (state.ts).
   const root = stateRootAt(draft, h.height, ctx.params ?? MAINNET);

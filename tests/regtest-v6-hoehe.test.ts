@@ -90,3 +90,32 @@ test('--v6-height: nur mit --regtest, nur ganze Zahlen ab 1, Mainnet unberuehrt'
     rmSync(ordner, { recursive: true, force: true });
   }
 });
+
+test('Erreichte Hoehe, anderes Programm: Start verweigert -- und kein Rat, die Ablage zu loeschen', () => {
+  const ordner = mkdtempSync(join(tmpdir(), 'yskar-v6-fest-'));
+  try {
+    const P = regtestMitV6(3);
+    const store = new ChainStore(join(ordner, 'd', 'chain.db'), { network: P.network, chainId: P.chainId });
+    const chain = new ChainManager(store, P);
+    const zustand = emptyState();
+    let prev = new Uint8Array(32);
+    for (let h = 0; h < 5; h++) {
+      const g = mineBlock({ height: h, prevHash: prev, state: zustand, params: P,
+        timestamp: 1_788_912_000n + BigInt(h) * P.targetBlockTime });
+      assert.ok(applyBlock(zustand, g.block, P).ok);
+      assert.ok(chain.accept(g.body).ok);
+      prev = g.hash;
+    }
+    store.close();
+    const r = knoten(['status', '--regtest', '--v6-height', '4', '--data', join(ordner, 'd')]);
+    assert.equal(r.code, 1, r.text);
+    assert.match(r.text, /nicht verschieben/);
+    assert.match(r.text, /NICHT loeschen/);
+    assert.doesNotMatch(r.text, /entfernen und neu synchronisieren/);
+    // Mit der passenden Hoehe laeuft er.
+    const gut = knoten(['status', '--regtest', '--v6-height', '3', '--data', join(ordner, 'd')]);
+    assert.equal(gut.code, 0, gut.text);
+  } finally {
+    rmSync(ordner, { recursive: true, force: true });
+  }
+});

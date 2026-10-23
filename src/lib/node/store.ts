@@ -40,12 +40,9 @@ export async function loadTip(): Promise<Tip | null> {
 }
 
 /**
- * Kontozustand laden.
- *
- * Bewusst vollstaendig statt gezielt: Fuer den state_root braucht es ohnehin
- * alle Konten. Das ist O(n) je Job und bis in den Bereich einiger zehntausend
- * Konten unkritisch -- darueber braucht es einen Trie mit inkrementellen
- * Aktualisierungen.
+ * Kontozustand laden -- vollstaendig, fuer den Spiegel mit wenigen Konten:
+ * Mit allen Konten laesst sich die Zustandswurzel nachrechnen. Ab vielen
+ * Konten liest die Route nur die beruehrten (loadKonten).
  */
 /**
  * So viele Konten je Abfrage. Die Datenschnittstelle (PostgREST) liefert je
@@ -98,6 +95,59 @@ export async function loadState(): Promise<{ state: State; height: number }> {
     throw new Error(`loadState: ${state.size} Konten gelesen, ${erwartet} gezaehlt`);
   }
   return { state, height: meta?.height ?? -1 };
+}
+
+/**
+ * Die Konten, die ein Block liest oder schreibt: Absender, Empfaenger,
+ * Coinbase-Empfaenger. Mehr braucht applyBlock fuer diesen Block nicht.
+ */
+export function beruehrteKonten(block: Block): string[] {
+  const s = new Set<string>();
+  for (const t of block.txs) {
+    if (t.type === TX_COINBASE) { for (const o of t.outputs) s.add(hx(o.to)); continue; }
+    s.add(hx(senderRaw(t)));
+    for (const o of spendOutputs(t)) s.add(hx(o.to));
+  }
+  return [...s];
+}
+
+/** Adressen je Abfrage beim gezielten Lesen -- die Adressen stehen in der URL. */
+export const KONTEN_JE_ABFRAGE = 50;
+
+/**
+ * Nur bestimmte Konten lesen, dazu die Gesamtmenge aus state_meta.
+ *
+ * Fuer den Spiegel mit vielen Konten: Den ganzen Zustand bei jedem Block zu
+ * lesen und den Baum daraus neu zu bauen, kostete bei einer Million Konten
+ * Minuten -- und Konten lassen sich mit Sammelzahlungen billig anlegen.
+ * Fuer applyBlock genuegen die Konten, die der Block beruehrt.
+ */
+export async function loadKonten(adressen: string[]): Promise<{ state: State; menge: bigint; height: number }> {
+  const { data: meta, error: eMeta } = await db().schema('chain2').from('state_meta')
+    .select('height, total_supply::text').eq('id', 1).single();
+  if (eMeta) throw new Error(`loadKonten/meta: ${eMeta.message}`);
+  const state = emptyState();
+  for (let i = 0; i < adressen.length; i += KONTEN_JE_ABFRAGE) {
+    const teil = adressen.slice(i, i + KONTEN_JE_ABFRAGE);
+    const { data, error } = await db().schema('chain2').from('accounts')
+      .select('address, balance, nonce').in('address', teil.map(a => '\\x' + a));
+    if (error) throw new Error(`loadKonten: ${error.message}`);
+    // Mehr Zeilen als gefragt kann es nicht geben; weniger heisst: Konto neu.
+    if ((data?.length ?? 0) > teil.length) throw new Error('loadKonten: mehr Zeilen als Adressen');
+    for (const r of data ?? []) {
+      state.set(toHex(un(r.address)), { balance: BigInt(r.balance), nonce: BigInt(r.nonce) });
+    }
+  }
+  const m = meta as unknown as { height: number | null; total_supply: string | null } | null;
+  return { state, menge: BigInt(m?.total_supply ?? '0'), height: m?.height ?? -1 };
+}
+
+/** Wie viele Konten der Spiegel fuehrt. */
+export async function kontenAnzahl(): Promise<number> {
+  const { count, error } = await db().schema('chain2').from('accounts')
+    .select('address', { count: 'exact', head: true });
+  if (error) throw new Error(`kontenAnzahl: ${error.message}`);
+  return count ?? 0;
 }
 
 /**
@@ -158,6 +208,8 @@ export async function loadTimings(window: number): Promise<{
  */
 export async function commitBlock(
   block: Block, before: State, after: State,
+  /** Gesamtmenge nach dem Block. Ohne Angabe: Summe von `after` (nur richtig, wenn `after` vollstaendig ist). */
+  menge?: bigint,
 ): Promise<{ height: number; hash: string; txs: number }> {
   const changed: { address: string; balance: string; nonce: string }[] = [];
   const seen = new Set<string>();
@@ -239,7 +291,7 @@ export async function commitBlock(
     },
     p_txs: txs,
     p_accounts: changed,
-    p_supply: totalSupply(after).toString(),
+    p_supply: (menge ?? totalSupply(after)).toString(),
   });
 
   if (error) throw new Error(`commit_block: ${error.message}`);

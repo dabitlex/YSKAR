@@ -62,7 +62,7 @@
   "grund.etikett": "Zapisane w bloku genesis",
   "grund.text": "Wiele aplikacji pozwala stukać w przycisk i patrzeć, jak rośnie liczba. YSKAR jest inny: prawdziwe obliczenia, prawdziwy blockchain i nic, w co musisz wierzyć nam na słowo.",
   "grund.k1.titel": "Prawdziwa praca",
-  "grund.k1.text": "Twoje urządzenie liczy podwójne SHA-256, tak jak miner Bitcoina. Węzeł ponownie sprawdza każdy otrzymany wynik.",
+  "grund.k1.text": "Twoje urządzenie liczy podwójne SHA-256, prawdziwy proof of work. Węzeł ponownie sprawdza każdy otrzymany wynik.",
   "grund.k2.titel": "Sprawdź sam",
   "grund.k2.text": "Explorer odtwarza w Twojej przeglądarce nagłówek każdego bloku, hashuje go, sprawdza proof of work i podąża za łańcuchem. Całą resztę – przelewy, podpisy, salda – sprawdza pełny węzeł, który każdy może uruchomić.",
   "grund.k3.titel": "Tylko Twój",

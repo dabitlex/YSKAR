@@ -1,8 +1,7 @@
 /**
  * P2P-Rahmung.
  *
- * Aufgebaut wie Bitcoins Nachrichtenkopf, weil sich dessen Entwurf seit
- * 2009 im Feld bewaehrt hat und jeder, der Bitcoin kennt, ihn sofort liest:
+ * Ein schlichter, bewaehrter Nachrichtenkopf fester Laenge:
  *
  *     magic(4) | command(12) | length(4) | checksum(4) | payload
  *
@@ -28,7 +27,7 @@
  * so ein Versatz erst viel spaeter auf, an einer Stelle, die nichts damit
  * zu tun hat.
  *
- * Nicht uebernommen: Bitcoins 4-MB-Grenze wird bei YSKAR nicht gebraucht --
+ * Eine Grenze von mehreren MB wird bei YSKAR nicht gebraucht --
  * der groesste moegliche Block liegt bei rund 400 KB. Die Grenze hier ist
  * trotzdem grosszuegig gewaehlt, aber sie existiert, und das ist der Punkt:
  * Ohne Obergrenze kann eine einzige Nachricht den Knoten den Speicher

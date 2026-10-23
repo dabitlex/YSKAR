@@ -5,16 +5,16 @@
  * Nachrichten steht, entscheidet die Ebene darueber -- diese Datei weiss
  * nichts ueber Bloecke und prueft keine Kette.
  *
- * DER HANDSCHLAG ist von Bitcoin uebernommen und hat einen Zweck, der
+ * DER HANDSCHLAG hat einen Zweck, der
  * ueber die Begruessung hinausgeht: Beide Seiten nennen Netz, Chain-ID,
  * Hoehe und kumulierte Arbeit. Passt das Netz nicht, wird sofort getrennt
  * -- ein Knoten des Testnetzes soll mit dem Mainnet gar nicht erst ins
  * Gespraech kommen. Und die Arbeit sagt, wer wem beim Aufholen hilft.
  *
  * NICHT GESPERRT WIRD. Bei Fehlverhalten wird getrennt, mehr nicht.
- * Bitcoin Core hat sich ueber Jahre von Sperren wegbewegt, weil ein
- * Angreifer sich trivial mit anderen Adressen neu verbindet und
- * unbedachtes Sperren das Risiko einer Netzspaltung erhoeht. Die Ebene
+ * Sperren hilft wenig, weil ein Angreifer sich trivial mit anderen
+ * Adressen neu verbindet, und unbedachtes Sperren erhoeht das Risiko einer
+ * Netzspaltung. Die Ebene
  * darueber merkt sich auffaellige Peers und verdraengt sie zuerst -- aber
  * sie sperrt sie nicht aus.
  */
@@ -61,7 +61,7 @@ export type PeerRichtung = 'aus' | 'ein';
  * Selbstverbindung trotzdem auffaellt, merkt sich der Knoten, welche
  * Nonces er versendet hat, und prueft eingehende dagegen.
  *
- * Bitcoin macht es genauso, und der Grund ist wichtig: Eine Nonce je
+ * Der Grund ist wichtig: Eine Nonce je
  * Knoten waere einfacher, gaebe aber jedem Peer einen Wert, an dem er den
  * Knoten ueber wechselnde Adressen hinweg wiedererkennt.
  */

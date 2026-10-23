@@ -279,7 +279,12 @@ test('Wallet am Knoten: minen in die Wallet, senden, Verlauf, QR-Code', async ()
     const ohnePw = await POST(A, tA, '/api/wallet/senden', { an: EMPF, betrag: '25,5' });
     assert.equal(ohnePw.json.code, 'passwort_falsch');
 
-    const gesendet = await POST(A, tA, '/api/wallet/senden', { an: EMPF, betrag: '25,5', notiz: 'Grüße', passwort: PW });
+    // Mit einer zu niedrigen bestaetigten Gebuehr wird nicht gesendet -- der Knoten nennt die noetige.
+    const zuNiedrig = await POST(A, tA, '/api/wallet/senden', { an: EMPF, betrag: '25,5', notiz: 'Grüße', passwort: PW, gebuehr: '1' });
+    assert.equal(zuNiedrig.json.code, 'gebuehr_gestiegen');
+    assert.deepEqual(zuNiedrig.json.werte, [v.gebuehr]);
+    assert.equal((await stand(A, tA)).mempool, 0, 'nichts gesendet');
+    const gesendet = await POST(A, tA, '/api/wallet/senden', { an: EMPF, betrag: '25,5', notiz: 'Grüße', passwort: PW, gebuehr: v.gebuehr });
     assert.equal(gesendet.status, 200, JSON.stringify(gesendet.json));
     assert.match(gesendet.json.txid, /^[0-9a-f]{64}$/);
     assert.equal(gesendet.json.peers, 1);
@@ -299,6 +304,23 @@ test('Wallet am Knoten: minen in die Wallet, senden, Verlauf, QR-Code', async ()
     assert.equal(zweite.status, 200, JSON.stringify(zweite.json));
     assert.equal(zweite.json.name, 'Mara');
     assert.equal((await stand(A, tA)).mempool, 2);
+    // Gebuehr erhoehen: erst der Betrag, dann genau dieser mit Passwort -- nie mehr ohne Bestaetigung.
+    const vorschau = await POST(A, tA, '/api/wallet/erhoehen/vorschau', { txid: zweite.json.txid });
+    assert.equal(vorschau.status, 200, JSON.stringify(vorschau.json));
+    assert.ok(BigInt(vorschau.json.gebuehr) > BigInt(vorschau.json.bisher));
+    const ohneBetrag = await POST(A, tA, '/api/wallet/erhoehen', { txid: zweite.json.txid, passwort: PW });
+    assert.equal(ohneBetrag.json.code, 'gebuehr_fehlt');
+    const zuWenig = await POST(A, tA, '/api/wallet/erhoehen', { txid: zweite.json.txid, passwort: PW, gebuehr: vorschau.json.bisher });
+    assert.equal(zuWenig.json.code, 'gebuehr_gestiegen');
+    assert.deepEqual(zuWenig.json.werte, [vorschau.json.gebuehr]);
+    assert.equal((await stand(A, tA)).mempool, 2, 'nichts gesendet');
+    const erhoeht = await POST(A, tA, '/api/wallet/erhoehen', { txid: zweite.json.txid, passwort: PW, gebuehr: vorschau.json.gebuehr });
+    assert.equal(erhoeht.status, 200, JSON.stringify(erhoeht.json));
+    assert.equal(erhoeht.json.gebuehr, vorschau.json.gebuehr, 'genau der bestaetigte Betrag');
+    assert.notEqual(erhoeht.json.txid, zweite.json.txid);
+    assert.equal((await stand(A, tA)).mempool, 2);
+    await bis('B kennt die Erhöhung', async () => (await ruf(B.api, `/tx/${erhoeht.json.txid}`)).status === 200);
+
     const nochmal = (await POST(A, tA, '/api/wallet/pruefen', { an: EMPF, betrag: '1' })).json;
     assert.equal(nochmal.neu, false, 'Mit einer wartenden Zahlung und als Kontakt ist die Adresse bekannt');
 

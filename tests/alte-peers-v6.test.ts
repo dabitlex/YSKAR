@@ -31,7 +31,7 @@ import type { PeerConnection } from '../src/lib/node/p2p/PeerConnection.ts';
 import { encodeHeaders, encodeInv, decodeGetData, INV_BLOCK } from '../src/lib/node/p2p/messages.ts';
 import { REGTEST, regtestMitV6 } from '../src/lib/core/networks.ts';
 import { HEADER_SIZE } from '../src/lib/core/block.ts';
-import { emptyState, applyBlock, type State } from '../src/lib/core/state.ts';
+import { emptyState, applyBlock, cloneState, type State } from '../src/lib/core/state.ts';
 import { toHex } from '../src/lib/core/codec.ts';
 import { mineBlock, type Gemint } from './helpers/regtest.ts';
 
@@ -57,8 +57,8 @@ function basis(): { bloecke: Gemint[]; zustand: State } {
 function block12(b: { bloecke: Gemint[]; zustand: State }) {
   const vor = b.bloecke[11];
   const zeit = START + 12n * P.targetBlockTime;
-  const alt = mineBlock({ height: 12, prevHash: vor.hash, state: structuredClone(b.zustand), params: REGTEST, timestamp: zeit });
-  const neu = mineBlock({ height: 12, prevHash: vor.hash, state: structuredClone(b.zustand), params: P, timestamp: zeit });
+  const alt = mineBlock({ height: 12, prevHash: vor.hash, state: cloneState(b.zustand), params: REGTEST, timestamp: zeit });
+  const neu = mineBlock({ height: 12, prevHash: vor.hash, state: cloneState(b.zustand), params: P, timestamp: zeit });
   assert.ok(alt.block.header.version < 6 && neu.block.header.version >= 6);
   return { alt, neu };
 }
@@ -141,4 +141,31 @@ test('11.4 gilt nur ab der Hoehe und nur fuer alte Peers', () => {
   assert.equal(k3.chain.height(), 12);
   assert.deepEqual(g3.getrennt, []);
   k3.store.close();
+});
+
+test('11.4, Synchronisation unter der Hoehe: alter Block eines alten Peers trennt die Verbindung nicht', () => {
+  const b = basis();
+  const { alt } = block12(b);
+  const g = gegenseite('203.0.113.85', 5);
+  // Dieser Knoten steht noch bei 9: Der naechste Block liegt unter der Hoehe,
+  // die Ankuendigung des alten Peers wird also bestellt.
+  const k = knoten(b.bloecke.slice(0, 10), g);
+  k.sende('inv', encodeInv([{ typ: INV_BLOCK, hash: alt.hash }]));
+  if (k.bestellt().length > 0) k.sende('block', alt.body);
+  assert.deepEqual(g.getrennt, [], 'Peer bleibt verbunden');
+  assert.equal(k.chain.height(), 9);
+  // Er bleibt Quelle fuer die Bloecke unter der Hoehe.
+  k.sende('block', b.bloecke[10].body);
+  assert.equal(k.chain.height(), 10);
+  k.store.close();
+});
+
+test('11.4: UNbestellte alte Bloecke eines "alten" Peers trennen weiterhin', () => {
+  const b = basis();
+  const { alt } = block12(b);
+  const g = gegenseite('203.0.113.86', 0);
+  const k = knoten(b.bloecke.slice(0, 10), g);
+  k.sende('block', alt.body);          // nie angekuendigt, nie bestellt
+  assert.equal(g.getrennt.length, 1, 'unaufgefordert: getrennt');
+  k.store.close();
 });

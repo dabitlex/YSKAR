@@ -51,7 +51,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Share、难度、区块——你的设备如何参与其中。',
     lesezeit: '3 分钟',
     einleitung: '你的手机根据网络下发的任务计算 SHA-256d 哈希。' +
-      '这与比特币的流程完全相同——只是难度经过设定，让手机也有真正的机会。',
+      '这是真正的工作量证明——难度经过设定，让手机也有真正的机会。',
     bausteine: [
       { art: 'schritte', titel: '一个区块是如何产生的', punkte: [
         '节点下发一个任务：下一个区块的区块头，有效期 90 秒。',
@@ -119,10 +119,10 @@ const ARTIKEL: Artikel[] = [
         { label: `第 3 纪元 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `一个纪元为 ${z(EPOCH_BLOCKS)} 个区块，约 ${EPOCHE_TAGE} 天。` +
-        '之后奖励减半——和比特币一样，只是更快。' },
+        '之后奖励减半。' },
       { art: 'absatz', text: `一个赛季为 ${z(SEASON_BLOCKS)} 个区块，两个赛季构成一个` +
         '纪元。奖励通过简单的位移运算减半，不做四舍五入——因此总供应量' +
-        `最终会略低于 ${ysr(MAX_SUPPLY)}，与比特币完全一样。` },
+        `最终会略低于 ${ysr(MAX_SUPPLY)}。` },
       { art: 'kennzahlen', werte: [
         { label: '最低手续费', wert: `${ysr(MIN_FEE)} YSR` },
         { label: '每个区块的交易位', wert: z(MAX_TXS_PER_BLOCK) },

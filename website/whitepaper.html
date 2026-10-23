@@ -95,7 +95,7 @@
 </tbody>
 </table>
 <p>The size is deliberate: with SHA-256 padding, 136 bytes fill exactly three 64-byte blocks, and every field except the nonce lies in the first 128 bytes. A miner computes the state after the first two compressions once per job (the midstate) and then needs only two compressions per attempt.</p>
-<p><strong>Merkle tree.</strong> Leaves are <code>sha256d(0x00 ‖ txid)</code>, inner nodes <code>sha256d(0x01 ‖ left ‖ right)</code>. An odd node is passed up unchanged instead of being duplicated. The prefixes prevent an inner node from being presented as a leaf, and the absence of duplication avoids the ambiguity known from Bitcoin (CVE-2012-2459).</p>
+<p><strong>Merkle tree.</strong> Leaves are <code>sha256d(0x00 ‖ txid)</code>, inner nodes <code>sha256d(0x01 ‖ left ‖ right)</code>. An odd node is passed up unchanged instead of being duplicated. The prefixes prevent an inner node from being presented as a leaf, and without duplication two different lists cannot be made to share a root this way.</p>
 <p><strong>State root.</strong> Every header commits to the complete account state after the block. Two nodes with the same state root have computed exactly the same balances. A block whose state root does not match the node’s own computation is rejected.</p>
 <p><strong>Limits.</strong> At most 2,000 transactions per block, the coinbase included.</p>
 
@@ -107,7 +107,7 @@
 <h3>4.2 Coinbase</h3>
 <p>The first transaction of each block creates new YSR. Its total must be <strong>exactly</strong> the block reward plus the fees of all transactions in the block – not a unit more or less. Up to height 1,999 a coinbase has exactly one recipient. From height 2,000 (consensus version 2) it may have up to 64 recipients; this is what makes pool mining without custody possible (section 10). The coinbase may carry a short self-chosen name of the finder.</p>
 <h3>4.3 Fees</h3>
-<p>Up to height 3,999 every transfer costs a fixed minimum of 0.001 YSR. From height 4,000 (consensus version 3) the minimum is calculated <strong>per byte</strong>, as in Bitcoin: at least 1 unit (0.00000001 YSR) per byte. Nodes additionally require 10 units per byte before relaying a transaction; this is policy, not consensus, and can be adjusted without a fork. Amounts below 100 units (0.000001 YSR) are invalid from height 4,000, which prevents the state from being filled with dust. A waiting transaction can be replaced by one with the same nonce only if its fee is higher by at least its relay minimum (10 units × its size in bytes).</p>
+<p>Up to height 3,999 every transfer costs a fixed minimum of 0.001 YSR. From height 4,000 (consensus version 3) the minimum is calculated <strong>per byte</strong>: at least 1 unit (0.00000001 YSR) per byte. Nodes additionally require 10 units per byte before relaying a transaction; this is policy, not consensus, and can be adjusted without a fork. Amounts below 100 units (0.000001 YSR) are invalid from height 4,000, which prevents the state from being filled with dust. A waiting transaction can be replaced by one with the same nonce only if its fee is higher by at least its relay minimum (10 units × its size in bytes).</p>
 
 <h2 id="k5">5. Proof of work and difficulty</h2>
 <h3>5.1 The puzzle</h3>
@@ -165,7 +165,7 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <li><strong>PPLNS:</strong> the last units of work are paid, across block boundaries. The window is twice the network difficulty, so hopping in shortly before an expected block brings no advantage.</li>
 <li><strong>Counted value:</strong> the share target that applied, not the value achieved by luck.</li>
 <li><strong>Limits:</strong> up to 64 addresses per block (63 miners when a fee is taken). If the window holds more, those with the least work receive nothing in that block; their work stays in the window and counts again at the next block, but nothing makes up for the missed block. The reference node software limits the fee to 5%; consensus does not.</li>
-<li><strong>What still requires trust:</strong> the counting of shares. Shares are not in any block. The payout is verifiable; whether it was deserved is not. This applies to every pool, Bitcoin included.</li>
+<li><strong>What still requires trust:</strong> the counting of shares. Shares are not in any block. The payout is verifiable; whether it was deserved is not. This applies to every mining pool.</li>
 </ul>
 
 <h2 id="k11">11. Network</h2>
@@ -186,7 +186,7 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <p>We would rather name the weaknesses than hide them:</p>
 <ul>
 <li><strong>Few nodes.</strong> The network is young and runs on very few nodes. Both seed nodes and the pool listed in the app are run by the developer; independent pools exist as well. Whoever controls most of the hash power can rewrite recent blocks, and there are no checkpoints. Security grows with every independent node and pool.</li>
-<li><strong>Devices differ.</strong> SHA-256d runs far faster on graphics cards than on phones. Phones contribute; their share of rewards is correspondingly smaller. Existing SHA-256 ASICs are not expected to be able to mine YSKAR, because they are built for Bitcoin’s 80-byte header.</li>
+<li><strong>Devices differ.</strong> SHA-256d runs far faster on graphics cards than on phones. Phones contribute; their share of rewards is correspondingly smaller. Existing SHA-256 ASICs are not expected to be able to mine YSKAR, because they are built for an 80-byte header, and YSKAR’s header is 136 bytes.</li>
 <li><strong>Confirmation time.</strong> With 10-minute blocks, a payment is secure only after confirmations. Instant payments via payment channels are being planned; there is no date yet.</li>
 <li><strong>Reported figures.</strong> Active miners and measured hashrate across nodes are reported by the nodes. The network hashrate derived from difficulty and block times is the provable figure.</li>
 </ul>
@@ -229,7 +229,7 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 </tbody>
 </table>
 <p>Die Größe ist gewollt: Mit dem SHA-256-Padding füllen 136 Byte genau drei 64-Byte-Blöcke, und jedes Feld außer der Nonce liegt in den ersten 128 Byte. Ein Miner berechnet den Zustand der ersten beiden Kompressionen einmal je Aufgabe (Midstate) und braucht danach nur zwei Kompressionen je Versuch.</p>
-<p><strong>Merkle-Baum.</strong> Blätter sind <code>sha256d(0x00 ‖ txid)</code>, innere Knoten <code>sha256d(0x01 ‖ links ‖ rechts)</code>. Ein ungerader Knoten wird unverändert hochgereicht statt verdoppelt. Die Präfixe verhindern, dass ein innerer Knoten als Blatt ausgegeben werden kann, und ohne Verdopplung entfällt die von Bitcoin bekannte Mehrdeutigkeit (CVE-2012-2459).</p>
+<p><strong>Merkle-Baum.</strong> Blätter sind <code>sha256d(0x00 ‖ txid)</code>, innere Knoten <code>sha256d(0x01 ‖ links ‖ rechts)</code>. Ein ungerader Knoten wird unverändert hochgereicht statt verdoppelt. Die Präfixe verhindern, dass ein innerer Knoten als Blatt ausgegeben werden kann, und ohne Verdopplung lassen sich auf diesem Weg keine zwei verschiedenen Listen mit derselben Wurzel bauen.</p>
 <p><strong>Zustandswurzel.</strong> Jeder Kopf verpflichtet auf den vollständigen Kontostand nach dem Block. Zwei Knoten mit derselben Wurzel haben exakt dieselben Guthaben berechnet. Ein Block, dessen Wurzel nicht zur eigenen Rechnung passt, wird abgelehnt.</p>
 <p><strong>Grenzen.</strong> Höchstens 2.000 Transaktionen je Block, die Coinbase eingeschlossen.</p>
 
@@ -241,7 +241,7 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <h3>4.2 Coinbase</h3>
 <p>Die erste Transaktion jedes Blocks erzeugt neue YSR. Ihre Summe muss <strong>genau</strong> der Blockbelohnung plus den Gebühren aller Transaktionen des Blocks entsprechen, keine Einheit mehr oder weniger. Bis Höhe 1.999 hat eine Coinbase genau einen Empfänger. Ab Höhe 2.000 (Konsensfassung 2) darf sie bis zu 64 Empfänger haben; das ermöglicht Pool-Mining ohne Verwahrung (Abschnitt 10). Die Coinbase kann einen kurzen, selbst gewählten Namen des Finders tragen.</p>
 <h3>4.3 Gebühren</h3>
-<p>Bis Höhe 3.999 kostet jede Überweisung fest mindestens 0,001 YSR. Ab Höhe 4.000 (Konsensfassung 3) wird das Minimum <strong>je Byte</strong> berechnet, wie bei Bitcoin: mindestens 1 Einheit (0,00000001 YSR) je Byte. Knoten verlangen zusätzlich 10 Einheiten je Byte, bevor sie eine Transaktion weiterleiten; das ist Richtlinie, kein Konsens, und lässt sich ohne Fork anpassen. Beträge unter 100 Einheiten (0,000001 YSR) sind ab Höhe 4.000 ungültig; so lässt sich der Zustand nicht mit Kleinstbeträgen füllen. Eine wartende Transaktion lässt sich durch eine mit derselben Nonce nur ersetzen, wenn deren Gebühr um mindestens deren Weiterleitungsminimum (10 Einheiten × Größe in Byte) höher ist.</p>
+<p>Bis Höhe 3.999 kostet jede Überweisung fest mindestens 0,001 YSR. Ab Höhe 4.000 (Konsensfassung 3) wird das Minimum <strong>je Byte</strong> berechnet: mindestens 1 Einheit (0,00000001 YSR) je Byte. Knoten verlangen zusätzlich 10 Einheiten je Byte, bevor sie eine Transaktion weiterleiten; das ist Richtlinie, kein Konsens, und lässt sich ohne Fork anpassen. Beträge unter 100 Einheiten (0,000001 YSR) sind ab Höhe 4.000 ungültig; so lässt sich der Zustand nicht mit Kleinstbeträgen füllen. Eine wartende Transaktion lässt sich durch eine mit derselben Nonce nur ersetzen, wenn deren Gebühr um mindestens deren Weiterleitungsminimum (10 Einheiten × Größe in Byte) höher ist.</p>
 
 <h2 id="k5-de">5. Proof of Work und Schwierigkeit</h2>
 <h3>5.1 Die Aufgabe</h3>
@@ -299,7 +299,7 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <li><strong>PPLNS:</strong> Bezahlt werden die letzten Arbeitseinheiten, über Blockgrenzen hinweg. Das Fenster ist doppelt so groß wie die Netz-Difficulty; kurz vor einem erwarteten Block einzusteigen bringt deshalb nichts.</li>
 <li><strong>Gezählter Wert:</strong> das geltende Share-Ziel, nicht der durch Glück erreichte Wert.</li>
 <li><strong>Grenzen:</strong> bis zu 64 Adressen je Block (63 Miner, wenn eine Gebühr anfällt). Hält das Fenster mehr, gehen die mit der wenigsten Arbeit in diesem Block leer aus; ihre Arbeit bleibt im Fenster und zählt beim nächsten Block wieder, einen Ausgleich für den verpassten Block gibt es nicht. Die Referenzsoftware begrenzt die Gebühr auf 5 %; der Konsens nicht.</li>
-<li><strong>Was Vertrauen bleibt:</strong> die Zählung der Shares. Shares stehen in keinem Block. Die Auszahlung ist nachprüfbar, ob sie verdient war, nicht. Das gilt für jeden Pool, auch bei Bitcoin.</li>
+<li><strong>Was Vertrauen bleibt:</strong> die Zählung der Shares. Shares stehen in keinem Block. Die Auszahlung ist nachprüfbar, ob sie verdient war, nicht. Das gilt für jeden Mining-Pool.</li>
 </ul>
 
 <h2 id="k11-de">11. Netz</h2>
@@ -320,7 +320,7 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <p>Wir nennen die Schwächen lieber, als sie zu verstecken:</p>
 <ul>
 <li><strong>Wenige Knoten.</strong> Das Netz ist jung und läuft auf sehr wenigen Knoten. Beide Seed-Knoten und der Pool, den die App anbietet, werden vom Entwickler betrieben; unabhängige Pools gibt es ebenfalls. Wer die Mehrheit der Rechenleistung hat, kann jüngere Blöcke umschreiben, und es gibt keine Checkpoints. Die Sicherheit wächst mit jedem unabhängigen Knoten und Pool.</li>
-<li><strong>Geräte sind verschieden.</strong> SHA-256d läuft auf Grafikkarten weit schneller als auf Telefonen. Telefone tragen bei; ihr Anteil an den Belohnungen ist entsprechend kleiner. Vorhandene SHA-256-ASICs können YSKAR voraussichtlich nicht minen, weil sie für Bitcoins 80-Byte-Kopf gebaut sind.</li>
+<li><strong>Geräte sind verschieden.</strong> SHA-256d läuft auf Grafikkarten weit schneller als auf Telefonen. Telefone tragen bei; ihr Anteil an den Belohnungen ist entsprechend kleiner. Vorhandene SHA-256-ASICs können YSKAR voraussichtlich nicht minen, weil sie für einen 80-Byte-Kopf gebaut sind und der Kopf von YSKAR 136 Byte hat.</li>
 <li><strong>Bestätigungszeit.</strong> Bei 10-Minuten-Blöcken ist eine Zahlung erst nach Bestätigungen sicher. Sofortzahlungen über Zahlungskanäle sind in Planung; einen Termin gibt es noch nicht.</li>
 <li><strong>Gemeldete Zahlen.</strong> Aktive Miner und gemessene Hashrate über mehrere Knoten werden von den Knoten gemeldet. Beweisbar ist die Netz-Hashrate aus Difficulty und Blockzeiten.</li>
 </ul>

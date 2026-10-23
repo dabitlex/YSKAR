@@ -20,7 +20,7 @@ import { toHex, fromHex } from '../../core/codec.ts';
 import { NETWORK } from '../../core/params.ts';
 import { ChainStore } from './ChainStore.ts';
 import { spiegelKopf } from './spiegelKopf.ts';
-import { ChainManager } from './ChainManager.ts';
+import { ChainManager, AktivierungsFehler } from './ChainManager.ts';
 import { TxPool } from './TxPool.ts';
 import { MiningCoordinator } from './MiningCoordinator.ts';
 import { MiningServer } from './MiningServer.ts';
@@ -1046,7 +1046,14 @@ async function main(): Promise<void> {
   } catch (e) {
     console.error(rot(`\nDie lokale Ablage ist nicht verwendbar:`));
     console.error(rot(`  ${(e as Error).message}\n`));
-    console.error(grau(`  Ordner ${opt.daten} entfernen und neu synchronisieren.\n`));
+    if (e instanceof AktivierungsFehler) {
+      // Die Ablage ist richtig, das Programm passt nicht zu ihr. Loeschen und
+      // neu synchronisieren hiesse: mit der falschen Hoehe auf eine andere Kette.
+      console.error(grau(`  Die Ablage NICHT loeschen. Bitte die Programmversion verwenden, deren ` +
+        `Aktivierungshoehe zu dieser Kette passt.\n`));
+    } else {
+      console.error(grau(`  Ordner ${opt.daten} entfernen und neu synchronisieren.\n`));
+    }
     process.exit(1);
   }
   if (chain.alteBloeckeVerworfen > 0) {

@@ -101,16 +101,21 @@ export function baueVorlage(
   const { included, rejected, fees } = selectTransactions(state, erste, height, undefined, params, opt);
 
   const konten = zwischenzustand(state, included, height, fees, params);
-  const sortiert = [...konten.keys()].sort(vergleiche);
+  const v6 = height >= params.v6Height;
+  // Der flache Baum (sortierte Blaetter, Ebenen) gehoert nur zu den Hoehen
+  // vor Fassung 6. Ab da rechnet wurzelMitCoinbase mit dem Sparse-Merkle-
+  // Baum -- alle Konten zu sortieren und zu hashen waere je Vorlage
+  // O(n log n) ohne Nutzen.
+  const sortiert = v6 ? [] : [...konten.keys()].sort(vergleiche);
   const position = new Map<string, number>();
   sortiert.forEach((k, i) => position.set(k, i));
   const blaetter = sortiert.map(k => blattHash(k, konten.get(k)!));
 
   return {
     schluessel, height, included, rejected, fees, konten, sortiert, position,
-    ebenen: ebenenAus(blaetter),
+    ebenen: v6 ? [] : ebenenAus(blaetter),
     menge: totalSupply(konten),
-    v6: height >= params.v6Height,
+    v6,
   };
 }
 
@@ -130,7 +135,9 @@ export function baueVorlage(
 function zwischenzustand(
   state: State, included: Spend[], height: number, fees: bigint, params: ConsensusParams,
 ): State {
-  const belegt = new Set<string>(state.keys());
+  // Nur die Adressen der Transaktionen sammeln; ob der Zustand eine kennt,
+  // fragt has() -- statt alle Konten in eine Menge zu kopieren.
+  const belegt = new Set<string>();
   for (const t of included) {
     belegt.add(toHex(senderRaw(t)));
     if (t.type === TX_BATCH) for (const o of t.outputs) belegt.add(toHex(o.to));
@@ -139,7 +146,7 @@ function zwischenzustand(
   let platzhalter: Uint8Array | null = null;
   for (let b = 0xff; b >= 0 && !platzhalter; b--) {
     const kandidat = new Uint8Array(ADDRESS_BYTES).fill(b);
-    if (!belegt.has(toHex(kandidat))) platzhalter = kandidat;
+    if (!belegt.has(toHex(kandidat)) && !state.has(toHex(kandidat))) platzhalter = kandidat;
   }
   if (!platzhalter) throw new Error('Vorlage: keine freie Platzhalter-Adresse');
 

@@ -3,11 +3,18 @@ import { NextResponse } from 'next/server';
 import { deserializeBlock, headerHash, checkBlockStructure } from '@/lib/core/block';
 import { coinbaseTotal, type Coinbase } from '@/lib/core/tx';
 import { validateBlock, checkEncoding } from '@/lib/core/validate';
-import { applyBlock, cloneState, stateRootAt } from '@/lib/core/state';
+import { applyBlock, cloneState, stateRootAt, totalSupply, type State } from '@/lib/core/state';
 import { aktiviereZip215Wasm } from '@/lib/node/zip215';
 import { toHex, fromHex } from '@/lib/core/codec';
-import { LWMA_WINDOW } from '@/lib/core/params';
-import { loadTip, loadState, loadTimings, commitBlock } from '@/lib/node/store';
+import { LWMA_WINDOW, MAX_SUPPLY } from '@/lib/core/params';
+import { loadTip, loadState, loadTimings, commitBlock, loadKonten, kontenAnzahl, beruehrteKonten } from '@/lib/node/store';
+
+/**
+ * Bis zu so vielen Konten liest der Spiegel den ganzen Zustand und rechnet
+ * die Zustandswurzel nach (rund eine Sekunde); darueber nur die beruehrten
+ * Konten.
+ */
+const SPIEGEL_VOLL_BIS = 20_000;
 
 export const runtime = 'nodejs';
 
@@ -121,13 +128,35 @@ export async function POST(req: Request) {
 
   const hash = toHex(headerHash(block.header));
 
-  let tip, zustand, zeiten;
+  /*
+    Bis SPIEGEL_VOLL_BIS Konten liest der Spiegel den ganzen Zustand und
+    rechnet die Zustandswurzel nach -- wie bisher. Darueber nur die Konten,
+    die der Block beruehrt: Den ganzen Zustand bei jedem Block zu lesen und
+    den Baum daraus neu zu bauen, kostete bei einer Million Konten Minuten,
+    und die Funktion liefe in ihre Zeitgrenze -- bei jedem Versuch, der
+    Spiegel stuende still. Die Wurzel prueft dann der Knoten, der den Block
+    einreicht; der Spiegel uebernimmt sie (CONSENSUS_V6.md 12: er rechnet
+    keinen Konsens). Alles andere -- Signaturen, Nonces, Deckung, Coinbase,
+    Gesamtmenge -- prueft er weiter selbst.
+  */
+  let tip, zustand: { state: State; menge: bigint | null }, zeiten;
   try {
-    [tip, zustand, zeiten] = await Promise.all([
+    const [t0, anzahl, z0] = await Promise.all([
       loadTip(),
-      loadState(),
+      kontenAnzahl(),
       loadTimings(LWMA_WINDOW),
     ]);
+    tip = t0; zeiten = z0;
+    zustand = anzahl <= SPIEGEL_VOLL_BIS
+      ? { state: (await loadState()).state, menge: null }
+      : await loadKonten(beruehrteKonten(block)).then(k => {
+        // Konten und Kettenkopf muessen zum selben Stand gehoeren -- sonst
+        // rechnete der Spiegel mit Guthaben eines anderen Blocks weiter.
+        if (k.height !== (t0?.height ?? -1)) {
+          throw new Error(`Konten bei Hoehe ${k.height}, Kettenkopf bei ${t0?.height ?? -1}`);
+        }
+        return { state: k.state, menge: k.menge };
+      });
   } catch (e) {
     // Lesefehler duerfen nie als "leere Kette" durchgehen -- sonst wuerde
     // hier ein zweiter Genesis angenommen.
@@ -167,12 +196,14 @@ export async function POST(req: Request) {
 
   // Volle Konsenspruefung -- dieselbe Funktion wie fuer eigene Bloecke.
   const state = zustand.state;
+  const teil = zustand.menge !== null;
   const fehler = validateBlock(block, {
     previous: tip?.header ?? null,
     state,
     recentTimestamps: zeiten.timestamps.slice(-11),
     recentTimings: zeiten.timings,
     now: BigInt(Math.floor(Date.now() / 1000)),
+    nurBeruehrteKonten: teil,
   });
   if (fehler) return fail(fehler.code, fehler.detail);
 
@@ -180,16 +211,25 @@ export async function POST(req: Request) {
   const angewandt = applyBlock(state, block);
   if (!angewandt.ok) return fail('apply_failed', angewandt.error?.reason);
 
-  // Ab der Aktivierungshoehe von Fassung 6 traegt der Block die Wurzel des
-  // Sparse-Merkle-Baums, davor die des flachen Baums (CONSENSUS_V6.md 10).
-  const meine = toHex(stateRootAt(state, block.header.height));
-  if (meine !== toHex(block.header.stateRoot)) {
-    return fail('state_root', `errechnet ${meine.slice(0, 16)}…`);
+  let menge: bigint | undefined;
+  if (teil) {
+    // applyBlock sah nur einen Teil der Konten -- die Gesamtmenge ergibt sich
+    // aus der gespeicherten plus der Aenderung durch diesen Block.
+    const neu = zustand.menge! - totalSupply(vorher) + totalSupply(state);
+    if (neu > MAX_SUPPLY) return fail('apply_failed', 'supply_exceeded');
+    menge = neu;
+  } else {
+    // Ab der Aktivierungshoehe von Fassung 6 traegt der Block die Wurzel des
+    // Sparse-Merkle-Baums, davor die des flachen Baums (CONSENSUS_V6.md 10).
+    const meine = toHex(stateRootAt(state, block.header.height));
+    if (meine !== toHex(block.header.stateRoot)) {
+      return fail('state_root', `errechnet ${meine.slice(0, 16)}…`);
+    }
   }
 
   let committed;
   try {
-    committed = await commitBlock(block, vorher, state);
+    committed = await commitBlock(block, vorher, state, menge);
   } catch (e) {
     // Zwischen Pruefung und Festschreiben kann ein anderer Block gewonnen
     // haben. Die Datenbank erzwingt die Verkettung, also faellt das hier

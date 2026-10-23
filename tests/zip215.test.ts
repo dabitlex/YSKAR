@@ -41,7 +41,8 @@ test('Modul: geladen, Pruefsumme stimmt, Selbstprobe bestanden', () => {
 });
 
 test('Regel 7.8: alle 196 veroeffentlichten Grenzfaelle -- noble und WASM entscheiden wie erwartet', () => {
-  const msg = new TextEncoder().encode('Zcash');
+  // Nachricht der veroeffentlichten Referenzvektoren (5 Byte).
+  const msg = Uint8Array.of(0x5a, 0x63, 0x61, 0x73, 0x68);
   assert.equal(V.zip215.faelle.length, 196);
   for (const [i, c] of V.zip215.faelle.entries()) {
     const sig = h(c.sig), pk = h(c.vk);

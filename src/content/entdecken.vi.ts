@@ -53,7 +53,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Share, Difficulty, block — cách thiết bị của bạn tham gia.',
     lesezeit: '3 phút',
     einleitung: 'Điện thoại của bạn tính toán hash SHA-256d dựa trên một job từ mạng lưới. ' +
-      'Đây là cùng phương pháp như Bitcoin — chỉ khác là Difficulty được chọn sao cho ' +
+      'Đây là proof of work thực sự — và Difficulty được chọn sao cho ' +
       'một chiếc điện thoại có cơ hội thực sự.',
     bausteine: [
       { art: 'schritte', titel: 'Một block ra đời như thế nào', punkte: [
@@ -123,10 +123,10 @@ const ARTIKEL: Artikel[] = [
         { label: `Epoch 3 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `Một epoch là ${z(EPOCH_BLOCKS)} block, khoảng ${EPOCHE_TAGE} ngày. ` +
-        'Sau đó phần thưởng giảm một nửa — giống Bitcoin, chỉ nhanh hơn.' },
+        'Sau đó phần thưởng giảm một nửa.' },
       { art: 'absatz', text: `Một season là ${z(SEASON_BLOCKS)} block, hai season tạo thành một ` +
         'epoch. Phần thưởng được giảm một nửa bằng phép dịch bit đơn thuần, không làm tròn — vì vậy ' +
-        `tổng nguồn cung dừng ở mức ngay dưới ${ysr(MAX_SUPPLY)}, giống hệt Bitcoin.` },
+        `tổng nguồn cung dừng ở mức ngay dưới ${ysr(MAX_SUPPLY)}.` },
       { art: 'kennzahlen', werte: [
         { label: 'Phí tối thiểu', wert: `${ysr(MIN_FEE)} YSR` },
         { label: 'Số chỗ mỗi block', wert: z(MAX_TXS_PER_BLOCK) },

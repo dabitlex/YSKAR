@@ -37,6 +37,8 @@ const ADRESS_ZEICHEN = Math.ceil((ADDRESS_BYTES * 8) / 5);
 /** Version 1: ein Versionszeichen ("p") und 256 Bit Programm = 1 + 52 Zeichen. */
 const PROGRAMM_V1_BYTES = 32;
 const ADRESS_ZEICHEN_V1 = 1 + Math.ceil((PROGRAMM_V1_BYTES * 8) / 5);
+/** Eine ganze Adresse der Version 0 nach "ysr1": Programm plus 6 Zeichen Pruefsumme. */
+const ADRESS_ZEICHEN_V0_GANZ = ADRESS_ZEICHEN + 6;
 const MIN_TXID = 4;
 const MIN_ADRESSE = 2;    // Zeichen nach "ysr1"
 const MIN_MEMO = 2;
@@ -108,9 +110,9 @@ export function sucheAus(eingabe: string | null): Suche | null {
       const roh = klein.slice(hrp.length);
       // Version 0: 32 Datenzeichen, das Programm beginnt sofort. Laengeres
       // (vertippte Pruefsumme, ein Zeichen zu wenig) wird wie bisher auf das
-      // Programm gekuerzt -- ausser es kann nur Version 1 sein (ab "p" mehr
-      // als 32 Zeichen).
-      if (!(roh.startsWith('p') && roh.length > ADRESS_ZEICHEN)) {
+      // Programm gekuerzt -- ausser es kann nur Version 1 sein: laenger, als
+      // eine Adresse der Version 0 samt Pruefsumme je ist (38 Zeichen).
+      if (!(roh.startsWith('p') && roh.length > ADRESS_ZEICHEN_V0_GANZ)) {
         const daten = roh.slice(0, ADRESS_ZEICHEN);
         const bits = daten.length >= MIN_ADRESSE ? bech32Bits(daten) : null;
         if (bits) [s.gegenLo, s.gegenHi] = bereich(bits, ADDRESS_BYTES);

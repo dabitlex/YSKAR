@@ -1,8 +1,8 @@
 /**
  * Die Nachrichten des YSKAR-P2P-Protokolls.
  *
- * Aufgebaut nach Bitcoins Vorbild, aber auf YSKAR zugeschnitten. Was
- * uebernommen wurde und was nicht, steht bei jeder Nachricht dabei.
+ * Auf YSKAR zugeschnitten. Warum jede Nachricht so aussieht, steht bei
+ * ihr dabei.
  *
  * EINE REGEL UEBER ALLEM: Keine Nachricht traegt eine Aussage ueber
  * Gueltigkeit. Ein Peer liefert Daten; ob sie gelten, entscheidet der
@@ -135,7 +135,7 @@ export const decodePing = (b: Uint8Array) => new Reader(b).u64();
 /**
  * getheaders -- "wo stehe ich, und was kommt danach?"
  *
- * Der Locator ist Bitcoins Kniff und uebernommen: eine Liste eigener
+ * Der Locator: eine Liste eigener
  * Blockhashes, dicht am Kopf und mit wachsendem Abstand nach hinten. Die
  * Gegenseite sucht den ersten, den sie kennt, und antwortet ab dort.
  *
@@ -249,9 +249,8 @@ export interface PeerAdresse {
  * addr -- bekannte Peers weitergeben.
  *
  * Host als Text statt als Bytes: Das deckt IPv4, IPv6 und Namen mit
- * derselben Form ab. Bitcoin hat dafuer drei Formate gebraucht und mit
- * BIP155 ein viertes nachgeliefert; bei den Groessenordnungen hier waere
- * das Sparen an der falschen Stelle.
+ * derselben Form ab. Getrennte Formate je Adressart waeren bei den
+ * Groessenordnungen hier Sparen an der falschen Stelle.
  */
 export function encodeAddr(liste: PeerAdresse[]): Uint8Array {
   if (liste.length > MAX_ADDR) throw new Error('Zu viele Adressen');

@@ -120,9 +120,15 @@ test('stateRootV6: gleich der Neuberechnung, auch bei wechselnden Zustaenden und
     assert.equal(hex(stateRootV6(a)), hex(stateRootV6Voll(a)), `a, Runde ${runde}`);
   }
 
-  // Ein Konto an Ort und Stelle geaendert -- der Baum darf das nicht uebersehen.
-  a.get(adr(10))!.balance += 1n;
-  assert.equal(hex(stateRootV6(a)), hex(stateRootV6Voll(a)), 'nach Aenderung an Ort und Stelle');
+  // Ein Konto an Ort und Stelle aendern: Im Trie-Zustand sind Konten
+  // eingefroren -- es wirft, statt still an geteilten Fassungen vorbei zu
+  // schreiben (zustand.ts).
+  assert.throws(() => { a.get(adr(10))!.balance += 1n; }, TypeError);
+  // In einer gewoehnlichen Map geht es -- und der Baum darf das nicht uebersehen.
+  const m: State = new Map([...a].map(([k, v]) => [k, { ...v }]));
+  assert.equal(hex(stateRootV6(m)), hex(stateRootV6Voll(m)));
+  m.get(adr(10))!.balance += 1n;
+  assert.equal(hex(stateRootV6(m)), hex(stateRootV6Voll(m)), 'nach Aenderung an Ort und Stelle');
 
   // Ein Konto mit null Guthaben und Nonce null, falls es im Zustand steht: wie die Neuberechnung.
   a.set(adr(999), { balance: 0n, nonce: 0n });

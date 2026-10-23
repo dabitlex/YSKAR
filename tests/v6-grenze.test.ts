@@ -175,6 +175,35 @@ test('Grenze: alte Bloecke ueber der Hoehe werden beim Start nach dem Update ver
   store.close();
 });
 
+test('Grenze: Hoehe vor dem Erreichen geaendert -- frueher verworfene Bloecke haengen den Knoten nicht fest', () => {
+  // Alter Knoten bis 7, dann ein Programm mit Hoehe 5: Bloecke 5-7 verworfen.
+  const zAlt = emptyState();
+  const alt = mine(ALT, zAlt, new Uint8Array(32), 0, 8, { extra: 'alt' });
+  const store = neueAblage(GRENZE);
+  const vorUpdate = new ChainManager(store, ALT);
+  for (const g of alt) assert.ok(vorUpdate.accept(g.body).ok);
+  const mitHoehe = new ChainManager(store, GRENZE);
+  assert.equal(mitHoehe.alteBloeckeVerworfen, 3);
+  assert.equal(mitHoehe.height(), HOEHE - 1);
+
+  // Die Hoehe war noch nicht erreicht (die Kette endet bei 4) -- zurueck auf
+  // ein Programm ohne Hoehe. Die verworfenen Bloecke sind nach dessen Regeln
+  // gueltig und muessen sich wieder annehmen lassen.
+  const ohne = new ChainManager(store, ALT);
+  assert.equal(ohne.height(), HOEHE - 1);
+  for (const g of alt.slice(HOEHE)) {
+    const r = ohne.accept(g.body);
+    assert.ok(r.ok && r.stored !== false, `Block ${g.block.header.height}: ${zeig(r)}`);
+  }
+  assert.equal(ohne.height(), 7);
+
+  // Und wieder mit Hoehe 5: erneut verworfen, nicht still behalten.
+  const wieder = new ChainManager(store, GRENZE);
+  assert.equal(wieder.alteBloeckeVerworfen, 3);
+  assert.equal(wieder.height(), HOEHE - 1);
+  store.close();
+});
+
 test('Grenze: auch ein hoeherer, aber leichterer Seitenzweig alter Fassung wird verworfen', () => {
   // Alter Knoten: Hauptkette A bis 7, Seitenzweig B ab 3 bis 8.
   const basis = emptyState();

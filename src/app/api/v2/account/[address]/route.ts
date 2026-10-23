@@ -34,8 +34,10 @@ export async function GET(
     die Liste leer und das Guthaben trotzdem richtig.
   */
   interface Wartend {
-    txid: string; kind: 'in' | 'out'; from: string; to: string;
+    txid: string; kind: 'in' | 'out'; from: string; to: string | null;
     amount: string; fee: string; nonce: string; memo?: string;
+    /** Voraussichtlich im wievielten Block (1 = naechster), null = nicht absehbar. */
+    block?: number | null;
   }
   const vomKnoten = fullnodeLesen<{ pending?: Wartend[]; nextNonce?: string }>(
     `/api/v2/account/${address}`).catch(() => null);
@@ -83,6 +85,10 @@ export async function GET(
     pending: (knoten?.pending ?? []).map(p => ({
       txid: unprefix(p.txid), kind: p.kind, from: p.from, to: p.to,
       amount: p.amount, fee: p.fee, nonce: p.nonce, memo: unprefix(p.memo ?? '') || null,
+      // Fuer "haengt fest" und "voraussichtlich in n Bloecken" in der Wallet.
+      // null heisst "noch nicht absehbar" (haengt fest). Nennt ein Knoten es
+      // gar nicht, bleibt das Feld weg -- sonst galte alles als festhaengend.
+      block: typeof p.block === 'number' ? p.block : p.block === null ? null : undefined,
     })),
     pendingSource: knoten ? 'fullnode' : 'unavailable',
     blocksFound: mined ?? 0,

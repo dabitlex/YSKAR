@@ -199,7 +199,7 @@ function baueUebersicht(ctx) {
         kinder.push(posten(symbol('uhr', 'background:rgba(240,185,90,.14);color:#F3C679'),
           t(e.art === 'aus' ? 'wal.gesendetAn' : 'wal.empfangenVon', wer(e.name, e.gegen)),
           [wann, e.notiz ? ' · ' + t('wal.notizZeile', e.notiz) : '',
-            e.art === 'aus' ? [' · ', el('a', { href: '#', onclick: ev => { ev.preventDefault(); erhoehenFormular(ev.target, e.txid); } }, t('wal.erhoehen'))] : ''],
+            e.art === 'aus' && !e.sammel && e.imPool !== false ? [' · ', el('a', { href: '#', onclick: ev => { ev.preventDefault(); erhoehenFormular(ev.target, e.txid); } }, t('wal.erhoehen'))] : ''],
           (e.art === 'aus' ? '−' : '+') + ysr(e.betrag), e.art === 'aus' ? '' : '.dim'));
       } else if (e.art === 'aus') {
         kinder.push(posten(symbol('hoch', 'background:#1A2740;color:#C9D5E8'), t('wal.gesendetAn', wer(e.name, e.gegen)),
@@ -217,26 +217,43 @@ function baueUebersicht(ctx) {
   }
 
   /**
-   * Gebuehr einer wartenden eigenen Ueberweisung erhoehen: Passwort, dann
-   * ersetzt der Knoten sie durch dieselbe Ueberweisung mit der Gebuehr der
-   * Stufe "schnell" (mindestens alte Gebuehr plus Weiterleitungsgebuehr).
+   * Gebuehr einer wartenden eigenen Ueberweisung erhoehen. Erst nennt der
+   * Knoten den neuen Betrag (Stufe "schnell", mindestens alte Gebuehr plus
+   * Weiterleitungsgebuehr), dann bestaetigt der Nutzer GENAU diesen Betrag mit
+   * dem Passwort. Ist er inzwischen zu niedrig, sendet der Knoten nichts und
+   * nennt den neuen -- er wird angezeigt und muss erneut bestaetigt werden.
    */
   function erhoehenFormular(anker, id) {
     const zeile = anker.closest('div');
     if (!zeile || zeile.parentNode.querySelector('form[data-erhoehen="' + id + '"]')) return;
+    let gebuehr = null;
+    const betrag = el('span.hinweis', { style: 'flex:1 1 100%;font-weight:700' }, t('wal.erhoehenRechnet'));
     const pw = el('input.feld', { type: 'password', autocomplete: 'current-password', placeholder: t('wal.passwort'), style: 'flex:1 1 180px', 'aria-label': t('wal.passwort') });
+    const knopfSenden = el('button.knopf.haupt.klein', { type: 'submit', disabled: true }, t('wal.erhoehen'));
     const form = el('form.reihe.umbrechen', { 'data-erhoehen': id, style: 'gap:8px;padding:0 0 10px 50px' },
-      el('span.hinweis', { style: 'flex:1 1 100%' }, t('wal.erhoehenText')), pw,
-      el('button.knopf.haupt.klein', { type: 'submit' }, t('wal.erhoehen')),
+      el('span.hinweis', { style: 'flex:1 1 100%' }, t('wal.erhoehenText')), betrag, pw,
+      knopfSenden,
       knopf(t('allg.abbrechen'), () => form.remove(), 'klein'));
+    const zeige = (g, bisher) => {
+      gebuehr = g;
+      text(betrag, t('wal.erhoehenBetrag', ysr(g, 0), bisher === undefined ? '' : ysr(bisher, 0)));
+      knopfSenden.disabled = false;
+    };
+    sende('/api/wallet/erhoehen/vorschau', { txid: id })
+      .then(v => zeige(v.gebuehr, v.bisher))
+      .catch(err => { melde(err.message, true); form.remove(); });
     form.addEventListener('submit', async ev => {
       ev.preventDefault();
+      if (gebuehr === null) return;
       try {
-        const r = await sende('/api/wallet/erhoehen', { txid: id, passwort: pw.value });
+        const r = await sende('/api/wallet/erhoehen', { txid: id, passwort: pw.value, gebuehr });
         melde(t('wal.erhoeht', ysr(r.gebuehr, 0)));
         form.remove();
         lade();
-      } catch (err) { melde(err.message, true); }
+      } catch (err) {
+        if (err.code === 'gebuehr_gestiegen' && err.werte && err.werte[0]) zeige(String(err.werte[0]));
+        melde(err.message, true);
+      }
     });
     zeile.after(form);
     pw.focus();
@@ -321,10 +338,21 @@ function baueSenden(ctx, such) {
     const senden = async e => {
       e.preventDefault(); fehler.hidden = true; los.disabled = true;
       try {
-        const r = await sende('/api/wallet/senden', { ...eingaben(), ...(alles ? { alles: true } : {}), passwort: pw.value });
+        // Die angezeigte Gebuehr mitschicken: Ist die noetige inzwischen
+        // hoeher, sendet der Knoten nicht, sondern nennt die neue.
+        const r = await sende('/api/wallet/senden', { ...eingaben(), ...(alles ? { alles: true } : {}), passwort: pw.value, gebuehr: v.gebuehr });
         pw.value = '';
         zeigeGesendet(r);
-      } catch (err) { fehler.textContent = err.message; fehler.hidden = false; los.disabled = false; pw.select(); }
+      } catch (err) {
+        if (err.code === 'gebuehr_gestiegen') {
+          // Neu pruefen: neue Gebuehr anzeigen, neue Bestaetigung.
+          pw.value = '';
+          await pruefe(alles);
+          melde(err.message, true);
+          return;
+        }
+        fehler.textContent = err.message; fehler.hidden = false; los.disabled = false; pw.select();
+      }
     };
     fuelle(rechts,
       el('h2', t('wal.pruefenTitel')),

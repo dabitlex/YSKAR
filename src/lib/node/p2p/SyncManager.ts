@@ -10,7 +10,7 @@
  * fuer "vertrauenswuerdige" Peers, weil es keine vertrauenswuerdigen Peers
  * gibt.
  *
- * HEADER ZUERST, wie bei Bitcoin. Header sind 136 Byte, Bloecke bis zu 400
+ * HEADER ZUERST. Header sind 136 Byte, Bloecke bis zu 400
  * KB. Erst wenn feststeht, dass ein Zweig mehr Arbeit traegt, werden die
  * Koerper geholt -- sonst laedt man Bloecke herunter, die man gleich wieder
  * verwirft.
@@ -723,6 +723,8 @@ export class SyncManager {
       return;
     }
 
+    // Bei DIESEM Peer bestellt? Nur dann zaehlt die Ausnahme fuer alte Peers unten.
+    const beiIhmBestellt = this.offen.get(hash)?.peer === p;
     this.offen.delete(hash);
     // Bloecke kommen in der Reihenfolge der Warteschlange -- der Eintrag
     // steht fast immer ganz vorn.
@@ -760,6 +762,27 @@ export class SyncManager {
           this.log(`Block ${kopf.height} von ${p.host} nennt eine hoehere Konsensfassung `
             + `(${r.detail ?? ''}). Dieser Knoten ist veraltet -- bitte aktualisieren.`);
         }
+        return;
+      }
+      if (r.detail === 'bad_version' && beiIhmBestellt && fassung(p) < 6 && kopf.height >= this.params.v6Height) {
+        /*
+          Ein Peer alter Fassung liefert seinen Block alter Fassung ueber der
+          Aktivierungshoehe -- das ist kein Fehlverhalten, sondern genau das,
+          was er nach seinen Regeln tut. Waehrend dieser Knoten noch unter der
+          Hoehe synchronisiert, fragt er solche Peers nach angekuendigten
+          Bloecken (die Ankuendigung nennt keine Hoehe). Trennen hiesse: bei
+          jedem neuen Block des Peers neu verbinden und neu trennen, und die
+          Synchronisation verloere jedes Mal ihren Lieferanten. Also: Block
+          vergessen, nicht wieder holen, Verbindung behalten (11.4).
+
+          Nur fuer einen Block, den wir bei genau diesem Peer BESTELLT haben
+          (auf seine Ankuendigung hin). Unaufgefordert geschickte Bloecke
+          fallen nicht darunter -- sonst koennte ein Peer, der sich als alt
+          ausgibt, beliebig viele billige Bloecke schicken, ohne je getrennt
+          zu werden.
+        */
+        this.entferneMitNachfahren(hash);
+        this.merkeLeicht(hash);
         return;
       }
       // Alles andere ist ein ungueltiger Block. Getrennt, nicht gesperrt.

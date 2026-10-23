@@ -53,7 +53,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Share, difficulty, блоки — як бере участь твій пристрій.',
     lesezeit: '3 хв',
     einleitung: 'Твій телефон обчислює хеші SHA-256d за завданням від мережі. ' +
-      'Це той самий принцип, що й у Bitcoin, — лише difficulty підібрано так, ' +
+      'Це справжній proof of work — і difficulty підібрано так, ' +
       'щоб телефон мав реальний шанс.',
     bausteine: [
       { art: 'schritte', titel: 'Як зʼявляється блок', punkte: [
@@ -123,10 +123,10 @@ const ARTIKEL: Artikel[] = [
         { label: `Епоха 3 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `Епоха — це ${z(EPOCH_BLOCKS)} блоків, приблизно ${EPOCHE_TAGE} днів. ` +
-        'Після неї reward зменшується вдвічі — як у Bitcoin, тільки швидше.' },
+        'Після неї reward зменшується вдвічі.' },
       { art: 'absatz', text: `Сезон — це ${z(SEASON_BLOCKS)} блоків, два сезони становлять ` +
         'епоху. Reward ділиться навпіл простим бітовим зсувом, без округлення, — тому загальна ' +
-        `емісія виявляється трохи нижчою за ${ysr(MAX_SUPPLY)}, точно як у Bitcoin.` },
+        `емісія виявляється трохи нижчою за ${ysr(MAX_SUPPLY)}.` },
       { art: 'kennzahlen', werte: [
         { label: 'Мін. комісія', wert: `${ysr(MIN_FEE)} YSR` },
         { label: 'Місць у блоці', wert: z(MAX_TXS_PER_BLOCK) },

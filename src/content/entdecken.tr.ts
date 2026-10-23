@@ -53,7 +53,7 @@ const ARTIKEL: Artikel[] = [
     teaser: 'Share, zorluk, blok — cihazın nasıl katılıyor.',
     lesezeit: '3 dk',
     einleitung: 'Telefonun, ağdan gelen bir iş (job) üzerinde SHA-256d hash’leri hesaplar. ' +
-      'Bitcoin ile aynı yöntem — yalnızca zorluk, bir telefonun gerçek bir şansı ' +
+      'Bu gerçek bir proof of work — ve zorluk, bir telefonun gerçek bir şansı ' +
       'olacak şekilde seçilmiştir.',
     bausteine: [
       { art: 'schritte', titel: 'Bir blok nasıl oluşur', punkte: [
@@ -123,10 +123,10 @@ const ARTIKEL: Artikel[] = [
         { label: `Dönem 3 · ${REWARD / 4}`, anteil: .25 },
         { label: '', anteil: .125 }, { label: '', anteil: .0625 }, { label: '', anteil: .031 },
       ], fuss: `Bir dönem ${z(EPOCH_BLOCKS)} blok, yani yaklaşık ${EPOCHE_TAGE} gün sürer. ` +
-        'Sonrasında ödül yarıya iner — Bitcoin’deki gibi, yalnızca daha hızlı.' },
+        'Sonrasında ödül yarıya iner.' },
       { art: 'absatz', text: `Bir sezon ${z(SEASON_BLOCKS)} blok, iki sezon bir dönemdir. ` +
         'Ödül yuvarlama yapılmadan, saf bit kaydırmayla yarılanır — bu yüzden toplam ' +
-        `arz tam Bitcoin’deki gibi ${ysr(MAX_SUPPLY)} değerinin hemen altında kalır.` },
+        `arz ${ysr(MAX_SUPPLY)} değerinin hemen altında kalır.` },
       { art: 'kennzahlen', werte: [
         { label: 'Asgari ücret', wert: `${ysr(MIN_FEE)} YSR` },
         { label: 'Blok başına yer', wert: z(MAX_TXS_PER_BLOCK) },

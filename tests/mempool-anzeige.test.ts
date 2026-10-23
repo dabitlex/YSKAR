@@ -150,3 +150,50 @@ test('Ohne Aktivierungshoehe meldet der Knoten Fassung 5 -- mit Hoehe 6', async 
   assert.equal(gemeldeteFassung(REGTEST), 5);
   assert.equal(gemeldeteFassung({ ...REGTEST, v6Height: 100 }), 6);
 });
+
+test('Wallet: Nonce einer neuen Zahlung zaehlt gemerkte eigene mit -- nie still ersetzen', async () => {
+  const { naechsteEigeneNonce } = await import('../src/lib/wallet/wartendeZahlungen.ts');
+  const z = (nonce: string, extra: Partial<EigeneZahlung> = {}): EigeneZahlung =>
+    ({ txid: nonce.padStart(64, '0'), raw: '00', nonce, an: 'x', betrag: '1', gebuehr: '1', notiz: '', um: 1, ...extra });
+  // Der Knoten hat Nonce 4 verdraengt: nextNonce 4, gemerkt ist 4 -> neue bekommt 5.
+  assert.equal(naechsteEigeneNonce([z('4')], { nonce: '4', nextNonce: '4' }), 5n);
+  // Kennt der Knoten sie, bleibt es bei nextNonce.
+  assert.equal(naechsteEigeneNonce([z('4')], { nonce: '4', nextNonce: '5' }), 5n);
+  // Schon verbrauchte Nonces zaehlen nicht.
+  assert.equal(naechsteEigeneNonce([z('2')], { nonce: '4', nextNonce: '4' }), 4n);
+  // Endgueltig abgelehnte zaehlen nicht -- ihre Nonce darf die neue belegen.
+  assert.equal(naechsteEigeneNonce([z('4', { abgelehnt: 'bad_version' })], { nonce: '4', nextNonce: '4' }), 4n);
+  // Ohne nextNonce: Zustand plus eigene wartende.
+  assert.equal(naechsteEigeneNonce([], { nonce: '3', pending: [{ kind: 'out' }, { kind: 'in' }] }), 4n);
+  assert.equal(naechsteEigeneNonce([], null), 0n);
+});
+
+test('Wallet: Antworten auf erneutes Einreichen werden eingeordnet', async () => {
+  const { einordnen } = await import('../src/lib/wallet/wartendeZahlungen.ts');
+  assert.deepEqual(einordnen({ accepted: true }), { art: 'angenommen' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'duplicate' }), { art: 'angenommen' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'pool_min_fee', required: '4200' }), { art: 'noetig', noetig: '4200' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'pool_min_fee', required: null }), { art: 'noetig', noetig: null });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'nonce_too_low' }), { art: 'erledigt' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'nonce_gap' }), { art: 'spaeter' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'fee_not_higher', required: '9' }), { art: 'spaeter' });
+  // Alte Fassung nach der Aktivierung: endgueltig, nicht still wiederholen.
+  assert.deepEqual(einordnen({ accepted: false, reason: 'bad_version' }), { art: 'abgelehnt', grund: 'bad_version' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'malformed' }), { art: 'abgelehnt', grund: 'malformed' });
+});
+
+test('Wallet: fehlende Deckung wird sichtbar (abgelehnt), nicht still wiederholt', async () => {
+  const { einordnen } = await import('../src/lib/wallet/wartendeZahlungen.ts');
+  assert.deepEqual(einordnen({ accepted: false, reason: 'insufficient_funds' }), { art: 'abgelehnt', grund: 'insufficient_funds' });
+  assert.deepEqual(einordnen({ accepted: false, reason: 'unknown_account' }), { art: 'abgelehnt', grund: 'unknown_account' });
+});
+
+test('Wallet: hinter einer abgelehnten Zahlung belegt die neue deren Nonce', async () => {
+  const { naechsteEigeneNonce } = await import('../src/lib/wallet/wartendeZahlungen.ts');
+  const z = (nonce: string, extra: Partial<EigeneZahlung> = {}): EigeneZahlung =>
+    ({ txid: nonce.padStart(64, '0'), raw: '00', nonce, an: 'x', betrag: '1', gebuehr: '1', notiz: '', um: 1, ...extra });
+  // 5 abgelehnt, 6 gemerkt (haengt an der Luecke): die neue nimmt 5.
+  assert.equal(naechsteEigeneNonce([z('5', { abgelehnt: 'malformed' }), z('6')], { nonce: '5', nextNonce: '5' }), 5n);
+  // Abgelehnte unter dem Kontostand spielen keine Rolle.
+  assert.equal(naechsteEigeneNonce([z('3', { abgelehnt: 'bad_version' }), z('6')], { nonce: '5', nextNonce: '6' }), 7n);
+});

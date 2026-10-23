@@ -184,7 +184,7 @@ test('withNonce ändert nur die Nonce', () => {
 });
 
 test('Merkle-Baum verdoppelt bei ungerader Anzahl nicht', () => {
-  // Bitcoins Verdopplung erlaubt zwei verschiedene Listen mit gleichem Root
+  // Eine Verdopplung erlaubte zwei verschiedene Listen mit gleichem Root
   const l = [1, 2, 3].map(n => new Uint8Array(32).fill(n));
   assert.notEqual(toHex(merkleRoot(l)), toHex(merkleRoot([...l, l[2]])));
   assert.equal(toHex(merkleRoot([])), '00'.repeat(32));
@@ -374,8 +374,8 @@ test('Emission halbiert sich und bleibt unter der Höchstmenge', () => {
   assert.equal(P.rewardAt(24_000), 218n * P.UNIT + 75_000_000n);
   assert.equal(P.rewardAt(P.EPOCH_BLOCKS * 63), 0n);
 
-  // Gesamtsumme ueber alle Epochen bleibt unter MAX_SUPPLY -- wie bei Bitcoin
-  // laesst die Abrundung sie knapp darunter enden.
+  // Gesamtsumme ueber alle Epochen bleibt unter MAX_SUPPLY -- die Abrundung
+  // laesst sie knapp darunter enden.
   let total = 0n;
   for (let era = 0; era < 63; era++) {
     total += (P.INITIAL_REWARD >> BigInt(era)) * BigInt(P.EPOCH_BLOCKS);

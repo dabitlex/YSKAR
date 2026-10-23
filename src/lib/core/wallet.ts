@@ -7,7 +7,7 @@ import { addressFor, addressFromPublicKey } from './address.ts';
 import { verifySignature as pruefeSignatur } from './sigcheck.ts';
 
 /**
- * Wallet -- wiederherstellbar wie bei Bitcoin.
+ * Wallet -- aus zwoelf oder vierundzwanzig Woertern wiederherstellbar.
  *
  * Merkwoerter (BIP39) -> Seed -> Schluessel (SLIP-0010 fuer ed25519).
  *

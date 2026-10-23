@@ -7,8 +7,7 @@
  *
  * PLAETZE SIND DER EIGENTLICHE SCHUTZ, nicht Sperren. Wer sich schlecht
  * benimmt, wird getrennt und beim naechsten Gedraenge zuerst verdraengt --
- * aber nicht ausgesperrt. Bitcoin Core hat sich ueber Jahre von Sperren
- * wegbewegt, und die Begruendung gilt hier genauso: Ein Angreifer verbindet
+ * aber nicht ausgesperrt. Die Begruendung: Ein Angreifer verbindet
  * sich trivial mit anderen Adressen neu, und unbedachtes Sperren erhoeht
  * das Risiko einer Netzspaltung, ohne den Angriff zu verhindern.
  *
@@ -42,7 +41,7 @@ export const VERBINDE_TIMEOUT_MS = 8_000;
  * Wie lange ein auffaelliger Peer vermerkt bleibt.
  *
  * Nicht gespeichert und nicht dauerhaft -- nach einem Neustart ist der
- * Vermerk weg. Genau wie bei Bitcoin, und aus demselben Grund: Er soll
+ * Vermerk weg. Mit Absicht: Er soll
  * Gedraenge ordnen, nicht jemanden aussperren.
  */
 export const VERMERK_MS = 60 * 60 * 1000;

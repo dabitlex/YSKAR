@@ -118,3 +118,22 @@ test('Anfang einer Adresse der Version 1 (ysr1p…): Bereich ueber 33 Byte, kurz
   const ganz = sucheAus(text)!;
   assert.equal(ganz.gegenLo, toHex(raw));
 });
+
+test('Adresse der Version 0 mit "p" und vertippter Pruefsumme: wird weiter gefunden', async () => {
+  const { sucheAus } = await import('../src/lib/api/suche.ts');
+  const { encodeAddress } = await import('../src/lib/core/address.ts');
+  const { toHex } = await import('../src/lib/core/codec.ts');
+  // Version 0, deren Text mit "ysr1p" beginnt (erste fuenf Bit 00001).
+  const raw = Uint8Array.from({ length: 20 }, (_, i) => (i === 0 ? 0x08 : (i * 53 + 7) & 0xff));
+  const text = encodeAddress(raw);
+  assert.ok(text.startsWith('ysr1p') && text.length === 42);
+  const imBereich = (hex: string, lo: string, hi: string) => hex.length === lo.length && hex >= lo && hex <= hi;
+  // Letztes Zeichen vertippt: keine gueltige Adresse mehr, aber derselbe Anfang.
+  const letzte = text[text.length - 1];
+  const vertippt = text.slice(0, -1) + (letzte === 'q' ? 'p' : 'q');
+  for (const eingabe of [vertippt, text.slice(0, -2), text.slice(0, 4 + 33)]) {
+    const s = sucheAus(eingabe)!;
+    assert.ok(imBereich(toHex(raw), s.gegenLo!, s.gegenHi!), `${eingabe.length} Zeichen: Version 0 im ersten Bereich`);
+    assert.ok(s.gegen2Lo && s.gegen2Lo.startsWith('01'), 'und Version 1 im zweiten');
+  }
+});

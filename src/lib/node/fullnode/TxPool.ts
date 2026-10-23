@@ -33,6 +33,14 @@
  * Verdraengt wird immer die LETZTE wartende Nonce eines Absenders: Faellt
  * eine mittlere heraus, waeren alle dahinter nie mehr ausfuehrbar.
  *
+ * Welcher Absender weicht, entscheidet der WIRKSAME Satz seiner Kette: der
+ * niedrigste Satz unter seinen wartenden Transaktionen. Zu diesem Satz kaeme
+ * die Kette in einen Block -- der Blockbau nimmt je Absender immer die
+ * naechste faellige Nonce, und eine billige vorn haelt alles dahinter auf.
+ * Eine teure letzte Nonce hinter billigen schuetzt die Kette also nicht.
+ * Fuer eine neue Transaktion zaehlt genauso der wirksame Satz: ihr eigener,
+ * hoechstens der ihrer wartenden Vorgaenger.
+ *
  * Eigene Transaktionen (lokal: die Wallet dieses Knotens, Auszahlungen
  * seines Pools) werden nie verdraengt und verfallen nicht.
  * ---------------------------------------------------------------------
@@ -77,6 +85,12 @@ export type AddResult =
 export interface AddOptionen {
   /** Eigene Transaktion dieses Knotens: nie verdraengt, verfaellt nicht. */
   lokal?: boolean;
+  /**
+   * Aus einem Block, den ein Reorg verdraengt hat. Sie war schon einmal
+   * angenommen und bezahlt; Untergrenze, Platz und die Grenze je Absender
+   * halten sie nicht auf (siehe zurueck()).
+   */
+  reorg?: boolean;
 }
 
 export interface TxPoolOptionen {
@@ -105,8 +119,16 @@ interface Eintrag {
   regel: string;
 }
 
-/** Ein Kandidat im Haufen der Verdraengung (billigste Rate oben). */
-interface Kandidat { rate: number; nr: number; txid: string }
+/**
+ * Ein Absender im Haufen der Verdraengung (niedrigster wirksamer Satz oben).
+ * `fassung` gilt nur, solange sie der aktuellen des Absenders entspricht --
+ * aendert sich seine Reihe, kommt ein neuer Eintrag, und der alte ist
+ * veraltet.
+ */
+interface Kandidat { rate: number; nr: number; from: string; fassung: number }
+
+/** Wie viele bestaetigte eigene Transaktionen gemerkt werden, fuer einen Reorg. */
+const LOKAL_BESTAETIGT_MAX = 4_096;
 
 export class TxPool {
   private nachId = new Map<string, Eintrag>();
@@ -115,6 +137,11 @@ export class TxPool {
   /** Je Empfaenger die wartenden txids -- damit eine Kontenabfrage nicht den ganzen Pool liest. */
   private nachEmpfaenger = new Map<string, Set<string>>();
   private haufen: Kandidat[] = [];
+  /** Aktuelle Fassung je Absender -- gegen veraltete Eintraege im Haufen. */
+  private fassungJe = new Map<string, number>();
+  private naechsteFassung = 1;
+  /** Eigene Transaktionen, die ein Block enthielt -- kommt er per Reorg weg, bleiben sie eigen. */
+  private lokalBestaetigt = new Set<string>();
   private bytesBelegt = 0;
   private naechsteNr = 0;
   /** Untergrenze je Byte nach der letzten Verdraengung, und wann sie gesetzt wurde. */
@@ -256,6 +283,7 @@ export class TxPool {
     const id = spendTxid(tx);
     if (this.nachId.has(id)) return { ok: false, reason: 'duplicate' };
     const lokal = opt.lokal === true;
+    const reorg = opt.reorg === true;
 
     const bytes = spendBytes(tx);
     const mindest = this.mindestGebuehrFuer(tx, height);
@@ -265,11 +293,10 @@ export class TxPool {
     // Die gestiegene Untergrenze -- vor allem anderen, damit eine Welle zu
     // billiger Transaktionen keine Signaturpruefung kostet.
     const abV3 = height >= (this.params.feeV3Height ?? FEE_V3_HEIGHT);
-    if (abV3 && !lokal) {
-      const g = this.grenzeFuer(bytes);
-      if (tx.fee < g) {
-        return { ok: false, reason: 'pool_min_fee', detail: `${tx.fee} < ${g}`, noetig: g };
-      }
+    const boden = abV3 && !lokal && !reorg ? this.grenzeFuer(bytes) : 0n;
+    if (tx.fee < boden) {
+      return { ok: false, reason: 'pool_min_fee', detail: `${tx.fee} < ${boden}`,
+               noetig: this.genugBeiAndrang(tx, bytes, boden, mindest) };
     }
     if (spendTotal(tx) - tx.fee <= 0n) {
       return { ok: false, reason: 'malformed', detail: 'bad_amount' };
@@ -308,7 +335,8 @@ export class TxPool {
       // verteilen, und jede Verteilung kostet alle Knoten Bandbreite.
       if (tx.fee < vorhanden.fee + mindest) {
         return { ok: false, reason: 'fee_not_higher',
-                 detail: `${tx.fee} < ${vorhanden.fee + mindest}`, noetig: vorhanden.fee + mindest };
+                 detail: `${tx.fee} < ${vorhanden.fee + mindest}`,
+                 noetig: lokal ? vorhanden.fee + mindest : this.genugBeiAndrang(tx, bytes, boden, mindest) };
       }
     } else {
       // Keine Luecken: Nonce muss lueckenlos an das anschliessen, was schon
@@ -319,7 +347,7 @@ export class TxPool {
         return { ok: false, reason: 'nonce_gap',
                  detail: `${tx.nonce}, erwartet bis ${naechste}` };
       }
-      if (wartend.size >= MAX_PER_SENDER) {
+      if (wartend.size >= MAX_PER_SENDER && !reorg) {
         return { ok: false, reason: 'sender_limit' };
       }
     }
@@ -336,19 +364,30 @@ export class TxPool {
     }
 
     // Platz: wer weichen muesste. Noch nichts entfernen -- erst muss die
-    // Signatur stimmen.
+    // Signatur stimmen. Die Planung veraendert nichts am Mempool.
     const zusaetzlich = bytes - (vorhanden?.bytes ?? 0);
     const rate = gebuehrJeByte(tx);
     let opfer: Eintrag[] = [];
-    if (this.bytesBelegt + zusaetzlich > this.maxBytes) {
-      const plan = this.planeVerdraengung(this.bytesBelegt + zusaetzlich - this.maxBytes, rate, absender, lokal);
+    if (!reorg && this.bytesBelegt + zusaetzlich > this.maxBytes) {
+      // Wirksamer Satz: hoechstens der der wartenden Vorgaenger.
+      let vorn = Infinity;
+      for (const e of wartend.values()) {
+        if (e.nonce < tx.nonce && e.rate < vorn) vorn = e.rate;
+      }
+      const wirksam = Math.min(rate, vorn);
+      const plan = this.planeVerdraengung(this.bytesBelegt + zusaetzlich - this.maxBytes, wirksam, absender, lokal);
       if ('fehlt' in plan) {
         if (plan.fehlt === null) {
           return { ok: false, reason: 'pool_min_fee', detail: 'voll: nichts verdraengbar' };
         }
-        const noetig = BigInt(Math.ceil(plan.fehlt * bytes));
+        if (vorn < plan.fehlt) {
+          // Mehr Gebuehr HIER hilft nicht: Ein wartender Vorgaenger ist zu
+          // billig. Erst ihn erhoehen -- kein Betrag fuer diese hier.
+          return { ok: false, reason: 'pool_min_fee', detail: 'voll: ein wartender Vorgaenger ist zu billig' };
+        }
+        const noetig = this.genugBeiAndrang(tx, bytes, boden, mindest);
         return { ok: false, reason: 'pool_min_fee',
-                 detail: `voll: ${tx.fee} < ${noetig}`, noetig };
+                 detail: `voll: ${tx.fee} < ${noetig ?? '?'}`, noetig };
       }
       opfer = plan.opfer;
     }
@@ -370,15 +409,13 @@ export class TxPool {
     // naechsten Weiterreichen sofort wieder herein.
     let hoechste = 0;
     for (const o of opfer) {
+      const w = this.wirksamerSatz(o.from);
       this.entferne(o.txid);
-      if (o.rate > hoechste) hoechste = o.rate;
+      if (w > hoechste) hoechste = w;
     }
     // Nur eine Verdraengung nach Preis hebt die Untergrenze. Eine eigene
     // Transaktion darf auch Teurere verdraengen -- das ist kein Andrang.
-    if (opfer.length > 0 && !lokal) {
-      const neu = hoechste + this.aufschlag;
-      if (neu > this.untergrenzeJeByte()) { this.grenze = neu; this.grenzeUm = this.jetzt(); }
-    }
+    if (opfer.length > 0 && !lokal) this.grenzeHeben(hoechste);
 
     let ersetzt: string | undefined;
     if (vorhanden) {
@@ -396,63 +433,135 @@ export class TxPool {
   }
 
   /**
-   * Wer muesste weichen, damit `noetig` Bytes frei werden?
-   *
-   * Immer die billigste LETZTE Nonce eines fremden Absenders. Faellt sie,
-   * wird dessen vorletzte zur letzten und steht ihrerseits zur Wahl. Der
-   * eigene Absender der neuen Transaktion ist ausgenommen -- deren
-   * Vorgaenger zu verdraengen, machte sie selbst zur Luecke. Lokale
-   * Eintraege weichen nie.
-   *
-   * Liefert die Opfer, oder `fehlt`: die Rate je Byte, die die neue
-   * Transaktion mindestens bieten muesste.
+   * Die Gebuehr, mit der DIESE Transaktion jetzt angenommen wuerde --
+   * alles zusammen: Untergrenze, Ersetzung (alte Gebuehr plus
+   * Weiterleitungsgebuehr) und, bei vollem Mempool, alle noetigen
+   * Verdraengungen. undefined, wenn keine Gebuehr auf dieser Transaktion
+   * hilft (nichts verdraengbar, oder ein wartender Vorgaenger ist zu billig).
+   * Veraendert nichts.
    */
-  private planeVerdraengung(noetig: number, rate: number, absender: string, lokal: boolean):
-    { opfer: Eintrag[] } | { fehlt: number | null } {
-    const opfer: Eintrag[] = [];
-    const zurueck: Kandidat[] = [];
-    /** Simulierte letzte Nonce je Absender, nachdem Opfer weggefallen sind. */
-    const letzte = new Map<string, bigint>();
-    let frei = 0;
-    let ergebnis: { opfer: Eintrag[] } | { fehlt: number | null } | null = null;
-
-    while (frei < noetig) {
-      const k = this.heraus();
-      if (!k) {
-        // Nichts mehr, das weichen koennte (nur lokale oder der eigene
-        // Absender). Eine eigene Transaktion des Knotens darf die Grenze
-        // dann ueberschreiten -- begrenzt durch MAX_PER_SENDER.
-        // Fuer eine fremde Transaktion gibt es dann keinen Betrag, der jetzt
-        // reicht -- `fehlt: null` statt einer Zahl, die nie genuegen wuerde.
-        ergebnis = lokal ? { opfer } : { fehlt: null };
-        break;
+  private genugBeiAndrang(tx: Spend, bytes: number, boden: bigint, mindest: bigint): bigint | undefined {
+    let noetig = boden > mindest ? boden : mindest;
+    const absender = absenderHex(tx);
+    const wartend = this.nachAbsender.get(absender);
+    const vorhanden = wartend ? [...wartend.values()].find(e => e.nonce === tx.nonce) : undefined;
+    if (vorhanden && vorhanden.fee + mindest > noetig) noetig = vorhanden.fee + mindest;
+    const ueber = this.bytesBelegt + bytes - (vorhanden?.bytes ?? 0) - this.maxBytes;
+    if (ueber > 0) {
+      let vorn = Infinity;
+      for (const e of wartend?.values() ?? []) if (e.nonce < tx.nonce && e.rate < vorn) vorn = e.rate;
+      // Mit einem Satz, der nie reicht: Die Planung laeuft dann ganz durch
+      // und nennt den Satz, der fuer alle noetigen Verdraengungen reicht.
+      const plan = this.planeVerdraengung(ueber, -Infinity, absender, false);
+      if ('fehlt' in plan) {
+        if (plan.fehlt === null || vorn < plan.fehlt) return undefined;
+        // Verglichen wird als Gleitkomma-Satz (Gebuehr / Bytes): Aufrunden
+        // allein kann knapp darunter landen (588 / 350 < 1,6800000000000002).
+        let n = BigInt(Math.ceil(plan.fehlt * bytes));
+        while (Number(n) / bytes < plan.fehlt) n++;
+        if (n > noetig) noetig = n;
       }
-      const e = this.nachId.get(k.txid);
-      if (!e || e.lokal || e.nr !== k.nr) continue;   // veraltet: verwerfen
-      const reihe = this.nachAbsender.get(e.from)!;
-      const top = letzte.get(e.from) ?? this.hoechsteNonce(reihe);
-      if (e.nonce !== top) continue;                  // nicht (mehr) die letzte
-      zurueck.push(k);
-      if (e.from === absender) continue;
-      if (!lokal && rate < e.rate + this.aufschlag) {
-        ergebnis = { fehlt: e.rate + this.aufschlag };
-        break;
-      }
-      opfer.push(e);
-      frei += e.bytes;
-      // Die vorletzte Nonce wird zur letzten -- als Kandidat nachschieben.
-      const davor = [...reihe.values()].find(x => x.nonce === e.nonce - 1n);
-      letzte.set(e.from, e.nonce - 1n);
-      if (davor) this.kandidat(davor);
     }
-    for (const k of zurueck) this.haufen.push(k), this.hoch(this.haufen.length - 1);
-    return ergebnis ?? { opfer };
+    return noetig;
   }
 
-  private hoechsteNonce(reihe: Map<string, Eintrag>): bigint {
-    let h = -1n;
-    for (const e of reihe.values()) if (e.nonce > h) h = e.nonce;
-    return h;
+  /** Die Untergrenze nach einer Verdraengung zum wirksamen Satz `satz`. */
+  private grenzeHeben(satz: number): void {
+    const neu = satz + this.aufschlag;
+    if (neu > this.untergrenzeJeByte()) { this.grenze = neu; this.grenzeUm = this.jetzt(); }
+  }
+
+  /** Niedrigster Satz unter den wartenden eines Absenders (Infinity ohne). */
+  private wirksamerSatz(from: string): number {
+    let m = Infinity;
+    for (const e of this.nachAbsender.get(from)?.values() ?? []) if (e.rate < m) m = e.rate;
+    return m;
+  }
+
+  /** Die Reihe eines Absenders, nach Nonce aufsteigend. */
+  private reiheSortiert(from: string): Eintrag[] {
+    return [...(this.nachAbsender.get(from)?.values() ?? [])]
+      .sort((a, b) => (a.nonce < b.nonce ? -1 : a.nonce > b.nonce ? 1 : 0));
+  }
+
+  /**
+   * Ueber der Grenze (nur nach einem Reorg moeglich, zurueck() vor
+   * nachBlock()): die billigsten fremden Enden verdraengen, bis es wieder
+   * passt. Eigene weichen nie.
+   */
+  private kuerzen(): void {
+    let hoechste = 0;
+    let verdraengt = false;
+    while (this.bytesBelegt > this.maxBytes) {
+      const k = this.oben();
+      if (!k) break;
+      const reihe = this.reiheSortiert(k.from);
+      const letzte = reihe[reihe.length - 1];
+      if (k.rate > hoechste) hoechste = k.rate;
+      this.entferne(letzte.txid);
+      verdraengt = true;
+    }
+    if (verdraengt) this.grenzeHeben(hoechste);
+  }
+
+  /**
+   * Wer muesste weichen, damit `noetig` Bytes frei werden?
+   *
+   * Immer die LETZTE Nonce des Absenders mit dem niedrigsten wirksamen Satz
+   * (fremd, nicht der Absender der neuen Transaktion -- deren Vorgaenger zu
+   * verdraengen, machte sie selbst zur Luecke). Faellt sie, steigt der
+   * wirksame Satz des Absenders hoechstens, und seine neue letzte steht
+   * ihrerseits zur Wahl. Lokale Eintraege weichen nie.
+   *
+   * Die Planung laeuft vollstaendig, auch wenn schon das erste Opfer zu teuer
+   * ist: `fehlt` ist der Satz, der fuer ALLE noetigen Opfer reicht.
+   *
+   * Veraendert nichts: Was aus dem Haufen genommen wird, kommt zurueck, und
+   * Zwischenstaende liegen in einem eigenen kleinen Haufen. Eine danach
+   * abgelehnte Transaktion (etwa wegen ihrer Signatur) hinterlaesst nichts.
+   *
+   * Liefert die Opfer, oder `fehlt`: den wirksamen Satz je Byte, den die neue
+   * Transaktion mindestens bieten muesste (null: es gibt keinen).
+   */
+  private planeVerdraengung(noetig: number, wirksam: number, absender: string, lokal: boolean):
+    { opfer: Eintrag[] } | { fehlt: number | null } {
+    const opfer: Eintrag[] = [];
+    const genommen: Kandidat[] = [];
+    const zwischen: Kandidat[] = [];
+    /** Simulierte Reihe je Absender (nach Nonce), nachdem Opfer weggefallen sind. */
+    const rest = new Map<string, Eintrag[]>();
+    let frei = 0;
+    let teuerste = 0;
+    let keiner = false;
+
+    while (frei < noetig) {
+      // Veraltete Eintraege oben im echten Haufen duerfen weg -- sie sind
+      // ohnehin ungueltig. Gueltige werden gemerkt und zurueckgelegt.
+      while (this.haufen.length > 0 && !this.aktuell(this.haufen[0])) this.heraus();
+      const echt = this.haufen[0];
+      const sim = zwischen[0];
+      let k: Kandidat | undefined;
+      if (echt && (!sim || this.vor(echt, sim))) { k = this.heraus()!; genommen.push(k); }
+      else if (sim) k = haufenHeraus(zwischen, (a, b) => this.vor(a, b));
+      if (!k) { keiner = true; break; }
+      if (k.from === absender) continue;
+
+      const reihe = rest.get(k.from) ?? this.reiheSortiert(k.from);
+      const letzte = reihe[reihe.length - 1];
+      if (!letzte || letzte.lokal) continue;
+      opfer.push(letzte);
+      frei += letzte.bytes;
+      if (k.rate > teuerste) teuerste = k.rate;
+      const uebrig = reihe.slice(0, -1);
+      rest.set(k.from, uebrig);
+      const neu = uebrig.length > 0 ? kandidatFuer(uebrig, k.from, -1) : null;
+      if (neu) haufenRein(zwischen, neu, (a, b) => this.vor(a, b));
+    }
+    for (const k of genommen) { this.haufen.push(k); this.hoch(this.haufen.length - 1); }
+
+    if (keiner) return lokal ? { opfer } : { fehlt: null };
+    if (!lokal && wirksam < teuerste + this.aufschlag) return { fehlt: teuerste + this.aufschlag };
+    return { opfer };
   }
 
   // ------------------------------------------------ Haufen (billigste oben)
@@ -460,6 +569,9 @@ export class TxPool {
   private vor(a: Kandidat, b: Kandidat): boolean {
     // Billiger zuerst; bei gleicher Rate die neuere (die aeltere wartet laenger).
     return a.rate !== b.rate ? a.rate < b.rate : a.nr > b.nr;
+  }
+  private aktuell(k: Kandidat): boolean {
+    return this.fassungJe.get(k.from) === k.fassung;
   }
   private hoch(i: number): void {
     const h = this.haufen;
@@ -470,39 +582,36 @@ export class TxPool {
       i = p;
     }
   }
-  private kandidat(e: Eintrag): void {
-    if (e.lokal) return;
-    this.haufen.push({ rate: e.rate, nr: e.nr, txid: e.txid });
-    this.hoch(this.haufen.length - 1);
+  /**
+   * Die Reihe eines Absenders hat sich geaendert: neue Fassung, neuer
+   * Eintrag im Haufen (sofern seine letzte Nonce verdraengt werden darf).
+   */
+  private absenderNeu(from: string): void {
+    const reihe = this.reiheSortiert(from);
+    if (reihe.length === 0) { this.fassungJe.delete(from); return; }
+    const fassung = this.naechsteFassung++;
+    this.fassungJe.set(from, fassung);
+    const k = kandidatFuer(reihe, from, fassung);
+    if (k) { this.haufen.push(k); this.hoch(this.haufen.length - 1); }
   }
   private heraus(): Kandidat | undefined {
-    const h = this.haufen;
-    if (h.length === 0) return undefined;
-    const oben = h[0];
-    const letzter = h.pop()!;
-    if (h.length > 0) {
-      h[0] = letzter;
-      let i = 0;
-      for (;;) {
-        const l = 2 * i + 1, r = l + 1;
-        let m = i;
-        if (l < h.length && this.vor(h[l], h[m])) m = l;
-        if (r < h.length && this.vor(h[r], h[m])) m = r;
-        if (m === i) break;
-        [h[i], h[m]] = [h[m], h[i]];
-        i = m;
-      }
+    return haufenHeraus(this.haufen, (a, b) => this.vor(a, b));
+  }
+  /** Der oberste aktuelle Kandidat, aus dem Haufen genommen. */
+  private oben(): Kandidat | undefined {
+    for (;;) {
+      const k = this.heraus();
+      if (!k) return undefined;
+      if (this.aktuell(k)) return k;
     }
-    return oben;
   }
   /** Veraltete Kandidaten sammeln sich an; ab und zu frisch aufbauen. */
   private haufenPflegen(): void {
-    if (this.haufen.length <= 4 * this.nachId.size + 1024) return;
-    this.haufen = [];
-    for (const reihe of this.nachAbsender.values()) {
-      const top = this.hoechsteNonce(reihe);
-      for (const e of reihe.values()) if (e.nonce === top) this.kandidat(e);
-    }
+    if (this.haufen.length <= 2 * this.fassungJe.size + 1024) return;
+    this.haufen = this.haufen.filter(k => this.aktuell(k));
+    // Floyd: von der Mitte abwaerts einsortieren.
+    const h = this.haufen;
+    for (let i = (h.length >> 1) - 1; i >= 0; i--) senke(h, i, (a, b) => this.vor(a, b));
   }
 
   // ------------------------------------------------ Einfuegen und Entfernen
@@ -518,8 +627,7 @@ export class TxPool {
       s.add(e.txid);
     }
     this.bytesBelegt += e.bytes;
-    // Die neue ist die letzte Nonce ihres Absenders (Luecken gibt es nicht).
-    if (e.nonce === this.hoechsteNonce(reihe)) this.kandidat(e);
+    this.absenderNeu(e.from);
     this.stand++;
     this.haufenPflegen();
   }
@@ -536,15 +644,11 @@ export class TxPool {
     }
     const reihe = this.nachAbsender.get(e.from);
     if (reihe) {
-      const warLetzte = e.nonce === this.hoechsteNonce(reihe);
       reihe.delete(id);
       if (reihe.size === 0) this.nachAbsender.delete(e.from);
-      else if (warLetzte) {
-        // Die vorletzte ist jetzt die letzte und kann verdraengt werden.
-        const top = this.hoechsteNonce(reihe);
-        for (const x of reihe.values()) if (x.nonce === top) this.kandidat(x);
-      }
     }
+    this.absenderNeu(e.from);
+    this.haufenPflegen();
     return e;
   }
 
@@ -602,7 +706,9 @@ export class TxPool {
   nachBlock(enthalten: Spend[], state: State, naechsteHoehe?: number): { entfernt: number; ungueltig: number } {
     let entfernt = 0;
     for (const t of enthalten) {
-      if (this.remove(txidHex(t))) entfernt++;
+      const id = txidHex(t);
+      if (this.nachId.get(id)?.lokal) this.merkeLokalBestaetigt(id);
+      if (this.remove(id)) entfernt++;
     }
 
     let ungueltig = 0;
@@ -630,6 +736,8 @@ export class TxPool {
         erwartet++;
       }
     }
+    // Ueber der Grenze kann der Mempool nur nach einem Reorg sein (zurueck()).
+    this.kuerzen();
     return { entfernt, ungueltig };
   }
 
@@ -643,11 +751,40 @@ export class TxPool {
    * dieselbe Nonce anders belegt haben.
    */
   zurueck(txs: Spend[], state: State, height: number): number {
+    /*
+      Ohne Untergrenze, Platz- und Absendergrenze (reorg: true): Sonst
+      liesse die Ablehnung eine Luecke vor den spaeteren Nonces desselben
+      Absenders, und nachBlock() verwuerfe sie alle -- bis zu 32 bezahlte
+      Transaktionen, nur weil ein anderer Zweig gewonnen hat. Signatur,
+      Nonce und Deckung werden weiter geprueft. Je Absender nach Nonce, damit
+      keine kuenstliche Luecke entsteht. Was danach ueber der Grenze liegt,
+      raeumt kuerzen() von den billigsten fremden Enden.
+    */
+    const sortiert = [...txs].sort((a, b) => {
+      const x = absenderHex(a), y = absenderHex(b);
+      if (x !== y) return x < y ? -1 : 1;
+      return a.nonce < b.nonce ? -1 : a.nonce > b.nonce ? 1 : 0;
+    });
     let aufgenommen = 0;
-    for (const t of txs) {
-      if (this.add(t, state, height).ok) aufgenommen++;
+    for (const t of sortiert) {
+      const id = spendTxid(t);
+      const lokal = this.lokalBestaetigt.has(id);
+      if (this.add(t, state, height, { reorg: true, lokal }).ok) aufgenommen++;
     }
+    // Gekuerzt wird erst in nachBlock(): Bis dahin zaehlen noch die
+    // Transaktionen mit, die der neue Zweig bestaetigt hat. Jetzt zu kuerzen,
+    // verdraengte ehrliche Transaktionen und hoebe die Untergrenze -- fuer
+    // Platz, der gleich ohnehin frei wird.
     return aufgenommen;
+  }
+
+  private merkeLokalBestaetigt(id: string): void {
+    this.lokalBestaetigt.delete(id);
+    this.lokalBestaetigt.add(id);
+    if (this.lokalBestaetigt.size > LOKAL_BESTAETIGT_MAX) {
+      const aeltester = this.lokalBestaetigt.values().next().value;
+      if (aeltester !== undefined) this.lokalBestaetigt.delete(aeltester);
+    }
   }
 
   /**
@@ -674,6 +811,45 @@ export class TxPool {
     this.nachAbsender.clear();
     this.nachEmpfaenger.clear();
     this.haufen = [];
+    this.fassungJe.clear();
     this.bytesBelegt = 0;
+  }
+}
+
+/** Kandidat fuer einen Absender aus seiner Reihe (nach Nonce), oder null, wenn seine letzte eigen ist. */
+function kandidatFuer(reihe: Eintrag[], from: string, fassung: number): Kandidat | null {
+  const letzte = reihe[reihe.length - 1];
+  if (!letzte || letzte.lokal) return null;
+  let rate = Infinity;
+  for (const e of reihe) if (e.rate < rate) rate = e.rate;
+  return { rate, nr: letzte.nr, from, fassung };
+}
+
+function senke(h: Kandidat[], i: number, vor: (a: Kandidat, b: Kandidat) => boolean): void {
+  for (;;) {
+    const l = 2 * i + 1, r = l + 1;
+    let m = i;
+    if (l < h.length && vor(h[l], h[m])) m = l;
+    if (r < h.length && vor(h[r], h[m])) m = r;
+    if (m === i) return;
+    [h[i], h[m]] = [h[m], h[i]];
+    i = m;
+  }
+}
+function haufenHeraus(h: Kandidat[], vor: (a: Kandidat, b: Kandidat) => boolean): Kandidat | undefined {
+  if (h.length === 0) return undefined;
+  const oben = h[0];
+  const letzter = h.pop()!;
+  if (h.length > 0) { h[0] = letzter; senke(h, 0, vor); }
+  return oben;
+}
+function haufenRein(h: Kandidat[], k: Kandidat, vor: (a: Kandidat, b: Kandidat) => boolean): void {
+  h.push(k);
+  let i = h.length - 1;
+  while (i > 0) {
+    const p = (i - 1) >> 1;
+    if (!vor(h[i], h[p])) break;
+    [h[i], h[p]] = [h[p], h[i]];
+    i = p;
   }
 }

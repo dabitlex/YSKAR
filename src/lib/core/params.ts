@@ -44,7 +44,7 @@ export const MIN_FEE = 100_000n;               // 0,001 YSR -- Konsens bis FEE_V
  * Gebuehren je Byte -- Konsensfassung 3.
  *
  * Bis FEE_V3_HEIGHT gilt die feste Untergrenze MIN_FEE. Ab dieser Hoehe
- * gilt fee >= bytes * MIN_FEE_RATE, wie bei Bitcoin: Der Konsens verlangt
+ * gilt fee >= bytes * MIN_FEE_RATE: Der Konsens verlangt
  * fast nichts (eine Ueberweisung ohne Notiz kostet 168 Einheiten, also
  * 0,00000168 YSR), den Preis macht der Markt. Wer groessere Transaktionen
  * einfuehrt (Kanaele), zahlt automatisch mehr -- ohne neue Regel.
@@ -68,8 +68,8 @@ export function minFeeAt(height: number, bytes: number, feeV3Height = FEE_V3_HEI
 
 /*
  * Weiterleitungs-Satz -- KEIN Konsens. Was ein Knoten mindestens je Byte
- * verlangt, um eine Transaktion in seinen Mempool zu nehmen (Bitcoins
- * minrelaytxfee). Spam-Schutz, ohne Fork nachjustierbar.
+ * verlangt, um eine Transaktion in seinen Mempool zu nehmen. Spam-Schutz,
+ * ohne Fork nachjustierbar.
  */
 export const RELAY_FEE_RATE = 10n;             // Einheiten je Byte, Policy
 
@@ -182,8 +182,8 @@ export function bytesToBig(b: Uint8Array): bigint {
 
 /**
  * Blockreward an einer Hoehe. Reine Bitverschiebung -- keine Potenzfunktion,
- * kein Runden. Wie bei Bitcoin laesst die Abrundung die reale Gesamtmenge
- * knapp unter MAX_SUPPLY landen.
+ * kein Runden. Die Abrundung laesst die reale Gesamtmenge knapp unter
+ * MAX_SUPPLY landen.
  */
 export function rewardAt(height: number): bigint {
   const era = Math.floor(height / EPOCH_BLOCKS);

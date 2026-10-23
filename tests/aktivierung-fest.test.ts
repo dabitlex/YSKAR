@@ -125,3 +125,19 @@ test('Gleiche Hoehe: Neustart laeuft normal weiter', () => {
     s.close();
   } finally { a.weg(); }
 });
+
+test('Eine unlesbare Marke (kaputter Schluessel) haelt den Start nicht auf -- es wird von vorn gerechnet', () => {
+  const a = ablage();
+  try {
+    const { store, chain } = mitV6Kette(a.pfad);
+    const b3 = store.mainAt(3)!;
+    store.putSnapshot({ hash: b3.hash, height: 3, stateRoot: b3.stateRoot,
+      accounts: [['NICHT-HEX', { balance: 1n, nonce: 0n }]] });
+    const hoehe = chain.height();
+    store.close();
+    const s = oeffne(a.pfad, P);
+    const c = new ChainManager(s, P);
+    assert.equal(c.height(), hoehe);
+    s.close();
+  } finally { a.weg(); }
+});

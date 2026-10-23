@@ -372,6 +372,10 @@ export const de = {
   'wal.erhoehen': 'Gebühr erhöhen',
   'wal.erhoehenText': 'Dieselbe Überweisung mit höherer Gebühr (Stufe „schnell“). Sie ersetzt die wartende.',
   'wal.erhoeht': g => `Gebühr erhöht auf ${g} YSR.`,
+  'wal.erhoehenRechnet': 'Neue Gebühr wird berechnet …',
+  'wal.erhoehenBetrag': (neu, alt) => alt ? `Neue Gebühr: ${neu} YSR (bisher ${alt} YSR).` : `Neue Gebühr: ${neu} YSR.`,
+  'srv.gebuehr_gestiegen': g => `Die nötige Gebühr ist gestiegen. Neuer Betrag oben – bitte noch einmal bestätigen.`,
+  'srv.gebuehr_fehlt': 'Die neue Gebühr wurde nicht bestätigt.',
   'wal.notizZeile': 'Notiz: {0}',
   'wal.gebuehrZeile': 'Gebühr {0}',
 

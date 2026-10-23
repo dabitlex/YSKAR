@@ -62,7 +62,7 @@
   "grund.etikett": "Inschrift im Genesis-Block",
   "grund.text": "Es gibt viele Apps, in denen man auf einen Knopf tippt und eine Zahl hochzählt. YSKAR ist etwas anderes: echte Rechenarbeit, eine echte Blockchain und nichts, was du uns glauben musst.",
   "grund.k1.titel": "Echte Arbeit",
-  "grund.k1.text": "Dein Gerät rechnet doppeltes SHA-256, wie ein Bitcoin-Miner. Der Knoten prüft jeden eingereichten Treffer selbst nach.",
+  "grund.k1.text": "Dein Gerät rechnet doppeltes SHA-256, echtes Proof of Work. Der Knoten prüft jeden eingereichten Treffer selbst nach.",
   "grund.k2.titel": "Selbst nachprüfbar",
   "grund.k2.text": "Der Explorer setzt jeden Block-Header in deinem Browser neu zusammen, hasht ihn, prüft den Proof of Work und folgt der Kette. Alles Weitere – Überweisungen, Signaturen, Guthaben – prüft ein Fullnode, und den kann jeder betreiben.",
   "grund.k3.titel": "Gehört dir",

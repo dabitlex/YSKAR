@@ -99,7 +99,8 @@ export function ladeZip215Wasm(): Pruefer | null {
  */
 function selbstprobe(p: Pruefer): boolean {
   const h = (s: string) => Uint8Array.from(Buffer.from(s, 'hex'));
-  const msg = new TextEncoder().encode('Zcash');
+  // Nachricht der veroeffentlichten Referenzvektoren (5 Byte).
+  const msg = Uint8Array.of(0x5a, 0x63, 0x61, 0x73, 0x68);
   // Aus den veroeffentlichten Grenzfaellen: Schluessel und R kleiner Ordnung,
   // S = 0 -- nach der Regel aus 7.8 gueltig, nach RFC 8032 nicht.
   // Die Nachricht ist die, mit der die Vektoren erzeugt wurden.

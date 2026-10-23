@@ -54,7 +54,8 @@ async function start() {
   };
 
   // 1. Richtigkeit
-  const msgZ = new TextEncoder().encode('Zcash');
+  // Nachricht der veroeffentlichten Referenzvektoren (5 Byte).
+  const msgZ = Uint8Array.of(0x5a, 0x63, 0x61, 0x73, 0x68);
   let falsch = 0;
   for (const c of (vektoren as any).zip215.faelle) if (einzeln(hex(c.sig), msgZ, hex(c.vk)) !== c.zip215) falsch++;
   for (const c of (vektoren as any).speccheck.faelle) if (einzeln(hex(c.signature), hex(c.message), hex(c.pub_key)) !== c.zip215) falsch++;

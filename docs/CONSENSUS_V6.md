@@ -194,8 +194,10 @@ decoder rejects padding of 5 bits or more and any padding bit that is not zero.
 
 Decoding is unambiguous by length: a payload of exactly 32 data characters is version 0. Any other
 length is read as `[v] | program`; `v` must be 1 to 15, the program must be whole bytes, and its length
-must be the length the version table gives (32 for version 1). A payload with 32 data characters cannot
-be a versioned address, because 31 characters are 155 bits and not whole bytes. Text decoders accept
+must be the length the version table gives (32 for version 1). A payload of 32 data characters is always
+version 0. A versioned address with a program of 19 bytes would also have 32 data characters (one for
+the version, 31 for 152 bits plus 3 padding bits) and could not be told apart from version 0; no version
+may therefore ever define a program of 19 bytes. Text decoders accept
 versions 2 to 15 syntactically and return the version, so that a wallet of revision 6 can read and
 display an address of a later revision; what a node does with such an address inside a transaction is
 in 4.4.
@@ -899,7 +901,7 @@ not of the consensus.
 | Pool server | Up to 255 recipients in the coinbase: 255 miners without a fee, 254 with one. YSKAR's pool server pays only this way and reports `modus: "coinbase"` under `/pool`. A pool that pays more miners or settles over several blocks can do so with batch transfers (type 3) from its own account; such a pool reports `modus: "batch"`. YSKAR decided not to build this mode into its pool server (16, "Pool batch payout mode"). The directory reads the mode and both apps show it, so that a miner knows whether a pool holds funds between block and payout. |
 | Mining jobs | Header `version` 6 from the height. The 136-byte layout and the midstate optimisation are unchanged. |
 | Node status API | `revision`, `nextActivationHeight`, `revision_status` (`current`, `outdated`, `update_recommended`, `probably_forked`). |
-| Mirror (Supabase) | Stores the raw address with its version; new tables or columns for scripts revealed in spends, for batch outputs, and for the account record fields. The mirror mirrors the state root; it never computes consensus. |
+| Mirror (Supabase) | Stores the raw address with its version; new tables or columns for scripts revealed in spends, for batch outputs, and for the account record fields. The mirror mirrors the state root; it never computes consensus. Up to 20,000 accounts it reads the whole state for each block and recomputes the root as a cross-check; above that it reads only the accounts the block touches, checks signatures, nonces, balances, coinbase and total supply, and takes the root from the block, which the submitting node has verified. |
 | Node Core | Shows revision 6 and the activation height; version 1.0.0. |
 | Fee estimator | Counts per byte as before; a script spend or a batch is simply larger. |
 
@@ -922,15 +924,31 @@ outputs counts as what it is: about 40 KB, not one slot. Operators set the limit
 
 1. Candidates are the *last* pending nonce of each sender. Evicting a middle nonce would leave
    every later one unexecutable, so a gap never arises.
-2. The cheapest candidate by fee per byte is evicted, then the next, until there is room. The
-   sender of the new transaction is skipped, so that its own predecessor is never removed.
-3. Every candidate must pay less per byte than the new transaction minus an increment of
-   0.1 × the relay rate (at least 1 unit per byte). If that is not the case, nothing is evicted and
-   the node answers `pool_min_fee` with `required`: the fee that would be enough.
+2. Senders are ranked by the *effective rate* of their chain: the lowest fee per byte among their
+   pending transactions. That is the rate at which the chain would be mined, because block building
+   always takes a sender's next due nonce and a cheap one in front holds back everything behind it.
+   An expensive last nonce behind cheap ones therefore does not protect the chain. The sender with
+   the lowest effective rate loses its last nonce, then the next, until there is room. The sender
+   of the new transaction is skipped, so that its own predecessor is never removed.
+3. The new transaction counts with its effective rate too: its own rate, at most that of its
+   pending predecessors. It must exceed the effective rate of every sender that has to make room
+   by an increment of 0.1 × the relay rate (at least 1 unit per byte). If that is not the case,
+   nothing is evicted and the node answers `pool_min_fee` with `required`: a fee that is enough
+   for all evictions needed. If a pending predecessor is the obstacle, no fee on the new
+   transaction helps; `required` is then absent, and the wallet raises the predecessor instead.
 4. Nothing is evicted before the new transaction has passed every check, signature included.
+   Working out the evictions changes nothing, so a transaction that is then refused leaves
+   nothing behind.
 
-**Rising floor.** After an eviction the node's floor rises to the highest evicted rate plus the
-increment. Otherwise the evicted transaction would come straight back on the next relay. The
+**Reorganisation.** Transactions from blocks that a reorganisation disconnects go back into the
+mempool, in nonce order per sender, without the floor, the room check and the limit per sender:
+they were accepted and paid before, and refusing one would leave a gap in front of the sender's
+later nonces, which would then all be dropped. Signature, nonce and balance are still checked.
+If the mempool is over its limit afterwards, the cheapest last nonces of other senders make room.
+A local transaction that was confirmed and is disconnected again stays local.
+
+**Rising floor.** After an eviction the node's floor rises to the highest effective rate it evicted plus
+the increment. Otherwise the evicted transaction would come straight back on the next relay. The
 floor halves every 3 hours; while the mempool is at most half full it halves every 45 minutes,
 and close to the relay rate it resets. A transaction below the floor is refused with
 `pool_min_fee` before its signature is checked. `/fees` reports the floor as `mindestJeByte`,
@@ -1180,6 +1198,19 @@ test height the old rule applies. In addition, before the activation height is s
   111 / 178 ms, 100,000 1.25 / 2.06 s, 200,000 2.8 / 4.8 s. The 1,000,000 case was not run
   there (about 3 GB of memory beside the live node). This matches the first measurement; the
   conclusion above stands.
+  *Since 2026-10-23* the state itself scales with the number of changes, not with the number of
+  accounts. It is a persistent 16-ary trie over the raw address (`src/lib/core/zustand.ts`): a copy
+  costs nothing, a change copies only its path, every node carries the count and the balance sum
+  below it, and the difference between two versions is found by walking only the nodes where they
+  differ. The in-memory state tree (`SmtBaum`) is brought up to date from that difference. Before,
+  every block copied the full state several times and compared all accounts for the root. Measured
+  with `ChainManager.accept` on a block with one transfer (cloud VM, 2 vCPU, Node 22): 200,000
+  accounts 1.3 s before, 9 ms after; 1,000,000 accounts about 40 ms after. A block that changes
+  36,000 accounts still costs about 2.4 s at 1,000,000 accounts for the root: that is the hashing
+  of 36,000 paths and does not depend on the size of the state. Building the tree once at start
+  takes about 35 s at 1,000,000 accounts. Roots and results are unchanged; the trie is checked
+  against a plain map on random chains (`tests/zustand-gleichwertig.test.ts`,
+  `tests/zustand-trie.test.ts`), and the self-check against the full recomputation stays.
   *Incremental tree, 2026-10-21:* `SmtBaum` (`smt.ts`) keeps the tree in memory; `stateRootV6`
   compares the state with the one it last saw (balance and nonce per account, no hashing) and
   rehashes only the paths of changed, new and removed accounts. The root is the same: checked
