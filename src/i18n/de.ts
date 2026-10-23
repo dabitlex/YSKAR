@@ -417,6 +417,7 @@ const de = {
     erhoehenTitel: 'Gebühr erhöhen',
     erhoehenText: 'Dieselbe Zahlung mit höherer Gebühr. Sie ersetzt die wartende und kommt schneller in einen Block.',
     wechselPause: 'Das Netz wechselt gleich auf Konsensfassung 6. Bitte in etwa einer halben Stunde noch einmal versuchen.',
+    adresseAbV6: 'Dieses Adressformat (ysr1p…) gilt erst ab Konsensfassung 6. Bis dahin kann nichts dorthin gesendet werden.',
     titel: 'Senden',
     empfaenger: 'Empfänger',
     scannen: 'Scannen',

@@ -14,9 +14,9 @@ authenticated.** Anyone on the network path can read the traffic. This does not 
 the chain: a peer only delivers data, and every block and every transfer is validated by the
 receiving node itself.
 
-The design follows Bitcoin's peer-to-peer protocol, because that design has been in use since
-2009 and anyone who knows Bitcoin can read it at once. Where YSKAR deviates, this document says
-so.
+The design is a plain one: a fixed message header, announcements by hash (`inv`), requests for
+what a node does not have yet (`getdata`), and headers before bodies during synchronization. This
+document describes every message and limit on its own terms.
 
 | File | Responsibility |
 |---|---|
@@ -37,7 +37,7 @@ without anything running.
 magic(4) | command(12) | length(4) | checksum(4) | payload
 ```
 
-This is the layout of Bitcoin's message header. The header is 24 bytes. All integers in the
+The header is 24 bytes. All integers in the
 protocol are little-endian.
 
 **Magic** names the network. In YSKAR it is the first four bytes of the chain ID, so there is
@@ -56,8 +56,8 @@ A plain word about the checksum: TCP already has one, and this one does not stop
 attack, because whoever changes the payload recomputes it. Its real use is different. It detects
 that the reader has lost its place in the stream and is reading bytes at the wrong position.
 
-**Largest payload: 2 MiB (2,097,152 bytes).** Bitcoin Core allows 4 MB per message; the largest
-possible YSKAR block is about 410,000 bytes. The number matters less than the point at which the
+**Largest payload: 2 MiB (2,097,152 bytes)** (`MAX_PAYLOAD` in `wire.ts`). The largest possible
+YSKAR block is 1 MiB (1,048,576 bytes, `MAX_BLOCK_BYTES`), so a full block fits with room to spare. The number matters less than the point at which the
 limit applies: as soon as the 24-byte header has been read. An announced length above the limit
 is rejected at that point; the node does not wait for the payload or collect it. That is exactly
 where an attacker would otherwise tie up memory, by announcing a huge length and never sending
@@ -186,8 +186,12 @@ stay open forever and achieve nothing.
 guessing.
 
 **Consensus revision and activation height** (since Node Core 1.0.0, [CONSENSUS_V6.md](CONSENSUS_V6.md)
-section 11.4). Two fields follow the timestamp: `u8 revision`, the highest consensus revision the
-node implements, and `u32 nextActivationHeight`, the next activation height it knows (0 if none).
+section 11.4). Two fields follow the timestamp: `u8 revision`, the consensus revision the node
+actually applies, and `u32 nextActivationHeight`, the next activation height it knows (0 if none).
+A node whose software contains revision 6 but has no activation height set rejects every revision 6
+block, exactly like a revision 5 node, and therefore announces revision 5. Otherwise a node that
+knows the height would take it for a source of blocks from the height and wait for them in vain.
+`/summary` and the Node Core status report the same value.
 They are appended rather than inserted, and the protocol version stays 1, because a node from before
 these fields reads up to the timestamp and ignores the rest; it keeps the connection. A `version`
 without the fields is read as revision 5 with no known activation. A `version` with only part of
@@ -441,7 +445,7 @@ announcement. It could not be accepted now and will be fetched in its turn.
 A block that branches off deep below the tip can never take over the chain unless its branch
 gathers more work. Validating it still costs the node the recomputation of the account state of
 that branch, and storing it costs space for good. Since October 2026 the node therefore applies a
-minimum work, following the example of Bitcoin Core. This is a rule of the node, not a consensus
+minimum work. This is a rule of the node, not a consensus
 rule: it decides which blocks the node looks at, not which blocks are valid.
 
 A block that does not extend the node's tip is fetched, validated and stored only if one of two
@@ -590,29 +594,22 @@ higher one.
   statistics; they still synchronize the chain.
 - An unreadable `stats` message closes the connection.
 
-## What was deliberately not taken from Bitcoin
+## What was deliberately left out
 
-**Bans.** Bitcoin Core moved away from them over the years. It replaced automatic bans with a
-discouragement filter, on the reasoning that neither protects against denial of service, because
-an attacker simply reconnects from other addresses. In 2025 it also stopped penalizing peers for
-transactions that are invalid by consensus (Bitcoin Core pull request #33050). Careless banning
-also raises the risk of splitting the network.
+**Bans.** A node does not ban peers. A ban does not protect against denial of service, because an
+attacker simply reconnects from other addresses, and careless banning raises the risk of
+splitting the network. YSKAR disconnects on misbehavior, evicts flagged peers first when slots
+run out, but never locks anyone out permanently.
 
-YSKAR does the same: disconnect on misbehavior, evict flagged peers first when slots run out,
-but never lock anyone out permanently.
+**Several address formats.** A fixed-size binary address field would need a second format for
+longer address types. Here the host is simply text, which covers IPv4, IPv6 and names in one
+form. At these sizes, saving bytes there would be saving in the wrong place.
 
-**Several address formats.** Bitcoin's original `addr` message has a fixed-size address field
-and needed a second format (BIP155) for longer address types. Here the host is simply text,
-which covers IPv4, IPv6 and names in one form. At these sizes, saving bytes there would be saving
-in the wrong place.
-
-**The 4 MB message limit.** YSKAR uses 2 MiB, which is already several times the largest
-possible block.
+**A larger message limit.** YSKAR uses 2 MiB, which is twice the largest possible block.
 
 ## Open questions
 
-**Encryption.** The connection is not encrypted. Bitcoin added an encrypted transport later
-(BIP324). The chain is public, so there is nothing secret to protect, and an invalid block is
+**Encryption.** The connection is not encrypted. The chain is public, so there is nothing secret to protect, and an invalid block is
 rejected no matter how it arrives. Whether and when to add encryption is not decided.
 
 **Peer discovery.** Today it rests on the fixed seeds and on `addr`. There are no DNS seeds.

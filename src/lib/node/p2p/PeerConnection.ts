@@ -29,7 +29,7 @@ import {
 } from './messages.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
-import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung } from '../fassung.ts';
+import { gemeldeteFassung, naechsteAktivierung } from '../fassung.ts';
 
 /** Wie lange der Handschlag dauern darf. */
 export const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -212,6 +212,8 @@ export class PeerConnection {
   fremdeHoehe(): number { return this.fern?.height ?? 0; }
   /** Konsensfassung der Gegenseite; vor dem Handschlag 0. */
   fremdeFassung(): number { return this.fern?.revision ?? 0; }
+  /** Die Aktivierungshoehe, die der Peer kennt (0 = keine). */
+  fremdeAktivierung(): number { return this.fern?.nextActivationHeight ?? 0; }
   nonce(): bigint { return this.eigeneNonce; }
 
   send(command: Command, payload: Uint8Array): boolean {
@@ -294,7 +296,7 @@ export class PeerConnection {
       nonce: this.eigeneNonce,
       port: this.eigenerPort,
       timestamp: BigInt(Math.floor(Date.now() / 1000)),
-      revision: IMPLEMENTIERTE_FASSUNG,
+      revision: gemeldeteFassung(this.params),
       nextActivationHeight: naechsteAktivierung(this.params),
     }));
   }

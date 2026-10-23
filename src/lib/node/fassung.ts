@@ -21,6 +21,22 @@ import type { ConsensusParams } from '../core/networks.ts';
 
 /** Hoechste Konsensfassung, die dieses Programm umsetzt. */
 export const IMPLEMENTIERTE_FASSUNG = 6;
+/** Die Fassung davor -- die einzige, die ohne gesetzte Aktivierungshoehe gilt. */
+export const VORIGE_FASSUNG = 5;
+
+/**
+ * Die Fassung, die dieser Knoten im Handschlag und in der Status-API
+ * meldet (11.4, 13).
+ *
+ * Ohne gesetzte Aktivierungshoehe setzt er Fassung 6 nicht um: Er lehnt
+ * jeden Block der Fassung 6 ab, genau wie ein Knoten der Fassung 5. Meldete
+ * er trotzdem 6, hielten ihn Knoten mit gesetzter Hoehe fuer eine Quelle
+ * von Bloecken ab der Hoehe (11.4) -- und warteten vergeblich darauf. Also
+ * meldet er, was er tatsaechlich tut.
+ */
+export function gemeldeteFassung(params: ConsensusParams): number {
+  return params.v6Height === V6_HEIGHT_UNSET ? VORIGE_FASSUNG : IMPLEMENTIERTE_FASSUNG;
+}
 
 export type FassungsStatus =
   | 'current' | 'outdated' | 'update_recommended' | 'probably_forked';
@@ -70,9 +86,13 @@ export function fassungsStatus(
  * fragen kostet eine Wartezeit je Block. Fuer Bloecke davor bleibt er eine
  * gute Quelle. Ohne gesetzte Hoehe gibt es nichts, was er nicht haette.
  */
-export function liefertBloeckeAb(peerFassung: number, hoehe: number, params: ConsensusParams): boolean {
+export function liefertBloeckeAb(peerFassung: number, hoehe: number, params: ConsensusParams,
+                                peerAktivierung?: number): boolean {
   if (hoehe < params.v6Height) return true;
-  return peerFassung >= IMPLEMENTIERTE_FASSUNG;
+  if (peerFassung < IMPLEMENTIERTE_FASSUNG) return false;
+  // Fassung 6 ohne (oder mit anderer) Aktivierungshoehe: ein Vorab-Stand,
+  // der Fassung 6 nicht durchsetzt -- er hat keine Bloecke ab unserer Hoehe.
+  return peerAktivierung === undefined || peerAktivierung === params.v6Height;
 }
 
 /**

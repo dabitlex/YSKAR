@@ -226,10 +226,11 @@ export class TxPool {
    * Fassung 3 die alte Untergrenze; danach der Satz je Byte, bei Andrang die
    * gestiegene Untergrenze.
    */
-  mindestGebuehr(height: number, memoBytes = 0): bigint {
+  mindestGebuehr(height: number, memoBytes = 0, empfaengerBytes?: number): bigint {
     if (height < (this.params.feeV3Height ?? FEE_V3_HEIGHT)) return MIN_FEE;
-    // 168 Byte bis Fassung 6, 174 ab v6Height (Ueberweisung Fassung 2).
-    const bytes = transferBytesAt(height, memoBytes, this.params.v6Height);
+    // 168 Byte bis Fassung 6, ab v6Height 174 (Empfaenger Version 0) bzw.
+    // 186 (Version 1, ysr1p…).
+    const bytes = transferBytesAt(height, memoBytes, this.params.v6Height, empfaengerBytes);
     const relay = BigInt(bytes) * this.relayFeeRate;
     const g = this.grenzeFuer(bytes);
     return g > relay ? g : relay;

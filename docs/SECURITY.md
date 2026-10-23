@@ -349,7 +349,7 @@ on the PC itself.
 - **No rate limiting on the HTTP interface.** Apart from the size and count limits listed
   above and the per-sender session limits of `--sender-ip`, port 8645 does not limit requests
   per client. On a publicly offered node, limiting has to be done by the reverse proxy.
-- **Pool seats can be occupied cheaply.** A pool has at most 64 seats (63 with a fee), counted
+- **Pool seats can be occupied cheaply.** A pool has at most 64 seats (63 with a fee; 255 and 254 from consensus revision 6), counted
   by address. Opening a pool session needs only a valid address, with no proof that the caller
   owns it. A new session counts as a seat for 2 minutes without any accepted share, and keeps
   the seat as long as a share is accepted at least every 10 minutes. Someone who opens sessions

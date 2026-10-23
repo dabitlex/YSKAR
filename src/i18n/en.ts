@@ -413,6 +413,7 @@ const en = {
     erhoehenTitel: 'Raise fee',
     erhoehenText: 'The same payment with a higher fee. It replaces the waiting one and gets into a block sooner.',
     wechselPause: 'The network is about to switch to consensus revision 6. Please try again in about half an hour.',
+    adresseAbV6: 'This address format (ysr1p…) only becomes valid with consensus revision 6. Until then nothing can be sent to it.',
     titel: 'Send',
     empfaenger: 'Recipient',
     scannen: 'Scan',

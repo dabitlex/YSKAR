@@ -31,7 +31,7 @@ export const VORSCHAU_TIEF = 64;
 export const VORSCHAU_ANZEIGE = 12;
 import { FEE_V3_HEIGHT, maxTxsAt } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
-import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
+import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore, StoredBlock } from './ChainStore.ts';
@@ -178,7 +178,7 @@ export class ReadApi {
         haelt. Meldungen, kein Konsens -- und nicht beeinflussbar von
         aussen: `outdated` setzt nur ein Block mit gueltiger Arbeit (11.1).
       */
-      revision: IMPLEMENTIERTE_FASSUNG,
+      revision: gemeldeteFassung(this.params),
       nextActivationHeight: naechsteAktivierung(this.params),
       revision_status: fassungsStatus(this.t.chain.hoehereFassungGesehen !== null),
     };

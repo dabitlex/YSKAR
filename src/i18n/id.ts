@@ -413,6 +413,7 @@ const id = {
     erhoehenTitel: 'Naikkan biaya',
     erhoehenText: 'Pembayaran yang sama dengan biaya lebih tinggi. Menggantikan yang menunggu dan lebih cepat masuk blok.',
     wechselPause: 'Jaringan akan segera beralih ke revisi konsensus 6. Coba lagi dalam sekitar setengah jam.',
+    adresseAbV6: 'Format alamat ini (ysr1p…) baru berlaku mulai revisi konsensus 6. Sampai saat itu tidak ada yang bisa dikirim ke sana.',
     titel: 'Kirim',
     empfaenger: 'Penerima',
     scannen: 'Pindai',

@@ -273,7 +273,10 @@ export class PeerManager {
         const g = netzGruppe(p.host);
         gruppen.set(g, (gruppen.get(g) ?? 0) + 1);
       }
-      const alt = ein.filter(p => p.ready && p.fremdeFassung() < IMPLEMENTIERTE_FASSUNG
+      // Alt ist auch, wer Fassung 6 meldet, aber eine andere (oder keine)
+      // Aktivierungshoehe kennt: Er setzt Fassung 6 an unserer Hoehe nicht durch.
+      const alt = ein.filter(p => p.ready
+        && (p.fremdeFassung() < IMPLEMENTIERTE_FASSUNG || p.fremdeAktivierung() !== this.opt.params.v6Height)
         && (gruppen.get(netzGruppe(p.host)) ?? 0) > 1)
         .sort((a, b) => a.info().seit - b.info().seit);
       if (alt[0]) return alt[0];

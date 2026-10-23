@@ -417,6 +417,7 @@ const fr = {
     erhoehenTitel: 'Augmenter les frais',
     erhoehenText: 'Le même paiement avec des frais plus élevés. Il remplace celui en attente et entre plus vite dans un bloc.',
     wechselPause: 'Le réseau passe bientôt à la révision de consensus 6. Réessaie dans une demi-heure environ.',
+    adresseAbV6: 'Ce format d’adresse (ysr1p…) n’est valable qu’à partir de la révision de consensus 6. D’ici là, rien ne peut y être envoyé.',
     titel: 'Envoyer',
     empfaenger: 'Destinataire',
     scannen: 'Scanner',

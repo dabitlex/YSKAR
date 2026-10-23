@@ -478,7 +478,9 @@ The signing bytes are 104 bytes plus the memo. The chain ID is part of the signi
 transmitted. The public key is bound to the transfer by the rule that its hash must equal `from`.
 
 The reference code verifies with `ed25519.verify` of the library `@noble/curves` and its default options,
-which follow the ZIP 215 acceptance rules (checked in version 2.4.0 of the library). An implementation
+which apply the YSKAR signature rule of [CONSENSUS_V6.md, 7.8](CONSENSUS_V6.md#78-signature-verification-rule):
+non-canonical point encodings accepted, `S` below the group order, the cofactored verification equation,
+keys of small order not rejected for that reason (checked in version 2.4.0 of the library). An implementation
 with stricter Ed25519 checks can disagree with it on unusual, non-canonical signatures or keys.
 
 ### Transaction ID
@@ -639,8 +641,9 @@ node  = sha256d(0x01 | left | right)
 - The root of a list with one item is its leaf hash. The root of an empty list is 32 zero bytes.
 
 The prefixes `0x00` and `0x01` keep leaves and inner nodes apart, so an inner node can never be presented
-as a leaf. Moving an odd entry up instead of duplicating it avoids the weakness known from Bitcoin as
-CVE-2012-2459, where two different transaction lists produce the same root.
+as a leaf. Moving an odd entry up instead of duplicating it avoids a known weakness of trees that
+duplicate the last entry: there, a list and the same list with its last entry repeated produce the same
+root.
 
 ### Transaction Merkle root
 

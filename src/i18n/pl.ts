@@ -421,6 +421,7 @@ const pl = {
     erhoehenTitel: 'Podnieś opłatę',
     erhoehenText: 'Ta sama płatność z wyższą opłatą. Zastępuje oczekującą i szybciej trafia do bloku.',
     wechselPause: 'Sieć zaraz przejdzie na wersję konsensusu 6. Spróbuj ponownie za około pół godziny.',
+    adresseAbV6: 'Ten format adresu (ysr1p…) obowiązuje dopiero od wersji konsensusu 6. Do tego czasu nie można na niego nic wysłać.',
     titel: 'Wyślij',
     empfaenger: 'Odbiorca',
     scannen: 'Skanuj',

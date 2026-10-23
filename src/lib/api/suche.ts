@@ -20,8 +20,13 @@ export interface Suche {
   hoehe: number | null;
   /** Hex, je 32 Byte. */
   txLo: string | null; txHi: string | null;
-  /** Hex, je 20 Byte. */
+  /** Hex: 20 Byte (Version 0) oder 33 Byte (Version 1). */
   gegenLo: string | null; gegenHi: string | null;
+  /**
+   * Zweiter Bereich, wenn der Anfang auch eine Adresse der Version 1 sein
+   * kann (ysr1p…): 33 Byte, `01` | Programm. Sonst null.
+   */
+  gegen2Lo?: string | null; gegen2Hi?: string | null;
   memo: string | null;
 }
 
@@ -29,6 +34,9 @@ const TXID_BYTES = 32;
 const BECH32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
 /** Datenzeichen einer Adresse ohne Pruefsumme: 160 Bit / 5 = 32. */
 const ADRESS_ZEICHEN = Math.ceil((ADDRESS_BYTES * 8) / 5);
+/** Version 1: ein Versionszeichen ("p") und 256 Bit Programm = 1 + 52 Zeichen. */
+const PROGRAMM_V1_BYTES = 32;
+const ADRESS_ZEICHEN_V1 = 1 + Math.ceil((PROGRAMM_V1_BYTES * 8) / 5);
 const MIN_TXID = 4;
 const MIN_ADRESSE = 2;    // Zeichen nach "ysr1"
 const MIN_MEMO = 2;
@@ -97,9 +105,27 @@ export function sucheAus(eingabe: string | null): Suche | null {
       const hex = Array.from(ganz, b => b.toString(16).padStart(2, '0')).join('');
       s.gegenLo = hex; s.gegenHi = hex;
     } else {
-      const daten = klein.slice(hrp.length, hrp.length + ADRESS_ZEICHEN);
-      const bits = daten.length >= MIN_ADRESSE ? bech32Bits(daten) : null;
-      if (bits) [s.gegenLo, s.gegenHi] = bereich(bits, ADDRESS_BYTES);
+      const roh = klein.slice(hrp.length);
+      // Version 0: 32 Datenzeichen, das Programm beginnt sofort. Laengeres
+      // (vertippte Pruefsumme, ein Zeichen zu wenig) wird wie bisher auf das
+      // Programm gekuerzt -- ausser es kann nur Version 1 sein (ab "p" mehr
+      // als 32 Zeichen).
+      if (!(roh.startsWith('p') && roh.length > ADRESS_ZEICHEN)) {
+        const daten = roh.slice(0, ADRESS_ZEICHEN);
+        const bits = daten.length >= MIN_ADRESSE ? bech32Bits(daten) : null;
+        if (bits) [s.gegenLo, s.gegenHi] = bereich(bits, ADDRESS_BYTES);
+      }
+      // Version 1 (ysr1p…): erstes Zeichen ist die Version, danach das
+      // Programm. Rohform `01` | 32 Byte. Ein kurzer Anfang mit "p" passt zu
+      // beiden Versionen -- dann wird in beiden Bereichen gesucht.
+      if (roh.startsWith('p') && roh.length - 1 >= MIN_ADRESSE) {
+        const bits = bech32Bits(roh.slice(1, ADRESS_ZEICHEN_V1));
+        if (bits) {
+          const [lo, hi] = bereich(bits, PROGRAMM_V1_BYTES);
+          if (s.gegenLo) { s.gegen2Lo = '01' + lo; s.gegen2Hi = '01' + hi; }
+          else { s.gegenLo = '01' + lo; s.gegenHi = '01' + hi; }
+        }
+      }
     }
   }
 

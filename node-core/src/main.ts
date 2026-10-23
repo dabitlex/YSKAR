@@ -46,7 +46,7 @@ import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
 import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
 import { MAINNET, istMainnet, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { stateRootAt, totalSupply } from '../../src/lib/core/state.ts';
-import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
+import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
 import { toHex, fromHex } from '../../src/lib/core/codec.ts';
 import { spendTxid } from '../../src/lib/core/builder.ts';
 import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
@@ -103,11 +103,6 @@ interface MiningEinstellung {
 }
 
 export const VERSION = '1.0.0';
-/**
- * Stand der Konsensregeln, die dieses Programm kennt (docs/CONSENSUS_V*.md).
- * Nur fuer die Anzeige -- die Regeln selbst stehen in src/lib/core.
- */
-const KONSENSFASSUNG = IMPLEMENTIERTE_FASSUNG;
 const GUI_PORT = 8650;
 /** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
 const STATS_TAKT_MS = 30_000;
@@ -1972,9 +1967,9 @@ export class NodeCoreApp {
       letzterBlock: tip ? Number(tip.blockTime) : null,
       zielBlockzeit: Number(this.params.targetBlockTime),
       guiPort: this.guiPort,
-      konsensfassung: KONSENSFASSUNG,
+      konsensfassung: gemeldeteFassung(this.params),
       // Fassungsstand (CONSENSUS_V6.md 13) -- dieselben Felder wie /summary.
-      revision: IMPLEMENTIERTE_FASSUNG,
+      revision: gemeldeteFassung(this.params),
       nextActivationHeight: naechsteAktivierung(this.params),
       revision_status: fassungsStatus(!!this.chain?.hoehereFassungGesehen),
       hoehereFassungGesehen: this.chain?.hoehereFassungGesehen ?? null,
@@ -2207,12 +2202,23 @@ export class NodeCoreApp {
       throw new WalletFehler('wechsel_pause',
         'Das Netz wechselt in Kürze auf Konsensfassung 6. Bitte in etwa einer halben Stunde noch einmal versuchen.');
     }
+    // Adressen der Version 1 (ysr1p…) gibt es erst ab Konsensfassung 6.
+    if (hoehe < this.params.v6Height && decodeAddress(an).length !== 20) {
+      throw new WalletFehler('adresse_ab_v6',
+        'Dieses Adressformat (ysr1p…) gilt erst ab Konsensfassung 6. Bis dahin kann nichts dorthin gesendet werden.');
+    }
+    // Tatsaechliche Groesse: Notiz und Empfaenger zaehlen (eine Adresse der
+    // Version 1 macht die Ueberweisung ab Fassung 6 um 12 Byte groesser).
+    const empfaengerBytes = decodeAddress(an).length;
+    const groesse = transferBytesAt(hoehe, memo.length, this.params.v6Height, empfaengerBytes);
     const markt = this.lesen.fees(new URLSearchParams());
-    let gebuehr = BigInt(markt.stufen[stufe].fee);
+    // Die Stufe gilt je Byte; `fee` waere der Betrag fuer die Grundgroesse.
+    let gebuehr = BigInt(Math.ceil(Number(markt.stufen[stufe].jeByte) * groesse));
+    if (BigInt(markt.stufen[stufe].fee) > gebuehr && groesse <= markt.basisBytes) gebuehr = BigInt(markt.stufen[stufe].fee);
     const jeByte = markt.mindestJeByte
-      ? BigInt(markt.mindestJeByte) * BigInt(transferBytesAt(hoehe, memo.length, this.params.v6Height)) : 0n;
+      ? BigInt(markt.mindestJeByte) * BigInt(groesse) : 0n;
     if (jeByte > gebuehr) gebuehr = jeByte;
-    const boden = this.pool.mindestGebuehr(hoehe, memo.length);
+    const boden = this.pool.mindestGebuehr(hoehe, memo.length, empfaengerBytes);
     if (boden > gebuehr) gebuehr = boden;
 
     const { verfuegbar, wartend, naechsteNonce } = this.walletKonto(adresse);

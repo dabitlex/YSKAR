@@ -413,6 +413,7 @@ const tr = {
     erhoehenTitel: 'Ücreti artır',
     erhoehenText: 'Aynı ödeme, daha yüksek ücretle. Bekleyenin yerine geçer ve bir bloğa daha erken girer.',
     wechselPause: 'Ağ birazdan konsensüs sürümü 6’ya geçiyor. Lütfen yaklaşık yarım saat sonra tekrar dene.',
+    adresseAbV6: 'Bu adres biçimi (ysr1p…) ancak 6. konsensüs sürümüyle geçerli olur. O zamana kadar bu adrese gönderim yapılamaz.',
     titel: 'Gönder',
     empfaenger: 'Alıcı',
     scannen: 'Tara',

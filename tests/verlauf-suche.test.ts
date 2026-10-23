@@ -94,3 +94,27 @@ test('Zeitraum: Tagesgrenzen in Ortszeit, [von, bis)', () => {
   assert.deepEqual(grenzen({ art: 'eigen', von: '', bis: '2026-09-12' }, jetzt), [null, s(new Date(2026, 8, 13))]);
   assert.equal(tagAus('2026-02-30'), null);
 });
+
+test('Anfang einer Adresse der Version 1 (ysr1p…): Bereich ueber 33 Byte, kurzer Anfang in beiden Versionen', async () => {
+  const { sucheAus } = await import('../src/lib/api/suche.ts');
+  const { encodeAddress } = await import('../src/lib/core/address.ts');
+  const { toHex } = await import('../src/lib/core/codec.ts');
+  const raw = Uint8Array.from([1, ...Array.from({ length: 32 }, (_, i) => (i * 37 + 11) & 0xff)]);
+  const text = encodeAddress(raw);
+  assert.ok(text.startsWith('ysr1p') && text.length === 63);
+  const imBereich = (hex: string, lo: string, hi: string) => hex.length === lo.length && hex >= lo && hex <= hi;
+
+  // Langer Anfang (mehr als 32 Datenzeichen): nur Version 1.
+  const lang = sucheAus(text.slice(0, 45))!;
+  assert.ok(imBereich(toHex(raw), lang.gegenLo!, lang.gegenHi!));
+  assert.equal(lang.gegen2Lo ?? null, null);
+
+  // Kurzer Anfang mit "p": Version 0 im ersten, Version 1 im zweiten Bereich.
+  const kurz = sucheAus(text.slice(0, 10))!;
+  assert.equal(kurz.gegenLo!.length, 40);
+  assert.ok(imBereich(toHex(raw), kurz.gegen2Lo!, kurz.gegen2Hi!));
+
+  // Ganze Adresse: genau diese Rohform.
+  const ganz = sucheAus(text)!;
+  assert.equal(ganz.gegenLo, toHex(raw));
+});

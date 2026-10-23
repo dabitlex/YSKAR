@@ -70,7 +70,7 @@ export async function verlaufLaden(
   const n = Math.min(Math.max(Math.trunc(limit) || 40, 1), 200);
   const s = filter.suche ?? null;
   const hex = (h: string | null) => (h ? '\\x' + h : null);
-  const { data, error } = await db().schema('chain2').rpc('verlauf_suche', {
+  const parameter = {
     p_addr: '\\x' + toHex(raw),
     p_richtung: richtung,
     p_vor_hoehe: vor ? vor[0] : null,
@@ -84,7 +84,17 @@ export async function verlaufLaden(
     p_gegen_lo: hex(s?.gegenLo ?? null),
     p_gegen_hi: hex(s?.gegenHi ?? null),
     p_memo: s?.memo ?? null,
-  });
+    // Nur mitschicken, wenn gesetzt: Ein Spiegel vor Migration 00028 kennt
+    // die Parameter nicht und lehnte sonst jede Suche ab.
+    ...(s?.gegen2Lo ? { p_gegen2_lo: hex(s.gegen2Lo), p_gegen2_hi: hex(s.gegen2Hi ?? null) } : {}),
+  };
+  let { data, error } = await db().schema('chain2').rpc('verlauf_suche', parameter);
+  // Spiegel noch vor Migration 00028: Er kennt den zweiten Bereich nicht.
+  // Dann ohne ihn suchen (nur Adressen der Version 0) statt gar nicht.
+  if (error && 'p_gegen2_lo' in parameter) {
+    const { p_gegen2_lo: _a, p_gegen2_hi: _b, ...ohne } = parameter as Record<string, unknown>;
+    ({ data, error } = await db().schema('chain2').rpc('verlauf_suche', ohne));
+  }
   if (error) throw new Error(error.message);
 
   const eigen = toHex(raw);

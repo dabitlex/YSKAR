@@ -82,7 +82,10 @@ test('Einstellungen: Feld für Feld geprüft', () => {
   assert.throws(() => pruefeBetrieb({ feeBps: 110 }, v, true), /Schritten/);
   assert.throws(() => pruefeBetrieb({ feeBps: -25 }, v, true));
   assert.throws(() => pruefeBetrieb({ plaetze: 0 }, v, true), /Plätze/);
-  assert.throws(() => pruefeBetrieb({ plaetze: 65 }, v, true));
+  // Bis 255 (Coinbase-Ausgaben ab Konsensfassung 6); vor der Aktivierung
+  // nimmt der Pool davon nur, was die Kette an der Hoehe traegt.
+  assert.deepEqual(pruefeBetrieb({ plaetze: 255 }, v, true).plaetze, 255);
+  assert.throws(() => pruefeBetrieb({ plaetze: 256 }, v, true));
   assert.throws(() => pruefeBetrieb({ plaetze: 2.5 }, v, true));
   assert.throws(() => pruefeBetrieb({ name: 'Zürich Pool' }, v, true), /Name des Pools/);
   assert.throws(() => pruefeBetrieb({ name: 'ab' }, v, true));
@@ -90,8 +93,8 @@ test('Einstellungen: Feld für Feld geprüft', () => {
   // Aus einer Datei: Unzulaessiges faellt still auf den bisherigen Wert.
   assert.deepEqual(pruefeBetrieb({ name: 'Zürich', feeBps: 9999, plaetze: 'viele', heimnetz: 'ja', aktiv: 1 }, v, false), v);
   assert.deepEqual(pruefeBetrieb('unsinn', v, false), v);
-  assert.equal(platzGrenze(0), 64);
-  assert.equal(platzGrenze(25), 63);
+  assert.equal(platzGrenze(0), 255);
+  assert.equal(platzGrenze(25), 254);
 });
 
 test('Fenster: sichern, lesen, kürzen -- und nichts Erfundenes annehmen', async () => {

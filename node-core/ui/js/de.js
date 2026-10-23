@@ -665,6 +665,7 @@ export const de = {
   'srv.abgelehnt_sender_limit': 'Von dieser Wallet warten schon zu viele Überweisungen.',
   'srv.abgelehnt_pool_min_fee': 'Gerade ist viel los im Netz, die nötige Gebühr ist gestiegen. Bitte noch einmal prüfen.',
   'srv.abgelehnt_fee_not_higher': 'Die neue Gebühr muss höher sein als die bisherige.',
+  'srv.adresse_ab_v6': 'Dieses Adressformat (ysr1p…) gilt erst ab Konsensfassung 6. Bis dahin kann nichts dorthin gesendet werden.',
   'srv.nicht_wartend': 'Diese Überweisung wartet nicht mehr -- vielleicht ist sie schon in einem Block.',
   'srv.abgelehnt_duplicate': 'Diese Überweisung wurde schon eingereicht.',
 };

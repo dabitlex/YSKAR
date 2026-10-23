@@ -413,6 +413,7 @@ const zh = {
     erhoehenTitel: '提高手续费',
     erhoehenText: '同一笔付款，使用更高的手续费。它会替换正在等待的那笔，并更快进入区块。',
     wechselPause: '网络即将切换到共识版本 6。请在大约半小时后重试。',
+    adresseAbV6: '此地址格式（ysr1p…）自共识版本 6 起才生效。在此之前无法向其发送。',
     titel: '发送',
     empfaenger: '收款方',
     scannen: '扫码',

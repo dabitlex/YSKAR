@@ -686,7 +686,7 @@ en:{
   unbekannt:'Unknown',selbstauskunft:'Self-reported by the finder',aeltere:'Load older',laedtKurz:'loading…',
   stimmt:'valid',stimmtNicht:'INVALID',offen:'open',txLaden:'Loading transactions…',
   empfaenger:n=>n+(n===1?' recipient':' recipients'),von:'From',an:'To',gebuehr:'Fee',
-  coinbase:'Coinbase',ueberweisung:'Transfer',block:'Block',gefundenVon:'Found by',schliessen:'Close',
+  coinbase:'Coinbase',ueberweisung:'Transfer',sammelzahlung:'Batch payment',skriptAusgabe:'Script account spend',block:'Block',gefundenVon:'Found by',schliessen:'Close',
   hash:'Hash',vorgaenger:'Previous',difficulty:'Difficulty',erreicht:'Achieved',groesse:'Size',byte:'bytes',
   transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Reward',
   serialisierung:'Serialization',hashGeprueft:'Hash recomputed',pow:'Proof of work',verkettung:'Chain link',
@@ -739,7 +739,7 @@ de:{
   unbekannt:'Unbekannt',selbstauskunft:'Selbstauskunft des Finders',aeltere:'Ältere laden',laedtKurz:'lädt…',
   stimmt:'stimmt',stimmtNicht:'stimmt NICHT',offen:'offen',txLaden:'Transaktionen werden geladen…',
   empfaenger:n=>n+' Empfänger',von:'Von',an:'An',gebuehr:'Gebühr',
-  coinbase:'Coinbase',ueberweisung:'Überweisung',block:'Block',gefundenVon:'Gefunden von',schliessen:'Schließen',
+  coinbase:'Coinbase',ueberweisung:'Überweisung',sammelzahlung:'Sammelzahlung',skriptAusgabe:'Ausgabe aus Skript-Konto',block:'Block',gefundenVon:'Gefunden von',schliessen:'Schließen',
   hash:'Hash',vorgaenger:'Vorgänger',difficulty:'Difficulty',erreicht:'Erreicht',groesse:'Größe',byte:'Byte',
   transaktionen:'Transaktionen',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Belohnung',
   serialisierung:'Serialisierung',hashGeprueft:'Hash nachgerechnet',pow:'Proof of Work',verkettung:'Verkettung',
@@ -792,7 +792,7 @@ es:{
   unbekannt:'Desconocido',selbstauskunft:'Declarado por quien lo encontró',aeltere:'Cargar anteriores',laedtKurz:'cargando…',
   stimmt:'correcto',stimmtNicht:'INCORRECTO',offen:'abierto',txLaden:'Cargando transacciones…',
   empfaenger:n=>n+(n===1?' destinatario':' destinatarios'),von:'De',an:'Para',gebuehr:'Comisión',
-  coinbase:'Coinbase',ueberweisung:'Transferencia',block:'Bloque',gefundenVon:'Encontrado por',schliessen:'Cerrar',
+  coinbase:'Coinbase',ueberweisung:'Transferencia',sammelzahlung:'Pago múltiple',skriptAusgabe:'Gasto de cuenta con script',block:'Bloque',gefundenVon:'Encontrado por',schliessen:'Cerrar',
   hash:'Hash',vorgaenger:'Anterior',difficulty:'Dificultad',erreicht:'Alcanzado',groesse:'Tamaño',byte:'bytes',
   transaktionen:'Transacciones',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
   serialisierung:'Serialización',hashGeprueft:'Hash recalculado',pow:'Prueba de trabajo',verkettung:'Encadenamiento',
@@ -845,7 +845,7 @@ pt:{
   unbekannt:'Desconhecido',selbstauskunft:'Informado por quem encontrou',aeltere:'Carregar anteriores',laedtKurz:'carregando…',
   stimmt:'confere',stimmtNicht:'NÃO confere',offen:'em aberto',txLaden:'Carregando transações…',
   empfaenger:n=>n+(n===1?' destinatário':' destinatários'),von:'De',an:'Para',gebuehr:'Taxa',
-  coinbase:'Coinbase',ueberweisung:'Transferência',block:'Bloco',gefundenVon:'Encontrado por',schliessen:'Fechar',
+  coinbase:'Coinbase',ueberweisung:'Transferência',sammelzahlung:'Pagamento múltiplo',skriptAusgabe:'Gasto de conta com script',block:'Bloco',gefundenVon:'Encontrado por',schliessen:'Fechar',
   hash:'Hash',vorgaenger:'Anterior',difficulty:'Dificuldade',erreicht:'Alcançado',groesse:'Tamanho',byte:'bytes',
   transaktionen:'Transações',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
   serialisierung:'Serialização',hashGeprueft:'Hash recalculado',pow:'Prova de trabalho',verkettung:'Encadeamento',
@@ -898,7 +898,7 @@ ru:{
   unbekannt:'Неизвестно',selbstauskunft:'Указано нашедшим',aeltere:'Загрузить старые',laedtKurz:'загрузка…',
   stimmt:'верно',stimmtNicht:'НЕВЕРНО',offen:'открыто',txLaden:'Загрузка транзакций…',
   empfaenger:n=>n+' '+ruPl(n,'получатель','получателя','получателей'),von:'От',an:'Кому',gebuehr:'Комиссия',
-  coinbase:'Coinbase',ueberweisung:'Перевод',block:'Блок',gefundenVon:'Нашёл',schliessen:'Закрыть',
+  coinbase:'Coinbase',ueberweisung:'Перевод',sammelzahlung:'Пакетный платёж',skriptAusgabe:'Расход со скрипт-счёта',block:'Блок',gefundenVon:'Нашёл',schliessen:'Закрыть',
   hash:'Хеш',vorgaenger:'Предыдущий',difficulty:'Сложность',erreicht:'Достигнуто',groesse:'Размер',byte:'байт',
   transaktionen:'Транзакции',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Награда',
   serialisierung:'Сериализация',hashGeprueft:'Хеш пересчитан',pow:'Proof of Work',verkettung:'Связь цепочки',
@@ -953,7 +953,7 @@ tr:{
   unbekannt:'Bilinmiyor',selbstauskunft:'Bulanın kendi beyanı',aeltere:'Eskileri yükle',laedtKurz:'yükleniyor…',
   stimmt:'doğru',stimmtNicht:'DOĞRU DEĞİL',offen:'açık',txLaden:'İşlemler yükleniyor…',
   empfaenger:n=>n+' alıcı',von:'Gönderen',an:'Alıcı',gebuehr:'Ücret',
-  coinbase:'Coinbase',ueberweisung:'Transfer',block:'Blok',gefundenVon:'Bulan',schliessen:'Kapat',
+  coinbase:'Coinbase',ueberweisung:'Transfer',sammelzahlung:'Toplu ödeme',skriptAusgabe:'Betik hesabından harcama',block:'Blok',gefundenVon:'Bulan',schliessen:'Kapat',
   hash:'Hash',vorgaenger:'Önceki',difficulty:'Zorluk',erreicht:'Ulaşılan',groesse:'Boyut',byte:'bayt',
   transaktionen:'İşlemler',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ödül',
   serialisierung:'Serileştirme',hashGeprueft:'Hash yeniden hesaplandı',pow:'İş kanıtı',verkettung:'Zincir bağı',
@@ -1006,7 +1006,7 @@ fr:{
   unbekannt:'Inconnu',selbstauskunft:'Déclaré par celui qui l’a trouvé',aeltere:'Charger les plus anciens',laedtKurz:'chargement…',
   stimmt:'valide',stimmtNicht:'INVALIDE',offen:'ouvert',txLaden:'Chargement des transactions…',
   empfaenger:n=>n+(n<2?' destinataire':' destinataires'),von:'De',an:'À',gebuehr:'Frais',
-  coinbase:'Coinbase',ueberweisung:'Virement',block:'Bloc',gefundenVon:'Trouvé par',schliessen:'Fermer',
+  coinbase:'Coinbase',ueberweisung:'Virement',sammelzahlung:'Paiement groupé',skriptAusgabe:'Dépense d’un compte à script',block:'Bloc',gefundenVon:'Trouvé par',schliessen:'Fermer',
   hash:'Hash',vorgaenger:'Précédent',difficulty:'Difficulté',erreicht:'Atteinte',groesse:'Taille',byte:'octets',
   transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Récompense',
   serialisierung:'Sérialisation',hashGeprueft:'Hash recalculé',pow:'Proof of Work',verkettung:'Lien de chaîne',
@@ -1059,7 +1059,7 @@ it:{
   unbekannt:'Sconosciuto',selbstauskunft:'Dichiarato da chi l’ha trovato',aeltere:'Carica i precedenti',laedtKurz:'caricamento…',
   stimmt:'valido',stimmtNicht:'NON VALIDO',offen:'aperto',txLaden:'Caricamento transazioni…',
   empfaenger:n=>n+(n===1?' destinatario':' destinatari'),von:'Da',an:'A',gebuehr:'Commissione',
-  coinbase:'Coinbase',ueberweisung:'Trasferimento',block:'Blocco',gefundenVon:'Trovato da',schliessen:'Chiudi',
+  coinbase:'Coinbase',ueberweisung:'Trasferimento',sammelzahlung:'Pagamento multiplo',skriptAusgabe:'Spesa da conto con script',block:'Blocco',gefundenVon:'Trovato da',schliessen:'Chiudi',
   hash:'Hash',vorgaenger:'Precedente',difficulty:'Difficulty',erreicht:'Raggiunta',groesse:'Dimensione',byte:'byte',
   transaktionen:'Transazioni',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ricompensa',
   serialisierung:'Serializzazione',hashGeprueft:'Hash ricalcolato',pow:'Proof of Work',verkettung:'Collegamento',
@@ -1112,7 +1112,7 @@ pl:{
   unbekannt:'Nieznany',selbstauskunft:'Podane przez znalazcę',aeltere:'Wczytaj starsze',laedtKurz:'ładowanie…',
   stimmt:'poprawny',stimmtNicht:'NIEPOPRAWNY',offen:'otwarty',txLaden:'Ładowanie transakcji…',
   empfaenger:n=>n+' '+plPl(n,'odbiorca','odbiorców','odbiorców'),von:'Od',an:'Do',gebuehr:'Opłata',
-  coinbase:'Coinbase',ueberweisung:'Przelew',block:'Blok',gefundenVon:'Znalazca',schliessen:'Zamknij',
+  coinbase:'Coinbase',ueberweisung:'Przelew',sammelzahlung:'Płatność zbiorcza',skriptAusgabe:'Wydatek z konta ze skryptem',block:'Blok',gefundenVon:'Znalazca',schliessen:'Zamknij',
   hash:'Hash',vorgaenger:'Poprzedni',difficulty:'Trudność',erreicht:'Osiągnięto',groesse:'Rozmiar',byte:'bajtów',
   transaktionen:'Transakcje',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Nagroda',
   serialisierung:'Serializacja',hashGeprueft:'Hash przeliczony',pow:'Proof of Work',verkettung:'Powiązanie łańcucha',
@@ -1167,7 +1167,7 @@ zh:{
   unbekannt:'未知',selbstauskunft:'由发现者自行声明',aeltere:'加载更早的区块',laedtKurz:'加载中…',
   stimmt:'有效',stimmtNicht:'无效',offen:'待定',txLaden:'正在加载交易…',
   empfaenger:n=>n+' 个收款方',von:'来自',an:'至',gebuehr:'手续费',
-  coinbase:'Coinbase',ueberweisung:'转账',block:'区块',gefundenVon:'发现者',schliessen:'关闭',
+  coinbase:'Coinbase',ueberweisung:'转账',sammelzahlung:'批量付款',skriptAusgabe:'脚本账户支出',block:'区块',gefundenVon:'发现者',schliessen:'关闭',
   hash:'哈希',vorgaenger:'上一个区块',difficulty:'难度',erreicht:'达到',groesse:'大小',byte:'字节',
   transaktionen:'交易',nonce:'Nonce',extranonce:'Extranonce',belohnung:'奖励',
   serialisierung:'序列化',hashGeprueft:'哈希已重新计算',pow:'工作量证明',verkettung:'链接',
@@ -1958,10 +1958,15 @@ function txZeile(t){
     </details>`;
   }
   const memo=memoText(t.memo);
+  // Ab Konsensfassung 6: Sammelzahlung (mehrere Empfaenger, "to" leer) und
+  // Ausgabe aus einem Skript-Konto.
+  const empf=Array.isArray(t.recipients)?t.recipients:[];
+  const ziel=t.type==='batch'?T.empfaenger(empf.length):esc(kurz(t.to));
+  const art=t.type==='batch'?T.sammelzahlung+' · ':t.type==='script_spend'?T.skriptAusgabe+' · ':'';
   return `<a class="tx" href="#tx-${esc(t.txid)}">
     <div class="ic">${IC.pfeil}</div>
-    <div class="m"><div class="a">${esc(kurz(t.from))} → ${esc(kurz(t.to))}</div>
-      <div class="b">${esc(kurz(t.txid,6,4))}${memo?' · '+T.notiz+' “'+esc(memo)+'”':''}</div></div>
+    <div class="m"><div class="a">${esc(kurz(t.from))} → ${ziel}</div>
+      <div class="b">${art}${esc(kurz(t.txid,6,4))}${memo?' · '+T.notiz+' “'+esc(memo)+'”':''}</div></div>
     <div class="r">${ysr(t.amount)} ${sym}<small>${T.gebuehr} ${ysr(t.fee)}</small></div>
   </a>`;
 }
@@ -2216,7 +2221,8 @@ async function zeigeTx(id){
         <div class="grosszahl">${ysr(t.amount)}<em>${sym}</em></div>
       </div>
       <div class="fakten">
-        ${fakt(T.art,cb?T.blockreward:T.ueberweisung,cb&&empf.length?T.empfaenger(empf.length):'')}
+        ${fakt(T.art,cb?T.blockreward:t.type==='batch'?T.sammelzahlung:t.type==='script_spend'?T.skriptAusgabe:T.ueberweisung,
+          (cb||t.type==='batch')&&empf.length?T.empfaenger(empf.length):'')}
         ${fakt(T.status,status,t.timestamp?uhr(t.timestamp):'')}
         ${fakt(T.gebuehr,ysr(t.fee||0)+' '+sym,'')}
       </div>

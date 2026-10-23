@@ -15,7 +15,7 @@
  * geprueft werden sie trotzdem vollstaendig und ohne dem Server zu glauben.
  */
 import { stateRootAt, totalSupply } from '../../core/state.ts';
-import { IMPLEMENTIERTE_FASSUNG, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
+import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { NETWORK } from '../../core/params.ts';
 import { ChainStore } from './ChainStore.ts';
@@ -215,8 +215,9 @@ Spiegel nachziehen
       --pool <name>     Pool betreiben, Name steht im Block
       --pool-fee <bp>   Gebühr in Basispunkten (100 = 1,00 %, höchstens 500)
       --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
-      --pool-max <n>    höchstens so viele Adressen aufnehmen (Vorgabe: 64,
-                        mit Gebühr 63 -- mehr zahlt ein Block nicht aus)
+      --pool-max <n>    höchstens so viele Adressen aufnehmen, 1 bis 255
+                        (Vorgabe: was ein Block auszahlen kann -- 64, mit
+                        Gebühr 63; ab Konsensfassung 6 255 bzw. 254)
       --mempool-mb <n>  Obergrenze des Mempools in MB (Vorgabe: 32, rund
                         190.000 Überweisungen). Ist er voll, verdrängt eine
                         höhere Gebühr die niedrigste; abgewiesen wird nur,
@@ -410,7 +411,7 @@ function status(store: ChainStore, chain: ChainManager, params: ConsensusParams 
   console.log(`  Netz            ${NETWORK}`);
   const aktivierung = naechsteAktivierung(params);
   const stand = fassungsStatus(chain.hoehereFassungGesehen !== null);
-  console.log(`  Konsensfassung  ${IMPLEMENTIERTE_FASSUNG}` +
+  console.log(`  Konsensfassung  ${gemeldeteFassung(params)}` +
     (aktivierung ? grau(`  (Fassung 6 ab Block ${nf(aktivierung)})`) : grau('  (Aktivierungshöhe von Fassung 6 noch nicht gesetzt)')));
   if (stand !== 'current') {
     console.log(gelb(`  Fassungsstand   ${stand}` +

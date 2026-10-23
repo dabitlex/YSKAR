@@ -269,9 +269,21 @@ export const TRANSFER_BASE_BYTES = 2 + 1 + ADDRESS_BYTES * 2 + 8 + 8 + 8 + 4 + 1
 export const transferBytes = (memoLength: number): number => TRANSFER_BASE_BYTES + memoLength;
 /** Fassung 2 mit Empfaenger der Version 0: 174 Byte plus Notiz (flags, validFrom, Versionsbyte). */
 export const TRANSFER_V2_BASE_BYTES = TRANSFER_BASE_BYTES + 1 + 4 + 1;
-/** Groesse einer gewoehnlichen Ueberweisung an der Hoehe -- fuer Gebuehrenauskuenfte. */
-export function transferBytesAt(height: number, memoLength: number, v6Height = V6_HEIGHT): number {
-  return (height >= v6Height ? TRANSFER_V2_BASE_BYTES : TRANSFER_BASE_BYTES) + memoLength;
+/**
+ * Groesse einer gewoehnlichen Ueberweisung an der Hoehe -- fuer
+ * Gebuehrenauskuenfte und die Gebuehr einer Wallet.
+ *
+ * `empfaengerBytes`: Laenge der Rohadresse des Empfaengers. Ab Fassung 6
+ * steht er in der Leitungsform `u8 version | programm`: 21 Byte fuer
+ * Version 0 (in TRANSFER_V2_BASE_BYTES enthalten), 33 Byte fuer Version 1
+ * (`ysr1p…`) -- eine solche Ueberweisung ist 12 Byte groesser, und wer
+ * mit 174 Byte rechnet, zahlt zu wenig.
+ */
+export function transferBytesAt(height: number, memoLength: number, v6Height = V6_HEIGHT,
+                                empfaengerBytes = ADDRESS_BYTES): number {
+  if (height < v6Height) return TRANSFER_BASE_BYTES + memoLength;
+  const leitung = empfaengerBytes === ADDRESS_BYTES ? ADDRESS_BYTES + 1 : empfaengerBytes;
+  return TRANSFER_V2_BASE_BYTES + (leitung - (ADDRESS_BYTES + 1)) + memoLength;
 }
 
 /**

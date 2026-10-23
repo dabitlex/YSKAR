@@ -32,7 +32,7 @@ a height it applies the old, stricter rule; the code never guesses the looser on
 ## Why
 
 **A rate instead of a fixed amount.** From height 4,000 the consensus demands almost nothing, and the
-price is left to the market, as in Bitcoin. A larger transaction automatically pays more, without a new
+price is left to the market. A larger transaction automatically pays more, without a new
 rule.
 
 **A dust limit.** Without a smallest amount, the state could be filled with millions of tiny accounts for

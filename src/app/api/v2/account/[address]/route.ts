@@ -54,6 +54,9 @@ export async function GET(
         gebunden und blieb bei 40 stehen.
       */
       sb.from('transactions').select('block_height', { count: 'exact', head: true })
+        // Nur Coinbases (type 0): Ab Fassung 6 stehen auch die Empfaenger einer
+        // Sammelzahlung (type 3) in coinbase_outputs -- das sind keine Pool-Anteile.
+        .eq('type', 0)
         .contains('coinbase_outputs', JSON.stringify([{ to: key.replace(/^\\x/, '') }])),
       /*
         Erste Seite des Verlaufs (Migration 00021). Weitere Seiten holt die

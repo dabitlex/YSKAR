@@ -413,6 +413,7 @@ const vi = {
     erhoehenTitel: 'Tăng phí',
     erhoehenText: 'Cùng giao dịch đó với mức phí cao hơn. Nó thay thế giao dịch đang chờ và vào khối sớm hơn.',
     wechselPause: 'Mạng sắp chuyển sang phiên bản đồng thuận 6. Vui lòng thử lại sau khoảng nửa giờ.',
+    adresseAbV6: 'Định dạng địa chỉ này (ysr1p…) chỉ có hiệu lực từ phiên bản đồng thuận 6. Trước đó không thể gửi gì đến địa chỉ này.',
     titel: 'Gửi',
     empfaenger: 'Người nhận',
     scannen: 'Quét',

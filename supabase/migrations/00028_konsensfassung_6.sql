@@ -1,5 +1,5 @@
 -- ============================================================================
--- 00027  Spiegel fuer Konsensfassung 6 (docs/CONSENSUS_V6.md, Abschnitt 13)
+-- 00028  Spiegel fuer Konsensfassung 6 (docs/CONSENSUS_V6.md, Abschnitt 13)
 -- ============================================================================
 --
 -- NOCH NICHT EINGESPIELT. Gehoert zum Zweig consensus-v6 und wird zusammen
@@ -22,6 +22,35 @@
 --
 -- Verbindlich bleibt `raw`. Wer eine Frage hat, die die Spalten nicht
 -- beantworten, liest raw mit dem Kern.
+
+-- ------------------------------------------------- alte Pruefungen entfernen
+--
+-- Die Pruefungen auf 20-Byte-Adressen und auf die Typen 0 und 1 stammen aus
+-- 00007, wo sie ohne Namen angelegt wurden. Ihr Name ist deshalb der, den
+-- Postgres vergeben hat -- in einer Datenbank, die anders entstanden ist,
+-- vielleicht ein anderer. Bliebe auch nur eine stehen, scheiterte der erste
+-- Block mit einer Adresse der Version 1 in commit_block, und der Spiegel
+-- stuende still. Deshalb hier nach INHALT statt nach Namen entfernen; die
+-- neuen Pruefungen darunter haben feste Namen.
+do $$
+declare r record;
+begin
+  for r in
+    select c.conrelid::regclass as tab, c.conname, pg_get_constraintdef(c.oid) as def
+      from pg_constraint c
+     where c.contype = 'c'
+       and c.conrelid in ('chain2.transactions'::regclass, 'chain2.accounts'::regclass,
+                          'chain2.mempool'::regclass)
+  loop
+    if r.def ~ 'octet_length\((from_addr|to_addr|address)\) = 20'
+       or (r.tab = 'chain2.transactions'::regclass and r.def ~ '\mtype\M' and r.def !~ '3'
+           and r.conname <> 'coinbase_first' and r.conname <> 'tx_to_addr_nur_bei_pool_coinbase')
+    then
+      execute format('alter table %s drop constraint %I', r.tab, r.conname);
+      raise notice '00028: Pruefung % auf % entfernt (%)', r.conname, r.tab, r.def;
+    end if;
+  end loop;
+end $$;
 
 -- ---------------------------------------------------------- Transaktionen
 
@@ -56,7 +85,8 @@ alter table chain2.transactions
 
 alter table chain2.transactions
   add column if not exists flags      smallint,
-  add column if not exists valid_from integer,
+  -- u32 wie valid_until (00027): bigint, sonst scheitert ein Wert ueber 2^31.
+  add column if not exists valid_from bigint check (valid_from is null or (valid_from >= 0 and valid_from <= 4294967295)),
   -- Skript-Ausgabe: das offengelegte Skript (1..1024 Byte) und der Witness.
   add column if not exists script     bytea check (script is null or octet_length(script) between 1 and 1024),
   add column if not exists witness    bytea;
@@ -134,7 +164,7 @@ begin
       (v_tx->>'amount')::bigint,
       coalesce((v_tx->>'fee')::bigint, 0),
       case when v_tx->>'nonce' is null then null else (v_tx->>'nonce')::bigint end,
-      case when v_tx->>'valid_until' is null then null else (v_tx->>'valid_until')::int end,
+      case when v_tx->>'valid_until' is null then null else (v_tx->>'valid_until')::bigint end,
       case when v_tx->>'memo' is null then null else decode(v_tx->>'memo','hex') end,
       case when v_tx->>'public_key' is null then null else decode(v_tx->>'public_key','hex') end,
       case when v_tx->>'signature' is null then null else decode(v_tx->>'signature','hex') end,
@@ -142,7 +172,7 @@ begin
       case when jsonb_typeof(v_tx->'coinbase_outputs') = 'array'
            then v_tx->'coinbase_outputs' else null end,
       case when v_tx->>'flags' is null then null else (v_tx->>'flags')::smallint end,
-      case when v_tx->>'valid_from' is null then null else (v_tx->>'valid_from')::int end,
+      case when v_tx->>'valid_from' is null then null else (v_tx->>'valid_from')::bigint end,
       case when v_tx->>'script' is null then null else decode(v_tx->>'script','hex') end,
       case when v_tx->>'witness' is null then null else decode(v_tx->>'witness','hex') end
     );
@@ -349,13 +379,21 @@ as $function$
    limit least(greatest(coalesce(p_limit, 40), 1), 200)
 $function$;
 
+-- Zweiter Adressbereich fuer die Suche (Adressen der Version 1, ysr1p…):
+-- Ein Anfang wie "ysr1p3" kann eine Adresse der Version 0 oder der Version 1
+-- sein. Neue Signatur, also die alte zuerst weg -- sonst gaebe es zwei
+-- Ueberladungen, und ein Aufruf ohne die neuen Parameter waere mehrdeutig.
+drop function if exists chain2.verlauf_suche(bytea, text, integer, integer, integer,
+  bigint, bigint, integer, bytea, bytea, bytea, bytea, text);
+
 create or replace function chain2.verlauf_suche(
   p_addr bytea, p_richtung text default 'alle'::text, p_vor_hoehe integer default null::integer,
   p_vor_idx integer default null::integer, p_limit integer default 40,
   p_von_zeit bigint default null::bigint, p_bis_zeit bigint default null::bigint,
   p_hoehe integer default null::integer, p_tx_lo bytea default null::bytea,
   p_tx_hi bytea default null::bytea, p_gegen_lo bytea default null::bytea,
-  p_gegen_hi bytea default null::bytea, p_memo text default null::text
+  p_gegen_hi bytea default null::bytea, p_memo text default null::text,
+  p_gegen2_lo bytea default null::bytea, p_gegen2_hi bytea default null::bytea
 ) returns table(txid bytea, block_height integer, idx integer, type smallint, from_addr bytea,
                 to_addr bytea, amount bigint, fee bigint, memo bytea, pool boolean,
                 empfaenger integer, block_time bigint)
@@ -399,10 +437,15 @@ as $function$
      and (p_von_zeit is null or b.block_time >= p_von_zeit)
      and (p_bis_zeit is null or b.block_time <  p_bis_zeit)
      and (
-           (p_hoehe is null and p_tx_lo is null and p_gegen_lo is null and p_memo is null)
+           (p_hoehe is null and p_tx_lo is null and p_gegen_lo is null and p_gegen2_lo is null and p_memo is null)
         or (p_hoehe is not null and z.block_height = p_hoehe)
         or (p_tx_lo is not null and z.txid between p_tx_lo and p_tx_hi)
-        or (p_gegen_lo is not null and z.gegen between p_gegen_lo and p_gegen_hi)
+        -- Gleiche Laenge dazu: bytea vergleicht Byte fuer Byte, und ein
+        -- 20-Byte-Bereich wuerde sonst auch 33-Byte-Adressen treffen.
+        or (p_gegen_lo is not null and octet_length(z.gegen) = octet_length(p_gegen_lo)
+            and z.gegen between p_gegen_lo and p_gegen_hi)
+        or (p_gegen2_lo is not null and octet_length(z.gegen) = octet_length(p_gegen2_lo)
+            and z.gegen between p_gegen2_lo and p_gegen2_hi)
         or (p_memo is not null and z.type <> 0
             and strpos(lower(chain2.memo_text(z.memo)), lower(p_memo)) > 0)
      )
@@ -415,9 +458,9 @@ revoke all on function chain2.einnahmen_tage(bytea, integer, text) from public, 
 revoke all on function chain2.eingaenge_tage(bytea, integer, text) from public, anon, authenticated;
 revoke all on function chain2.verlauf(bytea, text, integer, integer, integer) from public, anon, authenticated;
 revoke all on function chain2.verlauf_suche(bytea, text, integer, integer, integer,
-  bigint, bigint, integer, bytea, bytea, bytea, bytea, text) from public, anon, authenticated;
+  bigint, bigint, integer, bytea, bytea, bytea, bytea, text, bytea, bytea) from public, anon, authenticated;
 grant execute on function chain2.einnahmen_tage(bytea, integer, text) to service_role;
 grant execute on function chain2.eingaenge_tage(bytea, integer, text) to service_role;
 grant execute on function chain2.verlauf(bytea, text, integer, integer, integer) to service_role;
 grant execute on function chain2.verlauf_suche(bytea, text, integer, integer, integer,
-  bigint, bigint, integer, bytea, bytea, bytea, bytea, text) to service_role;
+  bigint, bigint, integer, bytea, bytea, bytea, bytea, text, bytea, bytea) to service_role;

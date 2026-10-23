@@ -128,3 +128,25 @@ test('Wallet: Lage einer gemerkten Zahlung', () => {
   assert.equal(lage({ ...z, zuletzt: 1_500 }, { nonce: '4' }, 2_000), 'abwarten');
   assert.equal(lage(z, { nonce: '4' }, 1_000 + 15 * 24 * 3600_000), 'aufgegeben');
 });
+
+test('Gebuehrenboden: Empfaenger der Version 1 macht die Ueberweisung ab Fassung 6 um 12 Byte groesser', async () => {
+  const { transferBytesAt, buildTransfer: bau, serializeTx: ser } = await import('../src/lib/core/tx.ts');
+  assert.equal(transferBytesAt(10, 0, 5), 174);
+  assert.equal(transferBytesAt(10, 0, 5, 33), 186);
+  assert.equal(transferBytesAt(10, 7, 5, 33), 193);
+  assert.equal(transferBytesAt(4, 0, 5, 33), 168, 'vor der Hoehe gibt es nur Fassung 1');
+  // Gegen die echte Serialisierung.
+  const an = Uint8Array.from([1, ...new Array(32).fill(7)]);
+  const t = bau({ from: K.addressRaw, to: an, amount: UNIT, fee: 2000n, nonce: 0n, version: 2,
+    publicKey: K.publicKey, privateKey: K.privateKey });
+  assert.equal(ser(t).length, transferBytesAt(10, 0, 5, 33));
+  const pool = new TxPool({ ...REGTEST, v6Height: 5 });
+  assert.equal(pool.mindestGebuehr(10, 0, 33), 1860n);
+  assert.equal(pool.mindestGebuehr(10, 0), 1740n);
+});
+
+test('Ohne Aktivierungshoehe meldet der Knoten Fassung 5 -- mit Hoehe 6', async () => {
+  const { gemeldeteFassung } = await import('../src/lib/node/fassung.ts');
+  assert.equal(gemeldeteFassung(REGTEST), 5);
+  assert.equal(gemeldeteFassung({ ...REGTEST, v6Height: 100 }), 6);
+});

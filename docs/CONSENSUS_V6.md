@@ -93,15 +93,43 @@ meaning (for example miner signalling); until then they are zero because the who
 
 ### 2.3 Order of checks
 
-The header is 136 bytes and decodable on its own. From the release that implements revision 6 a node
-checks, in this order and before it decodes the body: the header decodes; `height` and `prevHash` are
-plausible for a known parent; the proof of work meets the difficulty the header states and that
-difficulty is the one the chain requires at this height; and only then the `version` rule of 2.2. A
-block that fails the version rule after passing the proof of work is handled as described in 11.1. A
-block that fails the proof of work is rejected as today, whatever its version. Today's code decodes
-the whole body first (`ChainManager.accept()`), which would turn a block of a later revision into
-`unlesbar` before its version is ever looked at; this order is therefore normative for revision 6
-nodes.
+**What is consensus.** Only the outcome is consensus: a block is valid or invalid, and every rule of
+this document has to hold for it to be valid. The order in which a node checks the rules, and the
+name of the error it reports, are not consensus. Two nodes that check in a different order reject
+the same blocks.
+
+**What is binding for nodes.** One part of the order is a rule of node behaviour (11.1), not of
+consensus: the `version` rule of 2.2 is applied to the header alone, before the body is decoded. The
+header is 136 bytes and decodable on its own. A block of a later revision carries transactions this
+node cannot read; if the body were decoded first, the block would be reported as undecodable and the
+peer disconnected, instead of being recognised as a higher revision.
+
+**Order in the reference code.** `ChainManager.accept()` (`src/lib/node/fullnode/ChainManager.ts`)
+checks a received block in this order:
+
+1. `precheckHeader` (`src/lib/core/block.ts`), on the header bytes only:
+   1. the header decodes (otherwise `unlesbar`);
+   2. the proof of work meets the difficulty **the header states** (otherwise `pow_failed`, whatever
+      the version);
+   3. the `version` rule of 2.2 (`checkHeaderVersion`). A version equal to the one required at the
+      height passes. A version higher than the highest revision the node knows is checked further as
+      described in 11.1 (known and valid parent, height, timestamp rules, the difficulty the chain
+      requires there); if that passes, the block is rejected as `fassung_unbekannt` and the peer is
+      kept, otherwise it is `bad_version`. Any other wrong version is `bad_version` at once.
+2. The body is decoded (otherwise `unlesbar`). A block already stored is answered as known.
+3. The canonical encoding of revision 5 (`checkEncoding`).
+4. The structure (`checkBlockStructure`): the version rule again, the transaction count of the
+   height, one coinbase at the start, the coinbase height, the Merkle root, the proof of work.
+5. The parent: known (otherwise the block is held back as `vorgaenger_fehlt`, which is not a fault of
+   the block), valid, and the height follows it.
+6. The timestamp rules, then the difficulty required at this height.
+7. `validateBlock` against the state of the block's own branch, then `applyBlock`
+   (`src/lib/core/state.ts`), which applies every transaction and checks the state root of the
+   header.
+
+For a header with a wrong version that is not higher than the node's own revision, the parent and
+the required difficulty are therefore not looked at before the block is rejected; that changes no
+outcome, because such a block is invalid whatever its parent is.
 
 ## 3. Fork identifier in every signature
 
@@ -145,7 +173,7 @@ version character only for versions 1 and up:
 
 ```text
 version 0:  bech32m(hrp, program(20))                      42 characters, as today
-version v:  bech32m(hrp, [v] | program)   for v = 1..15    version 1: 63 characters with ysr, 64 with tysr or rysr
+version v:  bech32m(hrp, [v] | program)   for v = 1..15    version 1: 63 characters with ysr
 ```
 
 `[v]` is one 5-bit data value; bech32m writes the value 1 as the character `p`. The program follows as
@@ -169,11 +197,14 @@ Human-readable parts:
 | Network | HRP | Example prefix |
 |---|---|---|
 | Main network | `ysr` | `ysr1…` (version 0), `ysr1p…` (version 1) |
-| Test network | `tysr` | `tysr1…` |
-| Regtest | `rysr` | `rysr1…` |
+| Regtest (`REGTEST`, `REGTEST_V6`) | `ysr` | the same as the main network |
 
 The HRP is an encoding rule for wallets and tools, not a consensus rule: the chain stores raw programs.
-Regtest used `ysr` until now; its fixtures change with this revision.
+The network parameters (`src/lib/core/networks.ts`) carry no HRP, and the node, the read API and the
+wallets encode and decode with `ADDRESS_HRP` = `ysr` on every network, regtest included.
+`src/lib/core/address.ts` also defines `HRP_TESTNET` = `tysr` and `HRP_REGTEST` = `rysr`; they are used
+only by tests and by the test vectors (`textRegtest` in `tests/fixtures/v6-vektoren.json`), not by the
+node. With one of them a version 1 address is 64 characters. There is no public test network (16).
 
 ### 4.3 Raw form
 
@@ -259,8 +290,9 @@ stateRoot       = hash(0, all accounts)
 A subtree with exactly one account has the hash of that account's leaf, at any depth. This is sound
 because the leaf commits to the full key, so its position is implied. Collapsing such subtrees makes the cost of updating one account proportional to the depth at which
 its key stops sharing a prefix with any other key, about `log2(number of accounts)` hashes, instead of
-256. With 35,000 accounts changed in one block (the worst case for 1 MiB of batches) that is about half a
-million `sha256d` calls when the tree is updated incrementally, as the reference implementation
+256. With about 36,000 accounts changed in one block (the worst case for 1 MiB of batches: 35 full
+batches of 29,147 bytes, one more batch of about 960 outputs in the remaining space, and the senders)
+that is about half a million `sha256d` calls when the tree is updated incrementally, as the reference implementation
 does (`SmtBaum`; measurement in 14); a non-compacted tree
 of depth 256 would need roughly fifteen times as much and is not used.
 
@@ -764,15 +796,17 @@ re-interpreted, no history is rewritten.
 ### 11.1 A node of revision 6 that sees a higher revision
 
 If a block's header passes the proof-of-work check of 2.3 and its `version` is higher than the highest
-revision the node knows, the node rejects the block (`bad_version`), does **not** disconnect the peer,
+revision the node knows, and the header passes the conditions below, the node rejects the block
+(reported as `fassung_unbekannt`), does **not** disconnect the peer,
 logs once that a higher revision was seen and that an update is required, and reports
 `revision_status: outdated` in its status API. This replaces the current behaviour, where an invalid
 block closes the connection (`ungueltiger_block`), for this one case. A node that is behind thereby stays
 reachable and can be updated instead of dropping off the network.
 
 The proof-of-work condition matters: without it, anyone could send a header with `version` 99 and no
-work and make every node on the network report itself outdated. The condition is the full one of 2.3:
-the parent is known and valid, the height follows it, the timestamp satisfies the timestamp rules of
+work and make every node on the network report itself outdated. Proof of work against the difficulty
+the header states is not enough, because a header can state difficulty 1. The full condition
+(`ChainManager.istPlausibelerNachfolger`): the parent is known and valid, the height follows it, the timestamp satisfies the timestamp rules of
 a block at that height (after the median of the last 11 blocks, at most two minutes in the future, not
 before the parent), and the difficulty is the one the chain requires there, not merely the one the
 header states. The timestamp rules come first because the required difficulty depends on the
@@ -825,8 +859,9 @@ correct blocks from its peers; nothing is deleted. The check runs once per store
 
 ### 11.4 Peer handshake
 
-The handshake carries two new fields: the highest revision the node implements and the next activation
-height it knows (0 if none). Peers whose revision is lower than the activation height requires are
+The handshake carries two new fields: the revision the node applies and the next activation height
+it knows (0 if none). Software that contains revision 6 but has no activation height set announces
+revision 5, because that is what it enforces: it rejects every revision 6 block. Peers whose revision is lower than the activation height requires are
 preferred for eviction when inbound slots are full in the last 1,000 blocks before `V6_HEIGHT`, never the
 last peer of a network group (/16 for IPv4, /32 for IPv6), so that eviction cannot be used to cut a node
 off from a whole network range. After the height, a peer that announces a revision below 6 is
@@ -840,7 +875,7 @@ not of the consensus.
 | Nodes that mine or run a pool (command-line node, Node Core) | **Yes, before `V6_HEIGHT`.** An old node cannot build or accept blocks from the height on. |
 | Other full nodes | **Yes, before `V6_HEIGHT`.** An old node stops at `V6_HEIGHT - 1`. |
 | Web server (mirror, `/api/v2/block`), observer | Yes. Both validate with the core and must decode the new transaction types, address versions and the new state root. The mirror's tables gain the address version, script accounts and the new transaction types. |
-| Pool server | Yes. Coinbase with up to 255 outputs; batch payout mode for larger pools; mode reported to the pool directory (13). |
+| Pool server | Yes. Coinbase with up to 255 outputs (254 miners with a fee); payout mode `coinbase` reported to the pool directory (13). The batch payout mode is not part of YSKAR's pool server (16, "Pool batch payout mode"). |
 | App, Mini App, CLI wallet | **Yes, before `V6_HEIGHT`.** Version 1 transfers are invalid from the height; a wallet that has not been updated can no longer send. Receiving and balances are unaffected. |
 | CLI miner, GPU miner, HiveOS package | No. Miners take jobs from the node and do not build transactions. The header bytes they hash do not change. |
 | Explorer | Yes, to display version 1 addresses, scripts and the new types. Old data stays valid. |
@@ -853,7 +888,7 @@ not of the consensus.
 | Mempool (`TxPool`) | Keys pending transactions by `(sender raw address, nonce)` (7.6); minimum fee from the actual size; refuses a transaction whose `validFrom` lies in the future (the refund branch of a swap is submitted once its height is reached); the witness shape check (7.4) stops a script spend before any signature is verified. |
 | Block building (`selectTransactions`) | Respects the signature budget and the 1 MiB limit while choosing transactions, reserving room for the largest coinbase of the height. Orders by fee per byte (13b). |
 | Fee hints (`/fees`) | The floor is the size of a version 2 transfer (174 bytes) from the height; slots per block follow the height. Tiers per byte, the node's current floor, and the next blocks of the queue (13b). |
-| Pool server | Up to 254 miners paid in the coinbase; above that, or for pools that settle over several blocks, a batch transfer from the pool account. The pool reports its mode (`coinbase` or `batch`) to the directory, and the directory shows it, so that a miner knows whether the pool holds funds between block and payout. |
+| Pool server | Up to 255 recipients in the coinbase: 255 miners without a fee, 254 with one. YSKAR's pool server pays only this way and reports `modus: "coinbase"` under `/pool`. A pool that pays more miners or settles over several blocks can do so with batch transfers (type 3) from its own account; such a pool reports `modus: "batch"`. YSKAR decided not to build this mode into its pool server (16, "Pool batch payout mode"). The directory reads the mode and both apps show it, so that a miner knows whether a pool holds funds between block and payout. |
 | Mining jobs | Header `version` 6 from the height. The 136-byte layout and the midstate optimisation are unchanged. |
 | Node status API | `revision`, `nextActivationHeight`, `revision_status` (`current`, `outdated`, `update_recommended`, `probably_forked`). |
 | Mirror (Supabase) | Stores the raw address with its version; new tables or columns for scripts revealed in spends, for batch outputs, and for the account record fields. The mirror mirrors the state root; it never computes consensus. |
@@ -956,8 +991,9 @@ with revision).
 limit, `PoolCoordinator.plaetze(height)`, `aufteilung` by height); the pool reports `modus:
 "coinbase"` under `/pool`; the directory (`verzeichnis.ts`) reads `modus` and both apps show a note
 when a pool holds funds (`batch`). The batch payout mode itself (pool account, batch transfers,
-owed-balance ledger) is **not** implemented: it needs a hot key on the pool server and is only
-required above 254 miners per block; see 16.
+owed-balance ledger) is not part of YSKAR's pool server and will not be: decided on 2026-10-17,
+because it needs a signing key on the pool server and a pool that holds miners' funds (16, "Pool batch payout mode").
+Miners beyond the coinbase limit receive nothing in that block (`ausgelassen`), as before the height.
 
 *Wallets:* `tx.ts` offers `transferVersionAt` and `sendepause` (3 blocks before the height, no
 transfer is submitted: a version 1 would be left in the queue at the boundary, a version 2 is not
@@ -974,10 +1010,15 @@ self-test and fallback; activated by `ChainManager` and `TxPool`), `crypto/zip21
 pinned toolchain, reproducible build), `tests/zip215.test.ts`, `tests/fixtures/ed25519-vektoren.json`
 (official vectors with source and licence).
 
-*Mirror:* `supabase/migrations/00027_konsensfassung_6.sql` (not applied): address lengths 20 or 33 in
-transactions, accounts and mempool; types 2 and 3; columns `flags`, `valid_from`, `script`,
-`witness`; `commit_block` writes them and accepts a missing `to_addr` for a batch. Prefix search of
-version 1 addresses in the explorer is not adapted (a full address works). The mirror's reports
+*Mirror:* `supabase/migrations/00028_konsensfassung_6.sql` (not applied): address lengths 20 or 33 in
+transactions, accounts and mempool (the old 20-byte checks are removed by their content, whatever
+their name in a given database); types 2 and 3; columns `flags`, `valid_from` (bigint), `script`,
+`witness`; `commit_block` writes them and accepts a missing `to_addr` for a batch. Searching the
+history by the beginning of a version 1 address (`ysr1p…`) uses a second byte range
+(`verlauf_suche`, `p_gegen2_lo/hi`), because a short beginning with `p` fits both versions. It
+needs `00027_valid_until_bigint.sql` first: `valid_until` is a u32 in the chain, and the mirror
+stored it as a 32-bit signed integer, so one valid transaction with `validUntil` above 2^31 would
+stop the mirror. That migration is independent of revision 6 and can be applied on its own. The mirror's reports
 (`einnahmen_tage`, `eingaenge_tage`, `verlauf`, `verlauf_suche`) tell a batch (type 3) apart from a
 pool coinbase: a share of a batch is an incoming payment with a sender, not mining income. A batch is
 mirrored with an empty `to_addr`, even with a single recipient. The mirror route and the observer
@@ -1014,7 +1055,8 @@ with one old and one new node confirmed it: no rejected blocks and no repeated h
 the new node. The old node still drops and reopens the connection after each revision 6 block it
 fetches (11.3); that is the old code and ends once it is updated.
 
-Not yet done: batch payout mode, multi-signature user interfaces, longer and repeated runs of the
+Not yet done: the guide and test vectors for an operator-built batch payout (16, "Pool batch payout mode"),
+multi-signature user interfaces, longer and repeated runs of the
 fork-behaviour test (script spends and batches across the height, restarts), `V6_HEIGHT` and
 `V6_TIMESTAMP`.
 
@@ -1102,15 +1144,18 @@ test height the old rule applies. In addition, before the activation height is s
   under revision 6 is rejected before it.
 - **Batch and coinbase**: 1,000 outputs accepted, 1,001 rejected; unsorted or duplicate outputs
   rejected; 255 coinbase outputs accepted, 256 rejected; pool settlement with 300 miners produces a
-  coinbase of 255 outputs plus a batch for the rest, with an exact sum.
+  coinbase of 255 outputs (254 miners and the fee with a fee), the rest listed as `ausgelassen`,
+  with an exact sum (`tests/pool-v6.test.ts`; YSKAR's pool server pays no batch, 16).
 - **Signature budget**: a block at exactly 8,000 signature operations is accepted, one above is rejected
   before any signature is verified.
 - **Order of checks**: a block with a higher header version and valid work is rejected without
   disconnecting the peer and sets `revision_status: outdated`; the same header without valid work is
   rejected with a disconnect and changes no status.
 - **Performance**: the reference implementation verifies a 1 MiB block at the signature budget and
-  applies a block that changes 35,000 accounts within a fixed time on the main node's hardware
-  (2 vCores, 4 GB); the budget is set from this measurement before the activation height.
+  applies a block that changes the worst-case number of accounts (about 36,000, 5.2) within a fixed
+  time on the main node's hardware (2 vCores, 4 GB); the budget is set from this measurement before
+  the activation height. The measurements below use a block of 35 full batches (35,000 new
+  accounts); the remaining space of a 1 MiB block would add about 960 more.
   *First measurement on 2026-10-21* (`scripts/zustandsbaum-messung/messen.ts`, cloud VM with
   2 vCPU Intel Xeon at 2.8 GHz, 8 GB, Node 22; not yet the main node). The worst block (35 batches,
   35,000 new accounts, 1,020,465 bytes): applying it and computing the new root took 1.2 s with an
@@ -1135,8 +1180,9 @@ test height the old rule applies. In addition, before the activation height is s
   blocks of the main network. Measured on the cloud VM: the worst block's root with 1,000,000
   accounts before it takes 2.8 s instead of 28.6 s, with 100,000 accounts 1.3 s instead of 3.1 s;
   one changed account with 1,000,000 accounts 0.23 s (comparing the state) instead of 26.7 s. The
-  first build after a node starts costs about 1.4 times a full recomputation (39 s for 1,000,000
-  accounts, 3.4 s for 100,000), once. The flat tree below the activation height is unchanged.
+  first build after a node starts cost about 1.4 times a full recomputation (39 s for 1,000,000
+  accounts, 3.4 s for 100,000), once; with the compact layout below it is about 30 s for 1,000,000
+  accounts. The flat tree below the activation height is unchanged.
   Self-check: up to 1,000 accounts every root from the tree is also recomputed from all accounts
   and compared, up to 50,000 accounts at most once every ten minutes. On a difference the
   recomputed root is used, the tree is rebuilt and the node reports it as an error of its own
@@ -1147,8 +1193,8 @@ test height the old rule applies. In addition, before the activation height is s
   nonce and key per account in typed arrays. Memory of the tree with 1,000,000 accounts: 227 MB
   instead of 1,182 MB (238 instead of 1,240 bytes per account); with 100,000 accounts 52 instead
   of 120 MB (the arrays grow in powers of two). Speed is unchanged (worst block with 1,000,000
-  accounts before it: 2.7 s); the first build after a start is still about 30 s for 1,000,000
-  accounts. Same tests, same self-check, same result on all 5,710 main-network blocks.
+  accounts before it: 2.7 s); the first build after a start is about 30 s for 1,000,000 accounts
+  (39 s with the earlier layout). Same tests, same self-check, same result on all 5,710 main-network blocks.
 
 The existing test suite must pass unchanged for heights below the activation height.
 
@@ -1166,12 +1212,12 @@ Decided on 2026-10-16 (design record in the project notes):
 
 | Point | Decision |
 |---|---|
-| Model | Account model stays; UTXO rejected (lower throughput per byte, migration of every balance) |
+| Model | Account model stays; a model of unspent outputs rejected (lower throughput per byte, migration of every balance) |
 | Scope | Foundation + addresses + scripts + state tree + batch + limits in one hard fork; split into 6a/6b only if no second reviewer is found |
 | Activation | Fixed height with lead time; miner signalling not used (veto risk at two or three pools) |
 | Replay protection | Fork identifier in every signature; transfer version 1 invalid from the height |
 | Transfer version 1 transition | No grace period (decided 2026-10-16). Version 1 is invalid from `V6_HEIGHT` onward; a grace window would reopen replay for its duration. The transition is carried by lead time instead: wallets ship transfer version 2 before the height is announced and pick the version by chain height; nodes and wallets show the update hint (11.1) ahead of the height; wallets stop sending version 1 a few blocks before the height so no version 1 transaction is left in the mempool at the boundary. Nothing is lost for an outdated wallet: keys, addresses and balances are unchanged, it can send again after updating |
-| Address version 1 | 32-byte program; HRPs `ysr` / `tysr` / `rysr` |
+| Address version 1 | 32-byte program; HRP `ysr` (the node uses it on every network, 4.2) |
 | Scripts | Five node kinds; height-based locks only; checked against the validity window; every branch needs a key; excess witness is invalid |
 | State tree | Binary sparse Merkle tree over `SHA-256(raw address)`; record with two reserved 32-byte fields |
 | Limits | 5,000 transactions per block; 255 coinbase outputs; 1,000 batch outputs; 8,000 signature operations per block (added after review, 2026-10-16; confirmed on weak hardware, 2026-10-17, 7.7) |
@@ -1179,6 +1225,7 @@ Decided on 2026-10-16 (design record in the project notes):
 | Node behaviour | Header version checked after proof of work and before body decoding; reject, warn, stay connected; time-based update hints; no forced halt |
 | Node software | 1.0.0 |
 | Testing | Internal, old and new nodes side by side; no public testnet |
+| Pool batch payout mode | Decided on 2026-10-17: YSKAR does not build it into its pool server, which pays only through the coinbase (up to 255 recipients). In this mode a pool holds miners' funds between block and payout and needs a signing key on the server; an operator who wants it builds it with type 3 (6.4) and reports `modus: "batch"`. The directory and both apps already show the mode. A guide in [POOL.md](POOL.md) and test vectors (14) for it are still to be written |
 
 Open, to be settled before the activation height is set:
 
@@ -1188,12 +1235,10 @@ Open, to be settled before the activation height is set:
 2. **Batch from a script account.** A multi-signature pool treasury paying miners needs it. Options:
    type 3 version 2 with script authorization in a later revision. Leaning: later.
 3. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set after 14 is complete.
-4. **Mirror schema.** Written (`supabase/migrations/00027_konsensfassung_6.sql`), not yet applied.
-5. **Pool batch payout mode.** Decided on 2026-10-17: YSKAR does not build it into its pool server. In
-   this mode a pool holds miners' funds between block and payout and needs a signing key on the
-   server; an operator who wants it builds it with type 3 (6.4). YSKAR provides a guide in
-   [POOL.md](POOL.md) and test vectors (14), both still to be written. The directory and both apps
-   already show the mode.
+4. **Mirror schema.** Written (`supabase/migrations/00027_valid_until_bigint.sql`, independent and
+   applicable now; `supabase/migrations/00028_konsensfassung_6.sql` for revision 6), not yet applied.
+
+The pool batch payout mode, formerly point 5 of this list, is decided (table above).
 
 ## 17. References
 

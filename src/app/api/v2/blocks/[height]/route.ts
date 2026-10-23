@@ -4,6 +4,9 @@ import { unprefix } from '@/lib/node/hex';
 import { encodeAddress } from '@/lib/core/address';
 import { fromHex } from '@/lib/core/codec';
 
+/** Typ einer Transaktion wie in der Kette (tx.ts) -- dieselben Namen wie der Knoten (ReadApi). */
+const TYP_NAME: Record<number, string> = { 0: 'coinbase', 1: 'transfer', 2: 'script_spend', 3: 'batch' };
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +92,8 @@ export async function GET(
     txs: (txs ?? []).map(t => ({
       txid: unprefix(t.txid),
       idx: t.idx,
-      type: t.type === 0 ? 'coinbase' : 'transfer',
+      // Ab Fassung 6 auch Skript-Ausgaben (2) und Sammelzahlungen (3).
+      type: TYP_NAME[t.type as number] ?? 'transfer',
       from: adr(t.from_addr),
       to: adr(t.to_addr),
       amount: String(t.amount),

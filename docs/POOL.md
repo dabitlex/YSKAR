@@ -17,7 +17,9 @@ and the result is in the block for anyone to recompute. At no point does the ope
 miner's coins, so there is no balance an operator could withhold or lose.
 
 This needs a coinbase with several recipients. That is consensus revision 2, active since height
-2,000; see [CONSENSUS_V2.md](CONSENSUS_V2.md). A coinbase can pay at most 64 addresses.
+2,000; see [CONSENSUS_V2.md](CONSENSUS_V2.md). A coinbase can pay at most 64 addresses. From the
+activation height of consensus revision 6 (draft, height not yet set) it can pay 255; see
+[Consensus revision 6](#consensus-revision-6).
 
 Solo mining is unaffected. A solo miner gets a coinbase with exactly one recipient, and one node
 serves solo and pool miners at the same time.
@@ -134,13 +136,13 @@ node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed 
 | `--pool <name>` | Switches the pool on. The name is written into every pool block. |
 | `--pool-fee <bp>` | Fee in basis points: `100` = 1.00 %. A whole number from `0` to `500`. Default `0`. |
 | `--pool-payout <address>` | Address that receives the fee. Required when the fee is greater than 0. |
-| `--pool-max <n>` | Accept at most this many addresses, `1` to `64`. Default: the limit of the chain, 64 without a fee and 63 with one. |
+| `--pool-max <n>` | Accept at most this many addresses, `1` to `255`. Default: the limit of the chain, 64 without a fee and 63 with one (255 and 254 from revision 6). A larger value never exceeds the chain limit of the next block's height. |
 
 Without `--pool` the node offers solo mining only, and the other pool flags have no effect.
 
 **A fee needs a payout address.** The node checks the pool settings when it starts, not when the
 first block is found. A fee without `--pool-payout`, a fee with a payout address that is not a valid
-YSKAR address, a fee outside 0 to 500, a seat number outside 1 to 64 or an invalid name stops the
+YSKAR address, a fee outside 0 to 500, a seat number outside 1 to 255 or an invalid name stops the
 start with a message. A pool without a fee needs no payout address; `--pool-payout` is then not
 read.
 
@@ -164,10 +166,12 @@ not prove who is behind the name.
 
 A pool admits as many **addresses** as one block can pay:
 
-| Seats | Case |
-|---|---|
-| 64 | no fee |
-| 63 | with a fee (one recipient is the operator) |
+| Seats | Case | From revision 6 |
+|---|---|---|
+| 64 | no fee | 255 |
+| 63 | with a fee (one recipient is the operator) | 254 |
+
+The number follows the height of the next block (`PoolCoordinator.plaetze(height)`).
 
 With `--pool-max` you can offer fewer seats, not more. A fee that has been announced for the next
 block already counts, so the pool is not overbooked by one seat when it takes effect. The app and
@@ -244,6 +248,7 @@ The answer, with example values:
   "name": "my-pool-name",
   "feeBps": 100,
   "feeBpsNext": null,
+  "modus": "coinbase",
   "miner": 5,
   "hashrate": 146000000,
   "plaetze": 63,
@@ -260,6 +265,7 @@ The answer, with example values:
 | `name` | Name of the pool, as written into its blocks. |
 | `feeBps` | Fee in force, in basis points. |
 | `feeBpsNext` | Fee that applies after the next block found by the pool, or `null` if no change is announced. |
+| `modus` | Payout mode: `coinbase` (every block pays the miners directly) or `batch` (the pool pays out from its own account). YSKAR's node always reports `coinbase`. |
 | `miner` | Addresses with an open pool session. |
 | `hashrate` | Sum of the hashrates the node measured from the shares of the pool sessions, in hashes per second. |
 | `plaetze` | Seats the pool offers. |
@@ -398,7 +404,8 @@ still receives something for a while, for exactly as long as it was missing at t
 1. The fee is `gross × feeBps / 10,000`, rounded down.
 2. Entries of the same address are merged.
 3. The addresses are sorted by work, largest first; with equal work the smaller address comes
-   first. The first 64 take part, or the first 63 when a fee is taken. The others receive nothing
+   first. The first 64 take part, or the first 63 when a fee is taken (255 and 254 from revision
+   6). The others receive nothing
    in this block; they are returned in `ausgelassen` for information only, and nothing makes up
    for the missed block (issue #6).
 4. The net amount, gross minus fee, is divided by the **largest-remainder method**: every address
@@ -434,7 +441,7 @@ it.
 
 - The sum of all outputs equals the gross amount exactly. `abrechnen()` checks this at the end and
   throws otherwise; the block builder checks the sum again against block reward plus fees.
-- A coinbase has at most 64 outputs, each address appears once, every amount is greater than 0,
+- A coinbase has at most 64 outputs (255 from revision 6), each address appears once, every amount is greater than 0,
   and the addresses are in ascending order. These are also consensus rules: a block that breaks
   them is invalid.
 - The result is deterministic. The same work gives the same outputs, whatever the order of the
@@ -446,6 +453,8 @@ it.
 |---|---|---|
 | 64 | `MAX_COINBASE_OUTPUTS` | recipients per coinbase |
 | 63 | `MAX_MINERS_JE_BLOCK` | miners per block when a fee is taken |
+| 255 | `MAX_COINBASE_OUTPUTS_V6` | recipients per coinbase from revision 6 |
+| 254 | `MAX_MINERS_JE_BLOCK_V6` | miners per block when a fee is taken, from revision 6 |
 | 500 | `MAX_FEE_BPS` | highest fee in basis points (5 %) |
 | 2 | `PPLNS_FAKTOR` | window size as a multiple of the network difficulty |
 | 128 | `SHARE_START` | share difficulty of a new session |
@@ -481,6 +490,26 @@ example, receives 866.25 × 4,000 / 10,500 = 330 YSR. Here every division comes 
 When it does not, the largest-remainder method decides. Three addresses with equal work and no fee
 share 87,500,000,000 units: each receives 29,166,666,666 units, and the two units left over go to
 the two smaller addresses, which end up with 29,166,666,667.
+
+## Consensus revision 6
+
+Revision 6 is a draft hard fork; its activation height is not yet set
+([CONSENSUS_V6.md](CONSENSUS_V6.md)). For pools it changes three things:
+
+- **255 recipients per coinbase** (`MAX_COINBASE_OUTPUTS_V6`) from the activation height, so 255 seats
+  without a fee and 254 with one. The pool code already takes the limit by height:
+  `PoolCoordinator.plaetze(height)`, `aufteilung` and `abrechnen()` use 64 below the height and 255
+  from it. Miners beyond the limit receive nothing in that block (`ausgelassen`), as before.
+- **Payout mode.** `GET /api/v2/pool` reports `modus`. `coinbase` means every block pays the miners
+  directly and the pool never holds funds. `batch` means the pool collects on its own account and
+  pays out with batch transfers (type 3, [CONSENSUS_V6.md, 6.4](CONSENSUS_V6.md#64-batch-transfer-type-3));
+  it then holds miners' funds between block and payout. The directory (`verzeichnis.ts`) reads the
+  mode, and the app and the Mini App show a note for a pool that reports `batch`.
+- **YSKAR's pool server pays only through the coinbase** and always reports `coinbase`. It was
+  decided on 2026-10-17 not to build the batch mode into it: that mode needs a signing key on the
+  pool server and makes the pool hold miners' funds. An operator who wants it builds it with type 3.
+  A guide for that and test vectors are still to be written
+  ([CONSENSUS_V6.md, 16](CONSENSUS_V6.md#16-decisions-and-open-questions)).
 
 ## Honest limits
 

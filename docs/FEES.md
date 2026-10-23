@@ -193,9 +193,9 @@ If more than 1,999 transfers arrive per block permanently, the fee market only d
 gets through, not **how many**. The backlog would stay and the fees would keep rising.
 
 At that point the block limit itself is the question, and changing it is a consensus change with
-an activation height. The same holds for a block limit in bytes, which would be the consequence
-if transfers came to differ much in size; block building and the estimator would then select by
-fee per byte. The `fee` field of a transfer would stay as it is in both cases, and existing
+an activation height (revision 6 raises it to 5,000 transactions per block,
+[CONSENSUS_V6.md, 9](CONSENSUS_V6.md#9-limits)). Block building and the estimator already select by
+fee per byte, so a change of the limits does not change how they order transactions. The `fee` field of a transfer would stay as it is in both cases, and existing
 blocks would remain valid.
 
 So that such a decision can be made with data, the interface returns the simulated distribution

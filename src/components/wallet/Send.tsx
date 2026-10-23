@@ -5,7 +5,7 @@ import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
 import { MIN_FEE, DUST_LIMIT, V6_HEIGHT, V6_HEIGHT_UNSET } from '@/lib/core/params';
-import { transferBytes } from '@/lib/core/tx';
+import { transferBytes, transferBytesAt } from '@/lib/core/tx';
 
 /** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
 const MINING_BASIS = (process.env.NEXT_PUBLIC_MINING_BASE ?? '').trim()
@@ -197,7 +197,12 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   // Ohne Auskunft vom Knoten: alte Mindestgebühr -- die deckt jede Regel.
   // Mit Auskunft: Stufe des Marktes, aber nie unter dem Satz je Byte für
   // die tatsächliche Größe dieser Transaktion (die Notiz macht sie länger).
-  const groesse = (markt?.basisBytes ?? transferBytes(0)) + notizBytes(notiz);
+  // Empfaenger der Version 1 (ysr1p…) machen eine Ueberweisung der
+  // Fassung 2 um 12 Byte groesser -- sonst reichte die Gebuehr nicht.
+  const zielRoh = ziel.trim().toLowerCase();
+  const empfaengerMehr = markt?.fassung === 2 && isValidAddress(zielRoh)
+    ? transferBytesAt(1, 0, 0, decodeAddress(zielRoh).length) - transferBytesAt(1, 0, 0) : 0;
+  const groesse = (markt?.basisBytes ?? transferBytes(0)) + notizBytes(notiz) + empfaengerMehr;
   const bodenJeByte = markt?.mindestJeByte
     ? BigInt(markt.mindestJeByte) * BigInt(groesse) : 0n;
   // Fassung 2 ab der Aktivierungshoehe von Konsensfassung 6, Fassung 1 davor
@@ -240,6 +245,9 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const adresse = ziel.trim().toLowerCase();
   const zielGueltig = isValidAddress(adresse);
   const eigene = zielGueltig && wallet.address === adresse;
+  // Adressen der Version 1 (ysr1p…) gibt es erst ab Konsensfassung 6. Vorher
+  // kann keine Ueberweisung an sie gueltig sein -- der Knoten lehnte sie ab.
+  const zuFrueh = zielGueltig && fassung !== 2 && decodeAddress(adresse).length !== 20;
 
   // Exakt aus den getippten Ziffern, nicht ueber Gleitkomma.
   const einheiten = useMemo(() => eingabeEinheiten(betrag, STELLEN), [betrag]);
@@ -258,7 +266,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const staub = !!markt?.mindestJeByte && einheiten > 0n && einheiten < DUST_LIMIT;
   const summe = einheiten + gebuehr;
   const reicht = einheiten > 0n && summe <= guthaben;
-  const bereit = zielGueltig && !eigene && reicht && !staub && !wechselPause && !fassungUnbekannt;
+  const bereit = zielGueltig && !eigene && !zuFrueh && reicht && !staub && !wechselPause && !fassungUnbekannt;
 
   const genau = (v: bigint) => betragGenau(v, locale, decimals);
   // Gebühren sind seit Fassung 3 winzig: so viele Stellen wie nötig, mindestens vier.
@@ -749,6 +757,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         <p className="mt-1.5 text-[12.5px] font-bold text-risk">{einfuegeFehler}</p>
       ) : eigene ? (
         <p className="mt-1.5 text-[12.5px] font-bold text-risk">{t.senden.eigene}</p>
+      ) : zuFrueh ? (
+        <p className="mt-1.5 text-[12.5px] font-bold text-risk">{t.senden.adresseAbV6}</p>
       ) : zielGueltig ? (
         <p className="mt-1.5 text-[12.5px] font-bold text-proof">
           {zielName ? `✓ ${zielName}` : gescannt ? t.senden.gueltigScan : t.senden.gueltig}
@@ -815,7 +825,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
       </div>
 
       <div className="mt-auto pt-5">
-        <button type="button" onClick={() => setSchritt('betrag')} disabled={!zielGueltig || eigene} className={haupt}>
+        <button type="button" onClick={() => setSchritt('betrag')} disabled={!zielGueltig || eigene || zuFrueh} className={haupt}>
           {t.allgemein.weiter}
         </button>
       </div>

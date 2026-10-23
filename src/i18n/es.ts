@@ -413,6 +413,7 @@ const es = {
     erhoehenTitel: 'Subir comisión',
     erhoehenText: 'El mismo pago con una comisión más alta. Sustituye al pendiente y entra antes en un bloque.',
     wechselPause: 'La red está a punto de cambiar a la revisión de consenso 6. Inténtalo de nuevo en media hora aproximadamente.',
+    adresseAbV6: 'Este formato de dirección (ysr1p…) solo es válido a partir de la versión de consenso 6. Hasta entonces no se puede enviar nada a ella.',
     titel: 'Enviar',
     empfaenger: 'Destinatario',
     scannen: 'Escanear',

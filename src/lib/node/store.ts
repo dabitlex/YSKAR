@@ -177,7 +177,7 @@ export async function commitBlock(
     // keinen Schluessel und keine einzelne Signatur.
     const ausgaben = spendOutputs(t);
     // Sammelzahlung: Empfaenger NUR in coinbase_outputs, auch bei einem
-    // einzigen -- sonst zaehlten Verlauf und Eingaenge ihn doppelt (00027).
+    // einzigen -- sonst zaehlten Verlauf und Eingaenge ihn doppelt (00028).
     return { ...base, from: hx(senderRaw(t)),
              to: t.type !== TX_BATCH && ausgaben.length === 1 ? hx(ausgaben[0].to) : null,
              amount: spendAmount(t).toString(), fee: t.fee.toString(),
@@ -187,7 +187,7 @@ export async function commitBlock(
              signature: 'signature' in t ? hx(t.signature) : null,
              coinbase_outputs: t.type === TX_BATCH
                ? t.outputs.map(o => ({ to: hx(o.to), amount: o.amount.toString() })) : null,
-             // Fassung 6 (Migration 00027): ein aelterer Spiegel ignoriert unbekannte Felder.
+             // Fassung 6 (Migration 00028): ein aelterer Spiegel ignoriert unbekannte Felder.
              flags: 'flags' in t && t.flags !== undefined ? t.flags : null,
              valid_from: 'validFrom' in t && t.validFrom !== undefined ? t.validFrom : null,
              script: t.type === TX_SCRIPT_SPEND ? hx(t.script) : null,

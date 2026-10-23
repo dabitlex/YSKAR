@@ -145,12 +145,14 @@ test('/summary nennt Fassung, Aktivierungshoehe und Fassungsstand', () => {
   const pool = new TxPool(REGTEST);
   const api = new ReadApi({ chain, store, pool, params: REGTEST });
   const s = api.summary() as Record<string, unknown>;
-  assert.equal(s.revision, 6);
+  // Ohne Hoehe setzt der Knoten Fassung 6 nicht um -- er meldet 5.
+  assert.equal(s.revision, 5);
   assert.equal(s.nextActivationHeight, 0);
   assert.equal(s.revision_status, 'current');
 
   const mitHoehe = new ReadApi({ chain, store, pool, params: { ...REGTEST, v6Height: 777 } });
   assert.equal((mitHoehe.summary() as Record<string, unknown>).nextActivationHeight, 777);
+  assert.equal((mitHoehe.summary() as Record<string, unknown>).revision, 6);
 });
 
 // --------------------------------------------------- Verdraengung (11.4)
@@ -232,4 +234,15 @@ test('Ausserhalb des Fensters wird ein Peer alter Fassung nicht verdraengt', asy
 
   alt.ende();
   await a.stop(); await neu1.stop(); await neu2.stop();
+});
+
+test('Blockquelle ab der Hoehe: Fassung 6 nur mit derselben Aktivierungshoehe', async () => {
+  const { liefertBloeckeAb } = await import('../src/lib/node/fassung.ts');
+  const p = { ...REGTEST, v6Height: 100 };
+  assert.equal(liefertBloeckeAb(5, 99, p, 0), true, 'vor der Hoehe liefert jeder');
+  assert.equal(liefertBloeckeAb(5, 100, p, 0), false);
+  assert.equal(liefertBloeckeAb(6, 100, p, 100), true);
+  assert.equal(liefertBloeckeAb(6, 100, p, 0), false, 'Vorab-Stand ohne Hoehe');
+  assert.equal(liefertBloeckeAb(6, 100, p, 120), false, 'andere Hoehe');
+  assert.equal(liefertBloeckeAb(6, 100, p), true, 'Verbindung ohne Angabe');
 });

@@ -413,6 +413,7 @@ const pt = {
     erhoehenTitel: 'Aumentar taxa',
     erhoehenText: 'O mesmo pagamento com uma taxa maior. Ele substitui o pendente e entra mais cedo num bloco.',
     wechselPause: 'A rede está prestes a mudar para a revisão de consenso 6. Tenta novamente daqui a cerca de meia hora.',
+    adresseAbV6: 'Este formato de endereço (ysr1p…) só vale a partir da revisão de consenso 6. Até lá não é possível enviar nada para ele.',
     titel: 'Enviar',
     empfaenger: 'Destinatário',
     scannen: 'Escanear',

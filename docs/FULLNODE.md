@@ -277,7 +277,7 @@ ignored without a message.
 | `--pool <name>` | none | `mine` | Run a pool with this name |
 | `--pool-fee <bp>` | `0` | `mine` | Pool fee in basis points, 0 to 500 (100 = 1.00 %) |
 | `--pool-payout <address>` | none | `mine` | Address that receives the pool fee. Required when the fee is above 0 |
-| `--pool-max <n>` | chain limit | `mine` | Highest number of addresses in the pool, 1 to 64. The chain limit is 64, or 63 when a fee is set |
+| `--pool-max <n>` | chain limit | `mine` | Highest number of addresses in the pool, 1 to 255. The chain limit is 64, or 63 when a fee is set (255 and 254 from consensus revision 6); a larger value never exceeds it |
 | `--mempool-mb <n>` | 32 | `mine` | Limit of the mempool in MB of serialized transactions, 1 to 4096. When it is full, a higher fee per byte evicts the cheapest (see [The mempool](#the-mempool)) |
 | `--sender-ip <proxy\|socket>` | none | `mine` | Recognize the sender of mining requests and apply the per-sender session limits. `proxy`: the last entry of `X-Forwarded-For`, for a node behind a reverse proxy that sets this header itself (Caddy does). `socket`: the address of the connection, only for a node without a proxy in front. Without this option there are no per-sender limits |
 | `-h`, `--help` | | | Print the help text and exit |

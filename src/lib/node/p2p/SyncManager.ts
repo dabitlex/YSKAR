@@ -586,7 +586,7 @@ export class SyncManager {
         laegen nur herum, fielen nach einer Weile heraus und loesten eine
         neue Header-Anfrage aus -- im Uebergangstest jede Minute.
       */
-      if (!liefertBloeckeAb(fassung(p), kopf.height, this.params)) continue;
+      if (!liefertBloeckeAb(fassung(p), kopf.height, this.params, aktivierung(p))) continue;
       neu.push({ hash, hoehe: kopf.height, key, vor: kopf.prevHash, versuche: 0,
                  arbeit, frei: this.reichtArbeit(arbeit), seit: Date.now() });
     }
@@ -683,7 +683,7 @@ export class SyncManager {
       if (!w.frei) continue;
       // Ein Peer alter Fassung hat keine Bloecke ab der Aktivierungshoehe
       // (CONSENSUS_V6.md 11.4) -- bei ihm zu bestellen hiesse warten.
-      if (!liefertBloeckeAb(fassung(p), w.hoehe, this.params)) { alteFassung++; continue; }
+      if (!liefertBloeckeAb(fassung(p), w.hoehe, this.params, aktivierung(p))) { alteFassung++; continue; }
       wunsch.push({ typ: INV_BLOCK, hash: w.hash });
       this.offen.set(w.key, { peer: p, seit: Date.now() });
     }
@@ -863,7 +863,7 @@ export class SyncManager {
       gleich wieder verband: bei jedem seiner Bloecke von vorn.
     */
     const naechsteHoehe = (this.chain.tip()?.height ?? -1) + 1;
-    const bloeckeVonIhm = liefertBloeckeAb(fassung(p), naechsteHoehe, this.params);
+    const bloeckeVonIhm = liefertBloeckeAb(fassung(p), naechsteHoehe, this.params, aktivierung(p));
 
     const wunsch: typeof eintraege = [];
     const gewuenscht = new Set<string>();
@@ -1221,6 +1221,11 @@ function gespeichert(store: ChainStore, hash: Uint8Array): { hoehe: number; arbe
 /** Konsensfassung eines Peers -- die eigene, wenn die Verbindung sie nicht nennen kann. */
 function fassung(p: PeerConnection): number {
   return typeof p.fremdeFassung === 'function' ? p.fremdeFassung() : IMPLEMENTIERTE_FASSUNG;
+}
+
+/** Aktivierungshoehe, die ein Peer kennt -- unbekannt, wenn die Verbindung sie nicht nennen kann. */
+function aktivierung(p: PeerConnection): number | undefined {
+  return typeof p.fremdeAktivierung === 'function' ? p.fremdeAktivierung() : undefined;
 }
 
 /** Sendepuffer eines Peers -- 0, wenn die Verbindung ihn nicht nennen kann. */

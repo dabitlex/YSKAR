@@ -413,6 +413,7 @@ const it = {
     erhoehenTitel: 'Aumenta commissione',
     erhoehenText: 'Lo stesso pagamento con una commissione più alta. Sostituisce quello in attesa ed entra prima in un blocco.',
     wechselPause: 'La rete sta per passare alla revisione di consenso 6. Riprova tra circa mezz’ora.',
+    adresseAbV6: 'Questo formato di indirizzo (ysr1p…) è valido solo dalla revisione del consenso 6. Fino ad allora non si può inviare nulla.',
     titel: 'Invia',
     empfaenger: 'Destinatario',
     scannen: 'Scansiona',

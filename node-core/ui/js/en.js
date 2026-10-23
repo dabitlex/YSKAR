@@ -665,6 +665,7 @@ export const en = {
   'srv.abgelehnt_sender_limit': 'Too many transfers from this wallet are already waiting.',
   'srv.abgelehnt_pool_min_fee': 'The network is busy right now and the required fee has gone up. Please check again.',
   'srv.abgelehnt_fee_not_higher': 'The new fee must be higher than the previous one.',
+  'srv.adresse_ab_v6': 'This address format (ysr1p…) only becomes valid with consensus revision 6. Until then nothing can be sent to it.',
   'srv.nicht_wartend': 'This transfer is no longer waiting -- it may already be in a block.',
   'srv.abgelehnt_duplicate': 'This transfer has already been submitted.',
 };
