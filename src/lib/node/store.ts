@@ -47,22 +47,55 @@ export async function loadTip(): Promise<Tip | null> {
  * Konten unkritisch -- darueber braucht es einen Trie mit inkrementellen
  * Aktualisierungen.
  */
+/**
+ * So viele Konten je Abfrage. Die Datenschnittstelle (PostgREST) liefert je
+ * Abfrage hoechstens so viele Zeilen, wie im Projekt eingestellt sind --
+ * bei Supabase ab Werk 1.000 -- und schneidet den Rest STILLSCHWEIGEND ab.
+ */
+export const KONTEN_SEITE = 1_000;
+
+/**
+ * Den ganzen Zustand lesen -- seitenweise.
+ *
+ * Frueher war das eine einzige Abfrage. Ab mehr Konten, als die
+ * Schnittstelle je Abfrage liefert, fehlten die uebrigen ohne Fehlermeldung:
+ * Der Spiegel haette jeden Block mit einem Absender jenseits der Grenze als
+ * ungueltig abgelehnt (Guthaben scheinbar null, falsche Zustandswurzel) und
+ * waere stehen geblieben. Deshalb: nach Adresse geordnet in Seiten lesen und
+ * am Ende gegen die gezaehlte Gesamtzahl pruefen.
+ */
 export async function loadState(): Promise<{ state: State; height: number }> {
-  const [rAccounts, rMeta] = await Promise.all([
-    db().schema('chain2').from('accounts').select('address, balance, nonce'),
+  const [rMeta, rAnzahl] = await Promise.all([
     db().schema('chain2').from('state_meta').select('height, state_root').eq('id', 1).single(),
+    db().schema('chain2').from('accounts').select('address', { count: 'exact', head: true }),
   ]);
   // Ein leerer Zustand und ein nicht lesbarer Zustand sehen gleich aus, haben
   // aber gegensaetzliche Folgen: Beim ersten darf gemint werden, beim zweiten
   // waeren alle Guthaben scheinbar null.
-  if (rAccounts.error) throw new Error(`loadState: ${rAccounts.error.message}`);
   if (rMeta.error) throw new Error(`loadState/meta: ${rMeta.error.message}`);
-  const rows = rAccounts.data;
+  if (rAnzahl.error) throw new Error(`loadState/anzahl: ${rAnzahl.error.message}`);
   const meta = rMeta.data;
+  const erwartet = rAnzahl.count ?? 0;
 
   const state = emptyState();
-  for (const r of rows ?? []) {
-    state.set(toHex(un(r.address)), { balance: BigInt(r.balance), nonce: BigInt(r.nonce) });
+  for (let von = 0; ; von += KONTEN_SEITE) {
+    const { data, error } = await db().schema('chain2').from('accounts')
+      .select('address, balance, nonce').order('address', { ascending: true })
+      .range(von, von + KONTEN_SEITE - 1);
+    if (error) throw new Error(`loadState: ${error.message}`);
+    for (const r of data ?? []) {
+      state.set(toHex(un(r.address)), { balance: BigInt(r.balance), nonce: BigInt(r.nonce) });
+    }
+    // Eine kuerzere Seite ist die letzte. Ist die Grenze der Schnittstelle
+    // kleiner als KONTEN_SEITE, wird hier schon frueher abgebrochen -- das
+    // faengt die Pruefung gegen die Gesamtzahl unten.
+    if ((data?.length ?? 0) < KONTEN_SEITE) break;
+  }
+  // Waehrend des Lesens schreibt nur commit_block -- und das laeuft ueber
+  // dieselbe Route, also nicht gleichzeitig. Weicht die Zahl trotzdem ab,
+  // lieber abbrechen als mit einem unvollstaendigen Zustand weiterrechnen.
+  if (state.size !== erwartet) {
+    throw new Error(`loadState: ${state.size} Konten gelesen, ${erwartet} gezaehlt`);
   }
   return { state, height: meta?.height ?? -1 };
 }

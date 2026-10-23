@@ -24,7 +24,7 @@ import { emptyState, applyBlock, stateRootAt, cloneState, type State }
 import { toHex } from '../../core/codec.ts';
 import { aktiviereZip215Wasm } from '../zip215.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
-import { MEDIAN_TIME_BLOCKS, blockVersionAt } from '../../core/params.ts';
+import { MEDIAN_TIME_BLOCKS, blockVersionAt, V6_HEIGHT_UNSET } from '../../core/params.ts';
 
 import { ChainStore, alsTip, type StoredBlock } from './ChainStore.ts';
 import { blockWork, compareTips } from './ChainWork.ts';
@@ -186,8 +186,62 @@ export class ChainManager {
     aktiviereZip215Wasm();
     this.store = store;
     this.params = params;
+    this.aktivierungPruefen();
     this.alteFassungAbschneiden();
     this.zustandHerstellen();
+    this.aktivierungMerken();
+  }
+
+  /** Meta-Schluessel: die Aktivierungshoehe von Fassung 6, die diese Kette erreicht hat. */
+  static readonly V6_ERREICHT = 'v6_aktivierungshoehe_erreicht';
+
+  /**
+   * Eine einmal erreichte Aktivierungshoehe laesst sich nicht verschieben.
+   *
+   * Hat diese Ablage die Hoehe von Fassung 6 schon erreicht, steht sie in
+   * meta. Startet danach ein Programm mit einer ANDEREN Hoehe (oder ganz
+   * ohne), waere jeder Block zwischen alter und neuer Hoehe nach seinen
+   * Regeln ungueltig: Bei einer spaeteren Hoehe haette es Bloecke der
+   * Fassung 6 vor der Hoehe, bei einer frueheren wuerde alteFassungAbschneiden
+   * die gueltige Kette ab der neuen Hoehe verwerfen. Beides waere eine
+   * stille Abspaltung. Deshalb startet der Knoten dann nicht, und die
+   * Meldung sagt, warum.
+   *
+   * Ohne Eintrag (Ablage aus der Zeit vor der Hoehe) zaehlt, was in der
+   * Kette steht: Traegt der Kopf schon Fassung 6, obwohl dieses Programm sie
+   * dort noch nicht kennt, gehoert die Ablage zu einer anderen Kette.
+   */
+  private aktivierungPruefen(): void {
+    const v6 = this.params.v6Height;
+    const gespeichert = this.store.meta(ChainManager.V6_ERREICHT);
+    if (gespeichert !== null && gespeichert !== String(v6)) {
+      const neu = v6 === V6_HEIGHT_UNSET ? 'keine' : String(v6);
+      throw new Error(
+        `Diese Ablage hat Konsensfassung 6 an Hoehe ${gespeichert} aktiviert, dieses Programm verwendet ` +
+        `${neu}. Eine erreichte Aktivierungshoehe laesst sich nicht verschieben -- bitte die passende ` +
+        `Programmversion verwenden.`);
+    }
+    if (gespeichert === null) {
+      const kopf = this.store.mainTip();
+      if (kopf) {
+        let version: number | null = null;
+        try { version = deserializeBlock(kopf.body).header.version; } catch { /* prueft alteFassungAbschneiden */ }
+        if (version !== null && version >= 6 && blockVersionAt(kopf.height, v6) < 6) {
+          throw new Error(
+            `Die Ablage enthaelt an Hoehe ${kopf.height} einen Block der Fassung 6, dieses Programm ` +
+            `aktiviert sie ${v6 === V6_HEIGHT_UNSET ? 'nicht' : 'erst an Hoehe ' + v6}. ` +
+            `Die Ablage gehoert zu einer anderen Kette.`);
+        }
+      }
+    }
+  }
+
+  /** Erreicht die aktive Kette die Aktivierungshoehe, wird sie festgeschrieben. */
+  private aktivierungMerken(): void {
+    const v6 = this.params.v6Height;
+    if (v6 === V6_HEIGHT_UNSET || this.zustandHoehe < v6) return;
+    if (this.store.meta(ChainManager.V6_ERREICHT) === String(v6)) return;
+    this.store.setMeta(ChainManager.V6_ERREICHT, String(v6));
   }
 
   /** Meta-Schluessel: Die Bloecke ab der v6-Hoehe sind geprueft. */
@@ -628,6 +682,7 @@ export class ChainManager {
     this.zustand = state;
     this.zustandHoehe = tip.height;
     this.zustandHash = tip.hash;
+    this.aktivierungMerken();
     return { neu: [tip], verdraengt: [] };
   }
 
@@ -668,6 +723,7 @@ export class ChainManager {
     });
 
     this.zustandHerstellen();
+    this.aktivierungMerken();
 
     // Aufsteigend, wie neuerPfad -- die Schleife oben lief abwaerts.
     verdraengt.reverse();

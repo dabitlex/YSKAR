@@ -73,6 +73,14 @@ height. Two regtest networks exist: `REGTEST` keeps revision 6 unset and remains
 existing test suite; `REGTEST_V6` (own network name and chain ID) activates revision 6 at height 0 and
 is the basis of `tests/konsens-v6.test.ts`.
 
+Once set and released, the height is final. A node records the height in its block store as soon as
+its main chain reaches it (meta key `v6_aktivierungshoehe_erreicht`). If the node is later started with
+a different height, or without one, it refuses to start and names both heights, instead of silently
+discarding its chain or accepting blocks its rules reject. A store without that record whose main tip
+already carries version 6 at a height where the running software does not expect it is refused the same
+way. Before the height is reached the value can still change (for example between a release candidate
+and the release); nothing is recorded until then. Tests: `tests/aktivierung-fest.test.ts`.
+
 ### 2.2 Block header version
 
 The header keeps its 136 bytes and its layout. The rule for the `version` field changes:
