@@ -2,11 +2,10 @@
 -- 00028  Spiegel fuer Konsensfassung 6 (docs/CONSENSUS_V6.md, Abschnitt 13)
 -- ============================================================================
 --
--- NOCH NICHT EINGESPIELT. Gehoert zum Zweig consensus-v6 und wird zusammen
--- mit Node Core 1.0.0 vor der Aktivierungshoehe eingespielt. Bis dahin
--- aendert sich am Spiegel nichts: Alle Erweiterungen unten sind
--- rueckwaertsvertraeglich -- Bloecke der Fassungen 1 bis 5 schreiben sich
--- unveraendert.
+-- EINGESPIELT am 23.10.2026, vor der Aktivierungshoehe, in vier Teilen
+-- (Pruefungen und Spalten; commit_block; Auswertungen; Suche). Alle
+-- Erweiterungen unten sind rueckwaertsvertraeglich -- Bloecke der Fassungen
+-- 1 bis 5 schreiben sich unveraendert.
 --
 -- Der Spiegel rechnet keinen Konsens. Er speichert, was der Knoten geprueft
 -- hat, und muss ab der Hoehe nur mehr Formen aufnehmen koennen:
