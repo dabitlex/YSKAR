@@ -680,4 +680,5 @@
   "use.wallet.bildAlt": "Startbildschirm der YSKAR Wallet mit Guthaben, Senden, Empfangen, Scannen und letzten Zahlungen",
   "use.wallet.bildNotiz": "Beispielansicht: Beträge und Adressen sind Beispiele.",
   "use.wallet.text": "YSR senden und empfangen, QR-Codes scannen, Kontakte anlegen und jede Zahlung im Blick behalten. Bestehende Wallets übernimmst du einfach mit deinen 12 Wörtern.",
+  "how.s3.bild": "/assets/img/wallet-woerter-de.webp",
 };

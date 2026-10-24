@@ -680,4 +680,5 @@
   "use.wallet.bildAlt": "Home screen of the YSKAR Wallet with balance, send, receive, scan and recent payments",
   "use.wallet.bildNotiz": "Example view: amounts and addresses are examples.",
   "use.wallet.text": "Send and receive YSR, scan QR codes, keep contacts and see every payment. Bring an existing wallet over with your 12 words.",
+  "how.s3.bild": "/assets/img/wallet-woerter-en.webp",
 };

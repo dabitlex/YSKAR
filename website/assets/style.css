@@ -213,6 +213,8 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .wkarte .stand{font-size:clamp(28px,3.4vw,40px);font-weight:300;letter-spacing:-.03em}
 .wkarte .stand small{font-size:.45em;opacity:.8;margin-left:6px}
 .wkarte .adr{font-family:var(--mono);font-size:12px;opacity:.75}
+.buehne .telefon.in-buehne{position:absolute;top:clamp(36px,6%,52px);left:50%;transform:translateX(-50%);width:min(250px,58%);margin:0;flex:none}
+.schritt.aktiv .buehne .telefon.in-buehne{transition:transform .8s cubic-bezier(.2,.7,.2,1)}
 .woerter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:min(380px,100%);align-self:center}
 .woerter span{font-family:var(--mono);font-size:11px;color:var(--mut);padding:7px 6px;border-radius:8px;border:1px dashed var(--line2);text-align:center;filter:blur(3px)}
 
@@ -323,7 +325,7 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 
 /* Gemeinschaft */
 .gemeinschaft .box{position:relative;border-radius:36px;border:1px solid var(--line);padding:clamp(40px,7vw,110px);overflow:hidden;background:radial-gradient(800px 500px at 85% 110%,color-mix(in srgb,var(--acc) 40%,transparent),transparent 70%),radial-gradient(600px 400px at 0% 0%,color-mix(in srgb,var(--acc3) 26%,transparent),transparent 70%),var(--panel);display:flex;flex-direction:column;gap:26px;align-items:flex-start}
-.gemeinschaft .box img{position:absolute;right:clamp(24px,5vw,64px);bottom:clamp(24px,5vw,64px);width:min(150px,22%);opacity:.9;pointer-events:none}
+.gemeinschaft .box img{position:absolute;right:clamp(24px,5vw,64px);bottom:clamp(24px,5vw,64px);width:min(150px,22%);height:auto;opacity:.9;pointer-events:none}
 
 /* ------------------------------------------------------------ Fusszeile */
 .fusszeile{border-top:1px solid var(--line);padding-block:56px 64px;background:var(--bg)}
