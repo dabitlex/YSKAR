@@ -28,6 +28,7 @@
 <nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
 <a href="/#was" data-t="nav.was">About YSKAR</a>
 <a href="/#ablauf" data-t="nav.ablauf">How it works</a>
+<a href="/#protokoll" data-t="nav.protokoll">Protocol</a>
 <a href="/#v6" class="v6-link">V6</a>
 <a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
@@ -74,8 +75,8 @@
 <span><i></i><span data-t="live.umlauf">In circulation</span><b data-live="umlauf">—</b></span>
 <span><i></i><span data-t="zahlen.belohnung">Reward per block</span><b>875 YSR</b></span>
 <span><i></i><span data-t="live.halbierung">Next halving</span><b data-live="halbierung">—</b></span>
-<span><i></i><span data-t="band.miner">Active miners</span><b data-live="miner">—</b></span>
-<span><i></i><span data-t="band.knoten">Nodes</span><b data-live="knoten">—</b></span>
+<span><i></i><span data-t="band.miner">Active miners (reported)</span><b data-live="miner">—</b></span>
+<span><i></i><span data-t="band.knoten">Reporting nodes</span><b data-live="knoten">—</b></span>
 <span><i></i><span data-t="zahlen.algo">Algorithm</span><b>SHA-256d</b></span>
 <span><i></i><span data-t="zahlen.blockzeit">Block time</span><b data-t="zahlen.blockzeitWert">10 minutes</b></span>
 </div></div>
@@ -83,7 +84,7 @@
 <!-- Aussage -->
 <section class="abschnitt statement" aria-label="YSKAR in one sentence" data-ta="aria-label:stmt.label">
 <div class="wrap">
-<p data-worte data-t="stmt.text">No company issued YSKAR. Nobody received coins in advance. Every YSR in existence was earned by a computer doing *real *work, and every *single *one can be traced back to *block *0.</p>
+<p data-worte data-t="stmt.text">No company issued YSKAR. Nobody received coins in advance. Every YSR in existence was earned by a computer doing *real *work, and every *single *one can be traced to the block that created it, in a chain that goes back to *block *0.</p>
 </div>
 </section>
 
@@ -91,12 +92,12 @@
 <section class="abschnitt oben-dicht" aria-label="Network figures" data-ta="aria-label:figs.label" aria-live="polite">
 <div class="wrap">
 <div class="zahlen-reihe">
-<div class="zahl"><span class="wert" data-live="hoehe">—</span><span class="k" data-t="figs.bloecke">Blocks mined</span></div>
+<div class="zahl"><span class="wert" data-live="hoehe">—</span><span class="k" data-t="figs.bloecke">Block height</span></div>
 <div class="zahl"><span class="wert" data-live="rate">—</span><span class="k" data-t="live.rate">Network hashrate</span></div>
 <div class="zahl"><span class="wert"><span data-live="umlaufMio">—</span><small data-t="figs.mio">M YSR</small></span><span class="k" data-t="live.umlauf">In circulation</span></div>
 <div class="zahl"><span class="wert"><span data-live="tage">—</span><small data-t="figs.tage">days</small></span><span class="k" data-t="figs.halbierung">Until the next halving, approx.</span></div>
 </div>
-<p class="zahlen-notiz"><span class="punkt"></span><span id="live-status" data-t="live.laedt">Loading live data from the chain…</span></p>
+<p class="zahlen-notiz"><span class="punkt"></span><span id="live-status" data-t="live.laedt">Loading live data from the chain…</span><span aria-hidden="true">·</span><span data-t="live.umlaufHinweis">Not counting the 875 YSR of block 0, which nobody can spend.</span></p>
 </div>
 </section>
 
@@ -143,6 +144,120 @@
 <h3 data-t="about.f6.titel">Open source</h3>
 <p data-t="about.f6.text">Node, apps, miner and this website are public on GitHub. Anyone can read the code, run it and propose changes.</p>
 <span class="fakt" data-t="about.f6.fakt">MIT License</span>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Protokoll im Detail -->
+<section id="protokoll" class="abschnitt oben-dicht">
+<div class="wrap">
+<div class="kopfzeile">
+<div><span class="etikett" data-t="pr.etikett">The protocol in detail</span><h2 class="h2"><span data-t="pr.titel1">YSKAR and YSR,</span><br><span class="lt" data-t="pr.titel2">byte by byte.</span></h2></div>
+<p class="unter" data-t="pr.text">Everything below is fixed in the consensus code and the same for every node. Nothing depends on a server, a company or a setting.</p>
+</div>
+
+<div class="datenblatt">
+<div class="db-spalte">
+<h3 class="db-titel" data-t="pr.db.muenze">The coin</h3>
+<dl>
+<div><dt data-t="pr.db.name">Name · ticker</dt><dd>YSKAR · YSR</dd></div>
+<div><dt data-t="zahlen.menge">Maximum supply</dt><dd><span data-n="21000000">21,000,000</span> YSR</dd></div>
+<div><dt data-t="pr.db.belohnung">Block reward today</dt><dd>875 YSR</dd></div>
+<div><dt data-t="zahlen.halbierung">Halving</dt><dd data-t="pr.db.halbierungWert">every 12,000 blocks (≈ 83 days)</dd></div>
+<div><dt data-t="pr.db.letzte">Last new YSR</dt><dd data-t="pr.db.letzteWert">block 443,999 (≈ 8.4 years)</dd></div>
+<div><dt data-t="pr.db.einheit">Smallest unit</dt><dd>0.00000001 YSR</dd></div>
+<div><dt data-t="pr.db.vorab">Pre-mine · allocation</dt><dd data-t="pr.db.vorabWert">none</dd></div>
+<div><dt data-t="pr.db.gebuehr">Fees</dt><dd data-t="pr.db.gebuehrWert">per byte, paid to the miner of the block</dd></div>
+</dl>
+</div>
+<div class="db-spalte">
+<h3 class="db-titel" data-t="pr.db.kette">The chain</h3>
+<dl>
+<div><dt data-t="pr.db.netz">Network</dt><dd class="mono">yskar-main-1</dd></div>
+<div><dt data-t="pr.db.start">Genesis</dt><dd data-t="pr.db.startWert">9 Sep 2026, 00:00 UTC</dd></div>
+<div><dt data-t="pr.db.konsens">Consensus</dt><dd data-t="pr.db.konsensWert">Proof of work, SHA-256d</dd></div>
+<div><dt data-t="zahlen.blockzeit">Block time</dt><dd data-t="pr.db.blockzeitWert">600 seconds (target)</dd></div>
+<div><dt data-t="hood.f2.k">Difficulty</dt><dd data-t="pr.db.diffWert">LWMA over 45 blocks, every block</dd></div>
+<div><dt data-t="pr.db.kopf">Block header</dt><dd data-t="pr.db.kopfWert">136 bytes</dd></div>
+<div><dt data-t="pr.db.tx">Transactions per block</dt><dd data-t="pr.db.txWert">up to 2,000</dd></div>
+<div><dt data-t="pr.db.wahl">Chain selection</dt><dd data-t="pr.db.wahlWert">most accumulated work</dd></div>
+</dl>
+</div>
+<div class="db-spalte">
+<h3 class="db-titel" data-t="pr.db.wallet">Wallets and accounts</h3>
+<dl>
+<div><dt data-t="pr.db.modell">Model</dt><dd data-t="pr.db.modellWert">accounts with balance and nonce</dd></div>
+<div><dt data-t="pr.db.worte">Seed words</dt><dd data-t="pr.db.worteWert">BIP39, 12 or 24 words</dd></div>
+<div><dt data-t="pr.db.pfad">Key derivation</dt><dd class="mono">SLIP-0010 · m/44'/9077'</dd></div>
+<div><dt data-t="pr.db.sig">Signatures</dt><dd>Ed25519</dd></div>
+<div><dt data-t="pr.db.adresse">Address</dt><dd data-t="pr.db.adresseWert">ysr1…, 42 characters (bech32m)</dd></div>
+<div><dt data-t="pr.db.transfer">Transfer size</dt><dd data-t="pr.db.transferWert">168 to 200 bytes</dd></div>
+<div><dt data-t="pr.db.memo">Memo</dt><dd data-t="pr.db.memoWert">up to 32 bytes</dd></div>
+<div><dt data-t="pr.db.ablauf">Expiry</dt><dd data-t="pr.db.ablaufWert">optional, by block height</dd></div>
+</dl>
+</div>
+</div>
+
+<div class="anatomie">
+<div class="anat-kopf">
+<h3 data-t="pr.block.titel">Anatomy of a block header</h3>
+<p data-t="pr.block.text">Every block starts with exactly 136 bytes. Its hash is double SHA-256 over these bytes, and it has to lie below the target that the difficulty sets.</p>
+</div>
+<div class="bytes" role="img" aria-label="The 136-byte block header and its ten fields" data-ta="aria-label:pr.block.alt">
+<span style="flex-grow:4" class="b-a" title="version"><b>ver</b><i>4</i></span>
+<span style="flex-grow:4" class="b-a"><b>height</b><i>4</i></span>
+<span style="flex-grow:32" class="b-b"><b>prevHash</b><i>32</i></span>
+<span style="flex-grow:32" class="b-c"><b>merkleRoot</b><i>32</i></span>
+<span style="flex-grow:32" class="b-c"><b>stateRoot</b><i>32</i></span>
+<span style="flex-grow:8" class="b-a" title="timestamp"><b>time</b><i>8</i></span>
+<span style="flex-grow:4" class="b-a" title="difficulty"><b>diff</b><i>4</i></span>
+<span style="flex-grow:4" class="b-a" title="txCount"><b>txs</b><i>4</i></span>
+<span style="flex-grow:8" class="b-d" title="extranonce"><b>extra</b><i>8</i></span>
+<span style="flex-grow:8" class="b-e"><b>nonce</b><i>8</i></span>
+</div>
+<div class="feldliste">
+<div><b class="mono">prevHash</b><span data-t="pr.block.prev">The hash of the previous block. It links the chain: changing an old block would change every hash after it.</span></div>
+<div><b class="mono">merkleRoot</b><span data-t="pr.block.merkle">One hash over all transactions in the block. A single changed byte in any transfer changes it.</span></div>
+<div><b class="mono">stateRoot</b><span data-t="pr.block.state">One hash over all account balances after this block. Every node computes it itself and compares.</span></div>
+<div><b class="mono">nonce</b><span data-t="pr.block.nonce">The number miners vary. The first 128 bytes stay the same for a job, so each try needs only two SHA-256 compression steps.</span></div>
+</div>
+</div>
+
+<div class="zwei-karten">
+<div class="anatomie klein">
+<div class="anat-kopf">
+<h3 data-t="pr.tx.titel">Anatomy of a transfer</h3>
+<p data-t="pr.tx.text">A transfer moves YSR from one account to another. It is 168 bytes plus an optional memo.</p>
+</div>
+<div class="bytes" role="img" aria-label="Fields of a transfer" data-ta="aria-label:pr.tx.alt">
+<span style="flex-grow:8" class="b-a" title="version, type, validUntil, memoLen"><b>meta</b><i>8</i></span>
+<span style="flex-grow:20" class="b-b"><b>from</b><i>20</i></span>
+<span style="flex-grow:20" class="b-b"><b>to</b><i>20</i></span>
+<span style="flex-grow:8" class="b-a"><b>amt</b><i>8</i></span>
+<span style="flex-grow:8" class="b-a"><b>fee</b><i>8</i></span>
+<span style="flex-grow:8" class="b-d"><b>nonce</b><i>8</i></span>
+<span style="flex-grow:32" class="b-c"><b>key</b><i>32</i></span>
+<span style="flex-grow:64" class="b-e"><b>signature</b><i>64</i></span>
+</div>
+<ul class="punkte">
+<li data-t="pr.tx.p1">The signature also covers the chain ID, so a transfer signed for YSKAR is invalid on any other network.</li>
+<li data-t="pr.tx.p2">The nonce counts the transfers an account has sent. The same transfer can never be applied twice.</li>
+<li data-t="pr.tx.p3">An optional expiry height lets a transfer lapse if it has not been included by then.</li>
+</ul>
+</div>
+<div class="anatomie klein genesis">
+<div class="anat-kopf">
+<h3 data-t="pr.gen.titel">Block 0</h3>
+<p data-t="pr.gen.text">The genesis block carries the timestamp 9 September 2026. Its coinbase carries a short message, and its reward went to an address nobody can spend from.</p>
+</div>
+<div class="gen-zitat">“proof, not promise”</div>
+<dl class="gen-daten">
+<div><dt>Hash</dt><dd class="mono">000000090a14a03f…72c33c66</dd></div>
+<div><dt data-t="pr.gen.zeit">Timestamp</dt><dd class="mono">2026-09-09 00:00:00 UTC</dd></div>
+<div><dt>Nonce</dt><dd class="mono"><span data-n="50773796">50,773,796</span></dd></div>
+<div><dt data-t="pr.gen.belohnung">Reward</dt><dd data-t="pr.gen.belohnungWert">875 YSR, unspendable</dd></div>
+</dl>
 </div>
 </div>
 </div>
@@ -207,7 +322,7 @@
 <p data-t="how.s3.text">Your wallet is created from 12 words on your own device. With them you can restore your YSR on any device, at any time.</p>
 <ul>
 <li data-t="how.s3.p1">Send to any ysr1… address, also by QR code</li>
-<li data-t="how.s3.p2">Fees are paid per byte: choose slow, normal or fast</li>
+<li data-t="how.s3.p2">Fees are paid per byte; when blocks are full, you can choose slow, normal or fast</li>
 <li data-t="how.s3.p3">A transfer is written into the chain with one of the next blocks</li>
 </ul>
 </div>
@@ -217,7 +332,7 @@
 <div class="haube">
 <div class="haube-feld"><span class="k" data-t="zahlen.blockzeit">Block time</span><h3 data-t="hood.f1.titel">About 10 minutes</h3><p data-t="hood.f1.text">The network aims for 600 seconds between two blocks, however much computing power joins or leaves.</p></div>
 <div class="haube-feld"><span class="k" data-t="hood.f2.k">Difficulty</span><h3 data-t="hood.f2.titel">Adjusted after every block</h3><p data-t="hood.f2.text">It follows the solve times of the last 45 blocks. If no block appears for 30 minutes, an emergency rule makes the next one easier.</p></div>
-<div class="haube-feld"><span class="k" data-t="hood.f3.k">Fees</span><h3 data-t="hood.f3.titel">A fee market per byte</h3><p data-t="hood.f3.text">The minimum is one unit per byte. Wallets suggest slow, normal or fast from the transfers that are actually waiting.</p></div>
+<div class="haube-feld"><span class="k" data-t="hood.f3.k">Fees</span><h3 data-t="hood.f3.titel">A fee market per byte</h3><p data-t="hood.f3.text">The consensus minimum is one unit per byte; nodes pass on transfers from 10 units per byte. The fee goes to the miner of the block.</p></div>
 <div class="haube-feld"><span class="k" data-t="hood.f4.k">Pools</span><h3 data-t="hood.f4.titel">Pools without custody</h3><p data-t="hood.f4.text">A pool’s block pays its miners directly. The pool never holds anyone else’s YSR, and its operator sets a fee between 0 and 5 %.</p></div>
 <div class="haube-feld"><span class="k" data-t="hood.f5.k">Network</span><h3 data-t="hood.f5.titel">Peer to peer</h3><p data-t="hood.f5.text">Full nodes find each other through seed nodes, pass on blocks and transfers, and each keeps the whole chain.</p></div>
 <div class="haube-feld"><span class="k" data-t="zahlen.teilbar">Divisibility</span><h3 data-t="hood.f6.titel">8 decimal places</h3><p data-t="hood.f6.text">1 YSR is 100,000,000 units. Amounts below 100 units cannot be sent, which keeps the chain free of dust.</p></div>
@@ -235,7 +350,7 @@
 <span class="v6-status"><i></i><span data-t="v6.status">In development · activation height not yet set</span></span>
 <span class="etikett" data-t="v6.etikett">Consensus revision 6</span>
 <h2 class="h2" id="v6-titel"><span data-t="v6.titel1">The next chapter</span><br><span class="lt" data-t="v6.titel2">of YSKAR.</span></h2>
-<p data-t="v6.text">V6 is the largest upgrade since launch. It gives accounts new abilities, raises what every block can carry and lays the foundation for features that later revisions can build on. It is a hard fork that activates at a fixed block height, announced well in advance.</p>
+<p data-t="v6.text">V6 is a hard fork that changes the account record, the address format and the transaction format. It gives accounts new abilities, raises how many transactions every block can hold and lays the foundation for features that later revisions can build on. It activates at a fixed block height, announced well in advance.</p>
 </div>
 </div>
 
@@ -265,13 +380,13 @@
 </article>
 <article class="v6-feld">
 <span class="gross">5,000 <small data-t="v6.f5.klein">per block</small></span>
-<h3 data-t="v6.f5.titel">2.5× capacity</h3>
+<h3 data-t="v6.f5.titel">2.5× more transactions</h3>
 <p data-t="v6.f5.text">Each block can hold up to 5,000 transactions instead of 2,000 today.</p>
 </article>
 <article class="v6-feld">
-<span class="gross">255 <small data-t="v6.f6.klein">miners</small></span>
+<span class="gross">255 <small data-t="v6.f6.klein">recipients</small></span>
 <h3 data-t="v6.f6.titel">Bigger pools</h3>
-<p data-t="v6.f6.text">A pool’s block can pay up to 255 miners directly, up from 64 today. Still without the pool holding anyone’s coins.</p>
+<p data-t="v6.f6.text">A pool’s block can pay up to 255 recipients directly (254 miners plus the operator’s fee), up from 64 today. Still without the pool holding anyone’s coins.</p>
 </article>
 </div>
 
@@ -281,7 +396,7 @@
 <ul>
 <li data-t="v6.bleibt.p1">21 million YSR and the halving schedule</li>
 <li data-t="v6.bleibt.p2">10-minute blocks, SHA-256d and the difficulty rules</li>
-<li data-t="v6.bleibt.p3">Every address, key and balance, with nothing to do on your side</li>
+<li data-t="v6.bleibt.p3">Every address, key and balance stays valid</li>
 </ul>
 </div>
 <div class="v6-box">
@@ -289,7 +404,7 @@
 <ul>
 <li data-t="v6.tun.p1">Update your wallet and your node before the activation height</li>
 <li data-t="v6.tun.p2">Miners, the GPU miner and the HiveOS package need no update</li>
-<li data-t="v6.tun.p3">Receiving YSR and your balance are never affected</li>
+<li data-t="v6.tun.p3">Receiving YSR and your balance are not affected; an outdated wallet only cannot send</li>
 </ul>
 </div>
 <div class="v6-box">
@@ -343,13 +458,31 @@
 </svg>
 </div>
 </div>
+<div class="wrap">
+<div class="aeren">
+<div class="anat-kopf"><h3 data-t="supply.aera.titel">Issuance by era</h3><p data-t="supply.aera.text">An era lasts 12,000 blocks. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.</p></div>
+<div class="tabelle-rahmen"><table class="tabelle aera-tabelle">
+<thead><tr><th data-t="supply.aera.k1">Era</th><th data-t="supply.aera.k2">Blocks</th><th data-t="supply.aera.k3">Reward per block</th><th data-t="supply.aera.k4">Issued in the era</th><th data-t="supply.aera.k5">Total after the era</th></tr></thead>
+<tbody>
+<tr class="jetzt"><td>0 <span class="tag-jetzt" data-t="supply.aera.jetzt">now</span></td><td class="mono">0 – <span data-n="11999">11,999</span></td><td class="mono">875 YSR</td><td class="mono"><span data-n="10500000">10,500,000</span></td><td class="mono"><span data-n="10500000">10,500,000</span></td></tr>
+<tr><td>1</td><td class="mono"><span data-n="12000">12,000</span> – <span data-n="23999">23,999</span></td><td class="mono">437.5 YSR</td><td class="mono"><span data-n="5250000">5,250,000</span></td><td class="mono"><span data-n="15750000">15,750,000</span></td></tr>
+<tr><td>2</td><td class="mono"><span data-n="24000">24,000</span> – <span data-n="35999">35,999</span></td><td class="mono">218.75 YSR</td><td class="mono"><span data-n="2625000">2,625,000</span></td><td class="mono"><span data-n="18375000">18,375,000</span></td></tr>
+<tr><td>3</td><td class="mono"><span data-n="36000">36,000</span> – <span data-n="47999">47,999</span></td><td class="mono">109.375 YSR</td><td class="mono"><span data-n="1312500">1,312,500</span></td><td class="mono"><span data-n="19687500">19,687,500</span></td></tr>
+<tr><td>4</td><td class="mono"><span data-n="48000">48,000</span> – <span data-n="59999">59,999</span></td><td class="mono">54.6875 YSR</td><td class="mono"><span data-n="656250">656,250</span></td><td class="mono"><span data-n="20343750">20,343,750</span></td></tr>
+<tr><td>5</td><td class="mono"><span data-n="60000">60,000</span> – <span data-n="71999">71,999</span></td><td class="mono">27.34375 YSR</td><td class="mono"><span data-n="328125">328,125</span></td><td class="mono"><span data-n="20671875">20,671,875</span></td></tr>
+<tr><td>…</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>36</td><td class="mono"><span data-n="432000">432,000</span> – <span data-n="443999">443,999</span></td><td class="mono">0.00000001 YSR</td><td class="mono">0.00012</td><td class="mono"><span data-n="20999">20,999</span>,999.99832</td></tr>
+</tbody></table></div>
+<p class="leise" data-t="supply.aera.fuss">Rewards are whole units, so the last fractions fall away: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.</p>
+</div>
+</div>
 </section>
 
 <!-- Mitmachen / Moeglichkeiten -->
 <section id="mitmachen" class="abschnitt oben-dicht">
 <div class="wrap">
 <div class="kopfzeile">
-<div><span class="etikett" data-t="weg.etikett">Get started</span><h2 class="h2"><span data-t="use.titel1">Everything you need.</span><br><span class="lt" data-t="use.titel2">Nothing you have to trust.</span></h2></div>
+<div><span class="etikett" data-t="weg.etikett">Get started</span><h2 class="h2"><span data-t="use.titel1">Everything you need.</span><br><span class="lt" data-t="use.titel2">Everything open to check.</span></h2></div>
 <p class="unter" data-t="use.text">Free, open source and made for devices you already own. One wallet works everywhere: with your 12 words you reach the same YSR in every app.</p>
 </div>
 <div class="kacheln">
@@ -426,8 +559,8 @@
 <h2 class="h2" style="margin-top:20px" data-t="road.titel">What comes next.</h2>
 <div class="fahrlinie" aria-hidden="true"><i></i></div>
 <div class="etappen">
-<div class="etappe fertig"><span class="wann" data-t="road.e1.wann">Block 6,000 · live</span><b data-t="road.e1.titel">Uncapped difficulty</b><p data-t="road.e1.text">The network scales with any amount of mining power.</p></div>
-<div class="etappe naechste"><span class="wann" data-t="road.e2.wann">Block 7,000 · planned</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps and the block format.</p></div>
+<div class="etappe fertig"><span class="wann" data-t="road.e1.wann">Block 6,000 · live</span><b data-t="road.e1.titel">Uncapped difficulty</b><p data-t="road.e1.text">The difficulty can follow mining power far beyond the former limit of about 469 GH/s.</p></div>
+<div class="etappe naechste"><span class="wann" data-t="road.e2.wann">Block 7,000 · scheduled</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
 <div class="etappe gross"><span class="wann" data-t="road.e3.wann">Height to be announced</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
 <div class="etappe"><span class="wann" data-t="road.e4.wann">Launch</span><b data-t="road.e4.titel">Wallet on Google Play</b><p data-t="road.e4.text">Released together with the official launch.</p></div>
 <div class="etappe"><span class="wann" data-t="road.e5.wann">Planned</span><b data-t="road.e5.titel">Instant payments</b><p data-t="road.e5.text">Real-time payments. No date set yet.</p></div>
@@ -442,7 +575,7 @@
 <div>
 <details><summary data-t="faq.q1">Does it cost anything to take part?</summary><p data-t="faq.a1">No. The app, Mini App, Node Core and miner are free. You pay for the electricity your device uses; sending YSR costs a small network fee, and a pool keeps its fee (the public pool: 1 %).</p></details>
 <details><summary data-t="faq.q2">What if I lose my phone?</summary><p data-t="faq.a2">With your 12 words you can restore your wallet on any device. Without them, nobody can recover the funds, not even us.</p></details>
-<details><summary data-t="faq.q6">What is V6, and do I have to do anything?</summary><p data-t="faq.a6">V6 is the next revision of the consensus rules, a hard fork. It activates at a block height that will be announced well in advance. Your address, keys and balance stay valid. Before that height, update your wallet and your node; miners need nothing.</p></details>
+<details><summary data-t="faq.q6">What is V6, and do I have to do anything?</summary><p data-t="faq.a6">V6 is the next revision of the consensus rules, a hard fork. It activates at a block height that will be announced well in advance. Your address, keys and balance stay valid. Before that height, update your wallet or app, Node Core and your node; the command-line miner, the GPU miner and the HiveOS package need no update.</p></details>
 <details><summary data-t="faq.q3">Why doesn’t the Play Store app mine?</summary><p data-t="faq.a3">Google Play does not allow apps that mine cryptocurrency on the device itself. That is why the Android app with mining is available directly on this website.</p></details>
 <details><summary data-t="faq.q4">Is the code open source?</summary><p data-th="faq.a4">Yes. The entire code – node, app, miner and this website – is public on <a href="https://github.com/dabitlex/YSKAR">GitHub</a> and released under the MIT License.</p></details>
 <details><summary data-t="faq.q5">How do I know the numbers are real?</summary><p data-t="faq.a5">The explorer checks the proof of work of every block in your browser and follows the chain. A full node or the observer goes further and verifies every transfer, signature and balance from block 0 – anyone can run one.</p></details>

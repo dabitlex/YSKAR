@@ -78,7 +78,7 @@ p{margin:0}
 .menue-knopf{display:none;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--fg);align-items:center;justify-content:center;cursor:pointer}
 .kopf-cta{display:inline-flex}
 @media (max-width:560px){.sprache select{max-width:104px;padding-right:28px;text-overflow:ellipsis}.marke span{font-size:15px}.kopf-rechts{gap:8px}}
-@media (max-width:1080px){
+@media (max-width:1240px){
   .menue-knopf{display:inline-flex}
   .kopf .kopf-cta{display:none}
   .nav{display:none;position:absolute;top:72px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;padding:8px max(24px,env(safe-area-inset-left,0px)) 20px;background:color-mix(in srgb,var(--bg) 96%,transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
@@ -392,6 +392,57 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .sprachhinweis{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:36px;font-size:14px;color:var(--mut)}
 .sprachhinweis button{font:500 13px var(--sans);color:var(--mut);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer}
 .sprachhinweis button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+
+/* Protokoll im Detail */
+.datenblatt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1000px){.datenblatt{grid-template-columns:1fr}}
+.db-spalte{border:1px solid var(--line);border-radius:24px;background:var(--bg2);padding:28px 28px 12px;min-width:0}
+.db-titel{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--acc2);margin-bottom:10px}
+.db-spalte dl{margin:0}
+.db-spalte dl > div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:13px 0;border-top:1px solid var(--line)}
+.db-spalte dt{color:var(--mut);font-size:14px;flex-shrink:0}
+.db-spalte dd{margin:0;text-align:right;font-size:14px;color:var(--fg);min-width:0;overflow-wrap:anywhere}
+.anatomie{margin-top:16px;border:1px solid var(--line);border-radius:28px;background:radial-gradient(90% 120% at 100% 0%,color-mix(in srgb,var(--acc) 12%,transparent),transparent 60%),var(--panel);padding:clamp(24px,3.4vw,44px);display:flex;flex-direction:column;gap:24px;min-width:0}
+.anat-kopf{display:flex;flex-direction:column;gap:10px;max-width:720px}
+.anat-kopf h3{font-size:clamp(22px,2.2vw,28px);letter-spacing:-.03em}
+.anat-kopf p{color:var(--mut);font-size:15px}
+.bytes{display:flex;gap:3px;min-height:76px}
+.bytes span{flex-basis:0;min-width:52px;border-radius:10px;padding:10px 8px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;overflow:hidden;transition:transform .25s,filter .25s;cursor:default}
+.bytes span:hover{transform:translateY(-3px);filter:brightness(1.25)}
+.bytes b{font-family:var(--mono);font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg)}
+.bytes i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.b-a{background:color-mix(in srgb,var(--acc) 16%,var(--bg2))}
+.b-b{background:color-mix(in srgb,var(--acc) 30%,var(--bg2))}
+.b-c{background:color-mix(in srgb,var(--acc3) 46%,var(--bg2))}
+.b-d{background:color-mix(in srgb,var(--acc2) 18%,var(--bg2))}
+.b-e{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.b-e b,.b-e i{color:#04101E}
+@media (max-width:760px){.bytes{flex-wrap:wrap}.bytes span{flex-basis:calc(25% - 3px) !important;min-height:58px}}
+.feldliste{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+.feldliste > div{display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:1px solid var(--line)}
+.feldliste b{font-size:13px;color:var(--acc2);font-weight:500}
+.feldliste span{color:var(--mut);font-size:14.5px;line-height:1.6}
+@media (max-width:760px){.feldliste{grid-template-columns:1fr}}
+@media (max-width:520px){.db-spalte dl > div{flex-direction:column;gap:4px}.db-spalte dd{text-align:left}}
+.zwei-karten{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+.zwei-karten .anatomie{margin-top:16px}
+@media (max-width:1000px){.zwei-karten{grid-template-columns:1fr}}
+.punkte{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.punkte li{display:flex;gap:12px;color:var(--lese);font-size:14.5px;line-height:1.6}
+.punkte li::before{content:"";width:14px;height:1px;background:var(--acc2);margin-top:11px;flex-shrink:0}
+.gen-zitat{font-size:clamp(26px,2.8vw,36px);font-weight:300;letter-spacing:-.03em;color:var(--fg)}
+.gen-daten{margin:0;display:flex;flex-direction:column}
+.gen-daten > div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
+.gen-daten dt{color:var(--mut)}
+.gen-daten dd{margin:0;text-align:right;overflow-wrap:anywhere;min-width:0}
+.aeren{margin-top:clamp(56px,7vw,88px);display:flex;flex-direction:column;gap:22px}
+.aera-tabelle td{white-space:nowrap}
+.aera-tabelle tr.jetzt td{color:var(--fg);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.tag-jetzt{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--acc2);color:#04101E;margin-left:8px;vertical-align:1px}
+.zahlen-notiz{flex-wrap:wrap}
+.fusszeile .spalten a{overflow-wrap:anywhere}
+@media (max-width:700px){.text table{display:block;overflow-x:auto;max-width:100%}}
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}

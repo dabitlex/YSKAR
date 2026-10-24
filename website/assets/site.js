@@ -232,20 +232,23 @@
     var h = Number(live.height);
     feld('hoehe', isFinite(h) ? '#' + h.toLocaleString(loc) : '—');
     feld('rate', rate(Number(live.hashrate)));
+    // totalSupply ist die Summe aller Guthaben. Die 875 YSR aus Block 0 liegen auf der
+    // Null-Adresse und koennen nie ausgegeben werden; im Umlauf zaehlen sie nicht.
     var einheiten = BigInt(live.totalSupply || '0');
-    var umlauf = Number(einheiten / 100000000n);
+    var ausgegeben = Number(einheiten / 100000000n);
+    var umlauf = Math.max(0, ausgegeben - 875);
     feld('umlauf', umlauf.toLocaleString(loc) + ' YSR');
     feld('umlaufMio', (umlauf / 1e6).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     var naechste = (Math.floor(h / EPOCHE) + 1) * EPOCHE;
     var vorlage = t('live.blockN') || 'Block {n}';
-    feld('halbierung', vorlage.replace('{n}', naechste.toLocaleString(loc)));
+    feld('halbierung', isFinite(naechste) ? vorlage.replace('{n}', naechste.toLocaleString(loc)) : '—');
     // Bei 10 Minuten je Block; nur eine Schaetzung, die Seite sagt "etwa".
     var tage = Math.round((naechste - h) * 600 / 86400);
     feld('tage', isFinite(tage) ? '≈ ' + tage.toLocaleString(loc) : '—');
     if (live.activeMiners != null) feld('miner', Number(live.activeMiners).toLocaleString(loc));
     if (live.knoten != null) feld('knoten', Number(live.knoten).toLocaleString(loc));
     var max = Number(BigInt(live.maxSupply || '2100000000000000') / 100000000n);
-    var anteil = max > 0 ? umlauf / max * 100 : 0;
+    var anteil = max > 0 ? ausgegeben / max * 100 : 0;
     feld('anteil', (t('supply.anteil') || '{p} % mined').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
     feld('status', t('live.stand') || '');
     // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke.
@@ -254,7 +257,7 @@
       var n = h + Number(glieder[i].getAttribute('data-kette'));
       glieder[i].textContent = isFinite(n) && n >= 0 ? '#' + n.toLocaleString(loc) : '#…';
     }
-    try { document.dispatchEvent(new CustomEvent('yskar:live', { detail: { hoehe: h, umlauf: umlauf, anteil: anteil } })); } catch (e) { /* alte Browser */ }
+    try { document.dispatchEvent(new CustomEvent('yskar:live', { detail: { hoehe: h, umlauf: umlauf, ausgegeben: ausgegeben, anteil: anteil } })); } catch (e) { /* alte Browser */ }
   }
 
   function liveHolen() {

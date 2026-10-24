@@ -104,7 +104,7 @@
     var g = document.getElementById('kurve-jetzt');
     if (!g || !e.detail) return;
     var x = 40 + Math.min(96000, e.detail.hoehe) / 96000 * 590;
-    var y = 300 - e.detail.umlauf / 1e6 * (270 / 21);
+    var y = 300 - (e.detail.ausgegeben || e.detail.umlauf) / 1e6 * (270 / 21);
     if (isFinite(x) && isFinite(y)) g.setAttribute('transform', 'translate(' + (x - 77.5).toFixed(1) + ' ' + (y - 231.3).toFixed(1) + ')');
   });
 
