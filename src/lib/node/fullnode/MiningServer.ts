@@ -1331,9 +1331,11 @@ export class MiningServer {
       return { accepted: false, reason: 'missing_raw' };
     }
     try {
-      const { deserializeTx, txid } = await import('../../core/tx.ts');
+      const { deserializeTx, txid, isSpend } = await import('../../core/tx.ts');
       const tx = deserializeTx(fromHex(b.raw));
-      if (tx.type !== 1) return { accepted: false, reason: 'not_a_transfer' };
+      // Alle Ausgaben (Ueberweisung, Skript-Ausgabe, Sammelzahlung) -- ob die
+      // Art an dieser Hoehe gilt, prueft der Mempool. Nur die Coinbase nie.
+      if (!isSpend(tx)) return { accepted: false, reason: 'not_a_transfer' };
       const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
       // `required`: die Gebuehr, die jetzt reichen wuerde (Untergrenze bei
       // Andrang, Ersetzung). Die Wallet bietet sie zum Erhoehen an.

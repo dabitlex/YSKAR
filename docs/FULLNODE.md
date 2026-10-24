@@ -403,7 +403,7 @@ If a finished block fails the node's own validation, `reason` carries the valida
 
 | Method and path | Request | Purpose |
 |---|---|---|
-| `POST /tx` | `{raw}` | Submits a signed transfer as hex. The node checks it against its mempool rules and, if it accepts it, announces it to its peers. Answers `{accepted: true, txid, replaced}` or `{accepted: false, reason, detail}` |
+| `POST /tx` | `{raw}` | Submits a signed spend as hex: a transfer, and from the version 6 height also a script spend or a batch. A coinbase is refused with `not_a_transfer`. The node checks it against its mempool rules and, if it accepts it, announces it to its peers. Answers `{accepted: true, txid, replaced}` or `{accepted: false, reason, detail}` |
 
 The reasons are listed under [The mempool](#the-mempool).
 

@@ -197,3 +197,83 @@ test('Wallet: hinter einer abgelehnten Zahlung belegt die neue deren Nonce', asy
   // Abgelehnte unter dem Kontostand spielen keine Rolle.
   assert.equal(naechsteEigeneNonce([z('3', { abgelehnt: 'bad_version' }), z('6')], { nonce: '5', nextNonce: '6' }), 7n);
 });
+
+test('POST /tx nimmt ab Fassung 6 auch Sammelzahlungen und Skript-Ausgaben an -- eine Coinbase nie', async () => {
+  const { REGTEST_V6 } = await import('../src/lib/core/networks.ts');
+  const T = await import('../src/lib/core/tx.ts');
+  const SC = await import('../src/lib/core/script.ts');
+  const { rawAddressFromScript } = await import('../src/lib/core/address.ts');
+  const { ed25519 } = await import('@noble/curves/ed25519.js');
+  const { buildCoinbase } = await import('../src/lib/core/builder.ts');
+  const P = REGTEST_V6;
+  const store = new ChainStore(':memory:', { network: P.network, chainId: P.chainId });
+  const chain = new ChainManager(store, P);
+  const pool = new TxPool(P);
+  const S1 = keypairFromSeed(new Uint8Array(64).fill(21), 0, 0), S2 = keypairFromSeed(new Uint8Array(64).fill(22), 0, 0);
+  const script = SC.encodeScript(SC.multisig(1, [S1.publicKey, S2.publicKey]));
+  const skriptKonto = rawAddressFromScript(script);
+  // K mint; danach geht ein Teil an das Skriptkonto.
+  const kette = baueKette(2, { miner: K.addressRaw, params: P });
+  for (const b of kette.bloecke) assert.ok(chain.accept(b.body).ok);
+  const { mineBlock } = await import('./helpers/regtest.ts');
+  const fuellen = T.buildTransfer({ from: K.addressRaw, to: skriptKonto, amount: 10n * UNIT, fee: 10_000n, nonce: 0n, version: 2,
+    publicKey: K.publicKey, privateKey: K.privateKey, chainId: P.chainId });
+  const g = mineBlock({ height: 2, prevHash: kette.bloecke[1].hash, state: chain.state(), params: P, miner: K.addressRaw,
+    timestamp: 1_788_912_000n + 2n * P.targetBlockTime, mempool: [fuellen] });
+  assert.ok(chain.accept(g.body).ok);
+  const mining = new MiningCoordinator(chain, store, pool, P);
+  const server = new MiningServer({ chain, store, pool, mining }, { params: P });
+  await server.listen('127.0.0.1', 18792);
+  try {
+    const sende = async (x: any) => (await fetch('http://127.0.0.1:18792/api/v2/tx', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ raw: toHex(T.serializeTx(x)) }),
+    })).json() as Promise<Record<string, any>>;
+    const sammel = T.buildBatch({ from: K.addressRaw, outputs: [{ to: ZIEL, amount: UNIT }, { to: Uint8Array.from([1, ...new Array(32).fill(5)]), amount: UNIT }],
+      fee: 20_000n, nonce: 1n, publicKey: K.publicKey, privateKey: K.privateKey, chainId: P.chainId });
+    const a = await sende(sammel);
+    assert.equal(a.accepted, true, JSON.stringify(a));
+    const u = T.unsignedScriptSpend({ script, to: ZIEL, amount: UNIT, fee: 20_000n, nonce: 0n });
+    const h = T.scriptSpendSighash(u, P.chainId);
+    const [erster] = SC.sortKeys([S1.publicKey, S2.publicKey]);
+    const signer = toHex(erster) === toHex(S1.publicKey) ? S1 : S2;
+    const ausgabe = { ...u, witness: SC.encodeWitness([{ kind: 'sig', signature: ed25519.sign(h, signer.privateKey) }, { kind: 'absent' }]) };
+    const b = await sende(ausgabe);
+    assert.equal(b.accepted, true, JSON.stringify(b));
+    const cb = await sende(buildCoinbase(3, K.addressRaw, 0n));
+    assert.equal(cb.accepted, false);
+    assert.equal(cb.reason, 'not_a_transfer');
+  } finally {
+    await server.close();
+    store.close();
+  }
+});
+
+test('POST /tx vor Fassung 6: Sammelzahlung lehnt der Mempool ab', async () => {
+  const { REGTEST } = await import('../src/lib/core/networks.ts');
+  const T = await import('../src/lib/core/tx.ts');
+  const P = REGTEST;
+  const store = new ChainStore(':memory:', { network: P.network, chainId: P.chainId });
+  const chain = new ChainManager(store, P);
+  const pool = new TxPool(P);
+  const kette = baueKette(2, { miner: K.addressRaw, params: P });
+  for (const b of kette.bloecke) assert.ok(chain.accept(b.body).ok);
+  const mining = new MiningCoordinator(chain, store, pool, P);
+  const server = new MiningServer({ chain, store, pool, mining }, { params: P });
+  await server.listen('127.0.0.1', 18793);
+  try {
+    const sammel = T.buildBatch({ from: K.addressRaw, outputs: [{ to: ZIEL, amount: UNIT }],
+      fee: 20_000n, nonce: 0n, publicKey: K.publicKey, privateKey: K.privateKey, chainId: P.chainId });
+    const r = await (await fetch('http://127.0.0.1:18793/api/v2/tx', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ raw: toHex(T.serializeTx(sammel)) }),
+    })).json() as Record<string, unknown>;
+    assert.equal(r.accepted, false);
+    assert.equal(r.reason, 'malformed');
+    assert.equal(r.detail, 'unknown_tx_type');
+    assert.equal(pool.size(), 0);
+  } finally {
+    await server.close();
+    store.close();
+  }
+});
