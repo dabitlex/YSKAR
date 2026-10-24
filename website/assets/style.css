@@ -283,6 +283,7 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .k-wallet .txt{flex:1 1 260px;display:flex;flex-direction:column;gap:14px;align-self:stretch}
 .telefon{flex:0 0 200px;margin:0 auto -72px;border-radius:32px;padding:7px;background:#161C2B;border:1px solid rgba(255,255,255,.14);max-width:100%;box-shadow:0 30px 80px -20px color-mix(in srgb,var(--acc) 50%,transparent)}
 .telefon img{display:block;border-radius:26px;width:100%;height:auto}
+.klein-notiz{font-family:var(--mono);font-size:12px !important}
 .k-5{grid-column:span 5}
 .k-4{grid-column:span 4}
 .k-6{grid-column:span 6}

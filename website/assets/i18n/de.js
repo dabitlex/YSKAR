@@ -676,4 +676,8 @@
   "pr.db.knoten": "Full Nodes",
   "pr.db.knotenWert": "jeder hält und prüft die ganze Kette",
   "nav.menge": "Menge",
+  "use.wallet.bild": "/assets/img/wallet-start-de.webp",
+  "use.wallet.bildAlt": "Startbildschirm der YSKAR Wallet mit Guthaben, Senden, Empfangen, Scannen und letzten Zahlungen",
+  "use.wallet.bildNotiz": "Beispielansicht: Beträge und Adressen sind Beispiele.",
+  "use.wallet.text": "YSR senden und empfangen, QR-Codes scannen, Kontakte anlegen und jede Zahlung im Blick behalten. Bestehende Wallets übernimmst du einfach mit deinen 12 Wörtern.",
 };
