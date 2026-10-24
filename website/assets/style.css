@@ -69,6 +69,7 @@ p{margin:0}
 .nav{display:flex;align-items:center;gap:26px;font-size:14px;font-weight:500}
 .nav a{color:var(--mut);white-space:nowrap;transition:color .2s}
 .nav a:hover,.nav a[aria-current=page]{color:var(--fg)}
+@media (max-width:1400px){.nav{gap:20px}}
 .nav a.v6-link{color:var(--acc2)}
 .nav a.v6-link::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc2);margin-right:8px;vertical-align:2px}
 .sprache{position:relative}

@@ -28,6 +28,7 @@
 <nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
 <a href="/#was" data-t="nav.was">About YSKAR</a>
 <a href="/#ablauf" data-t="nav.ablauf">How it works</a>
+<a href="/#menge" data-t="nav.menge">Supply</a>
 <a href="/#protokoll" data-t="nav.protokoll">Protocol</a>
 <a href="/#v6" class="v6-link">V6</a>
 <a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
@@ -135,6 +136,130 @@
 <h3 data-t="about.f6.titel">Open source</h3>
 <p data-t="about.f6.text">Node, apps, miner and this website are public on GitHub. Anyone can read the code, run it and propose changes.</p>
 </div>
+</div>
+</div>
+</section>
+
+<!-- So funktioniert es -->
+<section id="ablauf" class="abschnitt oben-dicht">
+<div class="wrap">
+<div class="kopfzeile">
+<div><span class="etikett" data-t="nav.ablauf">How it works</span><h2 class="h2"><span data-t="how.titel1">From a hash</span><br><span class="lt" data-t="how.titel2">to your hand.</span></h2></div>
+<p class="unter" data-t="how.text">Three things happen for every block on YSKAR. None of them needs a company in the middle.</p>
+</div>
+<div class="schritte">
+<div class="schritt">
+<div class="buehne" aria-hidden="true">
+<div class="geraet" data-geraet><span class="nm" data-t="how.s1.handy">Phone</span><span class="hx">—</span><span class="rt">1.2 MH/s</span></div>
+<div class="geraet" data-geraet><span class="nm">PC</span><span class="hx">—</span><span class="rt">48 MH/s</span></div>
+<div class="geraet" data-geraet><span class="nm">GPU</span><span class="hx">—</span><span class="rt">1.9 GH/s</span></div>
+<span class="beispiel" data-t="how.beispiel">EXAMPLE</span>
+</div>
+<div class="txt">
+<span class="nr" data-t="how.s1.nr">01 · Mine</span>
+<h3 data-t="how.s1.titel">Devices compete for the next block.</h3>
+<p data-t="how.s1.text">Phones, PCs and graphics cards compute double SHA-256 hashes. Whoever finds a hash below the network’s target creates the next block.</p>
+<ul>
+<li data-t="how.s1.p1">The block pays the block reward plus all fees, to the finder alone or shared in a pool</li>
+<li data-t="how.s1.p2">A pool pays every miner directly from the block, by the work contributed</li>
+<li data-t="how.s1.p3">The difficulty follows the computing power of the whole network</li>
+</ul>
+</div>
+</div>
+<div class="schritt">
+<div class="buehne" aria-hidden="true">
+<div class="kettenreihe">
+<div class="kb"><b data-kette="-3">#…</b><span class="ck">✓</span></div><span class="kl"></span>
+<div class="kb"><b data-kette="-2">#…</b><span class="ck">✓</span></div><span class="kl"></span>
+<div class="kb"><b data-kette="-1">#…</b><span class="ck">✓</span></div><span class="kl"></span>
+<div class="kb neu"><b data-kette="0">#…</b><span class="ck">✓</span></div>
+</div>
+<div class="knoten-reihe"><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span></div>
+</div>
+<div class="txt">
+<span class="nr" data-t="how.s2.nr">02 · Verify</span>
+<h3 data-t="how.s2.titel">Every node checks every rule.</h3>
+<p data-t="how.s2.text">Each full node recomputes the work, the signatures and the balances, starting at block 0. A block that breaks a rule is rejected, whoever sent it.</p>
+<ul>
+<li data-t="how.s2.p1">Nodes exchange blocks and transfers directly with each other</li>
+<li data-t="how.s2.p2">Runs on Linux, Windows and macOS, even on a Raspberry Pi</li>
+<li data-t="how.s2.p3">The explorer checks the proof of work in your browser</li>
+</ul>
+</div>
+</div>
+<div class="schritt">
+<div class="buehne" aria-hidden="true">
+<div class="wkarte"><div class="oben"><span>YSKAR Wallet</span><img src="/assets/img/kristall.png" alt=""></div><div class="stand">1,750.00<small>YSR</small></div><div class="adr">ysr1q8…k4m2</div></div>
+<div class="woerter"><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span></div>
+<span class="beispiel" data-t="how.beispiel">EXAMPLE</span>
+</div>
+<div class="txt">
+<span class="nr" data-t="how.s3.nr">03 · Own</span>
+<h3 data-t="how.s3.titel">Your coins, your 12 words.</h3>
+<p data-t="how.s3.text">Your wallet is created from 12 words on your own device. With them you can restore your YSR on any device, at any time.</p>
+<ul>
+<li data-t="how.s3.p1">Send to any ysr1… address, also by QR code</li>
+<li data-t="how.s3.p2">The minimum fee depends on the size in bytes; slow, normal and fast only differ when blocks are full</li>
+<li data-t="how.s3.p3">A transfer is written into the chain with one of the next blocks</li>
+</ul>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+
+<!-- Menge -->
+<section id="menge" class="abschnitt oben-dicht">
+<div class="wrap menge-raster">
+<div>
+<span class="etikett" data-t="supply.etikett">Supply</span>
+<h2 class="h2" style="margin-top:20px" data-t="supply.titel">Scarce by code.</h2>
+<div class="deckel"><span data-n="21000000">21,000,000</span><small data-t="supply.text">YSR at most. Every node checks this limit after every block.</small></div>
+<div class="eckdaten">
+<div><span class="k" data-t="supply.ek.aera">Current era</span><span class="v" data-live="aera">—</span><span class="klein" data-live="aeraEnde"></span></div>
+<div><span class="k" data-t="supply.ek.belohnung">Reward per block now</span><span class="v" data-live="belohnung">—</span></div>
+<div><span class="k" data-t="supply.ek.ausgegeben">Issued so far</span><span class="v" data-live="anteil">—</span></div>
+<div><span class="k" data-t="supply.ek.letzte">Last new YSR</span><span class="v" data-t="supply.ek.letzteWert">block 443,999</span></div>
+</div>
+</div>
+<div class="kurve">
+<div class="ttl"><b data-t="supply.kurve">Total supply over time</b><span data-t="supply.einheit">million YSR · block height</span></div>
+<svg viewBox="0 0 640 340" role="img" aria-label="Supply curve: 10.5 million YSR after block 12,000, 15.75 after 24,000, approaching 21 million" data-ta="aria-label:supply.kurveAlt">
+<defs>
+<linearGradient id="kg" x1="0" x2="1"><stop offset="0" style="stop-color:var(--acc2)"/><stop offset="1" style="stop-color:var(--acc)"/></linearGradient>
+<linearGradient id="kf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:var(--acc);stop-opacity:.35"/><stop offset="1" style="stop-color:var(--acc);stop-opacity:0"/></linearGradient>
+</defs>
+<line x1="40" y1="30" x2="630" y2="30" style="stroke:var(--line2)" stroke-dasharray="4 6"/>
+<text class="lab" x="40" y="20">21M</text>
+<line x1="40" y1="300" x2="630" y2="300" style="stroke:var(--line2)"/>
+<text class="lab" x="40" y="324">0</text><text class="lab" x="187.5" y="324" text-anchor="middle">24k</text><text class="lab" x="335" y="324" text-anchor="middle">48k</text><text class="lab" x="482.5" y="324" text-anchor="middle">72k</text><text class="lab" x="630" y="324" text-anchor="end">96k</text>
+<path d="M40,300 L113.75,165 L187.5,97.5 L261.25,63.8 L335,46.9 L408.75,38.4 L482.5,34.2 L556.25,32.1 L630,31.1 L630,300 Z" fill="url(#kf)"/>
+<path id="kurve-linie" d="M40,300 L113.75,165 L187.5,97.5 L261.25,63.8 L335,46.9 L408.75,38.4 L482.5,34.2 L556.25,32.1 L630,31.1" fill="none" stroke="url(#kg)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+<g id="kurve-jetzt">
+<circle cx="77.5" cy="231.3" r="14" style="fill:var(--acc2)" opacity=".18"/>
+<circle cx="77.5" cy="231.3" r="6" style="fill:var(--acc2)"/>
+<text class="jetzt" x="96" y="236" data-t="supply.heute">Today</text>
+</g>
+</svg>
+</div>
+</div>
+<div class="wrap">
+<div class="aeren">
+<div class="anat-kopf"><h3 data-t="supply.aera.titel">Issuance by era</h3><p data-t="supply.aera.text">An era lasts 12,000 blocks, about 83 days. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.</p></div>
+<div class="tabelle-rahmen"><table class="tabelle aera-tabelle">
+<thead><tr><th data-t="supply.aera.k1">Era</th><th data-t="supply.aera.k2">Blocks</th><th data-t="supply.aera.k3">Reward per block</th><th data-t="supply.aera.k4">Issued in the era</th><th data-t="supply.aera.k5">Total after the era</th></tr></thead>
+<tbody>
+<tr data-aera="0"><td><span data-n="0">0</span></td><td class="mono"><span data-n="0">0</span> – <span data-n="11999">11,999</span></td><td class="mono"><span data-n="875">875</span> YSR</td><td class="mono"><span data-n="10500000">10,500,000</span></td><td class="mono"><span data-n="10500000">10,500,000</span></td></tr>
+<tr data-aera="1"><td><span data-n="1">1</span></td><td class="mono"><span data-n="12000">12,000</span> – <span data-n="23999">23,999</span></td><td class="mono"><span data-n="437.5" data-nd="2">437.5</span> YSR</td><td class="mono"><span data-n="5250000">5,250,000</span></td><td class="mono"><span data-n="15750000">15,750,000</span></td></tr>
+<tr data-aera="2"><td><span data-n="2">2</span></td><td class="mono"><span data-n="24000">24,000</span> – <span data-n="35999">35,999</span></td><td class="mono"><span data-n="218.75" data-nd="2">218.75</span> YSR</td><td class="mono"><span data-n="2625000">2,625,000</span></td><td class="mono"><span data-n="18375000">18,375,000</span></td></tr>
+<tr data-aera="3"><td><span data-n="3">3</span></td><td class="mono"><span data-n="36000">36,000</span> – <span data-n="47999">47,999</span></td><td class="mono"><span data-n="109.375" data-nd="3">109.375</span> YSR</td><td class="mono"><span data-n="1312500">1,312,500</span></td><td class="mono"><span data-n="19687500">19,687,500</span></td></tr>
+<tr data-aera="4"><td><span data-n="4">4</span></td><td class="mono"><span data-n="48000">48,000</span> – <span data-n="59999">59,999</span></td><td class="mono"><span data-n="54.6875" data-nd="4">54.6875</span> YSR</td><td class="mono"><span data-n="656250">656,250</span></td><td class="mono"><span data-n="20343750">20,343,750</span></td></tr>
+<tr data-aera="5"><td><span data-n="5">5</span></td><td class="mono"><span data-n="60000">60,000</span> – <span data-n="71999">71,999</span></td><td class="mono"><span data-n="27.34375" data-nd="5">27.34375</span> YSR</td><td class="mono"><span data-n="328125">328,125</span></td><td class="mono"><span data-n="20671875">20,671,875</span></td></tr>
+<tr><td>…</td><td></td><td></td><td></td><td></td></tr>
+<tr data-aera="36"><td><span data-n="36">36</span></td><td class="mono"><span data-n="432000">432,000</span> – <span data-n="443999">443,999</span></td><td class="mono"><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</td><td class="mono"><span data-n="0.00012" data-nd="5">0.00012</span></td><td class="mono"><span data-n="20999999.99832" data-nd="5">20,999,999.99832</span></td></tr>
+</tbody></table></div>
+<p class="leise" data-t="supply.aera.fuss">Rewards are counted in whole base units (0.00000001 YSR), so each halving drops the remainder: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.</p>
 </div>
 </div>
 </section>
@@ -253,75 +378,6 @@
 </div>
 </section>
 
-<!-- So funktioniert es -->
-<section id="ablauf" class="abschnitt oben-dicht">
-<div class="wrap">
-<div class="kopfzeile">
-<div><span class="etikett" data-t="nav.ablauf">How it works</span><h2 class="h2"><span data-t="how.titel1">From a hash</span><br><span class="lt" data-t="how.titel2">to your hand.</span></h2></div>
-<p class="unter" data-t="how.text">Three things happen for every block on YSKAR. None of them needs a company in the middle.</p>
-</div>
-<div class="schritte">
-<div class="schritt">
-<div class="buehne" aria-hidden="true">
-<div class="geraet" data-geraet><span class="nm" data-t="how.s1.handy">Phone</span><span class="hx">—</span><span class="rt">1.2 MH/s</span></div>
-<div class="geraet" data-geraet><span class="nm">PC</span><span class="hx">—</span><span class="rt">48 MH/s</span></div>
-<div class="geraet" data-geraet><span class="nm">GPU</span><span class="hx">—</span><span class="rt">1.9 GH/s</span></div>
-<span class="beispiel" data-t="how.beispiel">EXAMPLE</span>
-</div>
-<div class="txt">
-<span class="nr" data-t="how.s1.nr">01 · Mine</span>
-<h3 data-t="how.s1.titel">Devices compete for the next block.</h3>
-<p data-t="how.s1.text">Phones, PCs and graphics cards compute double SHA-256 hashes. Whoever finds a hash below the network’s target creates the next block.</p>
-<ul>
-<li data-t="how.s1.p1">The block pays the block reward plus all fees, to the finder alone or shared in a pool</li>
-<li data-t="how.s1.p2">A pool pays every miner directly from the block, by the work contributed</li>
-<li data-t="how.s1.p3">The difficulty follows the computing power of the whole network</li>
-</ul>
-</div>
-</div>
-<div class="schritt">
-<div class="buehne" aria-hidden="true">
-<div class="kettenreihe">
-<div class="kb"><b data-kette="-3">#…</b><span class="ck">✓</span></div><span class="kl"></span>
-<div class="kb"><b data-kette="-2">#…</b><span class="ck">✓</span></div><span class="kl"></span>
-<div class="kb"><b data-kette="-1">#…</b><span class="ck">✓</span></div><span class="kl"></span>
-<div class="kb neu"><b data-kette="0">#…</b><span class="ck">✓</span></div>
-</div>
-<div class="knoten-reihe"><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span></div>
-</div>
-<div class="txt">
-<span class="nr" data-t="how.s2.nr">02 · Verify</span>
-<h3 data-t="how.s2.titel">Every node checks every rule.</h3>
-<p data-t="how.s2.text">Each full node recomputes the work, the signatures and the balances, starting at block 0. A block that breaks a rule is rejected, whoever sent it.</p>
-<ul>
-<li data-t="how.s2.p1">Nodes exchange blocks and transfers directly with each other</li>
-<li data-t="how.s2.p2">Runs on Linux, Windows and macOS, even on a Raspberry Pi</li>
-<li data-t="how.s2.p3">The explorer checks the proof of work in your browser</li>
-</ul>
-</div>
-</div>
-<div class="schritt">
-<div class="buehne" aria-hidden="true">
-<div class="wkarte"><div class="oben"><span>YSKAR Wallet</span><img src="/assets/img/kristall.png" alt=""></div><div class="stand">1,750.00<small>YSR</small></div><div class="adr">ysr1q8…k4m2</div></div>
-<div class="woerter"><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span><span>····</span></div>
-<span class="beispiel" data-t="how.beispiel">EXAMPLE</span>
-</div>
-<div class="txt">
-<span class="nr" data-t="how.s3.nr">03 · Own</span>
-<h3 data-t="how.s3.titel">Your coins, your 12 words.</h3>
-<p data-t="how.s3.text">Your wallet is created from 12 words on your own device. With them you can restore your YSR on any device, at any time.</p>
-<ul>
-<li data-t="how.s3.p1">Send to any ysr1… address, also by QR code</li>
-<li data-t="how.s3.p2">The minimum fee depends on the size in bytes; slow, normal and fast only differ when blocks are full</li>
-<li data-t="how.s3.p3">A transfer is written into the chain with one of the next blocks</li>
-</ul>
-</div>
-</div>
-</div>
-
-</div>
-</section>
-
 <!-- V6 -->
 <section id="v6" class="abschnitt v6" aria-labelledby="v6-titel">
 <canvas id="v6-sterne" aria-hidden="true"></canvas>
@@ -405,57 +461,18 @@
 </div>
 </section>
 
-<!-- Menge -->
-<section id="menge" class="abschnitt">
-<div class="wrap menge-raster">
-<div>
-<span class="etikett" data-t="supply.etikett">Supply</span>
-<h2 class="h2" style="margin-top:20px" data-t="supply.titel">Scarce by code.</h2>
-<div class="deckel"><span data-n="21000000">21,000,000</span><small data-t="supply.text">YSR at most. Every node checks this limit after every block.</small></div>
-<div class="eckdaten">
-<div><span class="k" data-t="supply.ek.aera">Current era</span><span class="v" data-live="aera">—</span><span class="klein" data-live="aeraEnde"></span></div>
-<div><span class="k" data-t="supply.ek.belohnung">Reward per block now</span><span class="v" data-live="belohnung">—</span></div>
-<div><span class="k" data-t="supply.ek.ausgegeben">Issued so far</span><span class="v" data-live="anteil">—</span></div>
-<div><span class="k" data-t="supply.ek.letzte">Last new YSR</span><span class="v" data-t="supply.ek.letzteWert">block 443,999</span></div>
-</div>
-</div>
-<div class="kurve">
-<div class="ttl"><b data-t="supply.kurve">Total supply over time</b><span data-t="supply.einheit">million YSR · block height</span></div>
-<svg viewBox="0 0 640 340" role="img" aria-label="Supply curve: 10.5 million YSR after block 12,000, 15.75 after 24,000, approaching 21 million" data-ta="aria-label:supply.kurveAlt">
-<defs>
-<linearGradient id="kg" x1="0" x2="1"><stop offset="0" style="stop-color:var(--acc2)"/><stop offset="1" style="stop-color:var(--acc)"/></linearGradient>
-<linearGradient id="kf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:var(--acc);stop-opacity:.35"/><stop offset="1" style="stop-color:var(--acc);stop-opacity:0"/></linearGradient>
-</defs>
-<line x1="40" y1="30" x2="630" y2="30" style="stroke:var(--line2)" stroke-dasharray="4 6"/>
-<text class="lab" x="40" y="20">21M</text>
-<line x1="40" y1="300" x2="630" y2="300" style="stroke:var(--line2)"/>
-<text class="lab" x="40" y="324">0</text><text class="lab" x="187.5" y="324" text-anchor="middle">24k</text><text class="lab" x="335" y="324" text-anchor="middle">48k</text><text class="lab" x="482.5" y="324" text-anchor="middle">72k</text><text class="lab" x="630" y="324" text-anchor="end">96k</text>
-<path d="M40,300 L113.75,165 L187.5,97.5 L261.25,63.8 L335,46.9 L408.75,38.4 L482.5,34.2 L556.25,32.1 L630,31.1 L630,300 Z" fill="url(#kf)"/>
-<path id="kurve-linie" d="M40,300 L113.75,165 L187.5,97.5 L261.25,63.8 L335,46.9 L408.75,38.4 L482.5,34.2 L556.25,32.1 L630,31.1" fill="none" stroke="url(#kg)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
-<g id="kurve-jetzt">
-<circle cx="77.5" cy="231.3" r="14" style="fill:var(--acc2)" opacity=".18"/>
-<circle cx="77.5" cy="231.3" r="6" style="fill:var(--acc2)"/>
-<text class="jetzt" x="96" y="236" data-t="supply.heute">Today</text>
-</g>
-</svg>
-</div>
-</div>
+<!-- Fahrplan -->
+<section id="fahrplan" class="abschnitt fahrplan">
 <div class="wrap">
-<div class="aeren">
-<div class="anat-kopf"><h3 data-t="supply.aera.titel">Issuance by era</h3><p data-t="supply.aera.text">An era lasts 12,000 blocks, about 83 days. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.</p></div>
-<div class="tabelle-rahmen"><table class="tabelle aera-tabelle">
-<thead><tr><th data-t="supply.aera.k1">Era</th><th data-t="supply.aera.k2">Blocks</th><th data-t="supply.aera.k3">Reward per block</th><th data-t="supply.aera.k4">Issued in the era</th><th data-t="supply.aera.k5">Total after the era</th></tr></thead>
-<tbody>
-<tr data-aera="0"><td><span data-n="0">0</span></td><td class="mono"><span data-n="0">0</span> – <span data-n="11999">11,999</span></td><td class="mono"><span data-n="875">875</span> YSR</td><td class="mono"><span data-n="10500000">10,500,000</span></td><td class="mono"><span data-n="10500000">10,500,000</span></td></tr>
-<tr data-aera="1"><td><span data-n="1">1</span></td><td class="mono"><span data-n="12000">12,000</span> – <span data-n="23999">23,999</span></td><td class="mono"><span data-n="437.5" data-nd="2">437.5</span> YSR</td><td class="mono"><span data-n="5250000">5,250,000</span></td><td class="mono"><span data-n="15750000">15,750,000</span></td></tr>
-<tr data-aera="2"><td><span data-n="2">2</span></td><td class="mono"><span data-n="24000">24,000</span> – <span data-n="35999">35,999</span></td><td class="mono"><span data-n="218.75" data-nd="2">218.75</span> YSR</td><td class="mono"><span data-n="2625000">2,625,000</span></td><td class="mono"><span data-n="18375000">18,375,000</span></td></tr>
-<tr data-aera="3"><td><span data-n="3">3</span></td><td class="mono"><span data-n="36000">36,000</span> – <span data-n="47999">47,999</span></td><td class="mono"><span data-n="109.375" data-nd="3">109.375</span> YSR</td><td class="mono"><span data-n="1312500">1,312,500</span></td><td class="mono"><span data-n="19687500">19,687,500</span></td></tr>
-<tr data-aera="4"><td><span data-n="4">4</span></td><td class="mono"><span data-n="48000">48,000</span> – <span data-n="59999">59,999</span></td><td class="mono"><span data-n="54.6875" data-nd="4">54.6875</span> YSR</td><td class="mono"><span data-n="656250">656,250</span></td><td class="mono"><span data-n="20343750">20,343,750</span></td></tr>
-<tr data-aera="5"><td><span data-n="5">5</span></td><td class="mono"><span data-n="60000">60,000</span> – <span data-n="71999">71,999</span></td><td class="mono"><span data-n="27.34375" data-nd="5">27.34375</span> YSR</td><td class="mono"><span data-n="328125">328,125</span></td><td class="mono"><span data-n="20671875">20,671,875</span></td></tr>
-<tr><td>…</td><td></td><td></td><td></td><td></td></tr>
-<tr data-aera="36"><td><span data-n="36">36</span></td><td class="mono"><span data-n="432000">432,000</span> – <span data-n="443999">443,999</span></td><td class="mono"><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</td><td class="mono"><span data-n="0.00012" data-nd="5">0.00012</span></td><td class="mono"><span data-n="20999999.99832" data-nd="5">20,999,999.99832</span></td></tr>
-</tbody></table></div>
-<p class="leise" data-t="supply.aera.fuss">Rewards are counted in whole base units (0.00000001 YSR), so each halving drops the remainder: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.</p>
+<span class="etikett" data-t="road.etikett">Roadmap</span>
+<h2 class="h2" style="margin-top:20px" data-t="road.titel">What comes next.</h2>
+<div class="fahrlinie" aria-hidden="true"><i></i></div>
+<div class="etappen">
+<div class="etappe fertig"><span class="wann" data-t="road.e1.wann">Block 6,000 · live</span><b data-t="road.e1.titel">Uncapped difficulty</b><p data-t="road.e1.text">The difficulty can follow mining power far beyond the former limit of about 469 GH/s.</p></div>
+<div class="etappe naechste"><span class="wann" data-t="road.e2.wann">Block 7,000 · scheduled</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
+<div class="etappe gross"><span class="wann" data-t="road.e3.wann">Height to be announced</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
+<div class="etappe"><span class="wann" data-t="road.e4.wann">Launch</span><b data-t="road.e4.titel">Wallet on Google Play</b><p data-t="road.e4.text">Released together with the official launch.</p></div>
+<div class="etappe"><span class="wann" data-t="road.e5.wann">Planned</span><b data-t="road.e5.titel">Instant payments</b><p data-t="road.e5.text">Real-time payments. No date set yet.</p></div>
 </div>
 </div>
 </section>
@@ -530,22 +547,6 @@
 <p data-t="use.wp.text">Blocks and transactions, difficulty and consensus rules, keys and addresses, pool mining and issuance, explained in detail.</p>
 <a class="weiter" href="/whitepaper"><span data-t="wp.knopf">Read the whitepaper</span> →</a>
 </article>
-</div>
-</div>
-</section>
-
-<!-- Fahrplan -->
-<section id="fahrplan" class="abschnitt oben-dicht fahrplan">
-<div class="wrap">
-<span class="etikett" data-t="road.etikett">Roadmap</span>
-<h2 class="h2" style="margin-top:20px" data-t="road.titel">What comes next.</h2>
-<div class="fahrlinie" aria-hidden="true"><i></i></div>
-<div class="etappen">
-<div class="etappe fertig"><span class="wann" data-t="road.e1.wann">Block 6,000 · live</span><b data-t="road.e1.titel">Uncapped difficulty</b><p data-t="road.e1.text">The difficulty can follow mining power far beyond the former limit of about 469 GH/s.</p></div>
-<div class="etappe naechste"><span class="wann" data-t="road.e2.wann">Block 7,000 · scheduled</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
-<div class="etappe gross"><span class="wann" data-t="road.e3.wann">Height to be announced</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
-<div class="etappe"><span class="wann" data-t="road.e4.wann">Launch</span><b data-t="road.e4.titel">Wallet on Google Play</b><p data-t="road.e4.text">Released together with the official launch.</p></div>
-<div class="etappe"><span class="wann" data-t="road.e5.wann">Planned</span><b data-t="road.e5.titel">Instant payments</b><p data-t="road.e5.text">Real-time payments. No date set yet.</p></div>
 </div>
 </div>
 </section>

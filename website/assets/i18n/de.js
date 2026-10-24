@@ -675,4 +675,5 @@
   "supply.ek.letzteWert": "Block 443.999",
   "pr.db.knoten": "Full Nodes",
   "pr.db.knotenWert": "jeder hält und prüft die ganze Kette",
+  "nav.menge": "Menge",
 };
