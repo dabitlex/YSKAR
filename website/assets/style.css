@@ -441,6 +441,22 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .fusszeile .spalten a{overflow-wrap:anywhere}
 @media (max-width:700px){.text table{display:block;overflow-x:auto;max-width:100%}}
 
+
+/* Pruef es selbst */
+.pruef-aus{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pruef-titel{font-family:var(--mono);font-size:13px;color:var(--acc2)}
+.pruef-liste{margin:0;padding:0;list-style:none;counter-reset:p;display:flex;flex-direction:column;gap:10px}
+.pruef-liste li{counter-increment:p;display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 12px;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--bg2);animation:einblenden .4s both}
+.pruef-liste li::before{content:counter(p);grid-row:span 2;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.06);color:var(--mut)}
+.pruef-liste li.gut{border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:rgba(59,229,154,.06)}
+.pruef-liste li.gut::before{content:"✓";background:var(--ok);color:#03130B;font-weight:700}
+.pruef-liste li.schlecht{border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.pruef-liste li.schlecht::before{content:"!";background:var(--warn);color:#1a1000;font-weight:700}
+.pruef-liste b{font-size:14.5px;font-weight:500;color:var(--fg)}
+.pruef-liste code{font-family:var(--mono);font-size:12px;color:var(--mut);overflow-wrap:anywhere;word-break:break-all;line-height:1.55}
+.pruef-liste li:nth-child(2){animation-delay:.15s}.pruef-liste li:nth-child(3){animation-delay:.3s}.pruef-liste li:nth-child(4){animation-delay:.45s}.pruef-liste li:nth-child(5){animation-delay:.6s}
+@keyframes einblenden{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none !important;transition:none !important}

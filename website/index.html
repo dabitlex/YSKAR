@@ -17,6 +17,7 @@
 <script src="/assets/i18n/en.js?v=20"></script>
 <script src="/assets/site.js?v=20" defer></script>
 <script src="/assets/motion.js?v=20" defer></script>
+<script src="/assets/pruefen.js?v=20" defer></script>
 </head>
 <body data-seite="start">
 
@@ -372,6 +373,21 @@
 <div><dt>Nonce</dt><dd class="mono"><span data-n="50773796">50,773,796</span></dd></div>
 <div><dt data-t="pr.gen.belohnung">Reward</dt><dd data-t="pr.gen.belohnungWert">875 YSR, unspendable</dd></div>
 </dl>
+</div>
+</div>
+<div class="anatomie pruefen" id="pruefen">
+<div class="anat-kopf">
+<h3 data-t="chk.kopf">Check it yourself</h3>
+<p data-t="chk.text">Your browser puts the 136 bytes of a block header together, hashes them twice with SHA-256 and compares the result with the block hash and the target. No server is asked for the result.</p>
+</div>
+<div class="knopfreihe">
+<button type="button" class="knopf hell" id="pruef-0" data-t="chk.knopf0">Check block 0</button>
+<button type="button" class="knopf rand" id="pruef-neu" data-t="chk.knopfNeu">Check the latest block</button>
+</div>
+<div class="pruef-aus" id="pruef-aus" hidden aria-live="polite">
+<p class="pruef-titel" id="pruef-titel"></p>
+<ol class="pruef-liste" id="pruef-liste"></ol>
+<a class="weiter" id="pruef-link" href="/explorer" hidden><span data-t="chk.explorer">Open this block in the explorer</span> →</a>
 </div>
 </div>
 </div>
