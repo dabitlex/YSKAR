@@ -19,6 +19,7 @@
 <script src="/assets/motion.js?v=20" defer></script>
 <script src="/assets/pruefen.js?v=20" defer></script>
 <script src="/assets/bloecke.js?v=20" defer></script>
+<script src="/assets/pools.js?v=20" defer></script>
 </head>
 <body data-seite="start">
 
@@ -565,6 +566,18 @@
 <p data-t="use.wp.text">Blocks and transactions, difficulty and consensus rules, keys and addresses, pool mining and issuance, explained in detail.</p>
 <a class="weiter" href="/whitepaper"><span data-t="wp.knopf">Read the whitepaper</span> →</a>
 </article>
+</div>
+
+<div class="pools" id="pools">
+<div class="anat-kopf">
+<h3 data-t="pools.titel">Active pools</h3>
+<p data-t="pools.text">The pools that the apps and Node Core offer, with the values each pool reports. Every pool pays its miners directly from the block.</p>
+</div>
+<div class="tabelle-rahmen"><table class="tabelle pool-tabelle">
+<thead><tr><th data-t="pools.k1">Pool</th><th data-t="pools.k2">Hashrate</th><th data-t="pools.k3">Miners · seats</th><th data-t="pools.k4">Blocks found</th><th data-t="pools.k5">Fee</th><th data-t="pools.k6">Status</th></tr></thead>
+<tbody id="pools-body"><tr><td colspan="6" class="leise" data-t="live.laedt">Loading live data from the chain…</td></tr></tbody>
+</table></div>
+<p class="leise klein-notiz"><span class="punkt" style="display:inline-block;vertical-align:1px;margin-right:8px"></span><span id="pools-stand"></span></p>
 </div>
 </div>
 </section>
