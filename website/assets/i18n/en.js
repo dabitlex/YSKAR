@@ -697,4 +697,10 @@
   "chk.ungleich": "Does not match the hash of the block",
   "chk.unter": "Lies below the target of difficulty {d}: the proof of work is valid",
   "chk.ueber": "Lies above the target of difficulty {d}",
+  "blk.live": "LIVE FROM THE CHAIN",
+  "blk.label": "Latest blocks",
+  "blk.sek": "{n} s ago",
+  "blk.min": "{n} min ago",
+  "blk.std": "{n} h ago",
+  "blk.solo": "solo",
 };

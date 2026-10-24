@@ -457,6 +457,18 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .pruef-liste li:nth-child(2){animation-delay:.15s}.pruef-liste li:nth-child(3){animation-delay:.3s}.pruef-liste li:nth-child(4){animation-delay:.45s}.pruef-liste li:nth-child(5){animation-delay:.6s}
 @keyframes einblenden{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
+
+/* Live-Bloecke */
+.kb.live{aspect-ratio:auto;max-width:150px;padding:14px 8px;gap:6px;color:var(--mut);transition:border-color .3s,transform .3s}
+.kb.live:hover{border-color:color-mix(in srgb,var(--acc2) 55%,transparent);transform:translateY(-2px);color:var(--mut)}
+.kb.live small{font-size:10.5px;line-height:1.3;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+.kb.live .kb-finder{color:var(--lese)}
+.kb.frisch{animation:reinschieben .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes reinschieben{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.live-marke{display:flex;align-items:center;gap:8px;left:16px;right:auto}
+.live-marke .punkt{width:7px;height:7px}
+@media (max-width:560px){.schritt .buehne:has(.kb.live){aspect-ratio:auto;padding-top:52px;padding-bottom:24px}.kettenreihe:has(.kb.live) > :nth-child(-n+2){display:none}.buehne:has(.kb.live) .knoten-reihe{display:none}.kb.live{max-width:none}}
+
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none !important;transition:none !important}

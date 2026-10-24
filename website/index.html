@@ -18,6 +18,7 @@
 <script src="/assets/site.js?v=20" defer></script>
 <script src="/assets/motion.js?v=20" defer></script>
 <script src="/assets/pruefen.js?v=20" defer></script>
+<script src="/assets/bloecke.js?v=20" defer></script>
 </head>
 <body data-seite="start">
 
@@ -168,14 +169,15 @@
 </div>
 </div>
 <div class="schritt">
-<div class="buehne" aria-hidden="true">
-<div class="kettenreihe">
+<div class="buehne">
+<div class="kettenreihe" aria-label="Latest blocks" data-ta="aria-label:blk.label">
 <div class="kb"><b data-kette="-3">#…</b><span class="ck">✓</span></div><span class="kl"></span>
 <div class="kb"><b data-kette="-2">#…</b><span class="ck">✓</span></div><span class="kl"></span>
 <div class="kb"><b data-kette="-1">#…</b><span class="ck">✓</span></div><span class="kl"></span>
 <div class="kb neu"><b data-kette="0">#…</b><span class="ck">✓</span></div>
 </div>
 <div class="knoten-reihe"><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span></div>
+<span class="beispiel live-marke" id="kette-live" hidden><span class="punkt"></span><span data-t="blk.live">LIVE FROM THE CHAIN</span></span>
 </div>
 <div class="txt">
 <span class="nr" data-t="how.s2.nr">02 · Verify</span>

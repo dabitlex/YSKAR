@@ -697,4 +697,10 @@
   "chk.ungleich": "Stimmt nicht mit dem Hash des Blocks überein",
   "chk.unter": "Liegt unter dem Ziel der Difficulty {d}: der Proof of Work ist gültig",
   "chk.ueber": "Liegt über dem Ziel der Difficulty {d}",
+  "blk.live": "LIVE AUS DER KETTE",
+  "blk.label": "Neueste Blöcke",
+  "blk.sek": "vor {n} s",
+  "blk.min": "vor {n} Min.",
+  "blk.std": "vor {n} Std.",
+  "blk.solo": "solo",
 };
