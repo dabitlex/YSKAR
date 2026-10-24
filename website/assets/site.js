@@ -250,7 +250,7 @@
     if (live.knoten != null) feld('knoten', Number(live.knoten).toLocaleString(loc));
     var max = Number(BigInt(live.maxSupply || '2100000000000000') / 100000000n);
     var anteil = max > 0 ? ausgegeben / max * 100 : 0;
-    feld('anteil', (t('supply.anteil') || '{p} % issued').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
+    feld('anteil', (t('supply.anteil') || '{p} %').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
     // Aktuelle Aera: Zeile der Tabelle markieren, Belohnung je Block (875 YSR >> Aera).
     var aera = Math.floor(h / EPOCHE);
     if (isFinite(aera)) {
@@ -260,6 +260,16 @@
       }
       var belohnung = aera < 37 ? 875 / Math.pow(2, aera) : 0;
       feld('belohnung', belohnung.toLocaleString(loc, { maximumFractionDigits: 8 }) + ' YSR');
+      var ende = (aera + 1) * EPOCHE - 1;
+      feld('aera', aera.toLocaleString(loc));
+      feld('aeraEnde', (t('supply.ek.aeraEnde') || 'until block {b}').replace('{b}', ende.toLocaleString(loc)));
+    }
+    // Werte nur fuer das Laufband.
+    var diff = Number(live.difficultyWert || live.difficulty);
+    if (isFinite(diff) && diff > 0) feld('diff', diff.toLocaleString(loc, { maximumFractionDigits: 0 }));
+    if (live.mempool != null) feld('mempool', Number(live.mempool).toLocaleString(loc));
+    if (typeof live.tipHash === 'string' && live.tipHash.length > 20) {
+      feld('tip', live.tipHash.slice(0, 12) + '…' + live.tipHash.slice(-6));
     }
     feld('status', t('live.stand') || '');
     // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke.

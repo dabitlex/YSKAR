@@ -70,15 +70,11 @@
 
 <!-- Laufband mit Live-Werten -->
 <div class="laufband" aria-hidden="true"><div class="lauf" id="lauf">
-<span><i></i><span data-t="live.hoehe">Block height</span><b data-live="hoehe">—</b></span>
-<span><i></i><span data-t="live.rate">Network hashrate</span><b data-live="rate">—</b></span>
-<span><i></i><span data-t="live.umlauf">In circulation</span><b data-live="umlauf">—</b></span>
-<span><i></i><span data-t="zahlen.belohnung">Reward per block</span><b>875 YSR</b></span>
-<span><i></i><span data-t="live.halbierung">Next halving</span><b data-live="halbierung">—</b></span>
 <span><i></i><span data-t="band.miner">Active miners (reported)</span><b data-live="miner">—</b></span>
 <span><i></i><span data-t="band.knoten">Reporting nodes</span><b data-live="knoten">—</b></span>
-<span><i></i><span data-t="zahlen.algo">Algorithm</span><b>SHA-256d</b></span>
-<span><i></i><span data-t="zahlen.blockzeit">Block time</span><b data-t="zahlen.blockzeitWert">10 minutes</b></span>
+<span><i></i><span data-t="band.diff">Difficulty</span><b data-live="diff">—</b></span>
+<span><i></i><span data-t="band.warten">Waiting transfers</span><b data-live="mempool">—</b></span>
+<span><i></i><span data-t="band.tip">Latest block</span><b data-live="tip">—</b></span>
 </div></div>
 
 <!-- Aussage -->
@@ -112,38 +108,32 @@
 <div class="was-feld">
 <div class="sym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="6" height="6" rx="1.5"/><rect x="15" y="9" width="6" height="6" rx="1.5"/><path d="M9 12h6"/></svg></div>
 <h3 data-t="about.f1.titel">Its own blockchain</h3>
-<p data-t="about.f1.text">Running since 9 September 2026 with its own genesis block, its own peer-to-peer network and its own explorer.</p>
-<span class="fakt" data-t="about.f1.fakt">Genesis · 9 Sep 2026</span>
+<p data-t="about.f1.text">YSKAR does not run on top of another network. It has its own blocks, its own peer-to-peer network and its own explorer.</p>
 </div>
 <div class="was-feld">
 <div class="sym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M8.5 10.5h7"/><path d="M8.5 14h7"/></svg></div>
 <h3 data-t="about.f2.titel">A fixed supply</h3>
-<p data-t="about.f2.text">There will never be more than 21 million YSR. The reward per block halves every 12,000 blocks.</p>
-<span class="fakt" data-t="about.f2.fakt">21,000,000 YSR max</span>
+<p data-t="about.f2.text">The maximum number of YSR is written into the consensus rules. No one can raise it, and new coins become rarer over time.</p>
 </div>
 <div class="was-feld">
 <div class="sym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M5 16h14"/></svg></div>
 <h3 data-t="about.f3.titel">A fair launch</h3>
 <p data-t="about.f3.text">Nothing was pre-mined or allocated. New YSR come into existence in one way only: as the reward for a block.</p>
-<span class="fakt" data-t="about.f3.fakt">Pre-mine · 0 YSR</span>
 </div>
 <div class="was-feld">
 <div class="sym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
 <h3 data-t="about.f4.titel">Proof of work</h3>
-<p data-t="about.f4.text">Blocks are secured by double SHA-256 over YSKAR’s own 136-byte block header. Phones, PCs and graphics cards can mine.</p>
-<span class="fakt" data-t="about.f4.fakt">SHA-256d · ~10 min per block</span>
+<p data-t="about.f4.text">Blocks are secured by real computing work. Phones, PCs and graphics cards can take part in mining.</p>
 </div>
 <div class="was-feld">
 <div class="sym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
 <h3 data-t="about.f5.titel">Self-custody</h3>
-<p data-t="about.f5.text">Your wallet is derived from 12 words on your own device. Nobody else holds your keys, including the people who build YSKAR.</p>
-<span class="fakt" data-t="about.f5.fakt">BIP39 · Ed25519</span>
+<p data-t="about.f5.text">Your wallet lives on your own device. Nobody else holds your keys, including the people who build YSKAR.</p>
 </div>
 <div class="was-feld">
 <div class="sym"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></div>
 <h3 data-t="about.f6.titel">Open source</h3>
 <p data-t="about.f6.text">Node, apps, miner and this website are public on GitHub. Anyone can read the code, run it and propose changes.</p>
-<span class="fakt" data-t="about.f6.fakt">MIT License</span>
 </div>
 </div>
 </div>
@@ -162,24 +152,24 @@
 <h3 class="db-titel" data-t="pr.db.muenze">The coin</h3>
 <dl>
 <div><dt data-t="pr.db.name">Name · ticker</dt><dd>YSKAR · YSR</dd></div>
-<div><dt data-t="zahlen.menge">Maximum supply</dt><dd><span data-n="21000000">21,000,000</span> YSR</dd></div>
-<div><dt data-t="pr.db.belohnung">Block reward today</dt><dd data-live="belohnung">875 YSR</dd></div>
-<div><dt data-t="zahlen.halbierung">Halving</dt><dd data-t="pr.db.halbierungWert">every 12,000 blocks (≈ 83 days)</dd></div>
-<div><dt data-t="pr.db.letzte">Last new YSR</dt><dd data-t="pr.db.letzteWert">block 443,999 (≈ 8.4 years)</dd></div>
 <div><dt data-t="pr.db.einheit">Smallest unit</dt><dd><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</dd></div>
+<div><dt data-t="pr.db.staub">Smallest amount to send</dt><dd data-t="pr.db.staubWert">100 units</dd></div>
 <div><dt data-t="pr.db.vorab">Pre-mine · allocation</dt><dd data-t="pr.db.vorabWert">none</dd></div>
-<div><dt data-t="pr.db.gebuehr">Fees</dt><dd data-t="pr.db.gebuehrWert">per byte, paid to the miner of the block</dd></div>
+<div><dt data-t="pr.db.minGeb">Minimum fee (consensus)</dt><dd data-t="pr.db.minGebWert">1 unit per byte</dd></div>
+<div><dt data-t="pr.db.relay">Minimum fee to relay</dt><dd data-t="pr.db.relayWert">10 units per byte</dd></div>
+<div><dt data-t="pr.db.gebuehr">Fees go to</dt><dd data-t="pr.db.gebuehrWert">the miner of the block</dd></div>
+<div><dt data-t="pr.db.pool">Pools</dt><dd data-t="pr.db.poolWert">paid from the block, fee 0–5 %</dd></div>
 </dl>
 </div>
 <div class="db-spalte">
 <h3 class="db-titel" data-t="pr.db.kette">The chain</h3>
 <dl>
 <div><dt data-t="pr.db.netz">Network</dt><dd class="mono">yskar-main-1</dd></div>
-<div><dt data-t="pr.db.start">Genesis</dt><dd data-t="pr.db.startWert">9 Sep 2026, 00:00 UTC</dd></div>
 <div><dt data-t="pr.db.konsens">Consensus</dt><dd data-t="pr.db.konsensWert">Proof of work, SHA-256d</dd></div>
 <div><dt data-t="zahlen.blockzeit">Block time</dt><dd data-t="pr.db.blockzeitWert">600 seconds (target)</dd></div>
 <div><dt data-t="hood.f2.k">Difficulty</dt><dd data-t="pr.db.diffWert">LWMA over 45 blocks, every block</dd></div>
-<div><dt data-t="pr.db.kopf">Block header</dt><dd data-t="pr.db.kopfWert">136 bytes</dd></div>
+<div><dt data-t="pr.db.notfall">Emergency rule</dt><dd data-t="pr.db.notfallWert">easier after 30 min without a block</dd></div>
+<div><dt data-t="pr.db.knoten">Full nodes</dt><dd data-t="pr.db.knotenWert">each keeps and checks the whole chain</dd></div>
 <div><dt data-t="pr.db.tx">Transactions per block</dt><dd data-t="pr.db.txWert">up to 2,000</dd></div>
 <div><dt data-t="pr.db.wahl">Chain selection</dt><dd data-t="pr.db.wahlWert">most accumulated work</dd></div>
 </dl>
@@ -249,7 +239,7 @@
 <div class="anatomie klein genesis">
 <div class="anat-kopf">
 <h3 data-t="pr.gen.titel">Block 0</h3>
-<p data-t="pr.gen.text">The genesis block carries the timestamp 9 September 2026. Its coinbase carries a short message, and its reward went to an address nobody can spend from.</p>
+<p data-t="pr.gen.text">The first block of the chain. Its coinbase carries a short message, and its reward went to an address nobody can spend from.</p>
 </div>
 <div class="gen-zitat">“proof, not promise”</div>
 <dl class="gen-daten">
@@ -283,9 +273,9 @@
 <h3 data-t="how.s1.titel">Devices compete for the next block.</h3>
 <p data-t="how.s1.text">Phones, PCs and graphics cards compute double SHA-256 hashes. Whoever finds a hash below the network’s target creates the next block.</p>
 <ul>
-<li data-t="how.s1.p1">The block pays 875 YSR, to the finder alone or shared in a pool</li>
+<li data-t="how.s1.p1">The block pays the block reward plus all fees, to the finder alone or shared in a pool</li>
 <li data-t="how.s1.p2">A pool pays every miner directly from the block, by the work contributed</li>
-<li data-t="how.s1.p3">The difficulty adjusts after every block</li>
+<li data-t="how.s1.p3">The difficulty follows the computing power of the whole network</li>
 </ul>
 </div>
 </div>
@@ -329,14 +319,6 @@
 </div>
 </div>
 
-<div class="haube">
-<div class="haube-feld"><span class="k" data-t="zahlen.blockzeit">Block time</span><h3 data-t="hood.f1.titel">About 10 minutes</h3><p data-t="hood.f1.text">The network aims for 600 seconds between two blocks, however much computing power joins or leaves.</p></div>
-<div class="haube-feld"><span class="k" data-t="hood.f2.k">Difficulty</span><h3 data-t="hood.f2.titel">Adjusted after every block</h3><p data-t="hood.f2.text">It follows the solve times of the last 45 blocks. If no block appears for 30 minutes, an emergency rule makes the next one easier.</p></div>
-<div class="haube-feld"><span class="k" data-t="hood.f3.k">Fees</span><h3 data-t="hood.f3.titel">A fee market per byte</h3><p data-t="hood.f3.text">The consensus minimum is one unit per byte; nodes pass on transfers from 10 units per byte. The fee goes to the miner of the block.</p></div>
-<div class="haube-feld"><span class="k" data-t="hood.f4.k">Pools</span><h3 data-t="hood.f4.titel">Pools without custody</h3><p data-t="hood.f4.text">A pool’s block pays its miners directly. The pool never holds anyone else’s YSR, and its operator sets a fee between 0 and 5 %.</p></div>
-<div class="haube-feld"><span class="k" data-t="hood.f5.k">Network</span><h3 data-t="hood.f5.titel">Peer to peer</h3><p data-t="hood.f5.text">Full nodes find each other through seed nodes, pass on blocks and transfers, and each keeps the whole chain.</p></div>
-<div class="haube-feld"><span class="k" data-t="zahlen.teilbar">Divisibility</span><h3 data-t="hood.f6.titel">8 decimal places</h3><p data-t="hood.f6.text">1 YSR is 100,000,000 units. Amounts below 100 units cannot be sent, which keeps the chain free of dust.</p></div>
-</div>
 </div>
 </section>
 
@@ -429,12 +411,12 @@
 <div>
 <span class="etikett" data-t="supply.etikett">Supply</span>
 <h2 class="h2" style="margin-top:20px" data-t="supply.titel">Scarce by code.</h2>
-<div class="deckel"><span data-n="21000000">21,000,000</span><small data-t="supply.text">YSR maximum. The block reward halves every 12,000 blocks, about every 83 days.</small></div>
+<div class="deckel"><span data-n="21000000">21,000,000</span><small data-t="supply.text">YSR at most. Every node checks this limit after every block.</small></div>
 <div class="eckdaten">
-<div><span class="k" data-t="zahlen.belohnung">Reward per block</span><span class="v">875 YSR</span></div>
-<div><span class="k" data-t="zahlen.blockzeit">Block time</span><span class="v" data-t="zahlen.blockzeitWert">10 minutes</span></div>
-<div><span class="k" data-t="zahlen.algo">Algorithm</span><span class="v">SHA-256d</span></div>
-<div><span class="k" data-t="supply.vorab">Pre-mine</span><span class="v">0 YSR</span></div>
+<div><span class="k" data-t="supply.ek.aera">Current era</span><span class="v" data-live="aera">—</span><span class="klein" data-live="aeraEnde"></span></div>
+<div><span class="k" data-t="supply.ek.belohnung">Reward per block now</span><span class="v" data-live="belohnung">—</span></div>
+<div><span class="k" data-t="supply.ek.ausgegeben">Issued so far</span><span class="v" data-live="anteil">—</span></div>
+<div><span class="k" data-t="supply.ek.letzte">Last new YSR</span><span class="v" data-t="supply.ek.letzteWert">block 443,999</span></div>
 </div>
 </div>
 <div class="kurve">
@@ -453,14 +435,14 @@
 <g id="kurve-jetzt">
 <circle cx="77.5" cy="231.3" r="14" style="fill:var(--acc2)" opacity=".18"/>
 <circle cx="77.5" cy="231.3" r="6" style="fill:var(--acc2)"/>
-<text class="jetzt" x="96" y="236"><tspan data-t="supply.heute">Today</tspan> · <tspan data-live="anteil">—</tspan></text>
+<text class="jetzt" x="96" y="236" data-t="supply.heute">Today</text>
 </g>
 </svg>
 </div>
 </div>
 <div class="wrap">
 <div class="aeren">
-<div class="anat-kopf"><h3 data-t="supply.aera.titel">Issuance by era</h3><p data-t="supply.aera.text">An era lasts 12,000 blocks. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.</p></div>
+<div class="anat-kopf"><h3 data-t="supply.aera.titel">Issuance by era</h3><p data-t="supply.aera.text">An era lasts 12,000 blocks, about 83 days. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.</p></div>
 <div class="tabelle-rahmen"><table class="tabelle aera-tabelle">
 <thead><tr><th data-t="supply.aera.k1">Era</th><th data-t="supply.aera.k2">Blocks</th><th data-t="supply.aera.k3">Reward per block</th><th data-t="supply.aera.k4">Issued in the era</th><th data-t="supply.aera.k5">Total after the era</th></tr></thead>
 <tbody>
