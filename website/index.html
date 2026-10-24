@@ -21,6 +21,7 @@
 <script src="/assets/bloecke.js?v=20" defer></script>
 <script src="/assets/pools.js?v=20" defer></script>
 <script src="/assets/rechner.js?v=20" defer></script>
+<script src="/assets/adresse.js?v=20" defer></script>
 </head>
 <body data-seite="start">
 
@@ -557,9 +558,15 @@
 <p data-t="use.pool.text">Node Core and the command-line node can run a pool of their own, with no sign-up. You set the name, the fee and the number of seats; the block pays every miner directly.</p>
 <a class="weiter" href="/anleitungen#pool"><span data-t="use.pool.knopf">How to run a pool</span> →</a>
 </article>
-<article class="kachel k-6">
+<article class="kachel k-6" id="adresse">
 <h3 data-t="nav.explorer">Explorer</h3>
 <p data-t="use.ex.text">Every block, transfer and address of the chain. The explorer rebuilds each block header in your browser and checks its proof of work.</p>
+<form class="adr-form" id="adr-form" novalidate>
+<label class="sr" for="adr-feld" data-t="adr.label">YSKAR address</label>
+<input id="adr-feld" name="adr-feld" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ysr1…" data-ta="aria-label:adr.label">
+<button type="submit" class="knopf hell klein" data-t="adr.knopf">Look up</button>
+</form>
+<div class="adr-aus" id="adr-aus" hidden aria-live="polite"></div>
 <a class="weiter" href="/explorer"><span data-t="use.ex.knopf">Open the explorer</span> →</a>
 </article>
 <article class="kachel k-6">
