@@ -295,7 +295,7 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <h2 id="k9-de">9. Mining</h2>
 <p>Ein Miner eröffnet bei einem Knoten eine Sitzung mit seiner Auszahlungsadresse und bekommt Aufgaben: eine vollständige Blockvorlage mit allen Feldern außer der Nonce. Jede Sitzung erhält ihre eigene Extranonce, die im Kopf steht; zwei Miner können also nie denselben Kandidaten berechnen.</p>
 <p>Der Miner meldet nicht nur Blöcke, sondern <strong>Shares</strong>: Hashes, die ein leichteres, persönliches Ziel erreichen. Der Knoten stellt dieses Ziel so ein, dass jedes Gerät etwa alle 30 Sekunden einen Share findet. Shares zeigen, dass das Gerät arbeitet, und sind im Pool die Grundlage der Auszahlung. Der Knoten rechnet jeden eingereichten Hash selbst nach und glaubt keiner Angabe des Geräts.</p>
-<p>Wege zum Mining heute: die Telegram Mini App (gerechnet in WebAssembly), die Android-App (auch im Hintergrund) und der PC-Miner für Prozessoren und NVIDIA-Grafikkarten.</p>
+<p>Wege zum Mining heute: die Telegram Mini App (gerechnet in WebAssembly), die Android-App (auch im Hintergrund) und der PC-Miner für CPUs und NVIDIA-GPUs.</p>
 
 <h2 id="k10-de">10. Pool-Mining ohne Verwahrung</h2>
 <p>Ein Pool ist kein eigener Dienst, sondern ein Fullnode, der seine Coinbase aufteilt. Pool-Blöcke zahlen die Beteiligten direkt in der Coinbase aus (Konsensfassung 2). Zu keinem Zeitpunkt hält der Betreiber fremdes Geld, und jeder kann die Aufteilung im Explorer nachprüfen.</p>
@@ -325,7 +325,7 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <p>Wir nennen die Schwächen lieber, als sie zu verstecken:</p>
 <ul>
 <li><strong>Wenige Knoten.</strong> Das Netz ist jung und läuft auf sehr wenigen Knoten. Beide Seed-Knoten und der Hauptpool YSKAR MAIN werden vom Entwickler betrieben; unabhängige Pools gibt es ebenfalls. Wer die Mehrheit der Rechenleistung hat, kann jüngere Blöcke umschreiben, und es gibt keine Checkpoints. Die Sicherheit wächst mit jedem unabhängigen Knoten und Pool.</li>
-<li><strong>Geräte sind verschieden.</strong> SHA-256d läuft auf Grafikkarten weit schneller als auf Telefonen. Telefone tragen bei; ihr Anteil an den Belohnungen ist entsprechend kleiner. Vorhandene SHA-256-ASICs können YSKAR voraussichtlich nicht minen, weil sie für einen 80-Byte-Kopf gebaut sind, nicht für YSKARs 136 Byte.</li>
+<li><strong>Geräte sind verschieden.</strong> SHA-256d läuft auf GPUs weit schneller als auf Telefonen. Telefone tragen bei; ihr Anteil an den Belohnungen ist entsprechend kleiner. Vorhandene SHA-256-ASICs können YSKAR voraussichtlich nicht minen, weil sie für einen 80-Byte-Kopf gebaut sind, nicht für YSKARs 136 Byte.</li>
 <li><strong>Bestätigungszeit.</strong> Bei 10-Minuten-Blöcken ist eine Zahlung erst nach Bestätigungen sicher. Sofortzahlungen über Zahlungskanäle sind in Planung; einen Termin gibt es noch nicht.</li>
 <li><strong>Gemeldete Zahlen.</strong> Aktive Miner und gemessene Hashrate über mehrere Knoten werden von den Knoten gemeldet. Beweisbar ist die Netz-Hashrate aus Difficulty und Blockzeiten.</li>
 </ul>
