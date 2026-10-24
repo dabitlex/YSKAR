@@ -62,7 +62,6 @@
   "grund.etikett": "Inscrito no bloco gênese",
   "grund.text": "Tem muito app em que você toca num botão e vê um número subir. O YSKAR é diferente: cálculo de verdade, uma blockchain de verdade e nada em que você precise acreditar só porque a gente disse.",
   "grund.k1.titel": "Trabalho de verdade",
-  "grund.k1.text": "Seu aparelho calcula SHA-256 duplo, igual a um miner de Bitcoin. O nó confere de novo cada resultado que recebe.",
   "grund.k2.titel": "Confira você mesmo",
   "grund.k2.text": "O explorer remonta no seu navegador o cabeçalho de cada bloco, calcula o hash, verifica a prova de trabalho e segue a cadeia. Todo o resto – transferências, assinaturas, saldos – é verificado por um full node, e qualquer pessoa pode rodar um.",
   "grund.k3.titel": "Só sua",

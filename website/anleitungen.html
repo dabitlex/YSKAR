@@ -258,7 +258,8 @@ npm run build</code></pre>
   --seed yskar-seed2.dynv6.net:8646 --no-upstream</code></pre>
 <p data-t="an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.</p>
 <h3 data-t="an.node.s3">3. Mine against your own node</h3>
-<pre><code>node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
+<pre><code>cd ../miner
+node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
 <h3 data-t="an.node.s4">4. Run a pool (optional)</h3>
 <p data-t="an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
@@ -347,7 +348,7 @@ npm run build</code></pre>
 <h3 data-t="an.hi.f1">Mining on the phone stops by itself</h3>
 <p data-t="an.hi.a1">Android is closing the app to save battery. Set the battery usage of YSKAR Wallet to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
 <h3 data-t="an.hi.f2">“Pool full”</h3>
-<p data-t="an.hi.a2">A pool has at most 64 places. Places of miners who stopped become free again after a few minutes, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
+<p data-t="an.hi.a2">A pool has at most 64 places. A place is freed at once when a miner stops, and up to 20 minutes after a miner goes silent, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
 <h3 data-t="an.hi.f3">Node Core: “No peer connected yet”</h3>
 <p data-t="an.hi.a3">The node has not found another node yet. Check your internet connection and whether you allowed Node Core in the Windows firewall prompt. Then wait a moment.</p>
 <h3 data-t="an.hi.f4">Node Core: mining does not start</h3>

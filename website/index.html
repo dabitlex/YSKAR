@@ -163,10 +163,10 @@
 <dl>
 <div><dt data-t="pr.db.name">Name · ticker</dt><dd>YSKAR · YSR</dd></div>
 <div><dt data-t="zahlen.menge">Maximum supply</dt><dd><span data-n="21000000">21,000,000</span> YSR</dd></div>
-<div><dt data-t="pr.db.belohnung">Block reward today</dt><dd>875 YSR</dd></div>
+<div><dt data-t="pr.db.belohnung">Block reward today</dt><dd data-live="belohnung">875 YSR</dd></div>
 <div><dt data-t="zahlen.halbierung">Halving</dt><dd data-t="pr.db.halbierungWert">every 12,000 blocks (≈ 83 days)</dd></div>
 <div><dt data-t="pr.db.letzte">Last new YSR</dt><dd data-t="pr.db.letzteWert">block 443,999 (≈ 8.4 years)</dd></div>
-<div><dt data-t="pr.db.einheit">Smallest unit</dt><dd>0.00000001 YSR</dd></div>
+<div><dt data-t="pr.db.einheit">Smallest unit</dt><dd><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</dd></div>
 <div><dt data-t="pr.db.vorab">Pre-mine · allocation</dt><dd data-t="pr.db.vorabWert">none</dd></div>
 <div><dt data-t="pr.db.gebuehr">Fees</dt><dd data-t="pr.db.gebuehrWert">per byte, paid to the miner of the block</dd></div>
 </dl>
@@ -202,7 +202,7 @@
 <div class="anatomie">
 <div class="anat-kopf">
 <h3 data-t="pr.block.titel">Anatomy of a block header</h3>
-<p data-t="pr.block.text">Every block starts with exactly 136 bytes. Its hash is double SHA-256 over these bytes, and it has to lie below the target that the difficulty sets.</p>
+<p data-t="pr.block.text">Every block starts with exactly 136 bytes. Its hash is double SHA-256 over these bytes, and it must not exceed the target that the difficulty sets.</p>
 </div>
 <div class="bytes" role="img" aria-label="The 136-byte block header and its ten fields" data-ta="aria-label:pr.block.alt">
 <span style="flex-grow:4" class="b-a" title="version"><b>ver</b><i>4</i></span>
@@ -219,7 +219,7 @@
 <div class="feldliste">
 <div><b class="mono">prevHash</b><span data-t="pr.block.prev">The hash of the previous block. It links the chain: changing an old block would change every hash after it.</span></div>
 <div><b class="mono">merkleRoot</b><span data-t="pr.block.merkle">One hash over all transactions in the block. A single changed byte in any transfer changes it.</span></div>
-<div><b class="mono">stateRoot</b><span data-t="pr.block.state">One hash over all account balances after this block. Every node computes it itself and compares.</span></div>
+<div><b class="mono">stateRoot</b><span data-t="pr.block.state">One hash over all accounts (balance and nonce) after this block. Every node computes it itself and compares.</span></div>
 <div><b class="mono">nonce</b><span data-t="pr.block.nonce">The number miners vary. The first 128 bytes stay the same for a job, so each try needs only two SHA-256 compression steps.</span></div>
 </div>
 </div>
@@ -322,7 +322,7 @@
 <p data-t="how.s3.text">Your wallet is created from 12 words on your own device. With them you can restore your YSR on any device, at any time.</p>
 <ul>
 <li data-t="how.s3.p1">Send to any ysr1… address, also by QR code</li>
-<li data-t="how.s3.p2">Fees are paid per byte; when blocks are full, you can choose slow, normal or fast</li>
+<li data-t="how.s3.p2">The minimum fee depends on the size in bytes; slow, normal and fast only differ when blocks are full</li>
 <li data-t="how.s3.p3">A transfer is written into the chain with one of the next blocks</li>
 </ul>
 </div>
@@ -464,16 +464,16 @@
 <div class="tabelle-rahmen"><table class="tabelle aera-tabelle">
 <thead><tr><th data-t="supply.aera.k1">Era</th><th data-t="supply.aera.k2">Blocks</th><th data-t="supply.aera.k3">Reward per block</th><th data-t="supply.aera.k4">Issued in the era</th><th data-t="supply.aera.k5">Total after the era</th></tr></thead>
 <tbody>
-<tr class="jetzt"><td>0 <span class="tag-jetzt" data-t="supply.aera.jetzt">now</span></td><td class="mono">0 – <span data-n="11999">11,999</span></td><td class="mono">875 YSR</td><td class="mono"><span data-n="10500000">10,500,000</span></td><td class="mono"><span data-n="10500000">10,500,000</span></td></tr>
-<tr><td>1</td><td class="mono"><span data-n="12000">12,000</span> – <span data-n="23999">23,999</span></td><td class="mono">437.5 YSR</td><td class="mono"><span data-n="5250000">5,250,000</span></td><td class="mono"><span data-n="15750000">15,750,000</span></td></tr>
-<tr><td>2</td><td class="mono"><span data-n="24000">24,000</span> – <span data-n="35999">35,999</span></td><td class="mono">218.75 YSR</td><td class="mono"><span data-n="2625000">2,625,000</span></td><td class="mono"><span data-n="18375000">18,375,000</span></td></tr>
-<tr><td>3</td><td class="mono"><span data-n="36000">36,000</span> – <span data-n="47999">47,999</span></td><td class="mono">109.375 YSR</td><td class="mono"><span data-n="1312500">1,312,500</span></td><td class="mono"><span data-n="19687500">19,687,500</span></td></tr>
-<tr><td>4</td><td class="mono"><span data-n="48000">48,000</span> – <span data-n="59999">59,999</span></td><td class="mono">54.6875 YSR</td><td class="mono"><span data-n="656250">656,250</span></td><td class="mono"><span data-n="20343750">20,343,750</span></td></tr>
-<tr><td>5</td><td class="mono"><span data-n="60000">60,000</span> – <span data-n="71999">71,999</span></td><td class="mono">27.34375 YSR</td><td class="mono"><span data-n="328125">328,125</span></td><td class="mono"><span data-n="20671875">20,671,875</span></td></tr>
+<tr data-aera="0"><td><span data-n="0">0</span></td><td class="mono"><span data-n="0">0</span> – <span data-n="11999">11,999</span></td><td class="mono"><span data-n="875">875</span> YSR</td><td class="mono"><span data-n="10500000">10,500,000</span></td><td class="mono"><span data-n="10500000">10,500,000</span></td></tr>
+<tr data-aera="1"><td><span data-n="1">1</span></td><td class="mono"><span data-n="12000">12,000</span> – <span data-n="23999">23,999</span></td><td class="mono"><span data-n="437.5" data-nd="2">437.5</span> YSR</td><td class="mono"><span data-n="5250000">5,250,000</span></td><td class="mono"><span data-n="15750000">15,750,000</span></td></tr>
+<tr data-aera="2"><td><span data-n="2">2</span></td><td class="mono"><span data-n="24000">24,000</span> – <span data-n="35999">35,999</span></td><td class="mono"><span data-n="218.75" data-nd="2">218.75</span> YSR</td><td class="mono"><span data-n="2625000">2,625,000</span></td><td class="mono"><span data-n="18375000">18,375,000</span></td></tr>
+<tr data-aera="3"><td><span data-n="3">3</span></td><td class="mono"><span data-n="36000">36,000</span> – <span data-n="47999">47,999</span></td><td class="mono"><span data-n="109.375" data-nd="3">109.375</span> YSR</td><td class="mono"><span data-n="1312500">1,312,500</span></td><td class="mono"><span data-n="19687500">19,687,500</span></td></tr>
+<tr data-aera="4"><td><span data-n="4">4</span></td><td class="mono"><span data-n="48000">48,000</span> – <span data-n="59999">59,999</span></td><td class="mono"><span data-n="54.6875" data-nd="4">54.6875</span> YSR</td><td class="mono"><span data-n="656250">656,250</span></td><td class="mono"><span data-n="20343750">20,343,750</span></td></tr>
+<tr data-aera="5"><td><span data-n="5">5</span></td><td class="mono"><span data-n="60000">60,000</span> – <span data-n="71999">71,999</span></td><td class="mono"><span data-n="27.34375" data-nd="5">27.34375</span> YSR</td><td class="mono"><span data-n="328125">328,125</span></td><td class="mono"><span data-n="20671875">20,671,875</span></td></tr>
 <tr><td>…</td><td></td><td></td><td></td><td></td></tr>
-<tr><td>36</td><td class="mono"><span data-n="432000">432,000</span> – <span data-n="443999">443,999</span></td><td class="mono">0.00000001 YSR</td><td class="mono">0.00012</td><td class="mono"><span data-n="20999">20,999</span>,999.99832</td></tr>
+<tr data-aera="36"><td><span data-n="36">36</span></td><td class="mono"><span data-n="432000">432,000</span> – <span data-n="443999">443,999</span></td><td class="mono"><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</td><td class="mono"><span data-n="0.00012" data-nd="5">0.00012</span></td><td class="mono"><span data-n="20999999.99832" data-nd="5">20,999,999.99832</span></td></tr>
 </tbody></table></div>
-<p class="leise" data-t="supply.aera.fuss">Rewards are whole units, so the last fractions fall away: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.</p>
+<p class="leise" data-t="supply.aera.fuss">Rewards are counted in whole base units (0.00000001 YSR), so each halving drops the remainder: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.</p>
 </div>
 </div>
 </section>

@@ -439,6 +439,7 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .aeren{margin-top:clamp(56px,7vw,88px);display:flex;flex-direction:column;gap:22px}
 .aera-tabelle td{white-space:nowrap}
 .aera-tabelle tr.jetzt td{color:var(--fg);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.aera-tabelle tr.jetzt td:first-child::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc2);margin-left:10px;vertical-align:1px;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc2) 25%,transparent)}
 .tag-jetzt{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--acc2);color:#04101E;margin-left:8px;vertical-align:1px}
 .zahlen-notiz{flex-wrap:wrap}
 .fusszeile .spalten a{overflow-wrap:anywhere}

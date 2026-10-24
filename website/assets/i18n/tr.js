@@ -62,7 +62,6 @@
   "grund.etikett": "Genesis bloğundaki yazıt",
   "grund.text": "Bir düğmeye dokunup bir sayının artışını izlediğin pek çok uygulama var. YSKAR farklı: gerçek hesaplama, gerçek bir blokzincir ve sözümüze güvenmeni gerektiren hiçbir şey.",
   "grund.k1.titel": "Gerçek iş",
-  "grund.k1.text": "Cihazın, tıpkı bir Bitcoin madencisi gibi çift SHA-256 hesaplar. Düğüm, aldığı her sonucu yeniden kontrol eder.",
   "grund.k2.titel": "Kendin doğrula",
   "grund.k2.text": "Gezgin her bloğun başlığını tarayıcında yeniden oluşturur, hash’ini hesaplar, iş ispatını kontrol eder ve zinciri izler. Geri kalan her şeyi – transferler, imzalar, bakiyeler – tam düğüm kontrol eder ve herkes bir tane çalıştırabilir.",
   "grund.k3.titel": "Yalnızca senin",

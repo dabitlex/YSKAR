@@ -105,8 +105,9 @@
     // Zahlen im Format der Sprache: 15,75 statt 15.75.
     els = document.querySelectorAll('[data-n]');
     for (i = 0; i < els.length; i++) {
+      var nd = Number(els[i].getAttribute('data-nd') || 2);
       els[i].textContent = Number(els[i].getAttribute('data-n'))
-        .toLocaleString(LOCALES[sprache], { maximumFractionDigits: 2 });
+        .toLocaleString(LOCALES[sprache], { minimumFractionDigits: els[i].hasAttribute('data-nd') ? 0 : 0, maximumFractionDigits: nd });
     }
     var sel = document.getElementById('sprache');
     if (sel) sel.value = sprache;
@@ -249,7 +250,17 @@
     if (live.knoten != null) feld('knoten', Number(live.knoten).toLocaleString(loc));
     var max = Number(BigInt(live.maxSupply || '2100000000000000') / 100000000n);
     var anteil = max > 0 ? ausgegeben / max * 100 : 0;
-    feld('anteil', (t('supply.anteil') || '{p} % mined').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
+    feld('anteil', (t('supply.anteil') || '{p} % issued').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
+    // Aktuelle Aera: Zeile der Tabelle markieren, Belohnung je Block (875 YSR >> Aera).
+    var aera = Math.floor(h / EPOCHE);
+    if (isFinite(aera)) {
+      var zeilen = document.querySelectorAll('[data-aera]');
+      for (var z = 0; z < zeilen.length; z++) {
+        zeilen[z].classList.toggle('jetzt', Number(zeilen[z].getAttribute('data-aera')) === aera);
+      }
+      var belohnung = aera < 37 ? 875 / Math.pow(2, aera) : 0;
+      feld('belohnung', belohnung.toLocaleString(loc, { maximumFractionDigits: 8 }) + ' YSR');
+    }
     feld('status', t('live.stand') || '');
     // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke.
     var glieder = document.querySelectorAll('[data-kette]');
