@@ -21,16 +21,16 @@
 <link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=34">
+<link rel="stylesheet" href="/assets/style.css?v=35">
 <noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=34"></script>
-<script src="/assets/site.js?v=34" defer></script>
-<script src="/assets/motion.js?v=34" defer></script>
-<script src="/assets/pruefen.js?v=34" defer></script>
-<script src="/assets/bloecke.js?v=34" defer></script>
-<script src="/assets/adresse.js?v=34" defer></script>
-<script src="/assets/nutzen.js?v=34" defer></script>
-<script src="/assets/v6.js?v=34" defer></script>
+<script src="/assets/i18n/en.js?v=35"></script>
+<script src="/assets/site.js?v=35" defer></script>
+<script src="/assets/motion.js?v=35" defer></script>
+<script src="/assets/pruefen.js?v=35" defer></script>
+<script src="/assets/bloecke.js?v=35" defer></script>
+<script src="/assets/adresse.js?v=35" defer></script>
+<script src="/assets/nutzen.js?v=35" defer></script>
+<script src="/assets/v6.js?v=35" defer></script>
 </head>
 <body data-seite="start">
 
@@ -108,7 +108,7 @@
 <div class="zahl"><span class="wert"><span data-live="umlaufMio">—</span><small data-t="figs.mio">M YSR</small></span><span class="k" data-t="live.umlauf">In circulation</span></div>
 <div class="zahl"><span class="wert"><span data-live="tage">—</span><small data-t="figs.tage">days</small></span><span class="k" data-t="figs.halbierung">Until the next halving, approx.</span></div>
 </div>
-<p class="zahlen-notiz"><span class="punkt"></span><span id="live-status" data-t="live.laedt">Loading live data from the chain…</span><span aria-hidden="true">·</span><span data-t="live.umlaufHinweis">Not counting the 875 YSR of block 0, which nobody can spend.</span></p>
+<p class="zahlen-notiz"><span class="punkt"></span><span id="live-status" data-t="live.laedt">Loading live data from the chain…</span><span aria-hidden="true">·</span><span data-t="live.umlaufHinweis">Not counting burned YSR, which nobody can spend.</span></p>
 </div>
 </section>
 
@@ -144,7 +144,7 @@
 <g fill="url(#vg3)"><rect x="18" y="38" width="12" height="32" rx="3" fill-opacity="0.35"/><rect x="42" y="38" width="12" height="32" rx="3" fill-opacity="0.42"/><rect x="66" y="38" width="12" height="32" rx="3" fill-opacity="0.49"/><rect x="90" y="38" width="12" height="32" rx="3" fill-opacity="0.56"/><rect x="114" y="38" width="12" height="32" rx="3" fill-opacity="0.63"/><rect x="138" y="38" width="12" height="32" rx="3" fill-opacity="0.70"/><rect x="162" y="38" width="12" height="32" rx="3" fill-opacity="0.77"/><rect x="186" y="38" width="12" height="32" rx="3" fill-opacity="0.84"/></g>
 <path d="M14 70V18" stroke="#63D8FF" stroke-opacity=".5" stroke-width="1" stroke-dasharray="2 4"/><circle cx="14" cy="70" r="3.5" fill="#63D8FF"/></svg></div>
 <h3 data-t="about.f3.titel">A fair launch</h3>
-<p data-t="about.f3.text">Nothing was pre-mined or allocated. New YSR come into existence in one way only: as the reward for a block.</p>
+<p data-t="about.f3.text">Nothing was pre-mined or allocated. New YSR come into existence in one way only: as the reward for a block. About 1.07 million YSR from the early days were burned to offset the head start.</p>
 </div>
 <div class="was-feld">
 <div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg4" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
@@ -277,6 +277,7 @@
 <div><span class="k" data-t="supply.ek.belohnung">Reward per block now</span><span class="v" data-live="belohnung">—</span></div>
 <div><span class="k" data-t="supply.ek.ausgegeben">Issued so far</span><span class="v" data-live="anteil">—</span></div>
 <div><span class="k" data-t="supply.ek.letzte">Last new YSR</span><span class="v" data-t="supply.ek.letzteWert">block 443,999</span></div>
+<div class="verbrannt"><span class="k" data-t="supply.ek.verbrannt">Burned for good</span><span class="v" data-live="verbrannt">—</span><span class="klein" data-t="supply.ek.verbranntText">Sent to the zero address, which has no key. This includes 1,066,101 YSR from the early days, burned to offset the head start (block 3,974), and the 875 YSR of block 0.</span><a class="weiter" href="/explorer#adr-ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw"><span data-t="supply.ek.pruefen">Check the address in the explorer</span> →</a></div>
 </div>
 </div>
 <div class="kurve">

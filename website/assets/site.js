@@ -205,6 +205,10 @@
 
   // ---------------------------------------------------------------- Live
   var live = null;     // letzte Antwort von /summary
+  // Nullkonto: hat keinen Schluessel. Was dort liegt, ist verbrannt (875 YSR aus
+  // Block 0 und die YSR, die zum Ausgleich des fruehen Vorsprungs verbrannt wurden).
+  var NULLKONTO = 'ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw';
+  var verbrannt = null; // Einheiten (BigInt), aus /account
   var liveFehler = false;
 
   function rate(h) {
@@ -233,13 +237,17 @@
     var h = Number(live.height);
     feld('hoehe', isFinite(h) ? '#' + h.toLocaleString(loc) : '—');
     feld('rate', rate(Number(live.hashrate)));
-    // totalSupply ist die Summe aller Guthaben. Die 875 YSR aus Block 0 liegen auf der
-    // Null-Adresse und koennen nie ausgegeben werden; im Umlauf zaehlen sie nicht.
+    // totalSupply ist die Summe aller Guthaben, auch die des Nullkontos. Im Umlauf
+    // zaehlt nur, was jemand ausgeben kann: ausgegeben minus verbrannt.
     var einheiten = BigInt(live.totalSupply || '0');
     var ausgegeben = Number(einheiten / 100000000n);
-    var umlauf = Math.max(0, ausgegeben - 875);
-    feld('umlauf', umlauf.toLocaleString(loc) + ' YSR');
-    feld('umlaufMio', (umlauf / 1e6).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    var umlauf = null;
+    if (verbrannt !== null) {
+      umlauf = Number((einheiten - verbrannt) / 100000000n);
+      feld('umlauf', umlauf.toLocaleString(loc) + ' YSR');
+      feld('umlaufMio', (umlauf / 1e6).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      feld('verbrannt', Number(verbrannt / 100000000n).toLocaleString(loc) + ' YSR');
+    }
     var naechste = (Math.floor(h / EPOCHE) + 1) * EPOCHE;
     var vorlage = t('live.blockN') || 'Block {n}';
     feld('halbierung', isFinite(naechste) ? vorlage.replace('{n}', naechste.toLocaleString(loc)) : '—');
@@ -283,9 +291,16 @@
 
   function liveHolen() {
     if (!document.getElementById('live-hoehe') && !document.querySelector('[data-live]')) return;
-    fetch(API + '/summary', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { live = d; liveFehler = false; liveZeigen(); })
+    var json = function (r) { if (!r.ok) throw new Error(r.status); return r.json(); };
+    Promise.all([
+      fetch(API + '/summary', { cache: 'no-store' }).then(json),
+      fetch(API + '/account/' + NULLKONTO, { cache: 'no-store' }).then(json).catch(function () { return null; })
+    ])
+      .then(function (d) {
+        live = d[0]; liveFehler = false;
+        if (d[1] && d[1].balance != null) verbrannt = BigInt(String(d[1].balance));
+        liveZeigen();
+      })
       .catch(function () { liveFehler = true; liveZeigen(); });
   }
 

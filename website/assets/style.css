@@ -608,3 +608,7 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .seitenkopf.mit-muenze .wrap{position:relative;z-index:1}
 .seitenkopf .muenze3d.statisch{--d:clamp(150px,15vw,230px);right:clamp(32px,11vw,200px);top:50%;margin-top:calc(var(--d)/-2)}
 @media (max-width:900px){.muenze3d.statisch{display:none}}
+.eckdaten > div.verbrannt{grid-column:1/-1;padding-left:0;border-left:0;gap:6px}
+.eckdaten .verbrannt .klein{max-width:520px;line-height:1.55}
+.eckdaten .verbrannt .weiter{font-size:14px;font-weight:600;color:var(--acc2);margin-top:4px}
+.datenblatt dd a{color:var(--acc2)}
