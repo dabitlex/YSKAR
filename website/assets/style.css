@@ -586,15 +586,11 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .muenze3d::before{content:"";position:absolute;inset:-45%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 30%,transparent),transparent 62%);animation:m-puls 6s ease-in-out infinite}
 .m-dreh{position:absolute;inset:0;transform-style:preserve-3d;animation:m-drehen 9s linear infinite}
 .m-rand{position:absolute;inset:0;border-radius:50%;background:linear-gradient(90deg,#1B4FD1,#63D8FF 50%,#1B4FD1);transform:translateZ(var(--z))}
-.m-seite{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;transform-style:preserve-3d;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+.m-seite{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;
   background:radial-gradient(circle at 50% 50%,transparent 0 60%,rgba(255,255,255,.08) 61% 62%,transparent 63%),radial-gradient(circle at 32% 26%,#132354,#060B1C 72%);
   box-shadow:inset 0 0 0 calc(var(--d)*.035) #2F7BFF,inset 0 0 0 calc(var(--d)*.05) #1B4FD1,inset 0 0 calc(var(--d)*.12) rgba(99,216,255,.18)}
-.m-relief{position:relative;width:56%;height:56%;transform-style:preserve-3d}
-.m-relief img{position:absolute;inset:0;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.m-tief{transform:translateZ(calc(var(--h) * 1px));filter:brightness(calc(.45 + var(--h) * .06))}
-.m-schatten{transform:translate(3%,4%) translateZ(.5px);filter:brightness(0) blur(4px);opacity:.55}
-.m-oben{transform:translateZ(10px);filter:drop-shadow(-1px -1px 0 rgba(190,236,255,.55)) drop-shadow(1px 1px 0 rgba(8,22,70,.9)) drop-shadow(0 0 calc(var(--d)*.05) rgba(47,123,255,.45))}
-.m-seite::after{content:"";position:absolute;inset:0;border-radius:50%;transform:translateZ(11px);pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.10) 48%,transparent 60%)}
+.m-seite img{width:56%;height:56%;filter:drop-shadow(0 0 calc(var(--d)*.05) rgba(47,123,255,.45))}
+.m-seite::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.10) 48%,transparent 60%)}
 .m-seite.vorne{transform:translateZ(calc(var(--t)/2))}
 .m-seite.hinten{transform:rotateY(180deg) translateZ(calc(var(--t)/2))}
 @keyframes m-drehen{from{transform:rotateX(8deg) rotateY(0)}to{transform:rotateX(8deg) rotateY(360deg)}}
@@ -602,5 +598,3 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 @media (max-width:999px){.muenze3d{display:none}}
 @media (prefers-reduced-motion:reduce){.m-dreh{animation:none;transform:rotateX(8deg) rotateY(-24deg)}.muenze3d::before{animation:none}}
 .m-dreh.js{animation:none;will-change:transform}
-.muenze3d.gl .m-dreh{display:none}
-.held .muenze3d .m-gl{position:absolute;inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:block}
