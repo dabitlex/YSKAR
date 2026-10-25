@@ -41,7 +41,7 @@
       ]
     },
     {
-      "source": "/assets/(pruefen|bloecke|pools|adresse|rechner|nutzen|v6).js",
+      "source": "/assets/(pruefen|bloecke|pools|adresse|rechner|nutzen|v6|wallet-muenzen).js",
       "headers": [
         {
           "key": "Cache-Control",
