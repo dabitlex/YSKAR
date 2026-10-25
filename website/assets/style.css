@@ -228,8 +228,8 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 @media (max-width:920px){.v6-kopf{grid-template-columns:1fr}}
 .v6-zeichen{font-size:clamp(150px,26vw,380px);font-weight:600;line-height:.8;letter-spacing:-.07em;background:linear-gradient(180deg,#FFFFFF 10%,var(--acc2) 45%,var(--acc) 80%,transparent);-webkit-background-clip:text;background-clip:text;color:transparent;user-select:none}
 .v6-zeichen span{font-weight:200}
-.v6-status{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);background:color-mix(in srgb,var(--warn) 8%,transparent);font-family:var(--mono);font-size:12px;color:var(--warn);letter-spacing:.04em}
-.v6-status i{width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.v6-status{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--acc2) 40%,transparent);background:color-mix(in srgb,var(--acc2) 8%,transparent);font-family:var(--mono);font-size:12px;color:var(--acc2);letter-spacing:.04em}
+.v6-status i{width:7px;height:7px;border-radius:50%;background:var(--acc2)}
 .v6-text{display:flex;flex-direction:column;gap:22px;padding-bottom:12px}
 .v6-text .h2{font-size:clamp(34px,4.2vw,58px)}
 .v6-text p{color:var(--lese);font-size:17px;max-width:520px}
@@ -573,3 +573,11 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .v6 .etappe::before{background:#060B1C}
 #protokoll,#wege{padding-top:clamp(48px,6vw,80px)}
 .menge-mehr{display:inline-block;margin-top:40px}
+/* V6-Countdown */
+.v6-countdown{margin-top:28px;display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:6px 18px;padding:20px 24px;border:1px solid color-mix(in srgb,var(--acc2) 35%,transparent);border-radius:20px;background:color-mix(in srgb,var(--bg) 60%,transparent)}
+.v6-countdown .cd-label{grid-column:1/-1;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc2)}
+.v6-countdown .cd-zahl{font-family:var(--mono);font-size:clamp(28px,3vw,40px);font-weight:500;letter-spacing:-.02em;color:var(--fg);white-space:nowrap}
+.v6-countdown .cd-etwa{color:var(--lese);font-size:15px}
+.v6-countdown .cd-basis{grid-column:1/-1;color:var(--mut);font-size:12.5px;line-height:1.5}
+.v6-countdown.aktiv .cd-zahl{font-family:inherit;font-size:20px;white-space:normal;grid-column:1/-1;color:var(--ok)}
+@media (max-width:560px){.v6-countdown{grid-template-columns:1fr}}

@@ -20,15 +20,16 @@
 <link rel="icon" href="/favicon.png?v=2" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
 <link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=24">
+<link rel="stylesheet" href="/assets/style.css?v=25">
 <noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=24"></script>
-<script src="/assets/site.js?v=24" defer></script>
-<script src="/assets/motion.js?v=24" defer></script>
-<script src="/assets/pruefen.js?v=24" defer></script>
-<script src="/assets/bloecke.js?v=24" defer></script>
-<script src="/assets/adresse.js?v=24" defer></script>
-<script src="/assets/nutzen.js?v=24" defer></script>
+<script src="/assets/i18n/en.js?v=25"></script>
+<script src="/assets/site.js?v=25" defer></script>
+<script src="/assets/motion.js?v=25" defer></script>
+<script src="/assets/pruefen.js?v=25" defer></script>
+<script src="/assets/bloecke.js?v=25" defer></script>
+<script src="/assets/adresse.js?v=25" defer></script>
+<script src="/assets/nutzen.js?v=25" defer></script>
+<script src="/assets/v6.js?v=25" defer></script>
 </head>
 <body data-seite="start">
 
@@ -68,7 +69,7 @@
 <div class="held-text">
 <div class="chips">
 <span class="chip"><span class="punkt"></span><span data-th="h2.chip">Mainnet live since <b>9 September 2026</b></span></span>
-<a class="chip v6" href="#v6"><span data-th="h2.chipV6"><b>V6</b> in development · see what’s next</span> →</a>
+<a class="chip v6" href="#v6"><span data-th="h2.chipV6"><b>V6</b> from block 10,000 · see what’s next</span> →</a>
 </div>
 <h1><span data-t="h2.titel1">Mined by people.</span><span class="lt grad" data-t="h2.titel2">Proven by math.</span></h1>
 <p class="lead" data-t="h2.text">YSKAR is an independent proof-of-work cryptocurrency with a blockchain of its own. 21 million YSR at most, nothing allocated in advance, and every block open for anyone to check.</p>
@@ -291,10 +292,16 @@
 <div class="v6-kopf">
 <div class="v6-zeichen" aria-hidden="true">V<span>6</span></div>
 <div class="v6-text">
-<span class="v6-status"><i></i><span data-t="v6.status">In development · activation height not yet set</span></span>
+<span class="v6-status"><i></i><span data-t="v6.status">Height set · active from block 10,000</span></span>
 <span class="etikett" data-t="v6.etikett">Consensus revision 6</span>
 <h2 class="h2" id="v6-titel"><span data-t="v6.titel1">The next chapter</span><br><span class="lt" data-t="v6.titel2">of YSKAR.</span></h2>
-<p data-t="v6.text">V6 is a hard fork that changes the account record, the address format and the transaction format. It gives accounts new abilities, raises how many transactions every block can hold and lays the foundation for features that later revisions can build on. It activates at a fixed block height, announced well in advance.</p>
+<p data-t="v6.text">V6 is a hard fork that changes the account record, the address format and the transaction format. It gives accounts new abilities, raises how many transactions every block can hold and lays the foundation for features that later revisions can build on. It activates at block 10,000.</p>
+<div class="v6-countdown" id="v6-countdown" aria-live="polite">
+<span class="cd-label" data-t="v6.cd.label">Until V6</span>
+<b class="cd-zahl" id="cd-bloecke">—</b>
+<span class="cd-etwa" id="cd-etwa"></span>
+<span class="cd-basis" data-t="v6.cd.basis">Estimate from the average block time of the last 50 blocks. The real time depends on the mining power in the network.</span>
+</div>
 </div>
 </div>
 
@@ -346,7 +353,7 @@
 <div class="v6-box">
 <h3 data-t="v6.tun.titel">What you will need to do</h3>
 <ul>
-<li data-t="v6.tun.p1">Update your wallet and your node before the activation height</li>
+<li data-t="v6.tun.p1">Update your wallet and your node before block 10,000</li>
 <li data-t="v6.tun.p2">Miners, the GPU miner and the HiveOS package need no update</li>
 <li data-t="v6.tun.p3">Receiving YSR and your balance are not affected; an outdated wallet only cannot send</li>
 </ul>
@@ -371,7 +378,7 @@
 <div class="etappen">
 <div class="etappe fertig"><span class="wann" data-t="road.e1.wann">Block 6,000 · live</span><b data-t="road.e1.titel">Uncapped difficulty</b><p data-t="road.e1.text">The difficulty can follow mining power far beyond the former limit of about 469 GH/s.</p></div>
 <div class="etappe naechste"><span class="wann" data-t="road.e2.wann">Block 7,000 · scheduled</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
-<div class="etappe gross"><span class="wann" data-t="road.e3.wann">Height to be announced</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
+<div class="etappe gross"><span class="wann" data-t="road.e3.wann">Block 10,000 · set</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
 <div class="etappe"><span class="wann" data-t="road.e4.wann">Launch</span><b data-t="road.e4.titel">Wallet on Google Play</b><p data-t="road.e4.text">Released together with the official launch.</p></div>
 <div class="etappe"><span class="wann" data-t="road.e5.wann">Planned</span><b data-t="road.e5.titel">Instant payments</b><p data-t="road.e5.text">Real-time payments. No date set yet.</p></div>
 </div>
@@ -450,7 +457,7 @@
 <div>
 <details><summary data-t="faq.q1">Does it cost anything to take part?</summary><p data-t="faq.a1">No. The app, Mini App, Node Core and miner are free. You pay for the electricity your device uses; sending YSR costs a small network fee, and a pool keeps its fee (the public pool: 1 %).</p></details>
 <details><summary data-t="faq.q2">What if I lose my phone?</summary><p data-t="faq.a2">With your 12 words you can restore your wallet on any device. Without them, nobody can recover the funds, not even us.</p></details>
-<details><summary data-t="faq.q6">What is V6, and do I have to do anything?</summary><p data-t="faq.a6">V6 is the next revision of the consensus rules, a hard fork. It activates at a block height that will be announced well in advance. Your address, keys and balance stay valid. Before that height, update your wallet or app, Node Core and your node; the command-line miner, the GPU miner and the HiveOS package need no update.</p></details>
+<details><summary data-t="faq.q6">What is V6, and do I have to do anything?</summary><p data-t="faq.a6">V6 is the next revision of the consensus rules, a hard fork. It activates at block 10,000. Your address, keys and balance stay valid. Before that height, update your wallet or app, Node Core and your node; the command-line miner, the GPU miner and the HiveOS package need no update.</p></details>
 <details><summary data-t="faq.q3">Why doesn’t the Play Store app mine?</summary><p data-t="faq.a3">Google Play does not allow apps that mine cryptocurrency on the device itself. That is why the Android app with mining is available directly on this website.</p></details>
 <details><summary data-t="faq.q4">Is the code open source?</summary><p data-th="faq.a4">Yes. The entire code – node, app, miner and this website – is public on <a href="https://github.com/dabitlex/YSKAR">GitHub</a> and released under the MIT License.</p></details>
 <details><summary data-t="faq.q5">How do I know the numbers are real?</summary><p data-t="faq.a5">The explorer checks the proof of work of every block in your browser and follows the chain. A full node or the observer goes further and verifies every transfer, signature and balance from block 0 – anyone can run one.</p></details>
