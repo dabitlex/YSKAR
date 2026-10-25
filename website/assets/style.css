@@ -65,7 +65,7 @@ p{margin:0}
 .kopf-rechts{display:flex;align-items:center;gap:10px}
 .marke{display:flex;align-items:center;gap:11px;color:var(--fg)}
 .marke:hover{color:var(--fg)}
-.marke img{width:36px;height:24px;object-fit:contain}
+.marke img{width:30px;height:30px;object-fit:contain}
 .marke span{font-size:17px;font-weight:700;letter-spacing:.1em}
 .nav{display:flex;align-items:center;gap:26px;font-size:14px;font-weight:500}
 .nav a{color:var(--mut);white-space:nowrap;transition:color .2s}

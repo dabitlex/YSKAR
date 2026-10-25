@@ -20,7 +20,7 @@ assets/motion.js    start and mining page: warp and V6 canvas, scroll effects, t
 assets/nutzen.js    start page: live fee and average block time
 assets/i18n/*.js    texts per language (English is the default and the fallback)
 assets/fonts/       Geist and Geist Mono (Latin), Manrope and IBM Plex Mono (Cyrillic), self-hosted, with their license files
-assets/img/         logo, app screenshots, Node Core screenshots
+assets/img/         zeichen.svg (logo), share image, app icons, wallet screenshots; favicon.svg/.png in the root
 vercel.json         clean URLs, headers, rewrites, build only when this folder changed
 .vercelignore       keeps this README out of the deployment
 ```
