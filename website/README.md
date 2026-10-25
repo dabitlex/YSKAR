@@ -7,7 +7,8 @@ The site is plain HTML, CSS and JavaScript. There is no framework and no build s
 serves the files as they are in this folder.
 
 ```text
-index.html          start page: the currency, protocol, V6, using YSR
+index.html          start page: the currency, how it works, check it yourself, supply, V6 with roadmap, using YSR
+protokoll.html      protocol: datasheet, block header, transfer, block 0, issuance by era
 mining.html         mining: ways to mine, Node Core downloads, calculator, active pools
 anleitungen.html    guides: Mini App, Android app, Node Core, PC miner, wallet, full node, pool
 whitepaper.html     whitepaper, in English and German

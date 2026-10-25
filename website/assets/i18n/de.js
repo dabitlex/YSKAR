@@ -793,4 +793,12 @@
   "mi.wege.titel1": "Wähle dein Gerät.",
   "mi.wege.titel2": "Jeder Weg ist kostenlos.",
   "mi.wege.text": "Alle Apps teilen eine Wallet: Mit deinen 12 Wörtern erreichst du überall dieselben YSR.",
+  "chk.etikett": "Prüf es selbst",
+  "chk.titel1": "Glaub uns kein Wort.",
+  "chk.titel2": "Rechne nach.",
+  "chk.protokoll": "Das ganze Protokoll, Byte für Byte",
+  "seite.protokoll.titel": "Protokoll – YSKAR",
+  "seite.protokoll.beschreibung": "Das YSKAR-Protokoll im Detail: Coin, Kette und Wallets in einem Datenblatt, der 136-Byte-Blockkopf, das Überweisungsformat und Block 0.",
+  "pr.pruefen": "Prüf Block 0 oder den neuesten Block selbst, direkt in deinem Browser.",
+  "supply.mehr": "Ausgabe nach Ära, im Protokoll",
 };

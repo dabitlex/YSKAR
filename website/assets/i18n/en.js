@@ -793,4 +793,12 @@
   "mi.wege.titel1": "Pick your device.",
   "mi.wege.titel2": "Every way is free.",
   "mi.wege.text": "All apps share one wallet: with your 12 words you reach the same YSR everywhere.",
+  "chk.etikett": "Check it yourself",
+  "chk.titel1": "Don't take our word for it.",
+  "chk.titel2": "Do the math.",
+  "chk.protokoll": "The whole protocol, byte by byte",
+  "seite.protokoll.titel": "Protocol – YSKAR",
+  "seite.protokoll.beschreibung": "The YSKAR protocol in detail: coin, chain and wallets in one datasheet, the 136-byte block header, the transfer format and block 0.",
+  "pr.pruefen": "Check block 0 or the latest block yourself, right in your browser.",
+  "supply.mehr": "Issuance by era, in the protocol",
 };
