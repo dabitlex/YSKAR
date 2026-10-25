@@ -18,6 +18,8 @@ assets/style.css    all styles
 assets/site.js      language, menu, live values
 assets/motion.js    start and mining page: warp and V6 canvas, scroll effects, tile light (decoration; the page works without it)
 assets/nutzen.js    start page: live fee and average block time
+assets/muenze.js    start page, wide screens only: the rotating 3D coin (WebGL); loads Three.js from assets/vendor on demand
+assets/vendor/      Three.js r170 and its RoomEnvironment, MIT (three-LICENSE.txt)
 assets/i18n/*.js    texts per language (English is the default and the fallback)
 assets/fonts/       Geist and Geist Mono (Latin), Manrope and IBM Plex Mono (Cyrillic), self-hosted, with their license files
 assets/img/         zeichen.svg (logo), share image, app icons, wallet screenshots; favicon.svg/.png in the root

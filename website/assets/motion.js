@@ -221,7 +221,7 @@
     var muenzeStart = null;
     function schleife(t) {
       for (var i = 0; i < bilder.length; i++) if (bilder[i].an) bilder[i].f();
-      if (muenze && (!b1 || b1.an)) {
+      if (muenze && (!b1 || b1.an) && !muenze.parentNode.classList.contains('gl')) {
         if (muenzeStart === null) muenzeStart = t;
         var grad = ((t - muenzeStart) / 9000 * 360) % 360;
         muenze.style.transform = 'rotateX(8deg) rotateY(' + grad.toFixed(2) + 'deg)';

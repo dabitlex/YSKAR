@@ -602,3 +602,5 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 @media (max-width:999px){.muenze3d{display:none}}
 @media (prefers-reduced-motion:reduce){.m-dreh{animation:none;transform:rotateX(8deg) rotateY(-24deg)}.muenze3d::before{animation:none}}
 .m-dreh.js{animation:none;will-change:transform}
+.muenze3d.gl .m-dreh{display:none}
+.held .muenze3d .m-gl{position:absolute;inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;display:block}
