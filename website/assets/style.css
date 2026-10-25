@@ -581,3 +581,19 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .v6-countdown .cd-basis{grid-column:1/-1;color:var(--mut);font-size:12.5px;line-height:1.5}
 .v6-countdown.aktiv .cd-zahl{font-family:inherit;font-size:20px;white-space:normal;grid-column:1/-1;color:var(--ok)}
 @media (max-width:560px){.v6-countdown{grid-template-columns:1fr}}
+/* Muenze im Fluchtpunkt des Warp (Test) */
+.muenze3d{--d:clamp(170px,16vw,240px);--t:18px;position:absolute;left:70%;top:50%;width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);z-index:1;perspective:1100px;pointer-events:none}
+.muenze3d::before{content:"";position:absolute;inset:-45%;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 30%,transparent),transparent 62%);animation:m-puls 6s ease-in-out infinite}
+.m-dreh{position:absolute;inset:0;transform-style:preserve-3d;animation:m-drehen 9s linear infinite}
+.m-rand{position:absolute;inset:0;border-radius:50%;background:linear-gradient(90deg,#1B4FD1,#63D8FF 50%,#1B4FD1);transform:translateZ(var(--z))}
+.m-seite{position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:radial-gradient(circle at 50% 50%,transparent 0 60%,rgba(255,255,255,.08) 61% 62%,transparent 63%),radial-gradient(circle at 32% 26%,#132354,#060B1C 72%);
+  box-shadow:inset 0 0 0 calc(var(--d)*.035) #2F7BFF,inset 0 0 0 calc(var(--d)*.05) #1B4FD1,inset 0 0 calc(var(--d)*.12) rgba(99,216,255,.18)}
+.m-seite img{width:56%;height:56%;filter:drop-shadow(0 0 calc(var(--d)*.05) rgba(47,123,255,.45))}
+.m-seite::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.10) 48%,transparent 60%)}
+.m-seite.vorne{transform:translateZ(calc(var(--t)/2))}
+.m-seite.hinten{transform:rotateY(180deg) translateZ(calc(var(--t)/2))}
+@keyframes m-drehen{from{transform:rotateX(8deg) rotateY(0)}to{transform:rotateX(8deg) rotateY(360deg)}}
+@keyframes m-puls{50%{opacity:.55}}
+@media (max-width:999px){.muenze3d{display:none}}
+@media (prefers-reduced-motion:reduce){.m-dreh{animation:none;transform:rotateX(8deg) rotateY(-24deg)}.muenze3d::before{animation:none}}
