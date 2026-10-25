@@ -32,7 +32,7 @@
       ]
     },
     {
-      "source": "/assets/(pruefen|bloecke|pools|adresse|rechner).js",
+      "source": "/assets/(pruefen|bloecke|pools|adresse|rechner|nutzen).js",
       "headers": [
         {
           "key": "Cache-Control",

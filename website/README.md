@@ -7,14 +7,16 @@ The site is plain HTML, CSS and JavaScript. There is no framework and no build s
 serves the files as they are in this folder.
 
 ```text
-index.html          start page
+index.html          start page: the currency, protocol, V6, using YSR
+mining.html         mining: ways to mine, Node Core downloads, calculator, active pools
 anleitungen.html    guides: Mini App, Android app, Node Core, PC miner, wallet, full node, pool
 whitepaper.html     whitepaper, in English and German
 impressum.html      legal notice (German)
 datenschutz.html    privacy policy (German)
 assets/style.css    all styles
 assets/site.js      language, menu, live values
-assets/motion.js    start page only: warp and V6 canvas, scroll effects (decoration; the page works without it)
+assets/motion.js    start and mining page: warp and V6 canvas, scroll effects, tile light (decoration; the page works without it)
+assets/nutzen.js    start page: live fee and average block time
 assets/i18n/*.js    texts per language (English is the default and the fallback)
 assets/fonts/       Geist and Geist Mono (Latin), Manrope and IBM Plex Mono (Cyrillic), self-hosted, with their license files
 assets/img/         logo, app screenshots, Node Core screenshots
@@ -88,7 +90,7 @@ The website links the installer of one specific Node Core version directly on Gi
 not ask GitHub which version is the newest, because that would be a request to a third party
 from every visitor's browser. After each new Node Core release, update by hand:
 
-- in `index.html`, the Node Core tile in the section "Get started" (`id="nodecore"`): the download link, the link to the release notes
+- in `mining.html`, the Node Core tile (`id="nodecore"`): the download link, the link to the release notes
   and checksum, the version number and the file size;
 - in `anleitungen.html`: the same download link, release link, version number and file size, and
   the installer file name in the `Get-FileHash` command;
