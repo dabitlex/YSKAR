@@ -760,4 +760,7 @@
   "adr.laedt": "Loading …",
   "adr.fehler": "The address could not be loaded right now.",
   "adr.poolAnz": "Pool payouts",
+  "rech.basis": "from the last {n} blocks",
+  "rech.poolFunde": "Pool’s share of the last 100 blocks",
+  "rech.grundlage": "Network hashrate is the work of the last 100 blocks divided by their time. A pool’s share is how many of these blocks it actually found; the hashrate a pool reports itself is not used.",
 };

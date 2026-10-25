@@ -760,4 +760,7 @@
   "adr.laedt": "Wird geladen …",
   "adr.fehler": "Die Adresse konnte gerade nicht geladen werden.",
   "adr.poolAnz": "Pool-Auszahlungen",
+  "rech.basis": "aus den letzten {n} Blöcken",
+  "rech.poolFunde": "Anteil des Pools an den letzten 100 Blöcken",
+  "rech.grundlage": "Die Netz-Hashrate ist die Arbeit der letzten 100 Blöcke geteilt durch ihre Zeit. Der Anteil eines Pools ist, wie viele dieser Blöcke er tatsächlich gefunden hat; die Hashrate, die ein Pool selbst meldet, wird nicht verwendet.",
 };

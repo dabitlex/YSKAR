@@ -2,7 +2,10 @@
  * yskar.app -- Mining-Rechner. Schaetzung in YSR, ohne Geldwerte.
  *
  * Annahmen (stehen auch unter dem Rechner):
- *   - Die Difficulty passt zur Netz-Hashrate plus deiner eigenen.
+ *   - Netz-Hashrate = Arbeit der letzten 100 Bloecke geteilt durch ihre Zeit
+ *     (aus der Kette, nicht aus Meldungen). Deine Hashrate kommt dazu.
+ *   - Pool-Anteil = Anteil des Pools an den letzten 100 Bloecken. Die Hashrate,
+ *     die ein Pool selbst meldet, wird nicht verwendet.
  *   - Im Mittel 144 Bloecke am Tag (Ziel 600 s).
  *   - Belohnung der aktuellen Aera, ohne Gebuehren.
  *   - Pool: Anteil nach geleisteter Arbeit, abzueglich der Pool-Gebuehr.
@@ -12,7 +15,7 @@
   var API = 'https://yskar.vercel.app/api/v2';
   var EPOCHE = 12000, PRO_TAG = 86400 / 600;
   var EINHEIT = { 'H/s': 1, 'kH/s': 1e3, 'MH/s': 1e6, 'GH/s': 1e9, 'TH/s': 1e12 };
-  var netz = null, hoehe = null, pools = null;
+  var netz = null, hoehe = null, pools = null, funde = {}, anzahl = 0;
 
   function tt(k) {
     var l = (document.documentElement.lang || 'en').slice(0, 2), b = window.YSKAR_TEXTE || {};
@@ -72,7 +75,9 @@
       setze('r-chance', zahl((1 - Math.exp(-anteil * PRO_TAG)) * 100, 1) + ' %');
       setze('r-block', ysr(R));
     } else if (pool) {
-      var poolMit = (pool.hashrate || 0) + eigen;
+      var poolAnteil = anzahl ? (funde[pool.kette || pool.name] || 0) / anzahl : 0;
+      var poolMit = poolAnteil * netz + eigen;
+      setze('r-pool-funde', zahl(poolAnteil * 100, 1) + ' %');
       setze('r-pool-alle', dauer(1 / (poolMit / gesamt * PRO_TAG)));
       setze('r-pool-teil', ysr(eigen / poolMit * R * (1 - gebuehr)));
       setze('r-pool-geb', zahl(pool.feeBps / 100) + ' %');
@@ -86,7 +91,7 @@
   }
 
   function poolsSetzen(j) {
-    pools = j.pools.slice().sort(function (a, b) { return (b.hashrate || 0) - (a.hashrate || 0); });
+    pools = j.pools.slice().sort(function (a, b) { return (funde[b.kette || b.name] || 0) - (funde[a.kette || a.name] || 0); });
     var sel = $('r-pool-liste'); if (!sel) return;
     var alt = sel.value; sel.textContent = '';
     pools.forEach(function (p) {
@@ -98,9 +103,29 @@
     rechnen();
   }
   function holen() {
-    fetch(API + '/summary', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { netz = Number(d.hashrate); hoehe = Number(d.height); rechnen(); })
+    // Die Schnittstelle liefert hoechstens 50 Bloecke je Abfrage: zwei Seiten.
+    function seite(vor) {
+      return fetch(API + '/blocks?limit=50' + (vor != null ? '&before=' + vor : ''), { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) { return d.blocks || []; });
+    }
+    seite(null)
+      .then(function (a) { return a.length ? seite(a[a.length - 1].height).then(function (z) { return a.concat(z); }) : a; })
+      .then(function (b) {
+        b = b.slice(0, 100);
+        if (b.length < 3) throw new Error('zu wenige Bloecke');
+        // Arbeit der Bloecke nach dem aeltesten, geteilt durch die Zeit dazwischen.
+        var arbeit = 0;
+        for (var i = 0; i < b.length - 1; i++) arbeit += Number(b[i].difficultyWert || b[i].difficulty);
+        var spanne = Number(b[0].timestamp) - Number(b[b.length - 1].timestamp);
+        if (!(spanne > 0)) throw new Error('keine Zeitspanne');
+        netz = arbeit * 65536 / spanne;
+        hoehe = Number(b[0].height);
+        funde = {}; anzahl = b.length;
+        b.forEach(function (x) { var f = x.finder || ''; funde[f] = (funde[f] || 0) + 1; });
+        setze('r-basis-n', tt('rech.basis').replace('{n}', anzahl.toLocaleString(loc())));
+        if (pools) poolsSetzen({ pools: pools }); else rechnen();
+      })
       .catch(function () { setze('r-hinweis', tt('rech.fehler')); });
   }
 

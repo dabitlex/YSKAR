@@ -599,7 +599,7 @@
 </fieldset>
 <label class="r-feld" id="r-pool-wahl" for="r-pool-liste"><span data-t="rech.welcher">Pool</span><select id="r-pool-liste" name="r-pool-liste"><option value="pool.yskar.app">YSKAR MAIN</option></select></label>
 <dl class="r-basis">
-<div><dt data-t="live.rate">Network hashrate</dt><dd id="r-netz">—</dd></div>
+<div><dt><span data-t="live.rate">Network hashrate</span><small id="r-basis-n">from the last 100 blocks</small></dt><dd id="r-netz">—</dd></div>
 <div><dt data-t="rech.anteil">Your share of the network</dt><dd id="r-anteil">—</dd></div>
 </dl>
 </div>
@@ -617,6 +617,7 @@
 <div><dt data-t="rech.jeBlock">Per block found</dt><dd id="r-block">—</dd></div>
 </dl>
 <dl class="r-liste" id="r-pool">
+<div><dt data-t="rech.poolFunde">Pool’s share of the last 100 blocks</dt><dd id="r-pool-funde">—</dd></div>
 <div><dt data-t="rech.poolAlle">The pool finds a block about every</dt><dd id="r-pool-alle">—</dd></div>
 <div><dt data-t="rech.poolTeil">Your part of each pool block</dt><dd id="r-pool-teil">—</dd></div>
 <div><dt data-t="rech.poolGeb">Pool fee, already deducted</dt><dd id="r-pool-geb">—</dd></div>
@@ -626,6 +627,7 @@
 <div class="r-fuss">
 <p id="r-halbierung"></p>
 <p id="r-warn-monat" hidden data-t="rech.warnMonat">The halving falls within the next 30 days; the 30-day value is therefore set too high.</p>
+<p data-t="rech.grundlage">Network hashrate is the work of the last 100 blocks divided by their time. A pool’s share is how many of these blocks it actually found; the hashrate a pool reports itself is not used.</p>
 <p data-t="rech.fuss">This is an estimate, not a promise. Blocks are found by chance, the difficulty follows the whole network and the network hashrate changes all the time. Fees are not included. Values in YSR only.</p>
 </div>
 </div>
