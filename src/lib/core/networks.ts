@@ -53,7 +53,7 @@ export interface ConsensusParams {
   v5Height: number;
   /**
    * Ab dieser Hoehe: Konsensfassung 6, der Hard Fork (docs/CONSENSUS_V6.md).
-   * Im Mainnet noch nicht gesetzt (V6_HEIGHT_UNSET).
+   * Im Mainnet Block 10.000 (params.ts, V6_HEIGHT).
    */
   v6Height: number;
 }

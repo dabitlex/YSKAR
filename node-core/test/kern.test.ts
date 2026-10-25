@@ -106,6 +106,15 @@ test('Oberfläche: Die eigene Seite kommt durch, eine fremde nicht', async () =>
     })).status, 401, 'Eine fremde Seite darf die Mining-Adresse nicht setzen');
     assert.equal((await ruf(gui, '/api/shutdown', { method: 'POST' })).status, 401);
 
+    // Ein Regelkonto (ysr1p…) kann keinen Blockertrag empfangen: klare
+    // Meldung, auch bevor der Knoten laeuft.
+    const regel = await ruf(gui, '/api/mining/start', {
+      method: 'POST', headers: { ...mit, 'content-type': 'application/json' },
+      body: JSON.stringify({ address: encodeAddress(Uint8Array.from([1, ...new Uint8Array(32).fill(0x66)])) }),
+    });
+    assert.equal(regel.status, 400);
+    assert.equal(regel.json.code, 'adresse_regelkonto');
+
     // Mit Schluessel: die Oberflaeche arbeitet.
     const stand = await ruf(gui, '/api/status', { headers: mit });
     assert.equal(stand.status, 200);

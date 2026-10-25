@@ -37,7 +37,7 @@ export function baue(ctx) {
       el('div.karte-kopf', el('h2', t('peers.liste'))),
       el('div.tab-huelle', el('table.tab',
         el('thead', el('tr', el('th', t('peers.adresse')), el('th', t('peers.richtung')), el('th.r', t('kette.hoehe')),
-          el('th', { style: 'padding-left:24px' }, t('peers.programm')), el('th', t('peers.seit')), el('th.r', el('span.nur-leser', t('peers.aktion'))))),
+          el('th', { style: 'padding-left:24px' }, t('peers.programm')), el('th.r', t('peers.fassung')), el('th', t('peers.seit')), el('th.r', el('span.nur-leser', t('peers.aktion'))))),
         zeilen))),
     el('div.spalten.gleich',
       el('section.karte', { style: 'flex:1 1 340px', 'aria-label': t('peers.hinzu') },
@@ -74,7 +74,7 @@ export function baue(ctx) {
     text(erreichText, offen ? t('peers.offen', s.inboundPeers, s.p2pPort) : t('peers.zu', s.p2pPort));
 
     // Nur neu aufbauen, wenn sich etwas geändert hat -- sonst springt die Tabelle.
-    const neu = JSON.stringify(s.peers.map(p => [p.id, p.hoehe, Math.floor((Date.now() - p.seit) / 60000)]));
+    const neu = JSON.stringify(s.peers.map(p => [p.id, p.hoehe, p.fassung, Math.floor((Date.now() - p.seit) / 60000)]));
     if (neu === bild) return;
     bild = neu;
     fuelle(zeilen, s.peers.length ? s.peers.map(p => el('tr',
@@ -82,9 +82,11 @@ export function baue(ctx) {
       el('td', t('peers.' + (p.richtung === 'aus' ? 'aus' : 'ein'))),
       el('td.r.mono', zahl(p.hoehe)),
       el('td.mono.dim', { style: 'padding-left:24px' }, p.programm || '—'),
+      // Konsensfassung, die der Peer im Handschlag meldet; 0 heisst: noch keiner.
+      el('td.r.mono', p.fassung > 0 ? String(p.fassung) : '—'),
       el('td.dim', dauer((Date.now() - p.seit) / 1000)),
       el('td.r', knopf(t('peers.trennen'), () => trenne(p.id), 'klein'))))
-      : el('tr', el('td.leer', { colspan: 6 }, s.running ? t('peers.keineVerbunden') : t('fehler.knotenAus'))));
+      : el('tr', el('td.leer', { colspan: 7 }, s.running ? t('peers.keineVerbunden') : t('fehler.knotenAus'))));
   }
 
   return { wurzel, aktualisiere };

@@ -236,3 +236,35 @@ test('stats: Eine Verbindung belegt einen Platz, egal wie viele Kennungen sie ne
   assert.equal(st.summe(leer).hashrate, 0);
   assert.equal(toHex(adr(2)).length, 40);
 });
+
+test('Ein Regelkonto (ysr1p…) als Mining-Adresse: klare Ablehnung statt Fehler 500', async () => {
+  const { addressForScript } = await import('../src/lib/core/address.ts');
+  const { encodeScript, multisig } = await import('../src/lib/core/script.ts');
+  const { keypairFromSeed } = await import('../src/lib/core/wallet.ts');
+  const regel = addressForScript(encodeScript(multisig(1, [keypairFromSeed(new Uint8Array(32).fill(7)).publicKey])));
+  const k = await knoten(18_707);
+  try {
+    for (const mode of ['solo', 'pool']) {
+      const s = await hole(k.url, '/session', { address: regel, mode });
+      assert.equal(s.status, 200);
+      assert.equal(s.json.error, 'bad_address', mode);
+      assert.match(String(s.json.detail), /ysr1p/, mode);
+      assert.equal(s.json.sessionId, undefined, mode);
+    }
+    // Eine normale Adresse geht weiter.
+    const ok = await hole(k.url, '/session', { address: A, mode: 'solo' });
+    assert.ok(ok.json.sessionId);
+    assert.equal((await fetch(`${k.url}/job?session=${ok.json.sessionId}`)).status, 200);
+    assert.deepEqual(k.fehler, []);
+  } finally { await k.zu(); }
+});
+
+test('Pool: Gebuehrenadresse muss eine normale Adresse sein', async () => {
+  const { rawAddressFromScript } = await import('../src/lib/core/address.ts');
+  const { encodeScript, multisig } = await import('../src/lib/core/script.ts');
+  const { keypairFromSeed } = await import('../src/lib/core/wallet.ts');
+  const regel = rawAddressFromScript(encodeScript(multisig(1, [keypairFromSeed(new Uint8Array(32).fill(7)).publicKey])));
+  assert.throws(() => new PoolCoordinator({ name: 'p', feeBps: 100, payoutAddress: regel }), /ysr1p/);
+  const pk = new PoolCoordinator({ name: 'p', feeBps: 100, payoutAddress: adr(1) });
+  assert.throws(() => pk.setzeGebuehr(100, regel), /ysr1p/);
+});

@@ -5,6 +5,7 @@ import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
 import { MIN_FEE, DUST_LIMIT, V6_HEIGHT, V6_HEIGHT_UNSET } from '@/lib/core/params';
+import { auskunftHolen, sendeStand } from '@/lib/wallet/gebuehrAuskunft';
 import { transferBytes, transferBytesAt } from '@/lib/core/tx';
 
 /** Siehe useMining.ts -- leer heisst: derselbe Server wie die App. */
@@ -171,22 +172,29 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
   const [marktStand, setMarktStand] = useState(0);
   useEffect(() => {
     let lebt = true;
+    let laeuft = false;
     let wieder: ReturnType<typeof setTimeout> | undefined;
     const holen = () => {
-      fetch('/api/v2/fees')
-        .then(r => r.json())
-        .then(d => {
-          if (!lebt) return;
-          if (!d.error) { setMarkt(d); setMarktFehlt(false); return; }
-          throw new Error(d.error);
-        })
-        .catch(() => {
-          // Ohne Auskunft bleibt es bei der Mindestgebühr. Ist eine
-          // Aktivierungshoehe gesetzt, wird nachgefragt, bis der Knoten antwortet.
-          if (!lebt) return;
-          setMarktFehlt(true);
-          if (V6_HEIGHT !== V6_HEIGHT_UNSET) wieder = setTimeout(holen, 15_000);
-        });
+      // Nie zwei Abfragen zugleich -- sonst ueberholt eine aeltere Antwort
+      // eine neuere, und nach einem Ausfall laufen Wiederholungen doppelt.
+      if (laeuft) return;
+      laeuft = true;
+      if (wieder) { clearTimeout(wieder); wieder = undefined; }
+      // Erst die Route der App, bei Fehler der Knoten selbst
+      // (src/lib/wallet/gebuehrAuskunft.ts).
+      void auskunftHolen<Markt>(MINING_BASIS).then(d => {
+        laeuft = false;
+        if (!lebt) return;
+        if (d) { setMarkt(d); setMarktFehlt(false); return; }
+        setMarktFehlt(true);
+        // Ohne Hoehe bleibt es bei der Mindestgebuehr. Mit Hoehe gilt eine
+        // alte Auskunft nicht mehr: Sie koennte die Sendepause verpassen.
+        // Also sperren und nachfragen, bis eine Quelle antwortet.
+        if (V6_HEIGHT !== V6_HEIGHT_UNSET) {
+          setMarkt(null);
+          wieder = setTimeout(holen, 15_000);
+        }
+      });
     };
     holen();
     // Bei Andrang aendert sich die Lage von Block zu Block: einmal je Minute nachfragen.
@@ -207,13 +215,14 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     ? BigInt(markt.mindestJeByte) * BigInt(groesse) : 0n;
   // Fassung 2 ab der Aktivierungshoehe von Konsensfassung 6, Fassung 1 davor
   // (CONSENSUS_V6.md 3). Der Knoten sagt, was der naechste Block verlangt.
-  const fassung = markt?.fassung === 2 ? 2 : 1;
-  const wechselPause = markt?.sendepause === true;
-  // Ohne Antwort des Knotens ist unbekannt, welche Fassung der naechste Block
-  // verlangt. Solange keine Aktivierungshoehe gesetzt ist, ist es immer
-  // Fassung 1; danach wird nicht geraten -- eine falsch gewaehlte Fassung
-  // lehnt jeder Knoten ab.
-  const fassungUnbekannt = !markt && V6_HEIGHT !== V6_HEIGHT_UNSET;
+  // Gesperrt wird nur in den drei Bloecken vor der Hoehe (der Knoten meldet
+  // `sendepause`) -- oder wenn eine Hoehe gesetzt ist und weder die App noch
+  // der Knoten antwortet: Dann ist die Fassung unbekannt, und eine falsch
+  // gewaehlte lehnt jeder Knoten ab.
+  const stand = sendeStand(markt, V6_HEIGHT);
+  const fassung = stand.fassung;
+  const wechselPause = stand.pause;
+  const fassungUnbekannt = stand.unbekannt;
   // Die Meldung erst, wenn die Anfrage gescheitert ist -- nicht waehrend sie laeuft.
   const fassungMeldung = fassungUnbekannt && marktFehlt;
   // Die Stufe gilt je Byte: Mit Notiz ist dieselbe Stufe entsprechend teurer.

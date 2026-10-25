@@ -68,9 +68,10 @@ test('PoolCoordinator.plaetze(hoehe): 64 vor, 255 ab der Aktivierungshoehe; ohne
   assert.equal(begrenzt.plaetze(100), 200);
   assert.throws(() => new PoolCoordinator({ name: 'T', feeBps: 0, payoutAddress: null, maxMiner: 256 }), /1 und 255/);
 
-  // Mainnet-Vorgabe: Hoehe nicht gesetzt, also ueberall 64.
+  // Mainnet-Vorgabe: Fassung 6 ab Block 10.000.
   const main = new PoolCoordinator({ name: 'T', feeBps: 0, payoutAddress: null });
-  assert.equal(main.plaetze(10 ** 9), 64);
+  assert.equal(main.plaetze(9_999), 64);
+  assert.equal(main.plaetze(10_000), 255);
 });
 
 test('PoolCoordinator.aufteilung ab der Hoehe zahlt bis 255 Adressen aus', () => {

@@ -337,7 +337,8 @@ async function main() {
         `  Versuche es in ein paar Minuten erneut, oder wähle einen anderen Knoten mit --api.`));
     } else if (e.code === 'bad_address' || e.code === 'missing_address') {
       console.error(rot('Der Knoten nimmt diese Adresse nicht an.'));
-      console.error(grau(
+      // Nennt der Knoten den Grund (etwa: ein gemeinsames Konto ysr1p…), gilt der.
+      console.error(grau(e.message && e.message !== e.code ? `  ${e.message}` :
         `  Die Form stimmt, die Prüfsumme nicht — meist ein Tippfehler oder ein\n` +
         `  fehlendes Zeichen. Kopiere die Adresse noch einmal aus der Wallet.`));
     } else {

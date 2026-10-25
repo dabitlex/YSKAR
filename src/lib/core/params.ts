@@ -252,16 +252,19 @@ export const MAX_COINBASE_EXTRA = 32;
  * Ueberweisung in Fassung 2, Zustandsbaum als Sparse-Merkle-Baum, hoehere
  * Grenzen. Darunter gilt alles wie bisher, byteweise.
  *
- * DIE HOEHE IST NOCH NICHT GESETZT. Bis dahin steht hier ein Wert, den kein
- * Block erreicht: Das Mainnet verhaelt sich exakt wie Fassung 5. Gesetzt
- * wird sie erst, wenn Umsetzung und Tests abgeschlossen sind, mit mehreren
- * tausend Bloecken Vorlauf.
+ * Beschlossen am 25.10.2026 per Abstimmung in der Community: Block 10.000,
+ * geschaetzt um den 20.11.2026.
+ *
+ * V6_HEIGHT_UNSET ist der Wert "keine Hoehe", den kein Block erreicht. Ihn
+ * verwenden REGTEST (bleibt bei Fassung 5) und Knoten, deren Ablage keine
+ * Hoehe kennt.
  */
 export const V6_HEIGHT_UNSET = 0xffff_ffff;
-export const V6_HEIGHT = V6_HEIGHT_UNSET;
-/** Zeitpunkt der Aktivierung (Unixsekunden) -- fuer die Update-Hinweise
- *  alter Knoten (CONSENSUS_V6.md 11.1). Gesetzt zusammen mit der Hoehe. */
-export const V6_TIMESTAMP = 0n;
+export const V6_HEIGHT: number = 10_000;
+/** Geschaetzter Zeitpunkt der Aktivierung (Unixsekunden), 20.11.2026 00:00
+ *  UTC -- nur fuer die Zeitregel der Update-Hinweise alter Knoten
+ *  (CONSENSUS_V6.md 11.1: 180 bzw. 365 Tage danach). Kein Konsenswert. */
+export const V6_TIMESTAMP = 1_795_132_800n;
 
 /** Fork-Kennung, zweites Feld jedes Sighash ab Fassung 6: Eine Signatur
  *  der einen Fassung ist in der anderen nie gueltig. */

@@ -11,6 +11,7 @@
  * nebeneinander.
  */
 import { toHex } from '../core/codec.ts';
+import { istAuszahlungsAdresse, REGELKONTO_KEIN_MINING } from '../core/address.ts';
 import { rewardAt, MAX_COINBASE_OUTPUTS, MAX_COINBASE_OUTPUTS_V6, V6_HEIGHT, maxCoinbaseOutputsAt } from '../core/params.ts';
 import { abrechnen, MAX_FEE_BPS, minerPlaetze, type Abrechnung } from './settlement.ts';
 import { ShareLog, fensterGroesse, PPLNS_FAKTOR, type ShareEintrag } from './pplns.ts';
@@ -76,6 +77,7 @@ export class PoolCoordinator {
     if (this.feeBps > 0 && !this.payoutAddress) {
       throw new Error('Gebuehr ohne Auszahlungsadresse des Betreibers');
     }
+    pruefeAuszahlung(this.payoutAddress);
   }
 
   /**
@@ -123,6 +125,7 @@ export class PoolCoordinator {
     if (geprueft > 0 && !(payoutAddress ?? this.payoutAddress)) {
       throw new Error('Gebuehr ohne Auszahlungsadresse des Betreibers');
     }
+    pruefeAuszahlung(payoutAddress ?? null);
     this.feeBpsNaechster = geprueft;
     if (payoutAddress !== undefined) this.payoutNaechster = payoutAddress;
   }
@@ -226,4 +229,9 @@ export function gebuehrText(feeBps: number): string {
   return (feeBps / 100).toLocaleString('de-DE', {
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   }) + ' %';
+}
+
+/** Die Gebuehr geht in die Coinbase -- also nur an eine Adresse der Version 0. */
+function pruefeAuszahlung(adresse: Uint8Array | null): void {
+  if (adresse && !istAuszahlungsAdresse(adresse)) throw new Error(REGELKONTO_KEIN_MINING);
 }

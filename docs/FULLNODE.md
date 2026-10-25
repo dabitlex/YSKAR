@@ -276,7 +276,7 @@ ignored without a message.
 | `--no-p2p` | off | `mine` | Run without the node network |
 | `--pool <name>` | none | `mine` | Run a pool with this name |
 | `--pool-fee <bp>` | `0` | `mine` | Pool fee in basis points, 0 to 500 (100 = 1.00 %) |
-| `--pool-payout <address>` | none | `mine` | Address that receives the pool fee. Required when the fee is above 0 |
+| `--pool-payout <address>` | none | `mine` | Address that receives the pool fee. Required when the fee is above 0. Must be a normal wallet address (`ysr1…`); a shared account (`ysr1p…`) is refused and the node exits with code 1 |
 | `--pool-max <n>` | chain limit | `mine` | Highest number of addresses in the pool, 1 to 255. The chain limit is 64, or 63 when a fee is set (255 and 254 from consensus revision 6); a larger value never exceeds it |
 | `--mempool-mb <n>` | 32 | `mine` | Limit of the mempool in MB of serialized transactions, 1 to 4096. When it is full, a higher fee per byte evicts the cheapest (see [The mempool](#the-mempool)) |
 | `--sender-ip <proxy\|socket>` | none | `mine` | Recognize the sender of mining requests and apply the per-sender session limits. `proxy`: the last entry of `X-Forwarded-For`, for a node behind a reverse proxy that sets this header itself (Caddy does). `socket`: the address of the connection, only for a node without a proxy in front. Without this option there are no per-sender limits |
@@ -321,7 +321,7 @@ Amounts are integers in base units (1 YSR = 100,000,000 units) and are sent as d
 
 | Method and path | Request | Purpose |
 |---|---|---|
-| `POST /session` | `{address, mode?, platform?}` | Opens a mining session for a payout address. `mode` is `"solo"` (default) or `"pool"`. Returns `sessionId`, `extranonce`, `mode`, `pool`, `shareDifficulty`, `address`, `concurrentSessions` |
+| `POST /session` | `{address, mode?, platform?}` | Opens a mining session for a payout address. The address must be a normal wallet address (version 0, `ysr1…`, 42 characters): a coinbase cannot pay a shared account (`ysr1p…`), so such an address is refused with `bad_address` and a `detail` saying so. `mode` is `"solo"` (default) or `"pool"`. Returns `sessionId`, `extranonce`, `mode`, `pool`, `shareDifficulty`, `address`, `concurrentSessions` |
 | `GET /job?session=<id>` | | Builds a new job for the session |
 | `POST /share` | `{sessionId, jobId, nonce}` | Submits a nonce for the session's current job |
 | `POST /session/stop` | `{sessionId}` | Closes the session |

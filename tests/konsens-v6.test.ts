@@ -75,8 +75,12 @@ function anwenden(state: S.State, height: number, spends: T.Spend[], params = V6
 
 // ------------------------------------------------------------- Fundament
 
-test('Mainnet: Fassung 6 ist noch nicht aktiviert; Regtest-V6 ab Block 0', () => {
-  assert.equal(MAINNET.v6Height, P.V6_HEIGHT_UNSET);
+test('Mainnet: Fassung 6 ab Block 10.000; Regtest-V6 ab Block 0', () => {
+  assert.equal(P.V6_HEIGHT, 10_000);
+  assert.equal(MAINNET.v6Height, 10_000);
+  // Geschaetzter Zeitpunkt der Aktivierung, nur fuer die Zeitregel der
+  // Update-Hinweise (11.1): 20.11.2026 00:00 UTC.
+  assert.equal(P.V6_TIMESTAMP, 1_795_132_800n);
   assert.equal(REGTEST.v6Height, P.V6_HEIGHT_UNSET);
   assert.equal(V6.v6Height, 0);
   assert.notEqual(toHex(V6.chainId), toHex(REGTEST.chainId));
@@ -555,7 +559,24 @@ test('Hoehere Fassung ohne bekannten Vorgaenger oder mit falscher Difficulty mac
   assert.equal(chain.hoehereFassungGesehen, null);
 });
 
-test('Mainnet-Parameter: Fassung 6 ist nirgends aktiv', () => {
+test('Mainnet-Parameter: Fassung 6 genau ab Block 10.000', () => {
+  assert.equal(P.blockVersionAt(9_999, MAINNET.v6Height), 1);
+  assert.equal(P.blockVersionAt(10_000, MAINNET.v6Height), 6);
+  assert.equal(P.maxTxsAt(9_999, MAINNET.v6Height), 2_000);
+  assert.equal(P.maxTxsAt(10_000, MAINNET.v6Height), 5_000);
+  assert.equal(P.maxCoinbaseOutputsAt(9_999, MAINNET.v6Height), 64);
+  assert.equal(P.maxCoinbaseOutputsAt(10_000, MAINNET.v6Height), 255);
+  const davor = block(9_999, [coinbase(9_999, MINER_A)], MAINNET);
+  assert.equal(davor.header.version, 1);
+  assert.equal(checkHeaderVersion(davor.header, MAINNET), null);
+  assert.equal(checkHeaderVersion({ ...davor.header, version: 6 }, MAINNET), 'bad_version');
+  const ab = block(10_000, [coinbase(10_000, MINER_A)], MAINNET);
+  assert.equal(ab.header.version, 6);
+  assert.equal(checkHeaderVersion(ab.header, MAINNET), null);
+  assert.equal(checkHeaderVersion({ ...ab.header, version: 1 }, MAINNET), 'bad_version');
+});
+
+test('Mainnet-Parameter: vor Block 10.000 ist Fassung 6 nirgends aktiv', () => {
   const b = block(100, [coinbase(100, MINER_A)], MAINNET);
   assert.equal(b.header.version, 1);
   assert.equal(checkHeaderVersion({ ...b.header, version: 6 }, MAINNET), 'bad_version');
@@ -681,4 +702,31 @@ test('4.2: keine Adressversion darf 19 Byte Programm haben -- 32 Datenzeichen si
   const { bech32m } = await import('@scure/base');
   const text = bech32m.encode('ysr', [2, ...bech32m.toWords(new Uint8Array(19).fill(0xab))]);
   assert.equal(decodeAddressAny(text).version, 0, 'genau deshalb verboten: so gelesen ist es Version 0');
+});
+
+// --------------------------------------------- Bewusst nicht in Fassung 6
+
+test('Nicht in Fassung 6: keine Coinbase an ein Regelkonto (ysr1p…)', () => {
+  const regel = A.rawAddressFromScript(SC.encodeScript(SC.multisig(1, [ALICE.publicKey])));
+  assert.equal(regel.length, 33);
+  assert.equal(A.istAuszahlungsAdresse(regel), false);
+  assert.equal(A.istAuszahlungsAdresse(ALICE.addressRaw), true);
+  // Auf der Leitung hat jeder Coinbase-Empfaenger genau 20 Byte.
+  assert.throws(() => T.serializeTx(coinbase(5, regel)));
+  // Und auch ein Block, der nie ueber die Leitung kam, wird abgelehnt.
+  // (Die Merkle-Wurzel laesst sich nicht rechnen -- sie braucht die Leitungsform.)
+  const cb = coinbase(5, regel);
+  const b: Block = { header: { ...block(5, [coinbase(5, ALICE.addressRaw)]).header }, txs: [cb] };
+  const r = S.applyBlock(S.emptyState(), b, V6);
+  assert.equal(r.ok, false);
+  assert.equal(r.error?.reason, 'coinbase_adresse');
+});
+
+test('Nicht in Fassung 6: keine Sammelzahlung aus einem Regelkonto', () => {
+  const regel = A.rawAddressFromScript(SC.encodeScript(SC.multisig(1, [ALICE.publicKey])));
+  const echt = T.buildBatch({ from: ALICE.addressRaw, outputs: [{ to: BOB.addressRaw, amount: 1_000n }],
+    fee: 100_000n, nonce: 0n, publicKey: ALICE.publicKey, privateKey: ALICE.privateKey, chainId: V6.chainId });
+  const ausRegel = { ...echt, from: regel };
+  assert.equal(T.checkSpend(ausRegel, 5, V6), 'bad_address_length');
+  assert.throws(() => T.serializeTx(ausRegel));
 });

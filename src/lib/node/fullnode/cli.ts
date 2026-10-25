@@ -33,7 +33,7 @@ import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { fensterGroesse } from '../../pool/pplns.ts';
 import { leseFenster, schreibeFenster, schreibeFensterSofort, kuerze } from '../../pool/fensterDatei.ts';
 import { nameToExtra } from '../../chain/finderName.ts';
-import { decodeAddress } from '../../core/address.ts';
+import { decodeAddress, istAuszahlungsAdresse, REGELKONTO_KEIN_MINING } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 
@@ -757,6 +757,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       }
       try { auszahlung = decodeAddress(opt.poolAuszahlung); }
       catch { console.error('  --pool-payout ist keine gültige YSKAR-Adresse.'); process.exit(1); }
+      if (!istAuszahlungsAdresse(auszahlung)) { console.error(`  --pool-payout: ${REGELKONTO_KEIN_MINING}`); process.exit(1); }
     }
     try {
       /*

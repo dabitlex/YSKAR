@@ -49,7 +49,7 @@ import { stateRootAt, totalSupply } from '../../src/lib/core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
 import { toHex, fromHex } from '../../src/lib/core/codec.ts';
 import { spendTxid } from '../../src/lib/core/builder.ts';
-import { isValidAddress, decodeAddress } from '../../src/lib/core/address.ts';
+import { isValidAddress, decodeAddress, istAuszahlungsAdresse, REGELKONTO_KEIN_MINING } from '../../src/lib/core/address.ts';
 import { cpus } from 'node:os';
 import { LocalMiner } from './LocalMiner.ts';
 import { erkenneGpu, type GpuErkennung } from './GpuMiner.ts';
@@ -1344,12 +1344,17 @@ export class NodeCoreApp {
   private stopMining() { return this.nacheinander(() => this.stoppeMining()); }
 
   private async starteMining(body: Record<string, unknown>) {
+    // Die Adresse zuerst: Ob sie taugt, haengt nicht am Knoten.
+    const address = String(body.address ?? this.mining_.address).trim().toLowerCase();
+    if (!isValidAddress(address)) throw new KernFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
+    // Die Coinbase zahlt nur an Version 0 (ysr1…, 42 Zeichen).
+    if (!istAuszahlungsAdresse(decodeAddress(address))) {
+      throw new KernFehler('adresse_regelkonto', REGELKONTO_KEIN_MINING);
+    }
     if (!this.running || !this.cpuMiner || !this.gpuMiner) {
       throw new KernFehler('knoten_aus', 'Zuerst den Full Node starten.');
     }
     const cpuMiner = this.cpuMiner, gpuMiner = this.gpuMiner;
-    const address = String(body.address ?? this.mining_.address).trim().toLowerCase();
-    if (!isValidAddress(address)) throw new KernFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
 
     const ziel: MiningZiel = body.ziel === 'pool' || body.ziel === 'solo' ? body.ziel : this.mining_.ziel;
     let poolHost = this.mining_.poolHost;
@@ -1666,6 +1671,11 @@ export class NodeCoreApp {
         this.beendeFortsetzen();
       } catch (e) {
         const grund = (e as Error).message;
+        // Eine untaugliche Adresse wird durch Warten nicht besser.
+        if (e instanceof KernFehler && (e.code === 'adresse_regelkonto' || e.code === 'adresse_falsch')) {
+          this.log(`Mining nicht fortgesetzt: ${grund}`);
+          return this.beendeFortsetzen();
+        }
         if (grund !== letzterGrund) { letzterGrund = grund; this.log(`Mining noch nicht fortgesetzt: ${grund}`); }
       } finally { laeuft = false; }
     }, this.fortsetzenTaktMs);

@@ -217,5 +217,20 @@ export function addressForScript(script: Uint8Array, hrp: string = ADDRESS_HRP):
   return encodeAddress(rawAddressFromScript(script), hrp);
 }
 
+/**
+ * Kann die Coinbase an diese Rohadresse auszahlen? Nur an Version 0 (20 Byte):
+ * Jeder Coinbase-Empfaenger hat auf der Leitung feste 20 Byte. Regelkonten
+ * (Version 1, ysr1p…) koennen in Fassung 6 keinen Blockertrag empfangen --
+ * vorgesehen fuer eine spaetere Fassung (CONSENSUS_V6.md 16).
+ */
+export function istAuszahlungsAdresse(raw: Uint8Array): boolean {
+  return raw.length === ADDRESS_BYTES;
+}
+
+/** Die Meldung dazu, gleich fuer Knoten, Pool und Kommandozeile. */
+export const REGELKONTO_KEIN_MINING =
+  'Mining zahlt nur an normale Wallet-Adressen aus (ysr1…, 42 Zeichen). ' +
+  'Gemeinsame Konten (ysr1p…) koennen noch keinen Blockertrag empfangen.';
+
 /** Nullkonto -- Empfaenger fuer verbrannte Betraege, hat keinen Schluessel. */
 export const ZERO_ADDRESS = new Uint8Array(ADDRESS_BYTES);

@@ -119,7 +119,7 @@ accounting (PPLNS, "pay per last N shares") becomes the coinbase of the block, a
 pays the participants directly in the block that was found: up to 64 addresses, or 63 miners
 plus the operator's fee. Miners with the least work in the window receive nothing in a block
 that has more participants than that. A pool operator never holds other
-miners' coins. From consensus revision 6 (a draft, see below) a coinbase may pay up to 255
+miners' coins. From consensus revision 6 (block 10,000, see below) a coinbase may pay up to 255
 recipients, 254 miners plus the fee. The pool server in this repository pays only through the
 coinbase; a payout by batch transfer from a pool account is left to operators who want it. See
 [docs/POOL.md](docs/POOL.md).
@@ -134,7 +134,7 @@ Rule changes are tied to block heights, so that every node switches at the same 
 | 3 | 4,000 | Minimum fee per byte instead of a fixed fee, and a dust limit | [CONSENSUS_V3.md](docs/CONSENSUS_V3.md) |
 | 4 | 6,000 | Wider encoding of the difficulty field in the header | [CONSENSUS_V4.md](docs/CONSENSUS_V4.md) |
 | 5 | 7,000 | Soft fork: stricter rules for timestamps, block encoding and the coinbase | [CONSENSUS_V5.md](docs/CONSENSUS_V5.md) |
-| 6 | not yet set (draft) | Hard fork: versioned addresses, condition scripts, batch transfers, a sparse Merkle state tree, 5,000 transactions and 255 coinbase outputs per block | [CONSENSUS_V6.md](docs/CONSENSUS_V6.md) |
+| 6 | 10,000 | Hard fork: versioned addresses, condition scripts, batch transfers, a sparse Merkle state tree, 5,000 transactions and 255 coinbase outputs per block | [CONSENSUS_V6.md](docs/CONSENSUS_V6.md) |
 
 ## Components
 
@@ -262,7 +262,7 @@ the workflows in `.github/workflows/`.
 | Document | Content |
 |---|---|
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | Protocol specification: formats, hashing, difficulty, transactions, validity rules, test vectors |
-| [docs/CONSENSUS_V2.md](docs/CONSENSUS_V2.md), [V3](docs/CONSENSUS_V3.md), [V4](docs/CONSENSUS_V4.md), [V5](docs/CONSENSUS_V5.md), [V6](docs/CONSENSUS_V6.md) | Design records of the consensus revisions (revision 6 is a draft) |
+| [docs/CONSENSUS_V2.md](docs/CONSENSUS_V2.md), [V3](docs/CONSENSUS_V3.md), [V4](docs/CONSENSUS_V4.md), [V5](docs/CONSENSUS_V5.md), [V6](docs/CONSENSUS_V6.md) | Design records of the consensus revisions (revision 6 from block 10,000) |
 | [docs/FULLNODE.md](docs/FULLNODE.md) | The command-line full node: commands, options, HTTP interface, storage, reorganization |
 | [docs/P2P.md](docs/P2P.md) | The protocol between nodes |
 | [docs/FEES.md](docs/FEES.md) | Fee rules, the mempool under load and the fee estimate |

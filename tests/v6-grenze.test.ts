@@ -301,6 +301,7 @@ test('Grenze: stateRootAt waehlt den Baum nach der Hoehe; REGTEST bleibt ohne Fa
   assert.equal(toHex(stateRootAt(z, HOEHE, GRENZE)), toHex(stateRootV6(z)));
   // Spiegel und Observer rufen stateRootAt ohne Netz auf, also mit MAINNET.
   assert.equal(MAINNET.v6Height, V6_HEIGHT);
+  assert.equal(V6_HEIGHT, 10_000);
   // REGTEST haengt nicht an der Mainnet-Hoehe (CONSENSUS_V6.md 2.1).
   assert.equal(REGTEST.v6Height, V6_HEIGHT_UNSET);
 });

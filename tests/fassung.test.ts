@@ -96,9 +96,11 @@ test('fassungsStatus: 180 Tage -> update_recommended, 365 Tage -> probably_forke
   assert.equal(fassungsStatus(false, t0 + VERMUTLICH_ABGESPALTEN_NACH_S, t0), 'probably_forked');
 });
 
-test('naechsteAktivierung: 0 solange die Hoehe nicht gesetzt ist', () => {
-  assert.equal(MAINNET.v6Height, V6_HEIGHT_UNSET);
-  assert.equal(naechsteAktivierung(MAINNET), 0);
+test('naechsteAktivierung: die gesetzte Hoehe, 0 ohne Hoehe', () => {
+  // Beschlossen am 25.10.2026 (Abstimmung in der Community): Block 10.000.
+  assert.equal(MAINNET.v6Height, 10_000);
+  assert.equal(naechsteAktivierung(MAINNET), 10_000);
+  assert.equal(naechsteAktivierung({ ...MAINNET, v6Height: V6_HEIGHT_UNSET }), 0);
   assert.equal(naechsteAktivierung(REGTEST), 0);
   assert.equal(naechsteAktivierung(REGTEST_V6), 0, 'Hoehe 0 heisst: seit Genesis, also keine kommende Aktivierung');
   assert.equal(naechsteAktivierung({ ...REGTEST, v6Height: 500 }), 500);
@@ -113,7 +115,10 @@ test('liefertBloeckeAb: alte Peers nur fuer Bloecke vor der Hoehe', () => {
   assert.equal(liefertBloeckeAb(6, 500, p), true);
   assert.equal(liefertBloeckeAb(0, 10, p), true, 'vor dem Handschlag: Hoehe entscheidet');
   // Ohne gesetzte Hoehe gibt es nichts, was ein alter Peer nicht haette.
-  assert.equal(liefertBloeckeAb(5, 10 ** 9, MAINNET), true);
+  assert.equal(liefertBloeckeAb(5, 10 ** 9, { ...MAINNET, v6Height: V6_HEIGHT_UNSET }), true);
+  // Im Mainnet: alte Peers bis Block 9.999, ab 10.000 nicht mehr.
+  assert.equal(liefertBloeckeAb(5, 9_999, MAINNET), true);
+  assert.equal(liefertBloeckeAb(5, 10_000, MAINNET), false);
   assert.equal(IMPLEMENTIERTE_FASSUNG, 6);
 });
 
@@ -123,7 +128,11 @@ test('imVerdraengungsfenster: genau die 1.000 Bloecke vor der Hoehe', () => {
   assert.equal(imVerdraengungsfenster(4_000, p), true);
   assert.equal(imVerdraengungsfenster(4_999, p), true);
   assert.equal(imVerdraengungsfenster(5_000, p), false);
-  assert.equal(imVerdraengungsfenster(4_500, MAINNET), false, 'ohne Hoehe kein Fenster');
+  assert.equal(imVerdraengungsfenster(4_500, { ...MAINNET, v6Height: V6_HEIGHT_UNSET }), false, 'ohne Hoehe kein Fenster');
+  assert.equal(imVerdraengungsfenster(8_999, MAINNET), false);
+  assert.equal(imVerdraengungsfenster(9_000, MAINNET), true);
+  assert.equal(imVerdraengungsfenster(9_999, MAINNET), true);
+  assert.equal(imVerdraengungsfenster(10_000, MAINNET), false);
 });
 
 test('netzGruppe: /16 bei IPv4, /32 bei IPv6, Namen wie sie sind', () => {

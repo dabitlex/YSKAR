@@ -439,6 +439,13 @@ function applyBlockEinzeln(
     Fassung 2 mit mehreren Empfaengern ist erst ab der Aktivierungshoehe
     zulaessig -- darunter bleibt die Geschichte unveraendert.
   */
+  // Jeder Empfaenger hat 20 Byte (Version 0). Auf der Leitung erzwingt das
+  // schon das Format; diese Pruefung gilt auch fuer Bloecke, die nie ueber
+  // die Leitung kamen. Regelkonten (33 Byte) sind in Fassung 6 kein
+  // Coinbase-Empfaenger (CONSENSUS_V6.md 16).
+  for (const o of cb.outputs) {
+    if (o.to.length !== ADDRESS_BYTES) return fail(0, 'coinbase_adresse');
+  }
   if (cb.version === COINBASE_V2) {
     if (block.header.height < params.coinbaseV2Height) {
       return fail(0, `coinbase_v2_zu_frueh:${block.header.height}` +

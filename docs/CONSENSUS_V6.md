@@ -1,6 +1,6 @@
 # Consensus revision 6: versioned foundation, condition scripts, state tree
 
-**Status: draft specification, not yet in effect.** This document is the design record and the
+**Status: final, activates at block 10,000.** This document is the design record and the
 normative specification of consensus revision 6. It is a hard fork: from the activation height blocks
 and transactions take new forms that nodes of earlier revisions reject. Nothing in it applies before
 the activation height, and every block below that height keeps its rules and its bytes.
@@ -8,8 +8,8 @@ the activation height, and every block below that height keeps its rules and its
 | | |
 |---|---|
 | Revision | 6 |
-| Activation height | Not yet set (`V6_HEIGHT` in `src/lib/core/params.ts`, `v6Height` in `src/lib/core/networks.ts`) |
-| Status | Draft, open for review; direction decided on 2026-10-16 |
+| Activation height | 10,000 (`V6_HEIGHT` in `src/lib/core/params.ts`, `v6Height` in `src/lib/core/networks.ts`), decided by a community vote on 2026-10-25; expected around 2026-11-20 |
+| Status | Final; direction decided on 2026-10-16, activation height on 2026-10-25 |
 | Kind | Hard fork |
 | Node software | Node Core 1.0.0 and the command-line node of the same release |
 
@@ -65,11 +65,12 @@ Principles that every rule below follows:
 
 ### 2.1 Activation height
 
-Revision 6 applies to every block whose `height` is at least `V6_HEIGHT`. The value is not set in this
-draft: until it is, the constant holds `V6_HEIGHT_UNSET` (0xffffffff), a height no block reaches, and
-the main network behaves exactly as revision 5. It will be set after the implementation has passed its
-tests, with a lead time of several thousand blocks between the release of the node software and the
-height. Two regtest networks exist: `REGTEST` keeps revision 6 unset and remains the basis of the
+Revision 6 applies to every block whose `height` is at least `V6_HEIGHT`. On the main network that is
+**block 10,000**, decided by a community vote on 2026-10-25. Below it the main network behaves exactly
+as revision 5. `V6_TIMESTAMP` is the expected time of that block, 2026-11-20 00:00 UTC
+(1795132800); it is not a consensus value and only drives the time rule of the update hints (11.1).
+`V6_HEIGHT_UNSET` (0xffffffff), a height no block reaches, remains the value for "no height" (`REGTEST`,
+and software that knows no activation height). Two regtest networks exist: `REGTEST` keeps revision 6 unset and remains the basis of the
 existing test suite; `REGTEST_V6` (own network name and chain ID) activates revision 6 at height 0 and
 is the basis of `tests/konsens-v6.test.ts`.
 
@@ -1036,7 +1037,7 @@ self-test and fallback; activated by `ChainManager` and `TxPool`), `crypto/zip21
 pinned toolchain, reproducible build), `tests/zip215.test.ts`, `tests/fixtures/ed25519-vektoren.json`
 (official vectors with source and licence).
 
-*Mirror:* `supabase/migrations/00028_konsensfassung_6.sql` (not applied): address lengths 20 or 33 in
+*Mirror:* `supabase/migrations/00028_konsensfassung_6.sql` (applied on 2026-10-23): address lengths 20 or 33 in
 transactions, accounts and mempool (the old 20-byte checks are removed by their content, whatever
 their name in a given database); types 2 and 3; columns `flags`, `valid_from` (bigint), `script`,
 `witness`; `commit_block` writes them and accepts a missing `to_addr` for a batch. Searching the
@@ -1081,16 +1082,25 @@ with one old and one new node confirmed it: no rejected blocks and no repeated h
 the new node. The old node still drops and reopens the connection after each revision 6 block it
 fetches (11.3); that is the old code and ends once it is updated.
 
+*Full transition run (2026-10-24):* one node built from `main` and two from `consensus-v6`, height 8.
+Block 7 was identical on all three, block 8 identical on both new nodes (version 6) and a different
+version 1 block on the old one. After the height a batch with 61 recipients, a 2-of-3 script spend,
+a transfer to a version 1 address and a fee replacement were accepted and confirmed; both new nodes
+ended on the same tip with the same balances, without disconnects. A restart with a different height
+or without one was refused with exit code 1; with the right height the node started. The run found
+that `POST /tx` of the node accepted only type 1; it now accepts every spend and leaves the rule to the
+mempool (`tests/mempool-anzeige.test.ts`).
+
+*Activation height (2026-10-25):* `V6_HEIGHT` = 10,000 and `V6_TIMESTAMP` = 1795132800 (2026-11-20 00:00 UTC).
+
 Not yet done: the guide and test vectors for an operator-built batch payout (16, "Pool batch payout mode"),
-multi-signature user interfaces, longer and repeated runs of the
-fork-behaviour test (script spends and batches across the height, restarts), `V6_HEIGHT` and
-`V6_TIMESTAMP`.
+multi-signature user interfaces.
 
 ## 14. Tests and test vectors
 
 Every rule above gets a test in the pattern of `tests/konsens-v5.test.ts`: with regtest (activation at
 height 0) the invalid case is rejected and the valid case accepted; with the activation moved beyond the
-test height the old rule applies. In addition, before the activation height is set:
+test height the old rule applies. In addition, done before the activation height was set:
 
 - **Test vectors**, published in this document and pinned in `tests/konsens-v6.test.ts` and
   `tests/v6-vektoren.test.ts`. The first set,
@@ -1266,16 +1276,19 @@ Decided on 2026-10-16 (design record in the project notes):
 | Testing | Internal, old and new nodes side by side; no public testnet |
 | Pool batch payout mode | Decided on 2026-10-17: YSKAR does not build it into its pool server, which pays only through the coinbase (up to 255 recipients). In this mode a pool holds miners' funds between block and payout and needs a signing key on the server; an operator who wants it builds it with type 3 (6.4) and reports `modus: "batch"`. The directory and both apps already show the mode. A guide in [POOL.md](POOL.md) and test vectors (14) for it are still to be written |
 
-Open, to be settled before the activation height is set:
+Points settled before the activation height was set:
 
 1. **Coinbase to version 1 accounts.** A pool whose treasury is a multi-signature account cannot be paid
-   from the coinbase in revision 6. Options: a coinbase version 3 with versioned outputs in this
-   revision, or leave it to revision 7. Leaning: revision 7, to keep the coinbase untouched here.
-2. **Batch from a script account.** A multi-signature pool treasury paying miners needs it. Options:
-   type 3 version 2 with script authorization in a later revision. Leaning: later.
-3. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set after 14 is complete.
-4. **Mirror schema.** Written (`supabase/migrations/00027_valid_until_bigint.sql`, independent and
-   applicable now; `supabase/migrations/00028_konsensfassung_6.sql` for revision 6), not yet applied.
+   from the coinbase in revision 6. Not part of revision 6; left to revision 7, to keep the coinbase
+   untouched here. Every coinbase output is 20 bytes on the wire; `applyBlock` also rejects a longer one
+   (`coinbase_adresse`) for blocks that never went over the wire. Nodes refuse a shared account as a
+   mining or pool fee address with a clear reason instead of failing when they build the coinbase
+   (`MiningServer`, `PoolCoordinator`, `--pool-payout`, Node Core: `adresse_regelkonto`).
+2. **Batch from a script account.** A multi-signature pool treasury paying miners needs it. Not part of
+   revision 6; left to a later revision (type 3 version 2 with script authorization).
+3. **`V6_HEIGHT` and `V6_TIMESTAMP`.** Set on 2026-10-25: block 10,000, 1795132800.
+4. **Mirror schema.** `supabase/migrations/00028_konsensfassung_6.sql` was applied on 2026-10-23;
+   `supabase/migrations/00027_valid_until_bigint.sql` is its prerequisite.
 
 The pool batch payout mode, formerly point 5 of this list, is decided (table above).
 

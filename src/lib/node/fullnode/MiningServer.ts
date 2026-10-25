@@ -24,7 +24,7 @@ import { NetzStatistik, type LokaleStatistik, type NetzSumme } from './NetzStati
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-import { decodeAddress } from '../../core/address.ts';
+import { decodeAddress, istAuszahlungsAdresse, REGELKONTO_KEIN_MINING } from '../../core/address.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { rewardAt } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
@@ -780,6 +780,9 @@ export class MiningServer {
     let roh: Uint8Array;
     try { roh = decodeAddress(b.address); }
     catch { return ok({ error: 'bad_address' }); }
+    // Die Coinbase zahlt nur an Version 0 -- sonst scheiterte erst der Job
+    // mit einem internen Fehler, und im Pool der Block fuer alle.
+    if (!istAuszahlungsAdresse(roh)) return ok({ error: 'bad_address', detail: REGELKONTO_KEIN_MINING });
 
     /*
       Solo oder Pool -- die Sitzung legt das beim Anmelden fest und behaelt

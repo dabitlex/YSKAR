@@ -18,7 +18,7 @@ miner's coins, so there is no balance an operator could withhold or lose.
 
 This needs a coinbase with several recipients. That is consensus revision 2, active since height
 2,000; see [CONSENSUS_V2.md](CONSENSUS_V2.md). A coinbase can pay at most 64 addresses. From the
-activation height of consensus revision 6 (draft, height not yet set) it can pay 255; see
+activation height of consensus revision 6 (block 10,000) it can pay 255; see
 [Consensus revision 6](#consensus-revision-6).
 
 Solo mining is unaffected. A solo miner gets a coinbase with exactly one recipient, and one node
@@ -192,7 +192,9 @@ An address that already holds a seat may open more sessions. Solo mining at the 
 affected.
 
 The other rejections of a session (`missing_address`, `bad_address`, `pool_unavailable`,
-`too_many_sessions`) come with HTTP 200 and an `error` field. The miner inside the Android app
+`too_many_sessions`) come with HTTP 200 and an `error` field. `bad_address` also covers a shared
+account (`ysr1p…`): the coinbase pays only normal wallet addresses, so mining and the pool fee need
+one; the `detail` field says so. The miner inside the Android app
 (`User-Agent: YSKAR-Wallet-Nativ/...`) also receives `pool_full` with HTTP 200: it treats every
 status from 400 upward as a network error and would retry forever instead of stopping.
 
@@ -493,8 +495,8 @@ the two smaller addresses, which end up with 29,166,666,667.
 
 ## Consensus revision 6
 
-Revision 6 is a draft hard fork; its activation height is not yet set
-([CONSENSUS_V6.md](CONSENSUS_V6.md)). For pools it changes three things:
+Revision 6 is a hard fork that activates at block 10,000
+([CONSENSUS_V6.md](CONSENSUS_V6.md)). A pool node must run the revision 6 release before that block. For pools it changes three things:
 
 - **255 recipients per coinbase** (`MAX_COINBASE_OUTPUTS_V6`) from the activation height, so 255 seats
   without a fee and 254 with one. The pool code already takes the limit by height:
