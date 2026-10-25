@@ -326,7 +326,7 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 
 /* Gemeinschaft */
 .gemeinschaft .box{position:relative;border-radius:36px;border:1px solid var(--line);padding:clamp(40px,7vw,110px);overflow:hidden;background:radial-gradient(800px 500px at 85% 110%,color-mix(in srgb,var(--acc) 40%,transparent),transparent 70%),radial-gradient(600px 400px at 0% 0%,color-mix(in srgb,var(--acc3) 26%,transparent),transparent 70%),var(--panel);display:flex;flex-direction:column;gap:26px;align-items:flex-start}
-.gemeinschaft .box img{position:absolute;right:clamp(24px,5vw,64px);bottom:clamp(24px,5vw,64px);width:min(150px,22%);height:auto;opacity:.9;pointer-events:none}
+.gemeinschaft .box > img{position:absolute;right:clamp(24px,5vw,64px);bottom:clamp(24px,5vw,64px);width:min(150px,22%);height:auto;opacity:.9;pointer-events:none}
 
 /* ------------------------------------------------------------ Fusszeile */
 .fusszeile{border-top:1px solid var(--line);padding-block:56px 64px;background:var(--bg)}
@@ -598,3 +598,11 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 @media (max-width:999px){.muenze3d{display:none}}
 @media (prefers-reduced-motion:reduce){.m-dreh{animation:none;transform:rotateX(8deg) rotateY(-24deg)}.muenze3d::before{animation:none}}
 .m-dreh.js{animation:none;will-change:transform}
+/* Stehende Muenze (Gemeinschaft, Mining-Kopf) */
+.muenze3d.statisch{position:absolute;left:auto;top:auto;margin:0;display:block;z-index:0}
+.muenze3d.statisch::before{animation:none;inset:-35%;opacity:.8}
+.muenze3d.statisch .m-dreh{animation:none;transform:rotateX(10deg) rotateY(var(--w))}
+.gemeinschaft .muenze3d.statisch{--d:clamp(120px,13vw,180px);right:clamp(36px,6vw,90px);bottom:clamp(36px,5vw,70px)}
+.seitenkopf.mit-muenze .wrap{position:relative;z-index:1}
+.seitenkopf .muenze3d.statisch{--d:clamp(150px,15vw,230px);right:clamp(32px,11vw,200px);top:50%;margin-top:calc(var(--d)/-2)}
+@media (max-width:900px){.muenze3d.statisch{display:none}}
