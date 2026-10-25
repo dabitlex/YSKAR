@@ -214,8 +214,18 @@
       for (i = 0; i < bilder.length; i++) for (var k = 0; k < 90; k++) bilder[i].f();
       return;
     }
+    // Muenze im Fluchtpunkt: der Winkel laeuft fortlaufend weiter, statt dass
+    // eine CSS-Animation bei 360 Grad neu startet (das gab einen kurzen Haenger).
+    var muenze = document.querySelector('.m-dreh');
+    if (muenze) muenze.classList.add('js');
+    var muenzeStart = null;
     function schleife(t) {
       for (var i = 0; i < bilder.length; i++) if (bilder[i].an) bilder[i].f();
+      if (muenze && (!b1 || b1.an)) {
+        if (muenzeStart === null) muenzeStart = t;
+        var grad = ((t - muenzeStart) / 9000 * 360) % 360;
+        muenze.style.transform = 'rotateX(8deg) rotateY(' + grad.toFixed(2) + 'deg)';
+      }
       hashen(t);
       window.requestAnimationFrame(schleife);
     }
