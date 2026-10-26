@@ -676,7 +676,7 @@
   "pr.db.knoten": "Full nodes",
   "pr.db.knotenWert": "each keeps and checks the whole chain",
   "nav.menge": "Supply",
-  "use.wallet.bild": "/assets/img/wallet-start-en.webp?v=3",
+  "use.wallet.bild": "/assets/img/wallet-start-en.webp?v=4",
   "use.wallet.bildAlt": "Home screen of the YSKAR Wallet with balance, send, receive, scan and recent payments",
   "use.wallet.bildNotiz": "Example view: amounts and addresses are examples.",
   "use.wallet.text": "Send and receive YSR, scan QR codes, keep contacts and see every payment. Bring an existing wallet over with your 12 words.",
