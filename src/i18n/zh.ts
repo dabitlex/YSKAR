@@ -5,9 +5,11 @@ import type { Woerterbuch } from './de';
  * build error, not a blank spot in the app.
  */
 import neu from './neu/zh';
+import rd from './rd/en';
 
 const zh = {
   ...neu,
+  rd,
   name: '中文',
   locale: 'zh-CN',
 

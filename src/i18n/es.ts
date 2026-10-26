@@ -5,9 +5,11 @@ import type { Woerterbuch } from './de';
  * falte en un error de compilación, no en un hueco en la app.
  */
 import neu from './neu/es';
+import rd from './rd/en';
 
 const es = {
   ...neu,
+  rd,
   name: 'Español',
   locale: 'es-ES',
 

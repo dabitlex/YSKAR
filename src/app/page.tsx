@@ -29,6 +29,24 @@ export default function Page() {
   );
 }
 
+/**
+ * Vollbild nur auf dem Telefon (iOS, Android). In Telegram Desktop, macOS und
+ * Telegram Web bleibt die App im normalen Fenster, wie jede andere Mini App.
+ * Aeltere Clients ohne Vollbild (vor Bot API 8.0) oeffnen sie wie bisher
+ * ausgeklappt. Den freien Bereich oben liefert Telegram selbst (globals.css).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function vollbild(tg: any) {
+  try {
+    if (!/^(ios|android)/.test(String(tg.platform ?? ''))) return;
+    if (!tg.isVersionAtLeast?.('8.0')) return;
+    if (!tg.isFullscreen) tg.requestFullscreen?.();
+    // Im Vollbild wuerde ein Wischen nach unten die App schliessen -- beim
+    // Scrollen passiert das zu leicht.
+    if (tg.isVersionAtLeast?.('7.7')) tg.disableVerticalSwipes?.();
+  } catch { /* aeltere Clients */ }
+}
+
 function Router() {
   const wallet = useWallet();
   // Ohne Mindestdauer stuende das Startbild einen Frame lang: Tresor und
@@ -57,6 +75,7 @@ function Router() {
     if (!tg || !tg.initData) { setAusserhalb(true); return; }
     tg.ready();
     tg.expand?.();
+    vollbild(tg);
     setPlatform(tg.platform);
   }, []);
 

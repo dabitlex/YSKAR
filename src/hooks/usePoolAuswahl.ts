@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { POOLS, vorschlag, waehlbar, aktuelleAdresse, type PoolStand } from '@/lib/pool/verzeichnis';
+import { SELBST_WAEHLEN } from '@/lib/einstieg';
 import { poolFragen } from '@/lib/pool/abfrage';
 
 /**
@@ -102,9 +103,12 @@ export function usePoolAuswahl({ address, sichtbar, mining, fehler, stop }: {
   /** Die gemerkte Wahl ist gelesen -- vorher ist `modus` nur die Vorgabe. */
   const [geladen, setGeladen] = useState(false);
   // Gemerkte Wahl erst im Browser lesen, nicht beim Rendern auf dem Server.
+  /** Neuer Nutzer seit dem Redesign: kein Vorschlag, er waehlt selbst (siehe einstieg.ts). */
+  const [selbst, setSelbst] = useState(false);
   useEffect(() => {
     setWahl(wahlLesen());
     try { if (localStorage.getItem(MODUS) === 'pool') setModusRoh('pool'); } catch { /* solo */ }
+    try { setSelbst(localStorage.getItem(SELBST_WAEHLEN) === '1'); } catch { /* egal */ }
     setGeladen(true);
   }, []);
 
@@ -245,9 +249,10 @@ export function usePoolAuswahl({ address, sichtbar, mining, fehler, stop }: {
         : ausListe?.name ?? POOLS.find(p => p.host === wahl.host)?.name ?? wahl.host;
       return { host: wahl.host, eigen: wahlEigen, name, stand: s };
     }
+    if (selbst) return null;
     const v = liste ? vorschlag(liste) : null;
     return v ? { host: v.host, eigen: false, name: v.name, stand: v } : null;
-  }, [wahl, wahlEigen, liste, eigen, frisch]);
+  }, [wahl, wahlEigen, liste, eigen, frisch, selbst]);
   zielRef.current = gewaehlt?.host ?? null;
 
   const waehlen = useCallback((w: PoolWahl) => {
@@ -255,6 +260,8 @@ export function usePoolAuswahl({ address, sichtbar, mining, fehler, stop }: {
     setFrisch(null);
     setHinweis(null);
     merken(WAHL, JSON.stringify(w));
+    setSelbst(false);
+    merken(SELBST_WAEHLEN, null);
   }, []);
 
   /**

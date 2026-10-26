@@ -14,9 +14,17 @@
  */
 const MODUS = 'yskar.mining.modus';
 const STARTEN = 'yskar.einstieg.starten';
+/**
+ * Seit dem Redesign (Oktober 2026): Neue Nutzer waehlen ihren Pool selbst.
+ * Solange dieser Merker steht und noch keine Wahl gespeichert ist, schlaegt
+ * die App keinen Pool vor und startet nicht von selbst. Wer schon vorher
+ * eine Wallet hatte, hat den Merker nicht -- fuer den bleibt alles wie es war.
+ */
+export const SELBST_WAEHLEN = 'yskar.pool.selbstWaehlen';
 
 export function einstiegMerken(): void {
   try { localStorage.setItem(MODUS, 'pool'); } catch { /* privates Fenster */ }
+  try { localStorage.setItem(SELBST_WAEHLEN, '1'); } catch { /* egal */ }
   try { sessionStorage.setItem(STARTEN, '1'); } catch { /* dann eben ohne Autostart */ }
 }
 

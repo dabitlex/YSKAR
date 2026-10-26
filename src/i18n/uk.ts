@@ -5,6 +5,7 @@ import type { Woerterbuch } from './de';
  * error, not a blank spot in the app.
  */
 import neu from './neu/uk';
+import rd from './rd/en';
 
 /** Ukrainian plural: one (1, 21, …), few (2–4, 22–24, …), many (everything else). */
 const mn = (n: number, one: string, few: string, many: string) =>
@@ -13,6 +14,7 @@ const mn = (n: number, one: string, few: string, many: string) =>
 
 const uk = {
   ...neu,
+  rd,
   name: 'Українська',
   locale: 'uk-UA',
 

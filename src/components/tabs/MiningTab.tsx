@@ -78,58 +78,12 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
 
   return (
     <>
-      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
-      <header className="relative mb-4 flex items-center justify-between">
-        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.mining.titel}</h1>
-        <Pille tone={m.mining ? 'work' : 'off'} puls={m.mining}>
-          {m.mining ? t.mining.seit(minuten) : t.mining.gestoppt}
-        </Pille>
-      </header>
-
-      {!m.mining ? (
-        <Karte className="rise relative flex flex-col items-center gap-2.5 px-[18px] pb-5 pt-[26px] text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-work/10 text-work">
-            <svg viewBox="0 0 22 22" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.9"
-                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2 5 13h5l-1 7 8-11h-5l1-7z" /></svg>
-          </span>
-          <span className="text-[20px] font-extrabold">{t.miningNeu.bereit}</span>
-          <span className="text-[13px] font-semibold leading-[1.5] text-dim">
-            {modus === 'pool' ? t.miningNeu.bereitPool : t.miningNeu.bereitSolo}
-          </span>
-          <button type="button" onClick={onStarten} disabled={startGesperrt}
-                  className="mt-1.5 flex h-14 w-full items-center justify-center gap-2 rounded-[18px] bg-work text-[16px]
-                             font-extrabold text-white shadow-[0_10px_24px_-10px_rgb(var(--work)/.7)] transition-transform
-                             active:scale-[.985] disabled:opacity-40">
-            <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
-                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2 5 13h5l-1 7 8-11h-5l1-7z" /></svg>
-            {t.miningNeu.starten}
-          </button>
-        </Karte>
-      ) : (
-        <Karte className="rise relative flex flex-col items-center gap-1.5 px-4 pb-[18px] pt-[22px] text-center">
-          <Etikett>{t.miningNeu.deinTelefon}</Etikett>
-          <Zahl ganz={r.wert} einheit={r.einheit} size={52} />
-          <span className="text-[13px] font-bold text-dim">
-            {modus === 'pool' ? t.miningNeu.sharesAngenommen(zahl(m.sharesZahl)) : t.miningNeu.sharesSolo(zahl(m.sharesZahl))}
-          </span>
-          <div className="mt-2 w-full"><Kurve werte={m.hashVerlauf} hoehe={56} /></div>
-        </Karte>
-      )}
-
-      {m.mining && (
-        <button type="button" onClick={m.stop}
-                className="panel rise rise-1 mt-3 flex h-[50px] w-full items-center justify-center !rounded-[16px] text-[15px]
-                           font-extrabold active:scale-[.985]">
-          {t.miningNeu.stoppen}
-        </button>
-      )}
-
       {/* Der Pool: vor dem Start waehlbar, waehrend des Minings mit Zahlen und der Schaetzung. */}
       {modus === 'pool' && !m.mining && (
-        <div className="rise rise-1 mt-3"><PoolFeld pool={pool} onOeffnen={() => pool.setBlatt(true)} /></div>
+        <div className="rise rise-1 mt-6"><PoolFeld pool={pool} onOeffnen={() => pool.setBlatt(true)} /></div>
       )}
       {modus === 'pool' && m.mining && (
-        <Karte className="rise rise-2 mt-3 flex flex-col gap-2.5 p-4">
+        <Karte className="rise rise-2 mt-6 flex flex-col gap-2.5 p-4">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-[14.5px] font-extrabold">
               <span className="h-2 w-2 rounded-full bg-proof" />
@@ -151,7 +105,7 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
       )}
 
       {m.mining && (
-        <p className="mt-3 rounded-[16px] bg-work/[.07] px-3.5 py-3 text-[12.5px] font-semibold leading-[1.4] text-lese">
+        <p className="mt-3 flex gap-2.5 px-1 text-[13px] leading-[1.5] text-dim">
           {m.dienst?.ok
             ? (m.dienst.notifications ? t.mining.hintergrund : t.mining.hintergrundOhne)
             : m.dienst && !m.dienst.ok ? t.mining.dienstFehler(m.dienst.fehler)
@@ -161,8 +115,8 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
       )}
 
       <button type="button" onClick={() => setErweitert(true)}
-              className="panel mt-3 flex h-[46px] w-full items-center justify-between !rounded-[14px] px-4 text-[13.5px]
-                         font-bold text-dim active:scale-[.99]">
+              className="panel mt-3 flex h-[52px] w-full items-center justify-between px-4 text-[14px]
+                         text-lese active:scale-[.99]">
         {t.miningNeu.erweitert}<span className="text-faint" aria-hidden="true">›</span>
       </button>
 
@@ -245,7 +199,7 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
           </Wahl>
           {m.mining && <p className="text-[12px] font-semibold text-faint">{t.miningNeu.gesperrtBeimMinen}</p>}
           <button type="button" onClick={() => setErweitert(false)}
-                  className="flex h-[52px] w-full items-center justify-center rounded-[18px] bg-text text-[15px] font-extrabold text-ink">
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink">
             {t.allgemein.fertig}
           </button>
         </div>
@@ -256,9 +210,9 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
 
 function Feld({ name, wert }: { name: string; wert: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5 rounded-[12px] bg-raised px-2.5 py-2.5">
-      <span className="truncate text-[11px] font-bold text-faint">{name}</span>
-      <span className="tnum truncate font-mono text-[13px]">{wert}</span>
+    <div className="flex min-w-0 flex-col gap-1 py-1">
+      <span className="truncate text-[11.5px] text-dim">{name}</span>
+      <span className="tnum truncate font-mono text-[13.5px]">{wert}</span>
     </div>
   );
 }

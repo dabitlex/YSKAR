@@ -13,9 +13,11 @@ const odm = (n: number, one: string, few: string, many: string) => {
 };
 
 import neu from './neu/pl';
+import rd from './rd/en';
 
 const pl = {
   ...neu,
+  rd,
   name: 'Polski',
   locale: 'pl-PL',
 

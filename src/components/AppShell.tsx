@@ -10,7 +10,7 @@ import { useAutoSperre } from '@/hooks/useAutoSperre';
 import { BottomNav, type Tab } from '@/components/ui/Chrome';
 import { Button, Hash } from '@/components/ui/Primitives';
 import { Blatt } from '@/components/ui/Bausteine';
-import HomeTab from '@/components/tabs/HomeTab';
+import MineTab from '@/components/tabs/MineTab';
 import MiningTab from '@/components/tabs/MiningTab';
 import WalletTab, { type HistoryEintrag } from '@/components/tabs/WalletTab';
 import EntdeckenTab from '@/components/tabs/EntdeckenTab';
@@ -60,7 +60,7 @@ export default function AppShell({ platform }: { platform: string }) {
 
   // Einmal nach dem Einstieg: gleich in den Mining-Reiter und loslegen.
   const [autostart] = useState(einstiegAbholen);
-  const [tab, setTab] = useState<Tab>(autostart ? 'mining' : 'home');
+  const [tab, setTab] = useState<Tab>('mine');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
   const [gesperrt, setGesperrt] = useState(false);
 
@@ -71,7 +71,7 @@ export default function AppShell({ platform }: { platform: string }) {
   const pool = usePoolAuswahl({
     address: wallet.address,
     // Die Liste wird auch auf Home gebraucht (Start-Knopf) und beim Autostart.
-    sichtbar: (tab === 'mining' || tab === 'home') && ansicht === null,
+    sichtbar: tab === 'mine' && ansicht === null,
     mining: m.mining, fehler: m.fehler, stop: m.stop,
   });
   const kerne = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency || null) : null;
@@ -129,6 +129,9 @@ export default function AppShell({ platform }: { platform: string }) {
   const hatVorschlag = !!pool.gewaehlt;
   useEffect(() => {
     if (!autostart || autoVersucht.current || wallet.phase !== 'offen' || !pool.geladen) return;
+    // Seit dem Redesign waehlen neue Nutzer ihren Pool selbst: kein Autostart,
+    // die Liste geht gleich auf. Gestartet wird mit dem Knopf, nach der Wahl.
+    if (pool.modus === 'pool' && !hatVorschlag) { autoVersucht.current = true; blattRef.current(true); return; }
     if (pool.modus === 'solo' || hatVorschlag) { autoVersucht.current = true; startenRef.current(); return; }
     const id = setTimeout(() => {
       if (autoVersucht.current) return;
@@ -158,7 +161,7 @@ export default function AppShell({ platform }: { platform: string }) {
 
   return (
     <>
-      <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-5 pb-36">
+      <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-[22px] pb-36">
         {ansicht === null && <UpdateBanner />}
         {ansicht === 'einstellungen' ? (
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} summary={m.summary}
@@ -171,19 +174,16 @@ export default function AppShell({ platform }: { platform: string }) {
           <Artikel artikel={inhalte(sprache, locale).ARTIKEL.find(a => a.slug === ansicht.artikel)
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
-        ) : tab === 'home' ? (
-          <HomeTab account={m.account as never} summary={m.summary} mining={m.mining}
-                   hashrate={m.hashrate} hashVerlauf={m.hashVerlauf} shares={m.sharesZahl}
-                   decimals={dec} symbol={sym} poolName={poolName} gesichert={wallet.gesichert}
+        ) : tab === 'mine' ? (<>
+          <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
                    onStartStopp={startStopp}
-                   onMining={() => setTab('mining')}
                    onSichern={() => setAnsicht('sichern')}
-                   onEinstellungen={() => setAnsicht('einstellungen')} />
-        ) : tab === 'mining' ? (
+                   onEinstellungen={() => setAnsicht('einstellungen')}
+                   onPoolWaehlen={() => pool.setBlatt(true)} />
           <MiningTab m={m} dec={dec} sym={sym} wach={wach} pool={pool}
                      worker={worker} setWorker={setWorker} kerne={kerne} workerStufen={workerStufen}
                      bench={bench} onStarten={starten} onBenchmark={() => setAnsicht('benchmark')} />
-        ) : tab === 'wallet' ? (
+        </>        ) : tab === 'wallet' ? (
           <WalletTab account={m.account as never} decimals={dec} symbol={sym}
                      address={wallet.address}
                      onSenden={() => senden('senden')}

@@ -1,66 +1,61 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { keypairFromMnemonic } from '@/lib/core/wallet';
 import { Notice } from '@/components/ui/Primitives';
 import WortFelder, { istWort } from '@/components/wallet/WortFelder';
 import PinFeld, { PinTasten, PIN_LAENGE } from '@/components/PinFeld';
 import { useT, SPRACHEN, fehlerText as grund } from '@/i18n';
-import { useThema } from '@/lib/useThema';
-import { telegramFarben, useZurueckTaste, haptik } from '@/lib/telegram/webapp';
+import { telegramFarben, useZurueckTaste, haptik, imTelegram } from '@/lib/telegram/webapp';
 import { leistenFaerben } from '@/lib/native/leisten';
-import { vorgeladen } from '@/lib/vorladen';
-import { vorschlag, type PoolStand } from '@/lib/pool/verzeichnis';
-import { ExternLink } from '@/components/ui/ExternLink';
-import { COMMUNITY } from '@/lib/community';
 import { einstiegMerken } from '@/lib/einstieg';
+import { Zeichen, Muenze3D, Schild, Boerse } from '@/components/ui/Marke';
 
 /**
- * Der Einstieg -- fuer jemanden, der gerade eine Anzeige gesehen hat.
+ * Der Einstieg (Redesign Oktober 2026) -- fuer jemanden, der YSKAR noch nicht
+ * kennt. Fuenf Bildschirme:
  *
- * Erst zeigen, was YSKAR ist (drei Karten, mit echten Zahlen aus dem Netz),
- * dann ein Knopf: "Mining starten". Danach eine PIN, und das Telefon
- * rechnet. Vier Tipps statt zehn Schritte.
+ *   w1   Das ist YSKAR (mit der drehenden Muenze)
+ *   w1b  Was du hier tun kannst
+ *   w2   So funktioniert es
+ *   w2b  Gut zu wissen (Sicherheit)
+ *   w3   Wallet erstellen
  *
- * Was sich gegenueber vorher NICHT geaendert hat: Die zwoelf Woerter
- * entstehen auf dem Geraet, nur der Nutzer hat sie, und sie liegen mit der
- * PIN verschluesselt im Speicher. Neu ist nur der Zeitpunkt der Sicherung:
- * Sie kommt, wenn es etwas zu sichern gibt -- und Senden bleibt gesperrt,
- * bis sie erledigt ist (siehe components/Sicherung.tsx).
+ * "Ueberspringen" fuehrt von jedem Bildschirm direkt zu "Wallet erstellen".
+ * Danach eine PIN; den Pool waehlt der Nutzer danach selbst (AppShell).
  *
- * Der ganze Einstieg ist dunkel, unabhaengig vom gewaehlten Thema: Das
- * Markenbild ist eine Nacht im Gebirge, und der Uebergang in die helle App
- * markiert den Moment, ab dem das Telefon mitrechnet.
+ * Was sich NICHT geaendert hat: Die zwoelf Woerter entstehen auf dem Geraet,
+ * nur der Nutzer hat sie, und sie liegen mit der PIN verschluesselt im
+ * Speicher. Gesichert werden sie nach dem Mining-Start; Senden bleibt bis
+ * dahin gesperrt (siehe components/Sicherung.tsx).
  */
 
-type Schritt = 'w1' | 'w2' | 'w3' | 'pin' | 'wiederherstellen' | 'wPin';
+type Schritt = 'w1' | 'w1b' | 'w2' | 'w2b' | 'w3' | 'pin' | 'wiederherstellen' | 'wPin';
+const REIHE: Schritt[] = ['w1', 'w1b', 'w2', 'w2b', 'w3'];
 
 export default function Onboarding() {
   const wallet = useWallet();
-  const { dunkel } = useThema();
   const [schritt, setSchritt] = useState<Schritt>('w1');
   const [woerter, setWoerter] = useState<string[]>(() => Array(12).fill(''));
 
-  // Telegram-Leisten und Android-Systemleisten passend zum dunklen Einstieg,
-  // danach zurueck auf das Thema der App.
-  useEffect(() => {
-    telegramFarben(true); leistenFaerben(true);
-    return () => { telegramFarben(dunkel); leistenFaerben(dunkel); };
-  }, [dunkel]);
+  useEffect(() => { telegramFarben(true); leistenFaerben(true); }, []);
 
   const zurueck: Partial<Record<Schritt, Schritt>> = {
-    w2: 'w1', w3: 'w2', pin: 'w3', wiederherstellen: 'w3', wPin: 'wiederherstellen',
+    w1b: 'w1', w2: 'w1b', w2b: 'w2', w3: 'w2b', pin: 'w3', wiederherstellen: 'w3', wPin: 'wiederherstellen',
   };
   useZurueckTaste(!!zurueck[schritt], () => { const z = zurueck[schritt]; if (z) setSchritt(z); });
+  const weiter = () => { const i = REIHE.indexOf(schritt); if (i >= 0 && i < REIHE.length - 1) setSchritt(REIHE[i + 1]); };
+  const skip = () => setSchritt('w3');
 
   return (
     <div className="thema-dunkel min-h-dvh">
-      {schritt === 'w1' && <Willkommen1 onWeiter={() => setSchritt('w2')} onUeberspringen={() => setSchritt('w3')} />}
-      {schritt === 'w2' && <Willkommen2 onWeiter={() => setSchritt('w3')} />}
-      {schritt === 'w3' && <Willkommen3 onStarten={() => setSchritt('pin')}
-                                        onWiederherstellen={() => setSchritt('wiederherstellen')} />}
+      {schritt === 'w1' && <Willkommen1 onWeiter={weiter} onSkip={skip} />}
+      {schritt === 'w1b' && <WasDuTunKannst onWeiter={weiter} onSkip={skip} />}
+      {schritt === 'w2' && <SoGehtEs onWeiter={weiter} onSkip={skip} />}
+      {schritt === 'w2b' && <GutZuWissen onWeiter={weiter} onSkip={skip} />}
+      {schritt === 'w3' && <WalletErstellen onStarten={() => setSchritt('pin')}
+                                            onWiederherstellen={() => setSchritt('wiederherstellen')} />}
       {schritt === 'pin' && (
         <PinSchritt onZurueck={() => setSchritt('w3')}
                     onFertig={async pin => {
@@ -87,260 +82,261 @@ export default function Onboarding() {
 
 // ------------------------------------------------------------ Bausteine
 
-/** Drei Punkte oben: wo man im Willkommen steht. */
-function Punkte({ aktiv }: { aktiv: 0 | 1 | 2 }) {
+/** Fuenf Striche oben: wo man im Einstieg steht. */
+function Punkte({ aktiv }: { aktiv: number }) {
   return (
     <div className="flex gap-1.5" aria-hidden="true">
-      {[0, 1, 2].map(i => (
-        <span key={i} className={`h-1.5 rounded-full bg-text transition-all ${
-          i === aktiv ? 'w-[22px]' : 'w-1.5 opacity-30'}`} />
+      {REIHE.map((_, i) => (
+        <span key={i} className={`h-[3px] rounded-full transition-all ${i === aktiv ? 'w-6 bg-text' : 'w-2.5 bg-[rgb(140_170_255/.22)]'}`} />
       ))}
     </div>
   );
 }
 
-function Hauptknopf({ children, onClick, disabled }: {
-  children: React.ReactNode; onClick: () => void; disabled?: boolean;
+function Pfeil() {
+  return (
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-text">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+    </span>
+  );
+}
+
+/** Weisse Pille mit Pfeil -- der Hauptknopf auf yskar.app und in der Wallet. */
+function Hauptknopf({ children, onClick, disabled, mitte }: {
+  children: React.ReactNode; onClick: () => void; disabled?: boolean; mitte?: boolean;
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] bg-work
-                       text-[16px] font-extrabold text-white transition-transform active:scale-[.985]
-                       disabled:opacity-40 disabled:active:scale-100">
-      {children}
+            className={`flex h-14 w-full items-center rounded-full bg-text text-[15.5px] font-semibold text-ink transition-transform
+                        active:scale-[.985] disabled:opacity-40 disabled:active:scale-100 ${mitte ? 'justify-center px-6' : 'justify-between pl-[26px] pr-2'}`}>
+      {children}{!mitte && <Pfeil />}
     </button>
   );
 }
 
 function ZurueckKnopf({ onClick }: { onClick: () => void }) {
   const { t } = useT();
+  // In Telegram fuehrt der Client oben links "Zurueck" -- ein eigener Pfeil waere doppelt.
+  if (imTelegram()) return null;
   return (
     <button type="button" onClick={onClick} aria-label={t.allgemein.zurueck}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-text active:scale-95">
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text active:scale-95">
       <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 5l-6 6 6 6" /></svg>
     </button>
   );
 }
 
-const Blitz = (
-  <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2 5 13h5l-1 7 8-11h-5l1-7z" /></svg>
-);
-
-// ------------------------------------------------------------ Willkommen 1
-
-/**
- * Was ist YSKAR. Mit einer Live-Leiste aus dem Netz -- dieselben Zahlen,
- * die der Explorer zeigt, schon bevor es eine Wallet gibt.
- */
-function Willkommen1({ onWeiter, onUeberspringen }: { onWeiter: () => void; onUeberspringen: () => void }) {
-  const { t, sprache, setSprache, zahl } = useT();
-  const s = vorgeladen().summary;
+function Seite({ children, gap = 'gap-3' }: { children: React.ReactNode; gap?: string }) {
   return (
-    <main className="relative mx-auto flex min-h-dvh max-w-md flex-col overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-[66dvh]">
-        <Image src="/marke/splash-dunkel.jpg" alt="" fill priority sizes="100vw"
-               style={{ objectFit: 'cover', objectPosition: 'center 34%' }} />
-        <div className="absolute inset-x-0 bottom-0 h-[48%]"
-             style={{ background: 'linear-gradient(180deg, transparent, rgb(var(--ink)) 92%)' }} />
-      </div>
+    <main className={`rand-oben relative mx-auto flex min-h-dvh max-w-md flex-col ${gap} overflow-hidden px-[22px] pb-[calc(26px+var(--unten))]`}>
+      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
+      {children}
+    </main>
+  );
+}
 
-      <div className="rand-oben relative flex items-center justify-between px-6">
+function Kopf({ nr, onSkip }: { nr: number; onSkip?: () => void }) {
+  const { t } = useT();
+  return (
+    <div className="relative flex min-h-7 items-center justify-between">
+      <Punkte aktiv={nr} />
+      {onSkip && <button type="button" onClick={onSkip} className="text-[13.5px] text-dim">{t.rd.w.skip}</button>}
+    </div>
+  );
+}
+
+function Titel({ a, b, size = 36 }: { a: string; b: string; size?: number }) {
+  return (
+    <h1 className="relative font-semibold leading-[1] tracking-[-0.05em]" style={{ fontSize: size }}>
+      {a}<span className="grad block pb-1 font-light">{b}</span>
+    </h1>
+  );
+}
+
+function Zeile({ icon, titel, text }: { icon: React.ReactNode; titel: string; text: string }) {
+  return (
+    <div className="flex items-start gap-3.5 border-b border-line py-2.5">
+      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-work/15 text-cyan">{icon}</span>
+      <span className="flex flex-col gap-0.5">
+        <b className="text-[15px] font-semibold">{titel}</b>
+        <span className="text-[13.5px] leading-[1.45] text-dim">{text}</span>
+      </span>
+    </div>
+  );
+}
+
+const ic = (d: React.ReactNode) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>
+);
+const IC = {
+  globus: ic(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9z" /></>),
+  blitz: ic(<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z" />),
+  wallet: ic(<><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M16 14.5h2" /></>),
+  hoch: ic(<path d="M12 19V5M6 11l6-6 6 6" />),
+  netz: ic(<path d="M3 12h4l3-7 4 14 3-7h4" />),
+  doc: ic(<><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M10 13h6M10 17h6" /></>),
+  schloss: ic(<><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>),
+  warn: ic(<><path d="M12 3l9.5 17h-19z" /><path d="M12 10v4M12 17h.01" /></>),
+  schild: ic(<path d="M12 3l8 3v6c0 4.6-3.3 8.1-8 9.5-4.7-1.4-8-4.9-8-9.5V6z" />),
+};
+
+// ------------------------------------------------------------ 1: Das ist YSKAR
+
+function Willkommen1({ onWeiter, onSkip }: { onWeiter: () => void; onSkip: () => void }) {
+  const { t, sprache, setSprache } = useT();
+  return (
+    <Seite gap="gap-3.5">
+      <div className="relative flex min-h-10 items-center justify-between">
         <Punkte aktiv={0} />
         {/* Sprache zuerst: Wer die Sprache nicht versteht, kann den Rest nicht beurteilen. */}
-        <label className="flex items-center gap-1.5 rounded-full border border-white/15 bg-ink/50 py-1.5 pl-3 pr-2.5
-                          text-[12.5px] font-bold">
-          <svg viewBox="0 0 22 22" width="15" height="15" fill="none" stroke="currentColor"
-               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8.5" /><path d="M2.5 11h17M11 2.5c2.5 2.6 3.7 5.4 3.7 8.5s-1.2 5.9-3.7 8.5c-2.5-2.6-3.7-5.4-3.7-8.5S8.5 5.1 11 2.5z" />
-          </svg>
+        <label className="flex h-[38px] items-center gap-2 rounded-full border border-[rgb(140_170_255/.22)] px-3.5 text-[13px] font-medium">
+          {IC.globus}
           <span className="sr-only">{t.allgemein.sprache}</span>
           <select value={sprache} onChange={e => setSprache(e.target.value as typeof sprache)}
-                  className="appearance-none bg-transparent pr-1 text-[12.5px] font-bold text-text outline-none">
+                  className="appearance-none bg-transparent text-[13px] font-medium text-text outline-none">
             {SPRACHEN.map(sp => <option key={sp.code} value={sp.code} lang={sp.code}>{sp.name}</option>)}
           </select>
         </label>
       </div>
-
-      <div className="flex-1" />
-
-      <div className="relative flex flex-col gap-[18px] px-6 pb-[calc(32px+var(--unten))]">
-        {s?.height != null && (
-          <div className="rise flex flex-wrap items-center gap-x-2.5 gap-y-1 self-start rounded-full border border-line
-                          bg-surface/85 px-3.5 py-2 text-[12px] font-bold text-dim">
-            <span className="h-[7px] w-[7px] rounded-full bg-proof shadow-[0_0_0_4px_rgb(var(--proof)/.18)]" />
-            <span className="text-proof">{t.einstieg.live}</span>
-            <span>{t.einstieg.block(`#${zahl(s.height)}`)}</span>
-            <span aria-hidden="true">·</span><span>{t.einstieg.miner(s.activeMiners ?? 0)}</span>
-            {typeof s.knoten === 'number' && <><span aria-hidden="true">·</span><span>{t.einstieg.knoten(s.knoten)}</span></>}
+      <div className="buehne relative pt-2"><Muenze3D d={150} /></div>
+      <div className="min-h-2 flex-1" />
+      <div className="relative flex flex-col gap-4">
+        <span className="etikett">{t.rd.w.w1Etikett}</span>
+        <Titel a={t.rd.w.w1A} b={t.rd.w.w1B} size={40} />
+        <p className="text-[15.5px] leading-[1.55] text-dim">{t.rd.w.w1Text}</p>
+      </div>
+      <div className="relative grid grid-cols-3 border-y border-line">
+        {[[t.rd.w.menge, t.rd.w.mengeWert], [t.rd.w.code, t.rd.w.codeWert], [t.rd.w.schluessel, t.rd.w.schluesselWert]].map(([n, w], i) => (
+          <div key={n} className={`flex min-w-0 flex-col gap-1.5 py-3.5 ${i ? 'border-l border-line pl-3.5' : ''}`}>
+            <span className="text-[12px] text-dim">{n}</span>
+            <span className="truncate text-[16px]">{w}</span>
           </div>
-        )}
-        <div className="rise rise-1">
-          <h1 className="text-[34px] font-extrabold leading-[1.08] tracking-[-0.03em]">
-            {t.einstieg.w1TitelA}<br />{t.einstieg.w1TitelB}
-          </h1>
-          <p className="mt-3 text-[15px] font-semibold leading-[1.5] text-dim">{t.einstieg.w1Text}</p>
-        </div>
-        <div className="rise rise-2 flex flex-col gap-3.5">
-          <Hauptknopf onClick={onWeiter}>{t.einstieg.weiter}</Hauptknopf>
-          <button type="button" onClick={onUeberspringen}
-                  className="text-center text-[13.5px] font-bold text-dim">{t.einstieg.einfuehrungUeberspringen}</button>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-// ------------------------------------------------------------ Willkommen 2
-
-function Willkommen2({ onWeiter }: { onWeiter: () => void }) {
-  const { t } = useT();
-  const schritte = [
-    { titel: t.einstieg.s1Titel, text: t.einstieg.s1Text, farbe: 'work',
-      icon: <path d="M7 2.5h8a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2zM11.5 7 9 11h4l-2.5 4" /> },
-    { titel: t.einstieg.s2Titel, text: t.einstieg.s2Text, farbe: 'work',
-      icon: <path d="M7.5 6a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zM15 6a2.75 2.75 0 1 0 0 5.5A2.75 2.75 0 0 0 15 6zM2.5 18c.8-2.8 2.8-4.2 5-4.2s4.2 1.4 5 4.2M10.6 14.3c1.1-.4 2.1-.5 4.4-.5 2.3 0 4.3 1.4 5 4.2" /> },
-    { titel: t.einstieg.s3Titel, text: t.einstieg.s3Text, farbe: 'proof',
-      icon: <path d="M11 2.5l7.5 4.2v8.6L11 19.5l-7.5-4.2V6.7zM7.8 11l2.3 2.3 4.2-4.6" /> },
-  ];
-  return (
-    <main className="rand-oben relative mx-auto flex min-h-dvh max-w-md flex-col overflow-hidden px-6
-                     pb-[calc(32px+var(--unten))]">
-      <div className="pointer-events-none absolute -left-20 -top-28 h-[420px] w-[420px] rounded-full"
-           style={{ background: 'radial-gradient(circle, rgb(var(--work)/.22), transparent 70%)' }} />
-      <div className="relative flex h-9 items-center justify-between">
-        <Punkte aktiv={1} />
-        <button type="button" onClick={onWeiter} className="text-[13px] font-bold text-dim">{t.einstieg.ueberspringen}</button>
-      </div>
-
-      <div className="rise relative mt-9">
-        <p className="text-[12px] font-extrabold tracking-[.14em] text-work">{t.einstieg.w2Kicker}</p>
-        <h1 className="mt-2.5 text-[30px] font-extrabold leading-[1.1] tracking-[-0.03em]">
-          {t.einstieg.w2TitelA}<br />{t.einstieg.w2TitelB}
-        </h1>
-      </div>
-
-      <ol className="relative mt-8 flex flex-col">
-        {schritte.map((s, i) => (
-          <li key={i} className={`rise rise-${i + 1} flex gap-4`}>
-            <div className="flex flex-col items-center">
-              <span className={`flex h-12 w-12 items-center justify-center rounded-[16px] ${
-                s.farbe === 'proof' ? 'bg-proof/15 text-proof' : 'bg-work/15 text-work'}`}>
-                <svg viewBox="0 0 22 22" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"
-                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{s.icon}</svg>
-              </span>
-              {i < schritte.length - 1 && <span className="my-1.5 min-h-7 w-0.5 flex-1 bg-line" />}
-            </div>
-            <div className={`pt-1 ${i < schritte.length - 1 ? 'pb-5' : ''}`}>
-              <p className="text-[16px] font-extrabold">{s.titel}</p>
-              <p className="mt-1.5 text-[13.5px] font-semibold leading-[1.5] text-dim">{s.text}</p>
-            </div>
-          </li>
         ))}
-      </ol>
-
-      <div className="flex-1" />
-
-      <div className="relative flex flex-col gap-3.5">
-        <div className="flex items-center gap-3 rounded-[16px] border border-line bg-surface px-4 py-3.5">
-          <Image src="/marke/kristall.png" alt="" width={34} height={22} style={{ width: 34, height: 22, objectFit: 'contain' }} />
-          <p className="text-[12.5px] font-semibold leading-[1.45] text-dim">{t.einstieg.w2Hinweis}</p>
-        </div>
-        <Hauptknopf onClick={onWeiter}>{t.einstieg.weiter}</Hauptknopf>
       </div>
-    </main>
+      <div className="relative flex flex-col gap-1">
+        <Hauptknopf onClick={() => { haptik('tipp'); onWeiter(); }}>{t.rd.w.weiter}</Hauptknopf>
+        <button type="button" onClick={onSkip} className="min-h-11 text-[14px] text-dim">{t.rd.w.skipIntro}</button>
+      </div>
+    </Seite>
   );
 }
 
-// ------------------------------------------------------------ Willkommen 3
+// ------------------------------------------------------------ 1b: Was du hier tun kannst
 
-/** Der Pool, den die App vorschlagen wird -- derselbe, den das Mining nimmt. */
-function usePoolVorschlag(): { pool: PoolStand | null; fertig: boolean } {
-  const [pool, setPool] = useState<PoolStand | null>(null);
-  const [fertig, setFertig] = useState(false);
-  useEffect(() => {
-    let lebt = true;
-    fetch('/api/v2/pools', { cache: 'no-store' })
-      .then(r => r.json())
-      .then((b: { pools?: PoolStand[] }) => { if (lebt && Array.isArray(b.pools)) setPool(vorschlag(b.pools)); })
-      .catch(() => {})
-      .finally(() => { if (lebt) setFertig(true); });
-    return () => { lebt = false; };
-  }, []);
-  return { pool, fertig };
+function WasDuTunKannst({ onWeiter, onSkip }: { onWeiter: () => void; onSkip: () => void }) {
+  const { t } = useT();
+  const w = t.rd.w;
+  return (
+    <Seite>
+      <Kopf nr={1} onSkip={onSkip} />
+      <span className="etikett relative mt-2">{w.w1bEtikett}</span>
+      <Titel a={w.w1bA} b={w.w1bB} />
+      <div className="relative flex flex-col border-t border-line">
+        <Zeile icon={IC.globus} titel={w.k0T} text={w.k0S} />
+        <Zeile icon={IC.blitz} titel={w.k1T} text={w.k1S} />
+        <Zeile icon={IC.wallet} titel={w.k2T} text={w.k2S} />
+        <Zeile icon={IC.hoch} titel={w.k3T} text={w.k3S} />
+        <Zeile icon={IC.netz} titel={w.k4T} text={w.k4S} />
+      </div>
+      <div className="min-h-4 flex-1" />
+      <Hauptknopf onClick={onWeiter}>{w.weiter}</Hauptknopf>
+    </Seite>
+  );
 }
 
-function Willkommen3({ onStarten, onWiederherstellen }: { onStarten: () => void; onWiederherstellen: () => void }) {
-  const { t, zahl } = useT();
-  const { pool, fertig } = usePoolVorschlag();
+// ------------------------------------------------------------ 2: So funktioniert es
+
+function SoGehtEs({ onWeiter, onSkip }: { onWeiter: () => void; onSkip: () => void }) {
+  const { t } = useT();
+  const w = t.rd.w;
+  const zeile = (geraet: string, hash: string, rate: string, gut = false) => (
+    <div className={`flex h-[38px] items-center gap-3 rounded-[12px] border px-3.5 ${gut ? 'border-proof/45 bg-proof/[.06]' : 'border-line'}`}>
+      <span className="w-[46px] text-[13px]">{geraet}</span>
+      <span className={`flex-1 truncate font-mono text-[11.5px] ${gut ? 'text-proof' : 'text-faint'}`}>{hash}</span>
+      <span className="font-mono text-[11.5px] text-cyan">{rate}</span>
+    </div>
+  );
+  const schritt = (n: string, titel: string, text: string, letzt = false) => (
+    <div className="relative flex gap-4 pb-3.5">
+      {!letzt && <span className="absolute bottom-[-6px] left-[13px] top-[30px] w-px bg-[rgb(140_170_255/.22)]" />}
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] bg-ink font-mono text-[11px] text-cyan">{n}</span>
+      <span className="flex flex-col gap-0.5 pt-[3px]"><b className="text-[15.5px] font-semibold">{titel}</b><span className="text-[14px] leading-[1.5] text-dim">{text}</span></span>
+    </div>
+  );
   return (
-    <main className="rand-oben relative mx-auto flex min-h-dvh max-w-md flex-col overflow-hidden px-6
-                     pb-[calc(32px+var(--unten))]">
-      <div className="pointer-events-none absolute -right-28 -top-24 h-[440px] w-[440px] rounded-full"
-           style={{ background: 'radial-gradient(circle, rgb(var(--work)/.2), transparent 70%)' }} />
-      <div className="relative flex h-9 items-center"><Punkte aktiv={2} /></div>
-
-      <div className="zoom relative mt-6 flex justify-center">
-        <Image src="/marke/kristall.png" alt="YSKAR" width={132} height={86} priority
-               style={{ width: 132, height: 86, objectFit: 'contain' }} />
+    <Seite gap="gap-3.5">
+      <Kopf nr={2} onSkip={onSkip} />
+      <span className="etikett relative mt-1">{w.w2Etikett}</span>
+      <Titel a={w.w2A} b={w.w2B} size={36} />
+      <div className="relative flex flex-col gap-2 rounded-[20px] border border-line bg-sunk p-3.5">
+        <span className="text-right font-mono text-[10px] uppercase tracking-[.16em] text-faint">{w.beispiel}</span>
+        {zeile('Phone', 'b12f62b06d0526b83f01659f21e7a', '1.2 MH/s')}
+        {zeile('PC', '67534d1788199124629ec4f5fc3eb2', '48 MH/s')}
+        {zeile('GPU', '0000000000e71cf3f200ca9ed3907e', '1.9 GH/s', true)}
       </div>
-
-      <div className="rise relative mt-6 text-center">
-        <h1 className="text-[30px] font-extrabold leading-[1.1] tracking-[-0.03em]">{t.einstieg.w3Titel}</h1>
-        <p className="mt-2.5 text-[14.5px] font-semibold leading-[1.5] text-dim">{t.einstieg.w3Text}</p>
+      <div className="relative flex flex-col">
+        {schritt('01', w.s1T, w.s1S)}
+        {schritt('02', w.s2T, w.s2S)}
+        {schritt('03', w.s3T, w.s3S, true)}
       </div>
+      <div className="min-h-2 flex-1" />
+      <Hauptknopf onClick={onWeiter}>{w.weiter}</Hauptknopf>
+    </Seite>
+  );
+}
 
-      <div className="rise rise-1 relative mt-6 flex items-center gap-3 rounded-[16px] border border-line bg-surface px-4 py-3.5">
-        <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px] bg-proof/15 text-proof">
-          <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"
-               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M7.5 6a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5zM15 6a2.75 2.75 0 1 0 0 5.5A2.75 2.75 0 0 0 15 6zM2.5 18c.8-2.8 2.8-4.2 5-4.2s4.2 1.4 5 4.2M10.6 14.3c1.1-.4 2.1-.5 4.4-.5 2.3 0 4.3 1.4 5 4.2" />
-          </svg>
-        </span>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-[11.5px] font-bold text-faint">{t.einstieg.poolFuerDich}</span>
-          {pool ? (
-            <>
-              <span className="text-[14.5px] font-extrabold">{pool.name}</span>
-              {pool.frei != null && pool.feeBps != null && (
-                <span className="text-[12px] font-semibold text-dim">
-                  {t.einstieg.poolStand(zahl(pool.frei), zahl(pool.feeBps / 100))}
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="text-[13px] font-semibold text-dim">{fertig ? t.einstieg.poolSpaeter : t.einstieg.poolSucht}</span>
-          )}
-        </div>
+// ------------------------------------------------------------ 2b: Gut zu wissen / 3: Wallet erstellen
+// Beide gleich gebaut: Bild oben in fester Hoehe, dann Etikett, Titel, Liste, Knopf.
+
+function BildBox({ children }: { children: React.ReactNode }) {
+  return <div className="relative flex h-[108px] shrink-0 items-start justify-center">{children}</div>;
+}
+
+function GutZuWissen({ onWeiter, onSkip }: { onWeiter: () => void; onSkip: () => void }) {
+  const { t } = useT();
+  const w = t.rd.w;
+  return (
+    <Seite gap="gap-2.5">
+      <Kopf nr={3} onSkip={onSkip} />
+      <BildBox><Schild hoehe={105} /></BildBox>
+      <span className="etikett relative">{w.w2bEtikett}</span>
+      <Titel a={w.w2bA} b={w.w2bB} size={32} />
+      <div className="relative flex flex-col border-t border-line">
+        <Zeile icon={IC.doc} titel={w.g1T} text={w.g1S} />
+        <Zeile icon={IC.schloss} titel={w.g2T} text={w.g2S} />
+        <Zeile icon={IC.warn} titel={w.g3T} text={w.g3S} />
+        <Zeile icon={IC.wallet} titel={w.g4T} text={w.g4S} />
+        <Zeile icon={IC.schild} titel={w.g5T} text={w.g5S} />
       </div>
-
-      <p className="relative mb-2.5 mt-5 text-[12px] font-extrabold tracking-[.12em] text-faint">{t.einstieg.communityTitel}</p>
-      <div className="relative grid grid-cols-2 gap-2.5">
-        <ExternLink href={COMMUNITY.kanal}
-                    className="flex flex-col gap-2 rounded-[16px] border border-line bg-surface p-3.5 active:bg-raised">
-          <svg viewBox="0 0 22 22" width="22" height="22" fill="none" stroke="rgb(var(--work))" strokeWidth="1.8"
-               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 10 19.5 3.5l-3 15.5-5.5-4.5-3 3.5v-5.5l8.5-6.5" /></svg>
-          <span className="text-[14px] font-extrabold">{t.einstieg.kanal}</span>
-          <span className="text-[12px] font-semibold text-dim">{t.einstieg.kanalText}</span>
-        </ExternLink>
-        <ExternLink href={COMMUNITY.gruppe}
-                    className="flex flex-col gap-2 rounded-[16px] border border-line bg-surface p-3.5 active:bg-raised">
-          <svg viewBox="0 0 22 22" width="22" height="22" fill="none" stroke="rgb(var(--work))" strokeWidth="1.8"
-               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 4.5h15v10h-10l-5 4zM7.5 8.5h7M7.5 11.5h4.5" /></svg>
-          <span className="text-[14px] font-extrabold">{t.einstieg.gruppe}</span>
-          <span className="text-[12px] font-semibold text-dim">{t.einstieg.gruppeText}</span>
-        </ExternLink>
+      <div className="min-h-3 flex-1" />
+      <div className="relative flex flex-col gap-1">
+        <Hauptknopf onClick={onWeiter}>{w.verstanden}</Hauptknopf>
+        <span className="min-h-11" aria-hidden="true" />
       </div>
+    </Seite>
+  );
+}
 
-      <div className="min-h-6 flex-1" />
-
-      <div className="relative flex flex-col gap-3.5">
-        <Hauptknopf onClick={() => { haptik('tipp'); onStarten(); }}>{Blitz}{t.einstieg.starten}</Hauptknopf>
-        <button type="button" onClick={onWiederherstellen}
-                className="text-center text-[13.5px] font-bold text-dim">{t.einstieg.habeWoerter}</button>
+function WalletErstellen({ onStarten, onWiederherstellen }: { onStarten: () => void; onWiederherstellen: () => void }) {
+  const { t } = useT();
+  const w = t.rd.w;
+  return (
+    <Seite gap="gap-2.5">
+      <Kopf nr={4} />
+      <BildBox><div style={{ marginTop: -78 }}><Boerse breite={154} /></div></BildBox>
+      <span className="etikett relative">{w.w3Etikett}</span>
+      <Titel a={w.w3A} b={w.w3B} size={32} />
+      <div className="relative flex flex-col border-t border-line">
+        <Zeile icon={IC.schloss} titel={w.p1T} text={w.p1S} />
+        <Zeile icon={IC.wallet} titel={w.p2T} text={w.p2S} />
       </div>
-    </main>
+      <div className="min-h-3 flex-1" />
+      <div className="relative flex flex-col gap-1">
+        <Hauptknopf onClick={() => { haptik('tipp'); onStarten(); }}>{w.erstellen}</Hauptknopf>
+        <button type="button" onClick={onWiederherstellen} className="min-h-11 text-[14px] text-dim">{w.habeWoerter}</button>
+      </div>
+    </Seite>
   );
 }
 
@@ -386,21 +382,18 @@ function PinSchritt({ onFertig, onZurueck, wiederherstellen = false }: {
 
   const bestaetigen = erste !== null;
   return (
-    <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[calc(28px+var(--unten))]">
-      <div className="flex h-9 items-center">
+    <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-[22px] pb-[calc(28px+var(--unten))]">
+      <div className="flex min-h-11 items-center">
         <ZurueckKnopf onClick={() => (bestaetigen && !busy ? (setErste(null), setWert('')) : onZurueck())} />
       </div>
 
-      <div className="mt-8 text-center">
-        <span className="inline-flex h-14 w-14 items-center justify-center rounded-[18px] bg-work/15 text-work">
-          <svg viewBox="0 0 22 22" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8"
-               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="9.5" width="14" height="10" rx="2.5" /><path d="M7.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5" /></svg>
-        </span>
-        <h1 className="mt-[18px] text-[26px] font-extrabold tracking-[-0.02em]">
+      <div className="mt-6 flex flex-col items-center text-center">
+        <Zeichen g={52} />
+        <h1 className="mt-4 text-[26px] font-semibold tracking-[-0.035em]">
           {bestaetigen ? t.einstieg.pin2Titel : t.einstieg.pinTitel}
         </h1>
-        <p className="mx-auto mt-2 max-w-[300px] text-[14px] font-semibold leading-[1.5] text-dim">
-          {bestaetigen ? t.einstieg.pin2Text : wiederherstellen ? t.einstieg.wPinText : t.einstieg.pinText}
+        <p className="mx-auto mt-2 max-w-[290px] text-[15px] leading-[1.5] text-dim">
+          {bestaetigen ? t.einstieg.pin2Text : wiederherstellen ? t.einstieg.wPinText : t.rd.w.pinText}
         </p>
       </div>
 
@@ -431,10 +424,10 @@ function Wiederherstellen({ woerter, setWoerter, onZurueck, onWeiter }: {
   }, [text, anzahl]);
 
   return (
-    <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[calc(28px+var(--unten))]">
-      <div className="flex h-9 items-center"><ZurueckKnopf onClick={onZurueck} /></div>
-      <h1 className="mt-5 text-[26px] font-extrabold tracking-[-0.02em]">{t.einstieg.wTitel}</h1>
-      <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-dim">{t.einstieg.wText}</p>
+    <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-[22px] pb-[calc(28px+var(--unten))]">
+      <div className="flex min-h-11 items-center"><ZurueckKnopf onClick={onZurueck} /></div>
+      <h1 className="mt-3 text-[26px] font-semibold tracking-[-0.035em]">{t.einstieg.wTitel}</h1>
+      <p className="mt-2 text-[15px] leading-[1.5] text-dim">{t.rd.w.wText}</p>
 
       <div className="mt-5">
         <WortFelder woerter={woerter} onChange={setWoerter}
@@ -446,8 +439,8 @@ function Wiederherstellen({ woerter, setWoerter, onZurueck, onWeiter }: {
       </p>
 
       {vorschau && (
-        <div className="mt-4 rounded-[14px] border border-line bg-surface px-4 py-3">
-          <p className="text-[11.5px] font-bold text-faint">{t.wiederherstellen.vorschau}</p>
+        <div className="panel mt-4 px-4 py-3">
+          <p className="label">{t.wiederherstellen.vorschau}</p>
           <p className="mt-1 break-all font-mono text-[12.5px] text-proof">{vorschau}</p>
         </div>
       )}

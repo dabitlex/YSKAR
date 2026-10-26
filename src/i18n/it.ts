@@ -5,9 +5,11 @@ import type { Woerterbuch } from './de';
  * error, not a blank spot in the app.
  */
 import neu from './neu/it';
+import rd from './rd/en';
 
 const it = {
   ...neu,
+  rd,
   name: 'Italiano',
   locale: 'it-IT',
 

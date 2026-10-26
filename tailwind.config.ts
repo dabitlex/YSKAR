@@ -23,11 +23,16 @@ export default {
         work: 'rgb(var(--work) / <alpha-value>)',
         proof: 'rgb(var(--proof) / <alpha-value>)',
         risk: 'rgb(var(--risk) / <alpha-value>)',
+        cyan: 'rgb(var(--cyan) / <alpha-value>)',
+        amber: 'rgb(var(--amber) / <alpha-value>)',
       },
       borderRadius: { sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)' },
+      // Geist wirkt ab 700 schnell schwer; die Bildschirme nutzen bold/extrabold
+      // fuer Hervorhebung, im neuen Design sitzt die bei 600.
+      fontWeight: { bold: '600', extrabold: '600', black: '700' },
       fontFamily: {
-        sans: ['var(--font-sans)', 'var(--font-sans-ext)', 'var(--font-sans-kyr)', 'var(--font-sans-vi)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-mono)', 'var(--font-mono-ext)', 'var(--font-mono-kyr)', 'var(--font-mono-vi)', 'ui-monospace', 'monospace'],
+        sans: ['var(--font-sans)', 'var(--font-sans-vi)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'var(--font-mono-vi)', 'ui-monospace', 'monospace'],
       },
     },
   },

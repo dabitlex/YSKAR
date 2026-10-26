@@ -32,9 +32,11 @@ export function telegramFarben(dunkel = false) {
   const tg = window.Telegram?.WebApp;
   if (!tg) return;
   try {
-    tg.setHeaderColor?.(dunkel ? '#0A101C' : '#F4F7FB');
-    tg.setBackgroundColor?.(dunkel ? '#0A101C' : '#F4F7FB');
-    tg.setBottomBarColor?.(dunkel ? '#131C2E' : '#FFFFFF');
+    // Nur noch dunkel (Redesign Oktober 2026); der Parameter bleibt fuer alte Aufrufer.
+    void dunkel;
+    tg.setHeaderColor?.('#03060F');
+    tg.setBackgroundColor?.('#03060F');
+    tg.setBottomBarColor?.('#03060F');
   } catch { /* aeltere Clients kennen die Aufrufe nicht */ }
 }
 
@@ -96,6 +98,12 @@ export function useZurueckTaste(aktiv: boolean, zurueck: () => void): void {
     try { knopf.onClick(tipp); knopf.show(); } catch { return; }
     return () => { try { knopf.offClick(tipp); knopf.hide(); } catch { /* egal */ } };
   }, [aktiv]);
+}
+
+/** Laeuft die App in Telegram (mit initData)? Ausserhalb: Android-App oder Browser. */
+export function imTelegram(): boolean {
+  const tg = webApp();
+  return !!(tg && tg.initData);
 }
 
 /** Kurzes Vibrieren, wo Telegram es anbietet. Sonst nichts. */
