@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: 'Ví của bạn được tạo', p2S: 'Địa chỉ và 12 từ khôi phục của riêng bạn, tạo ngay tại đây.',
     erstellen: 'Tạo ví', habeWoerter: 'Tôi đã có 12 từ khôi phục',
     skip: 'Bỏ qua', skipIntro: 'Bỏ qua giới thiệu', weiter: 'Tiếp tục',
-    pinText: 'Sáu chữ số khóa ví trên điện thoại này. Sau đó bạn chọn pool.',
+    pinText: 'Sáu chữ số khóa ví trên điện thoại này. Sau đó bạn ghi lại 12 từ của mình.',
     wText: 'Nhập 12 từ khôi phục theo đúng thứ tự.',
   },
   netz: {

@@ -36,7 +36,7 @@ const config: CapacitorConfig = {
     */
     appendUserAgent: 'YSKAR-NativMining/1',
     allowMixedContent: false,
-    backgroundColor: '#F4F7FB',
+    backgroundColor: '#03060F',
     // Der Tresor liegt im WebView-Speicher -- ohne Sicherung im Backup,
     // sonst wandert er mit dem Google-Konto auf ein anderes Geraet.
     includePlugins: undefined,
@@ -46,9 +46,9 @@ const config: CapacitorConfig = {
     // Capacitor traegt deren Hoehe als --safe-area-inset-* ins <html> ein
     // (insetsHandling "css", die Vorgabe); die Oberflaeche nutzt das in
     // globals.css. "native" hatte das Eintragen abgeschaltet -- deshalb
-    // bleibt es hier bei der Vorgabe. Die App ist hell, also helle Leiste
-    // mit dunklen Symbolen, unabhaengig vom Systemthema.
-    SystemBars: { style: 'LIGHT' },
+    // bleibt es hier bei der Vorgabe. Seit dem Redesign ist die App dunkel,
+    // also dunkle Leiste mit hellen Symbolen, unabhaengig vom Systemthema.
+    SystemBars: { style: 'DARK' },
     PushNotifications: { presentationOptions: ['badge', 'sound', 'alert'] },
     CapacitorHttp: { enabled: false },
   },

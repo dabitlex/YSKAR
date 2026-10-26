@@ -30,7 +30,7 @@ import Receive from '@/components/wallet/Receive';
 import Benchmark from '@/components/Benchmark';
 import { gespeichert, type BenchErgebnis } from '@/hooks/useBenchmark';
 import Settings from '@/components/Settings';
-import { einstiegAbholen } from '@/lib/einstieg';
+import { einstiegAbholen, SICHERN_PFLICHT } from '@/lib/einstieg';
 import { useZurueckTaste, haptik, kampagneMerken } from '@/lib/telegram/webapp';
 
 /**
@@ -63,6 +63,15 @@ export default function AppShell({ platform }: { platform: string }) {
 
   // Einmal nach dem Einstieg: gleich in den Mining-Reiter und loslegen.
   const [autostart] = useState(einstiegAbholen);
+  // Neue Wallet: erst die zwoelf Woerter sichern, dann die App (siehe einstieg.ts).
+  const [pflicht, setPflicht] = useState(() => {
+    try { return localStorage.getItem(SICHERN_PFLICHT) === '1'; } catch { return false; }
+  });
+  const pflichtOffen = pflicht && !wallet.gesichert;
+  const pflichtErledigt = () => {
+    try { localStorage.removeItem(SICHERN_PFLICHT); } catch { /* egal */ }
+    setPflicht(false);
+  };
   const [tab, setTab] = useState<Tab>('mine');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
   const [gesperrt, setGesperrt] = useState(false);
@@ -133,7 +142,7 @@ export default function AppShell({ platform }: { platform: string }) {
   const blattRef = useRef(pool.setBlatt); blattRef.current = pool.setBlatt;
   const hatVorschlag = !!pool.gewaehlt;
   useEffect(() => {
-    if (!autostart || autoVersucht.current || wallet.phase !== 'offen' || !pool.geladen) return;
+    if (!autostart || pflichtOffen || autoVersucht.current || wallet.phase !== 'offen' || !pool.geladen) return;
     // Seit dem Redesign waehlen neue Nutzer ihren Pool selbst: kein Autostart,
     // die Liste geht gleich auf. Gestartet wird mit dem Knopf, nach der Wahl.
     if (pool.modus === 'pool' && !hatVorschlag) { autoVersucht.current = true; blattRef.current(true); return; }
@@ -144,7 +153,7 @@ export default function AppShell({ platform }: { platform: string }) {
       blattRef.current(true);
     }, 8000);
     return () => clearTimeout(id);
-  }, [autostart, wallet.phase, pool.geladen, pool.modus, hatVorschlag]);
+  }, [autostart, pflichtOffen, wallet.phase, pool.geladen, pool.modus, hatVorschlag]);
 
   const startStopp = () => { if (m.mining) m.stop(); else starten(); };
 
@@ -163,6 +172,12 @@ export default function AppShell({ platform }: { platform: string }) {
   const poolName = m.mining && pool.modus === 'pool'
     ? (pool.gewaehlt && !pool.gewaehlt.eigen ? pool.gewaehlt.name : m.poolInfo?.name ?? pool.gewaehlt?.name ?? null)
     : null;
+
+  // Pflicht-Sicherung nach dem Erstellen: nichts anderes, bis sie bestanden ist.
+  // Nach "Fertig" geht die App auf (gesichert ist dann schon gesetzt).
+  if (pflicht && (pflichtOffen || wallet.gesichert)) {
+    return <Sicherung pflicht onSchliessen={pflichtErledigt} />;
+  }
 
   return (
     <>

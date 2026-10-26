@@ -363,6 +363,7 @@ public class MiningService extends Service {
 
         return new NotificationCompat.Builder(this, KANAL)
             .setSmallIcon(R.drawable.ic_stat_mining)
+            .setColor(0xFF2F7BFF)
             .setContentTitle(getString(R.string.mining_titel))
             .setContentText(text)
             .setOngoing(true)

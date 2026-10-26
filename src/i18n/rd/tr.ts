@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: 'Cüzdanın oluşturulur', p2S: 'Kendi adresin ve 12 kelimen, tam burada.',
     erstellen: 'Cüzdan oluştur', habeWoerter: 'Zaten 12 kelimem var',
     skip: 'Atla', skipIntro: 'Tanıtımı atla', weiter: 'Devam',
-    pinText: 'Altı rakam cüzdanını bu telefonda kilitler. Ardından havuzunu seçersin.',
+    pinText: 'Altı rakam cüzdanını bu telefonda kilitler. Ardından 12 kelimeni yazarsın.',
     wText: '12 kelimeni sırayla gir.',
   },
   netz: {

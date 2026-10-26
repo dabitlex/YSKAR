@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: 'Sua carteira é criada', p2S: 'Seu próprio endereço e suas 12 palavras, gerados aqui mesmo.',
     erstellen: 'Criar carteira', habeWoerter: 'Já tenho 12 palavras',
     skip: 'Pular', skipIntro: 'Pular introdução', weiter: 'Continuar',
-    pinText: 'Seis dígitos bloqueiam sua carteira neste celular. Depois você escolhe seu pool.',
+    pinText: 'Seis dígitos bloqueiam sua carteira neste celular. Depois você anota suas 12 palavras.',
     wText: 'Digite suas 12 palavras na ordem.',
   },
   netz: {

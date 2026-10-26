@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: 'Ton portefeuille est créé', p2S: 'Ta propre adresse et tes 12 mots, générés ici même.',
     erstellen: 'Créer le portefeuille', habeWoerter: 'J’ai déjà mes 12 mots',
     skip: 'Passer', skipIntro: 'Passer l’introduction', weiter: 'Continuer',
-    pinText: 'Six chiffres verrouillent ton portefeuille sur ce téléphone. Ensuite, tu choisis ton pool.',
+    pinText: 'Six chiffres verrouillent ton portefeuille sur ce téléphone. Ensuite, tu notes tes 12 mots.',
     wText: 'Saisis tes 12 mots dans l’ordre.',
   },
   netz: {

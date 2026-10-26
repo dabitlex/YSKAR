@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: 'Se crea tu wallet', p2S: 'Tu propia dirección y tus 12 palabras, creadas aquí mismo.',
     erstellen: 'Crear wallet', habeWoerter: 'Ya tengo 12 palabras',
     skip: 'Omitir', skipIntro: 'Omitir introducción', weiter: 'Continuar',
-    pinText: 'Seis dígitos bloquean tu wallet en este teléfono. Después eliges tu pool.',
+    pinText: 'Seis dígitos bloquean tu wallet en este teléfono. Después anotas tus 12 palabras.',
     wText: 'Introduce tus 12 palabras en orden.',
   },
   netz: {

@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: 'Wallet-mu dibuat', p2S: 'Alamat dan 12 katamu sendiri, dibuat langsung di sini.',
     erstellen: 'Buat wallet', habeWoerter: 'Saya sudah punya 12 kata',
     skip: 'Lewati', skipIntro: 'Lewati pengenalan', weiter: 'Lanjut',
-    pinText: 'Enam digit mengunci wallet-mu di ponsel ini. Lalu kamu memilih pool.',
+    pinText: 'Enam digit mengunci wallet-mu di ponsel ini. Lalu kamu mencatat 12 kata-mu.',
     wText: 'Masukkan 12 katamu sesuai urutan.',
   },
   netz: {

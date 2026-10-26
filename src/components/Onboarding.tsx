@@ -60,7 +60,7 @@ export default function Onboarding() {
         <PinSchritt onZurueck={() => setSchritt('w3')}
                     onFertig={async pin => {
                       // Vorher merken: Sobald die Wallet steht, baut sich die App auf.
-                      einstiegMerken();
+                      einstiegMerken(true);
                       await wallet.erstellenUndVersiegeln(pin);
                     }} />
       )}

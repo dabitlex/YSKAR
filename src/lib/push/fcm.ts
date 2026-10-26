@@ -100,7 +100,7 @@ export class Fcm {
         data: n.daten ?? {},
         android: {
           priority: 'HIGH',
-          notification: { channel_id: n.kanal ?? 'wallet', sound: 'default' },
+          notification: { channel_id: n.kanal ?? 'wallet', sound: 'default', icon: 'ic_stat_mining', color: '#2F7BFF' },
         },
       },
     };

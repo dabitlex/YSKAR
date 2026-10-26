@@ -54,7 +54,7 @@ const rd: RdWoerterbuch = {
     p2T: '你的钱包已创建', p2S: '你自己的地址和 12 个助记词，就在这里生成。',
     erstellen: '创建钱包', habeWoerter: '我已有 12 个助记词',
     skip: '跳过', skipIntro: '跳过介绍', weiter: '继续',
-    pinText: '用六位数字在这台手机上锁定你的钱包。然后选择你的矿池。',
+    pinText: '用六位数字在这台手机上锁定你的钱包。然后抄下你的 12 个助记词。',
     wText: '按顺序输入你的 12 个助记词。',
   },
   netz: {

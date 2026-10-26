@@ -18,5 +18,8 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <!-- Android 12+: dunkler Grund und das Y-Zeichen, wie die App. -->
+        <item name="windowSplashScreenBackground">#03060F</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_zeichen</item>
     </style>
 </resources>

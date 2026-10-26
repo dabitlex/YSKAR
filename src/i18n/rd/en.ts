@@ -56,7 +56,7 @@ const rd = {
     p2T: 'Your wallet is created', p2S: 'Your own address and your 12 words, made right here.',
     erstellen: 'Create wallet', habeWoerter: 'I already have 12 words',
     skip: 'Skip', skipIntro: 'Skip intro', weiter: 'Continue',
-    pinText: 'Six digits lock your wallet on this phone. Then you pick your pool.',
+    pinText: 'Six digits lock your wallet on this phone. Then you write down your 12 words.',
     wText: 'Enter your 12 words in order.',
   },
   netz: {
