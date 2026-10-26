@@ -40,7 +40,9 @@ interface WalletState {
   confirmAndSeal: (pin: string) => Promise<void>;
   /**
    * Neuer Einstieg: Woerter erzeugen und sofort mit der PIN versiegeln --
-   * als "noch nicht gesichert". Die Sicherung holt der Nutzer spaeter nach.
+   * als "noch nicht gesichert". Die Woerter bleiben bis zur bestandenen
+   * Sicherung im Speicher (freshMnemonic), damit die Pflicht-Sicherung
+   * direkt danach sie zeigen kann, ohne die PIN noch einmal zu fragen.
    */
   erstellenUndVersiegeln: (pin: string) => Promise<void>;
   /** Die Sicherung ist bestanden. */
@@ -98,7 +100,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     vault.save(await vault.seal(m, pin, kp.address, false));
     setKeypair(kp);
     setAddress(kp.address);
-    setFreshMnemonic(null);
+    setFreshMnemonic(m);
     setGesichert(false);
     setPhase('offen');
     setSitzung(true);
@@ -107,6 +109,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const gesichertMelden = useCallback(() => {
     vault.alsGesichertMerken();
     setGesichert(true);
+    setFreshMnemonic(null);
   }, []);
 
   const discardFresh = useCallback(() => setFreshMnemonic(null), []);

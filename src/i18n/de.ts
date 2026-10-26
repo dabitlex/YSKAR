@@ -9,9 +9,11 @@
  * Hashrate, Worker, Block, Reward, Mempool, Full Node, Pool, PPLNS.
  */
 import neu from './neu/de';
+import rd from './rd/de';
 
 const de = {
   ...neu,
+  rd,
   name: 'Deutsch',
   locale: 'de-DE',
 

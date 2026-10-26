@@ -249,9 +249,9 @@ export function PoolBlatt({ pool, offen, onSchliessen, voll }: {
       ) : (
         <>
           {voll && (
-            <div className="-mt-1 mb-4 rounded-[16px] bg-[#FFF6E5] px-4 py-3.5 text-[#0E1A2F]">
-              <p className="text-[15px] font-extrabold">{t.miningNeu.vollTitel(voll.name)}</p>
-              <p className="mt-1 text-[13px] font-semibold leading-[1.5] text-[#6B5A35]">{t.miningNeu.vollText(voll.plaetze)}</p>
+            <div role="status" className="-mt-1 mb-4 border-y border-risk/30 bg-risk/[.06] px-3 py-3">
+              <p className="text-[14px] font-semibold text-text">{t.miningNeu.vollTitel(voll.name)}</p>
+              <p className="mt-1 text-[12.5px] leading-[1.5] text-dim">{t.miningNeu.vollText(voll.plaetze)}</p>
             </div>
           )}
           <p className="-mt-3 mb-3.5 text-[12.5px] font-semibold text-faint">

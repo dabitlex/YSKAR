@@ -10,7 +10,7 @@ import { useAutoSperre } from '@/hooks/useAutoSperre';
 import { BottomNav, type Tab } from '@/components/ui/Chrome';
 import { Button, Hash } from '@/components/ui/Primitives';
 import { Blatt } from '@/components/ui/Bausteine';
-import HomeTab from '@/components/tabs/HomeTab';
+import MineTab from '@/components/tabs/MineTab';
 import MiningTab from '@/components/tabs/MiningTab';
 import WalletTab, { type HistoryEintrag } from '@/components/tabs/WalletTab';
 import EntdeckenTab from '@/components/tabs/EntdeckenTab';
@@ -19,6 +19,9 @@ import Artikel from '@/components/Artikel';
 import UpdateBanner from '@/components/UpdateBanner';
 import Sicherung, { SendenGesperrt } from '@/components/Sicherung';
 import PoolAuszahlung from '@/components/PoolAuszahlung';
+import FundBild from '@/components/FundBild';
+import Verbindung from '@/components/Verbindung';
+import Rueckblick from '@/components/Rueckblick';
 import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
 import { inhalte } from '@/content/entdecken';
 import { useT } from '@/i18n';
@@ -28,7 +31,7 @@ import Receive from '@/components/wallet/Receive';
 import Benchmark from '@/components/Benchmark';
 import { gespeichert, type BenchErgebnis } from '@/hooks/useBenchmark';
 import Settings from '@/components/Settings';
-import { einstiegAbholen } from '@/lib/einstieg';
+import { einstiegAbholen, SICHERN_PFLICHT } from '@/lib/einstieg';
 import { useZurueckTaste, haptik, kampagneMerken } from '@/lib/telegram/webapp';
 
 /**
@@ -61,20 +64,31 @@ export default function AppShell({ platform }: { platform: string }) {
 
   // Einmal nach dem Einstieg: gleich in den Mining-Reiter und loslegen.
   const [autostart] = useState(einstiegAbholen);
-  const [tab, setTab] = useState<Tab>(autostart ? 'mining' : 'home');
+  // Neue Wallet: erst die zwoelf Woerter sichern, dann die App (siehe einstieg.ts).
+  const [pflicht, setPflicht] = useState(() => {
+    try { return localStorage.getItem(SICHERN_PFLICHT) === '1'; } catch { return false; }
+  });
+  const pflichtOffen = pflicht && !wallet.gesichert;
+  const pflichtErledigt = () => {
+    try { localStorage.removeItem(SICHERN_PFLICHT); } catch { /* egal */ }
+    setPflicht(false);
+  };
+  const [tab, setTab] = useState<Tab>('mine');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
   // Gebuehr erhoehen: welche eigene Zahlung ersetzt wird (Send beginnt dann beim Pruefen).
   const [ersetzen, setErsetzen] = useState<EigeneZahlung | null>(null);
   const [gesperrt, setGesperrt] = useState(false);
 
   useEffect(() => { kampagneMerken(); }, []);
+  // Eigener Blockfund: kurzer Erfolgs-Ruck, einmal pro Fund.
+  useEffect(() => { if (m.fund) haptik('erfolg'); }, [m.fund]);
   // Die Sicherung hat eigene Schritte und fuehrt die Zurueck-Taste selbst.
   useZurueckTaste(ansicht !== null && ansicht !== 'sichern', () => setAnsicht(null));
 
   const pool = usePoolAuswahl({
     address: wallet.address,
     // Die Liste wird auch auf Home gebraucht (Start-Knopf) und beim Autostart.
-    sichtbar: (tab === 'mining' || tab === 'home') && ansicht === null,
+    sichtbar: tab === 'mine' && ansicht === null,
     mining: m.mining, fehler: m.fehler, stop: m.stop,
   });
   const kerne = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency || null) : null;
@@ -131,7 +145,10 @@ export default function AppShell({ platform }: { platform: string }) {
   const blattRef = useRef(pool.setBlatt); blattRef.current = pool.setBlatt;
   const hatVorschlag = !!pool.gewaehlt;
   useEffect(() => {
-    if (!autostart || autoVersucht.current || wallet.phase !== 'offen' || !pool.geladen) return;
+    if (!autostart || pflichtOffen || autoVersucht.current || wallet.phase !== 'offen' || !pool.geladen) return;
+    // Seit dem Redesign waehlen neue Nutzer ihren Pool selbst: kein Autostart,
+    // die Liste geht gleich auf. Gestartet wird mit dem Knopf, nach der Wahl.
+    if (pool.modus === 'pool' && !hatVorschlag) { autoVersucht.current = true; blattRef.current(true); return; }
     if (pool.modus === 'solo' || hatVorschlag) { autoVersucht.current = true; startenRef.current(); return; }
     const id = setTimeout(() => {
       if (autoVersucht.current) return;
@@ -139,7 +156,7 @@ export default function AppShell({ platform }: { platform: string }) {
       blattRef.current(true);
     }, 8000);
     return () => clearTimeout(id);
-  }, [autostart, wallet.phase, pool.geladen, pool.modus, hatVorschlag]);
+  }, [autostart, pflichtOffen, wallet.phase, pool.geladen, pool.modus, hatVorschlag]);
 
   const startStopp = () => { if (m.mining) m.stop(); else starten(); };
 
@@ -160,9 +177,16 @@ export default function AppShell({ platform }: { platform: string }) {
     ? (pool.gewaehlt && !pool.gewaehlt.eigen ? pool.gewaehlt.name : m.poolInfo?.name ?? pool.gewaehlt?.name ?? null)
     : null;
 
+  // Pflicht-Sicherung nach dem Erstellen: nichts anderes, bis sie bestanden ist.
+  // Nach "Fertig" geht die App auf (gesichert ist dann schon gesetzt).
+  if (pflicht && (pflichtOffen || wallet.gesichert)) {
+    return <Sicherung pflicht onSchliessen={pflichtErledigt} />;
+  }
+
   return (
     <>
-      <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-5 pb-36">
+      <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-[22px] pb-36">
+        {!ansicht && <Verbindung summary={m.summary} />}
         {ansicht === null && <UpdateBanner />}
         {ansicht === 'einstellungen' ? (
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} summary={m.summary}
@@ -175,19 +199,16 @@ export default function AppShell({ platform }: { platform: string }) {
           <Artikel artikel={inhalte(sprache, locale).ARTIKEL.find(a => a.slug === ansicht.artikel)
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
-        ) : tab === 'home' ? (
-          <HomeTab account={m.account as never} summary={m.summary} mining={m.mining}
-                   hashrate={m.hashrate} hashVerlauf={m.hashVerlauf} shares={m.sharesZahl}
-                   decimals={dec} symbol={sym} poolName={poolName} gesichert={wallet.gesichert}
+        ) : tab === 'mine' ? (<>
+          <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
                    onStartStopp={startStopp}
-                   onMining={() => setTab('mining')}
                    onSichern={() => setAnsicht('sichern')}
-                   onEinstellungen={() => setAnsicht('einstellungen')} />
-        ) : tab === 'mining' ? (
+                   onEinstellungen={() => setAnsicht('einstellungen')}
+                   onPoolWaehlen={() => pool.setBlatt(true)} />
           <MiningTab m={m} dec={dec} sym={sym} wach={wach} pool={pool}
                      worker={worker} setWorker={setWorker} kerne={kerne} workerStufen={workerStufen}
                      bench={bench} onStarten={starten} onBenchmark={() => setAnsicht('benchmark')} />
-        ) : tab === 'wallet' ? (
+        </>        ) : tab === 'wallet' ? (
           <WalletTab account={m.account as never} decimals={dec} symbol={sym}
                      address={wallet.address}
                      onSenden={() => senden('senden')}
@@ -229,11 +250,14 @@ export default function AppShell({ platform }: { platform: string }) {
       <PoolBlatt pool={pool} offen={pool.blatt} voll={vollHinweis}
                  onSchliessen={() => { pool.setBlatt(false); setVollHinweis(null); }} />
 
+      <Rueckblick mining={m.mining} seit={m.seit} shares={m.sharesZahl} onWeiter={() => { if (!m.mining) starten(); }} />
+
       {ansicht === 'sichern' && <Sicherung onSchliessen={() => setAnsicht(null)} />}
 
       {auszahlung.eintrag && !m.fund && (
         <PoolAuszahlung hoehe={auszahlung.eintrag.height} betrag={Number(auszahlung.eintrag.amount) / 10 ** dec}
-                        symbol={sym} onWeiter={auszahlung.gesehen} />
+                        symbol={sym} onWeiter={auszahlung.gesehen}
+                        onWallet={() => { auszahlung.gesehen(); setAnsicht(null); setTab('wallet'); }} />
       )}
 
       {/*
@@ -242,19 +266,13 @@ export default function AppShell({ platform }: { platform: string }) {
         als einziges eine Vollflaeche, ueber der Navigation.
       */}
       {m.fund && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink px-8 text-center">
-          {/* pointer-events-none: Der Schein liegt ueber allem und schluckte sonst den Tipp auf den Knopf. */}
-          <div className="glow-proof pointer-events-none absolute inset-0" />
-          <p className="rise relative text-[13px] font-extrabold tracking-[0.14em] text-proof">{t.fund.titel}</p>
-          <p className="zoom tnum relative mt-4 text-[64px] font-extrabold leading-none tracking-[-0.04em]">#{m.fund.height}</p>
-          <p className="rise rise-2 relative mt-3 text-[22px] font-bold text-proof">
-            +{(Number(m.fund.reward) / 10 ** dec).toFixed(0)} {sym}
-          </p>
-          <Hash value={m.fund.hash} className="rise rise-3 relative mb-10 mt-8 text-[11px] leading-[1.8] opacity-60" />
-          <div className="relative z-10 w-full max-w-xs">
-            <Button variant="quiet" onClick={m.dismissFund}>{t.fund.weiter}</Button>
-          </div>
-        </div>
+        <FundBild etikett={t.rd.fund.eigen} betrag={(Number(m.fund.reward) / 10 ** dec).toFixed(0)} symbol={sym} muenzen={5}
+                  unter={<span className="font-mono text-text">#{m.fund.height}</span>}
+                  knopf={t.rd.fund.zurWallet} onKnopf={() => { m.dismissFund(); setAnsicht(null); setTab('wallet'); }}
+                  darunter={<>
+                    <Hash value={m.fund.hash} className="text-[11px] leading-[1.8] opacity-50" />
+                    <button type="button" onClick={m.dismissFund} className="h-11 text-[13.5px] text-dim">{t.fund.weiter}</button>
+                  </>} />
       )}
     </>
   );

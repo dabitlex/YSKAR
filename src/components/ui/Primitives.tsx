@@ -1,6 +1,7 @@
 'use client';
 
 import { useT } from '@/i18n';
+import { useZurueckTaste, imTelegram } from '@/lib/telegram/webapp';
 
 /**
  * Bausteine der Oberflaeche.
@@ -11,7 +12,7 @@ import { useT } from '@/i18n';
  */
 
 export function Screen({ children }: { children: React.ReactNode }) {
-  return <main className="rand-oben mx-auto min-h-dvh max-w-md px-5 pb-32">{children}</main>;
+  return <main className="rand-oben mx-auto min-h-dvh max-w-md px-[22px] pb-32">{children}</main>;
 }
 
 export function Panel({ children, tone, className = '' }: {
@@ -32,21 +33,21 @@ export function GroupTitle({ children, aside }: {
   children: React.ReactNode; aside?: React.ReactNode;
 }) {
   return (
-    <div className="mb-2.5 mt-6 flex items-baseline justify-between px-0.5">
-      <h2 className="text-[16px] font-extrabold tracking-[-0.01em]">{children}</h2>
-      {aside && <span className="text-[12.5px] font-semibold text-faint">{aside}</span>}
+    <div className="mb-3 mt-7 flex items-baseline justify-between px-0.5">
+      <h2 className="label">{children}</h2>
+      {aside && <span className="text-[13px] font-medium text-faint">{aside}</span>}
     </div>
   );
 }
 
 export function Title({ children }: { children: React.ReactNode }) {
   return (
-    <h1 className="text-[28px] font-extrabold leading-[1.15] tracking-[-0.02em]">{children}</h1>
+    <h1 className="text-[30px] font-semibold leading-[1.08] tracking-[-0.04em]">{children}</h1>
   );
 }
 
 export function Body({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-[15px] font-medium leading-[1.6] text-dim">{children}</p>;
+  return <p className="mt-3 text-[15px] leading-[1.6] text-dim">{children}</p>;
 }
 
 /** Kopfzeile eines Unterbildschirms: Zurueck, Titel, rechts optional. */
@@ -54,16 +55,21 @@ export function SubHeader({ titel, onZurueck, rechts }: {
   titel: string; onZurueck: () => void; rechts?: React.ReactNode;
 }) {
   const { t } = useT();
+  // In Telegram zeigt der Client oben links "Zurueck" (BackButton); ein
+  // eigener Pfeil daneben waere doppelt. Ausserhalb (Android-App) bleibt er.
+  useZurueckTaste(true, onZurueck);
+  const tg = imTelegram();
   return (
-    <div className="mb-5 flex items-center justify-between">
+    <div className="mb-5 flex min-h-11 items-center justify-between">
+      {tg ? <span className="text-[20px] font-semibold tracking-[-0.02em]">{titel}</span> : <>
       <button onClick={onZurueck} aria-label={t.allgemein.zurueck}
-              className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text active:scale-95">
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text active:scale-95">
         <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M13 5l-6 6 6 6" />
         </svg>
       </button>
-      <span className="text-[17px] font-extrabold">{titel}</span>
+      <span className="text-[17px] font-semibold">{titel}</span></>}
       <span className="flex min-w-9 justify-end">{rechts}</span>
     </div>
   );
@@ -78,8 +84,8 @@ export function Row({ label, value, tone }: {
   return (
     <div className="flex items-baseline justify-between gap-4 py-3
                     [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-      <dt className="text-[13.5px] font-semibold text-dim">{label}</dt>
-      <dd className={`tnum text-[14.5px] font-bold ${color}`}>{value}</dd>
+      <dt className="text-[14px] text-lese">{label}</dt>
+      <dd className={`tnum font-mono text-[14px] font-medium ${color}`}>{value}</dd>
     </div>
   );
 }
@@ -88,16 +94,19 @@ export function Button({
   children, onClick, variant = 'primary', disabled, type = 'button', className = '',
 }: {
   children: React.ReactNode; onClick?: () => void;
-  variant?: 'primary' | 'quiet' | 'risk'; disabled?: boolean;
+  variant?: 'primary' | 'quiet' | 'risk' | 'work'; disabled?: boolean;
   type?: 'button' | 'submit'; className?: string;
 }) {
-  const base = 'flex w-full items-center justify-center gap-2 rounded-[14px] py-3.5 ' +
-    'text-[15px] font-bold transition-[transform,opacity,background-color] ' +
+  // Wie auf yskar.app und in der Wallet: Hauptknopf weiss als Pille,
+  // zweiter Knopf als Umriss, Blau fuer aktive Aktionen.
+  const base = 'flex w-full min-h-[56px] items-center justify-center gap-2 rounded-full px-6 ' +
+    'text-[15.5px] font-semibold transition-[transform,opacity,background-color] ' +
     'active:scale-[.985] disabled:cursor-not-allowed disabled:opacity-35 ' +
     'disabled:active:scale-100';
   const look = {
-    primary: 'bg-work text-white shadow-[0_10px_24px_-10px_rgb(var(--work)/.6)]',
-    quiet: 'border border-line bg-surface text-text',
+    primary: 'bg-text text-ink',
+    work: 'bg-work text-white',
+    quiet: 'border border-[rgb(140_170_255/.22)] bg-transparent text-text',
     risk: 'bg-risk/10 text-risk',
   }[variant];
   return (
@@ -118,14 +127,14 @@ export function ActionButton({ icon, label, onClick, tone = 'quiet' }: {
 }) {
   return (
     <button onClick={onClick} className="group flex flex-1 flex-col items-center gap-2">
-      <span className={`flex h-[52px] w-[52px] items-center justify-center rounded-full
+      <span className={`flex h-16 w-16 items-center justify-center rounded-full
                         transition-transform group-active:scale-95 ${
         tone === 'work'
-          ? 'bg-work text-white shadow-[0_10px_20px_-10px_rgb(var(--work)/.6)]'
-          : 'bg-raised text-text'}`}>
+          ? 'bg-work text-white'
+          : 'border border-[rgb(140_170_255/.22)] text-text'}`}>
         {icon}
       </span>
-      <span className="text-[12px] font-bold text-text">{label}</span>
+      <span className="text-[14px] font-medium text-lese">{label}</span>
     </button>
   );
 }
@@ -136,8 +145,8 @@ export function Field({ label, hint, children }: {
   return (
     <div>
       <label className="mb-1.5 flex items-baseline justify-between px-0.5">
-        <span className="text-[13px] font-bold text-dim">{label}</span>
-        {hint && <span className="text-[11px] font-semibold text-faint">{hint}</span>}
+        <span className="label">{label}</span>
+        {hint && <span className="text-[11.5px] text-faint">{hint}</span>}
       </label>
       {children}
     </div>
@@ -167,13 +176,13 @@ export function Hash({ value, className = '' }: { value: string; className?: str
 export function Status({ tone, children }: {
   tone: 'work' | 'proof' | 'off'; children: React.ReactNode;
 }) {
-  const look = tone === 'work' ? 'text-work bg-work/10'
-    : tone === 'proof' ? 'text-proof bg-proof/10' : 'text-dim bg-raised';
-  const punkt = tone === 'work' ? 'bg-work puls'
+  const look = tone === 'work' ? 'text-cyan'
+    : tone === 'proof' ? 'text-proof' : 'text-dim';
+  const punkt = tone === 'work' ? 'bg-cyan puls'
     : tone === 'proof' ? 'bg-proof' : 'bg-faint';
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1
-                      text-[12px] font-bold ${look}`}>
+    <span className={`inline-flex items-center gap-2
+                      text-[13px] font-medium ${look}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${punkt}`} />
       {children}
     </span>
@@ -184,13 +193,13 @@ export function Notice({ tone = 'dim', children }: {
   tone?: 'dim' | 'risk' | 'proof' | 'work'; children: React.ReactNode;
 }) {
   const look = {
-    dim: 'bg-raised text-dim',
-    risk: 'bg-risk/10 text-risk',
-    proof: 'bg-proof/10 text-proof',
-    work: 'bg-work/10 text-work',
+    dim: 'border border-line bg-surface text-lese',
+    risk: 'border border-risk/25 bg-risk/[.07] text-[#FFD9D4]',
+    proof: 'border border-proof/25 bg-proof/[.07] text-proof',
+    work: 'border border-amber/25 bg-amber/[.07] text-[#FFE3B8]',
   }[tone];
   return (
-    <p className={`rounded-[14px] px-4 py-3 text-[13px] font-semibold leading-[1.55] ${look}`}>
+    <p className={`rounded-[16px] px-4 py-3 text-[13.5px] leading-[1.55] ${look}`}>
       {children}
     </p>
   );
@@ -200,7 +209,7 @@ export function Notice({ tone = 'dim', children }: {
 export function Empty({ children }: { children: React.ReactNode }) {
   return (
     <div className="panel px-5 py-8 text-center">
-      <p className="text-[13.5px] font-semibold leading-relaxed text-dim">{children}</p>
+      <p className="text-[14px] leading-relaxed text-dim">{children}</p>
     </div>
   );
 }
@@ -210,7 +219,7 @@ export function Kennzahl({ label, wert }: { label: string; wert: React.ReactNode
   return (
     <div className="flex flex-col gap-1">
       <dt className="label">{label}</dt>
-      <dd className="tnum text-[17px] font-extrabold tracking-[-0.01em]">{wert}</dd>
+      <dd className="tnum text-[18px] font-normal tracking-[-0.03em]">{wert}</dd>
     </div>
   );
 }

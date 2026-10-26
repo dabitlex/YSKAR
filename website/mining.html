@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" class="i18n-wartet">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mining – YSKAR</title>
+<meta name="description" content="Mine YSR with the Telegram Mini App, the Android app, Node Core or the PC miner. With a mining calculator based on live chain data and the active pools.">
+<meta name="theme-color" content="#03060F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="Mining – YSKAR">
+<meta property="og:description" content="Mine YSR with the Telegram Mini App, the Android app, Node Core or the PC miner. With a mining calculator based on live chain data and the active pools.">
+<meta property="og:url" content="https://www.yskar.app/mining">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.png?v=7">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – Fair from block 0.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=41">
+<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
+<script src="/assets/i18n/en.js?v=41"></script>
+<script src="/assets/site.js?v=41" defer></script>
+<script src="/assets/motion.js?v=41" defer></script>
+<script src="/assets/pools.js?v=41" defer></script>
+<script src="/assets/rechner.js?v=41" defer></script>
+</head>
+<body data-seite="mining">
+
+<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+
+<header class="kopf" id="kopf">
+<div class="wrap">
+<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
+<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
+<a href="/#was" data-t="nav.was">About YSKAR</a>
+<a href="/#ablauf" data-t="nav.ablauf">How it works</a>
+<a href="/#menge" data-t="nav.menge">Supply</a>
+<a href="/#v6" class="v6-link">V6</a>
+<a href="/mining" aria-current="page" data-t="nav.mining">Mining</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+<a href="/explorer" data-t="nav.explorer">Explorer</a>
+</nav>
+<div class="kopf-rechts">
+<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
+<a class="knopf hell klein kopf-cta" href="/#nutzen" data-t="nav.los">Use YSR</a>
+<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+</button>
+</div>
+</div>
+</header>
+
+<main id="inhalt">
+<section class="seitenkopf mit-muenze">
+<div class="muenze3d statisch" aria-hidden="true" style="--w:-22deg"><div class="m-dreh"><i class="m-rand" style="--z:-8.36px"></i><i class="m-rand" style="--z:-7.07px"></i><i class="m-rand" style="--z:-5.79px"></i><i class="m-rand" style="--z:-4.50px"></i><i class="m-rand" style="--z:-3.21px"></i><i class="m-rand" style="--z:-1.93px"></i><i class="m-rand" style="--z:-0.64px"></i><i class="m-rand" style="--z:0.64px"></i><i class="m-rand" style="--z:1.93px"></i><i class="m-rand" style="--z:3.21px"></i><i class="m-rand" style="--z:4.50px"></i><i class="m-rand" style="--z:5.79px"></i><i class="m-rand" style="--z:7.07px"></i><i class="m-rand" style="--z:8.36px"></i><div class="m-seite vorne"><img src="/assets/img/zeichen.svg?v=1" alt="" width="120" height="120"></div><div class="m-seite hinten"><img src="/assets/img/zeichen.svg?v=1" alt="" width="120" height="120"></div></div></div>
+<div class="wrap">
+<p class="etikett" data-t="mi.etikett">Mining</p>
+<h1 data-t="mi.titel">Mine YSR</h1>
+<p data-t="mi.text">New YSR come only from mining. Phones, PCs and graphics cards compute SHA-256d, and every block found pays the miners behind it directly. Pick a way, see what your device would find and choose a pool.</p>
+</div>
+</section>
+
+<section class="abschnitt" id="wege">
+<div class="wrap">
+<div class="kopfzeile">
+<div><h2 class="h2"><span data-t="mi.wege.titel1">Pick your device.</span><br><span class="lt" data-t="mi.wege.titel2">Every way is free.</span></h2></div>
+<p class="unter" data-t="mi.wege.text">All apps share one wallet: with your 12 words you reach the same YSR everywhere.</p>
+</div>
+<div class="kacheln">
+<article class="kachel k-4">
+<span class="marke-tag" data-t="weg.mini.marker">Easiest</span>
+<h3 data-t="weg.mini.titel">Telegram Mini App</h3>
+<p data-t="weg.mini.text">Nothing to install. Open the bot, create a wallet, start mining.</p>
+<ol>
+<li data-t="weg.mini.s1">Open @YSKAR_bot in Telegram</li>
+<li data-t="weg.mini.s2">Create a wallet and write down the 12 words</li>
+<li data-t="weg.mini.s3">Tap “Start mining”</li>
+</ol>
+<a class="knopf blau" style="align-self:flex-start;margin-top:auto" href="https://t.me/YSKAR_bot" data-t="weg.mini.knopf">Open in Telegram</a>
+</article>
+<article class="kachel k-4">
+<h3 data-t="weg.apk.titel">Android app with mining</h3>
+<p data-t="weg.apk.text">Keeps mining in the background and shows your status in a widget. Available right here on the website.</p>
+<a class="weiter" href="/anleitungen#android"><span data-t="weg.apk.knopf">Download the app</span> →</a>
+</article>
+<article class="kachel k-4">
+<h3 data-t="weg.pc.titel">PC miner</h3>
+<p data-t="weg.pc.text">For the command line: computes on your processor or an NVIDIA graphics card.</p>
+<div class="befehl">node src/cli.mjs --address ysr1… --api https://pool.yskar.app --mode pool</div>
+<a class="weiter" href="/anleitungen#pc"><span data-t="weg.pc.knopf">Read the guide</span> →</a>
+</article>
+<article class="kachel k-6" id="nodecore">
+<h3>Node Core</h3>
+<p data-t="nc.text">Node, wallet and mining in one program. Node Core checks every block itself, keeps your YSR and mines with your processor and NVIDIA graphics card.</p>
+<div class="laden">
+<a class="knopf hell" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-Setup-0.7.1.exe" data-t="nc.knopfWin">Download for Windows</a>
+<a class="knopf rand" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-0.7.1-amd64.deb" data-t="nc.knopfLinux">Download for Linux (.deb)</a>
+<p class="meta">v0.7.1 · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v0.7.1/YSKAR-Node-Core-0.7.1-x86_64.AppImage" data-t="nc.appimage">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md" data-t="nc.hiveos">Package for HiveOS</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v0.7.1" data-t="nc.mehr">Checksum and release notes</a></p>
+</div>
+</article>
+<article class="kachel k-6">
+<h3 data-t="use.pool.titel">Run a pool</h3>
+<p data-t="use.pool.text">Node Core and the command-line node can run a pool of their own, with no sign-up. You set the name, the fee and the number of seats; the block pays every miner directly.</p>
+<a class="weiter" href="/anleitungen#pool"><span data-t="use.pool.knopf">How to run a pool</span> →</a>
+</article>
+</div>
+<div class="rechner-block" id="rechner-block">
+<div class="anat-kopf">
+<h3 data-t="rech.titel">Mining calculator</h3>
+<p data-t="rech.text">Enter the hashrate of your device and see what it would find on average at today’s network hashrate. Node Core and the miner show your hashrate while they run.</p>
+</div>
+<form class="rechner" id="rechner" novalidate>
+<div class="r-eingabe">
+<label class="r-feld" for="r-wert"><span data-t="rech.deine">Your hashrate</span>
+<span class="r-zeile"><input id="r-wert" name="r-wert" type="text" inputmode="decimal" autocomplete="off" value="1"><select id="r-einheit" name="r-einheit" aria-label="Unit" data-ta="aria-label:rech.einheit"><option>H/s</option><option>kH/s</option><option>MH/s</option><option selected>GH/s</option><option>TH/s</option></select></span></label>
+<fieldset class="r-modus"><legend data-t="rech.modus">How you mine</legend>
+<label><input type="radio" name="r-modus" value="pool" checked><span data-t="rech.pool">In a pool</span></label>
+<label><input type="radio" name="r-modus" value="solo"><span data-t="rech.solo">Solo</span></label>
+</fieldset>
+<label class="r-feld" id="r-pool-wahl" for="r-pool-liste"><span data-t="rech.welcher">Pool</span><select id="r-pool-liste" name="r-pool-liste"><option value="pool.yskar.app">YSKAR MAIN</option></select></label>
+<dl class="r-basis">
+<div><dt><span data-t="live.rate">Network hashrate</span><small id="r-basis-n">from the last 100 blocks</small></dt><dd id="r-netz">—</dd></div>
+<div><dt data-t="rech.anteil">Your share of the network</dt><dd id="r-anteil">—</dd></div>
+</dl>
+</div>
+<div class="r-ergebnis" aria-live="polite">
+<span class="kennung" data-t="rech.proTag">Per day, on average</span>
+<output class="r-gross" id="r-tag" for="r-wert r-einheit">—</output>
+<p class="r-hinweis" id="r-hinweis"></p>
+<dl class="r-liste">
+<div><dt data-t="rech.woche">Per week</dt><dd id="r-woche">—</dd></div>
+<div><dt data-t="rech.monat">Per 30 days</dt><dd id="r-monat">—</dd></div>
+</dl>
+<dl class="r-liste" id="r-solo" hidden>
+<div><dt data-t="rech.alle">One block on average every</dt><dd id="r-alle">—</dd></div>
+<div><dt data-t="rech.chance">Chance of at least one block in 24 h</dt><dd id="r-chance">—</dd></div>
+<div><dt data-t="rech.jeBlock">Per block found</dt><dd id="r-block">—</dd></div>
+</dl>
+<dl class="r-liste" id="r-pool">
+<div><dt data-t="rech.poolFunde">Pool’s share of the last 100 blocks</dt><dd id="r-pool-funde">—</dd></div>
+<div><dt data-t="rech.poolAlle">The pool finds a block about every</dt><dd id="r-pool-alle">—</dd></div>
+<div><dt data-t="rech.poolTeil">Your part of each pool block</dt><dd id="r-pool-teil">—</dd></div>
+<div><dt data-t="rech.poolGeb">Pool fee, already deducted</dt><dd id="r-pool-geb">—</dd></div>
+</dl>
+</div>
+</form>
+<div class="r-fuss">
+<p id="r-halbierung"></p>
+<p id="r-warn-monat" hidden data-t="rech.warnMonat">The halving falls within the next 30 days; the 30-day value is therefore set too high.</p>
+<p data-t="rech.grundlage">Network hashrate is the work of the last 100 blocks divided by their time. A pool’s share is how many of these blocks it actually found; the hashrate a pool reports itself is not used.</p>
+<p data-t="rech.fuss">This is an estimate, not a promise. Blocks are found by chance, the difficulty follows the whole network and the network hashrate changes all the time. Fees are not included. Values in YSR only.</p>
+</div>
+</div>
+
+<div class="pools" id="pools">
+<div class="anat-kopf">
+<h3 data-t="pools.titel">Active pools</h3>
+<p data-t="pools.text">The pools that the apps and Node Core offer, with the values each pool reports. Every pool pays its miners directly from the block.</p>
+</div>
+<div class="tabelle-rahmen"><table class="tabelle pool-tabelle">
+<thead><tr><th data-t="pools.k1">Pool</th><th data-t="pools.k2">Hashrate</th><th data-t="pools.k3">Miners · seats</th><th data-t="pools.k4">Blocks found</th><th data-t="pools.k5">Fee</th><th data-t="pools.k6">Status</th></tr></thead>
+<tbody id="pools-body"><tr><td colspan="6" class="leise" data-t="live.laedt">Loading live data from the chain…</td></tr></tbody>
+</table></div>
+<p class="leise klein-notiz"><span class="punkt" style="display:inline-block;vertical-align:1px;margin-right:8px"></span><span id="pools-stand"></span></p>
+</div>
+</div>
+</section>
+</main>
+
+<footer class="fusszeile">
+<div class="wrap">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
+<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
+<p class="motto">proof, not promise</p>
+<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
+</div>
+<div class="spalten">
+<div>
+<span class="kennung" data-t="fuss.netz">Network</span>
+<a href="/explorer" data-t="nav.explorer">Explorer</a>
+<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
+<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
+<a href="/#v6">V6</a>
+<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.mitmachen">Take part</span>
+<a href="/mining" data-t="nav.mining">Mining</a>
+<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
+<a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
+<a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://x.com/yskar_official">X</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.rechtliches">Legal</span>
+<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
+<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>

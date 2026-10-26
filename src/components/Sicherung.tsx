@@ -7,7 +7,8 @@ import { Notice, Icon } from '@/components/ui/Primitives';
 import { Blatt } from '@/components/ui/Bausteine';
 import PinFeld, { PinTasten, PIN_LAENGE } from '@/components/PinFeld';
 import { useT, fehlerText } from '@/i18n';
-import { useZurueckTaste, haptik } from '@/lib/telegram/webapp';
+import { SICHERN_PFLICHT } from '@/lib/einstieg';
+import { useZurueckTaste, haptik, imTelegram } from '@/lib/telegram/webapp';
 
 /**
  * Die zwoelf Woerter sichern -- NACH dem Start des Minings.
@@ -26,9 +27,17 @@ import { useZurueckTaste, haptik } from '@/lib/telegram/webapp';
  * frei. Bricht der Nutzer ab, bleibt alles, wie es war.
  */
 
+/** Bestanden: Die Pflicht ist erfuellt, auch wenn "Fertig" nicht mehr getippt wird. */
+function pflichtLoesen() { try { localStorage.removeItem(SICHERN_PFLICHT); } catch { /* egal */ } }
+
 type Schritt = 'vorbereiten' | 'pin' | 'woerter' | 'pruefen' | 'fertig';
 
-export default function Sicherung({ onSchliessen }: { onSchliessen: () => void }) {
+/**
+ * `pflicht`: direkt nach dem Erstellen einer neuen Wallet. Kein Abbrechen,
+ * die App geht erst nach bestandener Pruefung auf. Liegen die Woerter noch im
+ * Speicher (gerade erstellt), entfaellt die PIN-Abfrage.
+ */
+export default function Sicherung({ onSchliessen, pflicht = false }: { onSchliessen: () => void; pflicht?: boolean }) {
   const wallet = useWallet();
   const { t } = useT();
   const [schritt, setSchritt] = useState<Schritt>('vorbereiten');
@@ -38,9 +47,15 @@ export default function Sicherung({ onSchliessen }: { onSchliessen: () => void }
     if (schritt === 'pin') setSchritt('vorbereiten');
     else if (schritt === 'woerter') setSchritt('vorbereiten');
     else if (schritt === 'pruefen') setSchritt('woerter');
-    else onSchliessen();
+    else if (!pflicht) onSchliessen();
   };
-  useZurueckTaste(true, zurueck);
+  const kannZurueck = !(pflicht && (schritt === 'vorbereiten' || schritt === 'fertig'));
+  useZurueckTaste(kannZurueck, zurueck);
+
+  const zeigen = () => {
+    if (wallet.freshMnemonic) { setWoerter(wallet.freshMnemonic.split(' ')); setSchritt('woerter'); }
+    else setSchritt('pin');
+  };
 
   // Die Woerter verlassen den Speicher, sobald der Bildschirm zugeht.
   useEffect(() => () => setWoerter(null), []);
@@ -54,29 +69,30 @@ export default function Sicherung({ onSchliessen }: { onSchliessen: () => void }
           <>
             <div className="flex items-center justify-between">
               <button type="button" onClick={zurueck} aria-label={t.allgemein.zurueck}
-                      className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text active:scale-95">
+                      className={`flex h-10 w-10 items-center justify-center rounded-full border border-line text-text active:scale-95 ${
+                        kannZurueck && !imTelegram() ? '' : 'invisible'}`}>
                 <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"
                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 5l-6 6 6 6" /></svg>
               </button>
-              <span className="text-[13px] font-extrabold text-dim">{t.sicherung.schritt(nummer)}</span>
-              <span className="w-9" />
+              <span className="font-mono text-[11.5px] uppercase tracking-[.12em] text-dim">{t.sicherung.schritt(nummer)}</span>
+              <span className="w-10" />
             </div>
             <div className="mt-[18px] grid grid-cols-3 gap-1.5" aria-hidden="true">
               {[1, 2, 3].map(i => (
-                <span key={i} className={`h-[5px] rounded-full ${i <= nummer ? 'bg-work' : 'bg-line'}`} />
+                <span key={i} className={`h-[3px] rounded-full ${i <= nummer ? 'bg-cyan' : 'bg-line'}`} />
               ))}
             </div>
           </>
         )}
 
-        {schritt === 'vorbereiten' && <Vorbereiten onWeiter={() => setSchritt('pin')} />}
+        {schritt === 'vorbereiten' && <Vorbereiten onWeiter={zeigen} />}
         {schritt === 'pin' && (
           <PinAbfrage onOffen={w => { setWoerter(w); setSchritt('woerter'); }} />
         )}
         {schritt === 'woerter' && woerter && <Woerter woerter={woerter} onWeiter={() => setSchritt('pruefen')} />}
         {schritt === 'pruefen' && woerter && (
           <Pruefen woerter={woerter} onNochmal={() => setSchritt('woerter')}
-                   onBestanden={() => { wallet.gesichertMelden(); setWoerter(null); haptik('erfolg'); setSchritt('fertig'); }} />
+                   onBestanden={() => { wallet.gesichertMelden(); if (pflicht) pflichtLoesen(); setWoerter(null); haptik('erfolg'); setSchritt('fertig'); }} />
         )}
         {schritt === 'fertig' && <Fertig onSchliessen={onSchliessen} />}
       </main>
@@ -91,14 +107,14 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
   const [bereit, setBereit] = useState(false);
   return (
     <>
-      <span className="mt-8 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FFF6E5] text-[#8A5A00]">
+      <span className="mt-8 flex h-14 w-14 items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber">
         <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8"
              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M8 11l2 2 4-4" />
         </svg>
       </span>
-      <h1 className="mt-[18px] text-[26px] font-extrabold leading-[1.15] tracking-[-0.02em]">{t.sicherung.s1Titel}</h1>
-      <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-dim">{t.sicherung.s1Text}</p>
+      <h1 className="mt-[18px] text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.sicherung.s1Titel}</h1>
+      <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s1Text}</p>
 
       <ol className="mt-5 flex flex-col gap-2.5">
         <li className="panel flex gap-3 !rounded-[16px] px-4 py-3.5">
@@ -122,8 +138,8 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
         <span>{t.sicherung.bereit}</span>
       </label>
       <button type="button" onClick={onWeiter} disabled={!bereit}
-              className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-work text-[15.5px] font-extrabold
-                         text-white transition-transform active:scale-[.985] disabled:opacity-40">
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold
+                         text-ink transition-transform active:scale-[.985] disabled:opacity-30">
         {t.sicherung.zeigen}
       </button>
     </>
@@ -154,7 +170,7 @@ function PinAbfrage({ onOffen }: { onOffen: (woerter: string[]) => void }) {
   return (
     <>
       <h1 className="mt-10 text-center text-[24px] font-extrabold tracking-[-0.02em]">{t.unlock.titel}</h1>
-      <p className="mx-auto mt-2 max-w-[300px] text-center text-[14px] font-semibold leading-[1.5] text-dim">
+      <p className="mx-auto mt-2 max-w-[300px] text-center text-[14px] leading-[1.5] text-dim">
         {t.sicherung.pinFrage}
       </p>
       <div className="mt-8"><PinFeld wert={pin} onChange={setPin} gesperrt={busy} fehler={!!fehler && pin === ''} /></div>
@@ -174,8 +190,8 @@ function Woerter({ woerter, onWeiter }: { woerter: string[]; onWeiter: () => voi
   const reihen = Array.from({ length: 6 }, (_, i) => [i, i + 6]);
   return (
     <>
-      <h1 className="mt-[26px] text-[26px] font-extrabold leading-[1.15] tracking-[-0.02em]">{t.sicherung.s2Titel}</h1>
-      <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-dim">{t.sicherung.s2Text}</p>
+      <h1 className="mt-[26px] text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.sicherung.s2Titel}</h1>
+      <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s2Text}</p>
       <ol className="panel mt-5 grid grid-cols-2 gap-x-[18px] !rounded-[20px] px-[18px] py-1">
         {reihen.flat().map((i, k) => (
           <li key={i} className={`flex items-baseline gap-3 py-3 ${k < 10 ? 'border-b border-line' : ''}`}>
@@ -187,8 +203,8 @@ function Woerter({ woerter, onWeiter }: { woerter: string[]; onWeiter: () => voi
       <div className="mt-3.5"><Notice tone="risk">{t.sicherung.keinFoto}</Notice></div>
       <div className="min-h-6 flex-1" />
       <button type="button" onClick={onWeiter}
-              className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-work text-[15.5px] font-extrabold
-                         text-white transition-transform active:scale-[.985]">
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold
+                         text-ink transition-transform active:scale-[.985]">
         {t.sicherung.aufgeschrieben}
       </button>
     </>
@@ -239,8 +255,8 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
 
   return (
     <>
-      <h1 className="mt-[26px] text-[26px] font-extrabold leading-[1.15] tracking-[-0.02em]">{t.sicherung.s3Titel}</h1>
-      <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-dim">{t.sicherung.s3Text}</p>
+      <h1 className="mt-[26px] text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.sicherung.s3Titel}</h1>
+      <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s3Text}</p>
 
       <div className="mt-5 flex flex-col gap-2.5">
         {fragen.map(f => {
@@ -286,8 +302,8 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
         {t.sicherung.nochmal}
       </button>
       <button type="button" onClick={onBestanden} disabled={!alle}
-              className="flex h-[54px] w-full items-center justify-center rounded-[18px] bg-work text-[15.5px] font-extrabold
-                         text-white transition-transform active:scale-[.985] disabled:bg-line disabled:text-dim">
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold
+                         text-ink transition-transform active:scale-[.985] disabled:opacity-30">
         {t.sicherung.abschliessen}
       </button>
     </>
@@ -303,10 +319,10 @@ function Fertig({ onSchliessen }: { onSchliessen: () => void }) {
       <span className="zoom flex h-20 w-20 items-center justify-center rounded-[26px] bg-proof/15 text-proof [&>svg]:h-10 [&>svg]:w-10">
         {Icon.Haken}
       </span>
-      <h1 className="mt-6 text-[26px] font-extrabold tracking-[-0.02em]">{t.sicherung.erledigtTitel}</h1>
-      <p className="mt-2 max-w-[300px] text-[14px] font-semibold leading-[1.5] text-dim">{t.sicherung.erledigtText}</p>
+      <h1 className="mt-6 text-[26px] font-semibold tracking-[-0.025em]">{t.sicherung.erledigtTitel}</h1>
+      <p className="mt-2 max-w-[300px] text-[14px] leading-[1.5] text-dim">{t.sicherung.erledigtText}</p>
       <button type="button" onClick={onSchliessen}
-              className="mt-10 flex h-[54px] w-full items-center justify-center rounded-[18px] bg-work text-[15.5px] font-extrabold text-white">
+              className="mt-10 flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink">
         {t.allgemein.fertig}
       </button>
     </div>
@@ -322,7 +338,7 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
   const { t } = useT();
   return (
     <Blatt offen={offen} onSchliessen={onSchliessen}>
-      <span className="mt-1 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FFF6E5] text-[#8A5A00]">
+      <span className="mt-1 flex h-14 w-14 items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber">
         <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8"
              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="4" y="9.5" width="14" height="10" rx="2.5" /><path d="M7.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5" />
@@ -333,10 +349,10 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
       <ul className="mt-3.5 flex flex-col gap-2 rounded-[16px] bg-raised p-3.5 text-[13px] font-semibold">
         <li className="flex gap-2"><span className="font-extrabold text-proof">✓</span>{t.sicherung.okMining}</li>
         <li className="flex gap-2"><span className="font-extrabold text-proof">✓</span>{t.sicherung.okEmpfangen}</li>
-        <li className="flex gap-2 text-dim"><span className="font-extrabold text-[#8A5A00]">○</span>{t.sicherung.offenSenden}</li>
+        <li className="flex gap-2 text-dim"><span className="font-semibold text-amber">○</span>{t.sicherung.offenSenden}</li>
       </ul>
       <button type="button" onClick={onSichern}
-              className="mt-4 flex h-[54px] w-full items-center justify-center rounded-[18px] bg-work text-[15.5px] font-extrabold text-white">
+              className="mt-4 flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink">
         {t.sicherung.jetzt}
       </button>
       <button type="button" onClick={onSchliessen}
@@ -345,28 +361,25 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
   );
 }
 
-/** Hinweis auf Home und in der Wallet, solange nicht gesichert. */
+/** Hinweis auf Home und in der Wallet, solange nicht gesichert: schmale Zeile in Bernstein. */
 export function SicherungsHinweis({ onClick, kurz = false }: { onClick: () => void; kurz?: boolean }) {
   const { t } = useT();
   return (
     <button type="button" onClick={onClick}
-            className="flex w-full items-center gap-3 rounded-[16px] border border-[#F3DDB0] bg-[#FFF6E5] px-3.5 py-3
-                       text-left text-[#0E1A2F] active:scale-[.99]">
-      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] bg-[#F7E3B8] text-[#8A5A00]">
-        <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"
-             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M11 7.5v4M11 14.5h.01" />
-        </svg>
-      </span>
+            className="flex w-full items-center gap-3 border-y border-amber/25 bg-amber/[.06] px-3 py-3 text-left active:bg-amber/10">
+      <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="rgb(var(--amber))" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+        <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M11 7.5v4M11 14.5h.01" />
+      </svg>
       {kurz ? (
-        <span className="flex-1 text-[12.5px] font-bold">{t.sicherung.walletBanner}</span>
+        <span className="flex-1 text-[13px] font-medium text-text">{t.sicherung.walletBanner}</span>
       ) : (
-        <span className="flex flex-1 flex-col gap-px">
-          <span className="text-[13.5px] font-extrabold">{t.sicherung.bannerTitel}</span>
-          <span className="text-[12px] font-semibold text-[#6B5A35]">{t.sicherung.bannerText}</span>
+        <span className="flex flex-1 flex-col gap-0.5">
+          <span className="text-[13.5px] font-semibold text-text">{t.sicherung.bannerTitel}</span>
+          <span className="text-[12px] text-dim">{t.sicherung.bannerText}</span>
         </span>
       )}
-      <span className="text-[18px] text-[#8A5A00]" aria-hidden="true">›</span>
+      <span className="text-[18px] text-amber" aria-hidden="true">›</span>
     </button>
   );
 }

@@ -119,10 +119,7 @@ accounting (PPLNS, "pay per last N shares") becomes the coinbase of the block, a
 pays the participants directly in the block that was found: up to 64 addresses, or 63 miners
 plus the operator's fee. Miners with the least work in the window receive nothing in a block
 that has more participants than that. A pool operator never holds other
-miners' coins. From consensus revision 6 (block 10,000, see below) a coinbase may pay up to 255
-recipients, 254 miners plus the fee. The pool server in this repository pays only through the
-coinbase; a payout by batch transfer from a pool account is left to operators who want it. See
-[docs/POOL.md](docs/POOL.md).
+miners' coins. See [docs/POOL.md](docs/POOL.md).
 
 ### Consensus revisions
 
@@ -134,18 +131,15 @@ Rule changes are tied to block heights, so that every node switches at the same 
 | 3 | 4,000 | Minimum fee per byte instead of a fixed fee, and a dust limit | [CONSENSUS_V3.md](docs/CONSENSUS_V3.md) |
 | 4 | 6,000 | Wider encoding of the difficulty field in the header | [CONSENSUS_V4.md](docs/CONSENSUS_V4.md) |
 | 5 | 7,000 | Soft fork: stricter rules for timestamps, block encoding and the coinbase | [CONSENSUS_V5.md](docs/CONSENSUS_V5.md) |
-| 6 | 10,000 | Hard fork: versioned addresses, condition scripts, batch transfers, a sparse Merkle state tree, 5,000 transactions and 255 coinbase outputs per block | [CONSENSUS_V6.md](docs/CONSENSUS_V6.md) |
 
 ## Components
 
 **Full node (command line).** Stores the chain in a SQLite file, validates every block, keeps
-the mempool of pending transfers, exchanges blocks and transfers with other nodes, hands out work
-to miners and can run a pool. The mempool is limited in bytes (32 MB by default). When it is full,
-a transfer that pays more per byte evicts the cheapest one, and a transfer that pays too little is
-refused with `pool_min_fee` and the fee that would be accepted; see [docs/FEES.md](docs/FEES.md). Sources in `src/lib/node/`, build folder `node/`. See
+the pool of pending transfers, exchanges blocks and transfers with other nodes, hands out work
+to miners and can run a pool. Sources in `src/lib/node/`, build folder `node/`. See
 [docs/FULLNODE.md](docs/FULLNODE.md) and [docs/P2P.md](docs/P2P.md).
 
-**Node Core (Windows and Linux).** The same full node as a desktop program with a built-in wallet, CPU
+**Node Core (Windows).** The same full node as a desktop program with a built-in wallet, CPU
 and GPU mining and pool operation. No Node.js installation is needed. See
 [node-core/README.md](node-core/README.md).
 
@@ -224,7 +218,7 @@ src/i18n/, src/content/  texts of the app in ten languages
 src/lib/native/          bridge to the Android app
 android/                 Android app (Capacitor)
 node/                    build of the command-line full node
-node-core/               Node Core for Windows and Linux (Electron), including the GPU miner in gpu/
+node-core/               Node Core for Windows (Electron), including the GPU miner in gpu/
 miner/                   command-line miner
 observer/                observer
 website/                 static website www.yskar.app
@@ -262,16 +256,16 @@ the workflows in `.github/workflows/`.
 | Document | Content |
 |---|---|
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | Protocol specification: formats, hashing, difficulty, transactions, validity rules, test vectors |
-| [docs/CONSENSUS_V2.md](docs/CONSENSUS_V2.md), [V3](docs/CONSENSUS_V3.md), [V4](docs/CONSENSUS_V4.md), [V5](docs/CONSENSUS_V5.md), [V6](docs/CONSENSUS_V6.md) | Design records of the consensus revisions (revision 6 from block 10,000) |
+| [docs/CONSENSUS_V2.md](docs/CONSENSUS_V2.md), [V3](docs/CONSENSUS_V3.md), [V4](docs/CONSENSUS_V4.md), [V5](docs/CONSENSUS_V5.md) | Design records of the consensus revisions |
 | [docs/FULLNODE.md](docs/FULLNODE.md) | The command-line full node: commands, options, HTTP interface, storage, reorganization |
 | [docs/P2P.md](docs/P2P.md) | The protocol between nodes |
-| [docs/FEES.md](docs/FEES.md) | Fee rules, the mempool under load and the fee estimate |
+| [docs/FEES.md](docs/FEES.md) | Fee rules and the fee estimate |
 | [docs/POOL.md](docs/POOL.md) | Pools: joining one, running one, how the accounting works |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | The public infrastructure: main node, HTTPS, mirror, environment variables |
 | [docs/APP.md](docs/APP.md) | The Android app: build, signing, release, notifications, testing |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security model and known limits |
 | [deploy/README.md](deploy/README.md) | Running a node as a service on a server |
-| [node-core/README.md](node-core/README.md) | Node Core for Windows and Linux |
+| [node-core/README.md](node-core/README.md) | Node Core for Windows |
 | [node-core/gpu/README.md](node-core/gpu/README.md) | The GPU miner of Node Core |
 | [miner/README.md](miner/README.md) | The command-line miner |
 | [observer/README.md](observer/README.md) | The observer |
@@ -284,10 +278,12 @@ the workflows in `.github/workflows/`.
 Named plainly, so that nobody expects more than there is.
 
 - **A young, small network.** The network has two seed nodes, the first of which also runs the
-  public pool; both are run by the same operator. At least one independent pool mines as well. Proof of work protects a chain only as long as no single party controls most of
-  the hash power. [docs/SECURITY.md](docs/SECURITY.md) lists the known limits.
-- **Node Core exists for Windows and 64-bit Linux (x86-64) only.** On macOS the full node runs
-  from the command line.
+  public pool YSKAR MAIN; both are run by the same operator. Two independent pools run by
+  community members, ODW.Serv and Gozero, mine as well. Proof of work protects a chain only as
+  long as no single party controls most of the hash power. [docs/SECURITY.md](docs/SECURITY.md)
+  lists the known limits.
+- **Node Core exists for Windows and 64-bit Linux (x86-64).** There is no Node Core for macOS
+  or ARM computers such as the Raspberry Pi; there the full node runs from the command line.
 - **The Android app is distributed as an APK** through GitHub Releases. It is not in an app
   store. There is no iOS app.
 - **Open source under the MIT License.** The source code is public and can be read, verified
@@ -297,3 +293,7 @@ Named plainly, so that nobody expects more than there is.
 
 YSR has no price and no market, and it is not listed on any exchange. Nothing here promises that
 this will change, and nobody should mine in that expectation.
+
+## License
+
+YSKAR is released under the [MIT License](LICENSE). Copyright (c) 2026 The YSKAR developers.

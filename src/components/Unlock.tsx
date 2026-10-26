@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { Zeichen as YZeichen } from '@/components/ui/Marke';
 
 import { useEffect, useRef, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
@@ -39,7 +39,7 @@ export default function Unlock({ ebene = false }: { ebene?: boolean }) {
   const oeffnen = async () => {
     setBusy(true); setFehler(null);
     const r = await wallet.unlock(pin);
-    if (!r.ok) { haptik('warnung'); setFehler(fehlerText(r.reason, t)); setPin(''); setBusy(false); }
+    if (!r.ok) { haptik('fehler'); setFehler(fehlerText(r.reason, t)); setPin(''); setBusy(false); }
   };
 
   /*
@@ -82,13 +82,12 @@ export default function Unlock({ ebene = false }: { ebene?: boolean }) {
   const inhalt = (
     <main className="thema-dunkel rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[calc(28px+var(--unten))]">
       <div className="mt-11 flex justify-center">
-        <Image src="/marke/kristall.png" alt="" width={84} height={54} priority
-               className="zoom" style={{ width: 84, height: 54, objectFit: 'contain' }} />
+        <YZeichen g={64} className="licht-auf" />
       </div>
-      <h1 className="mt-[22px] text-center text-[24px] font-extrabold">{t.unlock.titel}</h1>
+      <h1 className="mt-[22px] text-center text-[24px] font-semibold tracking-[-0.02em]">{t.unlock.titel}</h1>
       {ebene && (
         <div className="mt-2.5 flex justify-center">
-          <span className="flex items-center gap-1.5 rounded-full bg-work/15 px-3 py-1.5 text-[12px] font-extrabold text-work">
+          <span className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-[.08em] text-dim">
             <span className="h-1.5 w-1.5 rounded-full bg-work" />{t.einstellungen.sperreKurz}
           </span>
         </div>

@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
 import AppSettings, { AppBiometrie } from '@/components/AppSettings';
-import { Segment, Blatt } from '@/components/ui/Bausteine';
+import { Blatt } from '@/components/ui/Bausteine';
 import type { Summary } from '@/hooks/useMining';
 import { useT, fehlerText, SPRACHEN } from '@/i18n';
 import { SPERRE_STUFEN, sperreLesen, sperreSetzen } from '@/hooks/useAutoSperre';
 import { AppLaden } from '@/components/AppLaden';
-import { useThema } from '@/lib/useThema';
-import { THEMEN } from '@/lib/thema';
+import { COMMUNITY } from '@/lib/community';
+import { ExternLink } from '@/components/ui/ExternLink';
 import { istNativ } from '@/lib/native/plattform';
 
 /**
@@ -37,7 +37,6 @@ export default function Settings({ onZurueck, anteil, workers, summary, onSicher
   const [kopiert, setKopiert] = useState(false);
   const [sperre, setSperre] = useState<number>(() => sperreLesen());
   const [apkOffen, setApkOffen] = useState(false);
-  const { thema, setThema } = useThema();
 
   if (modus === 'woerter') {
     return (
@@ -137,7 +136,7 @@ export default function Settings({ onZurueck, anteil, workers, summary, onSicher
                 className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text active:scale-95">
           <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
         </button>
-        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.einstellungen.titel}</h1>
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{t.einstellungen.titel}</h1>
       </header>
 
       {/* Netz-Status -- stand frueher als Pille oben rechts auf Home. */}
@@ -161,12 +160,6 @@ export default function Settings({ onZurueck, anteil, workers, summary, onSicher
                  wert={<span lang={sprache}>{SPRACHEN.find(x => x.code === sprache)?.name ?? sprache}</span>}>
           {t.einstellungen.sprache}
         </Eintrag>
-        <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2.5">
-          <span className="text-[13.5px] font-bold">{t.einstellungen.thema}</span>
-          <Segment label={t.einstellungen.thema} wert={thema} onChange={setThema}
-                   werte={THEMEN.map(th => ({ v: th, text: th === 'system' ? t.einstellungen.themaSystem
-                     : th === 'hell' ? t.einstellungen.themaHell : t.einstellungen.themaDunkel }))} />
-        </li>
       </ul>
 
       <p className="label mb-2 mt-7 px-0.5">{t.app.sicherheit}</p>
@@ -185,7 +178,7 @@ export default function Settings({ onZurueck, anteil, workers, summary, onSicher
         <li>
           <button onClick={kopiere} aria-label={`${t.einstellungen.adresse} ${t.allgemein.kopieren}`}
                   className="flex w-full items-center justify-between gap-3 py-3 text-left active:opacity-70">
-            <span className="text-[13.5px] font-bold">{t.einstellungen.adresse}</span>
+            <span className="text-[13.5px] font-medium">{t.einstellungen.adresse}</span>
             <span className="flex min-w-0 items-center gap-2 text-dim">
               <span className="truncate font-mono text-[12px]">{kopiert ? t.allgemein.kopiert : adresseKurz}</span>
               <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9"
@@ -221,6 +214,18 @@ export default function Settings({ onZurueck, anteil, workers, summary, onSicher
       )}
 
       <AppSettings />
+
+      <p className="label mb-2 mt-7 px-0.5">{t.rd.einst.ueber}</p>
+      <ul className="panel mt-2 !py-0.5 px-4">
+        {[[t.rd.einst.website, COMMUNITY.website], [t.rd.einst.whitepaper, COMMUNITY.whitepaper],
+          [t.entdecken.explorer, COMMUNITY.explorer], [t.entdecken.github, COMMUNITY.github]].map(([titel, href]) => (
+          <li key={href} className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+            <ExternLink href={href} className="flex w-full items-center justify-between gap-3 py-3 text-[14px] font-medium active:opacity-70">
+              {titel}<span className="text-faint" aria-hidden="true">↗</span>
+            </ExternLink>
+          </li>
+        ))}
+      </ul>
 
       <p className="label mb-2 mt-7 px-0.5">{t.einstellungen.geraet}</p>
       <ul className="panel mt-2 !py-0.5 px-4">
@@ -274,7 +279,7 @@ function Eintrag({ onClick, children, wert, unter, rot }: {
   return (
     <li className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
       <button onClick={onClick}
-              className={`flex w-full items-center justify-between gap-3 py-3 text-left text-[13.5px] font-bold active:opacity-70 ${
+              className={`flex w-full items-center justify-between gap-3 py-3 text-left text-[14px] font-medium active:opacity-70 ${
                 rot ? 'text-risk' : ''}`}>
         <span className="flex min-w-0 flex-col">
           <span>{children}</span>

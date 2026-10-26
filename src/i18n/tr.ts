@@ -5,9 +5,11 @@ import type { Woerterbuch } from './de';
  * error, not a blank spot in the app.
  */
 import neu from './neu/tr';
+import rd from './rd/tr';
 
 const tr = {
   ...neu,
+  rd,
   name: 'Türkçe',
   locale: 'tr-TR',
 

@@ -15,7 +15,7 @@ import { notizAusHex } from '@/lib/wallet/notiz';
 import { gruppiere, tagSchluessel, type Zeile } from '@/lib/wallet/verlaufGruppen';
 import { useKontakte } from '@/lib/wallet/kontakte';
 import { useGuthabenVerborgen } from '@/lib/wallet/verborgen';
-import { useEinnahmen, heuteDazu } from '@/lib/wallet/useEinnahmen';
+import { useEinnahmen } from '@/lib/wallet/useEinnahmen';
 import { useEigeneZahlungen } from '@/hooks/useEigeneZahlungen';
 import type { EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
 import Einnahmen from '@/components/wallet/Einnahmen';
@@ -314,16 +314,9 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   const wannText = (p: Wartend, n: number) => p.block != null && p.block > 1
     ? t.wallet.unterwegsVoraus(p.block, Math.round(p.block * 10))
     : t.wallet.unterwegsBlock(n);
-  // Was gerade das Konto verlaesst -- die Betraege, wie sie auch in der Karte
-  // darunter stehen. (Senden rechnet zusaetzlich die Gebuehren ab.)
-  const unterwegs = pending.filter(p => p.kind === 'out')
-    .reduce((s, p) => { try { return s + BigInt(p.amount); } catch { return s; } }, 0n);
 
   const einnahmen = useEinnahmen(address, neuester);
   const heute = tagSchluessel(Math.floor(Date.now() / 1000));
-  // Heute dazugekommen: Mining und empfangene Ueberweisungen -- dieselbe
-  // Zahl wie auf Home.
-  const heuteWert = heuteDazu(einnahmen) ?? 0n;
   const hatEinnahmen = !!einnahmen && einnahmen.some(x => x.summe !== '0');
 
   // ------------------------------------------------------------- Verlauf
@@ -445,87 +438,60 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     );
   };
 
-  const chip = (an: boolean) => `h-10 shrink-0 rounded-[13px] px-4 text-[13px] font-extrabold transition-colors ${
-    an ? 'bg-text text-surface' : 'bg-raised text-dim'}`;
+  const chip = (an: boolean) => `h-9 shrink-0 rounded-full px-4 text-[13px] font-medium transition-colors ${
+    an ? 'bg-text text-ink' : 'border border-line text-dim'}`;
 
   return (
     <>
-      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
-      <header className="relative mb-3.5 flex items-center justify-between">
-        <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.wallet.titel}</h1>
+      <header className="relative mb-2 flex items-center justify-between">
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{t.wallet.titel}</h1>
         <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="panel flex h-9 w-9 items-center justify-center !rounded-full text-text">{Icon.Zahnrad}</button>
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-dim active:scale-95">{Icon.Zahnrad}</button>
       </header>
 
-      {/* Kristallkarte: das Guthaben, die Adresse und was gerade in Bewegung ist. */}
-      <section aria-label={t.wallet.guthaben}
-               className="hero rise relative overflow-hidden px-5 pb-5 pt-3.5 shadow-[0_22px_40px_-26px_rgba(20,48,95,.85)]"
-               style={{ borderRadius: 28 }}>
-        <div aria-hidden="true" className="absolute -bottom-6 -right-[38px] h-[172px] w-[264px]">
-          <div className="absolute inset-0 bg-white/[.07]" style={{ clipPath: 'polygon(27% 33%, 39% 60%, 18% 99%, 0.5% 99%)' }} />
-          <div className="absolute inset-0 bg-white/[.12]" style={{ clipPath: 'polygon(49.5% 1%, 64% 37%, 55.5% 54%, 43% 55%, 34.7% 37%)' }} />
-          <div className="absolute inset-0 bg-white/[.05]" style={{ clipPath: 'polygon(49.5% 48%, 75% 99%, 23.5% 99%)' }} />
-          <div className="absolute inset-0 bg-white/[.09]" style={{ clipPath: 'polygon(72.4% 31.5%, 99.5% 99%, 80% 99%, 59.4% 58.5%)' }} />
+      {/* Guthaben: gross und mittig. Darunter wird bewusst nichts eingeblendet. */}
+      <section aria-label={t.wallet.guthaben} className="rise relative flex flex-col items-center pb-2 pt-6 text-center">
+        <div className="flex items-center gap-0.5">
+          <span className="label">{t.wallet.guthaben}</span>
+          <button type="button" onClick={verbergen} aria-pressed={verborgen}
+                  aria-label={verborgen ? t.wallet.zeigen : t.wallet.verbergen}
+                  className="flex h-10 w-10 items-center justify-center text-faint active:scale-95">
+            {verborgen ? Zeichen.AugeZu() : Zeichen.Auge()}
+          </button>
         </div>
-        <div className="relative flex items-center justify-between gap-2.5">
-          <div className="flex min-w-0 items-center gap-0.5">
-            <span className="truncate text-[11.5px] font-bold uppercase tracking-[.08em] text-white/[.78]">{t.wallet.guthaben}</span>
-            <button type="button" onClick={verbergen} aria-pressed={verborgen}
-                    aria-label={verborgen ? t.wallet.zeigen : t.wallet.verbergen}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center text-white/[.78] active:scale-95">
-              {verborgen ? Zeichen.AugeZu() : Zeichen.Auge()}
-            </button>
-          </div>
-          {address && (
-            <button type="button" onClick={kopiere} aria-label={t.wallet.adresseKopieren}
-                    className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-white/[.14] pl-3.5 pr-3 text-white active:scale-[.98]">
-              <span className="font-mono text-[12.5px]">{kopiert ? t.allgemein.kopiert : kurzAdresse(address, unb)}</span>
-              {kopiert ? Zeichen.Haken(17, 2.2) : Zeichen.Kopieren()}
-            </button>
-          )}
-        </div>
-        <p className="tnum relative mt-1.5 flex flex-wrap items-baseline gap-x-2">
-          <span className="font-extrabold leading-none tracking-[-0.04em]" style={{ fontSize: verborgen ? 40 : guthabenGroesse }}>
+        <p className="tnum flex flex-wrap items-baseline justify-center gap-x-2">
+          <span className="font-light leading-none tracking-[-0.045em]" style={{ fontSize: verborgen ? 44 : guthabenGroesse + 6 }}>
             {!account ? '—' : verborgen ? '••••••' : <>
-              {g.ganz}<span className="font-bold text-white/[.62]">{g.trenner}{g.bruch}</span>
+              {g.ganz}<span className="text-dim">{g.trenner}{g.bruch}</span>
             </>}
           </span>
-          <span className="text-[15px] font-extrabold text-white/[.78]">{symbol}</span>
+          <span className="font-mono text-[14px] text-dim">{symbol}</span>
         </p>
-        {(heuteWert > 0n || unterwegs > 0n) && (
-          <div className="relative mt-4 flex flex-wrap gap-2">
-            {heuteWert > 0n && (
-              <span className="tnum inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[9px] pr-3 text-[12.5px] font-extrabold"
-                    style={{ background: 'rgba(46, 190, 133, .24)', color: '#9BF3CF' }}>
-                {Zeichen.Hoch()}{t.wallet.chipHeute(zeigen(heuteWert))}
-              </span>
-            )}
-            {unterwegs > 0n && (
-              <span className="tnum inline-flex h-[30px] items-center gap-1.5 rounded-full pl-[9px] pr-3 text-[12.5px] font-extrabold"
-                    style={{ background: 'rgba(242, 178, 92, .24)', color: '#FFD596' }}>
-                {Zeichen.Uhr()}{t.wallet.chipUnterwegs(zeigen(unterwegs))}
-              </span>
-            )}
-          </div>
+        {address && (
+          <button type="button" onClick={kopiere} aria-label={t.wallet.adresseKopieren}
+                  className="mt-4 flex h-9 items-center gap-2 rounded-full border border-line px-3.5 text-dim active:scale-[.98]">
+            <span className="font-mono text-[12px]">{kopiert ? t.allgemein.kopiert : kurzAdresse(address, unb)}</span>
+            {kopiert ? Zeichen.Haken(15, 2.2) : Zeichen.Kopieren()}
+          </button>
         )}
       </section>
 
-      <div className="rise rise-1 mt-3.5 flex items-center gap-2.5">
-        <button type="button" onClick={onSenden}
-                className="flex h-[54px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] bg-work text-[15px] font-extrabold text-white shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)] active:scale-[.985]">
-          {Zeichen.Hoch(20, 2.1)}<span className="truncate">{t.wallet.senden}</span>
-        </button>
-        <button type="button" onClick={onScannen} aria-label={t.senden.scanAria}
-                className="panel flex h-[54px] w-[54px] shrink-0 items-center justify-center !rounded-full text-work active:scale-95">
-          {Zeichen.Scan()}
-        </button>
-        <button type="button" onClick={onEmpfangen}
-                className="panel flex h-[54px] min-w-0 flex-1 items-center justify-center gap-2 !rounded-[18px] text-[15px] font-extrabold active:scale-[.985]">
-          {Zeichen.Runter(20, 2.1)}<span className="truncate">{t.wallet.empfangen}</span>
-        </button>
+      {/* Senden (blau), Empfangen, Scannen: runde Knoepfe wie in der YSKAR Wallet. */}
+      <div className="rise rise-1 mt-5 flex justify-center gap-7">
+        {[
+          { f: onSenden, i: Zeichen.Hoch(22, 2), l: t.wallet.senden, blau: true },
+          { f: onEmpfangen, i: Zeichen.Runter(22, 2), l: t.wallet.empfangen },
+          { f: onScannen, i: Zeichen.Scan(), l: t.rd.wallet.scannen },
+        ].map(k => (
+          <button key={k.l} type="button" onClick={k.f} className="flex w-[72px] flex-col items-center gap-2 active:scale-95">
+            <span className={`flex h-16 w-16 items-center justify-center rounded-full ${k.blau
+              ? 'bg-work text-white shadow-[0_14px_30px_-14px_rgb(var(--work)/.9)]' : 'border border-line bg-surface text-text'}`}>{k.i}</span>
+            <span className="max-w-full truncate text-[12.5px] text-dim">{k.l}</span>
+          </button>
+        ))}
       </div>
 
-      {onSichern && <div className="rise rise-1 mt-3.5"><SicherungsHinweis kurz onClick={onSichern} /></div>}
+      {onSichern && <div className="rise rise-1 mt-6"><SicherungsHinweis kurz onClick={onSichern} /></div>}
 
       {hatEinnahmen && einnahmen && (
         <Einnahmen tage={einnahmen} symbol={symbol} decimals={decimals} verborgen={verborgen} />
@@ -553,12 +519,12 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
 
       {pending.length > 0 && (
         <section aria-label={t.wallet.unterwegsTitel(pending.length)}
-                 className="warte rise rise-2 mt-3.5 flex items-center gap-3 rounded-[20px] px-4 py-[13px]">
+                 className="rise rise-2 mt-5 flex items-center gap-3 border-y border-amber/25 bg-amber/[.05] px-3 py-3">
           <span aria-hidden="true" className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-surface">
             {Zeichen.Uhr(19, 2)}
           </span>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-[14px] font-extrabold">{t.wallet.unterwegsTitel(pending.length)}</span>
+            <span className="text-[13.5px] font-semibold text-amber">{t.wallet.unterwegsTitel(pending.length)}</span>
             {pending.slice(0, 3).map(p => (
               <span key={p.txid} className="tnum text-[12.5px] font-semibold leading-[1.4] text-text">
                 {p.kind === 'out'
@@ -576,12 +542,12 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
         </section>
       )}
 
-      <section aria-label={t.wallet.verlauf} className="panel rise rise-2 mt-3.5 !rounded-[24px] px-[18px] pb-1.5 pt-3">
+      <section aria-label={t.wallet.verlauf} className="rise rise-2 mt-7 border-t border-line pt-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-[17px] font-extrabold tracking-[-0.01em]">{t.wallet.verlauf}</h2>
+          <h2 className="label">{t.wallet.verlauf}</h2>
           <div className="flex items-center gap-1">
             <ExternLink href={address ? `${EXPLORER_URL}#adr-${address}` : EXPLORER_URL}
-                        className="inline-flex h-11 items-center gap-1.5 px-2 text-[13px] font-extrabold text-work">
+                        className="inline-flex h-11 items-center gap-1.5 px-2 text-[13px] font-medium text-cyan">
               {t.wallet.explorer}{Zeichen.Extern()}
             </ExternLink>
             <SuchKnopf offen={suchOffen} aktiv={filterAktiv} onClick={() => setSuchOffen(o => !o)} />

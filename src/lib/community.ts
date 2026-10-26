@@ -14,6 +14,8 @@ export const COMMUNITY = {
   xName: '@yskar_official',
   website: 'https://www.yskar.app',
   explorer: 'https://www.yskar.app/explorer',
+  whitepaper: 'https://www.yskar.app/whitepaper',
+  anleitungen: 'https://www.yskar.app/anleitungen',
   github: 'https://github.com/dabitlex/YSKAR',
   releases: 'https://github.com/dabitlex/YSKAR/releases',
   /** Der Bot, ueber den die Mini App startet. */

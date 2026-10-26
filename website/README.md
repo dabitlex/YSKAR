@@ -7,16 +7,21 @@ The site is plain HTML, CSS and JavaScript. There is no framework and no build s
 serves the files as they are in this folder.
 
 ```text
-index.html          start page
+index.html          start page: the currency, how it works, check it yourself, supply, V6 with roadmap, using YSR
+protokoll.html      protocol: datasheet, block header, transfer, block 0, issuance by era
+explorer.html       the explorer in the website style; served by the website itself (no longer passed through from yskar.vercel.app)
+mining.html         mining: ways to mine, Node Core downloads, calculator, active pools
 anleitungen.html    guides: Mini App, Android app, Node Core, PC miner, wallet, full node, pool
 whitepaper.html     whitepaper, in English and German
 impressum.html      legal notice (German)
 datenschutz.html    privacy policy (German)
 assets/style.css    all styles
 assets/site.js      language, menu, live values
+assets/motion.js    start and mining page: warp and V6 canvas, scroll effects, tile light (decoration; the page works without it)
+assets/nutzen.js    start page: live fee and average block time
 assets/i18n/*.js    texts per language (English is the default and the fallback)
-assets/fonts/       Manrope and IBM Plex Mono, self-hosted, with their license files
-assets/img/         logo, app screenshots, Node Core screenshots
+assets/fonts/       Geist and Geist Mono (Latin), Manrope and IBM Plex Mono (Cyrillic), self-hosted, with their license files
+assets/img/         zeichen.svg (logo), share image, app icons, wallet screenshots; favicon.svg/.png in the root
 vercel.json         clean URLs, headers, rewrites, build only when this folder changed
 .vercelignore       keeps this README out of the deployment
 ```
@@ -56,9 +61,10 @@ the privacy policy are in German.
 
 ## Live values
 
-The start page fetches block height, network hashrate and circulating supply from
+The start page fetches block height, network hashrate, circulating supply, active miners and nodes from
 `https://yskar.vercel.app/api/v2/summary` once a minute and computes the height of the next
-halving from them. As long as no answer has arrived, the values stay at "—", and if the request
+halving from them. Every element with `data-live="name"` shows that value (`hoehe`, `rate`, `umlauf`,
+`umlaufMio`, `halbierung`, `tage`, `miner`, `knoten`, `anteil`); a value may appear several times on a page. As long as no answer has arrived, the values stay at "—", and if the request
 fails in that state, a note says that live data is unavailable. After a later failure the last
 values stay on the page. The page itself keeps working in every case.
 
@@ -86,7 +92,7 @@ The website links the installer of one specific Node Core version directly on Gi
 not ask GitHub which version is the newest, because that would be a request to a third party
 from every visitor's browser. After each new Node Core release, update by hand:
 
-- in `index.html`, section "YSKAR Node Core": the download link, the link to the release notes
+- in `mining.html`, the Node Core tile (`id="nodecore"`): the download link, the link to the release notes
   and checksum, the version number and the file size;
 - in `anleitungen.html`: the same download link, release link, version number and file size, and
   the installer file name in the `Get-FileHash` command;

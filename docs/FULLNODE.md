@@ -750,18 +750,18 @@ node dist/yskar-node.cjs mine --regtest --data ./testnetz-b --port 8655 --p2p-po
 
 `--v6-height <n>` makes a regtest node apply consensus revision 6 from block `n`. Its network name
 and chain ID stay those of regtest, so it connects to regtest nodes built from code without
-revision 6 (the current `main`). Both share one chain up to block `n − 1`; from block `n` the
+revision 6 (the release `node-core-v0.7.1` or earlier). Both share one chain up to block `n − 1`; from block `n` the
 rules differ and the chain splits. This is the test of [CONSENSUS_V6.md](CONSENSUS_V6.md) section
 14 ("Fork behaviour"), run without the main network.
 
-Build the node twice, once from `main` (old) and once from `consensus-v6` (new), in two separate
-folders. Then, on one machine, each node with its own data directory and its own two ports:
+Build the node twice, once from the tag `node-core-v0.7.1` (old) and once from `main` (new), in two
+separate folders. Then, on one machine, each node with its own data directory and its own two ports:
 
 ```bash
-# old (built from main)
+# old (built from node-core-v0.7.1)
 node dist/yskar-node.cjs mine --regtest --data ./alt-a --port 8645 --p2p-port 8646
 node dist/yskar-node.cjs mine --regtest --data ./alt-b --port 8655 --p2p-port 8656 --seed 127.0.0.1:8646
-# new (built from consensus-v6)
+# new (built from main)
 node dist/yskar-node.cjs mine --regtest --v6-height 10 --data ./neu-c --port 8665 --p2p-port 8666 --seed 127.0.0.1:8646
 node dist/yskar-node.cjs mine --regtest --v6-height 10 --data ./neu-d --port 8675 --p2p-port 8676 --seed 127.0.0.1:8666
 ```

@@ -992,7 +992,7 @@ transaction shows its expected block.
 
 ## 13a. Implementation status
 
-Implemented on the branch `consensus-v6` (not merged):
+Implemented (developed on the branch `consensus-v6`, merged into `main`):
 
 *Consensus (phases 1 to 4):* `src/lib/core/params.ts` (constants, height helpers), `networks.ts`
 (`v6Height`, `REGTEST_V6`), `address.ts` (versions, raw form, wire form, HRPs), `script.ts` (encoding,

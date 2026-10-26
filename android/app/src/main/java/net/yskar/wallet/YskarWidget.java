@@ -28,9 +28,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *                    Hashrate / Laufzeit / Shares
  *   Mining gestoppt  Stand des Netzes: Block / Netz-Hashrate / Belohnung
  *
- * Das Wallet-Guthaben zeigt es nicht. Hell oder Dunkel waehlt der Nutzer in
- * der App (WidgetPlugin.thema); je Darstellung gibt es ein eigenes Layout
- * mit denselben Kennungen.
+ * Das Wallet-Guthaben zeigt es nicht. Seit dem Redesign (Oktober 2026) gibt
+ * es nur noch die dunkle Darstellung, passend zur App; eine fruehere Wahl
+ * "hell" in der Ablage wird ignoriert.
  *
  * Gerendert wird immer aus WidgetDaten. Waehrend des Minings schreibt der
  * MiningService alle paar Sekunden hinein. Sonst ruft Android onUpdate alle
@@ -153,16 +153,12 @@ public class YskarWidget extends AppWidgetProvider {
 
     /* ---- Farben, die sich mit dem Zustand aendern (der Rest steht im Layout) ---- */
 
-    private static final int HELL_TEXT = 0xFF0E1A2F, HELL_GEDIMMT = 0xFF5B6B84, HELL_BLAU = 0xFF1F5BF0;
-    private static final int DUNKEL_TEXT = 0xFFEAF0F8, DUNKEL_GEDIMMT = 0xFF9EADC6, DUNKEL_BLAU = 0xFF4F82FF;
+    private static final int FARBE_TEXT = 0xFFF2F6FF, FARBE_LESE = 0xFFC3CCDF,
+        FARBE_GEDIMMT = 0xFF8E9AB4, FARBE_GRUEN = 0xFF3BE59A;
 
     private static RemoteViews bauen(Context c, Bundle optionen) {
         SharedPreferences p = WidgetDaten.ablage(c);
-        boolean dunkel = "dunkel".equals(p.getString(WidgetDaten.K_THEMA, "hell"));
-        RemoteViews v = new RemoteViews(c.getPackageName(), dunkel ? R.layout.widget_dunkel : R.layout.widget);
-        int farbeText = dunkel ? DUNKEL_TEXT : HELL_TEXT;
-        int farbeGedimmt = dunkel ? DUNKEL_GEDIMMT : HELL_GEDIMMT;
-        int farbeBlau = dunkel ? DUNKEL_BLAU : HELL_BLAU;
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget);
 
         Locale l = Locale.getDefault();
         NumberFormat ganz = NumberFormat.getIntegerInstance(l);
@@ -177,7 +173,7 @@ public class YskarWidget extends AppWidgetProvider {
             v.setTextViewText(R.id.w_stand, "");
             v.setTextViewText(R.id.w_gross, c.getString(R.string.widget_keine_wallet));
             gross(c, v, 16);
-            v.setTextColor(R.id.w_gross, farbeGedimmt);
+            v.setTextColor(R.id.w_gross, FARBE_LESE);
             v.setTextViewText(R.id.w_unter, c.getString(R.string.widget_tippen));
         } else {
             v.setViewVisibility(R.id.w_pille, View.VISIBLE);
@@ -186,13 +182,12 @@ public class YskarWidget extends AppWidgetProvider {
 
             if (mining) {
                 v.setTextViewText(R.id.w_status, c.getString(R.string.widget_laeuft));
-                v.setTextColor(R.id.w_status, farbeBlau);
-                v.setImageViewResource(R.id.w_punkt,
-                    dunkel ? R.drawable.widget_punkt_an_dunkel : R.drawable.widget_punkt_an);
+                v.setTextColor(R.id.w_status, FARBE_GRUEN);
+                v.setImageViewResource(R.id.w_punkt, R.drawable.widget_punkt_an);
 
                 v.setTextViewText(R.id.w_gross, "+" + betrag(p.getString(WidgetDaten.K_SITZUNG, "0"), l, true) + " YSR");
-                gross(c, v, 24);
-                v.setTextColor(R.id.w_gross, farbeText);
+                gross(c, v, 26);
+                v.setTextColor(R.id.w_gross, FARBE_TEXT);
                 v.setTextViewText(R.id.w_unter, c.getString(R.string.widget_sitzung));
                 v.setViewVisibility(R.id.w_stopp, View.VISIBLE);
 
@@ -204,13 +199,12 @@ public class YskarWidget extends AppWidgetProvider {
                 v.setTextViewText(R.id.w_f3t, c.getString(R.string.widget_f_shares));
             } else {
                 v.setTextViewText(R.id.w_status, c.getString(R.string.widget_gestoppt));
-                v.setTextColor(R.id.w_status, farbeGedimmt);
-                v.setImageViewResource(R.id.w_punkt,
-                    dunkel ? R.drawable.widget_punkt_aus_dunkel : R.drawable.widget_punkt_aus);
+                v.setTextColor(R.id.w_status, FARBE_GEDIMMT);
+                v.setImageViewResource(R.id.w_punkt, R.drawable.widget_punkt_aus);
 
                 v.setTextViewText(R.id.w_gross, c.getString(R.string.widget_mining_gestoppt));
                 gross(c, v, 20);
-                v.setTextColor(R.id.w_gross, farbeGedimmt);
+                v.setTextColor(R.id.w_gross, FARBE_LESE);
                 v.setTextViewText(R.id.w_unter, c.getString(R.string.widget_tippen));
                 v.setViewVisibility(R.id.w_stopp, View.GONE);
 
@@ -292,8 +286,8 @@ public class YskarWidget extends AppWidgetProvider {
 
         // Rand oben/unten 22, Kopf 32, Abstand zur Hauptzeile 2.
         final float kopf = 56f;
-        // Grosse Zeile: 24 / 20 / 16 sp, siehe gross().
-        float gross = (mining ? 32f : wallet ? 26.6f : 21.3f) * Math.min(schrift, 1.15f);
+        // Grosse Zeile: 26 / 20 / 16 sp, siehe gross().
+        float gross = (mining ? 34.6f : wallet ? 26.6f : 21.3f) * Math.min(schrift, 1.15f);
         float unter = 16.6f * schrift;
         // Der Stopp-Knopf steht neben der Hauptzeile und kann hoeher sein als sie.
         float knopf = mining ? 20f + 16.6f * schrift : 0f;

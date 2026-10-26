@@ -5,6 +5,15 @@
   "ignoreCommand": "if [ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] && git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA^{commit}\" 2>/dev/null; then git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . || exit 1; else exit 1; fi",
   "headers": [
     {
+      "source": "/explorer",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/assets/i18n/(.*)",
       "headers": [
         {
@@ -15,6 +24,24 @@
     },
     {
       "source": "/assets/site.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/motion.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(pruefen|bloecke|pools|adresse|rechner|nutzen|v6|wallet-muenzen).js",
       "headers": [
         {
           "key": "Cache-Control",
@@ -68,14 +95,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/explorer",
-      "destination": "https://yskar.vercel.app/explorer.html"
-    },
-    {
-      "source": "/explorer.html",
-      "destination": "https://yskar.vercel.app/explorer.html"
-    },
     {
       "source": "/api/v2/:pfad*",
       "destination": "https://yskar.vercel.app/api/v2/:pfad*"

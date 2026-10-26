@@ -31,14 +31,14 @@ export function Zahl({ ganz, bruch, trenner = ',', einheit, size = 52, breite = 
       <span className="zahl-gross whitespace-nowrap" style={{ fontSize: eff }}>
         {ganz}{bruch !== undefined && <span className="bruch">{trenner}{bruch}</span>}
       </span>
-      {einheit && <span className="font-extrabold text-dim" style={{ fontSize: Math.round(eff / 3) }}>{einheit}</span>}
+      {einheit && <span className="font-medium text-dim" style={{ fontSize: Math.max(15, Math.round(eff / 3)) }}>{einheit}</span>}
     </span>
   );
 }
 
 /** Kleine Ueberschrift ueber einer Zahl. */
 export function Etikett({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <span className={`text-[11px] font-extrabold uppercase tracking-[.1em] text-faint ${className}`}>{children}</span>;
+  return <span className={`label ${className}`}>{children}</span>;
 }
 
 /** Karte: Flaeche fuer Sekundaeres. */
@@ -57,9 +57,9 @@ export function Karte({ children, className = '', onClick }: {
 /** Kleine Kennzahl-Kachel: Etikett, Zahl. */
 export function Kachel({ label, wert }: { label: string; wert: React.ReactNode }) {
   return (
-    <div className="panel flex flex-col gap-1.5 !rounded-[18px] px-3.5 py-3">
-      <Etikett>{label}</Etikett>
-      <span className="tnum text-[19px] font-extrabold tracking-[-0.02em]">{wert}</span>
+    <div className="flex flex-col gap-1.5 px-0.5 py-1">
+      <span className="text-[12px] text-dim">{label}</span>
+      <span className="tnum text-[18px] font-normal tracking-[-0.03em]">{wert}</span>
     </div>
   );
 }
@@ -70,13 +70,13 @@ export function Aktion({ icon, label, onClick, primary = false }: {
 }) {
   return (
     <button onClick={onClick} className="group flex flex-1 flex-col items-center gap-2">
-      <span className={`flex h-14 w-14 items-center justify-center rounded-[20px] border transition-transform
+      <span className={`flex h-16 w-16 items-center justify-center rounded-full border transition-transform
                         group-active:scale-95 ${primary
-        ? 'border-work bg-work text-white shadow-[0_12px_26px_-12px_rgb(var(--work)/.8)]'
-        : 'panel border-line text-text'}`}>
+        ? 'border-transparent bg-work text-white'
+        : 'border-[rgb(140_170_255/.22)] text-text'}`}>
         {icon}
       </span>
-      <span className="text-[12px] font-bold text-dim">{label}</span>
+      <span className="text-[14px] font-medium text-lese">{label}</span>
     </button>
   );
 }
@@ -85,9 +85,9 @@ export function Aktion({ icon, label, onClick, primary = false }: {
 export function Pille({ tone, children, puls = false }: {
   tone: 'work' | 'proof' | 'off' | 'risk'; children: React.ReactNode; puls?: boolean;
 }) {
-  const look = { work: 'bg-work/10 text-work', proof: 'bg-proof/10 text-proof', off: 'bg-raised text-dim', risk: 'bg-risk/10 text-risk' }[tone];
+  const look = { work: 'text-cyan', proof: 'text-proof', off: 'text-dim', risk: 'text-risk' }[tone];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11.5px] font-extrabold ${look}`}>
+    <span className={`inline-flex items-center gap-2 text-[13px] font-medium ${look}`}>
       <span className={`h-1.5 w-1.5 rounded-full bg-current ${puls ? 'puls' : ''}`} />
       {children}
     </span>
@@ -99,11 +99,11 @@ export function Segment<T extends string | number>({ werte, wert, onChange, labe
   werte: { v: T; text: string }[]; wert: T; onChange: (v: T) => void; label: string; disabled?: boolean;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-[12px] bg-raised p-[3px]">
+    <div role="group" aria-label={label} className="flex rounded-full border border-line bg-ink p-1">
       {werte.map(w => (
         <button key={String(w.v)} onClick={() => onChange(w.v)} aria-pressed={wert === w.v} disabled={disabled}
-                className={`min-w-[44px] rounded-[9px] px-3 py-1.5 text-[12.5px] font-extrabold transition-colors disabled:opacity-60 ${
-                  wert === w.v ? 'panel !rounded-[9px] !border-0 text-text' : 'text-dim'}`}>
+                className={`min-h-[36px] min-w-[44px] flex-1 rounded-full px-3 text-[13px] font-medium transition-colors disabled:opacity-60 ${
+                  wert === w.v ? 'bg-text text-ink' : 'text-dim'}`}>
           {w.text}
         </button>
       ))}
@@ -128,10 +128,10 @@ export function Kurve({ werte, hoehe = 64, className = '' }: { werte: number[]; 
   return (
     <svg viewBox={`0 0 ${B} ${hoehe}`} className={`block w-full ${className}`} style={{ height: hoehe }}
          preserveAspectRatio="none" aria-hidden="true">
-      <path d={pfad.fill} fill="rgb(var(--work) / .14)" />
-      <path d={pfad.d} fill="none" stroke="rgb(var(--work))" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round"
+      <defs><linearGradient id="kurve-fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="rgb(var(--work))" stopOpacity=".3" /><stop offset="1" stopColor="rgb(var(--work))" stopOpacity="0" /></linearGradient></defs>
+      <path d={pfad.fill} fill="url(#kurve-fl)" />
+      <path d={pfad.d} fill="none" stroke="rgb(var(--cyan))" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round"
             vectorEffect="non-scaling-stroke" />
-      <circle cx={pfad.letzte[0]} cy={pfad.letzte[1]} r="4" fill="rgb(var(--work))" stroke="rgb(var(--surface))" strokeWidth="2" />
     </svg>
   );
 }
@@ -145,8 +145,8 @@ export function Ring({ anteil, oben, unten, size = 116 }: {
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
-        <circle cx="60" cy="60" r={r} fill="none" stroke="rgb(var(--raised))" strokeWidth="10" />
-        <circle cx="60" cy="60" r={r} fill="none" stroke="rgb(var(--work))" strokeWidth="10" strokeLinecap="round"
+        <circle cx="60" cy="60" r={r} fill="none" stroke="rgb(var(--raised))" strokeWidth="6" />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="rgb(var(--work))" strokeWidth="6" strokeLinecap="round"
                 strokeDasharray={u} strokeDashoffset={u * (1 - a)} transform="rotate(-90 60 60)"
                 style={{ transition: 'stroke-dashoffset .6s ease' }} />
       </svg>
@@ -203,19 +203,19 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts, grund = 's
   // saesse sonst im Blatt statt auf dem Bildschirm.
   return createPortal(
     <div className={`fixed inset-0 z-40 flex flex-col justify-end transition-opacity duration-200 ${offen ? 'opacity-100' : 'opacity-0'}`}
-         style={{ background: 'rgb(var(--edge) / .45)' }}
+         style={{ background: 'rgb(3 6 15 / .78)' }}
          onClick={onSchliessen} role="dialog" aria-modal="true">
-      <div className={`mx-auto w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-[30px] px-5 pt-2.5
-                       pb-[calc(24px+var(--unten))] shadow-[0_-20px_60px_-20px_rgba(0,0,0,.35)] ${
-                         grund === 'ink' ? 'bg-ink' : 'bg-surface'}`}
+      <div className={`mx-auto w-full max-w-md max-h-[calc(100dvh-var(--oben)-12px)] overflow-y-auto overscroll-contain rounded-t-[30px]
+                       border-t border-[rgb(140_170_255/.22)] px-[22px] pt-2.5
+                       pb-[calc(24px+var(--unten))] ${grund === 'ink' ? 'bg-ink' : 'bg-sunk'}`}
            onClick={e => e.stopPropagation()}>
-        <div className="mx-auto mb-4 h-[5px] w-10 rounded-full bg-line" />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[rgb(140_170_255/.22)]" />
         {(titel || rechts) && (
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-[20px] font-extrabold tracking-[-0.02em]">{titel}</span>
+            <span className="text-[22px] font-semibold tracking-[-0.03em]">{titel}</span>
             {rechts ?? (
               <button onClick={onSchliessen} aria-label={t.allgemein.schliessen}
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-raised text-dim">
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text">
                 <svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 5l12 12M17 5 5 17" /></svg>
               </button>
             )}
@@ -237,15 +237,15 @@ export function BlattKopf({ titel, onZurueck, rechts, art = 'schliessen' }: {
     <div className="mb-4 flex items-center gap-3">
       {art === 'zurueck' && (
         <button onClick={onZurueck} aria-label={t.allgemein.zurueck}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-raised text-text">
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text">
           <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
         </button>
       )}
-      <span className="flex-1 text-[20px] font-extrabold tracking-[-0.02em]">{titel}</span>
+      <span className="flex-1 text-[22px] font-semibold tracking-[-0.03em]">{titel}</span>
       {rechts}
       {art === 'schliessen' && (
         <button onClick={onZurueck} aria-label={t.allgemein.schliessen}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-raised text-dim">
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text">
           <svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M5 5l12 12M17 5 5 17" /></svg>
         </button>
       )}

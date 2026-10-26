@@ -3,63 +3,43 @@
 @tailwind utilities;
 
 /*
-  YSKAR — Gestaltungssystem „Eis".
+  YSKAR — Gestaltungssystem „Warp / Crystal Blue" (Oktober 2026).
 
-  Hell, ruhig, ein Akzent. Die Marke ist ein Kristall auf Weiss; die App
-  folgt ihr: heller Grund, weisse Karten, dunkelblaue Schrift, Saphirblau
-  fuer alles, was aktiv ist oder bedient werden kann. Gruen heisst „von der
-  Kette bestaetigt", Rot heisst „unwiderruflich".
+  Dieselbe Sprache wie yskar.app und die YSKAR Wallet: nur dunkel, Nachtblau
+  als Grund, Karten eine Stufe heller, feine blaue Linien. Blau fuer alles,
+  was aktiv ist, Cyan als Lichtkante, Gruen heisst „von der Kette
+  bestaetigt", Rot heisst „unwiderruflich", Bernstein heisst „bitte tun".
 
   Die Namen der Farben sind geblieben (ink, surface, work, proof ...), nur
-  ihre Werte nicht. So bleibt jeder Bildschirm, der auf die Namen baut,
-  ohne Umbau im neuen Kleid.
+  ihre Werte nicht. Ein helles Thema gibt es nicht mehr.
 
-  Farben als RGB-Kanaele: Nur so kann Tailwind Deckkraft anwenden. Mit
-  fertigen Farbwerten werden Klassen wie bg-dim/70 lautlos verworfen.
+  Farben als RGB-Kanaele: Nur so kann Tailwind Deckkraft anwenden.
 */
-:root {
-  --ink:     244 247 251;   /* #F4F7FB  Grund */
-  --sunk:    255 255 255;   /* Eingabefelder, Diagrammgrund */
-  --surface: 255 255 255;   /* Karten */
-  --raised:  241 244 249;   /* #F1F4F9  ruhige Knoepfe, Chips */
-  --line:    230 236 244;   /* #E6ECF4 */
-  --edge:    14 26 47;      /* Kante, nur mit sehr wenig Deckkraft */
-  --text:    14 26 47;      /* #0E1A2F */
-  --dim:     91 107 132;    /* #5B6B84 */
-  --faint:   142 154 176;   /* #8E9AB0 */
-  --lese:    42 58 85;      /* #2A3A55  Fliesstext in Artikeln */
+:root,
+:root[data-thema="dunkel"],
+:root[data-thema="hell"],
+.thema-dunkel {
+  --ink:     3 6 15;        /* #03060F  Grund */
+  --sunk:    6 11 24;       /* #060B18  Eingabefelder, Blaetter */
+  --surface: 10 17 34;      /* #0A1122  Karten */
+  --raised:  14 23 48;      /* #0E1730  Chips, ruhige Flaechen */
+  --line:    26 35 61;      /* feine Linie: rgba(140,170,255,.12) auf Karte */
+  --edge:    0 0 0;
+  --text:    242 246 255;   /* #F2F6FF */
+  --dim:     142 154 180;   /* #8E9AB4 */
+  --faint:   107 119 148;   /* #6B7794 */
+  --lese:    195 204 223;   /* #C3CCDF  Fliesstext */
 
-  --work:  31 91 240;       /* #1F5BF0  aktiv, bedienbar */
-  --proof: 11 138 92;       /* #0B8A5C  von der Kette angenommen */
-  --risk:  217 64 74;       /* #D9404A  unwiderruflich */
+  --work:  47 123 255;      /* #2F7BFF  aktiv, bedienbar */
+  --cyan:  99 216 255;      /* #63D8FF  Lichtkante */
+  --proof: 59 229 154;      /* #3BE59A  von der Kette angenommen */
+  --risk:  255 107 107;     /* #FF6B6B  unwiderruflich */
+  --amber: 255 180 84;      /* #FFB454  bitte tun */
 
   --r-sm: 16px;
-  --r-md: 24px;
+  --r-md: 22px;
   --r-lg: 28px;
-}
-
-/*
-  Dunkel: dieselbe Ordnung, umgedreht. Grund Mitternachtsblau, Karten eine
-  Stufe heller, Schrift fast weiss. Die drei Signalfarben sind fuer dunklen
-  Grund aufgehellt, sonst faellt Blau auf Blau zusammen. Gesetzt wird das
-  Attribut von src/lib/thema.ts -- vor dem ersten Zeichnen.
-*/
-:root[data-thema="dunkel"],
-.thema-dunkel {
-  --ink:     10 16 28;      /* #0A101C */
-  --sunk:    15 23 40;      /* #0F1728  Eingabefelder */
-  --surface: 19 28 46;      /* #131C2E  Karten */
-  --raised:  28 40 62;      /* #1C283E  Chips */
-  --line:    36 50 76;      /* #24324C */
-  --edge:    0 0 0;
-  --text:    234 240 248;   /* #EAF0F8 */
-  --dim:     158 173 198;   /* #9EADC6 */
-  --faint:   110 126 154;   /* #6E7E9A */
-  --lese:    214 222 236;   /* #D6DEEC */
-
-  --work:  79 130 255;      /* #4F82FF */
-  --proof: 46 190 133;      /* #2EBE85 */
-  --risk:  240 97 107;      /* #F0616B */
+  color-scheme: dark;
 }
 :root[data-thema="dunkel"], .thema-dunkel { color-scheme: dark; }
 /* Einstieg: immer dunkel, egal welches Thema -- die Marke steht auf Nacht. */
@@ -72,8 +52,16 @@
   env(). Wo keins von beidem existiert, ist der Rand 0.
 */
 :root {
-  --oben:  var(--safe-area-inset-top,    env(safe-area-inset-top,    0px));
-  --unten: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  /*
+    Telegram im Vollbild (iOS und Android, siehe page.tsx): Oben liegen dann
+    Statusleiste und Telegrams eigene Knoepfe (Schliessen/Zurueck, Menue) ueber
+    der App. Ihre Hoehe setzt telegram-web-app.js als --tg-safe-area-inset-*
+    und --tg-content-safe-area-inset-*. Ausserhalb des Vollbilds sind die 0.
+  */
+  --oben:  max(var(--safe-area-inset-top,    env(safe-area-inset-top,    0px)),
+               calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
+  --unten: max(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)),
+               calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px)));
 }
 .rand-oben  { padding-top:    calc(20px + var(--oben)); }
 .rand-unten { padding-bottom: var(--unten); }
@@ -118,32 +106,28 @@ body {
    Schatten -- eine Lichtkante allein ist auf Weiss unsichtbar. */
 .panel {
   background: rgb(var(--surface));
-  border: 1px solid rgb(var(--line));
+  border: 1px solid rgb(140 170 255 / .12);
   border-radius: var(--r-md);
   position: relative;
-  box-shadow: 0 14px 34px -22px rgb(var(--edge) / 0.28);
 }
-:root[data-thema="dunkel"] .panel { box-shadow: 0 14px 34px -22px rgb(0 0 0 / 0.7); }
 
 /* Lichtschein oben auf dem Grund -- gibt der Seite eine Richtung. */
-.schein { background: radial-gradient(70% 34% at 50% 0%, rgb(var(--work) / .10) 0%, transparent 70%); }
-:root[data-thema="dunkel"] .schein { background: radial-gradient(70% 34% at 50% 0%, rgb(var(--work) / .16) 0%, transparent 70%); }
+.schein { background: radial-gradient(80% 30% at 50% 0%, rgb(var(--work) / .20) 0%, transparent 70%); }
 
 /* Schwebende Navigationsleiste. */
-.tabs { background: rgb(var(--surface) / .86); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgb(var(--edge) / .06); box-shadow: 0 14px 34px -22px rgb(var(--edge) / .35); }
-:root[data-thema="dunkel"] .tabs { border-color: rgb(255 255 255 / .06); box-shadow: 0 14px 34px -22px rgb(0 0 0 / .8); }
+.tabs { background: rgb(var(--surface) / .92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgb(140 170 255 / .22); box-shadow: 0 18px 40px -18px rgb(0 0 0 / .8); }
 
 /* Grosse Zahl: Ganzzahl kraeftig, Nachkommastellen gedimmt. */
-.zahl-gross { font-weight: 800; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
-.zahl-gross .bruch { color: rgb(var(--faint)); font-weight: 700; }
+.zahl-gross { font-weight: 300; letter-spacing: -.055em; line-height: 1; font-variant-numeric: tabular-nums; }
+.zahl-gross .bruch { color: rgb(var(--faint)); font-weight: 300; }
 .panel-raised { background: rgb(var(--raised)); }
 
 /* Eingabefeld: weiss mit Linie, keine Vertiefung. */
 .sunk {
   background: rgb(var(--sunk));
   border-radius: var(--r-sm);
-  border: 1px solid rgb(var(--line));
+  border: 1px solid rgb(140 170 255 / .2);
 }
 
 /* Fortschrittsbalken. */
@@ -157,15 +141,16 @@ body {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: rgb(var(--work));
+  background: linear-gradient(90deg, rgb(var(--work)), rgb(var(--cyan)));
   transition: width .3s ease;
 }
 
 /* Kleine Ueberschrift ueber einer Kennzahl. */
 .label {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: .08em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .16em;
   text-transform: uppercase;
   color: rgb(var(--faint));
 }
@@ -175,23 +160,43 @@ body {
   auf einem Bildschirm zaehlt (Guthaben, Halving).
 */
 .hero {
-  background: linear-gradient(160deg, #0E1A2F 0%, #14305F 60%, #1F5BF0 130%);
-  color: #fff;
-  border: 0;
+  background: rgb(var(--surface));
+  color: rgb(var(--text));
+  border: 1px solid rgb(140 170 255 / .12);
   border-radius: var(--r-md);
 }
-/* Auf dunklem Grund braucht die Karte eine Kante, sonst verschwimmt sie. */
-:root[data-thema="dunkel"] .hero {
-  background: linear-gradient(160deg, #16274A 0%, #1B3E86 60%, #2F6BFF 130%);
-  border: 1px solid rgb(var(--line));
-}
-/* Weisser Knopf auf der Hero-Karte: Schrift bleibt dunkel, in beiden Themen. */
-.hero .knopf-hell { color: #0E1A2F; }
-/* Abzeichen "wartet" (Verlauf): Bernstein, je Thema. */
-.warte { background: #FFF4E5; color: #B26A00; }
-:root[data-thema="dunkel"] .warte { background: rgb(66 48 20); color: #F2B25C; }
-.warte-text { color: #B26A00; }
-:root[data-thema="dunkel"] .warte-text { color: #F2B25C; }
+.hero .knopf-hell { color: rgb(var(--ink)); }
+/* Abzeichen "wartet": Bernstein. */
+.warte { background: rgb(var(--amber) / .12); color: rgb(var(--amber)); }
+.warte-text { color: rgb(var(--amber)); }
+
+/* Verlaufsschrift fuer die zweite, leichte Zeile einer Ueberschrift. */
+.grad { background: linear-gradient(100deg, rgb(var(--cyan)), rgb(var(--work)) 60%, #1B4FD1);
+  -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Mono-Etikett in Cyan ueber einer grossen Zahl oder Ueberschrift. */
+.etikett { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; font-weight: 500;
+  letter-spacing: .2em; text-transform: uppercase; color: rgb(var(--cyan)); }
+
+/* Die Muenze: dunkle Scheibe, blauer Ring, das Y-Zeichen. */
+.muenze { --d: 120px; position: relative; width: var(--d); height: var(--d); border-radius: 50%; flex-shrink: 0;
+  background: radial-gradient(circle at 32% 26%, #132354, #060B1C 72%);
+  box-shadow: inset 0 0 0 calc(var(--d)*.035) #2F7BFF, inset 0 0 0 calc(var(--d)*.05) #1B4FD1, inset 0 0 calc(var(--d)*.12) rgb(99 216 255 / .18); }
+.muenze img { position: absolute; left: 22%; top: 22%; width: 56%; height: 56%; }
+/* Muenze in 3D: dreht sich um die eigene Achse, mit Rand, Rueckseite und Glanz. */
+.buehne { perspective: 1100px; display: flex; justify-content: center; }
+.m3d { --d: 176px; position: relative; width: var(--d); height: var(--d); flex-shrink: 0; transform-style: preserve-3d;
+  animation: m3d-dreht 6s cubic-bezier(.45,0,.55,1) infinite; }
+.m3d > * { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; }
+.m3d > i { backface-visibility: visible; background: linear-gradient(90deg, #0B1F57, #2F7BFF 35%, #9FE6FF 50%, #2F7BFF 65%, #0B1F57); }
+.m3d .muenze { --d: inherit; width: var(--d); height: var(--d); }
+.m3d .glanz { background: linear-gradient(115deg, rgb(255 255 255 / 0) 30%, rgb(255 255 255 / .16) 48%, rgb(255 255 255 / 0) 66%);
+  background-size: 300% 100%; animation: glanz 6s cubic-bezier(.45,0,.55,1) infinite; pointer-events: none; }
+.m3d.schnell { animation: m3d-schnell .7s linear infinite; }
+.m3d.schnell .glanz { animation: none; }
+@keyframes m3d-dreht { 0% { transform: rotateX(-8deg) rotateY(0deg) } 60% { transform: rotateX(-8deg) rotateY(360deg) } 100% { transform: rotateX(-8deg) rotateY(360deg) } }
+@keyframes m3d-schnell { to { transform: rotateX(-10deg) rotateY(360deg) } }
+@keyframes glanz { 0% { background-position: 100% 0 } 30% { background-position: 0 0 } 60%, 100% { background-position: 100% 0 } }
 
 /* Signaturschein hinter einer Kennzahl -- sehr weit, sehr schwach. */
 .glow-work::before,
@@ -212,7 +217,7 @@ body {
 .hash-sig  { color: rgb(var(--text)); }
 
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible {
-  outline: 2px solid rgb(var(--work));
+  outline: 2px solid rgb(var(--cyan));
   outline-offset: 2px;
 }
 
@@ -265,3 +270,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     transition-duration: .01ms !important;
   }
 }
+
+/* --- Redesign Oktober 2026: Boerse, Schild, Funken, Mining-Ring, Hash-Band --- */
+.boerse { position: relative; margin: 0 auto; }
+.boerse-teil { position: absolute; left: calc(15px * var(--s)); bottom: calc(8px * var(--s)); filter: drop-shadow(0 22px 30px rgb(0 0 0 / .6)); }
+.boerse.stoss .boerse-teil { animation: stoss .55s ease-out infinite; }
+@keyframes stoss { 0%, 70% { translate: 0 0 } 80% { translate: 0 4px } 100% { translate: 0 0 } }
+.boerse-fall { position: absolute; top: 0; z-index: 2; }
+.boerse-fall > div { animation: boerse-fallen 2.75s cubic-bezier(.5,0,.9,.6) infinite both; }
+@keyframes boerse-fallen {
+  0% { transform: translate(-50%, calc(-90px * var(--s))); opacity: 0 }
+  10% { opacity: 1 }
+  62% { transform: translate(-50%, calc(112px * var(--s))); opacity: 1 }
+  70%, 100% { transform: translate(-50%, calc(148px * var(--s))); opacity: 0 }
+}
+.schild { position: relative; }
+.schild svg { display: block; filter: drop-shadow(0 22px 34px rgb(0 0 0 / .6)); }
+.schild-glanz { position: absolute; inset: 0; clip-path: polygon(50% 4%, 91% 17%, 91% 49%, 50% 99%, 9% 49%, 9% 17%);
+  background: linear-gradient(115deg, rgb(255 255 255 / 0) 35%, rgb(255 255 255 / .22) 50%, rgb(255 255 255 / 0) 65%);
+  background-size: 300% 100%; animation: schild-glanz 4.5s ease-in-out infinite; }
+@keyframes schild-glanz { 0%, 55% { background-position: 100% 0 } 85%, 100% { background-position: 0 0 } }
+.funken { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.funken i { position: absolute; top: -10px; width: 3px; height: 10px; border-radius: 2px; opacity: .85; animation: funken-fallen 3.2s linear infinite; }
+@keyframes funken-fallen { to { transform: translateY(110dvh) rotate(260deg) } }
+.ring-lauf { transform-origin: 150px 150px; animation: ring-lauf 14s linear infinite; }
+@keyframes ring-lauf { to { transform: rotate(360deg) } }
+.hashband { height: 20px; overflow: hidden; }
+.hashband > div { animation: hashband 6s steps(1) infinite; }
+.hashband span { display: block; height: 20px; line-height: 20px; }
+@keyframes hashband { 0% { transform: translateY(0) } 25% { transform: translateY(-20px) } 50% { transform: translateY(-40px) } 75% { transform: translateY(-60px) } }
+@keyframes atmen { from { opacity: 0; transform: scale(.82) } to { opacity: 1; transform: none } }
+.atmen { animation: atmen 1.6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes licht-auf { from { opacity: 0 } }
+.licht-auf { animation: licht-auf 1s .6s both; }
