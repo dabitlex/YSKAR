@@ -1,8 +1,9 @@
 name: Android-App bauen und veröffentlichen
 
 # Baut die YSKAR Wallet (Android) und hängt die signierte APK an ein
-# GitHub Release. Ausgelöst durch einen Tag app-v1.2.3 -- oder von Hand
-# (dann ohne Release, nur als Artefakt zum Testen).
+# GitHub Release. Ausgelöst durch einen Tag app-v1.2.3 -- oder von Hand:
+# mit Eingabe "version" (z.B. 1.1.1) als Release samt Tag, ohne nur als
+# Artefakt zum Testen.
 #
 # Secrets, die das Repository braucht (Settings -> Secrets -> Actions):
 #   YSKAR_KEYSTORE_BASE64   der Keystore als Base64 (base64 -w0 yskar.jks)
@@ -22,6 +23,10 @@ on:
     inputs:
       app_url:
         description: 'Server, den die App lädt (leer = Betrieb)'
+        required: false
+        default: ''
+      version:
+        description: 'Version veröffentlichen, z.B. 1.1.1 (leer = nur Testbau ohne Release). Legt den Tag app-v<Version> selbst an.'
         required: false
         default: ''
 
@@ -65,9 +70,16 @@ jobs:
 
       - name: Version aus dem Tag
         id: version
+        env:
+          VERSION_EINGABE: ${{ github.event.inputs.version }}
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/app-v* ]]; then
             NAME="${GITHUB_REF#refs/tags/app-v}"
+          elif [[ "$VERSION_EINGABE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            NAME="$VERSION_EINGABE"
+            echo "veroeffentlichen=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$VERSION_EINGABE" ]; then
+            echo "::error::Version muss die Form 1.2.3 haben: $VERSION_EINGABE"; exit 1
           else
             NAME="0.0.${GITHUB_RUN_NUMBER}-test"
           fi
@@ -139,9 +151,12 @@ jobs:
             ${{ steps.apk.outputs.datei }}.sha256
 
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/app-v') && steps.apk.outputs.signiert == 'true'
+        if: (startsWith(github.ref, 'refs/tags/app-v') || steps.version.outputs.veroeffentlichen == 'true') && steps.apk.outputs.signiert == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          # Bei Start von Hand mit Version: Tag app-v<Version> auf genau diesem Commit anlegen.
+          tag_name: app-v${{ steps.version.outputs.name }}
+          target_commitish: ${{ github.sha }}
           name: YSKAR Wallet ${{ steps.version.outputs.name }}
           generate_release_notes: true
           files: |
