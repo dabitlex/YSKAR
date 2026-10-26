@@ -60,7 +60,7 @@ const rd = {
     wText: 'Enter your 12 words in order.',
   },
   netz: {
-    titel: 'Network', live: 'Live', offline: 'Offline', hashrate: 'Hashrate',
+    titel: 'Network', live: 'Live', offline: 'Offline', hashrate: 'Hashrate', gemint: 'Mined',
     v6: (h: string) => `Activates at block ${h}`,
     v6Rest: (n: string) => `${n} blocks to go`,
     explorer: 'Explorer', whitepaper: 'Whitepaper', website: 'Website', wachsen: 'Help the network grow',
@@ -90,6 +90,7 @@ const rd = {
     weiter: 'Continue mining', nichtJetzt: 'Not now',
   },
   fund: { eigen: 'Block found · by your phone', zurWallet: 'To my wallet' },
+  wallet: { scannen: 'Scan' },
   sprache: { titel: 'Language' },
   einst: { ueber: 'About', website: 'Website', whitepaper: 'Whitepaper' },
 };

@@ -59,7 +59,7 @@ export function BottomNav({ aktiv, onWechsel }: {
 export function TopBar({ titel, rechts }: { titel: string; rechts?: React.ReactNode }) {
   return (
     <header className="mb-4 flex items-center justify-between">
-      <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{titel}</h1>
+      <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{titel}</h1>
       {rechts}
     </header>
   );

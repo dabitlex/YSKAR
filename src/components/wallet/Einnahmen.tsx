@@ -58,24 +58,24 @@ export default function Einnahmen({ tage, symbol, decimals, verborgen }: {
   };
 
   return (
-    <section aria-label={t.wallet.einnahmen} className="panel rise rise-2 mt-3.5 !rounded-[24px] px-[18px] pb-3.5 pt-4">
+    <section aria-label={t.wallet.einnahmen} className="rise rise-2 mt-7 border-t border-line pt-4">
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-col gap-1">
           <Kappe>{gewaehlt ? name(gewaehlt.tag) : t.wallet.einnahmen}</Kappe>
-          <span className="tnum text-[24px] font-extrabold leading-tight tracking-[-0.02em]">
+          <span className="tnum text-[26px] font-light leading-tight tracking-[-0.03em]">
             {zeigen(gewaehlt ? gewaehlt.wert : gesamt)}{' '}
-            <span className="text-[13px] font-extrabold text-dim">{symbol}</span>
+            <span className="font-mono text-[12px] text-dim">{symbol}</span>
           </span>
           {gewaehlt && (
             <span className="text-[12.5px] font-semibold text-dim">{t.wallet.miningBloecke(gewaehlt.bloecke)}</span>
           )}
         </div>
-        <div role="group" aria-label={t.wallet.zeitraum} className="flex shrink-0 rounded-[14px] bg-raised p-[3px]">
+        <div role="group" aria-label={t.wallet.zeitraum} className="flex shrink-0 rounded-full border border-line p-[3px]">
           {([7, 30] as const).map(n => (
             <button key={n} type="button" aria-pressed={spanne === n}
                     onClick={() => { setSpanne(n); setWahl(null); }}
-                    className={`h-[38px] min-w-[50px] rounded-[11px] px-2.5 text-[12.5px] font-extrabold transition-colors ${
-                      spanne === n ? 'panel !rounded-[11px] !border-0 text-text' : 'text-dim'}`}>
+                    className={`h-[34px] min-w-[50px] rounded-full px-3 text-[12.5px] font-medium transition-colors ${
+                      spanne === n ? 'bg-text text-ink' : 'text-dim'}`}>
               {n === 7 ? t.wallet.tage7 : t.wallet.tage30}
             </button>
           ))}

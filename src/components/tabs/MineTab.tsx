@@ -55,9 +55,15 @@ export default function MineTab({ m, dec, pool, gesichert, poolName, onStartStop
   // Neuer Nutzer ohne gewaehlten Pool: erst den Pool waehlen, dann starten.
   const mussWaehlen = !m.mining && pool.modus === 'pool' && !pool.gewaehlt;
 
+  // Angenommener Share: ein leichter Tipp in der Hand, nur waehrend die App offen ist.
+  const sharesVorher = useRef(m.sharesZahl);
+  useEffect(() => {
+    if (m.mining && m.sharesZahl > sharesVorher.current) haptik('tipp');
+    sharesVorher.current = m.sharesZahl;
+  }, [m.sharesZahl, m.mining]);
+
   return (
     <>
-      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
       <header className="relative mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {nutzer?.foto
@@ -102,7 +108,7 @@ export default function MineTab({ m, dec, pool, gesichert, poolName, onStartStop
         </>)}
       </LastRing>
 
-      <div className="relative -mt-1 flex flex-col items-center gap-1">
+      <div className="relative mt-3 flex flex-col items-center gap-1">
         {m.mining && m.lastShare ? <HashBand neu={m.lastShare.hash} /> : null}
         <span className="text-[12.5px] text-dim">{t.rd.mine.ziehen}</span>
       </div>
@@ -193,7 +199,7 @@ function LastRing({ aktiv, last, onLast, children }: {
     const stufe = STUFEN.reduce((a, s) => Math.abs(s - roh) < Math.abs(a - roh) ? s : a, STUFEN[0] as number);
     // 0 Grad oben ist 100 %: ganz oben einrasten statt auf 25 zu springen.
     const ziel = roh > 88 || roh < 12 ? 100 : stufe;
-    if (ziel !== last) { onLast(ziel); haptik('tipp'); }
+    if (ziel !== last) { onLast(ziel); haptik('auswahl'); }
   }, [last, onLast]);
 
   const ticks = [];

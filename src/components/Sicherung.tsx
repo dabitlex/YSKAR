@@ -345,28 +345,25 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
   );
 }
 
-/** Hinweis auf Home und in der Wallet, solange nicht gesichert. */
+/** Hinweis auf Home und in der Wallet, solange nicht gesichert: schmale Zeile in Bernstein. */
 export function SicherungsHinweis({ onClick, kurz = false }: { onClick: () => void; kurz?: boolean }) {
   const { t } = useT();
   return (
     <button type="button" onClick={onClick}
-            className="flex w-full items-center gap-3 rounded-[16px] border border-[#F3DDB0] bg-[#FFF6E5] px-3.5 py-3
-                       text-left text-[#0E1A2F] active:scale-[.99]">
-      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] bg-[#F7E3B8] text-[#8A5A00]">
-        <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"
-             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M11 7.5v4M11 14.5h.01" />
-        </svg>
-      </span>
+            className="flex w-full items-center gap-3 border-y border-amber/25 bg-amber/[.06] px-3 py-3 text-left active:bg-amber/10">
+      <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="rgb(var(--amber))" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+        <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M11 7.5v4M11 14.5h.01" />
+      </svg>
       {kurz ? (
-        <span className="flex-1 text-[12.5px] font-bold">{t.sicherung.walletBanner}</span>
+        <span className="flex-1 text-[13px] font-medium text-text">{t.sicherung.walletBanner}</span>
       ) : (
-        <span className="flex flex-1 flex-col gap-px">
-          <span className="text-[13.5px] font-extrabold">{t.sicherung.bannerTitel}</span>
-          <span className="text-[12px] font-semibold text-[#6B5A35]">{t.sicherung.bannerText}</span>
+        <span className="flex flex-1 flex-col gap-0.5">
+          <span className="text-[13.5px] font-semibold text-text">{t.sicherung.bannerTitel}</span>
+          <span className="text-[12px] text-dim">{t.sicherung.bannerText}</span>
         </span>
       )}
-      <span className="text-[18px] text-[#8A5A00]" aria-hidden="true">›</span>
+      <span className="text-[18px] text-amber" aria-hidden="true">›</span>
     </button>
   );
 }

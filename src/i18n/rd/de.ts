@@ -58,7 +58,7 @@ const rd: RdWoerterbuch = {
     wText: 'Gib deine 12 Wörter in der richtigen Reihenfolge ein.',
   },
   netz: {
-    titel: 'Netzwerk', live: 'Live', offline: 'Offline', hashrate: 'Hashrate',
+    titel: 'Netzwerk', live: 'Live', offline: 'Offline', hashrate: 'Hashrate', gemint: 'Gemint',
     v6: (h: string) => `Aktiv ab Block ${h}`,
     v6Rest: (n: string) => `noch ${n} Blöcke`,
     explorer: 'Explorer', whitepaper: 'Whitepaper', website: 'Website', wachsen: 'Hilf dem Netzwerk zu wachsen',
@@ -88,6 +88,7 @@ const rd: RdWoerterbuch = {
     weiter: 'Weiter minen', nichtJetzt: 'Nicht jetzt',
   },
   fund: { eigen: 'Block gefunden · von deinem Handy', zurWallet: 'Zu meiner Wallet' },
+  wallet: { scannen: 'Scannen' },
   sprache: { titel: 'Sprache' },
   einst: { ueber: 'Über', website: 'Website', whitepaper: 'Whitepaper' },
 };

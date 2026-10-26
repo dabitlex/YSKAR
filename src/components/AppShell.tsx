@@ -19,6 +19,7 @@ import Artikel from '@/components/Artikel';
 import UpdateBanner from '@/components/UpdateBanner';
 import Sicherung, { SendenGesperrt } from '@/components/Sicherung';
 import PoolAuszahlung from '@/components/PoolAuszahlung';
+import FundBild from '@/components/FundBild';
 import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
 import { inhalte } from '@/content/entdecken';
 import { useT } from '@/i18n';
@@ -65,6 +66,8 @@ export default function AppShell({ platform }: { platform: string }) {
   const [gesperrt, setGesperrt] = useState(false);
 
   useEffect(() => { kampagneMerken(); }, []);
+  // Eigener Blockfund: kurzer Erfolgs-Ruck, einmal pro Fund.
+  useEffect(() => { if (m.fund) haptik('erfolg'); }, [m.fund]);
   // Die Sicherung hat eigene Schritte und fuehrt die Zurueck-Taste selbst.
   useZurueckTaste(ansicht !== null && ansicht !== 'sichern', () => setAnsicht(null));
 
@@ -227,7 +230,8 @@ export default function AppShell({ platform }: { platform: string }) {
 
       {auszahlung.eintrag && !m.fund && (
         <PoolAuszahlung hoehe={auszahlung.eintrag.height} betrag={Number(auszahlung.eintrag.amount) / 10 ** dec}
-                        symbol={sym} onWeiter={auszahlung.gesehen} />
+                        symbol={sym} onWeiter={auszahlung.gesehen}
+                        onWallet={() => { auszahlung.gesehen(); setAnsicht(null); setTab('wallet'); }} />
       )}
 
       {/*
@@ -236,19 +240,13 @@ export default function AppShell({ platform }: { platform: string }) {
         als einziges eine Vollflaeche, ueber der Navigation.
       */}
       {m.fund && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink px-8 text-center">
-          {/* pointer-events-none: Der Schein liegt ueber allem und schluckte sonst den Tipp auf den Knopf. */}
-          <div className="glow-proof pointer-events-none absolute inset-0" />
-          <p className="rise relative text-[13px] font-extrabold tracking-[0.14em] text-proof">{t.fund.titel}</p>
-          <p className="zoom tnum relative mt-4 text-[64px] font-extrabold leading-none tracking-[-0.04em]">#{m.fund.height}</p>
-          <p className="rise rise-2 relative mt-3 text-[22px] font-bold text-proof">
-            +{(Number(m.fund.reward) / 10 ** dec).toFixed(0)} {sym}
-          </p>
-          <Hash value={m.fund.hash} className="rise rise-3 relative mb-10 mt-8 text-[11px] leading-[1.8] opacity-60" />
-          <div className="relative z-10 w-full max-w-xs">
-            <Button variant="quiet" onClick={m.dismissFund}>{t.fund.weiter}</Button>
-          </div>
-        </div>
+        <FundBild etikett={t.rd.fund.eigen} betrag={(Number(m.fund.reward) / 10 ** dec).toFixed(0)} symbol={sym} muenzen={5}
+                  unter={<span className="font-mono text-text">#{m.fund.height}</span>}
+                  knopf={t.rd.fund.zurWallet} onKnopf={() => { m.dismissFund(); setAnsicht(null); setTab('wallet'); }}
+                  darunter={<>
+                    <Hash value={m.fund.hash} className="text-[11px] leading-[1.8] opacity-50" />
+                    <button type="button" onClick={m.dismissFund} className="h-11 text-[13.5px] text-dim">{t.fund.weiter}</button>
+                  </>} />
       )}
     </>
   );

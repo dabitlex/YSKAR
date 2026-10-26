@@ -5,6 +5,7 @@ import { plattform } from '@/lib/native/plattform';
 import { neuesteApk, RELEASE_SEITE, type Apk } from '@/lib/native/update';
 import { useT } from '@/i18n';
 import { Button } from '@/components/ui/Primitives';
+import { Zeichen } from '@/components/ui/Marke';
 import { useScrollSperre } from '@/lib/ui/scrollSperre';
 
 /**
@@ -74,15 +75,15 @@ export function AppLaden({ onSchliessen, auto = false }: { onSchliessen: () => v
   const nie = () => { merken('nie'); onSchliessen(); };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgba(15,27,46,.45)] p-3 sm:items-center"
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-3 sm:items-center"
          role="dialog" aria-modal="true" aria-labelledby="apk-titel"
          onClick={auto ? spaeter : onSchliessen}>
-      <div className="rise max-h-[92vh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-[24px] bg-surface p-5 shadow-[0_18px_50px_rgba(15,27,46,.25)]"
+      <div className="rise max-h-[92vh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-[24px] border border-line bg-sunk p-5 shadow-[0_18px_50px_rgba(0,0,0,.5)]"
            onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-3">
-          <img src="/marke/kristall.png" alt="" width={52} height={34} style={{ objectFit: 'contain' }} />
+          <Zeichen g={44} />
           <div className="min-w-0">
-            <h2 id="apk-titel" className="text-[19px] font-extrabold leading-tight tracking-tight">{t.apk.titel}</h2>
+            <h2 id="apk-titel" className="text-[19px] font-semibold leading-tight tracking-tight">{t.apk.titel}</h2>
             <p className="mt-1 text-[13px] font-medium leading-relaxed text-dim">{t.apk.text}</p>
           </div>
         </div>

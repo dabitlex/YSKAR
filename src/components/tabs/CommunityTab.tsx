@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import { Muenze3D } from '@/components/ui/Marke';
 import { TopBar } from '@/components/ui/Chrome';
 import { ExternLink } from '@/components/ui/ExternLink';
 import { COMMUNITY, einladungsLink } from '@/lib/community';
@@ -44,45 +44,43 @@ export default function CommunityTab({ adresse }: { adresse: string | null }) {
     <>
       <TopBar titel={t.community.titel} />
 
-      <section className="thema-dunkel rise relative flex items-center gap-3.5 overflow-hidden rounded-[22px] border border-line p-[18px]">
-        <div className="pointer-events-none absolute -right-14 -top-14 h-[200px] w-[200px] rounded-full"
-             style={{ background: 'radial-gradient(circle, rgb(var(--work)/.35), transparent 70%)' }} />
-        <Image src="/marke/kristall.png" alt="" width={58} height={38} className="relative"
-               style={{ width: 58, height: 38, objectFit: 'contain' }} />
-        <div className="relative flex flex-col gap-1">
-          <span className="text-[16px] font-extrabold">{t.community.heroTitel}</span>
-          <span className="text-[12.5px] font-semibold leading-[1.45] text-dim">{t.community.heroText}</span>
-        </div>
+      {/* Die Muenze dreht sich -- wie im Einstieg. Keine Karte, nur Buehne und Satz. */}
+      <section className="rise relative flex flex-col items-center pb-2 pt-4 text-center">
+        <div className="buehne"><Muenze3D d={88} /></div>
+        <h2 className="mt-6 text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">
+          {t.rd.community.titelA}<br /><span className="grad">{t.rd.community.titelB}</span>
+        </h2>
+        <p className="mt-2.5 max-w-[300px] text-[14px] leading-[1.5] text-dim">{t.rd.community.text}</p>
       </section>
 
-      <ul className="panel rise rise-1 mt-3 !rounded-[20px] !p-0">
-        {eintraege.map((e, i) => (
-          <li key={e.href} className={i < eintraege.length - 1 ? 'border-b border-line' : ''}>
-            <ExternLink href={e.href} className="flex items-center gap-3 px-4 py-[13px] active:bg-raised">
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] ${
-                e.akzent ? 'bg-work/10 text-work' : 'bg-raised text-text'}`}>
-                <svg viewBox="0 0 22 22" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8"
+      <ul className="rise rise-1 mt-6 border-t border-line">
+        {eintraege.map(e => (
+          <li key={e.href} className="border-b border-line">
+            <ExternLink href={e.href} className="flex items-center gap-3.5 py-[14px] active:bg-surface">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+                e.akzent ? 'border-work/40 text-cyan' : 'border-line text-text'}`}>
+                <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7"
                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{e.icon}</svg>
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[14px] font-extrabold">{e.titel}</span>
-                <span className="truncate text-[12px] font-semibold text-dim">{e.text}</span>
+                <span className="text-[15px] font-medium">{e.titel}</span>
+                <span className="truncate text-[12.5px] text-dim">{e.text}</span>
               </span>
               {e.aktion
-                ? <span className="text-[12.5px] font-extrabold text-work">{e.aktion}</span>
+                ? <span className="text-[13px] font-medium text-cyan">{e.aktion}</span>
                 : <span className="text-[16px] text-faint" aria-hidden="true">›</span>}
             </ExternLink>
           </li>
         ))}
       </ul>
 
-      <section className="panel rise rise-2 mt-3 flex items-center gap-3 !rounded-[20px] px-4 py-3.5">
+      <section className="rise rise-2 mt-6 flex items-center gap-3">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[14px] font-extrabold">{t.community.einladenTitel}</span>
-          <span className="text-[12px] font-semibold text-dim">{t.community.einladenText}</span>
+          <span className="text-[15px] font-medium">{t.community.einladenTitel}</span>
+          <span className="text-[12.5px] text-dim">{t.community.einladenText}</span>
         </span>
         <button type="button" onClick={einladen}
-                className="h-10 shrink-0 rounded-[12px] bg-work px-4 text-[13.5px] font-extrabold text-white active:scale-95">
+                className="h-11 shrink-0 rounded-full bg-work px-5 text-[14px] font-semibold text-white active:scale-95">
           {kopiert ? t.allgemein.Kopiert : t.community.teilen}
         </button>
       </section>

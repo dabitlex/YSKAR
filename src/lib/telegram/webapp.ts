@@ -107,11 +107,13 @@ export function imTelegram(): boolean {
 }
 
 /** Kurzes Vibrieren, wo Telegram es anbietet. Sonst nichts. */
-export function haptik(art: 'tipp' | 'erfolg' | 'warnung'): void {
+export function haptik(art: 'tipp' | 'auswahl' | 'erfolg' | 'warnung' | 'fehler'): void {
   const h = webApp()?.HapticFeedback;
   if (!h) return;
   try {
     if (art === 'tipp') h.impactOccurred('light');
+    else if (art === 'auswahl') h.selectionChanged();
+    else if (art === 'fehler') h.notificationOccurred('error');
     else h.notificationOccurred(art === 'erfolg' ? 'success' : 'warning');
   } catch { /* aeltere Clients */ }
 }

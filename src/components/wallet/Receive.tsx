@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
+import { Zeichen as YZeichen } from '@/components/ui/Marke';
 import { useT } from '@/i18n';
 import { betragGenau, dezimalZeichen, eingabeEinheiten } from '@/lib/wallet/betrag';
 import { NOTIZ_BYTES, notizBytes, notizKuerzen } from '@/lib/wallet/notiz';
@@ -146,9 +146,8 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
                 {t.empfangen.erzeugt}
               </div>}
           {bild && (
-            <span aria-hidden="true" className="absolute left-1/2 top-1/2 flex h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[16px] bg-white">
-              <Image src="/marke/kristall.png" alt="" width={36} height={24}
-                     style={{ width: 36, height: 24, objectFit: 'contain' }} />
+            <span aria-hidden="true" className="absolute left-1/2 top-1/2 flex h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[14px] bg-ink ring-4 ring-white">
+              <YZeichen g={32} />
             </span>
           )}
         </div>
