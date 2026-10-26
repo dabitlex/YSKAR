@@ -619,3 +619,6 @@ a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:v
 .k-wallet .telefon{position:relative;transition:box-shadow .4s}
 .k-wallet .telefon.empfang{animation:empfang .9s ease-out}
 @keyframes empfang{0%{box-shadow:0 30px 80px -20px color-mix(in srgb,var(--acc) 50%,transparent),0 0 0 0 rgba(99,216,255,.55)}35%{box-shadow:0 30px 90px -14px color-mix(in srgb,var(--acc) 80%,transparent),0 0 0 10px rgba(99,216,255,0)}100%{box-shadow:0 30px 80px -20px color-mix(in srgb,var(--acc) 50%,transparent),0 0 0 0 rgba(99,216,255,0)}}
+/* Motto aus Block 0 ueber der Ueberschrift; bleibt in jeder Sprache englisch */
+.held-motto{display:inline-flex;align-items:center;gap:12px;margin:0 0 -8px;font-family:var(--mono);font-size:clamp(13px,1.1vw,15px);letter-spacing:.22em;color:var(--acc2)}
+.held-motto::before{content:"";width:28px;height:1px;background:currentColor;opacity:.8}
