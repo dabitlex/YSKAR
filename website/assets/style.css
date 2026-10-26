@@ -131,7 +131,7 @@ p{margin:0}
 a.chip{color:var(--mut)}
 a.chip:hover{border-color:color-mix(in srgb,var(--acc2) 50%,transparent);color:var(--fg)}
 .chip.v6 b{color:var(--acc2)}
-.held h1{font-size:clamp(46px,7vw,104px);line-height:.95;letter-spacing:-.045em;font-weight:600}
+.held h1{font-size:clamp(46px,6.2vw,96px);line-height:.95;letter-spacing:-.045em;font-weight:600}
 .held h1 .lt{display:block}
 .held .lead{font-size:clamp(17px,1.5vw,20px);line-height:1.55;color:var(--mut);max-width:540px}
 .scrollhinweis{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:10px}
