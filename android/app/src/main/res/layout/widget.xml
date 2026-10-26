@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Widget 4x2, helle Darstellung: die Mining-Uebersicht.
+  Widget 4x2: die Mining-Uebersicht. Design wie die App (Oktober 2026):
+  dunkler Grund mit blauem Schein, Y-Zeichen, Status als Punkt, Betrag
+  gross und duenn, Kennzahlen in Mono mit Haarlinien. Nur noch dunkel.
 
   Nur Elemente, die RemoteViews kennt (LinearLayout, FrameLayout, TextView,
   ImageView). Die Texte hier sind der Zustand "gestoppt": So sieht das
   Widget in der Auswahl des Launchers aus; danach setzt YskarWidget alles.
-
-  widget_dunkel.xml ist derselbe Aufbau mit anderen Farben und Flaechen.
-  Aenderungen immer in beiden Dateien, die Kennungen muessen gleich bleiben.
+  Die Kennungen (w_...) benutzt YskarWidget, nicht umbenennen.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_wurzel"
@@ -15,7 +15,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_hintergrund"
-    android:paddingStart="16dp" android:paddingEnd="14dp"
+    android:paddingStart="16dp" android:paddingEnd="12dp"
     android:paddingTop="10dp" android:paddingBottom="12dp">
 
     <!-- Kopf: Zeichen, Name, Zustand, Uhrzeit, Aktualisieren -->
@@ -25,33 +25,29 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
         <ImageView
-            android:layout_width="22dp" android:layout_height="22dp"
-            android:src="@mipmap/ic_launcher_foreground"
-            android:scaleType="centerCrop"
+            android:layout_width="20dp" android:layout_height="20dp"
+            android:src="@drawable/ic_widget_zeichen"
             android:contentDescription="@null" />
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="8dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
             <TextView
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/widget_titel"
-                android:textColor="#0E1A2F" android:textSize="12sp" android:textStyle="bold"
-                android:letterSpacing="0.06"
+                android:text="YSKAR"
+                android:textColor="#F2F6FF" android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
                 android:maxLines="1" />
             <LinearLayout
                 android:id="@+id/w_pille"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="7dp"
+                android:layout_marginStart="9dp"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/widget_pille"
-                android:paddingStart="7dp" android:paddingEnd="8dp"
-                android:paddingTop="2dp" android:paddingBottom="2dp">
+                android:gravity="center_vertical">
                 <ImageView
                     android:id="@+id/w_punkt"
-                    android:layout_width="7dp" android:layout_height="7dp"
+                    android:layout_width="10dp" android:layout_height="10dp"
                     android:src="@drawable/widget_punkt_aus"
                     android:contentDescription="@null" />
                 <TextView
@@ -59,7 +55,9 @@
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
                     android:text="@string/widget_gestoppt"
-                    android:textColor="#5B6B84" android:textSize="11sp" android:textStyle="bold"
+                    android:textColor="#8E9AB4" android:textSize="10sp"
+                    android:fontFamily="monospace" android:textAllCaps="true"
+                    android:letterSpacing="0.1"
                     android:maxLines="1" android:ellipsize="end" />
             </LinearLayout>
         </LinearLayout>
@@ -67,13 +65,14 @@
             android:id="@+id/w_stand"
             android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textColor="#8E9AB0" android:textSize="11sp"
+            android:textColor="#6B7794" android:textSize="10.5sp"
+            android:fontFamily="monospace"
             android:maxLines="1" />
         <ImageView
             android:id="@+id/w_holen"
             android:layout_width="32dp" android:layout_height="32dp"
             android:layout_marginEnd="-6dp"
-            android:padding="7dp"
+            android:padding="8dp"
             android:src="@drawable/ic_widget_holen"
             android:contentDescription="@string/widget_holen" />
     </LinearLayout>
@@ -96,14 +95,15 @@
                 android:id="@+id/w_gross"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_mining_gestoppt"
-                android:textColor="#5B6B84" android:textSize="20sp" android:textStyle="bold"
-                android:maxLines="1" android:ellipsize="end"
-                android:fontFamily="sans-serif" />
+                android:textColor="#C3CCDF" android:textSize="20sp"
+                android:fontFamily="sans-serif-light"
+                android:letterSpacing="-0.02"
+                android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_unter"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="@string/widget_tippen"
-                android:textColor="#5B6B84" android:textSize="12.5sp"
+                android:textColor="#8E9AB4" android:textSize="12sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
         <LinearLayout
@@ -113,19 +113,20 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:background="@drawable/widget_stopp_grund"
-            android:paddingStart="12dp" android:paddingEnd="12dp"
+            android:paddingStart="14dp" android:paddingEnd="14dp"
             android:paddingTop="10dp" android:paddingBottom="10dp"
             android:visibility="gone">
             <ImageView
-                android:layout_width="9dp" android:layout_height="9dp"
+                android:layout_width="8dp" android:layout_height="8dp"
                 android:src="@drawable/widget_stopp_zeichen"
                 android:contentDescription="@null" />
             <TextView
                 android:id="@+id/w_stopp_text"
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="7dp"
                 android:text="@string/widget_stopp"
-                android:textColor="#D9404A" android:textSize="12.5sp" android:textStyle="bold"
+                android:textColor="#FF8A8A" android:textSize="12.5sp"
+                android:fontFamily="sans-serif-medium"
                 android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>
@@ -133,72 +134,80 @@
     <FrameLayout
         android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
 
-    <!-- Drei Felder: beim Mining Hashrate / Laufzeit / Shares, sonst Block / Netz-Hashrate / Belohnung -->
+    <!-- Drei Felder mit Haarlinien: beim Mining Hashrate / Laufzeit / Shares, sonst Block / Netz-Hashrate / Belohnung -->
     <LinearLayout
         android:id="@+id/w_felder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:baselineAligned="false">
+        android:orientation="vertical">
+        <FrameLayout
+            android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="@drawable/widget_linie" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:orientation="vertical"
-            android:background="@drawable/widget_feld"
-            android:paddingStart="9dp" android:paddingEnd="9dp"
-            android:paddingTop="6dp" android:paddingBottom="6dp">
+            android:orientation="vertical">
             <TextView
                 android:id="@+id/w_f1"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#0E1A2F" android:textSize="13sp" android:textStyle="bold"
+                android:textColor="#F2F6FF" android:textSize="13sp"
+                android:fontFamily="monospace"
                 android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_f1t"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
                 android:text="@string/widget_block"
-                android:textColor="#5B6B84" android:textSize="10.5sp"
+                android:textColor="#6B7794" android:textSize="10.5sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
+        <FrameLayout android:layout_width="1dp" android:layout_height="match_parent"
+            android:layout_marginEnd="10dp" android:background="@drawable/widget_linie" />
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:orientation="vertical"
-            android:background="@drawable/widget_feld"
-            android:paddingStart="9dp" android:paddingEnd="9dp"
-            android:paddingTop="6dp" android:paddingBottom="6dp">
+            android:orientation="vertical">
             <TextView
                 android:id="@+id/w_f2"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#0E1A2F" android:textSize="13sp" android:textStyle="bold"
+                android:textColor="#F2F6FF" android:textSize="13sp"
+                android:fontFamily="monospace"
                 android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_f2t"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
                 android:text="@string/widget_netzrate"
-                android:textColor="#5B6B84" android:textSize="10.5sp"
+                android:textColor="#6B7794" android:textSize="10.5sp"
                 android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
+        <FrameLayout android:layout_width="1dp" android:layout_height="match_parent"
+            android:layout_marginEnd="10dp" android:background="@drawable/widget_linie" />
         <LinearLayout
             android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:orientation="vertical"
-            android:background="@drawable/widget_feld"
-            android:paddingStart="9dp" android:paddingEnd="9dp"
-            android:paddingTop="6dp" android:paddingBottom="6dp">
+            android:orientation="vertical">
             <TextView
                 android:id="@+id/w_f3"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#0E1A2F" android:textSize="13sp" android:textStyle="bold"
+                android:textColor="#F2F6FF" android:textSize="13sp"
+                android:fontFamily="monospace"
                 android:maxLines="1" android:ellipsize="end" />
             <TextView
                 android:id="@+id/w_f3t"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
                 android:text="@string/widget_belohnung"
-                android:textColor="#5B6B84" android:textSize="10.5sp"
+                android:textColor="#6B7794" android:textSize="10.5sp"
                 android:maxLines="1" android:ellipsize="end" />
+        </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

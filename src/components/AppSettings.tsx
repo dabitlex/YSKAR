@@ -9,8 +9,6 @@ import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type Biomet
 import { appVersion, updatePruefen, updateOeffnen, updateLaden, type Update } from '@/lib/native/update';
 import { pushAktiv, pushEinschalten, pushAusschalten, type PushStand } from '@/lib/native/push';
 import { diagnose, type Diagnose } from '@/lib/native/diagnose';
-import { widgetThemaLesen, widgetThemaSetzen, type WidgetThema } from '@/lib/native/widget';
-import { Segment } from '@/components/ui/Bausteine';
 import { useT } from '@/i18n';
 
 /**
@@ -118,7 +116,6 @@ export default function AppSettings() {
   const [push, setPush] = useState<PushStand | 'arbeitet'>('aus');
   const [diag, setDiag] = useState<Diagnose | 'laeuft' | null>(null);
   // null: Diese App-Version kennt die Auswahl nicht -- dann keine Zeile.
-  const [widgetThema, setWidgetThema] = useState<WidgetThema | null>(null);
   const { t, sprache } = useT();
 
   useEffect(() => {
@@ -126,7 +123,6 @@ export default function AppSettings() {
     setNativ(true);
     appVersion().then(setVersion);
     setPush(pushAktiv() ? 'an' : 'aus');
-    widgetThemaLesen().then(setWidgetThema).catch(() => {});
   }, []);
 
   const pushUmschalten = async () => {
@@ -136,12 +132,6 @@ export default function AppSettings() {
     setPush(await pushEinschalten(wallet.address, sprache, t.app));
   };
 
-  const widgetWaehlen = async (th: WidgetThema) => {
-    setWidgetThema(th);
-    // Was die App wirklich gespeichert hat, gilt -- nicht, was getippt wurde.
-    const ist = await widgetThemaSetzen(th);
-    if (ist) setWidgetThema(ist);
-  };
 
   if (!nativ) return null;
 
@@ -193,16 +183,6 @@ export default function AppSettings() {
                   {t.app.laden(update.version)}</button>
               : <button onClick={suchen} className="text-[13px] font-bold text-work">{t.app.jetztPruefen}</button>}
         </li>
-        {widgetThema && (
-          <li className={`${ZEILE} flex-wrap border-b border-line`}>
-            <span className="text-[13.5px] font-bold">{t.app.widget}</span>
-            <Segment label={t.app.widget} wert={widgetThema} onChange={widgetWaehlen}
-                     werte={[
-                       { v: 'hell' as const, text: t.einstellungen.themaHell },
-                       { v: 'dunkel' as const, text: t.einstellungen.themaDunkel },
-                     ]} />
-          </li>
-        )}
         <li className={ZEILE}>
           <span className="text-[13.5px] font-bold">{t.app.diagnose}</span>
           <button onClick={async () => { setDiag('laeuft'); try { setDiag(await diagnose()); } catch (e) { fehlerMerken('diagnose', e); setDiag(await diagnose().catch(() => null)); } }}
