@@ -172,20 +172,6 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
         </ul>
       </Panel>
 
-      <GroupTitle>{t.entdecken.mehr}</GroupTitle>
-      <Panel className="!p-0">
-        <ul className="divide-y divide-line">
-          <li><ExternLink href={EXPLORER_URL} className="flex items-center justify-between px-4 py-3.5 text-[14px] font-bold">
-            {t.entdecken.explorer} <span className="text-faint">›</span></ExternLink></li>
-          <li><a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer"
-                 className="flex items-center justify-between px-4 py-3.5 text-[14px] font-bold">
-            {t.entdecken.github} <span className="text-faint">›</span></a></li>
-          <li><button onClick={onEinstellungen}
-                      className="flex w-full items-center justify-between px-4 py-3.5 text-left text-[14px] font-bold">
-            {t.allgemein.einstellungen} <span className="text-faint">›</span></button></li>
-        </ul>
-      </Panel>
-
       <div className="mt-5">
         <Notice>{t.entdecken.hinweis}</Notice>
       </div>
@@ -228,8 +214,8 @@ function NetzLive({ summary, decimals }: { summary: Summary | null; decimals: nu
   return (
     <section className="rise flex flex-col items-center pt-3 text-center">
       <span className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-[.12em] text-dim">
-        <span className={`h-[7px] w-[7px] rounded-full ${live ? 'atmen bg-proof' : 'bg-risk'}`} />
-        {live ? t.rd.netz.live : t.rd.netz.offline}{live && ` · #${zahl(summary?.height ?? 0)}`}
+        <span className={`h-[7px] w-[7px] rounded-full ${live ? 'atmen bg-proof' : 'bg-faint'}`} />
+        {live ? t.rd.netz.live : t.home.verbinde}{live && ` · #${zahl(summary?.height ?? 0)}`}
       </span>
       <p className="tnum mt-4 flex items-baseline gap-2">
         <span className="text-[56px] font-light leading-none tracking-[-0.045em]">{hr}</span>

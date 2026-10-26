@@ -25,7 +25,7 @@ export default function NetzStaerken({ onZurueck }: { onZurueck: () => void }) {
   ];
   return (
     <>
-      <SubHeader titel={n.wachsen} onZurueck={onZurueck} />
+      <SubHeader titel={n.titel} onZurueck={onZurueck} />
       <div className="rise -mt-2 flex justify-center"><Erde /></div>
       <p className="label mt-2 text-center">{n.gEtikett}</p>
       <h1 className="mt-2 text-center text-[28px] font-semibold leading-[1.12] tracking-[-0.025em]">

@@ -75,7 +75,7 @@ const rd = {
   community: { titelA: 'Mine together.', titelB: 'Ask anything.', text: 'Real people run the pools, the nodes and the chat. Say hi.' },
   fehler: {
     offlineT: 'No internet connection',
-    offlineS: 'Mining is paused. We try again automatically as soon as you are back online.',
+    offlineS: 'Mining cannot reach the pool without internet. Numbers update again once you are back online.',
     nochmal: 'Try again now',
     knotenT: 'Network data is not reachable',
     knotenS: 'The YSKAR node does not answer right now. Your mining is not affected, this only concerns the numbers on this page.',
@@ -84,7 +84,7 @@ const rd = {
   },
   zurueck: {
     etikett: 'Welcome back', titel: 'Your last session',
-    text: 'Mining stopped when Telegram was closed. Here is what your phone did.',
+    text: 'Mining stopped when the Mini App was closed. Here is what your phone did.',
     dauer: 'Duration', shares: 'Shares', verdient: 'Earned',
     android: 'Want it to keep going with the screen off? The YSKAR Android app mines in the background.',
     weiter: 'Continue mining', nichtJetzt: 'Not now',

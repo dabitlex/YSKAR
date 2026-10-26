@@ -20,6 +20,8 @@ import UpdateBanner from '@/components/UpdateBanner';
 import Sicherung, { SendenGesperrt } from '@/components/Sicherung';
 import PoolAuszahlung from '@/components/PoolAuszahlung';
 import FundBild from '@/components/FundBild';
+import Verbindung from '@/components/Verbindung';
+import Rueckblick from '@/components/Rueckblick';
 import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
 import { inhalte } from '@/content/entdecken';
 import { useT } from '@/i18n';
@@ -165,6 +167,7 @@ export default function AppShell({ platform }: { platform: string }) {
   return (
     <>
       <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-[22px] pb-36">
+        {!ansicht && <Verbindung summary={m.summary} />}
         {ansicht === null && <UpdateBanner />}
         {ansicht === 'einstellungen' ? (
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} summary={m.summary}
@@ -225,6 +228,8 @@ export default function AppShell({ platform }: { platform: string }) {
                       onSichern={() => { setGesperrt(false); setAnsicht('sichern'); }} />
       <PoolBlatt pool={pool} offen={pool.blatt} voll={vollHinweis}
                  onSchliessen={() => { pool.setBlatt(false); setVollHinweis(null); }} />
+
+      <Rueckblick mining={m.mining} seit={m.seit} shares={m.sharesZahl} onWeiter={() => { if (!m.mining) starten(); }} />
 
       {ansicht === 'sichern' && <Sicherung onSchliessen={() => setAnsicht(null)} />}
 

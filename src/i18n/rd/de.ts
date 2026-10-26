@@ -73,7 +73,7 @@ const rd: RdWoerterbuch = {
   community: { titelA: 'Gemeinsam minen.', titelB: 'Frag alles.', text: 'Echte Menschen betreiben die Pools, die Knoten und den Chat. Sag hallo.' },
   fehler: {
     offlineT: 'Keine Internetverbindung',
-    offlineS: 'Das Mining ist pausiert. Wir versuchen es automatisch wieder, sobald du online bist.',
+    offlineS: 'Ohne Internet erreicht das Mining den Pool nicht. Die Zahlen aktualisieren sich, sobald du wieder online bist.',
     nochmal: 'Jetzt erneut versuchen',
     knotenT: 'Netzwerkdaten nicht erreichbar',
     knotenS: 'Der YSKAR-Knoten antwortet gerade nicht. Dein Mining ist davon nicht betroffen, es geht nur um die Zahlen auf dieser Seite.',
@@ -82,7 +82,7 @@ const rd: RdWoerterbuch = {
   },
   zurueck: {
     etikett: 'Willkommen zurück', titel: 'Deine letzte Sitzung',
-    text: 'Das Mining hat gestoppt, als Telegram geschlossen wurde. Das hat dein Handy geschafft.',
+    text: 'Das Mining hat gestoppt, als die Mini App geschlossen wurde. Das hat dein Handy geschafft.',
     dauer: 'Dauer', shares: 'Shares', verdient: 'Verdient',
     android: 'Soll es auch mit ausgeschaltetem Bildschirm weitergehen? Die YSKAR Android-App mined im Hintergrund.',
     weiter: 'Weiter minen', nichtJetzt: 'Nicht jetzt',

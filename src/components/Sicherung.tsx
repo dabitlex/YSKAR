@@ -91,7 +91,7 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
   const [bereit, setBereit] = useState(false);
   return (
     <>
-      <span className="mt-8 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FFF6E5] text-[#8A5A00]">
+      <span className="mt-8 flex h-14 w-14 items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber">
         <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8"
              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M8 11l2 2 4-4" />
@@ -322,7 +322,7 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
   const { t } = useT();
   return (
     <Blatt offen={offen} onSchliessen={onSchliessen}>
-      <span className="mt-1 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FFF6E5] text-[#8A5A00]">
+      <span className="mt-1 flex h-14 w-14 items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber">
         <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8"
              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="4" y="9.5" width="14" height="10" rx="2.5" /><path d="M7.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5" />
@@ -333,7 +333,7 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
       <ul className="mt-3.5 flex flex-col gap-2 rounded-[16px] bg-raised p-3.5 text-[13px] font-semibold">
         <li className="flex gap-2"><span className="font-extrabold text-proof">✓</span>{t.sicherung.okMining}</li>
         <li className="flex gap-2"><span className="font-extrabold text-proof">✓</span>{t.sicherung.okEmpfangen}</li>
-        <li className="flex gap-2 text-dim"><span className="font-extrabold text-[#8A5A00]">○</span>{t.sicherung.offenSenden}</li>
+        <li className="flex gap-2 text-dim"><span className="font-semibold text-amber">○</span>{t.sicherung.offenSenden}</li>
       </ul>
       <button type="button" onClick={onSichern}
               className="mt-4 flex h-[54px] w-full items-center justify-center rounded-[18px] bg-work text-[15.5px] font-extrabold text-white">

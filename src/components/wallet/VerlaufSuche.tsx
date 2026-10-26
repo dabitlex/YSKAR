@@ -222,7 +222,7 @@ export function ZeitraumBlatt({ offen, zeitraum, onSchliessen, onAnwenden }: {
 function hervor(text: string, teil: string, vonAnfang: boolean): React.ReactNode {
   const i = text.toLowerCase().indexOf(teil.toLowerCase());
   if (i < 0 || (vonAnfang && i !== 0)) return text;
-  return <>{text.slice(0, i)}<mark className="rounded-[3px] bg-[#FFE9A8] px-px text-[#0E1A2F]">{text.slice(i, i + teil.length)}</mark>{text.slice(i + teil.length)}</>;
+  return <>{text.slice(0, i)}<mark className="rounded-[3px] bg-amber/30 px-px text-text">{text.slice(i, i + teil.length)}</mark>{text.slice(i + teil.length)}</>;
 }
 
 const memoText = (hex: string | null | undefined) => {
