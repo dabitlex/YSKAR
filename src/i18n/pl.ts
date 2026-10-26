@@ -13,7 +13,7 @@ const odm = (n: number, one: string, few: string, many: string) => {
 };
 
 import neu from './neu/pl';
-import rd from './rd/en';
+import rd from './rd/pl';
 
 const pl = {
   ...neu,

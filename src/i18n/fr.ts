@@ -9,7 +9,7 @@ import type { Woerterbuch } from './de';
 const pl = (n: number, un: string, plusieurs: string) => (Math.abs(n) < 2 ? un : plusieurs);
 
 import neu from './neu/fr';
-import rd from './rd/en';
+import rd from './rd/fr';
 
 const fr = {
   ...neu,

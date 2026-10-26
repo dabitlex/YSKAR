@@ -5,7 +5,7 @@ import type { Woerterbuch } from './de';
  * error, not a blank spot in the app.
  */
 import neu from './neu/ru';
-import rd from './rd/en';
+import rd from './rd/ru';
 
 const ru = {
   ...neu,

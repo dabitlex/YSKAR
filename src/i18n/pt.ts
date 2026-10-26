@@ -5,7 +5,7 @@ import type { Woerterbuch } from './de';
  * chave ausente em erro de build, não em um espaço vazio no app.
  */
 import neu from './neu/pt';
-import rd from './rd/en';
+import rd from './rd/pt';
 
 const pt = {
   ...neu,

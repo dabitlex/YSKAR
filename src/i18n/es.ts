@@ -5,7 +5,7 @@ import type { Woerterbuch } from './de';
  * falte en un error de compilación, no en un hueco en la app.
  */
 import neu from './neu/es';
-import rd from './rd/en';
+import rd from './rd/es';
 
 const es = {
   ...neu,
