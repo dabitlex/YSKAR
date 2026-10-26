@@ -1,0 +1,2582 @@
+<!doctype html> 
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YSKAR Explorer</title>
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<meta name="theme-color" content="#03060F">
+<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
+<script>document.documentElement.dataset.thema='dunkel';</script>
+<meta name="description" content="YSKAR chain explorer — every block verified in your browser.">
+<!--
+  Schriften selbst ausgeliefert (public/schrift), nicht von Google Fonts:
+  Der Explorer ist auch unter www.yskar.app/explorer erreichbar, und dort
+  sagt die Datenschutzerklaerung, dass keine Verbindung zu Schriftanbietern
+  aufgebaut wird. Dieselben Dateien wie in der App (src/fonts).
+-->
+<style>
+@font-face{font-family:'Geist';font-style:normal;font-display:swap;font-weight:100 900;src:url(/assets/fonts/geist-variable.woff2) format('woff2-variations'),url(/assets/fonts/geist-variable.woff2) format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-display:swap;font-weight:100 900;src:url(/assets/fonts/geist-mono-variable.woff2) format('woff2-variations'),url(/assets/fonts/geist-mono-variable.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-display:swap;font-weight:200 800;src:url(/assets/fonts/manrope-cyrillic-wght-normal.woff2) format('woff2-variations');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Plex Mono';font-style:normal;font-display:swap;font-weight:400;src:url(/assets/fonts/ibm-plex-mono-cyrillic-400-normal.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+</style>
+<style>
+/*
+  Explorer im Stil der Website (website/assets/style.css): dunkle Kopfzeile
+  und dunkler Kopfbereich, darunter der Inhalt im Farbsystem der App --
+  hell oder dunkel, dieselben Farbnamen wie src/app/globals.css. Blau ist
+  der eine Akzent; Gruen heisst nur "hier nachgerechnet".
+*/
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --ink:#F4F7FB; --sunk:#FFFFFF; --surface:#FFFFFF; --raised:#F1F4F9;
+  --line:#E6ECF4; --text:#0E1A2F; --lese:#2A3A55; --dim:#5B6B84; --faint:#8E9AB0;
+  --work:#1F5BF0; --work-tint:#EAF0FE; --proof:#0B8A5C; --proof-tint:#E7F5EE;
+  --risk:#D9404A; --risk-tint:#FBE9EA;
+  --schatten:0 14px 34px -22px rgba(14,26,47,.28);
+  --bau:#9DB4EA; --bau-a:#F6F9FF; --bau-b:#EDF2FD;
+  /* Diagramme: aeltere Balken zurueckgenommen, Pool als zweite Reihe. */
+  --balken:#9DB8F7; --pool:#0E9F8E; --netz:#E6ECF4;
+  --fuell-a:rgba(31,91,240,.18); --fuell-b:rgba(31,91,240,.34); --fuell-k:rgba(31,91,240,.45);
+  /* Kopf: immer dunkel, wie auf der Website. */
+  --nacht:#0A101C; --karte-d:#131C2E; --kante-d:#24324C; --text-d:#EAF0F8; --dim-d:#9EADC6;
+}
+:root[data-thema="dunkel"]{
+  --ink:#0A101C; --sunk:#0F1728; --surface:#131C2E; --raised:#1C283E;
+  --line:#24324C; --text:#EAF0F8; --lese:#D6DEEC; --dim:#9EADC6; --faint:#6E7E9A;
+  --work:#4F82FF; --work-tint:#16244A; --proof:#2EBE85; --proof-tint:#12332A;
+  --risk:#F0616B; --risk-tint:#3A1C22;
+  --schatten:0 14px 34px -22px rgba(0,0,0,.7);
+  --bau:#2C4A8C; --bau-a:#131C2E; --bau-b:#172340;
+  --balken:#36549A; --netz:#24324C;
+  --fuell-a:rgba(79,130,255,.20); --fuell-b:rgba(79,130,255,.38); --fuell-k:rgba(79,130,255,.55);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scrollbar-gutter:stable}
+body{margin:0;background:var(--ink);color:var(--text);
+  font-family:'Geist',Manrope,system-ui,-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip}
+body.fenster-offen{overflow:hidden}
+.mono{font-family:'Geist Mono','Plex Mono',ui-monospace,Consolas,monospace}
+.tnum{font-variant-numeric:tabular-nums}
+.muted{color:var(--dim)} .faint{color:var(--faint)}
+a{color:var(--work);text-decoration:none;font-weight:700}
+a:hover{opacity:.85}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--work);outline-offset:2px;border-radius:8px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 40px}
+
+/* ------------------------------------------------------------- Kopfzeile */
+.kopf{position:sticky;top:0;z-index:20;background:rgba(10,16,28,.94);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid #1C283E}
+.kopf .wrap{display:flex;align-items:center;justify-content:space-between;height:72px;gap:20px}
+.marke{display:flex;align-items:center;gap:12px;color:var(--text-d);font-size:20px;
+  font-weight:800;letter-spacing:.06em;white-space:nowrap}
+.marke img{width:38px;height:25px;object-fit:contain}
+.kopf-rechts{display:flex;align-items:center;gap:12px;min-width:0}
+.nav{display:flex;align-items:center;gap:22px;font-size:15px;font-weight:600}
+.nav a{color:#C9D4E6;font-weight:600;white-space:nowrap}
+.nav a:hover{color:#fff;opacity:1}
+.nav a[aria-current=page]{color:#fff;font-weight:700;position:relative}
+.nav a[aria-current=page]::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;
+  border-radius:2px;background:#4F82FF}
+#sprache{appearance:none;-webkit-appearance:none;height:44px;padding:0 34px 0 14px;border-radius:12px;
+  border:1px solid var(--kante-d);color:var(--text-d);font:500 13px 'Geist',Manrope,sans-serif;cursor:pointer;
+  background:var(--karte-d) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239EADC6' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 13px center}
+#sprache option{color:#0E1A2F;background:#fff}
+.kopf-knopf{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;
+  border-radius:12px;border:1px solid var(--kante-d);background:var(--karte-d);color:var(--text-d);cursor:pointer}
+.kopf-knopf:hover{border-color:#4F82FF}
+#thema .sonne{display:none}
+:root[data-thema="dunkel"] #thema .mond{display:none}
+:root[data-thema="dunkel"] #thema .sonne{display:inline}
+#menue,#appZurueck{display:none}
+.app-domain #menue{display:none!important}
+.kopf-links{display:flex;align-items:center;gap:10px;min-width:0}
+
+/* ------------------------------------------------------------- Kopfbereich */
+.held{background:radial-gradient(60% 130% at 50% 0%,rgba(31,91,240,.30),transparent 70%),var(--nacht);
+  color:var(--text-d);padding:38px 0 42px}
+.held .wrap{display:flex;justify-content:space-between;align-items:flex-end;gap:28px;flex-wrap:wrap}
+.held-links{flex:1 1 520px;min-width:0}
+.eyebrow{font-family:'Geist Mono','Plex Mono',monospace;font-size:13px;color:var(--dim-d);letter-spacing:.04em}
+.held h1{margin:8px 0 18px;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+.suche{display:flex;gap:10px;align-items:center;background:var(--karte-d);border:1px solid var(--kante-d);
+  border-radius:16px;padding:7px 7px 7px 18px;max-width:760px;transition:border-color .15s}
+.suche:focus-within{border-color:#4F82FF}
+.suche input{flex:1;min-width:0;border:0;background:transparent;color:var(--text-d);font:inherit;
+  font-size:15px;font-weight:600;outline:none}
+.suche input::placeholder{color:var(--dim-d)}
+.suche button{flex:none;padding:11px 18px;border:0;border-radius:12px;background:#1F5BF0;color:#fff;
+  font-weight:800;font-size:14px;cursor:pointer}
+.suche button:hover{background:#3B6FF5}
+.meldung{margin-top:12px;max-width:760px;border-radius:12px;padding:10px 14px;font-size:13.5px;font-weight:600;
+  background:rgba(255,255,255,.07);color:#C9D4E6}
+.meldung:empty{display:none}
+.meldung.schlecht{background:rgba(240,97,107,.14);color:#FFB3B9}
+.meldung.warn{background:rgba(245,190,80,.14);color:#FFD98A}
+/*
+  Pruefergebnis hinter einem Info-Symbol. Die Blase haengt an der Zeile,
+  nicht am Symbol -- so beginnt sie am linken Rand und passt auch am Handy.
+*/
+.eyebrow-zeile{position:relative;display:flex;align-items:center;gap:10px}
+.info-halter{display:inline-flex}
+.info-knopf{position:relative;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:none;
+  color:#C9D4E6;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.info-knopf::after{content:'';position:absolute;inset:-10px}
+.info-knopf:hover,.info-knopf[aria-expanded=true]{color:#fff}
+/* Nur der Fehlerfall bekommt Farbe. */
+.info-knopf.bad{color:#FF8E97}
+.info-blase{position:absolute;top:calc(100% + 10px);left:0;z-index:5;width:max-content;max-width:min(340px,100%);
+  background:var(--karte-d);border:1px solid var(--kante-d);border-radius:14px;padding:12px 16px;
+  font-size:13.5px;line-height:1.4;color:var(--text-d);box-shadow:0 18px 40px -18px rgba(0,0,0,.85)}
+.info-blase[hidden]{display:none}
+.info-blase b{display:block;font-weight:800}
+.info-blase.ok b{color:#fff}
+.info-blase.bad{border-color:rgba(240,97,107,.5)} .info-blase.bad b{color:#FFB3B9}
+.info-blase small{display:block;font-size:12.5px;font-weight:600;color:var(--dim-d);margin-top:3px}
+.info-blase:not(.ok):not(.bad) small{display:none}
+
+/* ------------------------------------------------------------- Abschnitte */
+.sek{padding-top:30px}
+.sek-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.sek-kopf h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.sek-kopf span{font-size:12.5px;font-weight:600;color:var(--faint)}
+
+/* ------------------------------------------------------------- Die Kette */
+.kette{display:flex;align-items:center;overflow-x:auto;padding:8px 6px 14px;margin:0 -6px;scrollbar-width:thin}
+.kette::-webkit-scrollbar{height:8px}
+.kette::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.glied{flex:none;width:18px;height:4px;border-radius:2px;background:var(--line)}
+.pfeil{flex:none;margin:0 6px;color:var(--work);font-size:20px;font-weight:800}
+.spalte{flex:none}
+.blk{display:block;width:136px;height:140px;border-radius:20px;background:var(--surface);
+  border:1px solid var(--line);position:relative;overflow:hidden;cursor:pointer;text-align:left;padding:0;
+  box-shadow:var(--schatten);transition:transform .12s,border-color .12s}
+a.blk{color:var(--text);font-weight:inherit}
+.blk:hover{border-color:var(--work);opacity:1}
+.blk:active{transform:scale(.98)}
+/* Fuellstand: wie ein Tank von unten. Hoehe = belegte Transaktionsplaetze. */
+.blk .fuell{position:absolute;left:0;right:0;bottom:0;pointer-events:none;
+  background:linear-gradient(0deg,var(--fuell-b),var(--fuell-a));box-shadow:0 -1px 0 var(--fuell-k)}
+.blk .in{position:absolute;inset:0;padding:12px 13px 11px;display:flex;flex-direction:column}
+.blk .h{font-family:'Geist Mono','Plex Mono',monospace;font-weight:500;font-size:15px}
+.blk .t{font-size:11.5px;font-weight:700;color:var(--dim);margin-top:2px}
+.blk .f{font-size:11px;font-weight:700;color:var(--faint);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk .f.poolname{color:var(--proof)}
+.blk .u{margin-top:auto;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;column-gap:6px;
+  font-size:11.5px;font-weight:800;white-space:nowrap}
+.blk .u span:first-child{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.blk .u span:last-child{flex:none;font-family:'Geist Mono','Plex Mono',monospace;font-weight:500;color:var(--lese)}
+.blk .punkt{position:absolute;top:13px;right:12px;width:9px;height:9px;border-radius:50%}
+.blk.offen{border:2px solid var(--work)}
+.blk.bau{background:repeating-linear-gradient(135deg,var(--bau-a) 0 10px,var(--bau-b) 10px 20px);
+  border:2px dashed var(--bau);box-shadow:none;animation:suchen 2.6s ease-in-out infinite}
+.blk.bau .h{color:var(--work)}
+.neu-marke{position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--work);color:#fff;
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;padding:2px 8px;border-radius:0 0 8px 8px;z-index:2}
+/*
+  Ein neuer Block kommt aus dem Block "im Bau" heraus: Er startet dahinter,
+  schiebt sich nach rechts an die Kette und drueckt die aelteren weiter.
+  Der Versatz ist seine Breite plus das Kettenglied.
+*/
+.spalte:first-child,.pfeil{position:relative;z-index:2}
+@keyframes einschieben{from{margin-left:-154px;opacity:0}to{margin-left:0;opacity:1}}
+@keyframes aufleuchten{0%{box-shadow:0 0 0 0 rgba(31,91,240,.55)}40%{box-shadow:0 0 0 10px rgba(31,91,240,0)}100%{box-shadow:var(--schatten)}}
+@keyframes suchen{0%,100%{border-color:var(--bau)}50%{border-color:var(--work)}}
+.spalte.frisch{animation:einschieben .55s cubic-bezier(.22,.9,.3,1)}
+.spalte.frisch .blk{animation:aufleuchten 1.6s ease-out}
+/* Das Schild "NEU" bleibt laenger stehen als die Bewegung. */
+.spalte.neu .blk{border:2px solid var(--work)}
+.spalte.neu .blk .in{padding-top:20px}
+.spalte.neu .blk .punkt{top:20px}
+@media(prefers-reduced-motion:reduce){.spalte.frisch,.spalte.frisch .blk,.blk.bau{animation:none}}
+.mehr{flex:none;margin-left:14px;height:44px;padding:0 16px;border:1px solid var(--line);border-radius:14px;
+  background:var(--surface);color:var(--work);font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
+.mehr:hover{border-color:var(--work)}
+.mehr:disabled{opacity:.5;cursor:default}
+
+/* ------------------------------------------------------------- Statistik */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px;min-width:0}
+.kpi .l{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.kpi .w{font-family:'Geist Mono','Plex Mono',monospace;font-weight:500;font-size:23px;margin-top:6px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.kpi .w em{font-style:normal;font-size:13px;color:var(--faint);margin-left:5px}
+.kpi .d{font-size:12px;font-weight:700;color:var(--dim);margin-top:3px;line-height:1.4}
+.charts{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px;margin-top:14px}
+.ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 22px;min-width:0}
+.ch h3{margin:0;font-size:15px;font-weight:800}
+.ch h3+p,.ch .gross+p{margin:2px 0 0;font-size:12.5px;font-weight:600;color:var(--dim)}
+.ch h3.weiter{margin-top:20px}
+.ch .gross{font-family:'Geist Mono','Plex Mono',monospace;font-weight:500;font-size:22px;margin-top:8px}
+.ch .gross em{font-style:normal;font-size:13px;color:var(--faint);margin-left:5px}
+.bild{position:relative;margin-top:12px}
+.ch svg{display:block;width:100%;height:auto;overflow:visible}
+.ax{font-family:'Geist Mono','Plex Mono',monospace;font-size:10.5px;fill:var(--faint)}
+.gitter{stroke:var(--netz);stroke-width:1}
+.ziel{stroke:var(--dim);stroke-width:1.2}
+.c-balken,.c-linie,.c-flaeche,.c-punkt,.c-wert{pointer-events:none}
+.c-balken{fill:var(--balken)} .c-balken.aktuell{fill:var(--work)}
+.c-linie{fill:none;stroke:var(--work);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.c-flaeche{fill:var(--work);opacity:.10}
+.c-punkt{fill:var(--work);stroke:var(--surface);stroke-width:2}
+.c-wert{font:600 12px 'Geist',Manrope,sans-serif;fill:var(--text)}
+.c-treffer{fill:transparent;cursor:crosshair}
+.c-treffer:hover+.c-balken,.c-balken.hov{opacity:.8}
+.fortschritt{height:14px;border-radius:7px;background:var(--raised);overflow:hidden;margin-top:12px;display:flex;gap:2px}
+.fortschritt i{display:block;height:100%;min-width:4px;background:var(--work);border-radius:7px 4px 4px 7px}
+.fortschritt i.pool{background:var(--pool);border-radius:7px 0 0 7px}
+.fortschritt i.solo{border-radius:0 7px 7px 0}
+.fortschritt i.allein{border-radius:7px}
+.zwei{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700;color:var(--dim);margin-top:6px}
+.legende{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--lese);margin-top:10px}
+.legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+#tipp{position:absolute;z-index:6;pointer-events:none;background:var(--text);color:var(--ink);border-radius:10px;
+  padding:7px 10px;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap;
+  box-shadow:0 10px 24px -10px rgba(0,0,0,.5);transform:translate(-50%,-100%);margin-top:-10px}
+#tipp[hidden]{display:none}
+#tipp small{display:block;font-weight:600;opacity:.75}
+
+/* ------------------------------------------------------------- Fenster */
+#fenster{position:fixed;inset:0;z-index:40;background:rgba(10,16,28,.58);display:flex;
+  justify-content:center;align-items:flex-start;padding:34px 20px;overflow-y:auto;overscroll-behavior:contain;
+  animation:einblenden .16s ease-out}
+#fenster[hidden]{display:none}
+@keyframes einblenden{from{opacity:0}to{opacity:1}}
+@keyframes hochfahren{from{transform:translateY(18px);opacity:.6}to{transform:none;opacity:1}}
+.fenster{width:100%;max-width:780px;background:var(--surface);border:1px solid var(--line);border-radius:26px;margin:auto 0;
+  box-shadow:0 40px 90px -30px rgba(10,16,28,.75);animation:hochfahren .22s cubic-bezier(.22,.9,.3,1)}
+.griff{display:none}
+.fenster:focus{outline:none}
+.fk{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 26px 0}
+.fk h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
+.fk .unter{font-size:12.5px;font-weight:600;color:var(--dim);margin-top:3px;overflow-wrap:anywhere}
+.fk-knoepfe{display:flex;gap:8px;flex:none}
+.rk{width:38px;height:38px;border-radius:50%;border:0;background:var(--raised);display:flex;align-items:center;
+  justify-content:center;color:var(--dim);cursor:pointer;font-weight:800}
+.rk:hover{color:var(--work)}
+a.rk[aria-disabled=true]{opacity:.35;pointer-events:none}
+.badge{font-size:12px;font-weight:800;border-radius:999px;padding:5px 11px;display:inline-flex;align-items:center;
+  gap:6px;letter-spacing:0;white-space:nowrap}
+.badge.ok{color:var(--proof);background:var(--proof-tint)}
+.badge.bad{color:var(--risk);background:var(--risk-tint)}
+.badge.offen{color:var(--dim);background:var(--raised)}
+.fs{padding:18px 26px 26px}
+.fuellkasten{background:var(--ink);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.fuellkasten .zeile{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fuellkasten b{font-size:22px;font-weight:800}
+.fuellkasten span{font-size:12.5px;font-weight:700;color:var(--dim)}
+.meter{height:16px;border-radius:8px;background:var(--surface);border:1px solid var(--line);margin-top:10px;overflow:hidden}
+.meter i{display:block;height:100%;min-width:4px;background:var(--work);border-radius:0 4px 4px 0}
+.fakten{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:14px}
+.fakten>div{background:var(--surface);padding:14px 16px;min-width:0}
+.fakten .l,.ut{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.fakten .w{font-size:15px;font-weight:800;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fakten .w.mono{font-weight:500}
+.fakten .s{font-size:12px;font-weight:600;color:var(--dim);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ut{margin:22px 0 8px;font-size:11px}
+.ut b{color:var(--dim);letter-spacing:0;text-transform:none;font-weight:700}
+.pruef{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pruef div{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--lese);
+  border-radius:12px;padding:10px 12px;background:var(--raised)}
+.pruef div.ok{background:var(--proof-tint)} .pruef div.fail{background:var(--risk-tint);color:var(--risk)}
+.pruef div span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pruef i svg,.badge svg{display:block;flex:none}
+.pruef i{width:18px;height:18px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-size:11px;font-weight:800;background:var(--faint);color:var(--surface)}
+.pruef .ok i{background:var(--proof)} .pruef .fail i{background:var(--risk)}
+.pruef small{margin-left:auto;font-size:11.5px;font-weight:800;white-space:nowrap}
+.pruef .ok small{color:var(--proof)}
+.hz{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 0;border-top:1px solid var(--line);
+  font-size:13px;font-weight:700}
+.hz:first-of-type{border-top:0}
+.hz>span:first-child{flex:none}
+.hz .wert{display:flex;align-items:center;gap:8px;min-width:0}
+.hz .mono{font-size:12px;color:var(--lese);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hz a.mono{color:var(--work)}
+.kop{flex:none;width:28px;height:28px;border-radius:9px;border:0;background:var(--raised);color:var(--dim);
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.kop:hover{color:var(--work)} .kop.ja{color:var(--proof)}
+/* Lange Kennungen: am Rechner ganz, am Handy Anfang und Ende. */
+.kurzf{display:none}
+.unter .wert{display:flex;align-items:center;gap:8px;min-width:0}
+.unter .mono{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tx{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.tx:first-of-type{border-top:0}
+a.tx{color:inherit;font-weight:inherit}
+a.tx:hover{opacity:1}
+a.tx:hover .a{color:var(--work)}
+.tx .ic{width:36px;height:36px;border-radius:12px;background:var(--work-tint);color:var(--work);display:flex;
+  align-items:center;justify-content:center;flex:none}
+.tx .m{flex:1;min-width:0}
+.tx .a{font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .b{font-family:'Geist Mono','Plex Mono',monospace;font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .r{flex:none;text-align:right;font-size:14px;font-weight:800;white-space:nowrap}
+.tx .r small{display:block;font-size:11px;font-weight:700;color:var(--faint)}
+details.empf{border-top:1px solid var(--line)}
+details.empf:first-of-type{border-top:0}
+details.empf>summary{list-style:none;cursor:pointer}
+details.empf>summary::-webkit-details-marker{display:none}
+details.empf .tx{border-top:0}
+.empf-liste{margin:0 0 12px 48px;background:var(--raised);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.empf-liste div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.empf-liste div>span:last-child{flex:none;white-space:nowrap}
+.empf-liste .mono:first-child{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.empf-liste a{font-weight:400}
+.empf-liste a:hover{color:var(--work);opacity:1}
+.leer{padding:26px 16px;text-align:center;color:var(--faint);font-size:13px;font-weight:600}
+.ff{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
+.ff a,.ff button{padding:10px 16px;border-radius:12px;border:0;background:var(--raised);font-size:13.5px;font-weight:800;
+  color:var(--lese);cursor:pointer}
+.ff .haupt{background:var(--work-tint);color:var(--work)}
+.ff a[aria-disabled=true]{opacity:.35;pointer-events:none}
+.ff button:disabled{opacity:.5;cursor:default}
+.fakten .w a{font-weight:800}
+.grosszahl{font-family:'Geist Mono','Plex Mono',monospace;font-weight:500;font-size:30px;margin-top:4px}
+.grosszahl em{font-style:normal;font-size:15px;color:var(--faint);margin-left:6px}
+.absatz{font-size:13px;font-weight:600;color:var(--dim);line-height:1.6;margin-top:14px}
+
+.fuss{margin-top:40px;padding:18px 0 34px;border-top:1px solid var(--line);display:flex;gap:18px;flex-wrap:wrap;
+  font-size:12.5px;font-weight:600;color:var(--faint)}
+.fuss span{margin-left:auto}
+
+/* Das Menue der Website hat sieben Eintraege. Damit es in jeder Sprache in
+   eine Zeile passt, rueckt es unter 1300px zusammen. */
+@media(max-width:1299px){
+  .nav{gap:18px;font-size:14px}
+}
+@media(max-width:1080px){
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .charts{grid-template-columns:1fr 1fr}
+  .charts .ch:last-child{grid-column:1/-1}
+}
+/* Auf der Website klappt das Menue schon ab 1140px ein: Mit sieben Eintraegen
+   passt es in den breitesten Sprachen (Deutsch, Russisch) erst darueber in
+   eine Zeile. Die App-Domain bleibt bei 1040px -- dort steht nur ein Eintrag. */
+@media(max-width:1140px){
+  body:not(.app-domain) #menue{display:inline-flex}
+  body:not(.app-domain) .nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;
+    background:var(--nacht);border-bottom:1px solid #1C283E;padding:8px 20px 18px}
+  body:not(.app-domain) .nav.offen{display:flex}
+  body:not(.app-domain) .nav a{padding:13px 4px;font-size:16px;border-bottom:1px solid #1C283E}
+  body:not(.app-domain) .nav a[aria-current=page]::after{display:none}
+}
+@media(max-width:1040px){
+  #menue,.app-domain #appZurueck{display:inline-flex}
+  .nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;
+    background:var(--nacht);border-bottom:1px solid #1C283E;padding:8px 20px 18px}
+  .nav.offen{display:flex}
+  .app-domain .nav{display:none}
+  .nav a{padding:13px 4px;font-size:16px;border-bottom:1px solid #1C283E}
+  .nav a[aria-current=page]::after{display:none}
+}
+@media(max-width:640px){
+  .wrap{padding:0 16px}
+  .kopf .wrap{height:60px}
+  .marke{font-size:17px}.marke img{width:30px;height:20px}
+  #sprache,.kopf-knopf{height:40px}.kopf-knopf{width:40px}
+  #sprache{padding:0 28px 0 11px;font-size:13px;max-width:118px;background-position:right 10px center}
+  .held{padding:22px 0 24px}
+  .held h1{font-size:23px;margin:6px 0 14px}
+  .suche{padding:6px 6px 6px 14px}.suche input{font-size:14px}.suche button{padding:10px 14px}
+  .sek{padding-top:22px}
+  .sek-kopf h2{font-size:17px}
+  .blk{width:128px;height:128px}
+  .blk .in{padding:11px 11px 10px}
+  @keyframes einschieben{from{margin-left:-140px;opacity:0}to{margin-left:0;opacity:1}}
+  .glied{width:12px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:12px 14px}.kpi .w{font-size:19px}
+  .charts{grid-template-columns:1fr;gap:10px;margin-top:10px}
+  .ch{padding:16px}
+  /* Fenster als Blatt von unten. */
+  #fenster{padding:0;align-items:flex-end}
+  .fenster{max-width:none;border-radius:28px 28px 0 0;margin:0;max-height:94dvh;overflow-y:auto;overscroll-behavior:contain;
+    padding-bottom:env(safe-area-inset-bottom,0px);animation:blatt .26s cubic-bezier(.22,.9,.3,1)}
+  @keyframes blatt{from{transform:translateY(100%)}to{transform:none}}
+  .griff{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:10px auto 0}
+  .fk{padding:12px 18px 0}.fk h2{font-size:21px;gap:8px}
+  .fs{padding:14px 18px 22px}
+  .fakten{grid-template-columns:1fr 1fr}
+  .fakten>div:last-child:nth-child(odd){grid-column:1/-1}
+  .grosszahl{font-size:22px;overflow-wrap:anywhere}.grosszahl em{font-size:13px}
+  .pruef{grid-template-columns:1fr}
+  .empf-liste{margin-left:0}
+  .lang{display:none}.kurzf{display:inline}
+  .tx .a{font-size:13px;white-space:normal;overflow-wrap:anywhere}.tx .r{font-size:13px}
+  .fakten .w,.fakten .s{white-space:normal;overflow-wrap:anywhere}
+}
+</style>
+<style>
+/*
+  Website-Stil (Oktober 2026, "Warp / Crystal Blue"): dieselben Farben,
+  Schriften, Kopf- und Fusszeile wie yskar.app. Der Explorer ist nur noch dunkel.
+*/
+:root,:root[data-thema="dunkel"]{
+  --ink:#03060F; --sunk:#060B18; --surface:#0A1122; --raised:#0E1730;
+  --line:rgba(140,170,255,.12); --text:#F2F6FF; --lese:#C3CCDF; --dim:#8E9AB4; --faint:#66728F;
+  --work:#2F7BFF; --work-tint:rgba(47,123,255,.14); --proof:#3BE59A; --proof-tint:rgba(59,229,154,.12);
+  --risk:#FF6B76; --risk-tint:rgba(255,107,118,.12);
+  --schatten:0 18px 40px -26px rgba(0,0,0,.9);
+  --bau:rgba(99,216,255,.45); --bau-a:#0A1122; --bau-b:#0E1730;
+  --balken:rgba(47,123,255,.42); --pool:#63D8FF; --netz:rgba(140,170,255,.10);
+  --fuell-a:rgba(47,123,255,.16); --fuell-b:rgba(47,123,255,.34); --fuell-k:rgba(99,216,255,.55);
+  --nacht:#03060F; --karte-d:#0A1122; --kante-d:rgba(140,170,255,.22); --text-d:#F2F6FF; --dim-d:#8E9AB4;
+  --acc2:#63D8FF; color-scheme:dark;
+}
+html,body{background:#03060F}
+body{font-size:15px;line-height:1.55}
+a{font-weight:600;color:var(--acc2)}
+a:hover{opacity:1;color:#F2F6FF}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sr:focus{position:fixed;top:12px;left:12px;width:auto;height:auto;clip:auto;z-index:100;padding:10px 16px;border-radius:10px;background:#F2F6FF;color:#03060F}
+.wrap{max-width:1240px;padding:0 max(24px,env(safe-area-inset-left,0px))}
+:focus-visible{outline:2px solid var(--acc2);outline-offset:3px}
+
+/* Kopfzeile */
+.kopf{z-index:30;background:color-mix(in srgb,#03060F 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.kopf .wrap{height:72px}
+.marke{gap:11px;color:#F2F6FF;font-size:17px;font-weight:700;letter-spacing:.1em}
+.marke img{width:30px;height:30px}
+.nav{gap:26px;font-size:14px;font-weight:500}
+.nav a{color:var(--dim);font-weight:500;transition:color .2s}
+.nav a:hover,.nav a[aria-current=page]{color:#F2F6FF}
+.nav a[aria-current=page]{font-weight:500}
+.nav a[aria-current=page]::after{display:none}
+.nav a.v6-link{color:var(--acc2)}
+.nav a.v6-link::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc2);margin-right:8px;vertical-align:2px}
+@media(max-width:1400px){.nav{gap:20px}}
+.kopf-rechts{gap:10px}
+.sprachwahl{position:relative}
+.sprachwahl::after{content:'';position:absolute;right:14px;top:50%;width:6px;height:6px;border-right:1.5px solid var(--dim);border-bottom:1.5px solid var(--dim);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+#sprache{height:40px;padding:0 32px 0 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#F2F6FF;font:500 13px 'Geist',Manrope,sans-serif}
+#sprache option{background:#0A1122;color:#F2F6FF}
+.kopf-cta{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:999px;background:#F2F6FF;color:#03060F;font:600 14px/1 'Geist',sans-serif;white-space:nowrap}
+.kopf-cta:hover{color:#03060F;box-shadow:0 0 0 6px rgba(99,216,255,.22)}
+.kopf-knopf{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#F2F6FF}
+.kopf-knopf:hover{border-color:rgba(99,216,255,.55)}
+.app-domain .kopf-cta{display:none}
+@media(max-width:1240px){
+  body:not(.app-domain) #menue{display:inline-flex}
+  body:not(.app-domain) .kopf-cta{display:none}
+  body:not(.app-domain) .nav{display:none;position:absolute;top:72px;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;padding:8px max(24px,env(safe-area-inset-left,0px)) 20px;background:color-mix(in srgb,#03060F 96%,transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  body:not(.app-domain) .nav.offen{display:flex}
+  body:not(.app-domain) .nav a{padding:14px 0;border-bottom:1px solid var(--line);font-size:16px}
+}
+@media(max-width:640px){.kopf .wrap{height:64px} body:not(.app-domain) .nav{top:64px} #sprache{height:38px;max-width:104px} .marke{font-size:15px}}
+
+/* Kopfbereich wie die Seitenkoepfe der Website */
+.held{position:relative;background:radial-gradient(900px 420px at 85% 0%,rgba(47,123,255,.20),transparent 70%),#03060F;border-bottom:1px solid var(--line);padding:clamp(56px,7vw,96px) 0 clamp(40px,5vw,64px)}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'Geist Mono','Plex Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc2)}
+.eyebrow::before{content:"";width:18px;height:1px;background:currentColor}
+.held h1{margin:18px 0 26px;font-size:clamp(34px,4.6vw,60px);line-height:1.02;font-weight:600;letter-spacing:-.045em;max-width:860px}
+.suche{border-radius:999px;padding:6px 6px 6px 22px;background:rgba(255,255,255,.04);border:1px solid var(--line2,rgba(140,170,255,.22))}
+.suche:focus-within{border-color:rgba(99,216,255,.6)}
+.suche input{font-weight:500;color:#F2F6FF}
+.suche button{border-radius:999px;padding:12px 22px;background:#F2F6FF;color:#03060F;font-weight:600}
+.suche button:hover{background:#fff;box-shadow:0 0 0 6px rgba(99,216,255,.22)}
+.meldung{border-radius:14px}
+
+/* Inhalt */
+.sek{padding-top:44px}
+.sek-kopf h2{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.blk,.kpi,.ch,.mehr{border-radius:20px;border-color:var(--line);background:#0A1122}
+.blk:hover,.mehr:hover{border-color:rgba(99,216,255,.55)}
+.blk .h{font-weight:500}
+.kpi .l{font-family:'Geist Mono','Plex Mono',monospace;font-weight:500;letter-spacing:.12em;color:var(--dim)}
+.kpi .w,.ch .gross{font-weight:400}
+.ch h3{font-weight:600}
+.pfeil{color:var(--acc2)}
+.neu-marke{background:#2F7BFF}
+.fenster{background:#0A1122;border-color:rgba(140,170,255,.22);border-radius:28px}
+#fenster{background:rgba(3,6,15,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.fk h2{font-weight:600}
+.fakten{border-radius:18px}
+.fakten>div{background:#0A1122}
+.ff .haupt{background:#F2F6FF;color:#03060F;border-radius:999px}
+.ff a,.ff button{border-radius:999px;font-weight:600}
+#tipp{background:#F2F6FF;color:#03060F}
+.fuss{border-top-color:var(--line);color:var(--faint)}
+
+/* Fusszeile der Website */
+.fusszeile{border-top:1px solid var(--line);padding-block:56px 64px;background:#03060F;margin-top:56px;font-size:15px}
+.fusszeile .wrap{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.fusszeile .marke span{font-size:17px}
+.fusszeile .motto{font-family:'Geist Mono','Plex Mono',monospace;font-size:12.5px;color:var(--dim);margin:0}
+.fusszeile .spalten{display:grid;grid-template-columns:repeat(3,minmax(140px,auto));gap:48px;font-size:14px}
+.fusszeile .spalten div{display:flex;flex-direction:column;gap:11px}
+.fusszeile .spalten a{color:var(--dim);font-weight:400}
+.fusszeile .spalten a:hover{color:#F2F6FF}
+.fusszeile .kennung{font-family:'Geist Mono','Plex Mono',monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#F2F6FF;opacity:.7}
+@media(max-width:640px){.fusszeile .spalten{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}}
+.app-domain .fusszeile{display:none}
+</style>
+</head>
+<body>
+
+<a class="sr" href="#inhalt">Skip to content</a>
+<header class="kopf"><div class="wrap">
+  <div class="kopf-links">
+    <a id="appZurueck" class="kopf-knopf" href="/">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10H4M9 5l-5 5 5 5"/></svg>
+    </a>
+    <a class="marke" id="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
+  </div>
+  <nav class="nav" id="nav" aria-label="Main"></nav>
+  <div class="kopf-rechts">
+    <label class="sprachwahl"><select id="sprache" aria-label="Language"></select></label>
+    <a class="kopf-cta" id="kopfCta" href="/#nutzen">Use YSR</a>
+    <button id="menue" class="kopf-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu">
+      <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6h13M3.5 10h13M3.5 14h13"/></svg>
+    </button>
+  </div>
+</div></header>
+
+<section class="held"><div class="wrap">
+  <div class="held-links">
+    <div class="eyebrow-zeile">
+      <span class="eyebrow">YSKAR Explorer</span>
+      <!--
+        Das Ergebnis der Pruefung, hinter dem ueblichen Info-Zeichen (Kreis
+        mit i): Antippen zeigt, wie viele Bloecke hier nachgerechnet sind.
+        Schlaegt eine Pruefung fehl, wird es rot und klappt von selbst auf.
+      -->
+      <span class="info-halter">
+        <button id="verdict" class="info-knopf" type="button" aria-expanded="false" aria-controls="verdictInfo">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M12 11.2v5.6"/><circle cx="12" cy="7.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <span id="verdictInfo" class="info-blase" role="status" hidden><b id="verdictText"></b><small data-t="keinServer"></small></span>
+      </span>
+    </div>
+    <h1 data-t="hinweisTitel"></h1>
+    <div class="suche" role="search">
+      <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="" aria-label="Search">
+      <button id="qgo" type="button" data-t="suchen"></button>
+    </div>
+    <div class="meldung" id="treffer" role="status"></div>
+    <div class="meldung schlecht" id="err" role="alert"></div>
+    <div class="meldung warn" id="abgleich" role="status"></div>
+  </div>
+</div></section>
+
+<main class="wrap" id="inhalt">
+  <section class="sek">
+    <div class="sek-kopf"><h2 data-t="kette"></h2><span id="ketteLegende"></span></div>
+    <div class="kette" id="kette"></div>
+  </section>
+
+  <section class="sek">
+    <div class="sek-kopf"><h2 data-t="netzBlick"></h2><span data-t="netzBlickUnter"></span></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="charts" id="charts"></div>
+  </section>
+
+  <footer class="fuss">
+    <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noreferrer" data-t="quelltext"></a>
+    <span id="engine"></span>
+  </footer>
+</main>
+
+<footer class="fusszeile">
+<div class="wrap">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
+<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
+<p class="motto">proof, not promise</p>
+<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
+</div>
+<div class="spalten">
+<div>
+<span class="kennung" data-t="fuss.netz">Network</span>
+<a href="/explorer" data-t="nav.explorer">Explorer</a>
+<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
+<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
+<a href="/#v6">V6</a>
+<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.mitmachen">Take part</span>
+<a href="/mining" data-t="nav.mining">Mining</a>
+<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
+<a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
+<a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://x.com/yskar_official">X</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.rechtliches">Legal</span>
+<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
+<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
+</div>
+</div>
+</div>
+</footer>
+
+<!--
+  Das Fenster. Block, Block im Bau, Adresse und Transaktion erscheinen alle
+  hier -- welches, sagt die Adresszeile (#block-N, #neu, #adr-…, #tx-…).
+-->
+<div id="fenster" hidden>
+  <div class="fenster" role="dialog" aria-modal="true" aria-labelledby="fensterTitel" tabindex="-1">
+    <div class="griff" aria-hidden="true"></div>
+    <div id="fensterInhalt"></div>
+  </div>
+</div>
+<div id="tipp" role="tooltip" hidden></div>
+
+<script>
+// ---------------------------------------------------------------- Konfiguration
+// Liegt die Datei auf derselben Domain wie die API, bleibt der Pfad relativ.
+// Von der Festplatte geöffnet, zeigt sie auf das Deployment. Mit ?api=... lässt
+// sich das überschreiben.
+const PARAM = new URLSearchParams(location.search).get('api');
+// Nur bei http/https liegt die API auf derselben Herkunft. Alles andere --
+// file://, aber auf Android auch content:// beim Oeffnen einer geladenen
+// Datei -- muss die absolute Adresse benutzen.
+const HOSTED = location.protocol === 'http:' || location.protocol === 'https:';
+const ORIGIN = 'https://yskar.vercel.app';
+const API = PARAM || (HOSTED ? '' : ORIGIN) + '/api/v2';
+/*
+  Unter www.yskar.app/explorer reicht die Website den Explorer durch
+  (website/vercel.json). Dort ist er eine Seite der Website und traegt deren
+  Menue; auf der App-Domain fuehrt die Kopfzeile zurueck zur App.
+*/
+// Diese Fassung liegt immer auf der Website (yskar.app und ihre Vorschau).
+const AUF_WEBSITE = true;
+
+// ---------------------------------------------------------------- SHA-256
+// crypto.subtle gibt es nur in sicheren Kontexten. Damit die Datei auch von
+// der Festplatte oder über http funktioniert, liegt eine reine JS-Umsetzung
+// bei -- gegen Node crypto über zehn Eingabelängen geprüft.
+const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+const rotr=(x,n)=>(x>>>n)|(x<<(32-n));
+function sha256js(bytes){
+  const len=bytes.length,bitLen=len*8;
+  const padded=new Uint8Array((((len+9)+63)>>6)<<6);
+  padded.set(bytes);padded[len]=0x80;
+  const dv=new DataView(padded.buffer);
+  dv.setUint32(padded.length-4,bitLen>>>0,false);
+  dv.setUint32(padded.length-8,Math.floor(bitLen/4294967296),false);
+  let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,
+      h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  const w=new Uint32Array(64);
+  for(let i=0;i<padded.length;i+=64){
+    for(let t=0;t<16;t++)w[t]=dv.getUint32(i+t*4,false);
+    for(let t=16;t<64;t++){
+      const s0=rotr(w[t-15],7)^rotr(w[t-15],18)^(w[t-15]>>>3);
+      const s1=rotr(w[t-2],17)^rotr(w[t-2],19)^(w[t-2]>>>10);
+      w[t]=(w[t-16]+s0+w[t-7]+s1)>>>0;
+    }
+    let a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+    for(let t=0;t<64;t++){
+      const S1=rotr(e,6)^rotr(e,11)^rotr(e,25);
+      const t1=(h+S1+((e&f)^(~e&g))+K[t]+w[t])>>>0;
+      const S0=rotr(a,2)^rotr(a,13)^rotr(a,22);
+      const t2=(S0+((a&b)^(a&c)^(b&c)))>>>0;
+      h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+    }
+    h0=(h0+a)>>>0;h1=(h1+b)>>>0;h2=(h2+c)>>>0;h3=(h3+d)>>>0;
+    h4=(h4+e)>>>0;h5=(h5+f)>>>0;h6=(h6+g)>>>0;h7=(h7+h)>>>0;
+  }
+  const out=new Uint8Array(32),o=new DataView(out.buffer);
+  [h0,h1,h2,h3,h4,h5,h6,h7].forEach((v,i)=>o.setUint32(i*4,v,false));
+  return out;
+}
+const useSubtle = typeof crypto!=='undefined' && crypto.subtle;
+async function sha256d(bytes){
+  if(useSubtle){
+    const a=await crypto.subtle.digest('SHA-256',bytes);
+    const b=await crypto.subtle.digest('SHA-256',a);
+    return new Uint8Array(b);
+  }
+  return sha256js(sha256js(bytes));
+}
+
+// ---------------------------------------------------------------- Header
+// Hilfsfunktionen; die Serialisierung selbst steht in serializeHeader()
+// unten (136 Byte, wie src/lib/core/block.ts). Hier stand bis zum 9. Oktober
+// 2026 die Beschreibung des 116-Byte-Headers der ersten Kette (Issue #5).
+function fromHex(s){
+  const c=s.startsWith('\\x')?s.slice(2):s;
+  const o=new Uint8Array(c.length/2);
+  for(let i=0;i<o.length;i++)o[i]=parseInt(c.substr(i*2,2),16);
+  return o;
+}
+const toHex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
+
+// Konsensfassung 4 -- identisch zu src/lib/core/params.ts. Ab Hoehe 6.000
+// steht die Difficulty ueber 2^31 als Gleitkomma im Header-Feld. Der Explorer
+// rechnet die Schreibweise selbst nach, statt sie vom Server zu glauben.
+const DIFF_V4=6000;
+const diffWert=b=>BigInt(b.difficultyWert??b.difficulty);
+function diffFeld(v,height){
+  if(height<DIFF_V4||v<(1n<<31n))return Number(v);
+  const e=BigInt(v.toString(2).length)-24n, m=v>>e;
+  return Number((1n<<31n)|(e<<23n)|(m-(1n<<23n)));
+}
+
+function serializeHeader(b){
+  // 136 Byte, Little-Endian. Identisch zu src/lib/core/block.ts.
+  //   0 u32 version | 4 u32 height | 8 prev_hash | 40 merkle_root
+  //  72 state_root | 104 u64 timestamp | 112 u32 difficulty
+  // 116 u32 tx_count | 120 u64 extranonce | 128 u64 nonce
+  const out=new Uint8Array(136),dv=new DataView(out.buffer);
+  dv.setUint32(0,b.version??1,true);
+  dv.setUint32(4,b.height,true);
+  out.set(fromHex(b.prevHash),8);
+  out.set(fromHex(b.merkleRoot),40);
+  out.set(fromHex(b.stateRoot),72);
+  dv.setBigUint64(104,BigInt(b.timestamp),true);
+  dv.setUint32(112,diffFeld(diffWert(b),b.height),true);
+  dv.setUint32(116,b.txCount,true);
+  dv.setBigUint64(120,BigInt(b.extranonce),true);
+  dv.setBigUint64(128,BigInt(b.nonce),true);
+  return out;
+}
+
+const SHIFT=(1n<<240n);                     // 2^256 / 65536
+const targetOf=d=>SHIFT/BigInt(d);
+const toBig=h=>{let v=0n;for(const x of h)v=(v<<8n)|BigInt(x);return v;};
+const achieved=h=>{const v=toBig(h);return v===0n?SHIFT:SHIFT/v;};
+
+async function verify(b,vorgaenger){
+  try{
+    const gebaut=serializeHeader(b);
+    const digest=await sha256d(gebaut);
+    const errechnet=toHex(digest);
+    return {
+      errechnet,
+      // Vier getrennte Aussagen statt einer Sammelnote. Die erste ist neu:
+      // Sie prueft, ob sich aus den Einzelfeldern exakt der gespeicherte
+      // Header ergibt -- ein Fehler in der Serialisierung faellt damit auf,
+      // bevor er sich im Hash versteckt.
+      serialisierung: b.header ? (toHex(gebaut)===b.header?'ok':'fail') : 'offen',
+      hash: errechnet===b.hash?'ok':'fail',
+      difficulty: toBig(digest)<=targetOf(diffWert(b))?'ok':'fail',
+      // Nur ein Block genau eine Hoehe darunter ist ein Vorgaenger. Alles
+      // andere waere ein Vergleich mit dem falschen Block.
+      kette: (!vorgaenger||vorgaenger.height!==b.height-1)?'offen':(b.prevHash===vorgaenger.hash?'ok':'fail'),
+      erreicht: achieved(digest),
+    };
+  }catch(e){ return {serialisierung:'fail',hash:'fail',difficulty:'fail',kette:'fail'}; }
+}
+
+// ---------------------------------------------------------------- Anzeige
+const $=id=>document.getElementById(id);
+const nf=n=>Number(n).toLocaleString(LOC);
+// Difficulty kann ab Konsensfassung 4 beliebig gross werden. Unter einer
+// Billion ausgeschrieben, darueber kompakt -- sonst sprengt sie die Zeile.
+const nfGross=n=>{const x=Number(n);if(!Number.isFinite(x))return '—';
+  if(x<1e12)return x.toLocaleString(LOC);
+  return new Intl.NumberFormat(LOC,{notation:x<1e15?'compact':'scientific',maximumFractionDigits:2}).format(x);};
+// ---------------------------------------------------------------- Sprachen
+// Dieselben sechs wie in der App. Erkennung: gemerkte Wahl -> Browsersprache
+// -> Englisch. Der Server liefert nur Zahlen und Codes; jeder Text entsteht hier.
+const SPRACHEN=[['en','English'],['de','Deutsch'],['es','Español'],['pt','Português'],['fr','Français'],['it','Italiano'],['pl','Polski'],['ru','Русский'],['tr','Türkçe'],['zh','中文']];
+const LOCALES={en:'en-US',de:'de-DE',es:'es-ES',pt:'pt-BR',fr:'fr-FR',it:'it-IT',pl:'pl-PL',ru:'ru-RU',tr:'tr-TR',zh:'zh-CN'};
+const WB={
+en:{
+  platzhalter:'Address, transaction, block height or block hash',suchen:'Search',hoehe:'Height',
+  laedt:'loading…',hinweisTitel:'Every block is re-verified here in your browser.',
+  hinweisText:'The header is rebuilt from its fields, double-hashed, checked against the recorded difficulty, and the chain link is followed. These checks run here, not on the server. Which blocks are listed comes from the server’s mirror; it is compared with the full node, and a difference is shown here. A green dot on a block means: verified here.',
+  bloecke:'Blocks',legende:'left: in progress · right: found',
+  klickHinweis:'Click a block to see its transactions.',zurApp:'← Back to the app',quelltext:'Source on GitHub',
+  imBau:'in progress',tx:n=>n+(n===1?' transaction':' transactions'),wirdGesucht:'being searched',
+  unbekannt:'Unknown',selbstauskunft:'Self-reported by the finder',aeltere:'Load older',laedtKurz:'loading…',
+  stimmt:'valid',stimmtNicht:'INVALID',offen:'open',txLaden:'Loading transactions…',
+  empfaenger:n=>n+(n===1?' recipient':' recipients'),von:'From',an:'To',gebuehr:'Fee',
+  coinbase:'Coinbase',ueberweisung:'Transfer',block:'Block',gefundenVon:'Found by',schliessen:'Close',
+  hash:'Hash',vorgaenger:'Previous',difficulty:'Difficulty',erreicht:'Achieved',groesse:'Size',byte:'bytes',
+  transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Reward',
+  serialisierung:'Serialization',hashGeprueft:'Hash recomputed',pow:'Proof of work',verkettung:'Chain link',
+  wirdGeradeGesucht:'Currently being searched',wartendeTx:'Pending transactions',
+  bauLeer:'The mempool is empty, so this block only contains the coinbase so far.',
+  bauVoll:'The pending payments go into this block as far as they fit.',bauWer:'Who finds it is not yet known.',
+  kHoehe:'Height',kHoeheUnter:h=>'State recomputed up to '+h,kDifficultyUnter:'Recalculated at every block (LWMA over 45 blocks).',
+  kNetz:'Network hashrate',kNetzUnter:'From difficulty and target block time.',kLive:'Measured, live',
+  kMiner:n=>n+(n===1?' active miner':' active miners'),kBlockzeit:'Block time',
+  kBlockzeitUnter:n=>'Target 10 min · last '+n+' blocks',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'No pending payments — the minimum fee is enough.',kMempoolVoll:'Pending payments.',
+  kUmlauf:'In circulation',kUmlaufUnter:(max,sym,p)=>'of '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Next halving',kHalbierungUnter:(n,r,sym)=>n+' blocks to go · reward then '+r+' '+sym,
+  urteilBad:'A check failed',urteilOk:n=>n+' blocks verified here',
+  ladenFehl:'Loading failed: ',nachladenFehl:'Loading more failed: ',sucheLaeuft:'searching…',
+  nichtsGefunden:'Nothing found.',sucheFehl:'Search failed: ',
+  sBadAddress:'Not a valid YSKAR address.',sBadHeight:'Invalid height.',sNoBlock:h=>'Block '+h+' does not exist (yet).',
+  sNoHash:'No block and no transaction with this hash.',sEmpty:'Enter an address, transaction, block height or block hash.',
+  adresse:'Address',guthaben:'Balance',gefundeneBloecke:'Blocks found',poolAnteile:'Pool shares',
+  letzteBewegungen:'Recent activity',blockreward:'Block reward',poolAnteil:'Pool share',eingang:'Incoming',ausgang:'Outgoing',
+  keineBewegungen:'No activity yet.',txNichtLesbar:'Transaction not readable.',transaktion:'Transaction',
+  status:'Status',wartetAufBlock:'waiting for a block',inBlock:h=>'in block '+h,art:'Type',betrag:'Amount',
+  zuBlock:h=>'Go to block '+h,geradeEben:'just now',vorMin:n=>n+' min ago',vorStd:n=>n+' h ago',vorTg:n=>n+' d ago',
+  keinServer:'These checks run here, not on the server.',spiegelZweig:h=>'The mirror shows a different block at height '+h+' than the full node. The list below may be on another branch.',spiegelHinten:n=>'The mirror is '+n+(n===1?' block':' blocks')+' behind the full node. The newest blocks are missing below.',neu:'NEW',voll:p=>p+'% full',
+  vonTx:(n,max)=>n+' of '+max+' transactions',kette:'The chain',fuellLegende:'fill = used transaction slots',
+  netzBlick:'Network at a glance',netzBlickUnter:'updates with every block',
+  cBlockzeit:n=>'Block time of the last '+n+' blocks',cBlockzeitUnter:m=>'Minutes between two blocks · line = target '+m+' min',
+  cDifficulty:n=>'Trend over the last '+n+' blocks',bisHalbierung:'Until the halving',werFindet:'Who finds the blocks',
+  letzteN:n=>'last '+n+' blocks',pool:'Pool',solo:'Solo',hierGeprueft:'verified here',gefunden:'Found',finderL:'Finder',
+  zumVorgaenger:'since the previous block',pruefung:'Checked in your browser',kennungen:'Identifiers',
+  merkle:'Merkle root',stateRoot:'State root',kopieren:'Copy',kopiert:'Copied',alleTx:n=>'Show all '+n+' transactions',
+  menue:'Menu',erzeugt:p=>p+'% mined',offenP:p=>p+'% remaining',zumVorblock:'vs. previous block',wartend:'Pending',
+  aeltereBew:'Load older activity',notiz:'Memo',inklGebuehr:x=>'incl. '+x+' in fees',blockZurueck:'Previous block',
+  blockWeiter:'Next block',minKurz:'min',navMitmachen:'Get started',verbranntK:'burned',navMenge:'Supply',navMining:'Mining',navNutzen:'Use YSR',navWas:'About YSKAR',navAblauf:'How it works',navAnleitungen:'Guides',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'all '+t+' blocks',
+  zielCa:m=>'Target ~ '+m+' min',
+  navExplorer:'Explorer',
+},
+de:{
+  platzhalter:'Adresse, Transaktion, Blockhöhe oder Blockhash',suchen:'Suchen',hoehe:'Höhe',
+  laedt:'wird geladen…',hinweisTitel:'Jeder Block wird hier im Browser nachgerechnet.',
+  hinweisText:'Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die eingetragene Difficulty geprüft, Verkettung verfolgt. Diese Prüfungen laufen hier, nicht auf dem Server. Welche Blöcke erscheinen, kommt aus dem Spiegel des Servers; er wird mit dem Full Node verglichen, eine Abweichung steht dann hier. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.',
+  bloecke:'Blöcke',legende:'links im Bau · rechts gefunden',
+  klickHinweis:'Auf einen Block klicken, um seine Transaktionen zu sehen.',zurApp:'← Zurück zur App',quelltext:'Quelltext auf GitHub',
+  imBau:'im Bau',tx:n=>n+(n===1?' Transaktion':' Transaktionen'),wirdGesucht:'wird gesucht',
+  unbekannt:'Unbekannt',selbstauskunft:'Selbstauskunft des Finders',aeltere:'Ältere laden',laedtKurz:'lädt…',
+  stimmt:'stimmt',stimmtNicht:'stimmt NICHT',offen:'offen',txLaden:'Transaktionen werden geladen…',
+  empfaenger:n=>n+' Empfänger',von:'Von',an:'An',gebuehr:'Gebühr',
+  coinbase:'Coinbase',ueberweisung:'Überweisung',block:'Block',gefundenVon:'Gefunden von',schliessen:'Schließen',
+  hash:'Hash',vorgaenger:'Vorgänger',difficulty:'Difficulty',erreicht:'Erreicht',groesse:'Größe',byte:'Byte',
+  transaktionen:'Transaktionen',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Belohnung',
+  serialisierung:'Serialisierung',hashGeprueft:'Hash nachgerechnet',pow:'Proof of Work',verkettung:'Verkettung',
+  wirdGeradeGesucht:'Wird gerade gesucht',wartendeTx:'Wartende Transaktionen',
+  bauLeer:'Der Mempool ist leer, also enthält dieser Block bisher nur die Coinbase.',
+  bauVoll:'Die wartenden Zahlungen kommen in diesen Block, soweit sie hineinpassen.',bauWer:'Wer ihn findet, steht noch nicht fest.',
+  kHoehe:'Höhe',kHoeheUnter:h=>'Zustand bis '+h+' nachgerechnet',kDifficultyUnter:'Wird bei jedem Block neu gerechnet (LWMA über 45 Blöcke).',
+  kNetz:'Netz-Hashrate',kNetzUnter:'Aus Difficulty und Zielblockzeit.',kLive:'Gemessen, live',
+  kMiner:n=>n+(n===1?' aktiver Miner':' aktive Miner'),kBlockzeit:'Blockzeit',
+  kBlockzeitUnter:n=>'Ziel 10 min · letzte '+n+' Blöcke',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Keine wartenden Zahlungen — die Mindestgebühr genügt.',kMempoolVoll:'Wartende Zahlungen.',
+  kUmlauf:'Im Umlauf',kUmlaufUnter:(max,sym,p)=>'von '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Nächste Halbierung',kHalbierungUnter:(n,r,sym)=>'Noch '+n+' Blöcke · Belohnung dann '+r+' '+sym,
+  urteilBad:'Eine Prüfung ist fehlgeschlagen',urteilOk:n=>n+' Blöcke hier nachgerechnet',
+  ladenFehl:'Laden fehlgeschlagen: ',nachladenFehl:'Nachladen fehlgeschlagen: ',sucheLaeuft:'wird gesucht…',
+  nichtsGefunden:'Nichts gefunden.',sucheFehl:'Suche fehlgeschlagen: ',
+  sBadAddress:'Keine gültige YSKAR-Adresse.',sBadHeight:'Ungültige Höhe.',sNoBlock:h=>'Block '+h+' gibt es (noch) nicht.',
+  sNoHash:'Kein Block und keine Transaktion mit diesem Hash.',sEmpty:'Adresse, Transaktion, Blockhöhe oder Blockhash eingeben.',
+  adresse:'Adresse',guthaben:'Guthaben',gefundeneBloecke:'Gefundene Blöcke',poolAnteile:'Pool-Anteile',
+  letzteBewegungen:'Letzte Bewegungen',blockreward:'Blockreward',poolAnteil:'Pool-Anteil',eingang:'Eingang',ausgang:'Ausgang',
+  keineBewegungen:'Noch keine Bewegungen.',txNichtLesbar:'Transaktion nicht lesbar.',transaktion:'Transaktion',
+  status:'Status',wartetAufBlock:'wartet auf einen Block',inBlock:h=>'in Block '+h,art:'Art',betrag:'Betrag',
+  zuBlock:h=>'Zu Block '+h,geradeEben:'gerade eben',vorMin:n=>'vor '+n+' Min',vorStd:n=>'vor '+n+' Std',vorTg:n=>'vor '+n+' Tg',
+  keinServer:'Diese Prüfungen laufen hier, nicht auf dem Server.',spiegelZweig:h=>'Der Spiegel zeigt auf Höhe '+h+' einen anderen Block als der Full Node. Die Liste unten liegt womöglich auf einem anderen Zweig.',spiegelHinten:n=>'Der Spiegel liegt '+n+(n===1?' Block':' Blöcke')+' hinter dem Full Node. Unten fehlen die neuesten.',neu:'NEU',voll:p=>p+' % voll',
+  vonTx:(n,max)=>n+' von '+max+' Transaktionen',kette:'Die Kette',fuellLegende:'Füllung = belegte Transaktionsplätze',
+  netzBlick:'Netz auf einen Blick',netzBlickUnter:'aktualisiert sich mit jedem Block',
+  cBlockzeit:n=>'Blockzeit der letzten '+n+' Blöcke',cBlockzeitUnter:m=>'Minuten zwischen zwei Blöcken · Linie = Ziel '+m+' Min.',
+  cDifficulty:n=>'Verlauf über die letzten '+n+' Blöcke',bisHalbierung:'Bis zur Halbierung',werFindet:'Wer findet die Blöcke',
+  letzteN:n=>'letzte '+n+' Blöcke',pool:'Pool',solo:'Solo',hierGeprueft:'hier geprüft',gefunden:'Gefunden',finderL:'Finder',
+  zumVorgaenger:'Abstand zum Vorgänger',pruefung:'Prüfung in deinem Browser',kennungen:'Kennungen',
+  merkle:'Merkle-Root',stateRoot:'State-Root',kopieren:'Kopieren',kopiert:'Kopiert',alleTx:n=>'Alle '+n+' Transaktionen zeigen',
+  menue:'Menü',erzeugt:p=>p+' % erzeugt',offenP:p=>p+' % offen',zumVorblock:'zum Vorblock',wartend:'Wartend',
+  aeltereBew:'Ältere Bewegungen laden',notiz:'Notiz',inklGebuehr:x=>'inkl. '+x+' Gebühren',blockZurueck:'Vorheriger Block',
+  blockWeiter:'Nächster Block',minKurz:'min',navMitmachen:'Mitmachen',verbranntK:'verbrannt',navMenge:'Menge',navMining:'Mining',navNutzen:'YSR nutzen',navWas:'Über YSKAR',navAblauf:'Funktionsweise',navAnleitungen:'Anleitungen',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'alle '+t+' Blöcke',
+  zielCa:m=>'Ziel ~ '+m+' Min',
+  navExplorer:'Explorer',
+},
+es:{
+  platzhalter:'Dirección, transacción, altura o hash de bloque',suchen:'Buscar',hoehe:'Altura',
+  laedt:'cargando…',hinweisTitel:'Cada bloque se recalcula aquí, en tu navegador.',
+  hinweisText:'La cabecera se reconstruye a partir de sus campos, se hashea dos veces, se comprueba contra la dificultad registrada y se sigue el encadenamiento. Estas comprobaciones se hacen aquí, no en el servidor. Qué bloques aparecen viene del espejo del servidor; se compara con el nodo completo y, si difieren, se avisa aquí. El punto verde en un bloque significa: verificado aquí.',
+  bloecke:'Bloques',legende:'izquierda: en curso · derecha: encontrados',
+  klickHinweis:'Pulsa un bloque para ver sus transacciones.',zurApp:'← Volver a la app',quelltext:'Código en GitHub',
+  imBau:'en curso',tx:n=>n+(n===1?' transacción':' transacciones'),wirdGesucht:'en búsqueda',
+  unbekannt:'Desconocido',selbstauskunft:'Declarado por quien lo encontró',aeltere:'Cargar anteriores',laedtKurz:'cargando…',
+  stimmt:'correcto',stimmtNicht:'INCORRECTO',offen:'abierto',txLaden:'Cargando transacciones…',
+  empfaenger:n=>n+(n===1?' destinatario':' destinatarios'),von:'De',an:'Para',gebuehr:'Comisión',
+  coinbase:'Coinbase',ueberweisung:'Transferencia',block:'Bloque',gefundenVon:'Encontrado por',schliessen:'Cerrar',
+  hash:'Hash',vorgaenger:'Anterior',difficulty:'Dificultad',erreicht:'Alcanzado',groesse:'Tamaño',byte:'bytes',
+  transaktionen:'Transacciones',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
+  serialisierung:'Serialización',hashGeprueft:'Hash recalculado',pow:'Prueba de trabajo',verkettung:'Encadenamiento',
+  wirdGeradeGesucht:'Se está buscando ahora',wartendeTx:'Transacciones pendientes',
+  bauLeer:'El mempool está vacío, así que este bloque por ahora solo contiene la coinbase.',
+  bauVoll:'Los pagos pendientes entran en este bloque en la medida en que quepan.',bauWer:'Aún no se sabe quién lo encontrará.',
+  kHoehe:'Altura',kHoeheUnter:h=>'Estado recalculado hasta '+h,kDifficultyUnter:'Se recalcula en cada bloque (LWMA sobre 45 bloques).',
+  kNetz:'Hashrate de la red',kNetzUnter:'A partir de la dificultad y el tiempo objetivo de bloque.',kLive:'Medido, en vivo',
+  kMiner:n=>n+(n===1?' minero activo':' mineros activos'),kBlockzeit:'Tiempo de bloque',
+  kBlockzeitUnter:n=>'Objetivo 10 min · últimos '+n+' bloques',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Sin pagos pendientes — basta la comisión mínima.',kMempoolVoll:'Pagos pendientes.',
+  kUmlauf:'En circulación',kUmlaufUnter:(max,sym,p)=>'de '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Próximo halving',kHalbierungUnter:(n,r,sym)=>'Faltan '+n+' bloques · recompensa después '+r+' '+sym,
+  urteilBad:'Una comprobación ha fallado',urteilOk:n=>n+' bloques verificados aquí',
+  ladenFehl:'Error al cargar: ',nachladenFehl:'Error al cargar más: ',sucheLaeuft:'buscando…',
+  nichtsGefunden:'Nada encontrado.',sucheFehl:'Error en la búsqueda: ',
+  sBadAddress:'No es una dirección YSKAR válida.',sBadHeight:'Altura no válida.',sNoBlock:h=>'El bloque '+h+' no existe (todavía).',
+  sNoHash:'Ningún bloque ni transacción con este hash.',sEmpty:'Introduce una dirección, transacción, altura o hash de bloque.',
+  adresse:'Dirección',guthaben:'Saldo',gefundeneBloecke:'Bloques encontrados',poolAnteile:'Participaciones de pool',
+  letzteBewegungen:'Actividad reciente',blockreward:'Recompensa de bloque',poolAnteil:'Participación de pool',eingang:'Entrada',ausgang:'Salida',
+  keineBewegungen:'Sin actividad todavía.',txNichtLesbar:'Transacción no legible.',transaktion:'Transacción',
+  status:'Estado',wartetAufBlock:'esperando un bloque',inBlock:h=>'en el bloque '+h,art:'Tipo',betrag:'Importe',
+  zuBlock:h=>'Ir al bloque '+h,geradeEben:'ahora mismo',vorMin:n=>'hace '+n+' min',vorStd:n=>'hace '+n+' h',vorTg:n=>'hace '+n+' d',
+  keinServer:'Estas comprobaciones se hacen aquí, no en el servidor.',spiegelZweig:h=>'El espejo muestra en la altura '+h+' un bloque distinto al del nodo completo. La lista de abajo podría estar en otra rama.',spiegelHinten:n=>'El espejo va '+n+(n===1?' bloque':' bloques')+' por detrás del nodo completo. Abajo faltan los más recientes.',neu:'NUEVO',voll:p=>p+' % lleno',
+  vonTx:(n,max)=>n+' de '+max+' transacciones',kette:'La cadena',fuellLegende:'relleno = espacios de transacción ocupados',
+  netzBlick:'La red de un vistazo',netzBlickUnter:'se actualiza con cada bloque',
+  cBlockzeit:n=>'Tiempo de bloque de los últimos '+n+' bloques',cBlockzeitUnter:m=>'Minutos entre dos bloques · línea = objetivo '+m+' min',
+  cDifficulty:n=>'Evolución en los últimos '+n+' bloques',bisHalbierung:'Hasta el halving',werFindet:'Quién encuentra los bloques',
+  letzteN:n=>'últimos '+n+' bloques',pool:'Pool',solo:'Solo',hierGeprueft:'verificado aquí',gefunden:'Encontrado',finderL:'Encontrado por',
+  zumVorgaenger:'desde el bloque anterior',pruefung:'Verificación en tu navegador',kennungen:'Identificadores',
+  merkle:'Raíz de Merkle',stateRoot:'Raíz de estado',kopieren:'Copiar',kopiert:'Copiado',alleTx:n=>'Mostrar las '+n+' transacciones',
+  menue:'Menú',erzeugt:p=>p+' % emitido',offenP:p=>p+' % pendiente',zumVorblock:'respecto al bloque anterior',wartend:'Pendientes',
+  aeltereBew:'Cargar actividad anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' de comisiones',blockZurueck:'Bloque anterior',
+  blockWeiter:'Bloque siguiente',minKurz:'min',navMitmachen:'Empezar',verbranntK:'quemados',navMenge:'Suministro',navMining:'Minería',navNutzen:'Usar YSR',navWas:'Sobre YSKAR',navAblauf:'Cómo funciona',navAnleitungen:'Guías',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'todos los '+t+' bloques',
+  zielCa:m=>'Objetivo ~ '+m+' min',
+  navExplorer:'Explorador',
+},
+pt:{
+  platzhalter:'Endereço, transação, altura ou hash do bloco',suchen:'Buscar',hoehe:'Altura',
+  laedt:'carregando…',hinweisTitel:'Cada bloco é recalculado aqui, no seu navegador.',
+  hinweisText:'O cabeçalho é remontado a partir dos campos, passa por hash duplo, é conferido com a dificuldade registrada e o encadeamento é seguido. Essas verificações são feitas aqui, não no servidor. Quais blocos aparecem vem do espelho do servidor; ele é comparado com o nó completo e, se houver diferença, ela aparece aqui. O ponto verde em um bloco significa: verificado aqui.',
+  bloecke:'Blocos',legende:'esquerda: em andamento · direita: encontrados',
+  klickHinweis:'Toque em um bloco para ver suas transações.',zurApp:'← Voltar ao app',quelltext:'Código no GitHub',
+  imBau:'em andamento',tx:n=>n+(n===1?' transação':' transações'),wirdGesucht:'em busca',
+  unbekannt:'Desconhecido',selbstauskunft:'Informado por quem encontrou',aeltere:'Carregar anteriores',laedtKurz:'carregando…',
+  stimmt:'confere',stimmtNicht:'NÃO confere',offen:'em aberto',txLaden:'Carregando transações…',
+  empfaenger:n=>n+(n===1?' destinatário':' destinatários'),von:'De',an:'Para',gebuehr:'Taxa',
+  coinbase:'Coinbase',ueberweisung:'Transferência',block:'Bloco',gefundenVon:'Encontrado por',schliessen:'Fechar',
+  hash:'Hash',vorgaenger:'Anterior',difficulty:'Dificuldade',erreicht:'Alcançado',groesse:'Tamanho',byte:'bytes',
+  transaktionen:'Transações',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Recompensa',
+  serialisierung:'Serialização',hashGeprueft:'Hash recalculado',pow:'Prova de trabalho',verkettung:'Encadeamento',
+  wirdGeradeGesucht:'Sendo procurado agora',wartendeTx:'Transações pendentes',
+  bauLeer:'O mempool está vazio, então este bloco por enquanto só contém a coinbase.',
+  bauVoll:'Os pagamentos pendentes entram neste bloco na medida em que couberem.',bauWer:'Ainda não se sabe quem vai encontrá-lo.',
+  kHoehe:'Altura',kHoeheUnter:h=>'Estado recalculado até '+h,kDifficultyUnter:'Recalculada a cada bloco (LWMA sobre 45 blocos).',
+  kNetz:'Hashrate da rede',kNetzUnter:'A partir da dificuldade e do tempo-alvo de bloco.',kLive:'Medido, ao vivo',
+  kMiner:n=>n+(n===1?' minerador ativo':' mineradores ativos'),kBlockzeit:'Tempo de bloco',
+  kBlockzeitUnter:n=>'Alvo 10 min · últimos '+n+' blocos',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Nenhum pagamento pendente — a taxa mínima basta.',kMempoolVoll:'Pagamentos pendentes.',
+  kUmlauf:'Em circulação',kUmlaufUnter:(max,sym,p)=>'de '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Próximo halving',kHalbierungUnter:(n,r,sym)=>'Faltam '+n+' blocos · recompensa depois '+r+' '+sym,
+  urteilBad:'Uma verificação falhou',urteilOk:n=>n+' blocos verificados aqui',
+  ladenFehl:'Falha ao carregar: ',nachladenFehl:'Falha ao carregar mais: ',sucheLaeuft:'buscando…',
+  nichtsGefunden:'Nada encontrado.',sucheFehl:'Falha na busca: ',
+  sBadAddress:'Não é um endereço YSKAR válido.',sBadHeight:'Altura inválida.',sNoBlock:h=>'O bloco '+h+' (ainda) não existe.',
+  sNoHash:'Nenhum bloco nem transação com este hash.',sEmpty:'Informe um endereço, transação, altura ou hash do bloco.',
+  adresse:'Endereço',guthaben:'Saldo',gefundeneBloecke:'Blocos encontrados',poolAnteile:'Cotas de pool',
+  letzteBewegungen:'Atividade recente',blockreward:'Recompensa de bloco',poolAnteil:'Cota de pool',eingang:'Entrada',ausgang:'Saída',
+  keineBewegungen:'Ainda sem atividade.',txNichtLesbar:'Transação ilegível.',transaktion:'Transação',
+  status:'Status',wartetAufBlock:'aguardando um bloco',inBlock:h=>'no bloco '+h,art:'Tipo',betrag:'Valor',
+  zuBlock:h=>'Ir ao bloco '+h,geradeEben:'agora mesmo',vorMin:n=>'há '+n+' min',vorStd:n=>'há '+n+' h',vorTg:n=>'há '+n+' d',
+  keinServer:'Essas verificações são feitas aqui, não no servidor.',spiegelZweig:h=>'O espelho mostra na altura '+h+' um bloco diferente do nó completo. A lista abaixo pode estar em outro ramo.',spiegelHinten:n=>'O espelho está '+n+(n===1?' bloco':' blocos')+' atrás do nó completo. Os mais recentes faltam abaixo.',neu:'NOVO',voll:p=>p+'% cheio',
+  vonTx:(n,max)=>n+' de '+max+' transações',kette:'A cadeia',fuellLegende:'preenchimento = vagas de transação ocupadas',
+  netzBlick:'A rede em resumo',netzBlickUnter:'atualiza a cada bloco',
+  cBlockzeit:n=>'Tempo de bloco dos últimos '+n+' blocos',cBlockzeitUnter:m=>'Minutos entre dois blocos · linha = alvo '+m+' min',
+  cDifficulty:n=>'Evolução nos últimos '+n+' blocos',bisHalbierung:'Até o halving',werFindet:'Quem encontra os blocos',
+  letzteN:n=>'últimos '+n+' blocos',pool:'Pool',solo:'Solo',hierGeprueft:'verificado aqui',gefunden:'Encontrado',finderL:'Encontrado por',
+  zumVorgaenger:'desde o bloco anterior',pruefung:'Verificação no seu navegador',kennungen:'Identificadores',
+  merkle:'Raiz de Merkle',stateRoot:'Raiz de estado',kopieren:'Copiar',kopiert:'Copiado',alleTx:n=>'Mostrar todas as '+n+' transações',
+  menue:'Menu',erzeugt:p=>p+'% emitido',offenP:p=>p+'% restante',zumVorblock:'em relação ao bloco anterior',wartend:'Pendentes',
+  aeltereBew:'Carregar atividade anterior',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' em taxas',blockZurueck:'Bloco anterior',
+  blockWeiter:'Próximo bloco',minKurz:'min',navMitmachen:'Começar',verbranntK:'queimados',navMenge:'Oferta',navMining:'Mineração',navNutzen:'Usar YSR',navWas:'Sobre o YSKAR',navAblauf:'Como funciona',navAnleitungen:'Guias',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'todos os '+t+' blocos',
+  zielCa:m=>'Alvo ~ '+m+' min',
+  navExplorer:'Explorer',
+},
+ru:{
+  platzhalter:'Адрес, транзакция, высота или хеш блока',suchen:'Найти',hoehe:'Высота',
+  laedt:'загрузка…',hinweisTitel:'Каждый блок пересчитывается здесь, в вашем браузере.',
+  hinweisText:'Заголовок собирается заново из полей, хешируется дважды, сверяется с записанной сложностью, проверяется связь с предыдущим блоком. Эти проверки выполняются здесь, а не на сервере. Какие блоки показаны, определяет зеркало сервера; оно сверяется с полным узлом, и расхождение будет показано здесь. Зелёная точка на блоке значит: проверено здесь.',
+  bloecke:'Блоки',legende:'слева: в работе · справа: найденные',
+  klickHinweis:'Нажмите на блок, чтобы увидеть его транзакции.',zurApp:'← Назад в приложение',quelltext:'Исходный код на GitHub',
+  imBau:'в работе',tx:n=>n+' '+ruPl(n,'транзакция','транзакции','транзакций'),wirdGesucht:'идёт поиск',
+  unbekannt:'Неизвестно',selbstauskunft:'Указано нашедшим',aeltere:'Загрузить старые',laedtKurz:'загрузка…',
+  stimmt:'верно',stimmtNicht:'НЕВЕРНО',offen:'открыто',txLaden:'Загрузка транзакций…',
+  empfaenger:n=>n+' '+ruPl(n,'получатель','получателя','получателей'),von:'От',an:'Кому',gebuehr:'Комиссия',
+  coinbase:'Coinbase',ueberweisung:'Перевод',block:'Блок',gefundenVon:'Нашёл',schliessen:'Закрыть',
+  hash:'Хеш',vorgaenger:'Предыдущий',difficulty:'Сложность',erreicht:'Достигнуто',groesse:'Размер',byte:'байт',
+  transaktionen:'Транзакции',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Награда',
+  serialisierung:'Сериализация',hashGeprueft:'Хеш пересчитан',pow:'Proof of Work',verkettung:'Связь цепочки',
+  wirdGeradeGesucht:'Сейчас ищется',wartendeTx:'Ожидающие транзакции',
+  bauLeer:'Мемпул пуст, поэтому пока в этом блоке только coinbase.',
+  bauVoll:'Ожидающие платежи попадут в этот блок, насколько поместятся.',bauWer:'Кто его найдёт, пока неизвестно.',
+  kHoehe:'Высота',kHoeheUnter:h=>'Состояние пересчитано до '+h,kDifficultyUnter:'Пересчитывается на каждом блоке (LWMA по 45 блокам).',
+  kNetz:'Хешрейт сети',kNetzUnter:'Из сложности и целевого времени блока.',kLive:'Измерено, вживую',
+  kMiner:n=>n+' '+ruPl(n,'активный майнер','активных майнера','активных майнеров'),kBlockzeit:'Время блока',
+  kBlockzeitUnter:n=>'Цель 10 мин · последние '+n+' '+ruPl(n,'блок','блока','блоков'),minS:(m,s)=>m+' мин '+s+' с',
+  kMempool:'Мемпул',kMempoolLeer:'Ожидающих платежей нет — достаточно минимальной комиссии.',kMempoolVoll:'Ожидающие платежи.',
+  kUmlauf:'В обращении',kUmlaufUnter:(max,sym,p)=>'из '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Следующий халвинг',kHalbierungUnter:(n,r,sym)=>'Осталось '+n+' '+ruPl(n,'блок','блока','блоков')+' · награда затем '+r+' '+sym,
+  urteilBad:'Одна из проверок не пройдена',urteilOk:n=>n+' '+ruPl(n,'блок проверен','блока проверены','блоков проверены')+' здесь',
+  ladenFehl:'Ошибка загрузки: ',nachladenFehl:'Ошибка подгрузки: ',sucheLaeuft:'поиск…',
+  nichtsGefunden:'Ничего не найдено.',sucheFehl:'Ошибка поиска: ',
+  sBadAddress:'Недействительный адрес YSKAR.',sBadHeight:'Недопустимая высота.',sNoBlock:h=>'Блока '+h+' (пока) нет.',
+  sNoHash:'Ни блока, ни транзакции с таким хешем.',sEmpty:'Введите адрес, транзакцию, высоту или хеш блока.',
+  adresse:'Адрес',guthaben:'Баланс',gefundeneBloecke:'Найдено блоков',poolAnteile:'Доли пула',
+  letzteBewegungen:'Последние операции',blockreward:'Награда за блок',poolAnteil:'Доля пула',eingang:'Входящий',ausgang:'Исходящий',
+  keineBewegungen:'Операций пока нет.',txNichtLesbar:'Транзакция нечитаема.',transaktion:'Транзакция',
+  status:'Статус',wartetAufBlock:'ожидает блока',inBlock:h=>'в блоке '+h,art:'Тип',betrag:'Сумма',
+  zuBlock:h=>'К блоку '+h,geradeEben:'только что',vorMin:n=>n+' мин назад',vorStd:n=>n+' ч назад',vorTg:n=>n+' дн назад',
+  keinServer:'Эти проверки выполняются здесь, а не на сервере.',spiegelZweig:h=>'Зеркало показывает на высоте '+h+' другой блок, чем полный узел. Список ниже может относиться к другой ветке.',spiegelHinten:n=>'Зеркало отстаёт от полного узла (блоков: '+n+'). Самых новых блоков ниже нет.',neu:'НОВЫЙ',voll:p=>p+'% занято',
+  vonTx:(n,max)=>n+' из '+max+' транзакций',kette:'Цепочка',fuellLegende:'заливка = занятые места для транзакций',
+  netzBlick:'Сеть в цифрах',netzBlickUnter:'обновляется с каждым блоком',
+  cBlockzeit:n=>'Время блока: последние '+n+' '+ruPl(n,'блок','блока','блоков'),
+  cBlockzeitUnter:m=>'Минуты между двумя блоками · линия = цель '+m+' мин',
+  cDifficulty:n=>'Динамика за последние '+n+' '+ruPl(n,'блок','блока','блоков'),bisHalbierung:'До халвинга',
+  werFindet:'Кто находит блоки',letzteN:n=>'последние '+n+' '+ruPl(n,'блок','блока','блоков'),pool:'Пул',solo:'Соло',
+  hierGeprueft:'проверено здесь',gefunden:'Найден',finderL:'Нашёл',zumVorgaenger:'после предыдущего блока',
+  pruefung:'Проверка в вашем браузере',kennungen:'Идентификаторы',merkle:'Корень Меркла',stateRoot:'Корень состояния',
+  kopieren:'Копировать',kopiert:'Скопировано',alleTx:n=>'Показать все транзакции ('+n+')',menue:'Меню',
+  erzeugt:p=>p+'% выпущено',offenP:p=>p+'% осталось',zumVorblock:'к предыдущему блоку',wartend:'В ожидании',
+  aeltereBew:'Загрузить более ранние операции',notiz:'Заметка',inklGebuehr:x=>'вкл. '+x+' комиссий',
+  blockZurueck:'Предыдущий блок',blockWeiter:'Следующий блок',minKurz:'мин',navMitmachen:'Участвовать',verbranntK:'сожжено',navMenge:'Эмиссия',navMining:'Майнинг',navNutzen:'Пользоваться YSR',
+  navWas:'О YSKAR',navAblauf:'Как это работает',navAnleitungen:'Инструкции',navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'все '+t+' '+ruPl(n,'блок','блока','блоков'),
+  zielCa:m=>'Цель ~ '+m+' мин',
+  navExplorer:'Explorer',
+},
+tr:{
+  platzhalter:'Adres, işlem, blok yüksekliği veya blok hash’i',suchen:'Ara',hoehe:'Yükseklik',
+  laedt:'yükleniyor…',hinweisTitel:'Her blok burada, tarayıcınızda yeniden hesaplanır.',
+  hinweisText:'Başlık alanlarından yeniden kurulur, iki kez hash’lenir, kayıtlı zorlukla karşılaştırılır ve zincir bağı izlenir. Bu kontroller sunucuda değil, burada yapılır. Hangi blokların listelendiği sunucunun aynasından gelir; ayna tam düğümle karşılaştırılır ve fark varsa burada gösterilir. Bloktaki yeşil nokta şu anlama gelir: burada doğrulandı.',
+  bloecke:'Bloklar',legende:'sol: yapımda · sağ: bulunan',
+  klickHinweis:'İşlemlerini görmek için bir bloğa dokunun.',zurApp:'← Uygulamaya dön',quelltext:'GitHub’da kaynak kodu',
+  imBau:'yapımda',tx:n=>n+' işlem',wirdGesucht:'aranıyor',
+  unbekannt:'Bilinmiyor',selbstauskunft:'Bulanın kendi beyanı',aeltere:'Eskileri yükle',laedtKurz:'yükleniyor…',
+  stimmt:'doğru',stimmtNicht:'DOĞRU DEĞİL',offen:'açık',txLaden:'İşlemler yükleniyor…',
+  empfaenger:n=>n+' alıcı',von:'Gönderen',an:'Alıcı',gebuehr:'Ücret',
+  coinbase:'Coinbase',ueberweisung:'Transfer',block:'Blok',gefundenVon:'Bulan',schliessen:'Kapat',
+  hash:'Hash',vorgaenger:'Önceki',difficulty:'Zorluk',erreicht:'Ulaşılan',groesse:'Boyut',byte:'bayt',
+  transaktionen:'İşlemler',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ödül',
+  serialisierung:'Serileştirme',hashGeprueft:'Hash yeniden hesaplandı',pow:'İş kanıtı',verkettung:'Zincir bağı',
+  wirdGeradeGesucht:'Şu anda aranıyor',wartendeTx:'Bekleyen işlemler',
+  bauLeer:'Mempool boş, bu yüzden bu blok şimdilik yalnızca coinbase içeriyor.',
+  bauVoll:'Bekleyen ödemeler sığdıkları ölçüde bu bloğa girer.',bauWer:'Kimin bulacağı henüz belli değil.',
+  kHoehe:'Yükseklik',kHoeheUnter:h=>'Durum '+h+'’e kadar yeniden hesaplandı',kDifficultyUnter:'Her blokta yeniden hesaplanır (45 blok üzerinden LWMA).',
+  kNetz:'Ağ hashrate’i',kNetzUnter:'Zorluk ve hedef blok süresinden.',kLive:'Ölçülen, canlı',
+  kMiner:n=>n+' aktif madenci',kBlockzeit:'Blok süresi',
+  kBlockzeitUnter:n=>'Hedef 10 dk · son '+n+' blok',minS:(m,s)=>m+' dk '+s+' sn',
+  kMempool:'Mempool',kMempoolLeer:'Bekleyen ödeme yok — asgari ücret yeterli.',kMempoolVoll:'Bekleyen ödemeler.',
+  kUmlauf:'Dolaşımda',kUmlaufUnter:(max,sym,p)=>max+' '+sym+' içinden · % '+p,
+  kHalbierung:'Sonraki yarılanma',kHalbierungUnter:(n,r,sym)=>n+' blok kaldı · sonra ödül '+r+' '+sym,
+  urteilBad:'Bir kontrol başarısız oldu',urteilOk:n=>n+' blok burada doğrulandı',
+  ladenFehl:'Yükleme başarısız: ',nachladenFehl:'Daha fazla yükleme başarısız: ',sucheLaeuft:'aranıyor…',
+  nichtsGefunden:'Bir şey bulunamadı.',sucheFehl:'Arama başarısız: ',
+  sBadAddress:'Geçerli bir YSKAR adresi değil.',sBadHeight:'Geçersiz yükseklik.',sNoBlock:h=>h+' numaralı blok (henüz) yok.',
+  sNoHash:'Bu hash ile blok veya işlem yok.',sEmpty:'Adres, işlem, blok yüksekliği veya blok hash’i girin.',
+  adresse:'Adres',guthaben:'Bakiye',gefundeneBloecke:'Bulunan bloklar',poolAnteile:'Havuz payları',
+  letzteBewegungen:'Son hareketler',blockreward:'Blok ödülü',poolAnteil:'Havuz payı',eingang:'Gelen',ausgang:'Giden',
+  keineBewegungen:'Henüz hareket yok.',txNichtLesbar:'İşlem okunamıyor.',transaktion:'İşlem',
+  status:'Durum',wartetAufBlock:'blok bekliyor',inBlock:h=>h+' numaralı blokta',art:'Tür',betrag:'Tutar',
+  zuBlock:h=>h+' numaralı bloğa git',geradeEben:'az önce',vorMin:n=>n+' dk önce',vorStd:n=>n+' sa önce',vorTg:n=>n+' gün önce',
+  keinServer:'Bu kontroller sunucuda değil, burada yapılır.',spiegelZweig:h=>'Ayna, '+h+' yüksekliğinde tam düğümden farklı bir blok gösteriyor. Aşağıdaki liste başka bir dalda olabilir.',spiegelHinten:n=>'Ayna tam düğümün '+n+' blok gerisinde. En yeni bloklar aşağıda eksik.',neu:'YENİ',voll:p=>'%'+p+' dolu',
+  vonTx:(n,max)=>max+' işlemden '+n,kette:'Zincir',fuellLegende:'dolgu = kullanılan işlem yeri',
+  netzBlick:'Bir bakışta ağ',netzBlickUnter:'her blokta güncellenir',
+  cBlockzeit:n=>'Son '+n+' bloğun blok süresi',cBlockzeitUnter:m=>'İki blok arasındaki dakika · çizgi = hedef '+m+' dk',
+  cDifficulty:n=>'Son '+n+' bloktaki seyir',bisHalbierung:'Yarılanmaya kadar',werFindet:'Blokları kim buluyor',
+  letzteN:n=>'son '+n+' blok',pool:'Havuz',solo:'Solo',hierGeprueft:'burada doğrulandı',gefunden:'Bulundu',finderL:'Bulan',
+  zumVorgaenger:'önceki bloktan itibaren',pruefung:'Tarayıcınızda doğrulama',kennungen:'Tanımlayıcılar',
+  merkle:'Merkle kökü',stateRoot:'Durum kökü',kopieren:'Kopyala',kopiert:'Kopyalandı',alleTx:n=>n+' işlemin tümünü göster',
+  menue:'Menü',erzeugt:p=>'%'+p+' üretildi',offenP:p=>'%'+p+' kaldı',zumVorblock:'önceki bloğa göre',wartend:'Bekleyen',
+  aeltereBew:'Eski hareketleri yükle',notiz:'Not',inklGebuehr:x=>x+' ücret dahil',blockZurueck:'Önceki blok',
+  blockWeiter:'Sonraki blok',minKurz:'dk',navMitmachen:'Katıl',verbranntK:'yakılan',navMenge:'Arz',navMining:'Madencilik',navNutzen:'YSR kullan',navWas:'YSKAR hakkında',navAblauf:'Nasıl çalışır',navAnleitungen:'Rehberler',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'tüm '+t+' blok',
+  zielCa:m=>'Hedef ~ '+m+' dk',
+  navExplorer:'Gezgin',
+},
+fr:{
+  platzhalter:'Adresse, transaction, hauteur ou hash de bloc',suchen:'Rechercher',hoehe:'Hauteur',
+  laedt:'chargement…',hinweisTitel:'Chaque bloc est revérifié ici, dans ton navigateur.',
+  hinweisText:'L’en-tête est reconstruit à partir de ses champs, hashé deux fois, comparé à la difficulté enregistrée, et le lien de chaîne est suivi. Ces vérifications se font ici, pas sur le serveur. Les blocs affichés viennent du miroir du serveur ; il est comparé au nœud complet, et un écart s’affiche ici. Un point vert sur un bloc signifie : vérifié ici.',
+  bloecke:'Blocs',legende:'à gauche : en cours · à droite : trouvés',
+  klickHinweis:'Clique sur un bloc pour voir ses transactions.',zurApp:'← Retour à l’app',quelltext:'Code source sur GitHub',
+  imBau:'en cours',tx:n=>n+(n<2?' transaction':' transactions'),wirdGesucht:'en recherche',
+  unbekannt:'Inconnu',selbstauskunft:'Déclaré par celui qui l’a trouvé',aeltere:'Charger les plus anciens',laedtKurz:'chargement…',
+  stimmt:'valide',stimmtNicht:'INVALIDE',offen:'ouvert',txLaden:'Chargement des transactions…',
+  empfaenger:n=>n+(n<2?' destinataire':' destinataires'),von:'De',an:'À',gebuehr:'Frais',
+  coinbase:'Coinbase',ueberweisung:'Virement',block:'Bloc',gefundenVon:'Trouvé par',schliessen:'Fermer',
+  hash:'Hash',vorgaenger:'Précédent',difficulty:'Difficulté',erreicht:'Atteinte',groesse:'Taille',byte:'octets',
+  transaktionen:'Transactions',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Récompense',
+  serialisierung:'Sérialisation',hashGeprueft:'Hash recalculé',pow:'Proof of Work',verkettung:'Lien de chaîne',
+  wirdGeradeGesucht:'En cours de recherche',wartendeTx:'Transactions en attente',
+  bauLeer:'Le mempool est vide, ce bloc ne contient donc pour l’instant que la coinbase.',
+  bauVoll:'Les paiements en attente entrent dans ce bloc dans la limite de la place disponible.',bauWer:'On ne sait pas encore qui le trouvera.',
+  kHoehe:'Hauteur',kHoeheUnter:h=>'État recalculé jusqu’à '+h,kDifficultyUnter:'Recalculée à chaque bloc (LWMA sur 45 blocs).',
+  kNetz:'Hashrate du réseau',kNetzUnter:'D’après la difficulté et le temps de bloc cible.',kLive:'Mesuré, en direct',
+  kMiner:n=>n+(n<2?' mineur actif':' mineurs actifs'),kBlockzeit:'Temps de bloc',
+  kBlockzeitUnter:n=>'Cible 10 min · '+n+' derniers blocs',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Aucun paiement en attente — les frais minimum suffisent.',kMempoolVoll:'Paiements en attente.',
+  kUmlauf:'En circulation',kUmlaufUnter:(max,sym,p)=>'sur '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Prochain halving',kHalbierungUnter:(n,r,sym)=>'encore '+n+' blocs · récompense ensuite '+r+' '+sym,
+  urteilBad:'Une vérification a échoué',urteilOk:n=>n+(n<2?' bloc vérifié ici':' blocs vérifiés ici'),
+  ladenFehl:'Échec du chargement : ',nachladenFehl:'Échec du chargement supplémentaire : ',sucheLaeuft:'recherche…',
+  nichtsGefunden:'Aucun résultat.',sucheFehl:'Échec de la recherche : ',
+  sBadAddress:'Adresse YSKAR invalide.',sBadHeight:'Hauteur invalide.',sNoBlock:h=>'Le bloc '+h+' n’existe pas (encore).',
+  sNoHash:'Aucun bloc ni aucune transaction avec ce hash.',sEmpty:'Saisis une adresse, une transaction, une hauteur ou un hash de bloc.',
+  adresse:'Adresse',guthaben:'Solde',gefundeneBloecke:'Blocs trouvés',poolAnteile:'Parts de pool',
+  letzteBewegungen:'Activité récente',blockreward:'Récompense de bloc',poolAnteil:'Part de pool',eingang:'Entrée',ausgang:'Sortie',
+  keineBewegungen:'Aucune activité pour l’instant.',txNichtLesbar:'Transaction illisible.',transaktion:'Transaction',
+  status:'Statut',wartetAufBlock:'en attente d’un bloc',inBlock:h=>'dans le bloc '+h,art:'Type',betrag:'Montant',
+  zuBlock:h=>'Aller au bloc '+h,geradeEben:'à l’instant',vorMin:n=>'il y a '+n+' min',vorStd:n=>'il y a '+n+' h',vorTg:n=>'il y a '+n+' j',
+  keinServer:'Ces vérifications se font ici, pas sur le serveur.',spiegelZweig:h=>'Le miroir montre à la hauteur '+h+' un autre bloc que le nœud complet. La liste ci-dessous est peut-être sur une autre branche.',spiegelHinten:n=>'Le miroir a '+n+(n===1?' bloc':' blocs')+' de retard sur le nœud complet. Les plus récents manquent ci-dessous.',neu:'NOUVEAU',voll:p=>p+' % plein',
+  vonTx:(n,max)=>n+' transactions sur '+max,kette:'La chaîne',fuellLegende:'remplissage = emplacements de transaction occupés',
+  netzBlick:'Le réseau en un coup d’œil',netzBlickUnter:'mis à jour à chaque bloc',
+  cBlockzeit:n=>'Temps de bloc des '+n+' derniers blocs',cBlockzeitUnter:m=>'Minutes entre deux blocs · ligne = cible '+m+' min',
+  cDifficulty:n=>'Évolution sur les '+n+' derniers blocs',bisHalbierung:'Jusqu’au halving',werFindet:'Qui trouve les blocs',
+  letzteN:n=>n+' derniers blocs',pool:'Pool',solo:'Solo',hierGeprueft:'vérifié ici',gefunden:'Trouvé',finderL:'Trouvé par',
+  zumVorgaenger:'depuis le bloc précédent',pruefung:'Vérification dans ton navigateur',kennungen:'Identifiants',
+  merkle:'Racine de Merkle',stateRoot:'Racine d’état',kopieren:'Copier',kopiert:'Copié',alleTx:n=>'Afficher les '+n+' transactions',
+  menue:'Menu',erzeugt:p=>p+' % émis',offenP:p=>p+' % restants',zumVorblock:'par rapport au bloc précédent',wartend:'En attente',
+  aeltereBew:'Charger l’activité plus ancienne',notiz:'Note',inklGebuehr:x=>'dont '+x+' de frais',blockZurueck:'Bloc précédent',
+  blockWeiter:'Bloc suivant',minKurz:'min',navMitmachen:'Commencer',verbranntK:'brûlés',navMenge:'Offre',navMining:'Minage',navNutzen:'Utiliser YSR',navWas:'À propos',navAblauf:'Fonctionnement',navAnleitungen:'Guides',
+  navWhitepaper:'Livre blanc',
+  alleBloecke:(n,t)=>'tous les '+t+' blocs',
+  zielCa:m=>'Cible ~ '+m+' min',
+  navExplorer:'Explorateur',
+},
+it:{
+  platzhalter:'Indirizzo, transazione, altezza o hash del blocco',suchen:'Cerca',hoehe:'Altezza',
+  laedt:'caricamento…',hinweisTitel:'Ogni blocco viene ricontrollato qui, nel tuo browser.',
+  hinweisText:'L’header viene ricostruito dai suoi campi, sottoposto a doppio hash, confrontato con la difficulty registrata, e si segue il collegamento della catena. Queste verifiche avvengono qui, non sul server. Quali blocchi compaiono lo decide lo specchio del server; viene confrontato con il nodo completo e un’eventuale differenza compare qui. Un punto verde su un blocco significa: verificato qui.',
+  bloecke:'Blocchi',legende:'sinistra: in lavorazione · destra: trovati',
+  klickHinweis:'Clicca un blocco per vederne le transazioni.',zurApp:'← Torna all’app',quelltext:'Codice su GitHub',
+  imBau:'in lavorazione',tx:n=>n+(n===1?' transazione':' transazioni'),wirdGesucht:'in ricerca',
+  unbekannt:'Sconosciuto',selbstauskunft:'Dichiarato da chi l’ha trovato',aeltere:'Carica i precedenti',laedtKurz:'caricamento…',
+  stimmt:'valido',stimmtNicht:'NON VALIDO',offen:'aperto',txLaden:'Caricamento transazioni…',
+  empfaenger:n=>n+(n===1?' destinatario':' destinatari'),von:'Da',an:'A',gebuehr:'Commissione',
+  coinbase:'Coinbase',ueberweisung:'Trasferimento',block:'Blocco',gefundenVon:'Trovato da',schliessen:'Chiudi',
+  hash:'Hash',vorgaenger:'Precedente',difficulty:'Difficulty',erreicht:'Raggiunta',groesse:'Dimensione',byte:'byte',
+  transaktionen:'Transazioni',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Ricompensa',
+  serialisierung:'Serializzazione',hashGeprueft:'Hash ricalcolato',pow:'Proof of Work',verkettung:'Collegamento',
+  wirdGeradeGesucht:'In ricerca ora',wartendeTx:'Transazioni in attesa',
+  bauLeer:'Il mempool è vuoto, quindi per ora questo blocco contiene solo la coinbase.',
+  bauVoll:'I pagamenti in attesa entrano in questo blocco finché c’è posto.',bauWer:'Chi lo troverà non si sa ancora.',
+  kHoehe:'Altezza',kHoeheUnter:h=>'Stato ricalcolato fino a '+h,kDifficultyUnter:'Ricalcolata a ogni blocco (LWMA su 45 blocchi).',
+  kNetz:'Hashrate di rete',kNetzUnter:'Da difficulty e tempo di blocco obiettivo.',kLive:'Misurato, live',
+  kMiner:n=>n+(n===1?' miner attivo':' miner attivi'),kBlockzeit:'Tempo di blocco',
+  kBlockzeitUnter:n=>'Obiettivo 10 min · ultimi '+n+' blocchi',minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Nessun pagamento in attesa: basta la commissione minima.',kMempoolVoll:'Pagamenti in attesa.',
+  kUmlauf:'In circolazione',kUmlaufUnter:(max,sym,p)=>'di '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Prossimo halving',kHalbierungUnter:(n,r,sym)=>'mancano '+n+' blocchi · poi ricompensa '+r+' '+sym,
+  urteilBad:'Una verifica non è riuscita',urteilOk:n=>n+' blocchi verificati qui',
+  ladenFehl:'Caricamento non riuscito: ',nachladenFehl:'Caricamento successivo non riuscito: ',sucheLaeuft:'ricerca…',
+  nichtsGefunden:'Nessun risultato.',sucheFehl:'Ricerca non riuscita: ',
+  sBadAddress:'Indirizzo YSKAR non valido.',sBadHeight:'Altezza non valida.',sNoBlock:h=>'Il blocco '+h+' non esiste (ancora).',
+  sNoHash:'Nessun blocco e nessuna transazione con questo hash.',sEmpty:'Inserisci un indirizzo, una transazione, un’altezza o un hash di blocco.',
+  adresse:'Indirizzo',guthaben:'Saldo',gefundeneBloecke:'Blocchi trovati',poolAnteile:'Quote pool',
+  letzteBewegungen:'Movimenti recenti',blockreward:'Reward del blocco',poolAnteil:'Quota pool',eingang:'In entrata',ausgang:'In uscita',
+  keineBewegungen:'Ancora nessun movimento.',txNichtLesbar:'Transazione non leggibile.',transaktion:'Transazione',
+  status:'Stato',wartetAufBlock:'in attesa di un blocco',inBlock:h=>'nel blocco '+h,art:'Tipo',betrag:'Importo',
+  zuBlock:h=>'Vai al blocco '+h,geradeEben:'proprio ora',vorMin:n=>n+' min fa',vorStd:n=>n+' h fa',vorTg:n=>n+' g fa',
+  keinServer:'Queste verifiche avvengono qui, non sul server.',spiegelZweig:h=>'Lo specchio mostra all’altezza '+h+' un blocco diverso da quello del nodo completo. L’elenco qui sotto potrebbe essere su un altro ramo.',spiegelHinten:n=>'Lo specchio è indietro di '+n+(n===1?' blocco':' blocchi')+' rispetto al nodo completo. Qui sotto mancano i più recenti.',neu:'NUOVO',voll:p=>p+'% pieno',
+  vonTx:(n,max)=>n+' di '+max+' transazioni',kette:'La catena',fuellLegende:'riempimento = posti transazione occupati',
+  netzBlick:'La rete in sintesi',netzBlickUnter:'si aggiorna a ogni blocco',
+  cBlockzeit:n=>'Tempo di blocco degli ultimi '+n+' blocchi',cBlockzeitUnter:m=>'Minuti tra due blocchi · linea = obiettivo '+m+' min',
+  cDifficulty:n=>'Andamento negli ultimi '+n+' blocchi',bisHalbierung:'Fino all’halving',werFindet:'Chi trova i blocchi',
+  letzteN:n=>'ultimi '+n+' blocchi',pool:'Pool',solo:'Solo',hierGeprueft:'verificato qui',gefunden:'Trovato',finderL:'Trovato da',
+  zumVorgaenger:'dal blocco precedente',pruefung:'Verifica nel tuo browser',kennungen:'Identificativi',
+  merkle:'Radice di Merkle',stateRoot:'Radice di stato',kopieren:'Copia',kopiert:'Copiato',alleTx:n=>'Mostra tutte le '+n+' transazioni',
+  menue:'Menu',erzeugt:p=>p+'% emesso',offenP:p=>p+'% rimanente',zumVorblock:'rispetto al blocco precedente',wartend:'In attesa',
+  aeltereBew:'Carica movimenti precedenti',notiz:'Nota',inklGebuehr:x=>'incl. '+x+' di commissioni',blockZurueck:'Blocco precedente',
+  blockWeiter:'Blocco successivo',minKurz:'min',navMitmachen:'Inizia',verbranntK:'bruciati',navMenge:'Offerta',navMining:'Mining',navNutzen:'Usa YSR',navWas:'Cos’è YSKAR',navAblauf:'Come funziona',navAnleitungen:'Guide',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'tutti i '+t+' blocchi',
+  zielCa:m=>'Obiettivo ~ '+m+' min',
+  navExplorer:'Explorer',
+},
+pl:{
+  platzhalter:'Adres, transakcja, wysokość lub hash bloku',suchen:'Szukaj',hoehe:'Wysokość',
+  laedt:'ładowanie…',hinweisTitel:'Każdy blok jest tu ponownie weryfikowany w Twojej przeglądarce.',
+  hinweisText:'Nagłówek jest odtwarzany z jego pól, hashowany podwójnie, porównywany z zapisaną trudnością, a powiązanie z poprzednim blokiem jest sprawdzane. Te kontrole odbywają się tutaj, a nie na serwerze. To, które bloki są widoczne, pochodzi z lustra serwera; jest ono porównywane z pełnym węzłem, a różnica zostanie tu pokazana. Zielona kropka na bloku oznacza: zweryfikowano tutaj.',
+  bloecke:'Bloki',legende:'po lewej: w budowie · po prawej: znalezione',
+  klickHinweis:'Kliknij blok, aby zobaczyć jego transakcje.',zurApp:'← Wróć do aplikacji',quelltext:'Kod źródłowy na GitHubie',
+  imBau:'w budowie',tx:n=>n+' '+plPl(n,'transakcja','transakcje','transakcji'),wirdGesucht:'trwa szukanie',
+  unbekannt:'Nieznany',selbstauskunft:'Podane przez znalazcę',aeltere:'Wczytaj starsze',laedtKurz:'ładowanie…',
+  stimmt:'poprawny',stimmtNicht:'NIEPOPRAWNY',offen:'otwarty',txLaden:'Ładowanie transakcji…',
+  empfaenger:n=>n+' '+plPl(n,'odbiorca','odbiorców','odbiorców'),von:'Od',an:'Do',gebuehr:'Opłata',
+  coinbase:'Coinbase',ueberweisung:'Przelew',block:'Blok',gefundenVon:'Znalazca',schliessen:'Zamknij',
+  hash:'Hash',vorgaenger:'Poprzedni',difficulty:'Trudność',erreicht:'Osiągnięto',groesse:'Rozmiar',byte:'bajtów',
+  transaktionen:'Transakcje',nonce:'Nonce',extranonce:'Extranonce',belohnung:'Nagroda',
+  serialisierung:'Serializacja',hashGeprueft:'Hash przeliczony',pow:'Proof of Work',verkettung:'Powiązanie łańcucha',
+  wirdGeradeGesucht:'Właśnie szukany',wartendeTx:'Oczekujące transakcje',
+  bauLeer:'Mempool jest pusty, więc ten blok zawiera na razie tylko coinbase.',
+  bauVoll:'Oczekujące płatności trafią do tego bloku, o ile się zmieszczą.',bauWer:'Nie wiadomo jeszcze, kto go znajdzie.',
+  kHoehe:'Wysokość',kHoeheUnter:h=>'Stan przeliczony do '+h,kDifficultyUnter:'Przeliczana przy każdym bloku (LWMA z 45 bloków).',
+  kNetz:'Hashrate sieci',kNetzUnter:'Z trudności i docelowego czasu bloku.',kLive:'Zmierzone, na żywo',
+  kMiner:n=>n+' '+plPl(n,'aktywny miner','aktywni minerzy','aktywnych minerów'),kBlockzeit:'Czas bloku',
+  kBlockzeitUnter:n=>'Cel 10 min · ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),minS:(m,s)=>m+' min '+s+' s',
+  kMempool:'Mempool',kMempoolLeer:'Brak oczekujących płatności — wystarczy minimalna opłata.',kMempoolVoll:'Oczekujące płatności.',
+  kUmlauf:'W obiegu',kUmlaufUnter:(max,sym,p)=>'z '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'Następny halving',kHalbierungUnter:(n,r,sym)=>'Jeszcze '+n+' '+plPl(n,'blok','bloki','bloków')+' · potem nagroda '+r+' '+sym,
+  urteilBad:'Jedna z kontroli nie przeszła',urteilOk:n=>'Zweryfikowano tutaj '+n+' '+plPl(n,'blok','bloki','bloków'),
+  ladenFehl:'Błąd ładowania: ',nachladenFehl:'Błąd doładowania: ',sucheLaeuft:'szukanie…',
+  nichtsGefunden:'Nic nie znaleziono.',sucheFehl:'Błąd wyszukiwania: ',
+  sBadAddress:'To nie jest prawidłowy adres YSKAR.',sBadHeight:'Nieprawidłowa wysokość.',sNoBlock:h=>'Blok '+h+' (jeszcze) nie istnieje.',
+  sNoHash:'Brak bloku i transakcji o tym hashu.',sEmpty:'Wpisz adres, transakcję, wysokość lub hash bloku.',
+  adresse:'Adres',guthaben:'Saldo',gefundeneBloecke:'Znalezione bloki',poolAnteile:'Udziały w poolu',
+  letzteBewegungen:'Ostatnie operacje',blockreward:'Nagroda za blok',poolAnteil:'Udział w poolu',eingang:'Przychodząca',ausgang:'Wychodząca',
+  keineBewegungen:'Na razie brak operacji.',txNichtLesbar:'Nie można odczytać transakcji.',transaktion:'Transakcja',
+  status:'Status',wartetAufBlock:'czeka na blok',inBlock:h=>'w bloku '+h,art:'Typ',betrag:'Kwota',
+  zuBlock:h=>'Przejdź do bloku '+h,geradeEben:'przed chwilą',vorMin:n=>n+' min temu',vorStd:n=>n+' godz. temu',vorTg:n=>n+' '+plPl(n,'dzień','dni','dni')+' temu',
+  keinServer:'Te kontrole odbywają się tutaj, a nie na serwerze.',spiegelZweig:h=>'Lustro pokazuje na wysokości '+h+' inny blok niż pełny węzeł. Lista poniżej może dotyczyć innej gałęzi.',spiegelHinten:n=>'Lustro jest w tyle za pełnym węzłem (bloki: '+n+'). Poniżej brakuje najnowszych.',neu:'NOWY',voll:p=>p+'% pełny',
+  vonTx:(n,max)=>n+' z '+max+' transakcji',kette:'Łańcuch',fuellLegende:'wypełnienie = zajęte miejsca na transakcje',
+  netzBlick:'Sieć w skrócie',netzBlickUnter:'aktualizuje się z każdym blokiem',
+  cBlockzeit:n=>'Czas bloku: ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),
+  cBlockzeitUnter:m=>'Minuty między dwoma blokami · linia = cel '+m+' min',
+  cDifficulty:n=>'Przebieg: ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),bisHalbierung:'Do halvingu',
+  werFindet:'Kto znajduje bloki',letzteN:n=>'ostatnie '+n+' '+plPl(n,'blok','bloki','bloków'),pool:'Pool',solo:'Solo',
+  hierGeprueft:'zweryfikowano tutaj',gefunden:'Znaleziono',finderL:'Znalazca',zumVorgaenger:'od poprzedniego bloku',
+  pruefung:'Weryfikacja w Twojej przeglądarce',kennungen:'Identyfikatory',merkle:'Korzeń Merkle’a',stateRoot:'Korzeń stanu',
+  kopieren:'Kopiuj',kopiert:'Skopiowano',alleTx:n=>'Pokaż wszystkie transakcje ('+n+')',menue:'Menu',
+  erzeugt:p=>p+'% wyemitowano',offenP:p=>p+'% pozostało',zumVorblock:'względem poprzedniego bloku',wartend:'Oczekujące',
+  aeltereBew:'Wczytaj starsze operacje',notiz:'Notatka',inklGebuehr:x=>'w tym '+x+' opłat',blockZurueck:'Poprzedni blok',
+  blockWeiter:'Następny blok',minKurz:'min',navMitmachen:'Dołącz',verbranntK:'spalone',navMenge:'Podaż',navMining:'Mining',navNutzen:'Używaj YSR',navWas:'O YSKAR',navAblauf:'Jak to działa',navAnleitungen:'Poradniki',
+  navWhitepaper:'Whitepaper',
+  alleBloecke:(n,t)=>'wszystkie '+t+' '+plPl(n,'blok','bloki','bloków'),
+  zielCa:m=>'Cel ~ '+m+' min',
+  navExplorer:'Explorer',
+},
+zh:{
+  platzhalter:'地址、交易、区块高度或区块哈希',suchen:'搜索',hoehe:'高度',
+  laedt:'加载中…',hinweisTitel:'每个区块都会在你的浏览器中重新验证。',
+  hinweisText:'区块头会根据其字段重建、进行双重哈希、与记录的难度比对，并沿着链的链接追溯。这些检查在这里进行，而不是在服务器上。显示哪些区块来自服务器的镜像；镜像会与全节点比对，如有差异会在此显示。区块上的绿点表示：已在此处验证。',
+  bloecke:'区块',legende:'左：生成中 · 右：已找到',
+  klickHinweis:'点击区块查看其中的交易。',zurApp:'← 返回应用',quelltext:'GitHub 上的源代码',
+  imBau:'生成中',tx:n=>n+' 笔交易',wirdGesucht:'正在搜索',
+  unbekannt:'未知',selbstauskunft:'由发现者自行声明',aeltere:'加载更早的区块',laedtKurz:'加载中…',
+  stimmt:'有效',stimmtNicht:'无效',offen:'待定',txLaden:'正在加载交易…',
+  empfaenger:n=>n+' 个收款方',von:'来自',an:'至',gebuehr:'手续费',
+  coinbase:'Coinbase',ueberweisung:'转账',block:'区块',gefundenVon:'发现者',schliessen:'关闭',
+  hash:'哈希',vorgaenger:'上一个区块',difficulty:'难度',erreicht:'达到',groesse:'大小',byte:'字节',
+  transaktionen:'交易',nonce:'Nonce',extranonce:'Extranonce',belohnung:'奖励',
+  serialisierung:'序列化',hashGeprueft:'哈希已重新计算',pow:'工作量证明',verkettung:'链接',
+  wirdGeradeGesucht:'正在搜索中',wartendeTx:'待处理交易',
+  bauLeer:'交易池为空，因此该区块目前只包含 Coinbase。',
+  bauVoll:'待处理的付款会尽可能多地放入这个区块。',bauWer:'尚不知道由谁找到它。',
+  kHoehe:'高度',kHoeheUnter:h=>'状态已重新计算至 '+h,kDifficultyUnter:'每个区块重新计算（基于 45 个区块的 LWMA）。',
+  kNetz:'全网算力',kNetzUnter:'由难度和目标出块时间推算。',kLive:'实测，实时',
+  kMiner:n=>n+' 个活跃矿工',kBlockzeit:'出块时间',
+  kBlockzeitUnter:n=>'目标 10 分钟 · 最近 '+n+' 个区块',minS:(m,s)=>m+' 分 '+s+' 秒',
+  kMempool:'交易池',kMempoolLeer:'没有待处理的付款——最低手续费即可。',kMempoolVoll:'待处理的付款。',
+  kUmlauf:'流通量',kUmlaufUnter:(max,sym,p)=>'共 '+max+' '+sym+' · '+p+' %',
+  kHalbierung:'下次减半',kHalbierungUnter:(n,r,sym)=>'还有 '+n+' 个区块 · 届时奖励为 '+r+' '+sym,
+  urteilBad:'有一项检查未通过',urteilOk:n=>'已在此处验证 '+n+' 个区块',
+  ladenFehl:'加载失败：',nachladenFehl:'加载更多失败：',sucheLaeuft:'搜索中…',
+  nichtsGefunden:'未找到任何结果。',sucheFehl:'搜索失败：',
+  sBadAddress:'不是有效的 YSKAR 地址。',sBadHeight:'高度无效。',sNoBlock:h=>'区块 '+h+' 不存在（或尚未产生）。',
+  sNoHash:'没有与此哈希对应的区块或交易。',sEmpty:'请输入地址、交易、区块高度或区块哈希。',
+  adresse:'地址',guthaben:'余额',gefundeneBloecke:'找到的区块',poolAnteile:'矿池分成',
+  letzteBewegungen:'最近动态',blockreward:'区块奖励',poolAnteil:'矿池分成',eingang:'收入',ausgang:'支出',
+  keineBewegungen:'暂无动态。',txNichtLesbar:'无法读取交易。',transaktion:'交易',
+  status:'状态',wartetAufBlock:'等待打包进区块',inBlock:h=>'在区块 '+h+' 中',art:'类型',betrag:'金额',
+  zuBlock:h=>'前往区块 '+h,geradeEben:'刚刚',vorMin:n=>n+' 分钟前',vorStd:n=>n+' 小时前',vorTg:n=>n+' 天前',
+  keinServer:'这些检查在这里进行，而不是在服务器上。',spiegelZweig:h=>'镜像在高度 '+h+' 显示的区块与全节点不同。下面的列表可能位于另一条分支。',spiegelHinten:n=>'镜像落后全节点 '+n+' 个区块。下面缺少最新的区块。',neu:'新',voll:p=>'已用 '+p+'%',
+  vonTx:(n,max)=>n+' / '+max+' 笔交易',kette:'区块链',fuellLegende:'填充 = 已占用的交易位',
+  netzBlick:'网络概览',netzBlickUnter:'每出一个区块更新一次',
+  cBlockzeit:n=>'最近 '+n+' 个区块的出块时间',cBlockzeitUnter:m=>'相邻两个区块的间隔（分钟）· 横线 = 目标 '+m+' 分钟',
+  cDifficulty:n=>'最近 '+n+' 个区块的走势',bisHalbierung:'距离减半',werFindet:'谁发现了区块',
+  letzteN:n=>'最近 '+n+' 个区块',pool:'矿池',solo:'单独',hierGeprueft:'已在此验证',gefunden:'发现时间',finderL:'发现者',
+  zumVorgaenger:'距上一个区块',pruefung:'在你的浏览器中验证',kennungen:'标识',
+  merkle:'默克尔根',stateRoot:'状态根',kopieren:'复制',kopiert:'已复制',alleTx:n=>'显示全部 '+n+' 笔交易',
+  menue:'菜单',erzeugt:p=>'已发行 '+p+'%',offenP:p=>'剩余 '+p+'%',zumVorblock:'较上一区块',wartend:'待处理',
+  aeltereBew:'加载更早的动态',notiz:'备注',inklGebuehr:x=>'含手续费 '+x,blockZurueck:'上一个区块',
+  blockWeiter:'下一个区块',minKurz:'分钟',navMitmachen:'开始参与',verbranntK:'已销毁',navMenge:'供应量',navMining:'挖矿',navNutzen:'使用 YSR',navWas:'关于 YSKAR',navAblauf:'运作原理',navAnleitungen:'教程',
+  navWhitepaper:'白皮书',
+  alleBloecke:(n,t)=>'全部 '+t+' 个区块',
+  zielCa:m=>'目标约 '+m+' 分钟',
+  navExplorer:'区块浏览器',
+},
+};
+// Polnisch: 1 / 2–4 (ausser 12–14) / sonst. Anders als Russisch zaehlt 21 zu "viele".
+function plPl(n,eins,wenige,viele){
+  const a=Math.abs(n)%100,b=a%10;
+  if(n===1)return eins; if(b>1&&b<5&&!(a>11&&a<15))return wenige; return viele;
+}
+function ruPl(n,eins,wenige,viele){
+  const a=Math.abs(n)%100,b=a%10;
+  if(a>10&&a<20)return viele; if(b>1&&b<5)return wenige; if(b===1)return eins; return viele;
+}
+function spracheErkennen(){
+  try{ const g=localStorage.getItem('yskar.sprache'); if(g&&WB[g]) return g; }catch{}
+  const liste=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||''];
+  for(const l of liste){ const k=String(l).slice(0,2).toLowerCase(); if(WB[k]) return k; }
+  return 'en';
+}
+let L=spracheErkennen();
+let T=WB[L];
+let LOC=LOCALES[L];
+function spracheSetzen(k){
+  if(!WB[k])return;
+  L=k; T=WB[k]; LOC=LOCALES[k];
+  try{ localStorage.setItem('yskar.sprache',k); }catch{}
+  document.documentElement.lang=k;
+  statischeTexte();
+  if(sum){ renderStats(); renderVerdict(); }
+  renderKette();
+  ausHash();
+}
+// Texte der Fusszeile (von der Website uebernommen; andere Sprachen fallen auf Englisch zurueck).
+const FUSS={"en":{"fuss.netz":"Network","nav.explorer":"Explorer","nav.protokoll":"Protocol","fuss.fullnode":"Full node","fuss.quelltext":"Source code","fuss.mitmachen":"Take part","nav.mining":"Mining","fuss.telegram":"Telegram Mini App","fuss.kanal":"Telegram channel","fuss.gruppe":"Community chat","nav.anleitungen":"Guides","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Legal","fuss.impressum":"Legal notice","fuss.datenschutz":"Privacy"},"de":{"fuss.netz":"Netz","nav.explorer":"Explorer","nav.protokoll":"Protokoll","fuss.fullnode":"Fullnode","fuss.quelltext":"Quelltext","fuss.mitmachen":"Mitmachen","nav.mining":"Mining","fuss.telegram":"Telegram Mini App","fuss.kanal":"Telegram-Kanal","fuss.gruppe":"Community-Chat","nav.anleitungen":"Anleitungen","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Rechtliches","fuss.impressum":"Impressum","fuss.datenschutz":"Datenschutz"},"es":{"fuss.netz":"Red","nav.explorer":"Explorador","nav.protokoll":"Protocolo","fuss.fullnode":"Nodo completo","fuss.quelltext":"Código fuente","fuss.mitmachen":"Participa","nav.mining":"Minería","fuss.telegram":"Telegram Mini App","fuss.kanal":"Canal de Telegram","fuss.gruppe":"Chat de la comunidad","nav.anleitungen":"Guías","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Legal","fuss.impressum":"Aviso legal","fuss.datenschutz":"Privacidad"},"pt":{"fuss.netz":"Rede","nav.explorer":"Explorer","nav.protokoll":"Protocolo","fuss.fullnode":"Full node","fuss.quelltext":"Código-fonte","fuss.mitmachen":"Participe","nav.mining":"Mineração","fuss.telegram":"Telegram Mini App","fuss.kanal":"Canal no Telegram","fuss.gruppe":"Chat da comunidade","nav.anleitungen":"Guias","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Jurídico","fuss.impressum":"Aviso legal","fuss.datenschutz":"Privacidade"},"ru":{"fuss.netz":"Сеть","nav.explorer":"Explorer","nav.protokoll":"Протокол","fuss.fullnode":"Full node","fuss.quelltext":"Исходный код","fuss.mitmachen":"Участвовать","nav.mining":"Майнинг","fuss.telegram":"Telegram Mini App","fuss.kanal":"Канал в Telegram","fuss.gruppe":"Чат сообщества","nav.anleitungen":"Инструкции","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Правовая информация","fuss.impressum":"Выходные данные","fuss.datenschutz":"Конфиденциальность"},"tr":{"fuss.netz":"Ağ","nav.explorer":"Gezgin","nav.protokoll":"Protokol","fuss.fullnode":"Tam düğüm","fuss.quelltext":"Kaynak kod","fuss.mitmachen":"Katıl","nav.mining":"Madencilik","fuss.telegram":"Telegram Mini App","fuss.kanal":"Telegram kanalı","fuss.gruppe":"Topluluk sohbeti","nav.anleitungen":"Rehberler","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Yasal","fuss.impressum":"Künye","fuss.datenschutz":"Gizlilik"},"fr":{"fuss.netz":"Réseau","nav.explorer":"Explorateur","nav.protokoll":"Protocole","fuss.fullnode":"Nœud complet","fuss.quelltext":"Code source","fuss.mitmachen":"Participer","nav.mining":"Minage","fuss.telegram":"Mini App Telegram","fuss.kanal":"Canal Telegram","fuss.gruppe":"Chat de la communauté","nav.anleitungen":"Guides","nav.whitepaper":"Livre blanc","fuss.rechtliches":"Informations légales","fuss.impressum":"Mentions légales","fuss.datenschutz":"Confidentialité"},"it":{"fuss.netz":"Rete","nav.explorer":"Explorer","nav.protokoll":"Protocollo","fuss.fullnode":"Full node","fuss.quelltext":"Codice sorgente","fuss.mitmachen":"Partecipa","nav.mining":"Mining","fuss.telegram":"Mini App di Telegram","fuss.kanal":"Canale Telegram","fuss.gruppe":"Chat della community","nav.anleitungen":"Guide","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Note legali","fuss.impressum":"Impressum","fuss.datenschutz":"Privacy"},"pl":{"fuss.netz":"Sieć","nav.explorer":"Explorer","nav.protokoll":"Protokół","fuss.fullnode":"Full node","fuss.quelltext":"Kod źródłowy","fuss.mitmachen":"Dołącz","nav.mining":"Mining","fuss.telegram":"Telegram Mini App","fuss.kanal":"Kanał na Telegramie","fuss.gruppe":"Czat społeczności","nav.anleitungen":"Poradniki","nav.whitepaper":"Whitepaper","fuss.rechtliches":"Informacje prawne","fuss.impressum":"Nota prawna","fuss.datenschutz":"Prywatność"},"zh":{"fuss.netz":"网络","nav.explorer":"区块浏览器","nav.protokoll":"协议","fuss.fullnode":"全节点","fuss.quelltext":"源代码","fuss.mitmachen":"参与","nav.mining":"挖矿","fuss.telegram":"Telegram 小程序","fuss.kanal":"Telegram 频道","fuss.gruppe":"社区群聊","nav.anleitungen":"教程","nav.whitepaper":"白皮书","fuss.rechtliches":"法律信息","fuss.impressum":"网站信息","fuss.datenschutz":"隐私政策"}};
+function statischeTexte(){
+  document.querySelectorAll('[data-t]').forEach(e=>{ const k=e.dataset.t; const w=T[k]!=null?T[k]:(FUSS[L]&&FUSS[L][k])||FUSS.en[k]||WB.en[k]; if(w!=null) e.textContent=w; });
+  $('q').placeholder=T.platzhalter;
+  $('q').setAttribute('aria-label',T.suchen);
+  $('ketteLegende').textContent=T.legende+' · '+T.fuellLegende;
+  $('menue').setAttribute('aria-label',T.menue);
+  const zurueck=T.zurApp.replace(/^←\s*/,'');
+  $('appZurueck').setAttribute('aria-label',zurueck); $('appZurueck').title=zurueck;
+  if(!urteilStand) $('verdictText').textContent=T.laedt;
+  $('verdict').setAttribute('aria-label',T.pruefung); $('verdict').title=T.pruefung;
+  navBauen();
+  const sel=$('sprache');
+  if(!sel.options.length){
+    for(const [k,name] of SPRACHEN){ const o=document.createElement('option'); o.value=k; o.textContent=name; sel.appendChild(o); }
+    sel.addEventListener('change',()=>spracheSetzen(sel.value));
+  }
+  sel.value=L;
+}
+
+// ---------------------------------------------------------------- Kopfzeile
+/*
+  Unter www.yskar.app (und von der Festplatte) traegt der Explorer das Menue
+  der Website -- er ist dort eine Seite unter mehreren. Auf der App-Domain
+  gibt es diese Seiten nicht; dort fuehrt die Kopfzeile nur zur App zurueck.
+*/
+const WEBSITE_NAV=AUF_WEBSITE||!HOSTED;
+const SITE=AUF_WEBSITE?'':'https://www.yskar.app';
+function navBauen(){
+  const n=$('nav');
+  const t=k=>T[k]||WB.en[k];
+  if(WEBSITE_NAV){
+    n.innerHTML=
+      `<a href="${SITE}/#was">${t('navWas')}</a>`+
+      `<a href="${SITE}/#ablauf">${t('navAblauf')}</a>`+
+      `<a href="${SITE}/#menge">${t('navMenge')}</a>`+
+      `<a href="${SITE}/#v6" class="v6-link">V6</a>`+
+      `<a href="${SITE}/mining">${t('navMining')}</a>`+
+      `<a href="${SITE}/anleitungen">${t('navAnleitungen')}</a>`+
+      `<a href="${SITE}/whitepaper">${t('navWhitepaper')}</a>`+
+      `<a href="${SITE}/explorer" aria-current="page">${t('navExplorer')}</a>`;
+    $('kopfCta').textContent=t('navNutzen');
+    $('kopfCta').href=SITE+'/#nutzen';
+  }else{
+    n.innerHTML=`<a href="/">${T.zurApp}</a>`;
+  }
+}
+document.body.classList.toggle('app-domain',!WEBSITE_NAV);
+$('marke').setAttribute('href',WEBSITE_NAV?SITE+'/':'/');
+$('menue').addEventListener('click',()=>{
+  const auf=$('nav').classList.toggle('offen');
+  $('menue').setAttribute('aria-expanded',auf?'true':'false');
+});
+$('nav').addEventListener('click',e=>{
+  if(e.target.closest('a')){ $('nav').classList.remove('offen'); $('menue').setAttribute('aria-expanded','false'); }
+});
+
+// ---------------------------------------------------------------- Helfer
+// Identisch zu src/lib/core/params.ts.
+const MAX_TX=2000;      // MAX_TXS_PER_BLOCK
+const EPOCHE=12000;     // EPOCH_BLOCKS
+const N_BLOCKZEIT=45;   // Blockzeit: so viele Abstaende -- das Fenster, ueber das auch die Difficulty rechnet (LWMA)
+const N_DIFF=50;        // Difficulty: so viele Bloecke im Verlauf
+const N_LADEN=Math.max(N_DIFF,N_BLOCKZEIT+1);   // 45 Abstaende brauchen 46 Bloecke; die Route gibt hoechstens 50
+
+const esc=t=>String(t).replace(/[&<>"']/g,c=>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const holen=p=>fetch(API+p).then(r=>r.json());
+
+/*
+  Was vom Server kommt, wird an der Grenze in Form gebracht: Zahlen werden
+  Zahlen, und jede Zeichenkette laeuft vor der Anzeige durch esc().
+
+  Mit ?api=… laesst sich der Explorer auf einen fremden Server richten. Der
+  darf falsche Daten liefern -- die faellt beim Nachrechnen auf --, aber er
+  darf der Seite kein HTML unterschieben.
+*/
+function bloeckeAus(r){
+  return (r&&Array.isArray(r.blocks)?r.blocks:[]).map(b=>({...b,
+    height:Number(b.height),
+    txCount:Number(b.txCount)||0,
+    recipients:Math.max(1,Number(b.recipients)||1),
+    sizeBytes:b.sizeBytes==null?null:Number(b.sizeBytes),
+  })).filter(b=>Number.isInteger(b.height)&&b.height>=0);
+}
+function summeAus(s){
+  const zahl=v=>{ const n=Number(v); return Number.isFinite(n)?n:null; };
+  return {...s,
+    height:s.height==null?null:zahl(s.height),
+    mempool:zahl(s.mempool)||0,
+    activeMiners:zahl(s.activeMiners)||0,
+    hashrate:s.hashrate==null?null:zahl(s.hashrate),
+    targetBlockTime:zahl(s.targetBlockTime)||600,
+  };
+}
+
+const svg=(inhalt,g=14,extra='')=>`<svg viewBox="0 0 16 16" width="${g}" height="${g}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inhalt}</svg>`;
+const IC={
+  ok:svg('<path d="M3.2 8.6l3 3 6.4-7.2"/>',12,'stroke-width="2.4"'),
+  x:svg('<path d="M4 4l8 8M12 4l-8 8"/>',13),
+  links:svg('<path d="M10 3.5L5.5 8l4.5 4.5"/>'),
+  rechts:svg('<path d="M6 3.5L10.5 8 6 12.5"/>'),
+  kopie:svg('<rect x="5.5" y="5.5" width="8" height="8" rx="2"/><path d="M10.5 5.5v-1a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1"/>',14,'stroke-width="1.6"'),
+  stern:'<svg viewBox="0 0 20 20" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M10 2.2l2.3 5 5.4.6-4 3.7 1.1 5.3L10 14.1l-4.8 2.7 1.1-5.3-4-3.7 5.4-.6z"/></svg>',
+  pfeil:svg('<path d="M3 8h10M9 4l4 4-4 4"/>',16),
+  ein:svg('<path d="M8 3v10M4 9l4 4 4-4"/>',16),
+  aus:svg('<path d="M8 13V3M4 7l4-4 4 4"/>',16),
+};
+
+function hashrate(h){
+  if(h===null||h===undefined)return '—';
+  h=Number(h); if(!Number.isFinite(h))return '—';
+  if(h>=1e27)return h.toExponential(2)+' H/s';
+  for(const [ab,e] of [[1e24,'YH/s'],[1e21,'ZH/s'],[1e18,'EH/s'],[1e15,'PH/s'],[1e12,'TH/s']])
+    if(h>=ab)return (h/ab).toFixed(2)+' '+e;
+  if(h>=1e9)return (h/1e9).toFixed(2)+' GH/s';
+  if(h>=1e6)return (h/1e6).toFixed(2)+' MH/s';
+  if(h>=1e3)return (h/1e3).toFixed(1)+' kH/s';
+  return Math.round(h)+' H/s';
+}
+/** Wie hashrate(), aber Zahl (in der Schreibweise der Sprache) und Einheit getrennt. */
+function hashTeile(h){
+  const s=hashrate(h), i=s.lastIndexOf(' ');
+  if(i<0) return [s,''];
+  const z=Number(s.slice(0,i));
+  return [Number.isFinite(z)?z.toLocaleString(LOC,{maximumFractionDigits:2}):s.slice(0,i), s.slice(i+1)];
+}
+function alter(ts){
+  const d=Math.floor(Date.now()/1000)-Number(ts);
+  if(d<60)return T.geradeEben;
+  if(d<3600)return T.vorMin(Math.round(d/60));
+  if(d<86400)return T.vorStd(Math.round(d/3600));
+  return T.vorTg(Math.round(d/86400));
+}
+function uhr(ts){
+  return new Date(Number(ts)*1000).toLocaleString(LOC,
+    {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+/** Sekunden als "m:ss". */
+function dauer(s){
+  const g=Math.max(0,Math.round(s));
+  return Math.floor(g/60)+':'+String(g%60).padStart(2,'0');
+}
+const kurz=(s,v=10,h=6)=>{ s=String(s??'—'); return s.length>v+h+1?s.slice(0,v)+'…'+s.slice(-h):s; };
+/** Prozent ohne Zeichen: grosse Werte glatt, kleine genauer -- 14 / 2,1 / 0,05. */
+function prozent(p){
+  const st=p>=10?0:(p>=1?1:2);
+  return p.toLocaleString(LOC,{minimumFractionDigits:st,maximumFractionDigits:st});
+}
+function groesse(byte){
+  const n=byte==null?NaN:Number(byte);
+  if(!Number.isFinite(n)) return '';
+  if(n<1000) return nf(n)+' '+T.byte;
+  return (n/1000).toLocaleString(LOC,{minimumFractionDigits:1,maximumFractionDigits:1})+' kB';
+}
+/** Grosse Zahl als [Zahl, Einheit] -- "4,71" und "Mrd.". Kleine bleiben ausgeschrieben. */
+function kompakt(n){
+  const x=Number(n);
+  if(!Number.isFinite(x)) return ['—',''];
+  if(x<1e7) return [x.toLocaleString(LOC),''];
+  if(x>=1e15) return [nfGross(x),''];
+  try{
+    const teile=new Intl.NumberFormat(LOC,{notation:'compact',maximumFractionDigits:2}).formatToParts(x);
+    const einheit=teile.filter(t=>t.type==='compact').map(t=>t.value).join('');
+    const zahl=teile.filter(t=>t.type!=='compact'&&t.type!=='literal').map(t=>t.value).join('');
+    return [zahl,einheit];
+  }catch{ return [nfGross(x),'']; }
+}
+const kompaktText=n=>{ const [z,e]=kompakt(n); return e?z+' '+e:z; };
+/** Aenderung in Prozent, mit Vorzeichen, in der Schreibweise der Sprache. */
+function delta(neu,alt){
+  if(!(alt>0)) return '';
+  const q=(neu-alt)/alt;
+  try{ return new Intl.NumberFormat(LOC,{style:'percent',maximumFractionDigits:2,signDisplay:'exceptZero'}).format(q); }
+  catch{ return (q>0?'+':'')+(q*100).toFixed(2)+' %'; }
+}
+/**
+  Notiz einer Ueberweisung: Bytes als UTF-8. Nur anzeigen, wenn es sauberer
+  Text ist -- alles andere bleibt weg, statt Zeichensalat zu zeigen.
+*/
+function memoText(hex){
+  if(!hex) return null;
+  try{
+    const t=new TextDecoder('utf-8',{fatal:true}).decode(fromHex(hex));
+    if(!t.trim()||/[\u0000-\u001f\u007f]/.test(t)) return null;
+    return t;
+  }catch{ return null; }
+}
+
+/** HTML nur ersetzen, wenn es sich geaendert hat -- sonst zuckt alle fuenf Sekunden die Seite. */
+function setze(el,html){ if(el.__html!==html){ el.innerHTML=html; el.__html=html; } }
+
+// ---------------------------------------------------------------- Zustand
+/*
+  blocks  die Kette ab der Spitze, lueckenlos, neueste zuerst. Die Reihe
+          oben und die Statistik lesen nur hier.
+  neben   einzelne Bloecke ausserhalb davon -- geholt, weil jemand sie
+          gesucht oder verlinkt hat. Sie erscheinen nur im Fenster.
+
+  Frueher ersetzte ein verlinkter alter Block die ganze Reihe; danach hing
+  jeder neue Block an einem falschen Vorgaenger, und die Kettenpruefung
+  schlug zu Unrecht fehl.
+*/
+let sum=null, blocks=[], neben={}, checks={}, details={}, dec=8, sym='YSR';
+// Nullkonto ohne Schluessel: was dort liegt, ist verbrannt und zaehlt nicht zum Umlauf.
+const NULLKONTO='ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw';
+let verbranntE=null;
+function verbranntLaden(){ holen('/account/'+NULLKONTO).then(a=>{ if(a&&a.balance!=null){ verbranntE=Number(a.balance); if(sum) renderStats(); } }).catch(()=>{}); }
+/** Was das Fenster zeigt: null | {art:'block',h} | {art:'bau'} | {art:'adr',a} | {art:'tx',id} */
+let ansicht=null;
+let alleTx=false;
+let konten={}, txs={};
+
+/*
+  Hoehen, die gerade neu dazugekommen sind.
+
+  frisch  bekommt die Animation -- nur einmal, sonst zappelte die Reihe bei
+          jedem Neuzeichnen.
+  neuBis  traegt das Schild "NEU", bis die Zeit darin abgelaufen ist.
+*/
+let frisch=new Set();
+let neuBis={};
+
+const blockVon=h=>blocks.find(x=>x.height===h)||neben[h]||null;
+const istAnsicht=(art,wert)=>ansicht&&ansicht.art===art&&(art==='bau'||ansicht.h===wert||ansicht.a===wert||ansicht.id===wert);
+const ysr=(n,min=2,max=8)=>(Number(n)/10**dec).toLocaleString(LOC,{minimumFractionDigits:min,maximumFractionDigits:max});
+const fuellung=b=>Math.min(100,(Number(b.txCount)||0)/MAX_TX*100);
+/** ok = hier nachgerechnet, bad = eine Pruefung schlug fehl, offen = noch nicht geprueft. */
+function zustand(c){
+  if(!c) return 'offen';
+  if(c.hash==='fail'||c.difficulty==='fail'||c.kette==='fail'||c.serialisierung==='fail') return 'bad';
+  if(c.hash==='ok'&&c.difficulty==='ok') return 'ok';
+  return 'offen';
+}
+
+// ------------------------------------------------------------- Blockreihe
+/*
+  Links EIN Block im Bau, rechts die gefundenen -- neueste zuerst.
+
+  Nur einer links: YSKAR hat keinen Gebuehrenmarkt mit Bytepreisen, aus dem
+  sich mehrere Bloecke im Voraus schaetzen liessen.
+
+  Die Fuellung von unten zeigt, wie viele der 2.000 Transaktionsplaetze
+  belegt sind. Ein Block mit nur der Coinbase ist zu 0,05 % voll; damit man
+  ueberhaupt etwas sieht, ist der Strich mindestens 3 % hoch. Die Zahl
+  daneben ist die echte.
+*/
+function renderKette(){
+  const ziel=$('kette');
+  if(blocks.length===0){ setze(ziel,''); return; }
+
+  const naechste=(sum&&sum.height!=null)?sum.height+1:blocks[0].height+1;
+  const wartend=(sum&&sum.mempool)||0;
+  const jetzt=Date.now();
+
+  let html=`
+    <div class="spalte">
+      <a class="blk bau${ansicht&&ansicht.art==='bau'?' offen':''}" href="#neu" aria-label="${T.block} ${nf(naechste)} · ${T.imBau}">
+        <span class="in">
+          <span class="h">#${nf(naechste)}</span>
+          <span class="t">${T.wirdGesucht}</span>
+          <span class="u"><span>${T.imBau}</span><span>${nf(wartend)} Tx</span></span>
+        </span>
+      </a>
+    </div>
+    <span class="pfeil" aria-hidden="true">→</span>`;
+
+  blocks.forEach((b,i)=>{
+    const z=zustand(checks[b.height]);
+    const punkt=z==='bad'?'var(--risk)':(z==='ok'?'var(--proof)':'var(--faint)');
+    const pool=(b.recipients??1)>1;
+    const name=b.finder
+      ? `<span class="f poolname" title="${esc(T.selbstauskunft)}">${esc(b.finder)}</span>`
+      : `<span class="f">${pool?T.pool:T.solo}</span>`;
+    const p=fuellung(b);
+    const neu=neuBis[b.height]>jetzt;
+    const offen=ansicht&&ansicht.art==='block'&&ansicht.h===b.height;
+
+    html+=`${i?'<span class="glied" aria-hidden="true"></span>':''}
+      <div class="spalte${frisch.has(b.height)?' frisch':''}${neu?' neu':''}">
+        <a class="blk${offen?' offen':''}" href="#block-${b.height}" aria-label="${T.block} ${nf(b.height)}">
+          ${neu?`<span class="neu-marke">${T.neu}</span>`:''}
+          <span class="fuell" style="height:${Math.max(p,3).toFixed(2)}%"></span>
+          <span class="in">
+            <span class="h">#${nf(b.height)}</span>
+            <span class="t">${alter(b.timestamp)}</span>
+            ${name}
+            <span class="u"><span>${T.voll(prozent(p))}</span><span>${nf(b.txCount)} Tx</span></span>
+          </span>
+          <span class="punkt" style="background:${punkt}"></span>
+        </a>
+      </div>`;
+  });
+
+  if(blocks[blocks.length-1].height>0){
+    html+=`<button class="mehr" id="mehr" type="button" onclick="mehrLaden()">${T.aeltere}</button>`;
+  }
+  setze(ziel,html);
+}
+
+// --------------------------------------------------------------- Statistik
+/*
+  Kennzahlen und Verlauf -- aus den zuletzt geladenen Bloecken, die ohnehin
+  hier nachgerechnet sind, plus /summary. Blockzeit ueber die letzten
+  N_BLOCKZEIT Abstaende, Difficulty ueber die letzten N_DIFF Bloecke.
+*/
+let dDaten=null;
+
+function renderStats(){
+  if(!sum)return;
+  const d=Number(sum.token?.decimals??8);
+  dec=Number.isInteger(d)&&d>=0&&d<=18?d:8;
+  sym=String(sum.token?.token_symbol??'YSR').replace(/[^0-9A-Za-z._-]/g,'').slice(0,12)||'YSR';
+
+  const hoehe=sum.height??0;
+  const zielS=Number(sum.targetBlockTime)||600;
+  const n=Math.min(N_BLOCKZEIT,Math.max(0,blocks.length-1));
+  const reihe=blocks.slice(0,n+1);
+  const nD=Math.min(N_DIFF,blocks.length);
+
+  // Blockzeit aus den geladenen Bloecken -- gemessen, nicht geschaetzt.
+  const bz=n>=2?(Number(reihe[0].timestamp)-Number(reihe[n].timestamp))/n:null;
+
+  const d0=Number(blocks[0]?.difficultyWert??blocks[0]?.difficulty);
+  const d1=Number(blocks[1]?.difficultyWert??blocks[1]?.difficulty);
+  const dAend=blocks.length>1?delta(d0,d1):'';
+
+  const bis=EPOCHE-(hoehe%EPOCHE);
+  const [hz,he]=hashTeile(sum.hashrate);
+  const [dz,de]=kompakt(sum.difficultyWert??sum.difficulty??0);
+
+  const kpi=(l,w,em,d)=>`<div class="kpi"><div class="l">${l}</div>
+    <div class="w">${w}${em?`<em>${em}</em>`:''}</div><div class="d">${d||'&nbsp;'}</div></div>`;
+
+  setze($('kpis'),
+    kpi(T.kHoehe,'#'+nf(hoehe),'',blocks[0]?alter(blocks[0].timestamp):'')+
+    kpi(T.kNetz,hz,he,T.kMiner(sum.activeMiners??0))+
+    kpi(T.difficulty,dz,de,dAend?dAend+' '+T.zumVorblock:'')+
+    kpi(T.kBlockzeit,bz!=null?dauer(bz):'—',bz!=null?T.minKurz:'',T.zielCa(nf(zielS/60)))+
+    kpi(T.belohnung,ysr(sum.nextReward??0,0,2),sym,T.kHalbierung+' #'+nf(hoehe+bis))+
+    kpi(T.wartend,nf(sum.mempool??0),'Tx',T.kMempool));
+
+  // -- Im Umlauf, Halbierung, Pool/Solo
+  const umlauf=Number(sum.totalSupply)/10**dec, max=Number(sum.maxSupply)/10**dec;
+  const anteil=max>0?Math.min(100,umlauf/max*100):0;
+  const p1=n=>n.toLocaleString(LOC,{minimumFractionDigits:1,maximumFractionDigits:1});
+  const erzeugt=Math.round(anteil*10)/10;
+  const epoche=(hoehe%EPOCHE)/EPOCHE*100;
+  // Pool oder Solo: ueber die ganze Kette, vom Server gezaehlt (/finder).
+  // Kommt die Zaehlung nicht, bleibt der Ausschnitt der geladenen Bloecke --
+  // und die Zeile darunter sagt, welcher von beiden es ist.
+  const letzte=blocks.slice(0,nD);
+  let pool, solo, werUnter;
+  if(finderStat){
+    pool=finderStat.pool; solo=finderStat.solo;
+    werUnter=T.alleBloecke(pool+solo,nf(pool+solo));
+  }else{
+    pool=letzte.filter(b=>(b.recipients??1)>1).length; solo=letzte.length-pool;
+    werUnter=T.letzteN(letzte.length);
+  }
+
+  let wer='';
+  if(pool+solo>0){
+    const pp=pool/(pool+solo)*100;
+    const streifen=pool&&solo
+      ? `<i class="pool" style="width:${pp.toFixed(2)}%"></i><i class="solo" style="flex:1"></i>`
+      : `<i class="allein${pool?' pool':''}" style="width:100%"></i>`;
+    wer=`<h3 class="weiter">${T.werFindet}</h3><p>${werUnter}</p>
+      <div class="fortschritt">${streifen}</div>
+      <div class="legende"><span><i style="background:var(--pool)"></i>${T.pool} · ${nf(pool)}</span>
+        <span><i style="background:var(--work)"></i>${T.solo} · ${nf(solo)}</span></div>`;
+  }
+
+  setze($('charts'),`
+    <div class="ch"><h3>${T.cBlockzeit(n)}</h3><p>${T.cBlockzeitUnter(nf(zielS/60))}</p>${chartBlockzeit(reihe,n,zielS)}</div>
+    <div class="ch"><h3>${T.difficulty}</h3><p>${T.cDifficulty(nD)}</p>${chartDifficulty(blocks,nD)}</div>
+    <div class="ch"><h3>${T.kUmlauf}</h3><p>${verbranntE!=null?ysr(Number(sum.totalSupply)-verbranntE,0,0)+' '+sym+' · '+(T.verbranntK||WB.en.verbranntK)+' '+`<a href="#adr-${NULLKONTO}">${ysr(verbranntE,0,0)}</a>`:ysr(sum.totalSupply,0,0)+' / '+ysr(sum.maxSupply,0,0)+' '+sym}</p>
+      <div class="fortschritt"><i style="width:${anteil.toFixed(2)}%"></i></div>
+      <div class="zwei"><span>${T.erzeugt(p1(erzeugt))}</span><span>${T.offenP(p1(100-erzeugt))}</span></div>
+      <h3 class="weiter">${T.bisHalbierung}</h3>
+      <p>${T.kHalbierungUnter(nf(bis),ysr(Number(sum.nextReward??0)/2,0,2),sym)}</p>
+      <div class="fortschritt"><i style="width:${epoche.toFixed(2)}%"></i></div>
+      ${wer}
+    </div>`);
+  renderAbgleich();
+}
+
+/*
+  Spiegel und Full Node vergleichen (Issue #14).
+
+  Die Bloecke dieser Seite kommen aus dem Spiegel (Datenbank), /summary
+  kommt vom Full Node. Bisher standen beide nebeneinander, ohne dass
+  verglichen wurde. Jetzt: Zeigt der Spiegel auf derselben Hoehe einen
+  anderen Block als der Full Node (tipHash), oder liegt er zurueck, steht
+  ein Hinweis da -- erst wenn das laenger als eine Minute so bleibt. Ein
+  Block Rueckstand fuer ein paar Sekunden ist normal: Der Spiegel bekommt
+  jeden Block kurz nach dem Knoten.
+*/
+let abgleichSeit=null;
+function renderAbgleich(){
+  const el=$('abgleich'); if(!el) return;
+  let text='';
+  const kopf=blocks[0];
+  if(sum&&kopf&&Number.isInteger(sum.height)){
+    const th=typeof sum.tipHash==='string'?sum.tipHash.toLowerCase():null;
+    const kh=typeof kopf.hash==='string'?kopf.hash.toLowerCase():null;
+    if(sum.height===kopf.height&&th&&kh&&th!==kh) text=T.spiegelZweig(nf(kopf.height));
+    else if(sum.height>kopf.height) text=T.spiegelHinten(sum.height-kopf.height);
+  }
+  if(text){ if(abgleichSeit===null) abgleichSeit=Date.now(); if(Date.now()-abgleichSeit<60_000) text=''; }
+  else abgleichSeit=null;
+  el.textContent=text;
+}
+
+/*
+  Pool/Solo ueber die ganze Kette.
+
+  Diese eine Zahl rechnet der Explorer nicht selbst nach -- dafuer muesste er
+  jeden Block der Kette laden. Sie kommt vom Server (Migration 00023) und
+  wird nach jedem neuen Block neu geholt.
+*/
+let finderStat=null;
+async function finderLaden(){
+  try{
+    const r=await holen('/finder');
+    const pool=Number(r&&r.pool), solo=Number(r&&r.solo);
+    if(!r||r.error||!Number.isInteger(pool)||!Number.isInteger(solo)||pool<0||solo<0||pool+solo<1) return;
+    finderStat={pool,solo};
+    if(sum) renderStats();
+  }catch{ /* dann bleibt die Zaehlung ueber die geladenen Bloecke */ }
+}
+
+/*
+  Blockzeit als Balken, aeltester links. Die Linie ist das Ziel. Kein
+  Balken wird gekappt: Ein Block, der 40 Minuten brauchte, soll so aussehen.
+*/
+function chartBlockzeit(reihe,n,zielS){
+  if(n<1) return `<div class="leer">—</div>`;
+  const w=[];
+  for(let i=n-1;i>=0;i--) w.push({h:reihe[i].height,ts:reihe[i].timestamp,
+    s:Number(reihe[i].timestamp)-Number(reihe[i+1].timestamp)});
+  const W=460,H=250,l=34,r=4,b=H-22,top=10;
+  const zielMin=zielS/60;
+  const maxMin=Math.max(zielMin*1.5,...w.map(x=>x.s/60));
+  const schritt=[5,10,20,30,60,120,240,480].find(s=>maxMin/s<=4)||Math.ceil(maxMin/240)*60;
+  const oben=Math.ceil(maxMin/schritt)*schritt;
+  const y=m=>b-(Math.min(oben,Math.max(0,m))/oben)*(b-top);
+  let s='';
+  for(let g=0;g<=oben;g+=schritt){
+    s+=`<line class="gitter" x1="${l}" x2="${W-r}" y1="${y(g)}" y2="${y(g)}"/>`
+      +`<text class="ax" x="${l-6}" y="${y(g)+3.5}" text-anchor="end">${g}</text>`;
+  }
+  const plaetze=Math.max(n,12), bw=(W-l-r)/plaetze, breite=Math.min(bw-2,11);
+  w.forEach((x,i)=>{
+    const hoehe=Math.max(1.5,b-y(x.s/60));
+    const x0=l+i*bw+(bw-breite)/2;
+    const rr=Math.min(4,breite/2,hoehe);
+    const t1='#'+nf(x.h)+' · '+dauer(x.s)+' '+T.minKurz;
+    s+=`<rect class="c-treffer" x="${(l+i*bw).toFixed(1)}" y="${top}" width="${bw.toFixed(1)}" height="${b-top}"
+          data-t1="${esc(t1)}" data-t2="${esc(uhr(x.ts))}" data-x="${(l+i*bw+bw/2).toFixed(1)}" data-y="${(b-hoehe).toFixed(1)}"/>`
+      +`<path class="c-balken${i===w.length-1?' aktuell':''}" d="M${x0.toFixed(1)},${b} v${-(hoehe-rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${-rr} h${(breite-2*rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${rr} v${(hoehe-rr).toFixed(1)} z"/>`;
+  });
+  s+=`<line class="ziel" x1="${l}" x2="${W-r}" y1="${y(zielMin)}" y2="${y(zielMin)}"/>`;
+  if(zielMin%schritt!==0&&zielMin/schritt>=.3)
+    s+=`<text class="ax" x="${l-6}" y="${y(zielMin)+3.5}" text-anchor="end">${zielMin}</text>`;
+  s+=`<text class="ax" x="${l}" y="${H-6}">#${nf(w[0].h)}</text>`
+    +`<text class="ax" x="${W-r}" y="${H-6}" text-anchor="end">#${nf(w[w.length-1].h)}</text>`;
+  return `<div class="bild" data-w="${W}" data-h="${H}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.cBlockzeit(n))}">${s}</svg></div>`;
+}
+
+/*
+  Difficulty als Linie. Die Achse beginnt nicht bei null -- die Difficulty
+  aendert sich von Block zu Block nur um Bruchteile, bei einer Null-Achse
+  waere der Verlauf ein Strich. Die Zahlen an der Achse sagen, wo sie steht.
+*/
+function chartDifficulty(reihe,n){
+  dDaten=null;
+  if(n<1) return `<div class="leer">—</div>`;
+  const p=[];
+  for(let i=n-1;i>=0;i--) p.push({h:reihe[i].height,v:Number(reihe[i].difficultyWert??reihe[i].difficulty)});
+  const W=360,H=250,l=62,r=12,b=H-22,top=20;
+  let lo=Math.min(...p.map(x=>x.v)), hi=Math.max(...p.map(x=>x.v));
+  if(hi===lo){ const e=Math.max(1,Math.abs(hi)*.02); lo-=e; hi+=e; }
+  const roh=(hi-lo)/3, mag=10**Math.floor(Math.log10(roh));
+  const schritt=[1,2,2.5,5,10].find(m=>m*mag>=roh)*mag;
+  const unten=Math.floor(lo/schritt)*schritt, oben=Math.ceil(hi/schritt)*schritt;
+  const zahl=Math.round((oben-unten)/schritt);
+  // Achsenbeschriftung mit Einheit ("4,7 Mrd."), so knapp wie moeglich --
+  // aber mit so vielen Stellen, dass keine zwei Marken gleich heissen.
+  // Keine Pflichtstellen: "1 Mio." und "800.000", nicht "800.000,0".
+  const marken=[]; for(let k=0;k<=zahl;k++) marken.push(unten+k*schritt);
+  let texte=marken.map(v=>String(v));
+  for(let st=0;st<=3;st++){
+    try{
+      const f=new Intl.NumberFormat(LOC,{notation:'compact',maximumFractionDigits:st});
+      texte=marken.map(v=>f.format(v));
+    }catch{ texte=marken.map(v=>nfGross(v)); break; }
+    if(new Set(texte).size===texte.length) break;
+  }
+  const dx=p.length>1?(W-l-r)/(p.length-1):0;
+  const x=i=>l+i*dx, y=v=>b-((v-unten)/(oben-unten))*(b-top);
+  let s='';
+  marken.forEach((g,k)=>{
+    s+=`<line class="gitter" x1="${l}" x2="${W-r}" y1="${y(g).toFixed(1)}" y2="${y(g).toFixed(1)}"/>`
+      +`<text class="ax" x="${l-6}" y="${(y(g)+3.5).toFixed(1)}" text-anchor="end">${esc(texte[k])}</text>`;
+  });
+  const letzter=p[p.length-1], ex=x(p.length-1), ey=y(letzter.v);
+  if(p.length>1){
+    const d=p.map((q,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(q.v).toFixed(1)).join(' ');
+    s+=`<path class="c-flaeche" d="${d} L${ex.toFixed(1)},${b} L${x(0).toFixed(1)},${b} Z"/><path class="c-linie" d="${d}"/>`;
+  }
+  // Der Zeiger liegt unter dem Endpunkt, damit der Endpunkt lesbar bleibt.
+  s+=`<line id="dKreuz" class="ziel" y1="${top}" y2="${b}" visibility="hidden"/>`
+    +`<circle class="c-punkt" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="5"/>`
+    +`<circle id="dPunkt" class="c-punkt" r="4" visibility="hidden"/>`;
+  // Der aktuelle Wert steht ueber dem Bild, rechts ueber dem Endpunkt --
+  // dort kann ihn die Linie nie kreuzen.
+  s+=`<text class="c-wert" x="${W-r+5}" y="${top-8}" text-anchor="end">${esc(kompaktText(letzter.v))}</text>`;
+  s+=`<text class="ax" x="${l}" y="${H-6}">#${nf(p[0].h)}</text>`
+    +`<text class="ax" x="${W-r}" y="${H-6}" text-anchor="end">#${nf(letzter.h)}</text>`;
+  s+=`<rect id="dTreffer" class="c-treffer" x="${l-4}" y="${top}" width="${W-l-r+8}" height="${b-top}"/>`;
+  dDaten={p,W,H,l,dx,x,y};
+  return `<div class="bild" data-w="${W}" data-h="${H}"><svg id="c2" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.difficulty)}">${s}</svg></div>`;
+}
+
+// -- Hinweis am Zeiger
+/*
+  Der Hinweis haengt IM Bild des Diagramms und wird in dessen eigenen Massen
+  gesetzt -- (vx, vy) sind Koordinaten der Zeichnung. So stimmt die Stelle
+  auch, wenn die Seite auf grossen Bildschirmen vergroessert ist (zoom);
+  Bildschirmkoordinaten und Stilmasse laufen dort auseinander.
+*/
+const tipp=$('tipp');
+function tippZeigen(bild,vx,vy,t1,t2){
+  if(!bild) return;
+  if(tipp.parentNode!==bild) bild.appendChild(tipp);
+  tipp.innerHTML=esc(t1)+(t2?`<small>${esc(t2)}</small>`:'');
+  tipp.hidden=false;
+  const W=Number(bild.dataset.w)||1, H=Number(bild.dataset.h)||1;
+  const breit=bild.offsetWidth, halb=tipp.offsetWidth/2, luft=14;
+  tipp.style.left=Math.max(halb-luft,Math.min(breit-halb+luft,vx/W*breit))+'px';
+  tipp.style.top=(vy/H*bild.offsetHeight)+'px';
+}
+function tippWeg(){
+  tipp.hidden=true;
+  const k=$('dKreuz'), q=$('dPunkt');
+  if(k) k.setAttribute('visibility','hidden');
+  if(q) q.setAttribute('visibility','hidden');
+}
+function chartZeiger(e){
+  const t=e.target;
+  if(!t.classList||!t.classList.contains('c-treffer')){ tippWeg(); return; }
+  if(t.id==='dTreffer'){
+    const D=dDaten, bild=$('c2'); if(!D||!bild) return;
+    const r=bild.getBoundingClientRect();
+    const vx=(e.clientX-r.left)/r.width*D.W;
+    const i=D.dx?Math.max(0,Math.min(D.p.length-1,Math.round((vx-D.l)/D.dx))):0;
+    const px=D.x(i), py=D.y(D.p[i].v);
+    const k=$('dKreuz'), q=$('dPunkt');
+    k.setAttribute('x1',px); k.setAttribute('x2',px); k.setAttribute('visibility','visible');
+    q.setAttribute('cx',px); q.setAttribute('cy',py); q.setAttribute('visibility','visible');
+    tippZeigen(bild.parentNode, px, py, '#'+nf(D.p[i].h), nfGross(D.p[i].v));
+    return;
+  }
+  tippZeigen(t.closest('.bild'), Number(t.dataset.x), Number(t.dataset.y), t.dataset.t1, t.dataset.t2);
+}
+$('charts').addEventListener('pointermove',chartZeiger);
+$('charts').addEventListener('pointerdown',chartZeiger);
+// Am Handy endet der "Zeiger" mit dem Loslassen -- dort soll der Hinweis
+// stehen bleiben, bis man woanders hintippt oder scrollt.
+$('charts').addEventListener('pointerleave',e=>{ if(e.pointerType!=='touch') tippWeg(); });
+document.addEventListener('pointerdown',e=>{
+  if(!tipp.hidden&&!(e.target.closest&&e.target.closest('#charts'))) tippWeg();
+});
+window.addEventListener('scroll',tippWeg,{passive:true});
+
+/*
+  Das Pruefergebnis steht hinter dem Info-Symbol im Kopf: gruen, solange
+  alles stimmt. Eine fehlgeschlagene Pruefung darf sich aber nicht hinter
+  einem Symbol verstecken -- dann wird es rot und die Blase geht von selbst
+  auf.
+*/
+let urteilStand='';
+function infoZeigen(auf){
+  $('verdictInfo').hidden=!auf;
+  $('verdict').setAttribute('aria-expanded',auf?'true':'false');
+}
+function renderVerdict(){
+  const n=Object.keys(checks).length;
+  const kaputt=Object.values(checks).some(c=>zustand(c)==='bad');
+  const neu=kaputt?'bad':'ok';
+  $('verdict').className='info-knopf '+neu;
+  $('verdictInfo').className='info-blase '+neu;
+  $('verdictText').textContent=kaputt?T.urteilBad:T.urteilOk(n);
+  if(kaputt&&urteilStand!=='bad') infoZeigen(true);
+  urteilStand=neu;
+}
+$('verdict').addEventListener('click',()=>infoZeigen($('verdictInfo').hidden));
+document.addEventListener('click',e=>{
+  if(!$('verdictInfo').hidden&&!(e.target.closest&&e.target.closest('.info-halter'))) infoZeigen(false);
+});
+
+// ---------------------------------------------------------------- Fenster
+/*
+  Ein Fenster fuer alles, was man oeffnen kann. Die Adresszeile fuehrt:
+  Jeder Inhalt hat seinen Anker, laesst sich also verlinken, und der
+  Zurueck-Knopf -- am Handy die Zurueck-Geste -- schliesst das Fenster,
+  statt die Seite zu verlassen.
+*/
+let fensterKennung=null, vorFokus=null;
+function fensterZeigen(kennung,html){
+  const f=$('fenster'), k=f.querySelector('.fenster');
+  setze($('fensterInhalt'),html);
+  if(f.hidden){
+    vorFokus=document.activeElement;
+    f.hidden=false;
+    document.body.classList.add('fenster-offen');
+    k.focus({preventScroll:true});
+  }
+  if(fensterKennung!==kennung){ f.scrollTop=0; k.scrollTop=0; fensterKennung=kennung; }
+}
+function fensterZu(){
+  const f=$('fenster');
+  if(f.hidden) return;
+  f.hidden=true; fensterKennung=null;
+  document.body.classList.remove('fenster-offen');
+  setze($('fensterInhalt'),'');
+  if(vorFokus&&vorFokus.focus&&document.contains(vorFokus)) vorFokus.focus({preventScroll:true});
+}
+/** Schliessen = Anker leeren. Ohne das "#" stehen zu lassen. */
+function schliesseFenster(){
+  try{ history.pushState(null,'',location.pathname+location.search); }
+  catch{ location.hash=''; return; }
+  ausHash();
+}
+const kopKnopf=wert=>`<button class="kop" type="button" data-kopie="${esc(wert)}" aria-label="${esc(T.kopieren)}" title="${esc(T.kopieren)}">${IC.kopie}</button>`;
+function kopfHtml(titel,o={}){
+  return `<div class="fk">
+    <div style="min-width:0"><h2 id="fensterTitel">${titel}${o.badge||''}</h2>${o.unter?`<div class="unter">${o.unter}</div>`:''}</div>
+    <div class="fk-knoepfe">${o.nav||''}<button class="rk" type="button" onclick="schliesseFenster()" aria-label="${esc(T.schliessen)}" title="${esc(T.schliessen)}">${IC.x}</button></div>
+  </div>`;
+}
+const hinweisHtml=(titel,text)=>kopfHtml(titel)+`<div class="fs"><div class="leer">${esc(text)}</div></div>`;
+/** Lange Kennung: am Rechner ganz, am Handy Anfang und Ende. */
+const lang=wert=>`<span class="lang">${esc(wert)}</span><span class="kurzf">${esc(kurz(wert,14,8))}</span>`;
+
+// ---------------------------------------------------------------- Block
+/*
+  Stellt sicher, dass Block h UND sein Vorgaenger da sind -- erst mit dem
+  Vorgaenger laesst sich die Verkettung pruefen und die Blockzeit nennen.
+*/
+async function sichere(h){
+  try{
+    if(!blockVon(h)){
+      const r=await holen(`/blocks?limit=2&before=${h+1}`);
+      for(const x of bloeckeAus(r)) if(!blockVon(x.height)) neben[x.height]=x;
+    }else if(h>0&&!blockVon(h-1)){
+      const r=await holen(`/blocks?limit=1&before=${h}`);
+      for(const x of bloeckeAus(r)) if(!blockVon(x.height)) neben[x.height]=x;
+    }
+    const b=blockVon(h);
+    if(b&&(!checks[h]||(checks[h].kette==='offen'&&h>0&&blockVon(h-1)))){
+      checks[h]=await verify(b,blockVon(h-1)||undefined);
+      renderVerdict(); renderKette();
+    }
+  }catch{ /* dann zeigt das Fenster, was da ist */ }
+}
+
+async function zeigeBlock(h){
+  if(!istAnsicht('block',h)) alleTx=false;
+  ansicht={art:'block',h};
+  renderKette();
+  const kennung='block-'+h, titel=T.block+' #'+nf(h);
+
+  if(!blockVon(h)||(h>0&&!blockVon(h-1))||!checks[h]){
+    if(!blockVon(h)) fensterZeigen(kennung,hinweisHtml(titel,T.laedt));
+    else zeichneBlock(blockVon(h));
+    await sichere(h);
+    if(!istAnsicht('block',h)) return;
+    if(!blockVon(h)){ fensterZeigen(kennung,hinweisHtml(titel,T.sNoBlock(nf(h)))); return; }
+  }
+  zeichneBlock(blockVon(h));
+
+  if(!details[h]){
+    holen(`/blocks/${h}`).then(x=>{
+      if(!x||Number(x.height)!==h||!Array.isArray(x.txs)) return;
+      details[h]=x;
+      if(istAnsicht('block',h)) zeichneBlock(blockVon(h));
+    }).catch(()=>{});
+  }
+}
+
+function txZeile(t){
+  if(t.type==='coinbase'){
+    const empf=Array.isArray(t.recipients)&&t.recipients.length?t.recipients:[{address:t.to,amount:t.amount}];
+    const pool=empf.length>1;
+    return `<details class="empf"${alleOffen?' open':''}><summary><div class="tx">
+        <div class="ic cb">${IC.stern}</div>
+        <div class="m"><div class="a">${T.blockreward}${pool?' · '+T.empfaenger(empf.length):''}</div>
+          <div class="b">${T.coinbase} · ${esc(kurz(t.txid,6,4))}</div></div>
+        <div class="r">${ysr(t.amount)} ${sym}<small>${pool?T.pool:T.solo}</small></div>
+      </div></summary>
+      <div class="empf-liste">${empf.map(e=>`<div>
+        ${e.address?`<a class="mono" href="#adr-${esc(e.address)}">${esc(e.address)}</a>`:'<span class="mono">—</span>'}
+        <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')}</div>
+    </details>`;
+  }
+  const memo=memoText(t.memo);
+  return `<a class="tx" href="#tx-${esc(t.txid)}">
+    <div class="ic">${IC.pfeil}</div>
+    <div class="m"><div class="a">${esc(kurz(t.from))} → ${esc(kurz(t.to))}</div>
+      <div class="b">${esc(kurz(t.txid,6,4))}${memo?' · '+T.notiz+' “'+esc(memo)+'”':''}</div></div>
+    <div class="r">${ysr(t.amount)} ${sym}<small>${T.gebuehr} ${ysr(t.fee)}</small></div>
+  </a>`;
+}
+let alleOffen=false;
+
+/*
+  Einzelheiten eines Blocks -- samt Pruefergebnis.
+
+  Die vier Aussagen stehen getrennt, nicht als Sammelnote: Serialisierung,
+  Hash, Proof of Work, Verkettung. Eine Gesamtnote verstecke, WAS geprueft
+  wurde -- und genau darum geht es hier.
+*/
+function zeichneBlock(b){
+  const h=b.height, c=checks[h]||{}, d=details[h], z=zustand(checks[h]);
+  const vor=blockVon(h-1);
+  const p=fuellung(b);
+  const pool=(b.recipients??1)>1;
+  const spitze=blocks[0]?blocks[0].height:h;
+  const weiter=h>=spitze?'#neu':'#block-'+(h+1);
+
+  const badge=z==='ok'?`<span class="badge ok">${IC.ok}${T.hierGeprueft}</span>`
+    :z==='bad'?`<span class="badge bad">${IC.x}${T.stimmtNicht}</span>`
+    :`<span class="badge offen">${T.offen}</span>`;
+  const nav=`<a class="rk" href="#block-${h-1}"${h===0?' aria-disabled="true" tabindex="-1"':''} aria-label="${esc(T.blockZurueck)}" title="${esc(T.blockZurueck)}">${IC.links}</a>`
+    +`<a class="rk" href="${weiter}" aria-label="${esc(T.blockWeiter)}" title="${esc(T.blockWeiter)}">${IC.rechts}</a>`;
+
+  // Gebuehren: Summe ueber die Ueberweisungen. Die Coinbase traegt Belohnung
+  // plus Gebuehren (src/lib/core/builder.ts).
+  let gebuehren=null;
+  if(d&&d.txs) gebuehren=d.txs.reduce((s,t)=>s+(t.type==='coinbase'?0:Number(t.fee)||0),0);
+
+  const abstand=vor?Number(b.timestamp)-Number(vor.timestamp):null;
+  const dAend=vor?delta(Number(b.difficultyWert??b.difficulty),Number(vor.difficultyWert??vor.difficulty)):'';
+
+  const fakt=(l,w,s,mono,titel)=>`<div><div class="l">${l}</div><div class="w${mono?' mono':''}"${titel?` title="${esc(titel)}"`:''}>${w}</div><div class="s">${s||'&nbsp;'}</div></div>`;
+  const finder=b.finder?esc(b.finder):T.unbekannt;
+
+  const pr=(label,w)=>`<div class="${w==='ok'?'ok':(w==='fail'?'fail':'')}"><i>${w==='ok'?IC.ok:(w==='fail'?IC.x:'')}</i><span>${label}</span><small>${
+    w==='ok'?T.stimmt:(w==='fail'?T.stimmtNicht:T.offen)}</small></div>`;
+
+  const hz=(label,wert,link)=>`<div class="hz"><span>${label}</span><span class="wert">${
+    link?`<a class="mono" href="${link}">${lang(wert)}</a>`:`<span class="mono">${lang(wert)}</span>`}${kopKnopf(wert)}</span></div>`;
+
+  let txHtml=`<div class="leer">${T.txLaden}</div>`, mehr='';
+  if(d&&d.txs){
+    alleOffen=d.txs.length<=3;
+    const sicht=alleTx?d.txs:d.txs.slice(0,25);
+    txHtml=sicht.map(txZeile).join('');
+    if(d.txs.length>sicht.length)
+      mehr=`<button class="haupt" type="button" onclick="alleTxZeigen()">${T.alleTx(nf(d.txs.length))}</button>`;
+  }
+
+  fensterZeigen('block-'+h,kopfHtml(`${T.block} #${nf(h)} `,{badge,nav})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="zeile"><b>${T.voll(prozent(p))}</b><span>${T.vonTx(nf(b.txCount),nf(MAX_TX))}${groesse(b.sizeBytes)?' · '+groesse(b.sizeBytes):''}</span></div>
+        <div class="meter"><i style="width:${p.toFixed(2)}%"></i></div>
+      </div>
+      <div class="fakten">
+        ${fakt(T.gefunden,uhr(b.timestamp),alter(b.timestamp))}
+        ${fakt(T.finderL,finder,pool?T.pool+' · '+T.empfaenger(b.recipients):T.solo,false,b.finder?(b.finderRoh&&b.finderRoh!==b.finder?b.finderRoh+' → '+b.finder:b.finder)+' · '+T.selbstauskunft:'')}
+        ${fakt(T.belohnung,b.reward!=null?ysr(b.reward,0,8)+' '+sym:'—',gebuehren?T.inklGebuehr(ysr(gebuehren,0,8)+' '+sym):'')}
+        ${fakt(T.kBlockzeit,abstand!=null?dauer(abstand)+' '+T.minKurz:'—',T.zumVorgaenger)}
+        ${fakt(T.difficulty,nfGross(b.difficultyWert??b.difficulty),c.erreicht!==undefined?T.erreicht+' '+nfGross(c.erreicht):dAend)}
+        ${fakt(T.nonce,esc(b.nonce??'—'),T.extranonce+' '+esc(b.extranonce??'—'),true,String(b.nonce??''))}
+      </div>
+      <div class="ut">${T.pruefung}</div>
+      <div class="pruef">
+        ${pr(T.serialisierung,c.serialisierung)}${pr(T.hashGeprueft,c.hash)}
+        ${pr(T.pow,c.difficulty)}${pr(T.verkettung+(h>0?' · #'+nf(h-1):''),c.kette)}
+      </div>
+      <div class="absatz">${T.hinweisText}</div>
+      <div class="ut">${T.kennungen}</div>
+      ${hz(T.hash,b.hash)}
+      ${h>0&&b.prevHash?hz(T.vorgaenger,b.prevHash,'#block-'+(h-1)):''}
+      ${hz(T.merkle,b.merkleRoot)}
+      ${hz(T.stateRoot,b.stateRoot)}
+      <div class="ut">${T.transaktionen} <b>· ${nf(b.txCount)}</b></div>
+      ${txHtml}
+      <div class="ff">
+        <a href="#block-${h-1}"${h===0?' aria-disabled="true" tabindex="-1"':''}>‹ ${T.block} #${nf(Math.max(0,h-1))}</a>
+        ${mehr}
+        <a href="${weiter}">${T.block} #${nf(h+1)} ›</a>
+      </div>
+    </div>`);
+}
+function alleTxZeigen(){
+  alleTx=true;
+  if(ansicht&&ansicht.art==='block'&&blockVon(ansicht.h)) zeichneBlock(blockVon(ansicht.h));
+}
+
+/*
+  Der Block, an dem gerade gearbeitet wird. Hier steht nur, was feststeht:
+  Vorgaenger, Belohnung, wartende Zahlungen. Seine Difficulty rechnet das
+  Netz erst mit dem Block aus -- sie steht deshalb nicht da.
+*/
+function zeigeBau(){
+  ansicht={art:'bau'};
+  renderKette();
+  const hoehe=sum&&sum.height!=null?sum.height:(blocks[0]?blocks[0].height:null);
+  const wartend=(sum&&sum.mempool)||0;
+  const titel=T.block+' #'+(hoehe!=null?nf(hoehe+1):'—');
+  const fakt=(l,w)=>`<div><div class="l">${l}</div><div class="w">${w}</div><div class="s">&nbsp;</div></div>`;
+  fensterZeigen('bau',kopfHtml(titel+' ',{
+      badge:`<span class="badge offen">${T.imBau}</span>`,unter:T.wirdGeradeGesucht,
+      nav:hoehe!=null?`<a class="rk" href="#block-${hoehe}" aria-label="${esc(T.blockZurueck)}" title="${esc(T.blockZurueck)}">${IC.links}</a>`:''})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="zeile"><b>${T.voll(prozent(Math.min(100,(wartend+1)/MAX_TX*100)))}</b><span>${T.wartendeTx}: ${nf(wartend)}</span></div>
+        <div class="meter"><i style="width:${Math.min(100,(wartend+1)/MAX_TX*100).toFixed(2)}%"></i></div>
+      </div>
+      <div class="fakten">
+        ${fakt(T.vorgaenger,hoehe!=null?`<a href="#block-${hoehe}">#${nf(hoehe)}</a>`:'—')}
+        ${fakt(T.belohnung,ysr(sum?.nextReward??0,0,8)+' '+sym)}
+        ${fakt(T.wartendeTx,nf(wartend))}
+      </div>
+      <div class="absatz">${wartend===0?T.bauLeer:T.bauVoll} ${T.bauWer}</div>
+    </div>`);
+}
+
+// ---------------------------------------------------------------- Adresse
+async function zeigeAdresse(a){
+  ansicht={art:'adr',a};
+  renderKette();
+  const kennung='adr-'+a;
+  if(konten[a]) zeichneAdresse(a);
+  else fensterZeigen(kennung,hinweisHtml(T.adresse,T.laedt));
+  try{
+    const r=await holen('/account/'+a);
+    if(r.error) throw new Error(r.error==='bad_address'?T.sBadAddress:(r.detail||r.error));
+    // Schon nachgeladene aeltere Seiten behalten, wenn sich vorn nichts getan hat.
+    const alt=konten[a];
+    const gleich=alt&&alt.eintraege.length&&r.history&&r.history.length&&alt.eintraege[0].txid===r.history[0].txid;
+    const liste=Array.isArray(r.history)?r.history:[];
+    konten[a]=gleich?{...r,eintraege:alt.eintraege,weiter:alt.weiter}:{...r,eintraege:liste,weiter:r.historyWeiter??null};
+  }catch(e){
+    if(istAnsicht('adr',a)&&!konten[a]) fensterZeigen(kennung,hinweisHtml(T.adresse,T.sucheFehl+e.message));
+    return;
+  }
+  if(istAnsicht('adr',a)) zeichneAdresse(a);
+}
+function zeichneAdresse(a){
+  const k=konten[a];
+  const art={reward:T.blockreward,pool:T.poolAnteil,in:T.eingang,out:T.ausgang};
+  const zeile=e=>{
+    const memo=(e.kind==='in'||e.kind==='out')?memoText(e.memo):null;
+    const belohnung=e.kind==='reward'||e.kind==='pool';
+    return `<a class="tx" href="#tx-${esc(e.txid)}">
+      <div class="ic${belohnung?' cb':''}">${belohnung?IC.stern:(e.kind==='in'?IC.ein:IC.aus)}</div>
+      <div class="m"><div class="a">${art[e.kind]||esc(e.kind)}${e.counterparty?' · '+esc(kurz(e.counterparty)):''}</div>
+        <div class="b">#${nf(e.height)}${e.timestamp?' · '+alter(e.timestamp):''}${memo?' · “'+esc(memo)+'”':''}</div></div>
+      <div class="r">${e.kind==='out'?'−':'+'}${ysr(e.amount)} ${sym}${
+        e.kind==='out'&&Number(e.fee)>0?`<small>${T.gebuehr} ${ysr(e.fee)}</small>`:''}</div>
+    </a>`;
+  };
+  const wartend=(Array.isArray(k.pending)?k.pending:[]).map(p=>`<a class="tx" href="#tx-${esc(p.txid)}">
+      <div class="ic">${p.kind==='in'?IC.ein:IC.aus}</div>
+      <div class="m"><div class="a">${p.kind==='in'?T.eingang:T.ausgang} · ${esc(kurz(p.kind==='in'?p.from:p.to))}</div>
+        <div class="b">${T.wartetAufBlock}</div></div>
+      <div class="r">${p.kind==='out'?'−':'+'}${ysr(p.amount)} ${sym}</div>
+    </a>`).join('');
+  const fakt=(l,w)=>`<div><div class="l">${l}</div><div class="w">${w}</div></div>`;
+
+  fensterZeigen('adr-'+a,kopfHtml(T.adresse,{
+      unter:`<span class="wert"><span class="mono">${lang(a)}</span>${kopKnopf(a)}</span>`})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="ut" style="margin:0">${T.guthaben}</div>
+        <div class="grosszahl">${ysr(k.balance||'0')}<em>${sym}</em></div>
+      </div>
+      <div class="fakten">
+        ${fakt(T.gefundeneBloecke,nf(k.blocksFound??0))}
+        ${fakt(T.poolAnteile,nf(k.poolRewards??0))}
+        ${fakt(T.nonce,esc(k.nonce??'0'))}
+      </div>
+      <div class="ut">${T.letzteBewegungen}</div>
+      ${wartend}
+      ${k.eintraege.length?k.eintraege.map(zeile).join(''):(wartend?'':`<div class="leer">${T.keineBewegungen}</div>`)}
+      ${k.weiter?`<div class="ff" style="justify-content:center"><button class="haupt" id="bewMehr" type="button" onclick="bewegungenLaden()">${T.aeltereBew}</button></div>`:''}
+    </div>`);
+}
+let bewLaedt=false;
+async function bewegungenLaden(){
+  if(bewLaedt||!ansicht||ansicht.art!=='adr') return;
+  const a=ansicht.a, k=konten[a];
+  if(!k||!k.weiter) return;
+  bewLaedt=true;
+  const knopf=$('bewMehr');
+  if(knopf){ knopf.disabled=true; knopf.textContent=T.laedtKurz; }
+  try{
+    const r=await holen(`/account/${a}/verlauf?limit=40&vor=${encodeURIComponent(k.weiter)}`);
+    if(r.error) throw new Error(r.detail||r.error);
+    k.eintraege=k.eintraege.concat(Array.isArray(r.eintraege)?r.eintraege:[]);
+    k.weiter=r.weiter??null;
+  }catch{
+    /* Der Knopf bleibt, ein zweiter Versuch ist moeglich. */
+  }finally{
+    bewLaedt=false;
+    if(istAnsicht('adr',a)) zeichneAdresse(a);
+  }
+}
+
+// ------------------------------------------------------------ Transaktion
+async function zeigeTx(id){
+  ansicht={art:'tx',id};
+  renderKette();
+  const kennung='tx-'+id;
+  let t=txs[id];
+  if(!t){
+    fensterZeigen(kennung,hinweisHtml(T.transaktion,T.laedt));
+    try{ t=await holen('/tx/'+id); }catch(e){ t={error:e.message}; }
+    if(!t.error&&t.status!=='pending') txs[id]=t;
+    if(!istAnsicht('tx',id)) return;
+  }
+  if(!t||t.error||typeof t.txid!=='string'){ fensterZeigen(kennung,hinweisHtml(T.transaktion,T.txNichtLesbar)); return; }
+
+  const cb=t.type==='coinbase';
+  const memo=cb?null:memoText(t.memo);
+  const empf=Array.isArray(t.recipients)?t.recipients:[];
+  const fakt=(l,w,s)=>`<div><div class="l">${l}</div><div class="w">${w}</div><div class="s">${s||'&nbsp;'}</div></div>`;
+  const adr=(label,a)=>a?`<div class="hz"><span>${label}</span><span class="wert"><a class="mono" href="#adr-${esc(a)}">${lang(a)}</a>${kopKnopf(a)}</span></div>`:'';
+  // Bewusst grau: Gruen heisst im Explorer "hier nachgerechnet", und das ist
+  // eine Transaktion nicht.
+  const status=t.status==='pending'?T.wartetAufBlock:T.inBlock(nf(t.height));
+
+  fensterZeigen(kennung,kopfHtml(T.transaktion+' ',{
+      badge:`<span class="badge offen">${status}</span>`,
+      unter:`<span class="wert"><span class="mono">${lang(t.txid)}</span>${kopKnopf(t.txid)}</span>`})+`
+    <div class="fs">
+      <div class="fuellkasten">
+        <div class="ut" style="margin:0">${T.betrag}</div>
+        <div class="grosszahl">${ysr(t.amount)}<em>${sym}</em></div>
+      </div>
+      <div class="fakten">
+        ${fakt(T.art,cb?T.blockreward:T.ueberweisung,cb&&empf.length?T.empfaenger(empf.length):'')}
+        ${fakt(T.status,status,t.timestamp?uhr(t.timestamp):'')}
+        ${fakt(T.gebuehr,ysr(t.fee||0)+' '+sym,'')}
+      </div>
+      ${(t.from||t.to||memo)?`<div class="ut">${T.kennungen}</div>`:''}
+      ${adr(T.von,t.from)}${adr(T.an,t.to)}
+      ${memo?`<div class="hz"><span>${T.notiz}</span><span class="wert"><span>${esc(memo)}</span></span></div>`:''}
+      ${empf.length?`<div class="ut">${T.empfaenger(empf.length)}</div>
+        <div class="empf-liste" style="margin-left:0">${empf.map(e=>`<div>
+          ${e.address?`<a class="mono" href="#adr-${esc(e.address)}">${esc(e.address)}</a>`:'<span class="mono">—</span>'}
+          <span class="mono tnum">${ysr(e.amount)} ${sym}</span></div>`).join('')}</div>`:''}
+      ${Number.isInteger(Number(t.height))&&t.height!=null?`<div class="ff"><a class="haupt" href="#block-${Number(t.height)}">${T.zuBlock(nf(t.height))}</a></div>`:''}
+    </div>`);
+}
+
+// -- Bedienung des Fensters
+$('fenster').addEventListener('click',e=>{ if(e.target===$('fenster')) schliesseFenster(); });
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('verdictInfo').hidden) infoZeigen(false);
+  if($('fenster').hidden) return;
+  if(e.key==='Escape'){ schliesseFenster(); return; }
+  if(ansicht&&ansicht.art==='block'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName||'')){
+    if(e.key==='ArrowLeft'&&ansicht.h>0) location.hash='#block-'+(ansicht.h-1);
+    if(e.key==='ArrowRight') location.hash=(blocks[0]&&ansicht.h>=blocks[0].height)?'#neu':'#block-'+(ansicht.h+1);
+  }
+});
+// Kopieren. Ohne sicheren Kontext (Datei von der Festplatte) gibt es
+// navigator.clipboard nicht -- dann ueber ein unsichtbares Textfeld.
+document.addEventListener('click',async e=>{
+  const k=e.target.closest&&e.target.closest('[data-kopie]');
+  if(!k) return;
+  e.preventDefault();
+  const text=k.dataset.kopie;
+  let ok=false;
+  try{ await navigator.clipboard.writeText(text); ok=true; }
+  catch{
+    try{
+      const f=document.createElement('textarea');
+      f.value=text; f.setAttribute('readonly',''); f.style.cssText='position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(f); f.select(); ok=document.execCommand('copy'); f.remove();
+    }catch{ ok=false; }
+  }
+  if(!ok) return;
+  k.classList.add('ja'); k.innerHTML=IC.ok; k.title=T.kopiert;
+  setTimeout(()=>{ k.classList.remove('ja'); k.innerHTML=IC.kopie; k.title=T.kopieren; },1400);
+});
+// Am Handy ist das Fenster ein Blatt von unten: am Griff nach unten ziehen
+// schliesst es.
+(function(){
+  const k=$('fenster').querySelector('.fenster');
+  let y0=null, dy=0;
+  k.addEventListener('touchstart',e=>{
+    if(!window.matchMedia('(max-width:640px)').matches||k.scrollTop>0) return;
+    if(!e.target.closest('.griff,.fk')||e.target.closest('a,button')) return;
+    y0=e.touches[0].clientY; dy=0; k.style.transition='none';
+  },{passive:true});
+  k.addEventListener('touchmove',e=>{
+    if(y0===null) return;
+    dy=Math.max(0,e.touches[0].clientY-y0);
+    k.style.transform=`translateY(${dy}px)`;
+  },{passive:true});
+  const ende=()=>{
+    if(y0===null) return;
+    y0=null;
+    k.style.transition='transform .18s ease-out';
+    if(dy>90){
+      k.style.transform='translateY(100%)';
+      setTimeout(()=>{ k.style.transform=''; k.style.transition=''; schliesseFenster(); },170);
+    }else{
+      k.style.transform='';
+      setTimeout(()=>{ k.style.transition=''; },200);
+    }
+  };
+  k.addEventListener('touchend',ende);
+  k.addEventListener('touchcancel',ende);
+})();
+
+// ---------------------------------------------------------------- Laden
+async function pruefeAlle(){
+  for(let i=0;i<blocks.length;i++){
+    checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+  }
+}
+
+async function load(){
+  try{
+    const [s,b]=await Promise.all([holen('/summary'),holen('/blocks?limit='+N_LADEN)]);
+    if(s.error||b.error) throw new Error(s.detail||b.detail||s.error||b.error);
+    sum=summeAus(s); blocks=bloeckeAus(b); $('err').textContent='';
+    await pruefeAlle();
+    renderStats(); renderVerdict(); renderKette();
+    finderLaden();
+    verbranntLaden();
+  }catch(e){
+    $('err').textContent=T.ladenFehl+e.message;
+  }
+}
+
+/*
+  Aeltere Bloecke nachladen.
+
+  Der bisher aelteste wird dabei NOCHMALS geprueft -- erst mit seinem
+  Vorgaenger laesst sich seine Verkettung pruefen. Ohne das bliebe an jeder
+  Nachladegrenze eine Luecke in der Kontrolle.
+*/
+let laedt=false;
+async function mehrLaden(){
+  if(laedt||blocks.length===0)return;
+  laedt=true;
+  const knopf=$('mehr');
+  if(knopf){ knopf.disabled=true; knopf.textContent=T.laedtKurz; }
+  try{
+    const aeltester=blocks[blocks.length-1].height;
+    const r=await holen(`/blocks?limit=20&before=${aeltester}`);
+    if(r.error) throw new Error(r.detail||r.error);
+    const neu=bloeckeAus(r).filter(b=>b.height<aeltester);
+    if(neu.length){
+      const vorher=blocks.length;
+      blocks=blocks.concat(neu);
+      for(let i=vorher-1;i<blocks.length;i++){
+        checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+      }
+    }
+    $('err').textContent='';
+  }catch(e){
+    $('err').textContent=T.nachladenFehl+e.message;
+  }finally{
+    laedt=false;
+    $('kette').__html=null;       // der Knopf soll auf jeden Fall zurueckkommen
+    renderVerdict(); renderKette();
+  }
+}
+
+// ---------------------------------------------------------------- Suche
+/*
+  Die Route sagt nur, WAS gefunden wurde. Der Explorer springt dann zum
+  passenden Anker; die Einzelheiten holt das Fenster bei der zustaendigen
+  Route -- so gibt es die Aufbereitung nur einmal.
+*/
+async function suchen(){
+  const q=$('q').value.trim();
+  const ziel=$('treffer');
+  ziel.className='meldung';
+  if(!q){ ziel.textContent=''; return; }
+  ziel.textContent=T.sucheLaeuft;
+  try{
+    const r=await holen('/search?q='+encodeURIComponent(q));
+    let anker=null;
+    if(r.kind==='block') anker='#block-'+Number(r.height);
+    else if(r.kind==='address') anker='#adr-'+r.address;
+    else if(r.kind==='tx') anker='#tx-'+r.txid;
+    if(!anker){
+      const codes={bad_address:T.sBadAddress,bad_height:T.sBadHeight,no_hash:T.sNoHash,empty:T.sEmpty};
+      ziel.textContent=r.code==='no_block'?T.sNoBlock(nf(r.height??q)):(codes[r.code]||T.nichtsGefunden);
+      return;
+    }
+    ziel.textContent=''; $('q').value=''; $('q').blur();
+    if(location.hash===anker) ausHash(); else location.hash=anker;
+  }catch(e){
+    ziel.className='meldung schlecht';
+    ziel.textContent=T.sucheFehl+e.message;
+  }
+}
+
+// ----------------------------------------------------------- Navigation
+/*
+  Die Adresszeile fuehrt. So laesst sich alles verlinken, und der
+  Zurueck-Knopf des Browsers tut, was man erwartet.
+
+    #block-3013   ein Block
+    #neu          der Block im Bau
+    #adr-ysr1…    eine Adresse
+    #tx-…         eine Transaktion
+*/
+function ausHash(){
+  let h=location.hash||'';
+  try{ h=decodeURIComponent(h); }catch{ /* dann eben roh */ }
+  let m;
+  if((m=h.match(/^#block-(\d{1,9})$/))) return zeigeBlock(Number(m[1]));
+  if(h==='#neu') return zeigeBau();
+  if((m=h.match(/^#adr-(ysr1[0-9a-z]{6,120})$/i))) return zeigeAdresse(m[1].toLowerCase());
+  if((m=h.match(/^#tx-([0-9a-f]{64})$/i))) return zeigeTx(m[1].toLowerCase());
+  if(ansicht!==null){ ansicht=null; renderKette(); }
+  fensterZu();
+}
+
+$('qgo').addEventListener('click',suchen);
+$('q').addEventListener('keydown',e=>{ if(e.key==='Enter') suchen(); });
+window.addEventListener('hashchange',ausHash);
+
+$('engine').textContent=useSubtle?'crypto.subtle':'SHA-256 in JavaScript';
+
+document.documentElement.lang=L;
+statischeTexte();
+load().then(ausHash);
+
+/*
+  Live nachfuehren.
+
+  Nicht neu laden, sondern NACHTRAGEN: Nur die Bloecke, die seit dem letzten
+  Blick dazugekommen sind, werden geholt und vorn angehaengt.
+
+  Der Unterschied ist wesentlich. Ein vollstaendiges Neuladen wuerde alles
+  wegwerfen, was ueber "Aeltere laden" dazugekommen ist -- und die Animation
+  haette nichts, woran sie ansetzen koennte, weil jeder Block als neu
+  erschiene.
+
+  Faellt der Server aus, passiert nichts: Der naechste Takt versucht es
+  wieder, und die Seite bleibt stehen statt zu leeren.
+*/
+let laeuftAuffrischen=false;
+
+async function auffrischen(){
+  if(laeuftAuffrischen) return;
+  // Ein Tab, den niemand ansieht, fragt nicht nach. Der Takt laeuft im
+  // Hintergrund weiter (gedrosselt), die Arbeit soll er sich sparen.
+  if(document.hidden) return;
+  laeuftAuffrischen=true;
+  try{
+    const roh=await holen('/summary');
+    if(roh.error) return;
+    const s=summeAus(roh);
+    const alteHoehe=sum?.height ?? null;
+    sum=s;
+    renderStats();
+    if(ansicht&&ansicht.art==='bau') zeigeBau();
+
+    if(blocks.length===0){ await load(); return; }
+    if(s.height==null || alteHoehe===null || s.height<=alteHoehe){
+      // Nichts Neues -- aber die Altersangaben ("vor 3 Min") stimmen sonst
+      // nicht mehr.
+      renderKette();
+      return;
+    }
+
+    /*
+      Wie viele fehlen? Bei einem langen Aussetzer koennen es mehrere sein.
+      Mehr als zwoelf auf einmal waeren eine Nachladeschleife wert -- dann
+      ist aber ohnehin etwas anderes im Argen, und ein vollstaendiges Laden
+      ist ehrlicher als eine halbe Reihe.
+    */
+    const fehlend=s.height-alteHoehe;
+    if(fehlend>12){ await load(); return; }
+
+    const r=await holen(`/blocks?limit=${fehlend}`);
+    if(r.error) return;
+
+    // Nur wirklich neue, in der richtigen Reihenfolge (neueste zuerst) --
+    // und nur, wenn sie lueckenlos an die Reihe anschliessen. blocks muss
+    // eine zusammenhaengende Kette bleiben, sonst prueft die Verkettung
+    // gegen den falschen Vorgaenger.
+    const spitze=blocks[0].height;
+    const neue=bloeckeAus(r).filter(b=>b.height>spitze).sort((a,b)=>b.height-a.height);
+    if(neue.length===0) return;
+    if(neue[neue.length-1].height!==spitze+1){ await load(); return; }
+
+    blocks=neue.concat(blocks);
+    for(const b of neue) delete neben[b.height];
+
+    /*
+      Die neuen pruefen -- und den bisher juengsten NOCHMALS: Erst mit
+      seinem Nachfolger laesst sich pruefen, ob die Kette an dieser Stelle
+      schliesst. Ohne das bliebe an jeder Naht eine Luecke in der Kontrolle.
+    */
+    for(let i=0;i<=neue.length;i++){
+      if(blocks[i]) checks[blocks[i].height]=await verify(blocks[i],blocks[i+1]);
+    }
+
+    frisch=new Set(neue.map(b=>b.height));
+    const bis=Date.now()+90_000;
+    for(const b of neue) neuBis[b.height]=bis;
+    renderStats(); renderVerdict(); renderKette();
+    finderLaden();
+    // Nach der Animation das Kennzeichen wieder loeschen, sonst liefe sie
+    // beim naechsten Zeichnen erneut.
+    setTimeout(()=>{ frisch=new Set(); },1600);
+
+    // Ein geoeffneter Block bleibt offen. Nur sein "naechster Block" zeigt
+    // jetzt auf einen gefundenen statt auf den im Bau.
+    if(ansicht&&ansicht.art==='block'&&blockVon(ansicht.h)) zeichneBlock(blockVon(ansicht.h));
+  }catch{
+    /* Netzaussetzer: beim naechsten Takt wieder. Die Seite bleibt stehen. */
+  }finally{
+    laeuftAuffrischen=false;
+  }
+}
+
+/*
+  Alle fuenf Sekunden. Bei einer Zielblockzeit von zehn Minuten ist das
+  reichlich -- aber ein Nutzer, der gerade zusieht, soll den Block sehen,
+  wenn er faellt, nicht eine halbe Minute spaeter.
+
+  /summary ist eine einzelne Zeile aus der Datenbank; Bloecke werden nur
+  geholt, wenn die Hoehe gestiegen ist.
+*/
+setInterval(auffrischen,5000);
+
+/*
+  Im Hintergrund nicht pollen.
+
+  Ein Browser-Tab, den niemand ansieht, muss den Server nicht fragen. Beim
+  Zurueckkommen sofort einmal nachziehen -- sonst staende dort ein veralteter
+  Stand, bis der naechste Takt kommt.
+*/
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') auffrischen();
+});
+</script>
+</body>
+</html>

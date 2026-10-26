@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en" class="i18n-wartet">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Protocol – YSKAR</title>
+<meta name="description" content="The YSKAR protocol in detail: coin, chain and wallets in one datasheet, the 136-byte block header, the transfer format and block 0.">
+<meta name="theme-color" content="#03060F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="Protocol – YSKAR">
+<meta property="og:description" content="The YSKAR protocol in detail: coin, chain and wallets in one datasheet, the 136-byte block header, the transfer format and block 0.">
+<meta property="og:url" content="https://www.yskar.app/protokoll">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.png?v=7">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – Fair from block 0.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=40">
+<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
+<script src="/assets/i18n/en.js?v=40"></script>
+<script src="/assets/site.js?v=40" defer></script>
+</head>
+<body data-seite="protokoll">
+
+<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+
+<header class="kopf" id="kopf">
+<div class="wrap">
+<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
+<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
+<a href="/#was" data-t="nav.was">About YSKAR</a>
+<a href="/#ablauf" data-t="nav.ablauf">How it works</a>
+<a href="/#menge" data-t="nav.menge">Supply</a>
+<a href="/#v6" class="v6-link">V6</a>
+<a href="/mining" data-t="nav.mining">Mining</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+<a href="/explorer" data-t="nav.explorer">Explorer</a>
+</nav>
+<div class="kopf-rechts">
+<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
+<a class="knopf hell klein kopf-cta" href="/#nutzen" data-t="nav.los">Use YSR</a>
+<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+</button>
+</div>
+</div>
+</header>
+
+<main id="inhalt">
+<section class="seitenkopf">
+<div class="wrap">
+<p class="etikett" data-t="pr.etikett">The protocol in detail</p>
+<h1><span data-t="pr.titel1">YSKAR and YSR,</span> <span class="lt" data-t="pr.titel2">byte by byte.</span></h1>
+<p data-t="pr.text">Everything below is fixed in the consensus code and the same for every node. Nothing depends on a server, a company or a setting.</p>
+</div>
+</section>
+
+<section class="abschnitt" id="protokoll">
+<div class="wrap">
+<div class="datenblatt">
+<div class="db-spalte">
+<h3 class="db-titel" data-t="pr.db.muenze">The coin</h3>
+<dl>
+<div><dt data-t="pr.db.name">Name · ticker</dt><dd>YSKAR · YSR</dd></div>
+<div><dt data-t="pr.db.einheit">Smallest unit</dt><dd><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</dd></div>
+<div><dt data-t="pr.db.staub">Smallest amount to send</dt><dd data-t="pr.db.staubWert">100 units</dd></div>
+<div><dt data-t="pr.db.vorab">Pre-mine · allocation</dt><dd data-t="pr.db.vorabWert">none</dd></div>
+<div><dt data-t="pr.db.nullkonto">Burn address</dt><dd class="mono"><a href="/explorer#adr-ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw">ysr1qqqq…regwfw</a></dd></div>
+<div><dt data-t="pr.db.minGeb">Minimum fee (consensus)</dt><dd data-t="pr.db.minGebWert">1 unit per byte</dd></div>
+<div><dt data-t="pr.db.relay">Minimum fee to relay</dt><dd data-t="pr.db.relayWert">10 units per byte</dd></div>
+<div><dt data-t="pr.db.gebuehr">Fees go to</dt><dd data-t="pr.db.gebuehrWert">the miner of the block</dd></div>
+<div><dt data-t="pr.db.pool">Pools</dt><dd data-t="pr.db.poolWert">paid from the block, fee 0–5 %</dd></div>
+</dl>
+</div>
+<div class="db-spalte">
+<h3 class="db-titel" data-t="pr.db.kette">The chain</h3>
+<dl>
+<div><dt data-t="pr.db.netz">Network</dt><dd class="mono">yskar-main-1</dd></div>
+<div><dt data-t="pr.db.konsens">Consensus</dt><dd data-t="pr.db.konsensWert">Proof of work, SHA-256d</dd></div>
+<div><dt data-t="zahlen.blockzeit">Block time</dt><dd data-t="pr.db.blockzeitWert">600 seconds (target)</dd></div>
+<div><dt data-t="hood.f2.k">Difficulty</dt><dd data-t="pr.db.diffWert">LWMA over 45 blocks, every block</dd></div>
+<div><dt data-t="pr.db.notfall">Emergency rule</dt><dd data-t="pr.db.notfallWert">easier after 30 min without a block</dd></div>
+<div><dt data-t="pr.db.knoten">Full nodes</dt><dd data-t="pr.db.knotenWert">each keeps and checks the whole chain</dd></div>
+<div><dt data-t="pr.db.tx">Transactions per block</dt><dd data-t="pr.db.txWert">up to 2,000</dd></div>
+<div><dt data-t="pr.db.wahl">Chain selection</dt><dd data-t="pr.db.wahlWert">most accumulated work</dd></div>
+</dl>
+</div>
+<div class="db-spalte">
+<h3 class="db-titel" data-t="pr.db.wallet">Wallets and accounts</h3>
+<dl>
+<div><dt data-t="pr.db.modell">Model</dt><dd data-t="pr.db.modellWert">accounts with balance and nonce</dd></div>
+<div><dt data-t="pr.db.worte">Seed words</dt><dd data-t="pr.db.worteWert">BIP39, 12 or 24 words</dd></div>
+<div><dt data-t="pr.db.pfad">Key derivation</dt><dd class="mono">SLIP-0010 · m/44'/9077'</dd></div>
+<div><dt data-t="pr.db.sig">Signatures</dt><dd>Ed25519</dd></div>
+<div><dt data-t="pr.db.adresse">Address</dt><dd data-t="pr.db.adresseWert">ysr1…, 42 characters (bech32m)</dd></div>
+<div><dt data-t="pr.db.transfer">Transfer size</dt><dd data-t="pr.db.transferWert">168 to 200 bytes</dd></div>
+<div><dt data-t="pr.db.memo">Memo</dt><dd data-t="pr.db.memoWert">up to 32 bytes</dd></div>
+<div><dt data-t="pr.db.ablauf">Expiry</dt><dd data-t="pr.db.ablaufWert">optional, by block height</dd></div>
+</dl>
+</div>
+</div>
+
+<div class="anatomie">
+<div class="anat-kopf">
+<h3 data-t="pr.block.titel">Anatomy of a block header</h3>
+<p data-t="pr.block.text">Every block starts with exactly 136 bytes. Its hash is double SHA-256 over these bytes, and it must not exceed the target that the difficulty sets.</p>
+</div>
+<div class="bytes" role="img" aria-label="The 136-byte block header and its ten fields" data-ta="aria-label:pr.block.alt">
+<span style="flex-grow:4" class="b-a" title="version"><b>ver</b><i>4</i></span>
+<span style="flex-grow:4" class="b-a"><b>height</b><i>4</i></span>
+<span style="flex-grow:32" class="b-b"><b>prevHash</b><i>32</i></span>
+<span style="flex-grow:32" class="b-c"><b>merkleRoot</b><i>32</i></span>
+<span style="flex-grow:32" class="b-c"><b>stateRoot</b><i>32</i></span>
+<span style="flex-grow:8" class="b-a" title="timestamp"><b>time</b><i>8</i></span>
+<span style="flex-grow:4" class="b-a" title="difficulty"><b>diff</b><i>4</i></span>
+<span style="flex-grow:4" class="b-a" title="txCount"><b>txs</b><i>4</i></span>
+<span style="flex-grow:8" class="b-d" title="extranonce"><b>extra</b><i>8</i></span>
+<span style="flex-grow:8" class="b-e"><b>nonce</b><i>8</i></span>
+</div>
+<div class="feldliste">
+<div><b class="mono">prevHash</b><span data-t="pr.block.prev">The hash of the previous block. It links the chain: changing an old block would change every hash after it.</span></div>
+<div><b class="mono">merkleRoot</b><span data-t="pr.block.merkle">One hash over all transactions in the block. A single changed byte in any transfer changes it.</span></div>
+<div><b class="mono">stateRoot</b><span data-t="pr.block.state">One hash over all accounts (balance and nonce) after this block. Every node computes it itself and compares.</span></div>
+<div><b class="mono">nonce</b><span data-t="pr.block.nonce">The number miners vary. The first 128 bytes stay the same for a job, so each try needs only two SHA-256 compression steps.</span></div>
+</div>
+</div>
+
+<div class="zwei-karten">
+<div class="anatomie klein">
+<div class="anat-kopf">
+<h3 data-t="pr.tx.titel">Anatomy of a transfer</h3>
+<p data-t="pr.tx.text">A transfer moves YSR from one account to another. It is 168 bytes plus an optional memo.</p>
+</div>
+<div class="bytes" role="img" aria-label="Fields of a transfer" data-ta="aria-label:pr.tx.alt">
+<span style="flex-grow:8" class="b-a" title="version, type, validUntil, memoLen"><b>meta</b><i>8</i></span>
+<span style="flex-grow:20" class="b-b"><b>from</b><i>20</i></span>
+<span style="flex-grow:20" class="b-b"><b>to</b><i>20</i></span>
+<span style="flex-grow:8" class="b-a"><b>amt</b><i>8</i></span>
+<span style="flex-grow:8" class="b-a"><b>fee</b><i>8</i></span>
+<span style="flex-grow:8" class="b-d"><b>nonce</b><i>8</i></span>
+<span style="flex-grow:32" class="b-c"><b>key</b><i>32</i></span>
+<span style="flex-grow:64" class="b-e"><b>signature</b><i>64</i></span>
+</div>
+<ul class="punkte">
+<li data-t="pr.tx.p1">The signature also covers the chain ID, so a transfer signed for YSKAR is invalid on any other network.</li>
+<li data-t="pr.tx.p2">The nonce counts the transfers an account has sent. The same transfer can never be applied twice.</li>
+<li data-t="pr.tx.p3">An optional expiry height lets a transfer lapse if it has not been included by then.</li>
+</ul>
+</div>
+<div class="anatomie klein genesis">
+<div class="anat-kopf">
+<h3 data-t="pr.gen.titel">Block 0</h3>
+<p data-t="pr.gen.text">The first block of the chain. Its coinbase carries a short message, and its reward went to an address nobody can spend from.</p>
+</div>
+<div class="gen-zitat">“proof, not promise”</div>
+<dl class="gen-daten">
+<div><dt>Hash</dt><dd class="mono">000000090a14a03f…72c33c66</dd></div>
+<div><dt data-t="pr.gen.zeit">Timestamp</dt><dd class="mono">2026-09-09 00:00:00 UTC</dd></div>
+<div><dt>Nonce</dt><dd class="mono"><span data-n="50773796">50,773,796</span></dd></div>
+<div><dt data-t="pr.gen.belohnung">Reward</dt><dd data-t="pr.gen.belohnungWert">875 YSR, unspendable</dd></div>
+</dl>
+</div>
+</div>
+<div class="aeren">
+<div class="anat-kopf"><h3 data-t="supply.aera.titel">Issuance by era</h3><p data-t="supply.aera.text">An era lasts 12,000 blocks, about 83 days. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.</p></div>
+<div class="tabelle-rahmen"><table class="tabelle aera-tabelle">
+<thead><tr><th data-t="supply.aera.k1">Era</th><th data-t="supply.aera.k2">Blocks</th><th data-t="supply.aera.k3">Reward per block</th><th data-t="supply.aera.k4">Issued in the era</th><th data-t="supply.aera.k5">Total after the era</th></tr></thead>
+<tbody>
+<tr data-aera="0"><td><span data-n="0">0</span></td><td class="mono"><span data-n="0">0</span> – <span data-n="11999">11,999</span></td><td class="mono"><span data-n="875">875</span> YSR</td><td class="mono"><span data-n="10500000">10,500,000</span></td><td class="mono"><span data-n="10500000">10,500,000</span></td></tr>
+<tr data-aera="1"><td><span data-n="1">1</span></td><td class="mono"><span data-n="12000">12,000</span> – <span data-n="23999">23,999</span></td><td class="mono"><span data-n="437.5" data-nd="2">437.5</span> YSR</td><td class="mono"><span data-n="5250000">5,250,000</span></td><td class="mono"><span data-n="15750000">15,750,000</span></td></tr>
+<tr data-aera="2"><td><span data-n="2">2</span></td><td class="mono"><span data-n="24000">24,000</span> – <span data-n="35999">35,999</span></td><td class="mono"><span data-n="218.75" data-nd="2">218.75</span> YSR</td><td class="mono"><span data-n="2625000">2,625,000</span></td><td class="mono"><span data-n="18375000">18,375,000</span></td></tr>
+<tr data-aera="3"><td><span data-n="3">3</span></td><td class="mono"><span data-n="36000">36,000</span> – <span data-n="47999">47,999</span></td><td class="mono"><span data-n="109.375" data-nd="3">109.375</span> YSR</td><td class="mono"><span data-n="1312500">1,312,500</span></td><td class="mono"><span data-n="19687500">19,687,500</span></td></tr>
+<tr data-aera="4"><td><span data-n="4">4</span></td><td class="mono"><span data-n="48000">48,000</span> – <span data-n="59999">59,999</span></td><td class="mono"><span data-n="54.6875" data-nd="4">54.6875</span> YSR</td><td class="mono"><span data-n="656250">656,250</span></td><td class="mono"><span data-n="20343750">20,343,750</span></td></tr>
+<tr data-aera="5"><td><span data-n="5">5</span></td><td class="mono"><span data-n="60000">60,000</span> – <span data-n="71999">71,999</span></td><td class="mono"><span data-n="27.34375" data-nd="5">27.34375</span> YSR</td><td class="mono"><span data-n="328125">328,125</span></td><td class="mono"><span data-n="20671875">20,671,875</span></td></tr>
+<tr><td>…</td><td></td><td></td><td></td><td></td></tr>
+<tr data-aera="36"><td><span data-n="36">36</span></td><td class="mono"><span data-n="432000">432,000</span> – <span data-n="443999">443,999</span></td><td class="mono"><span data-n="0.00000001" data-nd="8">0.00000001</span> YSR</td><td class="mono"><span data-n="0.00012" data-nd="5">0.00012</span></td><td class="mono"><span data-n="20999999.99832" data-nd="5">20,999,999.99832</span></td></tr>
+</tbody></table></div>
+<p class="leise" data-t="supply.aera.fuss">Rewards are counted in whole base units (0.00000001 YSR), so each halving drops the remainder: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.</p>
+</div>
+<a class="weiter pruef-mehr" href="/#pruefen"><span data-t="pr.pruefen">Check block 0 or the latest block yourself, right in your browser.</span> →</a>
+</div>
+</section>
+</main>
+
+<footer class="fusszeile">
+<div class="wrap">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
+<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
+<p class="motto">proof, not promise</p>
+<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
+</div>
+<div class="spalten">
+<div>
+<span class="kennung" data-t="fuss.netz">Network</span>
+<a href="/explorer" data-t="nav.explorer">Explorer</a>
+<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
+<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
+<a href="/#v6">V6</a>
+<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.mitmachen">Take part</span>
+<a href="/mining" data-t="nav.mining">Mining</a>
+<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
+<a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
+<a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://x.com/yskar_official">X</a>
+<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
+<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
+</div>
+<div>
+<span class="kennung" data-t="fuss.rechtliches">Legal</span>
+<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
+<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
+</div>
+</div>
+</div>
+</footer>
+</body>
+</html>

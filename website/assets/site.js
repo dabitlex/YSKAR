@@ -105,14 +105,16 @@
     // Zahlen im Format der Sprache: 15,75 statt 15.75.
     els = document.querySelectorAll('[data-n]');
     for (i = 0; i < els.length; i++) {
+      var nd = Number(els[i].getAttribute('data-nd') || 2);
       els[i].textContent = Number(els[i].getAttribute('data-n'))
-        .toLocaleString(LOCALES[sprache], { maximumFractionDigits: 2 });
+        .toLocaleString(LOCALES[sprache], { minimumFractionDigits: els[i].hasAttribute('data-nd') ? 0 : 0, maximumFractionDigits: nd });
     }
     var sel = document.getElementById('sprache');
     if (sel) sel.value = sprache;
     whitepaperSprache();
     liveZeigen();
     document.documentElement.classList.remove('i18n-wartet');
+    try { document.dispatchEvent(new CustomEvent('yskar:sprache', { detail: { sprache: sprache } })); } catch (e) { /* alte Browser */ }
   }
 
   function laden(s, fertig) {
@@ -203,6 +205,10 @@
 
   // ---------------------------------------------------------------- Live
   var live = null;     // letzte Antwort von /summary
+  // Nullkonto: hat keinen Schluessel. Was dort liegt, ist verbrannt (875 YSR aus
+  // Block 0 und die YSR, die zum Ausgleich des fruehen Vorsprungs verbrannt wurden).
+  var NULLKONTO = 'ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw';
+  var verbrannt = null; // Einheiten (BigInt), aus /account
   var liveFehler = false;
 
   function rate(h) {
@@ -215,34 +221,86 @@
   }
 
   function liveZeigen() {
-    var feld = function (id, wert) { var e = document.getElementById(id); if (e) e.textContent = wert; };
     var loc = LOCALES[sprache];
+    // Jedes Feld kann mehrfach vorkommen (Laufband, Kennzahlen): data-live="name",
+    // aeltere Seiten nutzen noch id="live-name".
+    var feld = function (name, wert) {
+      var e = document.getElementById('live-' + name);
+      if (e) e.textContent = wert;
+      var alle = document.querySelectorAll('[data-live="' + name + '"]');
+      for (var i = 0; i < alle.length; i++) alle[i].textContent = wert;
+    };
     if (!live) {
-      if (liveFehler) feld('live-status', t('live.fehler') || '');
+      if (liveFehler) feld('status', t('live.fehler') || '');
       return;
     }
     var h = Number(live.height);
-    feld('live-hoehe', isFinite(h) ? '#' + h.toLocaleString(loc) : '—');
-    feld('live-rate', rate(Number(live.hashrate)));
-    var umlauf = Number(BigInt(live.totalSupply || '0') / 100000000n);
-    feld('live-umlauf', umlauf.toLocaleString(loc) + ' YSR');
+    feld('hoehe', isFinite(h) ? '#' + h.toLocaleString(loc) : '—');
+    feld('rate', rate(Number(live.hashrate)));
+    // totalSupply ist die Summe aller Guthaben, auch die des Nullkontos. Im Umlauf
+    // zaehlt nur, was jemand ausgeben kann: ausgegeben minus verbrannt.
+    var einheiten = BigInt(live.totalSupply || '0');
+    var ausgegeben = Number(einheiten / 100000000n);
+    var umlauf = null;
+    if (verbrannt !== null) {
+      umlauf = Number((einheiten - verbrannt) / 100000000n);
+      feld('umlauf', umlauf.toLocaleString(loc) + ' YSR');
+      feld('umlaufMio', (umlauf / 1e6).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      feld('verbrannt', Number(verbrannt / 100000000n).toLocaleString(loc) + ' YSR');
+    }
     var naechste = (Math.floor(h / EPOCHE) + 1) * EPOCHE;
     var vorlage = t('live.blockN') || 'Block {n}';
-    feld('live-halbierung', vorlage.replace('{n}', naechste.toLocaleString(loc)));
-    feld('live-status', t('live.stand') || '');
-    // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke und der gesuchte.
+    feld('halbierung', isFinite(naechste) ? vorlage.replace('{n}', naechste.toLocaleString(loc)) : '—');
+    // Bei 10 Minuten je Block; nur eine Schaetzung, die Seite sagt "etwa".
+    var tage = Math.round((naechste - h) * 600 / 86400);
+    feld('tage', isFinite(tage) ? '≈ ' + tage.toLocaleString(loc) : '—');
+    if (live.activeMiners != null) feld('miner', Number(live.activeMiners).toLocaleString(loc));
+    if (live.knoten != null) feld('knoten', Number(live.knoten).toLocaleString(loc));
+    var max = Number(BigInt(live.maxSupply || '2100000000000000') / 100000000n);
+    var anteil = max > 0 ? ausgegeben / max * 100 : 0;
+    feld('anteil', (t('supply.anteil') || '{p} %').replace('{p}', anteil.toLocaleString(loc, { maximumFractionDigits: 1 })));
+    // Aktuelle Aera: Zeile der Tabelle markieren, Belohnung je Block (875 YSR >> Aera).
+    var aera = Math.floor(h / EPOCHE);
+    if (isFinite(aera)) {
+      var zeilen = document.querySelectorAll('[data-aera]');
+      for (var z = 0; z < zeilen.length; z++) {
+        zeilen[z].classList.toggle('jetzt', Number(zeilen[z].getAttribute('data-aera')) === aera);
+      }
+      var belohnung = aera < 37 ? 875 / Math.pow(2, aera) : 0;
+      feld('belohnung', belohnung.toLocaleString(loc, { maximumFractionDigits: 8 }) + ' YSR');
+      var ende = (aera + 1) * EPOCHE - 1;
+      feld('aera', aera.toLocaleString(loc));
+      feld('aeraEnde', (t('supply.ek.aeraEnde') || 'until block {b}').replace('{b}', ende.toLocaleString(loc)));
+    }
+    // Werte nur fuer das Laufband.
+    var diff = Number(live.difficultyWert || live.difficulty);
+    if (isFinite(diff) && diff > 0) feld('diff', diff.toLocaleString(loc, { maximumFractionDigits: 0 }));
+    if (live.mempool != null) feld('mempool', Number(live.mempool).toLocaleString(loc));
+    if (typeof live.tipHash === 'string' && live.tipHash.length > 20) {
+      feld('tip', live.tipHash.slice(0, 12) + '…' + live.tipHash.slice(-6));
+    }
+    feld('status', t('live.stand') || '');
+    // Die Kette im Abschnitt "So funktioniert es": die letzten Bloecke.
     var glieder = document.querySelectorAll('[data-kette]');
     for (var i = 0; i < glieder.length; i++) {
       var n = h + Number(glieder[i].getAttribute('data-kette'));
       glieder[i].textContent = isFinite(n) && n >= 0 ? '#' + n.toLocaleString(loc) : '#…';
     }
+    try { document.dispatchEvent(new CustomEvent('yskar:live', { detail: { hoehe: h, umlauf: umlauf, ausgegeben: ausgegeben, anteil: anteil } })); } catch (e) { /* alte Browser */ }
   }
 
   function liveHolen() {
-    if (!document.getElementById('live-hoehe')) return;
-    fetch(API + '/summary', { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { live = d; liveFehler = false; liveZeigen(); })
+    if (!document.getElementById('live-hoehe') && !document.querySelector('[data-live]')) return;
+    var json = function (r) { if (!r.ok) throw new Error(r.status); return r.json(); };
+    Promise.all([
+      fetch(API + '/summary', { cache: 'no-store' }).then(json),
+      fetch(API + '/account/' + NULLKONTO, { cache: 'no-store' }).then(json).catch(function () { return null; })
+    ])
+      .then(function (d) {
+        live = d[0]; liveFehler = false;
+        if (d[1] && d[1].balance != null) verbrannt = BigInt(String(d[1].balance));
+        liveZeigen();
+      })
       .catch(function () { liveFehler = true; liveZeigen(); });
   }
 

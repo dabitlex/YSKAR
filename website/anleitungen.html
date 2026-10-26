@@ -2,37 +2,52 @@
 <html lang="en" class="i18n-wartet">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guides – YSKAR</title>
 <meta name="description" content="Step by step: mining with the Telegram Mini App, the Android app or the PC miner, creating a wallet and running a full node.">
-<meta name="theme-color" content="#0A101C">
-<link rel="icon" href="/favicon.png?v=2" type="image/png">
-<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
-<link rel="stylesheet" href="/assets/style.css?v=11">
+<meta name="theme-color" content="#03060F">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="Guides – YSKAR">
+<meta property="og:description" content="Step by step: wallet, mining on phone and PC, Node Core, your own full node and your own pool.">
+<meta property="og:url" content="https://www.yskar.app/anleitungen">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.png?v=7">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – Fair from block 0.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=40">
 <noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=11"></script>
-<script src="/assets/site.js?v=11" defer></script>
+<script src="/assets/i18n/en.js?v=40"></script>
+<script src="/assets/site.js?v=40" defer></script>
 </head>
 <body data-seite="anleitungen">
 
 <a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
 
-<header class="kopf">
+<header class="kopf" id="kopf">
 <div class="wrap">
-<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/kristall.png" alt="" width="40" height="26"><span>YSKAR</span></a>
-<div style="display:flex;align-items:center;gap:12px">
+<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
 <nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
 <a href="/#was" data-t="nav.was">About YSKAR</a>
 <a href="/#ablauf" data-t="nav.ablauf">How it works</a>
-<a href="/#mitmachen" data-t="nav.mitmachen">Get started</a>
-<a href="/#nodecore">Node Core</a>
+<a href="/#menge" data-t="nav.menge">Supply</a>
+<a href="/#v6" class="v6-link">V6</a>
+<a href="/mining" data-t="nav.mining">Mining</a>
 <a href="/anleitungen" aria-current="page" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
 <a href="/explorer" data-t="nav.explorer">Explorer</a>
 </nav>
+<div class="kopf-rechts">
 <label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
+<a class="knopf hell klein kopf-cta" href="/#nutzen" data-t="nav.los">Use YSR</a>
 <button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
 </button>
 </div>
 </div>
@@ -54,7 +69,7 @@
 <a href="#grundlagen" data-t="an.gr.titel">How mining works</a>
 <a href="#telegram" data-t="an.mini.titel">Telegram Mini App</a>
 <a href="#android" data-t="an.apk.titel">Android app with mining</a>
-<a href="#nodecore" data-t="an.nc.titel">Node Core for Windows</a>
+<a href="#nodecore" data-t="an.nc.titel">Node Core for Windows and Linux</a>
 <a href="#pc" data-t="an.pc.titel">PC miner</a>
 <a href="#wallet" data-t="an.wallet.titel">Your wallet</a>
 <a href="#fullnode" data-t="an.node.titel">Running a full node</a>
@@ -255,7 +270,8 @@ npm run build</code></pre>
   --seed yskar-seed2.dynv6.net:8646 --no-upstream</code></pre>
 <p data-t="an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.</p>
 <h3 data-t="an.node.s3">3. Mine against your own node</h3>
-<pre><code>node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
+<pre><code>cd ../miner
+node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
 <h3 data-t="an.node.s4">4. Run a pool (optional)</h3>
 <p data-t="an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
 <pre><code>node dist/yskar-node.cjs mine --data ./knoten \
@@ -344,7 +360,7 @@ npm run build</code></pre>
 <h3 data-t="an.hi.f1">Mining on the phone stops by itself</h3>
 <p data-t="an.hi.a1">Android is closing the app to save battery. Set the battery usage of YSKAR Wallet to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
 <h3 data-t="an.hi.f2">“Pool full”</h3>
-<p data-t="an.hi.a2">A pool has at most 64 places. Places of miners who stopped become free again after a few minutes, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
+<p data-t="an.hi.a2">A pool has at most 64 places. A place is freed at once when a miner stops, and up to 20 minutes after a miner goes silent, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
 <h3 data-t="an.hi.f3">Node Core: “No peer connected yet”</h3>
 <p data-t="an.hi.a3">The node has not found another node yet. Check your internet connection and whether you allowed Node Core in the Windows firewall prompt. Then wait a moment.</p>
 <h3 data-t="an.hi.f4">Node Core: mining does not start</h3>
@@ -364,22 +380,26 @@ npm run build</code></pre>
 <footer class="fusszeile">
 <div class="wrap">
 <div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
-<a class="marke" href="/"><img src="/assets/img/kristall.png" alt="" width="40" height="26"><span style="font-size:18px">YSKAR</span></a>
+<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
 <p class="motto">proof, not promise</p>
-<p class="motto">© <span id="jahr">2026</span> YSKAR</p>
+<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
 </div>
 <div class="spalten">
 <div>
 <span class="kennung" data-t="fuss.netz">Network</span>
 <a href="/explorer" data-t="nav.explorer">Explorer</a>
+<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
 <a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
+<a href="/#v6">V6</a>
 <a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
 </div>
 <div>
 <span class="kennung" data-t="fuss.mitmachen">Take part</span>
+<a href="/mining" data-t="nav.mining">Mining</a>
 <a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
 <a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
 <a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://x.com/yskar_official">X</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
 </div>
