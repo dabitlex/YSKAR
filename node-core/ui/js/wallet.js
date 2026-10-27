@@ -9,9 +9,10 @@
  * Alte Adressen bleiben gueltig: #/wallet/senden?an=... oeffnet das Fenster
  * "Senden", #/wallet/empfangen das Fenster "Empfangen".
  */
-import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, segment, vierer, tagSchluessel, tagName, dialog } from './kern.js';
+import { hole, sende, el, fuelle, haenge, text, zeile, chip, knopf, kopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, segment, vierer, tagSchluessel, tagName, dialog } from './kern.js';
 import { t } from './i18n.js';
 import { baueEinrichten, passwortFelder } from './walletEinrichten.js';
+import { kontenEintraege, baueKonto, anlegenDialog } from './gemeinsam.js';
 
 /** Wer ist gemeint: Kontaktname oder die Adresse in Kurzform. */
 const wer = (name, adresse) => name || kurzAdresse(adresse);
@@ -123,6 +124,13 @@ function baueHaupt(ctx, startReiter) {
   const inhalt = el('div.stapel', { style: 'gap:12px' });
   const gemeinsam = el('div');
   let reiter = startReiter, daten = null, takt = null, hoehe = -2;
+  let gem = null, gewaehlt = null;   // gemeinsame Konten; gewaehlt = Adresse oder null (eigene Wallet)
+  const eigenHaupt = el('div.stapel', { style: 'gap:16px' });
+  const gemHaupt = el('div', { hidden: true });
+  const meinKonto = el('button.wl-konto.an', { type: 'button', onclick: () => waehle(null) },
+    el('span.wl-ic', zeichen('wallet', 15)),
+    el('span.mitte', el('b', t('wal.meine')), el('span.mono', kurzAdresse(adr))),
+    kontoWert);
   let filter = 'alle', grenze = 60;
   const aufgeklappt = new Set();
   const suche = el('input.feld', { type: 'search', placeholder: t('wal.suchfeld'), 'aria-label': t('wal.suchfeld'), style: 'width:200px;height:30px' });
@@ -131,12 +139,10 @@ function baueHaupt(ctx, startReiter) {
   const wurzel = el('div.wl',
     el('aside.wl-konten', { 'aria-label': t('wal.konten') },
       el('span.cap', { style: 'padding:0 4px 4px' }, t('wal.konten')),
-      el('button.wl-konto.an', { type: 'button' },
-        el('span.wl-ic', zeichen('wallet', 15)),
-        el('span.mitte', el('b', t('wal.meine')), el('span.mono', kurzAdresse(adr))),
-        kontoWert),
+      meinKonto,
       gemeinsam),
-    el('div.wl-haupt',
+    el('div.wl-haupt', eigenHaupt, gemHaupt));
+  haenge(eigenHaupt, [
       el('section.wl-guthaben', { 'aria-label': t('wal.guthaben') },
         el('span.cap', t('wal.meineGuthaben')),
         el('div.riesig', guthaben, el('small', ' YSR')),
@@ -154,16 +160,43 @@ function baueHaupt(ctx, startReiter) {
         el('div', kz.gesamtName, kz.gesamt)),
       el('section.karte', { style: 'gap:12px' },
         el('div.karte-kopf', reiterLeiste, werkzeug),
-        inhalt)));
+        inhalt)]);
 
   // ---------------------------------------------------------- Konten-Spalte
   function zeigeGemeinsam(s) {
     const next = s.nextActivationHeight, h = s.height ?? -1;
-    if (next && h < next) {
+    if (gem?.aktiv) {
+      fuelle(gemeinsam, kontenEintraege(gem, gewaehlt, waehle, () => anlegenDialog(ctx, gem, ladeGem)));
+    } else if (next && h < next) {
       fuelle(gemeinsam, el('div.wl-konto.gesperrt',
         el('span.wl-ic', { style: 'color:var(--mut)' }, zeichen('schloss', 15)),
         el('span.mitte', el('b', t('wal.gemeinsame')), el('span', t('wal.gemeinsameAb', zahl(next), zahl(next - Math.max(0, h)))))));
     } else fuelle(gemeinsam);
+  }
+
+  /** Eigene Wallet (null) oder ein gemeinsames Konto zeigen. */
+  function waehle(adresse) {
+    gewaehlt = adresse;
+    meinKonto.classList.toggle('an', adresse === null);
+    zeigeGewaehlt();
+    zeigeGemeinsam(ctx.stand());
+  }
+
+  function zeigeGewaehlt() {
+    const k = gewaehlt && gem ? gem.konten.find(x => x.adresse === gewaehlt) : null;
+    if (gewaehlt && !k) gewaehlt = null;
+    eigenHaupt.hidden = !!k; gemHaupt.hidden = !k;
+    if (k) fuelle(gemHaupt, baueKonto(ctx, gem, k, ladeGem));
+  }
+
+  /** Gemeinsame Konten neu holen; `neu` = Adresse, die danach gezeigt werden soll (null: eigene). */
+  async function ladeGem(neu) {
+    try { gem = await hole('/api/gemeinsam'); } catch { gem = null; }
+    if (neu !== undefined) gewaehlt = neu;
+    meinKonto.classList.toggle('an', !gewaehlt);
+    // Während ein Fenster offen ist, nichts unter ihm umbauen.
+    if (!document.querySelector('.overlay')) zeigeGewaehlt();
+    zeigeGemeinsam(ctx.stand());
   }
 
   // ------------------------------------------------------------------ Reiter
@@ -391,6 +424,7 @@ function baueHaupt(ctx, startReiter) {
       for (const b of [kz.heute, kz.sieben, kz.dreissig]) b.className = b.textContent.startsWith('+') ? 'gut' : '';
       zeigeInhalt();
     } catch (e) { if (e.code !== 'gesperrt') fuelle(inhalt, el('p.leer', e.message)); }
+    ladeGem();
   }
 
   hole('/api/wallet/qr?betrag=').then(r => fuelle(miniQr, qrBild(r.zeilen, 26, false))).catch(() => {});
