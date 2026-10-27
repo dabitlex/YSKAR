@@ -31,6 +31,14 @@ import { zahlungsCode } from '../../src/lib/wallet/qr.ts';
 // @ts-ignore -- nur der Kern der Bibliothek, ohne Bildausgabe
 import qrKern from 'qrcode/lib/core/qrcode.js';
 import { WalletDienst, WalletFehler } from './Wallet.ts';
+import { GemeinsameKonten } from './GemeinsameKonten.ts';
+import {
+  mitzeichnungAnlegen, mitzeichnungLesen, mitzeichnen, zusammensetzen, mitzeichnungText, mitzeichnungAusText,
+  kontoAusScript, type Mitzeichnung,
+} from '../../src/lib/wallet/mehrfach.ts';
+import { encodeWitness, encodeScript, multisig, decodeScript, leaves, type WitnessSlot, type ScriptNode } from '../../src/lib/core/script.ts';
+import { spendBytes } from '../../src/lib/core/builder.ts';
+import { RELAY_FEE_RATE } from '../../src/lib/core/params.ts';
 import { leseVerlauf, tagVon, NamenZaehler, type KettenVerlauf } from './WalletKette.ts';
 import { PoolQuelle, PoolEndgueltig, fragePool, poolSchnittstelle } from './PoolQuelle.ts';
 import { POOLS, hostAusEingabe, waehlbar, aktuelleAdresse, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
@@ -492,6 +500,8 @@ export class NodeCoreApp {
   /** IP des Seeds -- nur damit die Peer-Liste ihn beim Namen nennen kann. */
   private seedIp: string | null = null;
   private einstellungen: Einstellungen;
+  /** Gemeinsame Konten (Mehrfachsignatur) -- erst ab Fassung 6 nutzbar. */
+  private gemeinsam: GemeinsameKonten;
   private einstellungenPfad: string;
   private wallet: WalletDienst;
   /** Verlauf der Wallet aus der Kette -- gilt, bis ein neuer Block kommt. */
@@ -599,6 +609,7 @@ export class NodeCoreApp {
     this.betrieb = ladeBetrieb(this.betriebPfad);
     this.einstellungen = ladeEinstellungen(this.einstellungenPfad);
     this.wallet = new WalletDienst(base);
+    this.gemeinsam = new GemeinsameKonten(base);
     this.wallet.sperreMinuten = this.einstellungen.sperreMinuten;
     this.ladeMining();
     this.config = {
@@ -2319,6 +2330,156 @@ export class NodeCoreApp {
   }
 
   /** Unterschreiben und ins Netz geben. Verlangt das Passwort -- jedes Mal. */
+  // ------------------------------------------------------ Gemeinsame Konten
+
+  /** Ab welcher Hoehe gemeinsame Konten nutzbar sind (Fassung 6). */
+  private gemeinsamAktiv(): boolean {
+    return !!this.chain && this.chain.height() + 1 >= this.params.v6Height;
+  }
+
+  private verlangeGemeinsamAktiv(): void {
+    if (!this.running || !this.chain || !this.pool) throw new WalletFehler('senden_knoten_aus', 'Zum Senden muss der Knoten laufen.');
+    if (!this.gemeinsamAktiv()) {
+      throw new WalletFehler('gemeinsam_ab_v6', `Gemeinsame Konten gibt es erst ab Block ${this.params.v6Height}.`, [this.params.v6Height]);
+    }
+  }
+
+  private gemeinsamStand() {
+    const eigene = this.wallet.verlangeOffen();
+    return {
+      aktiv: this.gemeinsamAktiv(),
+      abHoehe: this.params.v6Height,
+      eigeneAdresse: eigene,
+      eigenerSchluessel: this.gemeinsam.eigenerSchluessel(),
+      konten: this.gemeinsam.konten().map(k => {
+        const { konto, wartend, verfuegbar } = this.walletKonto(k.adresse);
+        return {
+          ...k, n: k.schluessel.length,
+          guthaben: konto.balance.toString(), verfuegbar: verfuegbar.toString(),
+          wartend: wartend.map(w => ({ ...w })),
+          verlauf: this.running ? this.kettenVerlauf(k.adresse).ueberweisungen.slice(0, 40) : [],
+        };
+      }),
+    };
+  }
+
+  /** Den eigenen oeffentlichen Schluessel holen (einmal mit Passwort) -- zum Weitergeben an die anderen. */
+  private async gemeinsamSchluessel(body: Record<string, unknown>) {
+    const paar = await this.wallet.schluessel(body.passwort);
+    paar.privateKey.fill(0);
+    const hex = toHex(paar.publicKey);
+    this.gemeinsam.setzeEigenen(hex);
+    return { schluessel: hex };
+  }
+
+  /** Gebuehr fuer die fertige Ausgabe: Groesse MIT k Unterschriften, Satz je Byte wie beim Senden. */
+  private gemeinsamGebuehr(script: Uint8Array, k: number, to: Uint8Array, memo: Uint8Array, nonce: bigint): bigint {
+    const node = decodeScript(script) as ScriptNode;
+    let belegt = 0;
+    const slots: WitnessSlot[] = leaves(node).map(() => (belegt++ < k ? { kind: 'sig', signature: new Uint8Array(64) } : { kind: 'absent' }));
+    const muster = mitzeichnungAnlegen({
+      konto: kontoAusScript(script)!, netz: this.params.network, an: to, betrag: 1n, gebuehr: 0n, nonce, notiz: memo,
+    });
+    const tx = { ...deserializeTx(fromHex(muster.tx)), witness: encodeWitness(slots) } as Spend;
+    const bytes = spendBytes(tx);
+    const markt = this.lesen!.fees(new URLSearchParams());
+    const satz = [Number(markt.stufen.normal.jeByte), Number(markt.mindestJeByte ?? 0), Number(RELAY_FEE_RATE)].reduce((a, b) => Math.max(a, b), 0);
+    return BigInt(Math.ceil(satz * bytes));
+  }
+
+  /** Eine Ausgabe vorschlagen: Datei anlegen und gleich mit dem eigenen Schluessel unterschreiben. */
+  private async gemeinsamVorschlagen(body: Record<string, unknown>) {
+    this.wallet.verlangeOffen();
+    this.verlangeGemeinsamAktiv();
+    const k = this.gemeinsam.finde(body.konto);
+    const an = String(body.an ?? '').trim().toLowerCase();
+    if (!isValidAddress(an)) throw new WalletFehler('adresse_falsch', 'Das ist keine gültige YSKAR-Adresse.');
+    if (an === k.adresse) throw new WalletFehler('eigene_adresse', 'Das ist die Adresse dieses Kontos.');
+    const betrag = eingabeEinheiten(String(body.betrag ?? ''));
+    if (betrag <= 0n) throw new WalletFehler('betrag_falsch', 'Gib einen Betrag ein.');
+    if (betrag < DUST_LIMIT) throw new WalletFehler('betrag_staub', 'Der Betrag ist zu klein. Mindestens 0,000001 YSR.');
+    const notiz = notizKuerzen(String(body.notiz ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim());
+    const memo = new TextEncoder().encode(notiz);
+    const hoehe = this.chain!.height() + 1;
+    if (sendepause(hoehe, this.params.v6Height)) {
+      throw new WalletFehler('wechsel_pause', 'Das Netz wechselt in Kürze auf Konsensfassung 6. Bitte in etwa einer halben Stunde noch einmal versuchen.');
+    }
+    const script = encodeScript(multisig(k.k, k.schluessel.map(fromHex)));
+    const { verfuegbar, naechsteNonce } = this.walletKonto(k.adresse);
+    const to = decodeAddress(an);
+    const gebuehr = this.gemeinsamGebuehr(script, k.k, to, memo, naechsteNonce);
+    if (betrag + gebuehr > verfuegbar) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+    let m = mitzeichnungAnlegen({ konto: kontoAusScript(script)!, netz: this.params.network, an: to, betrag, gebuehr, nonce: naechsteNonce, notiz: memo });
+    const paar = await this.wallet.schluessel(body.passwort);
+    try {
+      this.gemeinsam.setzeEigenen(toHex(paar.publicKey));
+      m = mitzeichnen(m, paar.privateKey, paar.publicKey, this.params.network, this.params.chainId);
+    } finally { paar.privateKey.fill(0); }
+    return { text: mitzeichnungText(m), ...this.gemeinsamBeschreibe(m) };
+  }
+
+  /** Was in einer Mitzeichnungsdatei steht -- geprueft, fuer die Anzeige. */
+  private gemeinsamBeschreibe(m: Mitzeichnung) {
+    const st = mitzeichnungLesen(m, this.params.network, this.params.chainId);
+    const eigen = this.gemeinsam.eigenerSchluessel();
+    const u = st.unsigniert;
+    const eingetragen = this.gemeinsam.konten().find(x => x.adresse === st.konto.adresse) ?? null;
+    return {
+      konto: st.konto.adresse, kontoName: eingetragen?.name ?? null,
+      k: st.konto.k, n: st.konto.schluessel.length,
+      an: encodeAddress(u.to), anName: this.wallet.kontaktName(encodeAddress(u.to)),
+      betrag: u.amount.toString(), gebuehr: u.fee.toString(), nonce: u.nonce.toString(),
+      notiz: notizAusHex(toHex(u.memo)),
+      unterschrieben: st.unterschrieben.length, fehlen: st.fehlen,
+      vonMir: eigen ? !!m.sigs[eigen] : false,
+      binBeteiligt: eigen ? st.konto.schluessel.some(s => toHex(s) === eigen) : null,
+    };
+  }
+
+  private gemeinsamLesen(body: Record<string, unknown>) {
+    this.wallet.verlangeOffen();
+    let m: Mitzeichnung;
+    try { m = mitzeichnungAusText(String(body.text ?? '')); }
+    catch { throw new WalletFehler('mitzeichnung_kaputt', 'Das ist keine gültige Mitzeichnungsdatei.'); }
+    try { return { text: mitzeichnungText(m), ...this.gemeinsamBeschreibe(m) }; }
+    catch (e) { throw new WalletFehler('mitzeichnung_ungueltig', `Die Datei lässt sich nicht prüfen: ${(e as Error).message}`, [(e as Error).message]); }
+  }
+
+  private async gemeinsamMitzeichnen(body: Record<string, unknown>) {
+    this.wallet.verlangeOffen();
+    const vorher = this.gemeinsamLesen(body);
+    const m = mitzeichnungAusText(vorher.text);
+    const paar = await this.wallet.schluessel(body.passwort);
+    let neu: Mitzeichnung;
+    try {
+      this.gemeinsam.setzeEigenen(toHex(paar.publicKey));
+      neu = mitzeichnen(m, paar.privateKey, paar.publicKey, this.params.network, this.params.chainId);
+    } catch (e) {
+      throw new WalletFehler('mitzeichnen_fehler', `Unterschreiben ging nicht: ${(e as Error).message}`, [(e as Error).message]);
+    } finally { paar.privateKey.fill(0); }
+    return { text: mitzeichnungText(neu), ...this.gemeinsamBeschreibe(neu) };
+  }
+
+  /** Sobald k Unterschriften da sind: zusammensetzen, pruefen, einreichen. */
+  private async gemeinsamEinreichen(body: Record<string, unknown>) {
+    this.wallet.verlangeOffen();
+    this.verlangeGemeinsamAktiv();
+    const vorher = this.gemeinsamLesen(body);
+    if (vorher.fehlen > 0) throw new WalletFehler('mitzeichnung_fehlt', `Es fehlen noch ${vorher.fehlen} Unterschrift(en).`, [vorher.fehlen]);
+    const hoehe = this.chain!.height() + 1;
+    let tx: Spend;
+    try { tx = zusammensetzen(mitzeichnungAusText(vorher.text), this.params.network, this.params.chainId, hoehe,
+      { chainId: this.params.chainId, feeV3Height: this.params.feeV3Height ?? FEE_V3_HEIGHT, v6Height: this.params.v6Height }) as Spend; }
+    catch (e) { throw new WalletFehler('mitzeichnung_ungueltig', `Die Ausgabe ist ungültig: ${(e as Error).message}`, [(e as Error).message]); }
+    const aufnahme = this.pool!.add(tx, this.chain!.state(), hoehe, { lokal: true });
+    if (!aufnahme.ok) {
+      throw new WalletFehler('abgelehnt_' + aufnahme.reason, `Der Knoten hat die Ausgabe abgelehnt (${aufnahme.reason}).`);
+    }
+    const n = this.sync?.kuendigeAnTx(txid(tx)) ?? 0;
+    this.log(`Ausgabe vom gemeinsamen Konto ${aufnahme.txid.slice(0, 16)}… eingereicht, an ${n} Peer${n === 1 ? '' : 's'} gemeldet`);
+    return { txid: aufnahme.txid, peers: n, ...vorher };
+  }
+
   private async walletSenden(body: Record<string, unknown>) {
     const r = this.walletRechne(body);
     /*
@@ -2559,7 +2720,9 @@ export class NodeCoreApp {
 
   /** QR-Code der Adresse, auf Wunsch mit Betrag und Notiz -- im Format der App. */
   private walletQr(such: URLSearchParams) {
-    const adresse = this.wallet.verlangeOffen();
+    const eigene = this.wallet.verlangeOffen();
+    // Auch fuer ein eingetragenes gemeinsames Konto -- nie fuer eine fremde Adresse.
+    const adresse = such.get('konto') ? this.gemeinsam.finde(such.get('konto')).adresse : eigene;
     const betrag = eingabeEinheiten(such.get('betrag') ?? '');
     const code = zahlungsCode(adresse, betrag > 0n ? betrag : null, such.get('notiz'));
     const q = qrKern.create(code, { errorCorrectionLevel: 'M' });
@@ -2678,6 +2841,22 @@ export class NodeCoreApp {
 
       if (POST && pfad === '/api/peers/verbinden') return json(res, this.verbindePeer(await readBody(req)));
       if (POST && pfad === '/api/peers/trennen') return json(res, this.trennePeer(await readBody(req)));
+
+      // Gemeinsame Konten (Mehrfachsignatur)
+      if (pfad === '/api/gemeinsam' || pfad.startsWith('/api/gemeinsam/')) {
+        if (GET && pfad === '/api/gemeinsam') return json(res, this.gemeinsamStand());
+        if (POST) {
+          const b = await readBody(req);
+          if (pfad === '/api/gemeinsam/schluessel') return json(res, await this.gemeinsamSchluessel(b));
+          if (pfad === '/api/gemeinsam/anlegen') { this.wallet.verlangeOffen(); this.gemeinsam.anlegen(b.name, b.k, b.schluessel); return json(res, this.gemeinsamStand()); }
+          if (pfad === '/api/gemeinsam/entfernen') { this.wallet.verlangeOffen(); this.gemeinsam.entfernen(b.adresse); return json(res, this.gemeinsamStand()); }
+          if (pfad === '/api/gemeinsam/vorschlagen') return json(res, await this.walletNacheinander(() => this.gemeinsamVorschlagen(b)));
+          if (pfad === '/api/gemeinsam/lesen') return json(res, this.gemeinsamLesen(b));
+          if (pfad === '/api/gemeinsam/mitzeichnen') return json(res, await this.gemeinsamMitzeichnen(b));
+          if (pfad === '/api/gemeinsam/einreichen') return json(res, await this.walletNacheinander(() => this.gemeinsamEinreichen(b)));
+        }
+        return json(res, { error: 'not_found' }, 404);
+      }
 
       // Wallet
       if (pfad === '/api/wallet' || pfad.startsWith('/api/wallet/')) {

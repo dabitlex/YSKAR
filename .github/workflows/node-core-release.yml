@@ -281,7 +281,7 @@ jobs:
           if (-not $s.huelle.vorhanden) { throw 'Die Hülle hat sich nicht angemeldet.' }
           Write-Host "Symbol im Infobereich: $($s.huelle.infobereich)"
 
-          foreach ($datei in '/ui/app.css', '/ui/js/main.js', '/ui/fonts/manrope-latin-wght-normal.woff2') {
+          foreach ($datei in '/ui/app.css', '/ui/js/main.js', '/ui/fonts/geist-variable.woff2') {
             $r = Invoke-WebRequest "http://127.0.0.1:8650$datei" -UseBasicParsing
             if ($r.StatusCode -ne 200) { throw "$datei fehlt im Paket." }
           }
@@ -486,7 +486,7 @@ jobs:
           [ "$(feld 's.plattform' <<<"$s")" = '"linux"' ] || { echo "::error::Plattform nicht linux."; exit 1; }
           [ "$(feld 's.huelle.vorhanden' <<<"$s")" = true ] || { echo "::error::Die Hülle hat sich nicht angemeldet."; exit 1; }
 
-          for d in /ui/app.css /ui/js/main.js /ui/fonts/manrope-latin-wght-normal.woff2; do
+          for d in /ui/app.css /ui/js/main.js /ui/fonts/geist-variable.woff2; do
             curl -sf -o /dev/null "http://127.0.0.1:8650$d" || { echo "::error::$d fehlt im Paket."; exit 1; }
           done
 
