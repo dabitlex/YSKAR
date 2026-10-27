@@ -134,6 +134,15 @@ const ZEICHEN = {
   haus: '<path d="m4 11 8-7 8 7"/><path d="M6 10v9.5h12V10"/>',
   pc: '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M9 20h6"/><path d="M12 16.5V20"/>',
   laden: '<path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/>',
+  liste: '<path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/>',
+  pfeil: '<path d="m9 6 6 6-6 6"/>',
+  karte: '<rect x="3" y="7" width="18" height="10" rx="1.5"/><path d="M7 17v3"/><path d="M11 17v3"/><circle cx="9" cy="12" r="2"/><path d="M15 11h3"/>',
+  chip: '<rect x="7" y="7" width="10" height="10" rx="1"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/>',
+  etikett: '<path d="M7 7h.01"/><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z"/>',
+  qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>',
+  stopp: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  aufwaerts: '<path d="M7 17 17 7"/><path d="M9 7h8v8"/>',
+  abwaerts: '<path d="M17 7 7 17"/><path d="M15 17H7V9"/>',
 };
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -152,15 +161,15 @@ export function zeichen(name, groesse = 16) {
 }
 
 /**
- * Das Zeichen der Marke: der YSKAR-Kristall, ohne Hintergrund -- dasselbe
- * Bild wie in App, Explorer und auf der Webseite. `breite` in Pixeln; die
- * Hoehe folgt aus dem Seitenverhaeltnis des Bildes (160 x 104).
+ * Das Zeichen der Marke: das Y von YSKAR, ohne Hintergrund und ohne Schein --
+ * dasselbe Bild wie auf yskar.app und in der Mini App. `groesse` in Pixeln.
+ * (Der Name stammt aus der Zeit des Kristalls; die Ansichten rufen ihn so.)
  */
-export function kristall(breite = 40) {
+export function kristall(groesse = 24) {
   const b = document.createElement('img');
-  b.src = '/ui/kristall.png';
+  b.src = '/ui/zeichen.svg';
   b.alt = '';
-  b.width = breite; b.height = Math.round(breite * 104 / 160);
+  b.width = groesse; b.height = groesse;
   b.decoding = 'async';
   b.draggable = false;
   b.style.flex = 'none';
@@ -209,6 +218,26 @@ export function segment(name, wahl, aktuell, waehle, klein = false) {
   return g;
 }
 
+/**
+ * Dialog ueber dem Fenster. `kopf`: { titel, unter, zeichen }. Liefert
+ * { wurzel, inhalt, fuss, schliesse }. Esc und ein Klick daneben schliessen.
+ */
+export function dialog({ titel, unter = null, zeichenName = null, breite = 540, oben = false }, wennZu = null) {
+  const inhalt = el('div.dialog-inhalt');
+  const fuss = el('div.dialog-fuss', { hidden: true });
+  const schliesse = () => { wurzel.remove(); document.removeEventListener('keydown', taste); wennZu?.(); };
+  const taste = e => { if (e.key === 'Escape') schliesse(); };
+  const box = el('div.dialog', { role: 'dialog', 'aria-label': titel, style: 'width:' + breite + 'px' },
+    el('div.dialog-kopf',
+      el('div.titel', zeichenName ? el('span.kachel', zeichen(zeichenName, 17)) : null, el('div', el('h2', titel), unter ? el('span', unter) : null)),
+      el('button.x', { type: 'button', 'aria-label': t('allg.schliessen'), onclick: schliesse }, zeichen('kreuz', 14))),
+    inhalt, fuss);
+  const wurzel = el('div.overlay' + (oben ? '.oben' : ''), { onmousedown: e => { if (e.target === wurzel) schliesse(); } }, box);
+  document.addEventListener('keydown', taste);
+  document.body.appendChild(wurzel);
+  return { wurzel, box, inhalt, fuss: Object.assign(fuss, { zeige: (...k) => { fuelle(fuss, ...k); fuss.hidden = false; } }), schliesse };
+}
+
 let meldungWeg = null;
 /** Kurze Meldung am unteren Rand. */
 export function melde(inhalt, schlecht = false) {
@@ -241,6 +270,19 @@ export function ysr(einheiten, mindestens = 4) {
   if (bruch.length < mindestens) bruch = bruch.padEnd(mindestens, '0');
   const komma = sprache() === 'en' ? '.' : ',';
   return (minus ? '−' : '') + new Intl.NumberFormat(ort()).format(ganz) + (bruch ? komma + bruch : '');
+}
+
+/**
+ * Betrag fuer grosse Anzeigen: die ersten zwei Nachkommastellen gross, der
+ * Rest (bis zur achten Stelle) klein und grau. Liefert ein Element.
+ */
+export function ysrGross(einheiten) {
+  const voll = ysr(einheiten, 2);
+  const komma = sprache() === 'en' ? '.' : ',';
+  const i = voll.lastIndexOf(komma);
+  if (i < 0) return el('span', voll);
+  const vorne = voll.slice(0, i + 3), rest = voll.slice(i + 3);
+  return el('span', vorne, rest ? el('span.rest', rest) : null);
 }
 
 /** Rechenleistung. */

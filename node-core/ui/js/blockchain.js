@@ -194,6 +194,12 @@ export function baue(ctx) {
   // Einstieg über die Adresszeile: #/blockchain/3244
   const start = ctx.ort()[1];
   if (start && /^\d+$/.test(start)) { gewaehlt = Number(start); oben = gewaehlt; }
+  // Aus der Suche (Strg K): #/blockchain/suche/<Begriff>
+  if (start === 'suche' && ctx.ort()[2]) {
+    try { eingabe.value = decodeURIComponent(ctx.ort().slice(2).join('/')); } catch { eingabe.value = ''; }
+    history.replaceState(null, '', '#/blockchain');
+    setTimeout(suche, 0);
+  }
   const s0 = ctx.stand();
   if (s0?.running) {
     kopfHoehe = s0.height ?? -1;

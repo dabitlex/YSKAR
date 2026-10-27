@@ -82,7 +82,7 @@ console.log('Node-Core-Bundle erstellt: dist/node-core.cjs');
   let n = 0;
   for (const f of readdirSync(schriften)) {
     // Nur was die Oberflaeche wirklich laedt, dazu die Lizenztexte.
-    if (/^(manrope-latin(-ext)?-wght-normal|ibm-plex-mono-latin-(400|500)-normal)\.woff2$/.test(f) || f.startsWith('LICENSE')) {
+    if (/^geist(-mono)?-variable\.woff2$/.test(f) || f.startsWith('LICENSE-Geist')) {
       copyFileSync(join(schriften, f), join(ziel, 'fonts', f)); n++;
     }
   }

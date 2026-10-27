@@ -142,14 +142,27 @@ async function createMainWindow() {
   // ein Symbol gibt, ueber das man es wieder oeffnen kann.
   const ohneFenster = VERSTECKT_GESTARTET && tray !== null;
 
+  /*
+   * Die eigene Titelleiste: Das Fenster hat keinen Rahmen, die Oberflaeche
+   * zeichnet Zeichen, Namen und Suche. Minimieren, Maximieren und Schliessen
+   * zeichnet weiter das System darueber (titleBarOverlay) -- so verhalten
+   * sie sich genau wie bei jedem anderen Programm. Unter Linux laesst sich
+   * das abschalten (Einstellungen, gilt nach dem Neustart).
+   */
+  const eigeneTitelleiste = !(LINUX && core.systemTitelleiste?.());
+
   mainWindow = new BrowserWindow({
     width: 1440,
-    height: 920,
-    minWidth: 1120,
-    minHeight: 720,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 700,
     title: 'YSKAR Node Core',
     ...(symbol ? { icon: symbol } : {}),
-    backgroundColor: '#0b0f14',
+    backgroundColor: '#000000',
+    ...(eigeneTitelleiste ? {
+      titleBarStyle: 'hidden',
+      titleBarOverlay: { color: '#000000', symbolColor: '#C3CCDF', height: 36 },
+    } : {}),
     autoHideMenuBar: true,
     show: false,
     center: true,

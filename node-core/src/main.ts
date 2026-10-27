@@ -400,12 +400,17 @@ export interface Einstellungen {
   miningFortsetzen: boolean;
   /** Beim Start bei GitHub nachsehen, ob es eine neuere Version gibt. */
   updatesSuchen: boolean;
+  /**
+   * Nur Linux: die Titelleiste des Systems statt der eigenen verwenden.
+   * Gilt nach dem naechsten Start des Programms.
+   */
+  systemTitelleiste: boolean;
 }
 
 const SPERRE_WAHL = [0, 5, 10, 30];
 const VORGABE_EINSTELLUNGEN: Einstellungen = {
   sprache: 'de', knotenSofort: true, sperreMinuten: 10,
-  imHintergrund: false, miningFortsetzen: false, updatesSuchen: true,
+  imHintergrund: false, miningFortsetzen: false, updatesSuchen: true, systemTitelleiste: false,
 };
 /** So lange wird nach dem Start versucht, das Mining fortzusetzen -- der Knoten muss erst aufholen. */
 const FORTSETZEN_TAKT_MS = 5_000;
@@ -423,6 +428,7 @@ function pruefeEinstellungen(roh: unknown, basis: Einstellungen): Einstellungen 
   if (typeof r.imHintergrund === 'boolean') e.imHintergrund = r.imHintergrund;
   if (typeof r.miningFortsetzen === 'boolean') e.miningFortsetzen = r.miningFortsetzen;
   if (typeof r.updatesSuchen === 'boolean') e.updatesSuchen = r.updatesSuchen;
+  if (typeof r.systemTitelleiste === 'boolean') e.systemTitelleiste = r.systemTitelleiste;
   return e;
 }
 
@@ -1561,6 +1567,8 @@ export class NodeCoreApp {
   imHintergrund(): boolean { return this.einstellungen.imHintergrund; }
 
   sprache(): 'de' | 'en' { return this.einstellungen.sprache; }
+  /** Fuer die Huelle beim Anlegen des Fensters (nur Linux wertet es aus). */
+  systemTitelleiste(): boolean { return this.einstellungen.systemTitelleiste; }
 
   /** Darf diese Adresse im Browser geoeffnet werden? Liefert sie dann zurueck, sonst null. */
   linkErlaubt(url: unknown): string | null { return linkErlaubt(url); }
