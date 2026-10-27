@@ -248,6 +248,17 @@ export function melde(inhalt, schlecht = false) {
   meldungWeg = setTimeout(() => m.remove(), schlecht ? 7000 : 3500);
 }
 
+/** Meldung unten rechts mit Zeichen, Titel und Unterzeile -- etwa „Block gefunden“. */
+export function meldeEreignis(titel, unter, zeichenName = 'blitz') {
+  const box = el('div.toast', { role: 'status' },
+    el('span.toast-ic', zeichen(zeichenName, 15)),
+    el('div.mitte', el('b', titel), unter ? el('span', unter) : null),
+    el('button.x', { type: 'button', 'aria-label': t('allg.schliessen'), onclick: () => box.remove() }, zeichen('kreuz', 13)));
+  document.querySelectorAll('.toast').forEach((x, i, alle) => { if (alle.length >= 3 && i === 0) x.remove(); });
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 12000);
+}
+
 export async function kopiere(wert, hinweis) {
   try { await navigator.clipboard.writeText(wert); melde(hinweis || t('allg.kopiert')); }
   catch { melde(t('fehler.kopieren'), true); }

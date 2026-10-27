@@ -10,7 +10,7 @@
  * abgeschaltet, unter Linux), links die Seitenleiste, unten die
  * Statusleiste. Nur der Inhalt in der Mitte scrollt.
  */
-import { hole, sende, el, fuelle, zeichen, kristall, melde, text, zahl, leistung, netzName, dialog } from './kern.js';
+import { hole, sende, el, fuelle, zeichen, kristall, melde, meldeEreignis, text, zahl, ysr, leistung, netzName, dialog } from './kern.js';
 import { t, setzeSprache, setzePlattform } from './i18n.js';
 import * as einrichtung from './einrichtung.js';
 import * as uebersicht from './uebersicht.js';
@@ -59,9 +59,38 @@ const ctx = {
   suche: () => oeffneSuche(),
 };
 
+/*
+ * Ereignisse beim Mining: ein eigener Block (solo) oder eine Pool-Auszahlung
+ * in der Kette. Gemeldet wird nur, was seit dem Öffnen neu ist.
+ */
+let ereignis = { hoehe: null, auszahlung: null };
+async function pruefeEreignisse(s) {
+  const m = s.mining;
+  const h = s.height ?? -1;
+  const aus = m?.pool?.auszahlung ?? null;
+  if (ereignis.hoehe === null) { ereignis = { hoehe: h, auszahlung: aus?.hoehe ?? null }; return; }
+  if (aus && aus.hoehe !== ereignis.auszahlung) {
+    ereignis.auszahlung = aus.hoehe;
+    meldeEreignis(t('ereignis.auszahlung', ysr(aus.betrag)), t('ereignis.auszahlungUnter', zahl(aus.hoehe), aus.name ?? m.pool?.name ?? ''), 'leute');
+  }
+  if (h > ereignis.hoehe) {
+    const von = ereignis.hoehe;
+    ereignis.hoehe = h;
+    const adr = m?.config?.address;
+    if (!adr || m.pool) return;
+    try {
+      const r = await hole('/api/lesen/blocks?limit=' + Math.min(5, h - von));
+      for (const b of r.blocks) {
+        if (b.recipients <= 1 && b.minerAddress === adr) meldeEreignis(t('ereignis.block', zahl(b.height)), t('ereignis.blockUnter', ysr(b.reward)), 'blitz');
+      }
+    } catch { /* nächster Takt */ }
+  }
+}
+
 async function lies() {
   try {
     stand = await hole('/api/status');
+    pruefeEreignisse(stand);
     aktualisiereGeruest();
     aktiv?.ansicht.aktualisiere?.(stand);
   } catch (e) {

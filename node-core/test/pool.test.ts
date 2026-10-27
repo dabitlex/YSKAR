@@ -187,11 +187,13 @@ test('Im Pool: anmelden, Shares liefern, Auszahlung in der Kette', async () => {
     // Shares werden angenommen: Der Header, den Node Core aus den Feldern
     // des Jobs baut, ist derselbe, den der Pool nachrechnet.
     await bis('Der Pool nimmt Shares an', async () => (await A.stand()).mining.pool.angenommen >= 2);
+    // Die Rate wird erst nach dem ersten Messfenster gemeldet; unter Last
+    // kommen die Shares im Testnetz schneller als die erste Messung.
+    await bis('Die CPU meldet eine Rate', async () => (await A.stand()).mining.cpu.hashrate > 0);
     const s = (await A.stand()).mining;
     assert.equal(s.running, true);
     assert.equal(s.pool.verbunden, true);
     assert.equal(s.pool.abgelehnt, 0);
-    assert.ok(s.cpu.hashrate > 0);
     assert.equal(s.pool.stand.kette, 'Testpool Nord');
 
     // Im Testnetz ist jeder Share ein Block. Er entsteht beim POOL und

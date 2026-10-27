@@ -940,4 +940,8 @@ export const en = {
   'srv.mitzeichnung_ungueltig': m => `The file cannot be verified: ${m}`,
   'srv.mitzeichnung_fehlt': n => `${n} signature(s) still missing.`,
   'srv.mitzeichnen_fehler': m => `Signing failed: ${m}`,
+  'ereignis.block': h => `Block ${h} found`,
+  'ereignis.blockUnter': b => `Solo · + ${b} YSR to your address`,
+  'ereignis.auszahlung': b => `Pool payout + ${b} YSR`,
+  'ereignis.auszahlungUnter': (h, p) => `Block ${h}${p ? ' · ' + p : ''}`,
 };

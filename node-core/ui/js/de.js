@@ -940,4 +940,8 @@ export const de = {
   'srv.mitzeichnung_ungueltig': m => `Die Datei lässt sich nicht prüfen: ${m}`,
   'srv.mitzeichnung_fehlt': n => `Es fehlen noch ${n} Unterschrift(en).`,
   'srv.mitzeichnen_fehler': m => `Unterschreiben ging nicht: ${m}`,
+  'ereignis.block': h => `Block ${h} gefunden`,
+  'ereignis.blockUnter': b => `Solo · + ${b} YSR an deine Adresse`,
+  'ereignis.auszahlung': b => `Pool-Auszahlung + ${b} YSR`,
+  'ereignis.auszahlungUnter': (h, p) => `Block ${h}${p ? ' · ' + p : ''}`,
 };
