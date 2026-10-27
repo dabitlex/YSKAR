@@ -1,5 +1,6 @@
 /* Peers: mit wem der Knoten verbunden ist. */
-import { sende, el, fuelle, text, chip, knopf, kopf, melde, zahl, dauer, zeichen } from './kern.js';
+import { sende, el, fuelle, text, chip, knopf, kopf, melde, zahl, dauer, zeichen, kopfKarte, kennzahl, platz } from './kern.js';
+import { bild as illu } from './bilder.js';
 import { t } from './i18n.js';
 
 /**
@@ -22,11 +23,13 @@ export function baue(ctx) {
     zeigeIp = !zeigeIp;
     try { localStorage.setItem(SCHLUESSEL, zeigeIp ? '1' : '0'); } catch { /* nur für diese Sitzung */ }
     bild = ''; setzeIpKnopf(); aktualisiere(ctx.stand());
-  }, 'klein ruhig');
+  });
   const setzeIpKnopf = () => fuelle(ipKnopf, zeichen('auge', 14), zeigeIp ? t('peers.ipVerdecken') : t('peers.ipZeigen'));
   setzeIpKnopf();
   const erreichbar = el('span');
-  const st = { verb: el('b', '—'), verbSub: el('span', ''), aus: el('b', '—'), ein: el('b', '—'), buch: el('b', '—') };
+  const held = { zahl: el('div.zahl', platz(3)), satz: el('p.held-satz'), bild: el('div'), bildName: '' };
+  const kz = { aus: kennzahl(t('peers.ausgehend'), null, t('peers.ausSub')), ein: kennzahl(t('peers.eingehend'), null, t('peers.einSub')),
+    buch: kennzahl(t('peers.buch'), null, t('peers.buchSub')), hoch: kennzahl(t('peers.hoechsterStand')) };
   const zeilen = el('tbody');
   const eingabe = el('input.feld', { id: 'peer', type: 'text', placeholder: 'knoten.example.org:8646', autocomplete: 'off', spellcheck: 'false' });
   const seed = el('div.box.mono', { style: 'font-size:13.5px' }, '—');
@@ -50,11 +53,9 @@ export function baue(ctx) {
 
   const wurzel = el('div.stapel',
     kopf(t('peers.titel'), t('peers.sub'), erreichbar),
-    el('section.kennzahlen', { 'aria-label': t('ueb.kennzahlen') },
-      el('div.stat', el('span.cap', t('peers.verbunden')), st.verb, st.verbSub),
-      el('div.stat', el('span.cap', t('peers.ausgehend')), st.aus, el('span', t('peers.ausSub'))),
-      el('div.stat', el('span.cap', t('peers.eingehend')), st.ein, el('span', t('peers.einSub'))),
-      el('div.stat', el('span.cap', t('peers.buch')), st.buch, el('span', t('peers.buchSub')))),
+    kopfKarte([el('span.cap', t('peers.verbunden')), held.zahl, held.satz,
+      el('div.held-knoepfe', knopf([zeichen('plus', 14), t('peers.hinzu')], () => { eingabe.scrollIntoView({ behavior: 'smooth', block: 'center' }); eingabe.focus(); }))],
+      held.bild, Object.values(kz)),
     el('section.karte', { 'aria-label': t('peers.liste') },
       el('div.karte-kopf', el('h2', t('peers.liste')), ipKnopf),
       el('div.tab-huelle', el('table.tab',
@@ -82,10 +83,14 @@ export function baue(ctx) {
     const offen = s.inboundPeers > 0;
     fuelle(erreichbar, !s.running ? chip('hoch', t('ueb.gestoppt'), true)
       : offen ? chip('gruen hoch', t('peers.vonAussen'), true) : chip('hoch', t('peers.nurAus'), true));
-    text(st.verb, zahl(s.peerCount));
+    text(held.zahl, zahl(s.running ? s.peerCount : 0));
+    text(held.satz, !s.running ? t('fehler.knotenAus') : s.peerCount ? t('peers.heldSatz', s.outboundPeers, s.inboundPeers, s.peerBook) : t('peers.keiner'));
+    const name = s.running && s.peerCount ? 'peers' : 'keinPeer';
+    if (name !== held.bildName) { held.bildName = name; fuelle(held.bild, illu(name, 260)); }
+    text(kz.aus.wert, zahl(s.outboundPeers)); text(kz.ein.wert, zahl(s.inboundPeers)); text(kz.buch.wert, zahl(s.peerBook));
     const hoehen = s.peers.map(p => p.hoehe);
-    text(st.verbSub, s.peerCount ? t('peers.hoechste', zahl(Math.max(...hoehen))) : t('peers.keiner'));
-    text(st.aus, zahl(s.outboundPeers)); text(st.ein, zahl(s.inboundPeers)); text(st.buch, zahl(s.peerBook));
+    text(kz.hoch.wert, hoehen.length ? zahl(Math.max(...hoehen)) : '—');
+    text(kz.hoch.unter, hoehen.length && Math.max(...hoehen) <= (s.height ?? -1) ? t('peers.wieDeiner') : t('peers.deiner', zahl(s.height ?? 0)));
     text(seed, s.seed || t('peers.keinSeed'));
     const eingebaut = s.weitereSeeds || [];
     weitere.hidden = eingebaut.length === 0;
@@ -107,7 +112,7 @@ export function baue(ctx) {
       // Konsensfassung, die der Peer im Handschlag meldet; 0 heisst: noch keiner.
       el('td.r.mono', p.fassung > 0 ? String(p.fassung) : '—'),
       el('td.dim', dauer((Date.now() - p.seit) / 1000)),
-      el('td.r', knopf(t('peers.trennen'), () => trenne(p.id), 'klein'))))
+      el('td.r', knopf(t('peers.trennen'), () => trenne(p.id), 'klein beim-zeigen'))))
       : el('tr', el('td.leer', { colspan: 7 }, s.running ? t('peers.keineVerbunden') : t('fehler.knotenAus'))));
   }
 

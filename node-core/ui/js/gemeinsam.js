@@ -10,7 +10,8 @@
  *   3. Sobald k Unterschriften drin sind, reicht irgendwer sie ein.
  * Node Core prueft jede Datei vor dem Anzeigen: Eine veraenderte faellt auf.
  */
-import { hole, sende, el, fuelle, text, zeile, chip, knopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, vierer, tagSchluessel, tagName, dialog } from './kern.js';
+import { hole, sende, el, fuelle, text, zeile, chip, knopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, vierer, tagSchluessel, tagName, dialog, kopfKarte } from './kern.js';
+import { bild } from './bilder.js';
 import { t } from './i18n.js';
 
 /** Datei herunterladen -- im Programm fragt das System, wohin. */
@@ -76,22 +77,20 @@ export function baueKonto(ctx, gem, k, neuLaden) {
       el('td', e.wartend ? chip('gelb', t('wal.wartet')) : chip('gruen', t('wal.bestaetigt')))));
   }
   return el('div.stapel', { style: 'gap:16px' },
-    el('section.wl-guthaben', { 'aria-label': t('wal.guthaben') },
+    kopfKarte([
+      el('div.reihe', { style: 'gap:6px;flex-wrap:wrap' }, chip('blau', t('gem.regel', k.k, k.n)), chip('gruen', t('gem.du')), andere ? chip('', t('gem.weitere', andere)) : null),
       el('span.cap', t('gem.kopf', k.name, k.k, k.n)),
-      el('div.riesig', ysrGross(k.guthaben), el('small', ' YSR')),
-      el('div.reihe', { style: 'gap:6px;flex-wrap:wrap;justify-content:center' },
-        chip('blau', t('gem.du')), andere ? chip('', t('gem.weitere', andere)) : null,
-        el('span.hinweis', { style: 'margin-left:4px' }, t('gem.regel', k.k, k.n))),
+      el('div.zahl', ysrGross(k.guthaben), el('small', 'YSR')),
       el('div.wl-adr',
         el('span.umbruch', vierer(k.adresse)),
         el('button.x', { type: 'button', 'aria-label': t('wal.adresseKopieren'), title: t('wal.adresseKopieren'), onclick: () => kopiere(k.adresse) }, zeichen('kopieren', 14))),
-      el('div.wl-knoepfe',
+      el('div.held-knoepfe',
         knopf([zeichen('aufwaerts', 15), t('gem.vorschlagen')], () => vorschlagenDialog(ctx, gem, k, neuLaden), 'haupt'),
-        knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(k)))),
+        knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(k)))], bild('schild', 190)),
     el('section.notiz', zeichen('info', 16),
       el('span', { style: 'flex:1' }, t('gem.mitzeichnenHinweis', k.k)),
       knopf([zeichen('ordner', 14), t('gem.dateiOeffnen')], () => mitzeichnenDialog(ctx, null, neuLaden), 'klein')),
-    el('section.karte', { style: 'gap:12px' },
+    el('section.karte.ruhig', { style: 'gap:12px' },
       el('div.karte-kopf', el('h2', t('kette.verlauf')), el('span.hinweis', t('gem.verlaufHinweis', k.k))),
       zeilen.length
         ? el('div.tab-huelle', el('table.tab.vt',

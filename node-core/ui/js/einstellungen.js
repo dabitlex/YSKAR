@@ -115,6 +115,7 @@ export function baue(ctx) {
    * Unternavigation: Programm · Knoten · Wallet und Sicherheit · Updates ·
    * Protokoll · Über. #/einstellungen/protokoll öffnet gleich das Protokoll.
    */
+  const SEITEN_ZEICHEN = { allgemein: 'regler', knoten: 'wuerfel', sicherheit: 'schild', updates: 'laden', protokoll: 'liste', ueber: 'info' };
   const SEITEN = [
     ['allgemein', t('einst.programmTitel'), el('section.karte', { style: 'gap:4px', 'aria-label': t('einst.programmTitel') },
           el('h2', { style: 'margin-bottom:6px' }, t('einst.programmTitel')),
@@ -170,7 +171,7 @@ export function baue(ctx) {
   let seite = SEITEN.some(x => x[0] === ctx.ort()[1]) ? ctx.ort()[1] : 'allgemein';
   function zeigeSeite() {
     fuelle(unternav, SEITEN.map(([id, name]) => el('button', { type: 'button', class: id === seite ? 'an' : '', 'aria-current': id === seite ? 'page' : null,
-      onclick: () => { seite = id; history.replaceState(null, '', '#/einstellungen' + (id === 'allgemein' ? '' : '/' + id)); zeigeSeite(); } }, name)));
+      onclick: () => { seite = id; history.replaceState(null, '', '#/einstellungen' + (id === 'allgemein' ? '' : '/' + id)); zeigeSeite(); } }, zeichen(SEITEN_ZEICHEN[id] ?? 'regler', 16), name)));
     fuelle(seiteInhalt, SEITEN.find(x => x[0] === seite)[2]);
     protokoll.style.maxHeight = seite === 'protokoll' ? 'calc(100vh - 290px)' : '';
   }

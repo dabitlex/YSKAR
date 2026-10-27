@@ -9,7 +9,8 @@
  * Alte Adressen bleiben gueltig: #/wallet/senden?an=... oeffnet das Fenster
  * "Senden", #/wallet/empfangen das Fenster "Empfangen".
  */
-import { hole, sende, el, fuelle, haenge, text, zeile, chip, knopf, kopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, segment, vierer, tagSchluessel, tagName, dialog } from './kern.js';
+import { hole, sende, el, fuelle, haenge, text, zeile, chip, knopf, kopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, segment, vierer, tagSchluessel, tagName, dialog, kopfKarte, kennzahl, platz, ysrKurz } from './kern.js';
+import { bild } from './bilder.js';
 import { t } from './i18n.js';
 import { baueEinrichten, passwortFelder } from './walletEinrichten.js';
 import { kontenEintraege, baueKonto, anlegenDialog } from './gemeinsam.js';
@@ -63,7 +64,7 @@ export function baue(ctx) {
 
 function baueGesperrt(ctx) {
   const w = ctx.stand().wallet;
-  const karte = el('section.karte', { style: 'width:100%;max-width:460px;padding:30px 30px 26px;gap:16px', 'aria-label': t('wal.gesperrtTitel') });
+  const karte = el('section.karte.ruhig', { style: 'width:100%;max-width:480px;padding:30px 30px 26px;gap:16px', 'aria-label': t('wal.gesperrtTitel') });
 
   function entsperrenAnsicht() {
     const pw = el('input.feld', { id: 'w-pw', type: 'password', autocomplete: 'current-password' });
@@ -74,7 +75,7 @@ function baueGesperrt(ctx) {
       catch (err) { fehler.textContent = err.message; fehler.hidden = false; pw.select(); }
     };
     fuelle(karte,
-      el('span', { style: 'align-self:center;width:60px;height:60px;border-radius:18px;background:#182642;color:#9DB8FF;display:inline-flex;align-items:center;justify-content:center' }, zeichen('schloss', 28)),
+      el('div', { style: 'align-self:center' }, bild('gesperrt', 190)),
       el('div.stapel', { style: 'gap:6px;text-align:center' }, el('h2', { style: 'font-size:21px' }, t('wal.gesperrtTitel')), el('p.p', t('wal.gesperrtText'))),
       el('div.box', { style: 'display:flex;justify-content:space-between;gap:12px;font-size:13.5px' }, el('span.dim', t('kette.adresse')), el('span.mono', kurzAdresse(w.adresse))),
       el('form.stapel', { style: 'gap:16px', onsubmit: los },
@@ -115,10 +116,11 @@ function baueGesperrt(ctx) {
 function baueHaupt(ctx, startReiter) {
   const st = ctx.stand();
   const adr = st.wallet.adresse;
-  const guthaben = el('span', '—');
+  const guthaben = el('span', platz(8));
   const kontoWert = el('span.wert', '—');
   const miniQr = el('span.miniqr');
-  const kz = { heute: el('b', '—'), sieben: el('b', '—'), dreissig: el('b', '—'), gesamt: el('b', '—'), gesamtName: el('span.cap', t('wal.kzGesamt')) };
+  const kz = { heute: kennzahl(t('wal.kzHeute')), sieben: kennzahl(t('wal.kz7')), dreissig: kennzahl(t('wal.kz30')), gesamt: kennzahl(t('wal.kzGesamt')) };
+  const kontenSpalte = el('aside.wl-konten', { 'aria-label': t('wal.konten'), hidden: true });
   const reiterLeiste = el('div.reiter', { role: 'tablist' });
   const werkzeug = el('div.reihe', { style: 'gap:8px' });
   const inhalt = el('div.stapel', { style: 'gap:12px' });
@@ -136,35 +138,28 @@ function baueHaupt(ctx, startReiter) {
   const suche = el('input.feld', { type: 'search', placeholder: t('wal.suchfeld'), 'aria-label': t('wal.suchfeld'), style: 'width:200px;height:30px' });
   suche.addEventListener('input', () => { grenze = 60; zeigeInhalt(); });
 
-  const wurzel = el('div.wl',
-    el('aside.wl-konten', { 'aria-label': t('wal.konten') },
-      el('span.cap', { style: 'padding:0 4px 4px' }, t('wal.konten')),
-      meinKonto,
-      gemeinsam),
-    el('div.wl-haupt', eigenHaupt, gemHaupt));
+  const wurzel = el('div.wl', kontenSpalte, el('div.wl-haupt', eigenHaupt, gemHaupt));
+  haenge(kontenSpalte, [el('span.cap', { style: 'padding:0 4px 4px' }, t('wal.konten')), meinKonto, gemeinsam]);
   haenge(eigenHaupt, [
-      el('section.wl-guthaben', { 'aria-label': t('wal.guthaben') },
-        el('span.cap', t('wal.meineGuthaben')),
-        el('div.riesig', guthaben, el('small', ' YSR')),
+      kopfKarte([
+        el('span.cap', t('wal.guthaben')),
+        el('div.zahl', guthaben, el('small', 'YSR')),
         el('div.wl-adr',
           el('button.qrknopf', { type: 'button', 'aria-label': t('wal.qrGross'), onclick: () => empfangenDialog(ctx) }, miniQr),
           el('span.umbruch', vierer(adr)),
           el('button.x', { type: 'button', 'aria-label': t('wal.adresseKopieren'), title: t('wal.adresseKopieren'), onclick: () => kopiere(adr) }, zeichen('kopieren', 14))),
-        el('div.wl-knoepfe',
+        el('div.held-knoepfe',
           knopf([zeichen('aufwaerts', 15), t('wal.rSenden')], () => sendeDialog(ctx, '', lade), 'haupt'),
-          knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(ctx)))),
-      el('section.kz4', { 'aria-label': t('wal.einnahmen'), title: t('wal.einnahmenTitel') },
-        el('div', el('span.cap', t('wal.kzHeute')), kz.heute),
-        el('div', el('span.cap', t('wal.kz7')), kz.sieben),
-        el('div', el('span.cap', t('wal.kz30')), kz.dreissig),
-        el('div', kz.gesamtName, kz.gesamt)),
-      el('section.karte', { style: 'gap:12px' },
+          knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(ctx))),
+      ], bild('boerse', 250), [kz.heute, kz.sieben, kz.dreissig, kz.gesamt]),
+      el('section.karte.ruhig', { style: 'gap:12px' },
         el('div.karte-kopf', reiterLeiste, werkzeug),
         inhalt)]);
 
   // ---------------------------------------------------------- Konten-Spalte
   function zeigeGemeinsam(s) {
     const next = s.nextActivationHeight, h = s.height ?? -1;
+    kontenSpalte.hidden = !gem?.aktiv;
     if (gem?.aktiv) {
       fuelle(gemeinsam, kontenEintraege(gem, gewaehlt, waehle, () => anlegenDialog(ctx, gem, ladeGem)));
     } else if (next && h < next) {
@@ -241,7 +236,7 @@ function baueHaupt(ctx, startReiter) {
     if (!alle.length) {
       const leer = !suche.value.trim() && filter === 'alle';
       fuelle(inhalt, leer
-        ? el('div.leer-wl', leerBild(), el('h3', t('wal.leerTitel')), el('p', t('wal.leerText')),
+        ? el('div.leer-wl', bild('keinPeer', 150), el('h3', t('wal.leerTitel')), el('p', t('wal.leerText')),
           el('div.wl-knoepfe', knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(ctx), 'haupt'), el('a.knopf', { href: '#/mining' }, zeichen('blitz', 15), t('wal.miningStarten'))))
         : el('p.leer', t('wal.nichtsPassend')));
       return;
@@ -415,13 +410,14 @@ function baueHaupt(ctx, startReiter) {
       const summe = tage => daten.mining.filter(m => m.tag >= tagSchluessel(jetzt - (tage - 1) * 86400)).reduce((s, m) => s + BigInt(m.summe), 0n);
       const gesamt = daten.mining.reduce((s, m) => s + BigInt(m.summe), 0n);
       const plus = v => (v > 0n ? '+ ' : '') + ysr(v);
-      text(kz.heute, plus(summe(1)));
-      text(kz.sieben, plus(summe(7)));
-      text(kz.dreissig, plus(summe(30)));
-      text(kz.gesamt, ysr(gesamt));
+      const setze = (k, v, unter) => { text(k.wert, (v > 0n ? '+ ' : '') + ysrKurz(v)); k.wert.title = plus(v); k.wert.className = v > 0n ? 'plus' : ''; text(k.unter, unter); };
+      const anzahl = tage => daten.mining.filter(m => m.tag >= tagSchluessel(jetzt - (tage - 1) * 86400)).reduce((n, m) => n + (m.solo ?? 0) + (m.pool ?? 0), 0);
+      setze(kz.heute, summe(1), t('wal.kzAnteile', anzahl(1)));
+      setze(kz.sieben, summe(7), t('wal.kzAusMining'));
+      setze(kz.dreissig, summe(30), t('wal.kzAusMining'));
+      text(kz.gesamt.wert, ysrKurz(gesamt)); kz.gesamt.wert.title = ysr(gesamt);
       const ganz = !daten.durchsucht || (ctx.stand().height ?? 0) + 1 <= daten.durchsucht;
-      text(kz.gesamtName, ganz ? t('wal.kzGesamt') : t('wal.kzTage', Math.round((daten.durchsucht ?? 0) / BLOECKE_JE_TAG)));
-      for (const b of [kz.heute, kz.sieben, kz.dreissig]) b.className = b.textContent.startsWith('+') ? 'gut' : '';
+      text(kz.gesamt.unter, ganz ? t('wal.kzGesamtUnter') : t('wal.kzTage', Math.round((daten.durchsucht ?? 0) / BLOECKE_JE_TAG)));
       zeigeInhalt();
     } catch (e) { if (e.code !== 'gesperrt') fuelle(inhalt, el('p.leer', e.message)); }
     ladeGem();
@@ -436,14 +432,6 @@ function baueHaupt(ctx, startReiter) {
     aktualisiere: s => { zeigeGemeinsam(s); if (s.height !== hoehe) { hoehe = s.height; lade(); } },
     verlasse: () => clearInterval(takt),
   };
-}
-
-/** Bild für eine leere Wallet: eine Geldbörse, ohne Schein. */
-function leerBild() {
-  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  s.setAttribute('width', '120'); s.setAttribute('height', '96'); s.setAttribute('viewBox', '0 0 120 96'); s.setAttribute('fill', 'none'); s.setAttribute('aria-hidden', 'true');
-  s.innerHTML = '<rect x="14" y="22" width="86" height="60" rx="10" stroke="#2F7BFF" stroke-width="1.6" fill="#0A1122"/><path d="M14 34h86" stroke="rgba(140,170,255,.25)" stroke-width="1.2"/><rect x="72" y="46" width="34" height="20" rx="6" stroke="#63D8FF" stroke-width="1.6" fill="#0E1730"/><circle cx="82" cy="56" r="3" fill="#63D8FF"/><path d="M28 22 70 10a4 4 0 0 1 5 3l2 9" stroke="rgba(140,170,255,.35)" stroke-width="1.4"/><path d="M30 50h26M30 60h18" stroke="rgba(140,170,255,.25)" stroke-width="1.4" stroke-linecap="round"/>';
-  return s;
 }
 
 // -------------------------------------------------------------------- Senden

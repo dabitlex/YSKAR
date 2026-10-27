@@ -222,20 +222,26 @@ export function segment(name, wahl, aktuell, waehle, klein = false) {
  * Dialog ueber dem Fenster. `kopf`: { titel, unter, zeichen }. Liefert
  * { wurzel, inhalt, fuss, schliesse }. Esc und ein Klick daneben schliessen.
  */
-export function dialog({ titel, unter = null, zeichenName = null, breite = 540, oben = false }, wennZu = null) {
+export function dialog({ titel, unter = null, zeichenName = null, kachel = null, chips = null, rechts = null, breite = 540, oben = false }, wennZu = null) {
   const inhalt = el('div.dialog-inhalt');
   const fuss = el('div.dialog-fuss', { hidden: true });
   const schliesse = () => { wurzel.remove(); document.removeEventListener('keydown', taste); wennZu?.(); };
   const taste = e => { if (e.key === 'Escape') schliesse(); };
-  const box = el('div.dialog', { role: 'dialog', 'aria-label': titel, style: 'width:' + breite + 'px' },
+  const titelZeile = el('div', { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap' }, el('h2', titel), chips);
+  const unterZeile = el('span', unter ?? '');
+  const box = el('div.dialog', { role: 'dialog', 'aria-modal': 'true', 'aria-label': titel, style: 'width:' + breite + 'px' },
     el('div.dialog-kopf',
-      el('div.titel', zeichenName ? el('span.kachel', zeichen(zeichenName, 17)) : null, el('div', el('h2', titel), unter ? el('span', unter) : null)),
-      el('button.x', { type: 'button', 'aria-label': t('allg.schliessen'), onclick: schliesse }, zeichen('kreuz', 14))),
+      el('div.titel', kachel ? el('span.kachel', kachel) : zeichenName ? el('span.kachel', zeichen(zeichenName, 17)) : null, el('div', titelZeile, unterZeile)),
+      el('div', { style: 'display:flex;gap:6px;align-items:center' }, rechts,
+        rechts ? el('span', { style: 'width:1px;height:20px;background:rgba(140,170,255,.18);margin:0 4px' }) : null,
+        el('button.x', { type: 'button', 'aria-label': t('allg.schliessen'), onclick: schliesse }, zeichen('kreuz', 14)))),
     inhalt, fuss);
+  box.unter = unterZeile;
+  box.setzeTitel = (neu, unterNeu) => { titelZeile.firstChild.textContent = neu; if (unterNeu !== undefined) unterZeile.textContent = unterNeu; };
   const wurzel = el('div.overlay' + (oben ? '.oben' : ''), { onmousedown: e => { if (e.target === wurzel) schliesse(); } }, box);
   document.addEventListener('keydown', taste);
   document.body.appendChild(wurzel);
-  return { wurzel, box, inhalt, fuss: Object.assign(fuss, { zeige: (...k) => { fuelle(fuss, ...k); fuss.hidden = false; } }), schliesse };
+  return { wurzel, box, inhalt, taste: f => { const g = e => { if (document.body.contains(wurzel)) f(e); else document.removeEventListener('keydown', g); }; document.addEventListener('keydown', g); }, fuss: Object.assign(fuss, { zeige: (...k) => { fuelle(fuss, ...k); fuss.hidden = false; } }), schliesse };
 }
 
 let meldungWeg = null;
@@ -267,6 +273,17 @@ export async function kopiere(wert, hinweis) {
 // ------------------------------------------------------------------ Formate
 
 const ort = () => (sprache() === 'en' ? 'en-GB' : 'de-DE');
+
+/** Kommazahl in der Sprache der Oberfläche, höchstens `stellen` Nachkommastellen. */
+export const dezimal = (n, stellen = 1) => (n === null || n === undefined || !Number.isFinite(n) ? '—' : new Intl.NumberFormat(ort(), { maximumFractionDigits: stellen }).format(n));
+
+/** Betrag mit zwei Nachkommastellen -- für Kennzahlen. */
+export function ysrKurz(einheiten) {
+  const v = ysr(einheiten, 2);
+  const komma = sprache() === 'en' ? '.' : ',';
+  const i = v.lastIndexOf(komma);
+  return i < 0 ? v : v.slice(0, i + 3);
+}
 
 export const zahl = n => (n === null || n === undefined ? '—' : new Intl.NumberFormat(ort()).format(n));
 
@@ -386,4 +403,63 @@ export function tagName(schluesselTag) {
 export function wochentag(schluesselTag) {
   const [j, m, d] = schluesselTag.split('-').map(Number);
   return new Date(j, m - 1, d).toLocaleDateString(ort(), { weekday: 'short' });
+}
+
+// ------------------------------------------------------------ Gesamtbild
+
+/**
+ * Kopfkarte einer Seite: links Zustand, grosse Zahl, Satz und Knoepfe, rechts
+ * die Illustration, unten die Kennzahlen als Leiste.
+ */
+export function kopfKarte(links, bildElement, kennzahlen = []) {
+  return el('section.glas.held',
+    el('div.held-o', el('div.held-l', links), bildElement ? el('div.held-r', bildElement) : null),
+    kennzahlen.length ? el('div.kz4', kennzahlen.map(k => k.wurzel ?? k)) : null);
+}
+
+/** Eine Kennzahl der Leiste. Liefert { wurzel, wert, unter, extra } zum Nachfuellen. */
+export function kennzahl(name, wert = null, unter = '', extra = null) {
+  const w = el('b', wert ?? platz());
+  const u = el('span', unter);
+  const x = el('span', { style: 'display:contents' }, extra);
+  return { wurzel: el('div.kz', el('div.kz-t', el('span', name), w, u), x), wert: w, unter: u, extra: x };
+}
+
+/** Schimmernder Platzhalter, solange ein Wert noch nicht da ist. */
+export const platz = (breite = 4) => el('span.platz', { style: 'min-width:' + breite + 'ch', 'aria-label': '…' });
+
+/** Kleine Verlaufskurve aus Zahlen. */
+export function spark(werte, farbe = '#63D8FF') {
+  const s = document.createElementNS(SVG, 'svg');
+  s.setAttribute('class', 'spark'); s.setAttribute('viewBox', '0 0 96 28'); s.setAttribute('aria-hidden', 'true');
+  const w = werte.filter(v => Number.isFinite(v));
+  if (w.length < 2) return s;
+  const mx = Math.max(...w) * 1.05, mn = Math.min(...w) * .95, sp = mx - mn || 1;
+  const pts = w.map((v, i) => [i * 96 / (w.length - 1), 28 - (v - mn) / sp * 26 - 1]);
+  const d = 'M' + pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L');
+  const id = 'sp' + Math.random().toString(36).slice(2, 8);
+  s.innerHTML = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${farbe}" stop-opacity=".28"/><stop offset="1" stop-color="${farbe}" stop-opacity="0"/></linearGradient></defs>`
+    + `<path d="${d} L96 28 L0 28 Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${farbe}" stroke-width="1.5" stroke-linejoin="round"/>`
+    + `<circle cx="${pts[pts.length - 1][0].toFixed(1)}" cy="${pts[pts.length - 1][1].toFixed(1)}" r="2.5" fill="${farbe}"/>`;
+  return s;
+}
+
+/** Zahl, deren letzte Stellen beim Wechsel nach oben rollen (neue Blockhoehe). */
+export function rollZahl(ziel, alt, neu) {
+  if (alt === null || alt === undefined || alt === neu) { ziel.textContent = neu; return; }
+  let i = 0;
+  while (i < alt.length && i < neu.length && alt[i] === neu[i]) i++;
+  if (i === 0 || alt.length !== neu.length) { ziel.textContent = neu; return; }
+  const innen = el('span.rolle-i', el('span', alt.slice(i)), el('span', neu.slice(i)));
+  fuelle(ziel, neu.slice(0, i), el('span.rolle', innen));
+  requestAnimationFrame(() => innen.classList.add('laeuft'));
+}
+
+/** Zeile in einem Kasten des Fensters: links Name, rechts Wert. */
+export const mz = (links, rechts) => el('div.mz', links instanceof Node ? links : el('span.blass', links), rechts instanceof Node ? rechts : el('span', rechts));
+
+/** Grosse Zustandskarte mit Illustration -- leer, gesperrt, gestoppt. */
+export function zustandKarte(bildEl, titel, satz, ...knoepfe) {
+  return el('section.karte.ruhig.zustand-karte', bildEl, el('h2', titel), satz ? el('p', satz) : null,
+    knoepfe.length ? el('div.reihe', { style: 'justify-content:center;flex-wrap:wrap' }, knoepfe) : null);
 }

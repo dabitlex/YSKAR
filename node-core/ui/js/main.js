@@ -109,6 +109,14 @@ function titelleiste() {
     el('button.suche-knopf', { type: 'button', onclick: oeffneSuche }, zeichen('suche', 13), t('titel.suche'), el('span.mono', t('titel.kurz'))));
 }
 
+/** Feine Koernung ueber dem ganzen Fenster -- nimmt dem Verlauf die Stufen. */
+function korn() {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('class', 'korn'); s.setAttribute('aria-hidden', 'true');
+  s.innerHTML = '<filter id="korn-f"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#korn-f)"/>';
+  return s;
+}
+
 function baueGeruest() {
   const gruppe = (id, name) => el('div.nav-gruppe',
     name ? el('span.cap', name) : null,
@@ -134,7 +142,8 @@ function baueGeruest() {
       inhalt),
     el('div.statusleiste',
       el('span.an', status.punkt, status.name), status.netz, status.hoehe, status.peers, status.leistung,
-      el('span.fl'), status.fassung, status.version)));
+      el('span.fl'), status.fassung, status.version),
+    korn()));
   geruest = { nav: [...nav.querySelectorAll('a'), ...unten.querySelectorAll('a')], inhalt, standPunkt, standName, standZeile, neueVersion, status };
   document.documentElement.style.setProperty('--oben', eigeneTitelleiste() ? 'var(--titel)' : '0px');
 }
@@ -151,7 +160,7 @@ function aktualisiereGeruest() {
   if (stand.update?.neuer) text(geruest.neueVersion, t('leiste.neueVersion', stand.update.neueste));
 
   const st = geruest.status;
-  st.punkt.className = 'punkt ' + farbe;
+  st.punkt.className = 'punkt ' + farbe + (farbe === 'gruen' ? ' atmen' : '');
   text(st.name, name);
   text(st.netz, netzName(stand.network));
   text(st.hoehe, t('status.hoehe', stand.height === null ? '—' : zahl(stand.height)));
@@ -168,7 +177,7 @@ function zeige() {
   if (!stand.configured) {
     aktiv?.ansicht.verlasse?.(); aktiv = null; geruest = null;
     const a = einrichtung.baue(ctx);
-    fuelle(wurzel, el('div.fenster', titelleiste(), el('div.app', a.wurzel)));
+    fuelle(wurzel, el('div.fenster', titelleiste(), el('div.app', a.wurzel), korn()));
     return;
   }
   if (!geruest) baueGeruest();
@@ -180,6 +189,7 @@ function zeige() {
   aktiv?.ansicht.verlasse?.();
   const ansicht = eintrag.modul.baue(ctx);
   aktiv = { id: eintrag.id, ansicht };
+  ansicht.wurzel.classList.add('seite-ein');
   fuelle(geruest.inhalt, ansicht.wurzel);
   aktualisiereGeruest();
   ansicht.aktualisiere?.(stand);

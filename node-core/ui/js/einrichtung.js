@@ -6,6 +6,7 @@
  */
 import { sende, el, fuelle, knopf, melde, kristall, zeichen, zeile, netzName, kurzAdresse } from './kern.js';
 import { t } from './i18n.js';
+import { bild } from './bilder.js';
 import { baueEinrichten } from './walletEinrichten.js';
 
 export function baue(ctx) {
@@ -54,6 +55,7 @@ export function baue(ctx) {
         wert('welt', t('einr.ersterKontakt'), f.seed.value.trim() || '—'),
       ];
     fuelle(mitte,
+      el('div.einr-bild', bild('knoten', 220)),
       el('div.einr-text',
         el('span.etikett', t('einr.etikett')),
         el('h1', t('einr.titelA'), ' ', el('span.lt', t('einr.titelB'))),
@@ -93,6 +95,7 @@ export function baue(ctx) {
     mitte.className = 'einr-mitte breit';
     await ctx.neuLaden();
     const kopfText = el('div.einr-text',
+      el('div.einr-bild', bild('boerse', 190)),
       el('span.etikett', t('einr.etikett2')),
       el('h1', { style: 'font-size:34px' }, t('wal.einrichten')),
       el('p.einleitung', ctx.stand().wallet.vorhanden ? t('einr.walletDa') : t('wal.einrichtenText')));
@@ -126,6 +129,7 @@ export function baue(ctx) {
       ? (st.nextActivationHeight ? t('einr.regelnAb', st.konsensfassung, st.nextActivationHeight.toLocaleString()) : t('einr.regeln', st.konsensfassung))
       : null;
     fuelle(mitte,
+      el('div.einr-bild', bild('knoten', 200)),
       el('div.einr-text',
         el('span.etikett', t('einr.bereit')),
         el('h1', t('einr.allesEingerichtet')),

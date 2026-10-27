@@ -1,38 +1,43 @@
-/* Blockchain: Blöcke, Blockdetails, Suche, wartende Überweisungen. */
-import { hole, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, kurzAdresse, kurzHash, kurzHash8, uhrzeit, tagOderZeit, datumZeit, vor, finder, zeichen, kopiere } from './kern.js';
+/* Blockchain: Blöcke, Suche, wartende Überweisungen. Details öffnen sich als Fenster. */
+import { hole, el, fuelle, text, chip, knopf, kopf, melde, zahl, ysr, kurzAdresse, kurzHash, tagOderZeit, vor, finder, zeichen,
+  kopfKarte, kennzahl, rollZahl, platz, dezimal } from './kern.js';
+import { bild } from './bilder.js';
+import { blockFenster, kontoFenster, txFenster } from './fenster.js';
 import { t } from './i18n.js';
 
 const JE_SEITE = 10;
 
 export function baue(ctx) {
-  const eingabe = el('input.feld', { id: 'suche', type: 'search', placeholder: t('kette.suchfeld') });
+  const eingabe = el('input.feld', { id: 'suche', type: 'search', placeholder: t('kette.suchfeld'), style: 'height:36px;width:300px' });
   const zeilen = el('tbody');
   const bereich = el('span.hinweis');
-  const detail = el('section.karte', { style: 'flex:2 1 340px', 'aria-live': 'polite' });
   const wartend = el('tbody');
   const wartendText = el('span.hinweis');
   const neuer = knopf(t('kette.neuere'), () => blaettere(-1));
   const aelter = knopf(t('kette.aeltere'), () => blaettere(1));
 
+  const held = { zahl: el('div.zahl', platz(5)), satz: el('p.held-satz') };
+  const kz = { tag: kennzahl(t('ueb.tagBloecke24')), diff: kennzahl(t('ueb.difficulty')), wartend: kennzahl(t('kette.wartendKurz')), groesse: kennzahl(t('kette.aufDiesemPc')) };
+
   let oben = null;        // höchste Höhe der gezeigten Seite; null = Kopf der Kette
-  let gewaehlt = null;    // Höhe des gezeigten Blocks
-  let kopfHoehe = -1;
+  let kopfHoehe = -1, gezeigt = null, letzteOben = null;
   let mempoolTakt = null;
 
   const wurzel = el('div.stapel',
-    kopf(t('kette.titel'), t('kette.sub'),
-      el('form', { style: 'display:flex;gap:10px;flex:1 1 320px;max-width:520px', onsubmit: e => { e.preventDefault(); suche(); } },
+    kopf(t('kette.titel'), t('kette.sub'), chip('gruen', t('kette.selbstGeprueft'))),
+    kopfKarte([
+      el('span.cap', t('kette.neuesterBlock')), held.zahl, held.satz,
+      el('form.held-knoepfe', { onsubmit: e => { e.preventDefault(); suche(); } },
         el('label.nur-leser', { for: 'suche' }, t('kette.suche')), eingabe,
-        el('button.knopf', { type: 'submit' }, zeichen('suche'), t('kette.suchen')))),
-    el('div.spalten',
-      el('section.karte', { style: 'flex:3 1 620px', 'aria-label': t('kette.bloecke') },
-        el('div.karte-kopf', el('h2', t('kette.bloecke'))),
-        el('div.tab-huelle', el('table.tab',
-          el('thead', el('tr', el('th', t('kette.hoehe')), el('th', t('kette.zeit')), el('th', t('kette.gefunden')),
-            el('th.r', t('kette.ueberwKurz')), el('th.r', t('ueb.difficulty')), el('th.r', 'Hash'))),
-          zeilen)),
-        el('div.karte-kopf', bereich, el('div.reihe', neuer, aelter))),
-      detail),
+        el('button.knopf.haupt', { type: 'submit' }, zeichen('suche', 14), t('kette.suchen'))),
+    ], bild('kette', 260), Object.values(kz)),
+    el('section.karte', { 'aria-label': t('kette.bloecke') },
+      el('div.karte-kopf', el('h2', t('kette.bloecke')), bereich),
+      el('div.tab-huelle', el('table.tab',
+        el('thead', el('tr', el('th', t('kette.hoehe')), el('th', t('kette.zeit')), el('th', t('kette.gefunden')),
+          el('th.r', t('kette.ueberwKurz')), el('th.r', t('ueb.difficulty')), el('th.r', 'Hash'))),
+        zeilen)),
+      el('div.karte-kopf', el('span'), el('div.reihe', neuer, aelter))),
     el('section.karte', { 'aria-label': t('kette.wartend') },
       el('div.karte-kopf', el('h2', t('kette.wartend')), wartendText),
       el('div.tab-huelle', el('table.tab',
@@ -43,15 +48,41 @@ export function baue(ctx) {
     try {
       const r = await hole('/api/lesen/blocks?limit=' + JE_SEITE + (oben === null ? '' : '&before=' + (oben + 1)));
       const bl = r.blocks;
-      fuelle(zeilen, bl.length ? bl.map(b => el('tr.wahl' + (b.height === gewaehlt ? '.gewaehlt' : ''), { 'data-h': b.height, onclick: () => waehle(b.height) },
-        el('td.mono', zahl(b.height)), el('td.dim', tagOderZeit(b.timestamp)), el('td', finder(b)),
-        el('td.r.mono', zahl(Math.max(0, b.txCount - 1))), el('td.r.mono', zahl(BigInt(b.difficultyWert))), el('td.r.mono.dim', kurzHash(b.hash))))
+      const neu = oben === null && letzteOben !== null && bl[0]?.height > letzteOben;
+      if (oben === null) letzteOben = bl[0]?.height ?? null;
+      fuelle(zeilen, bl.length ? bl.map((b, i) => el('tr.wahl' + (neu && i === 0 ? '.neu-zeile' : ''), { tabindex: '0', onclick: () => blockFenster(ctx, b.height, true), onkeydown: e => { if (e.key === 'Enter') blockFenster(ctx, b.height, true); } },
+        el('td', el('b', { style: 'font-weight:600' }, zahl(b.height))), el('td.dim', tagOderZeit(b.timestamp)), el('td', finder(b)),
+        el('td.r', zahl(Math.max(0, b.txCount - 1))), el('td.r', zahl(BigInt(b.difficultyWert))), el('td.r.mono.dim', kurzHash(b.hash))))
         : el('tr', el('td.leer', { colspan: 6 }, t('kette.keine'))));
       text(bereich, bl.length ? t('kette.bereich', zahl(bl[bl.length - 1].height), zahl(bl[0].height), zahl(kopfHoehe + 1)) : '');
       neuer.disabled = oben === null || oben >= kopfHoehe;
       aelter.disabled = !bl.length || bl[bl.length - 1].height <= 0;
-      if (gewaehlt === null && bl.length) waehle(bl[0].height, false);
+      if (oben === null && bl.length) {
+        const b = bl[0];
+        text(held.satz, t('kette.heldSatz', vor(b.timestamp * 1000), b.finder || (b.recipients > 1 ? t('kette.pool') : t('kette.solo')), zahl(b.recipients), zahl(Math.max(0, b.txCount - 1))));
+        text(kz.diff.wert, zahl(BigInt(b.difficultyWert)));
+        text(kz.diff.unter, t('kette.diffUnter'));
+      }
     } catch (e) { fuelle(zeilen, el('tr', el('td.leer', { colspan: 6 }, e.message))); }
+  }
+
+  async function ladeTag() {
+    try {
+      const ab = Math.floor(Date.now() / 1000) - 86400;
+      const alle = [];
+      let vorHoehe = null;
+      for (let i = 0; i < 4; i++) {
+        const r = await hole('/api/lesen/blocks?limit=100' + (vorHoehe === null ? '' : '&before=' + vorHoehe));
+        if (!r.blocks.length) break;
+        alle.push(...r.blocks);
+        vorHoehe = r.blocks[r.blocks.length - 1].height;
+        if (r.blocks[r.blocks.length - 1].timestamp < ab || vorHoehe <= 0) break;
+      }
+      const im = alle.filter(b => b.timestamp >= ab).sort((a, b) => a.timestamp - b.timestamp);
+      const schnitt = im.length > 1 ? (im[im.length - 1].timestamp - im[0].timestamp) / (im.length - 1) / 60 : null;
+      text(kz.tag.wert, zahl(im.length));
+      text(kz.tag.unter, schnitt === null ? '' : t('ueb.tagSchnittKurz', dezimal(schnitt), 10));
+    } catch { /* nächster Block */ }
   }
 
   function blaettere(richtung) {
@@ -61,96 +92,11 @@ export function baue(ctx) {
     ladeSeite();
   }
 
-  function markiere() {
-    for (const z of zeilen.children) z.classList.toggle('gewaehlt', Number(z.dataset.h) === gewaehlt);
-  }
-
-  async function waehle(hoehe, merken = true) {
-    gewaehlt = hoehe; markiere();
-    try {
-      const b = await hole('/api/lesen/blocks/' + hoehe);
-      if (gewaehlt !== hoehe) return;
-      zeigeBlock(b);
-      if (merken && ctx.ort()[1] !== String(hoehe)) history.replaceState(null, '', '#/blockchain/' + hoehe);
-    } catch (e) { fuelle(detail, el('h2', t('kette.block', zahl(hoehe))), el('p.hinweis.schlecht', e.message)); }
-  }
-
-  function zeigeBlock(b) {
-    const cb = b.txs.find(x => x.type === 'coinbase');
-    const ueberw = b.txs.filter(x => x.type === 'transfer');
-    const gebuehren = ueberw.reduce((s, x) => s + BigInt(x.fee), 0n);
-    const empf = cb?.recipients ?? (cb ? [{ address: cb.to, amount: cb.amount }] : []);
-    fuelle(detail,
-      el('div.karte-kopf', el('h2', t('kette.block', zahl(b.height))), b.height === kopfHoehe ? chip('', t('kette.neuester')) : null),
-      el('div.feldgruppe', el('span.cap', 'Hash'),
-        el('div.reihe', { style: 'align-items:flex-start' }, el('span.mono.umbruch', { style: 'font-size:13px;line-height:1.5' }, b.hash),
-          el('button.knopf.symbol', { type: 'button', 'aria-label': t('kette.hashKopieren'), onclick: () => kopiere(b.hash) }, zeichen('kopieren')))),
-      el('div.zeilen',
-        zeile(t('kette.vorgaenger'), b.height > 0 ? el('a.mono', { href: '#/blockchain/' + (b.height - 1) }, kurzHash(b.prevHash)) : '—'),
-        zeile(t('ueb.wurzel'), kurzHash8(b.stateRoot), true),
-        zeile(t('kette.zeit'), datumZeit(b.timestamp)),
-        zeile(t('ueb.difficulty'), zahl(BigInt(b.difficultyWert)), true),
-        zeile(t('kette.groesse'), t('kette.byte', zahl(b.sizeBytes)), true),
-        zeile(t('kette.gefunden'), finder(b)),
-        zeile(t('kette.belohnung'), ysr(BigInt(b.reward) - gebuehren, 0) + ' YSR' + (gebuehren > 0n ? ' + ' + ysr(gebuehren, 0) + ' ' + t('kette.gebuehren') : ''), true)),
-      el('div.feldgruppe', el('span.cap', empf.length === 1 ? t('kette.gehtAnEine') : t('kette.gehtAn', empf.length)),
-        el('div.box.zeilen', { style: 'padding:4px 14px' }, empf.map(o => el('div.zeile', adresse(o.address), el('span.mono', ysr(o.amount)))))),
-      ueberw.length ? el('div.feldgruppe', el('span.cap', t('kette.nUeberweisungen', ueberw.length)),
-        el('div.box.zeilen', { style: 'padding:4px 14px' }, ueberw.map(x => el('div.zeile',
-          el('span.mono', adresse(x.from), ' → ', adresse(x.to)), el('span.mono', ysr(x.amount)))))) : null);
-  }
-
-  /** Eine Adresse, kurz, mit Sprung zur Kontoansicht. */
-  function adresse(a) {
-    const link = el('a.mono', { href: '#/blockchain', title: a, onclick: e => { e.preventDefault(); zeigeKonto(a); } }, kurzAdresse(a));
-    return a === ctx.stand()?.wallet?.adresse ? el('span', link, el('span.gut', { style: 'font-family:Manrope,sans-serif;font-weight:700' }, ' · ' + t('kette.du'))) : link;
-  }
-
-  async function zeigeKonto(a) {
-    try {
-      const k = await hole('/api/lesen/account/' + a);
-      gewaehlt = null; markiere();
-      fuelle(detail,
-        el('div.karte-kopf', el('h2', t('kette.adresse')), chip('', t('kette.konto'))),
-        el('div.feldgruppe', el('span.cap', t('kette.adresse')),
-          el('div.reihe', { style: 'align-items:flex-start' }, el('span.mono.umbruch', { style: 'font-size:13px;line-height:1.5' }, k.address),
-            el('button.knopf.symbol', { type: 'button', 'aria-label': t('kette.adresseKopieren'), onclick: () => kopiere(k.address) }, zeichen('kopieren')))),
-        el('div.zeilen',
-          zeile(t('kette.guthaben'), ysr(k.balance) + ' YSR', true),
-          zeile(t('kette.gesendet'), zahl(Number(k.nonce)), true),
-          zeile(t('kette.soloBloecke'), zahl(k.blocksFound), true),
-          zeile(t('kette.poolAnteile'), zahl(k.poolRewards), true)),
-        el('div.feldgruppe', el('span.cap', t('kette.verlauf')),
-          k.history.length ? el('div.box.zeilen', { style: 'padding:4px 14px' }, k.history.slice(0, 12).map(h => el('div.zeile',
-            el('span', el('a.mono', { href: '#/blockchain/' + h.height, onclick: e => { e.preventDefault(); springe(h.height); } }, zahl(h.height)),
-              ' · ', t('kette.art.' + h.kind), h.counterparty ? [' · ', el('span.mono.blass', kurzAdresse(h.counterparty))] : null),
-            el('span.mono' + (h.kind === 'out' ? '' : '.gut'), (h.kind === 'out' ? '−' : '+') + ysr(h.amount)))))
-            : el('p.hinweis', t('kette.keinVerlauf'))));
-    } catch (e) { melde(e.message, true); }
-  }
-
-  async function zeigeTx(id) {
-    try {
-      const x = await hole('/api/lesen/tx/' + id);
-      gewaehlt = null; markiere();
-      fuelle(detail,
-        el('div.karte-kopf', el('h2', t('kette.ueberweisung')), x.status === 'pending' ? chip('gelb', t('kette.unterwegs')) : chip('gruen', t('kette.bestaetigt'))),
-        el('div.feldgruppe', el('span.cap', 'ID'), el('span.mono.umbruch', { style: 'font-size:13px;line-height:1.5' }, x.txid)),
-        el('div.zeilen',
-          x.height !== null ? zeile(t('kette.imBlock'), el('a.mono', { href: '#/blockchain/' + x.height, onclick: e => { e.preventDefault(); springe(x.height); } }, zahl(x.height))) : null,
-          x.from ? zeile(t('kette.von'), adresse(x.from)) : null,
-          x.to ? zeile(t('kette.an'), adresse(x.to)) : null,
-          zeile(t('kette.betrag'), ysr(x.amount) + ' YSR', true),
-          x.type === 'transfer' ? zeile(t('kette.gebuehr'), ysr(x.fee, 0) + ' YSR', true) : null,
-          x.timestamp ? zeile(t('kette.zeit'), datumZeit(x.timestamp)) : null));
-    } catch (e) { melde(e.message, true); }
-  }
-
-  /** Zu einer Höhe springen: Seite so legen, dass der Block oben steht. */
+  /** Zu einer Höhe springen: Seite so legen, dass der Block oben steht, und das Fenster öffnen. */
   function springe(hoehe) {
     oben = hoehe >= kopfHoehe ? null : Math.max(JE_SEITE - 1, hoehe);
-    gewaehlt = hoehe;
-    ladeSeite(); waehle(hoehe);
+    ladeSeite();
+    blockFenster(ctx, hoehe, true);
   }
 
   async function suche() {
@@ -159,8 +105,8 @@ export function baue(ctx) {
     try {
       const r = await hole('/api/lesen/search?q=' + encodeURIComponent(q));
       if (r.kind === 'block') springe(r.height);
-      else if (r.kind === 'address') zeigeKonto(r.address);
-      else if (r.kind === 'tx') zeigeTx(r.txid);
+      else if (r.kind === 'address') kontoFenster(ctx, r.address);
+      else if (r.kind === 'tx') txFenster(ctx, r.txid);
       else melde(t('kette.nichtsGefunden'), true);
     } catch (e) { melde(e.message, true); }
   }
@@ -170,42 +116,52 @@ export function baue(ctx) {
       const r = await hole('/api/kette/mempool');
       const w = r.wartend;
       const anzahl = r.anzahl ?? w.length;
+      text(kz.wartend.wert, zahl(anzahl));
+      text(kz.wartend.unter, anzahl ? t('kette.wartendUnter') : t('kette.wartendLeer'));
       text(wartendText, anzahl ? t('kette.wartendText', anzahl) : t('kette.wartendLeer'));
-      fuelle(wartend, w.length ? w.map(x => el('tr', el('td.mono', adresse(x.from)), el('td.mono', adresse(x.to)),
-        el('td.r.mono', ysr(x.amount)), el('td.r.mono', ysr(x.fee, 0)), el('td.r.dim', vor(x.seit))))
+      const adr = a => el('a.mono', { href: '#', onclick: e => { e.preventDefault(); e.stopPropagation(); kontoFenster(ctx, a); } }, kurzAdresse(a));
+      fuelle(wartend, w.length ? w.map(x => el('tr' + (x.txid ? '.wahl' : ''), { onclick: x.txid ? () => txFenster(ctx, x.txid) : null },
+        el('td', adr(x.from)), el('td', adr(x.to)),
+        el('td.r', ysr(x.amount)), el('td.r', ysr(x.fee, 0)), el('td.r.dim', vor(x.seit))))
         : el('tr', el('td.leer', { colspan: 5 }, t('kette.wartendKeine'))));
     } catch { /* nächster Takt */ }
   }
 
   function aktualisiere(s) {
-    const neu = s.running ? (s.height ?? -1) : -1;
     if (!s.running) {
       fuelle(zeilen, el('tr', el('td.leer', { colspan: 6 }, t('fehler.knotenAus'))));
       return;
     }
+    const neu = s.height ?? -1;
+    const anzeige = zahl(neu);
+    if (anzeige !== gezeigt) { rollZahl(held.zahl, gezeigt, anzeige); gezeigt = anzeige; }
+    text(kz.groesse.wert, s.dataDirBytes ? dezimal(s.dataDirBytes / 1e6) + ' MB' : '—');
+    text(kz.groesse.unter, t('kette.groesseUnter'));
     if (neu !== kopfHoehe) {
       const warAmKopf = oben === null;
       kopfHoehe = neu;
       if (warAmKopf || zeilen.children.length === 0) ladeSeite();
-      else { neuer.disabled = false; }
+      else neuer.disabled = false;
+      ladeTag();
     }
   }
 
-  // Einstieg über die Adresszeile: #/blockchain/3244
+  // Einstieg über die Adresszeile: #/blockchain/3244 öffnet den Block als Fenster.
   const start = ctx.ort()[1];
-  if (start && /^\d+$/.test(start)) { gewaehlt = Number(start); oben = gewaehlt; }
+  const s0 = ctx.stand();
+  if (s0?.running) kopfHoehe = s0.height ?? -1;
+  if (start && /^\d+$/.test(start)) {
+    history.replaceState(null, '', '#/blockchain');
+    const h = Math.min(Number(start), Math.max(0, kopfHoehe));
+    setTimeout(() => springe(h), 0);
+  } else if (s0?.running) ladeSeite();
   // Aus der Suche (Strg K): #/blockchain/suche/<Begriff>
   if (start === 'suche' && ctx.ort()[2]) {
     try { eingabe.value = decodeURIComponent(ctx.ort().slice(2).join('/')); } catch { eingabe.value = ''; }
     history.replaceState(null, '', '#/blockchain');
     setTimeout(suche, 0);
   }
-  const s0 = ctx.stand();
-  if (s0?.running) {
-    kopfHoehe = s0.height ?? -1;
-    if (gewaehlt !== null) { const h = gewaehlt; springe(Math.min(h, Math.max(0, kopfHoehe))); }
-    else ladeSeite();
-  }
+  if (s0?.running) ladeTag();
   ladeMempool();
   mempoolTakt = setInterval(ladeMempool, 4000);
 

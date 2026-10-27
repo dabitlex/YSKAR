@@ -1,5 +1,6 @@
 /* Mining: mit Prozessor und Grafikkarte an neuen Blöcken rechnen -- solo oder im Pool. */
-import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, dauer, tagOderZeit, zeichen, segment, kurzAdresse, knotenText } from './kern.js';
+import { hole, sende, el, fuelle, text, zeile, chip, knopf, kopf, melde, zahl, ysr, leistung, dauer, tagOderZeit, zeichen, segment, kurzAdresse, knotenText, kopfKarte, kennzahl } from './kern.js';
+import { bild } from './bilder.js';
 import { t, sprache } from './i18n.js';
 
 /** Dieselbe Regel wie im Knoten und im Explorer: druckbares ASCII, 3 bis 32 Zeichen. */
@@ -351,11 +352,10 @@ export function baue(ctx) {
    * Einstellungen liegen in einem Seitenfeld ("Ändern") -- gesperrt,
    * solange das Mining läuft.
    */
-  start.classList.add('gross');
-  const held = { zahl: el('div.mn-zahl', '0', el('small', 'MH/s')), meta: el('div.mn-meta') };
-  const zz = { ziel: el('b'), empf: el('b'), name: el('b'), nameZelle: null };
-  const zelle = (z, name, wert) => el('div', el('span.ic', zeichen(z, 15)), el('div.t', el('span', name), wert));
-  zz.nameZelle = zelle('etikett', t('min.name'), zz.name);
+  const held = { zahl: el('div.zahl', '0', el('small', 'MH/s')), meta: el('p.held-satz'), bild: bild('mining', 260) };
+  const kzGeraete = kennzahl(t('min.geraete'));
+  const kzZiel = kennzahl(t('min.ziel')), kzEmpf = kennzahl(t('min.gehtAn')), kzName = kennzahl(t('min.name'));
+  const zz = { ziel: kzZiel.wert, empf: kzEmpf.wert, name: kzName.wert, nameZelle: kzName.wurzel };
   const geraeteListe = el('div');
   const geraeteSumme = el('div.gr-summe');
   const erw = el('div.zeilen');
@@ -386,14 +386,11 @@ export function baue(ctx) {
     el('p.hinweis', t('pool.nieSolo')));
 
   const wurzel = el('div.stapel',
-    kopf(t('min.titel'), t('min.sub')),
+    kopf(t('min.titel'), t('min.sub'), zustand),
     ende,
-    el('section.mn-held', { 'aria-label': t('min.titel') }, zustand, held.zahl, held.meta, start),
-    el('section.mn-ziel', { 'aria-label': t('min.zielZeile') },
-      zelle('leute', t('min.ziel'), zz.ziel),
-      zelle('wallet', t('min.gehtAn'), zz.empf),
-      zz.nameZelle,
-      el('div', knopf(t('allg.aendern'), () => { seitenfeld.hidden = false; }, 'klein'))),
+    kopfKarte([el('span.cap', t('min.deineLeistung')), held.zahl, held.meta,
+      el('div.held-knoepfe', start, knopf([zeichen('regler', 14), t('min.zielAendern')], () => { seitenfeld.hidden = false; }))],
+      held.bild, [kzZiel, kzEmpf, kzGeraete, kzName]),
     el('div.mn-2',
       el('section.karte', { 'aria-label': t('min.geraete') },
         el('div.karte-kopf', el('h2', t('min.geraete')), el('span.blass', { style: 'font-size:12px' }, t('min.gemessen'))),
@@ -424,7 +421,8 @@ export function baue(ctx) {
     const m = s.mining, laeuftJetzt = m.running;
     const [wert, einheit] = (laeuftJetzt ? leistung(m.totalHashrate) : '0 MH/s').split(' ');
     fuelle(held.zahl, wert, el('small', einheit));
-    held.zahl.className = 'mn-zahl' + (laeuftJetzt ? '' : ' aus');
+    held.zahl.className = 'zahl' + (laeuftJetzt ? '' : ' aus');
+    held.bild.classList.toggle('still', !laeuftJetzt);
     const imPool = ziel === 'pool';
     const p = m.pool;
     const poolName = p?.name ?? pools?.find(x => x.host === poolHost)?.anzeige ?? poolHost ?? '—';
@@ -446,13 +444,18 @@ export function baue(ctx) {
     const mitTrenner = [];
     teile.forEach((x, i) => { if (i) mitTrenner.push(el('span.sep', '·')); mitTrenner.push(x); });
     fuelle(held.meta, mitTrenner);
+    text(kzGeraete.wert, geraete || '—');
+    text(kzGeraete.unter, laeuftJetzt ? t('min.gemessen') : t('min.giltBeimStart'));
 
     // Ziel-Zeile
     const fee = (p?.stand?.feeBps ?? pools?.find(x => x.host === poolHost)?.feeBps);
-    text(zz.ziel, imPool ? t('pool.pool') + ' ' + poolName + (fee != null ? ' · ' + t('min.gebuehrKurz', prozent(fee)) : '') : t('min.solo'));
-    fuelle(zz.empf, zielWallet ? [t('min.meineWallet'), ' · ', el('span.mono', { style: 'font-size:12px;color:var(--lese)' }, kurzAdresse(s.wallet.adresse))] : el('span.mono', kurzAdresse(adresse.value.trim()) || '—'));
+    text(zz.ziel, imPool ? poolName : t('min.solo'));
+    text(kzZiel.unter, imPool ? t('pool.pool') + (fee != null ? ' · ' + t('min.gebuehrKurz', prozent(fee)) : '') : t('min.soloUnter'));
+    text(kzEmpf.unter, zielWallet ? kurzAdresse(s.wallet.adresse) : '');
+    fuelle(zz.empf, zielWallet ? t('min.meineWallet') : el('span.mono', kurzAdresse(adresse.value.trim()) || '—'));
     text(zz.name, name.value.trim() || '—');
     zz.nameZelle.hidden = imPool;
+    text(kzName.unter, t('min.nameUnter'));
   }
 
   function geraetZeile(z, titel, unter, hashrate, summe, an, wennSchalter, warn = false) {

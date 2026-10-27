@@ -1,5 +1,6 @@
 /* Pool betreiben: andere über den eigenen Knoten gemeinsam minen lassen. */
-import { sende, el, fuelle, text, chip, knopf, kopf, melde, schalter, zeichen, zahl, ysr, leistung, kurzAdresse, vor, knotenText } from './kern.js';
+import { sende, el, fuelle, text, chip, knopf, kopf, melde, schalter, zeichen, zahl, ysr, leistung, kurzAdresse, vor, knotenText, kopfKarte, kennzahl } from './kern.js';
+import { bild } from './bilder.js';
 import { t, sprache } from './i18n.js';
 
 /** Dieselbe Regel wie im Knoten: druckbares ASCII, 3 bis 32 Zeichen, mindestens ein Buchstabe oder eine Ziffer. */
@@ -23,12 +24,12 @@ export function baue(ctx) {
   const an = schalter(t('betr.aktiv'), false, schalte);
 
   // Kennzahlen
+  const kz = [kennzahl(t('pool.miner')), kennzahl(t('betr.leistung')), kennzahl(t('betr.bloecke')), kennzahl(t('betr.gebuehr'))];
   const k = {
-    miner: el('b', '—'), minerSub: el('span', ''),
-    leistung: el('b', '—'), leistungSub: el('span', ''),
-    bloecke: el('b', '—'), bloeckeSub: el('span', ''),
-    gebuehr: el('b', '—'), gebuehrSub: el('span', ''),
+    miner: kz[0].wert, minerSub: kz[0].unter, leistung: kz[1].wert, leistungSub: kz[1].unter,
+    bloecke: kz[2].wert, bloeckeSub: kz[2].unter, gebuehr: kz[3].wert, gebuehrSub: kz[3].unter,
   };
+  const held = { cap: el('span.cap'), zahl: el('div'), satz: el('p.held-satz'), knoepfe: el('div.held-knoepfe'), bild: bild('pool', 260) };
 
   // Einstellungen
   const name = el('input.feld', { id: 'b-name', type: 'text', maxlength: 32, spellcheck: 'false', autocomplete: 'off' });
@@ -137,11 +138,7 @@ export function baue(ctx) {
 
   const wurzel = el('div.stapel',
     kopf(t('betr.titel'), t('betr.sub'), zustand, an),
-    el('section.kennzahlen', { 'aria-label': t('betr.kennzahlen') },
-      el('div.stat', el('span.cap', t('pool.miner')), k.miner, k.minerSub),
-      el('div.stat', el('span.cap', t('betr.leistung')), k.leistung, k.leistungSub),
-      el('div.stat', el('span.cap', t('betr.bloecke')), k.bloecke, k.bloeckeSub),
-      el('div.stat', el('span.cap', t('betr.gebuehr')), k.gebuehr, k.gebuehrSub)),
+    kopfKarte([held.cap, held.zahl, held.satz, held.knoepfe], held.bild, kz),
     el('div.spalten',
       el('section.karte', { style: 'flex:1 1 400px;gap:16px', 'aria-label': t('min.einstellungen') },
         el('h2', t('min.einstellungen')),
@@ -197,8 +194,27 @@ export function baue(ctx) {
     if (!b.laeuft && c.aktiv && b.fehler && fehler.hidden) { text(fehler, knotenText(b.fehlerCode, [], b.fehler)); fehler.hidden = false; }
     neustart.hidden = !b.neustartNoetig;
 
-    // Kennzahlen
+    // Kopfkarte
     const a = b.auskunft;
+    held.bild.classList.toggle('still', !b.laeuft);
+    text(held.cap, b.laeuft ? (c.name || t('betr.titel')) : t('betr.titel'));
+    if (b.laeuft) {
+      const [w, e] = (a && a.hashrate > 0 ? leistung(a.hashrate) : '0 H/s').split(' ');
+      held.zahl.className = 'zahl'; fuelle(held.zahl, w, el('small', e));
+      text(held.satz, t('betr.heldSatz', a ? a.belegt : 0, prozent(b.angewandt ? b.angewandt.feeBps : c.feeBps)) + (b.letzterBlock !== null && b.letzterBlock !== undefined ? ' · ' + t('betr.zuletzt', zahl(b.letzterBlock)) : ''));
+    } else {
+      held.zahl.className = 'held-titel'; text(held.zahl, t('betr.heldTitel'));
+      text(held.satz, t('betr.heldText'));
+    }
+    const knoepfeBild = String(b.laeuft) + c.aktiv;
+    if (held.knoepfe.dataset.bild !== knoepfeBild) {
+      held.knoepfe.dataset.bild = knoepfeBild;
+      fuelle(held.knoepfe, !c.aktiv
+        ? [knopf(t('betr.einschalten'), () => { if (!name.value.trim()) { name.scrollIntoView({ behavior: 'smooth', block: 'center' }); name.focus(); zeigeFehler(new Error(t('betr.nameZuerst'))); return; } an.click(); }, 'haupt'),
+          el('a', { href: ANLEITUNG, target: '_blank', rel: 'noreferrer', style: 'font-size:13px' }, t('betr.wieFunktioniert'))]
+        : [knopf([zeichen('regler', 14), t('min.einstellungen')], () => { name.scrollIntoView({ behavior: 'smooth', block: 'center' }); })]);
+    }
+
     text(k.miner, a ? zahl(a.belegt) + ' / ' + zahl(a.plaetze) : '—');
     text(k.minerSub, a ? t('betr.frei', a.frei) : t('betr.poolAus'));
     // Die Leistung misst der Pool an den Shares -- das braucht ein paar davon.
