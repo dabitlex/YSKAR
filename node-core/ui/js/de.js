@@ -855,4 +855,8 @@ export const de = {
   'min.verlaufSpanne': (a, b) => `${a} – ${b}`,
   'einst.systemTitel': 'Titelleiste des Systems verwenden',
   'einst.systemTitelHinweis': 'Statt der eigenen Titelleiste die des Desktops. Gilt nach dem nächsten Start des Programms.',
+  'peers.ipZeigen': 'IP-Adressen zeigen',
+  'peers.ipVerdecken': 'IP-Adressen verdecken',
+  'peers.verdecktTitel': 'Teilweise verdeckt -- oben rechts lassen sich die Adressen zeigen.',
+  'einst.sicherheitSeite': 'Wallet und Sicherheit',
 };

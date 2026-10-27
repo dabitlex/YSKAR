@@ -111,33 +111,12 @@ export function baue(ctx) {
     catch (err) { melde(err.message, true); }
   } }, el('option', { value: 'de', selected: e0.sprache !== 'en' }, 'Deutsch'), el('option', { value: 'en', selected: e0.sprache === 'en' }, 'English'));
 
-  const wurzel = el('div.stapel',
-    kopf(t('einst.titel'), t('einst.sub')),
-    el('div.spalten',
-      el('div.stapel', { style: 'flex:1 1 420px' },
-        el('section.karte', { 'aria-label': t('einst.knoten') },
-          el('h2', t('einst.knoten')),
-          el('div.feldgruppe', el('label', { for: 'e-ordner' }, t('einst.ordner')),
-            waehlen ? el('div.reihe', f.ordner, waehlen) : f.ordner,
-            el('p.hinweis', t('einst.ordnerHinweis'), ' ', belegt)),
-          el('div.reihe.umbrechen', { style: 'align-items:flex-start;gap:12px' },
-            el('div.feldgruppe', { style: 'flex:1 1 150px' }, el('label', { for: 'e-api' }, t('einst.apiPort')), f.api, el('p.hinweis', t('einst.apiHinweis'))),
-            el('div.feldgruppe', { style: 'flex:1 1 150px' }, el('label', { for: 'e-p2p' }, t('einst.p2pPort')), f.p2p, el('p.hinweis', t('einst.p2pHinweis')))),
-          el('div.feldgruppe', el('label', { for: 'e-seed' }, 'Seed'), f.seed, el('p.hinweis', t('einst.seedHinweis'))),
-          neustart,
-          el('div.karte-kopf', el('span.hinweis', t('einst.geltenNach')), knopf(t('allg.speichern'), speichere, 'haupt'))),
-        el('section.karte', { 'aria-label': t('einst.sicherheit') },
-          el('h2', t('einst.sicherheit')),
-          el('div.notiz', zeichen('schild', 18), el('span', t('einst.sicherheitText'))),
-          el('div.schaltzeile', el('label', { for: 'e-sperre' }, t('wal.sperreNach')), sperre),
-          el('div.schaltzeile', el('span', t('einst.passwortSenden')), el('span.dim', { style: 'font-size:13px' }, t('einst.immerAn')))),
-        el('section.karte', { 'aria-label': t('einst.ueber') },
-          el('h2', t('einst.ueber')),
-          el('div.zeilen',
-            zeile(t('einst.programm'), ueber.programm), zeile(t('einst.netz'), ueber.netz), zeile(t('einst.regeln'), ueber.regeln),
-            zeile(t('einst.quelltext'), el('a', { href: 'https://github.com/dabitlex/YSKAR', target: '_blank', rel: 'noreferrer' }, 'github.com/dabitlex/YSKAR'))))),
-      el('div.stapel', { style: 'flex:1 1 420px' },
-        el('section.karte', { style: 'gap:4px', 'aria-label': t('einst.programmTitel') },
+  /*
+   * Unternavigation: Programm · Knoten · Wallet und Sicherheit · Updates ·
+   * Protokoll · Über. #/einstellungen/protokoll öffnet gleich das Protokoll.
+   */
+  const SEITEN = [
+    ['allgemein', t('einst.programmTitel'), el('section.karte', { style: 'gap:4px', 'aria-label': t('einst.programmTitel') },
           el('h2', { style: 'margin-bottom:6px' }, t('einst.programmTitel')),
           autostart ? el('div.schaltzeile', el('span', t('einst.autostart'), el('span.hinweis', t(h0.infobereich ? 'einst.autostartHinweis' : 'einst.autostartFenster'))), autostart) : null,
           h0.vorhanden && h0.infobereich ? el('div.schaltzeile', el('span', t('einst.imHintergrund'), el('span.hinweis', t('einst.imHintergrundHinweis'))),
@@ -150,8 +129,24 @@ export function baue(ctx) {
           // Nur Linux: die Titelleiste des Systems statt der eigenen (gilt nach dem Neustart).
           h0.vorhanden && ctx.stand().plattform === 'linux' ? el('div.schaltzeile', el('span', t('einst.systemTitel'), el('span.hinweis', t('einst.systemTitelHinweis'))),
             schalter(t('einst.systemTitel'), e0.systemTitelleiste === true, an => stelle({ systemTitelleiste: an }))) : null,
-          el('div.schaltzeile', el('span', t('einst.beendenText'), el('span.hinweis', t('einst.beendenHinweis'))), beenden)),
-        el('section.karte', { 'aria-label': t('einst.updates') },
+          el('div.schaltzeile', el('span', t('einst.beendenText'), el('span.hinweis', t('einst.beendenHinweis'))), beenden))],
+    ['knoten', t('einst.knoten'), el('section.karte', { 'aria-label': t('einst.knoten') },
+          el('h2', t('einst.knoten')),
+          el('div.feldgruppe', el('label', { for: 'e-ordner' }, t('einst.ordner')),
+            waehlen ? el('div.reihe', f.ordner, waehlen) : f.ordner,
+            el('p.hinweis', t('einst.ordnerHinweis'), ' ', belegt)),
+          el('div.reihe.umbrechen', { style: 'align-items:flex-start;gap:12px' },
+            el('div.feldgruppe', { style: 'flex:1 1 150px' }, el('label', { for: 'e-api' }, t('einst.apiPort')), f.api, el('p.hinweis', t('einst.apiHinweis'))),
+            el('div.feldgruppe', { style: 'flex:1 1 150px' }, el('label', { for: 'e-p2p' }, t('einst.p2pPort')), f.p2p, el('p.hinweis', t('einst.p2pHinweis')))),
+          el('div.feldgruppe', el('label', { for: 'e-seed' }, 'Seed'), f.seed, el('p.hinweis', t('einst.seedHinweis'))),
+          neustart,
+          el('div.karte-kopf', el('span.hinweis', t('einst.geltenNach')), knopf(t('allg.speichern'), speichere, 'haupt')))],
+    ['sicherheit', t('einst.sicherheitSeite'), el('section.karte', { 'aria-label': t('einst.sicherheit') },
+          el('h2', t('einst.sicherheit')),
+          el('div.notiz', zeichen('schild', 18), el('span', t('einst.sicherheitText'))),
+          el('div.schaltzeile', el('label', { for: 'e-sperre' }, t('wal.sperreNach')), sperre),
+          el('div.schaltzeile', el('span', t('einst.passwortSenden')), el('span.dim', { style: 'font-size:13px' }, t('einst.immerAn'))))],
+    ['updates', t('einst.updates'), el('section.karte', { 'aria-label': t('einst.updates') },
           el('h2', t('einst.updates')),
           el('div.zeilen',
             zeile(t('einst.installiert'), u.installiert), zeile(t('einst.neueste'), u.neueste),
@@ -159,11 +154,31 @@ export function baue(ctx) {
           u.stand,
           el('div.schaltzeile', el('span', t('einst.updatesSuchen'), el('span.hinweis', t('einst.updatesSuchenHinweis'))),
             schalter(t('einst.updatesSuchen'), e0.updatesSuchen !== false, an => stelle({ updatesSuchen: an }))),
-          el('div.karte-kopf', el('span.hinweis', { style: 'flex:1 1 200px' }, t('einst.updateHinweis')), suchen)),
-        el('section.karte', { 'aria-label': t('einst.protokoll') },
+          el('div.karte-kopf', el('span.hinweis', { style: 'flex:1 1 200px' }, t('einst.updateHinweis')), suchen))],
+    ['protokoll', t('einst.protokoll'), el('section.karte', { 'aria-label': t('einst.protokoll') },
           el('div.karte-kopf', el('h2', t('einst.protokoll')),
             el('div.reihe', knopf([zeichen('kopieren'), t('allg.kopieren')], () => kopiere(protokoll.textContent), 'klein'), ordnerOeffnen)),
-          protokoll))));
+          protokoll)],
+    ['ueber', t('einst.ueber'), el('section.karte', { 'aria-label': t('einst.ueber') },
+          el('h2', t('einst.ueber')),
+          el('div.zeilen',
+            zeile(t('einst.programm'), ueber.programm), zeile(t('einst.netz'), ueber.netz), zeile(t('einst.regeln'), ueber.regeln),
+            zeile(t('einst.quelltext'), el('a', { href: 'https://github.com/dabitlex/YSKAR', target: '_blank', rel: 'noreferrer' }, 'github.com/dabitlex/YSKAR'))))],
+  ];
+  const seiteInhalt = el('div.einst-inhalt');
+  const unternav = el('nav.unternav', { 'aria-label': t('einst.titel') });
+  let seite = SEITEN.some(x => x[0] === ctx.ort()[1]) ? ctx.ort()[1] : 'allgemein';
+  function zeigeSeite() {
+    fuelle(unternav, SEITEN.map(([id, name]) => el('button', { type: 'button', class: id === seite ? 'an' : '', 'aria-current': id === seite ? 'page' : null,
+      onclick: () => { seite = id; history.replaceState(null, '', '#/einstellungen' + (id === 'allgemein' ? '' : '/' + id)); zeigeSeite(); } }, name)));
+    fuelle(seiteInhalt, SEITEN.find(x => x[0] === seite)[2]);
+    protokoll.style.maxHeight = seite === 'protokoll' ? 'calc(100vh - 290px)' : '';
+  }
+
+  const wurzel = el('div.stapel',
+    kopf(t('einst.titel'), t('einst.sub')),
+    el('div.einst-layout', unternav, seiteInhalt));
+  zeigeSeite();
 
   async function ladeProtokoll() {
     try {

@@ -2,7 +2,29 @@
 import { sende, el, fuelle, text, chip, knopf, kopf, melde, zahl, dauer, zeichen } from './kern.js';
 import { t } from './i18n.js';
 
+/**
+ * IP-Adressen standardmäßig teilweise verdecken -- etwa für Bildschirmfotos.
+ * Namen (wie der Seed) bleiben lesbar.
+ */
+function verdecke(adresse) {
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}(:\d+)?$/.exec(adresse);
+  if (v4) return `${v4[1]}.${v4[2]}.•••.•••${v4[3] ?? ''}`;
+  const v6 = /^\[([0-9a-f]{1,4}):([0-9a-f]{1,4}):[^\]]*\](:\d+)?$/i.exec(adresse);
+  if (v6) return `[${v6[1]}:${v6[2]}:•••]${v6[3] ?? ''}`;
+  return adresse;
+}
+const SCHLUESSEL = 'yskar.peers.ipZeigen';
+
 export function baue(ctx) {
+  let zeigeIp = false;
+  try { zeigeIp = localStorage.getItem(SCHLUESSEL) === '1'; } catch { /* ohne Speicher: verdeckt */ }
+  const ipKnopf = knopf('', () => {
+    zeigeIp = !zeigeIp;
+    try { localStorage.setItem(SCHLUESSEL, zeigeIp ? '1' : '0'); } catch { /* nur für diese Sitzung */ }
+    bild = ''; setzeIpKnopf(); aktualisiere(ctx.stand());
+  }, 'klein ruhig');
+  const setzeIpKnopf = () => fuelle(ipKnopf, zeichen('auge', 14), zeigeIp ? t('peers.ipVerdecken') : t('peers.ipZeigen'));
+  setzeIpKnopf();
   const erreichbar = el('span');
   const st = { verb: el('b', '—'), verbSub: el('span', ''), aus: el('b', '—'), ein: el('b', '—'), buch: el('b', '—') };
   const zeilen = el('tbody');
@@ -34,7 +56,7 @@ export function baue(ctx) {
       el('div.stat', el('span.cap', t('peers.eingehend')), st.ein, el('span', t('peers.einSub'))),
       el('div.stat', el('span.cap', t('peers.buch')), st.buch, el('span', t('peers.buchSub')))),
     el('section.karte', { 'aria-label': t('peers.liste') },
-      el('div.karte-kopf', el('h2', t('peers.liste'))),
+      el('div.karte-kopf', el('h2', t('peers.liste')), ipKnopf),
       el('div.tab-huelle', el('table.tab',
         el('thead', el('tr', el('th', t('peers.adresse')), el('th', t('peers.richtung')), el('th.r', t('kette.hoehe')),
           el('th', { style: 'padding-left:24px' }, t('peers.programm')), el('th.r', t('peers.fassung')), el('th', t('peers.seit')), el('th.r', el('span.nur-leser', t('peers.aktion'))))),
@@ -78,7 +100,7 @@ export function baue(ctx) {
     if (neu === bild) return;
     bild = neu;
     fuelle(zeilen, s.peers.length ? s.peers.map(p => el('tr',
-      el('td.mono', p.adresse, p.seed ? el('span.chip.blau', { style: 'height:22px;margin-left:8px;font-family:Manrope,sans-serif' }, 'Seed') : null),
+      el('td.mono', { title: zeigeIp ? null : t('peers.verdecktTitel') }, zeigeIp ? p.adresse : verdecke(p.adresse), p.seed ? el('span.chip.blau', { style: 'margin-left:8px;font-family:var(--sans)' }, 'Seed') : null),
       el('td', t('peers.' + (p.richtung === 'aus' ? 'aus' : 'ein'))),
       el('td.r.mono', zahl(p.hoehe)),
       el('td.mono.dim', { style: 'padding-left:24px' }, p.programm || '—'),

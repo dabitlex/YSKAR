@@ -855,4 +855,8 @@ export const en = {
   'min.verlaufSpanne': (a, b) => `${a} – ${b}`,
   'einst.systemTitel': 'Use the system title bar',
   'einst.systemTitelHinweis': 'Use the desktop’s title bar instead of the built-in one. Applies after the next program start.',
+  'peers.ipZeigen': 'Show IP addresses',
+  'peers.ipVerdecken': 'Hide IP addresses',
+  'peers.verdecktTitel': 'Partly hidden -- the addresses can be shown at the top right.',
+  'einst.sicherheitSeite': 'Wallet and security',
 };
