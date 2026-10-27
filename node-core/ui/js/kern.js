@@ -277,7 +277,7 @@ export function ysr(einheiten, mindestens = 4) {
  * Rest (bis zur achten Stelle) klein und grau. Liefert ein Element.
  */
 export function ysrGross(einheiten) {
-  const voll = ysr(einheiten, 2);
+  const voll = ysr(einheiten);
   const komma = sprache() === 'en' ? '.' : ',';
   const i = voll.lastIndexOf(komma);
   if (i < 0) return el('span', voll);

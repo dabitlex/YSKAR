@@ -103,25 +103,18 @@ test('Dateien: Nur die Oberfläche, nichts daneben', async () => {
     const js = await ruf(port, '/ui/js/main.js');
     assert.equal(js.status, 200); assert.match(js.typ, /^text\/javascript/);
 
-    const schrift = await ruf(port, '/ui/fonts/manrope-latin-wght-normal.woff2');
+    const schrift = await ruf(port, '/ui/fonts/geist-variable.woff2');
     assert.equal(schrift.status, 200); assert.equal(schrift.typ, 'font/woff2');
 
-    // Das Zeichen der Marke: ein PNG mit durchsichtigem Grund.
-    const zeichen = await new Promise<{ status: number; typ: string; inhalt: Buffer }>((auf, ab) => {
-      const req = request({ host: '127.0.0.1', port, path: '/ui/kristall.png', headers: { host: `127.0.0.1:${port}` } }, res => {
-        const teile: Buffer[] = []; res.on('data', c => teile.push(c));
-        res.on('end', () => auf({ status: res.statusCode ?? 0, typ: String(res.headers['content-type']), inhalt: Buffer.concat(teile) }));
-      });
-      req.on('error', ab); req.end();
-    });
-    assert.equal(zeichen.status, 200); assert.equal(zeichen.typ, 'image/png');
-    assert.equal(zeichen.inhalt.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-    assert.equal(zeichen.inhalt[25], 6, 'Farbe mit Deckkraft (RGBA) -- sonst hätte das Zeichen einen Hintergrund');
-    assert.match(readFileSync(join(JS, 'kern.js'), 'utf8'), /'\/ui\/kristall\.png'/);
+    // Das Zeichen der Marke: das Y als SVG, ohne Hintergrund und ohne Schein.
+    const zeichen = await ruf(port, '/ui/zeichen.svg');
+    assert.equal(zeichen.status, 200); assert.match(zeichen.typ, /^image\/svg\+xml/);
+    assert.ok(!/<filter|feGaussianBlur|<rect/.test(zeichen.text), 'Kein Schein und keine Fläche hinter dem Zeichen');
+    assert.match(readFileSync(join(JS, 'kern.js'), 'utf8'), /'\/ui\/zeichen\.svg'/);
 
     // Jede Datei, die die Seite laedt, gibt es auch.
     const geladen = [...css.text.matchAll(/url\((\/ui\/[^)]+)\)/g)].map(m => m[1]);
-    assert.ok(geladen.length >= 4);
+    assert.ok(geladen.length >= 2);
     for (const g of geladen) assert.equal((await ruf(port, g)).status, 200, g);
     for (const m of readFileSync(join(JS, 'main.js'), 'utf8').matchAll(/from '\.\/([a-z0-9]+\.js)'/g)) {
       assert.equal((await ruf(port, '/ui/js/' + m[1])).status, 200, m[1]);

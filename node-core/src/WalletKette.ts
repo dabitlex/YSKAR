@@ -35,6 +35,19 @@ export interface Ueberweisung {
   notiz: string;
 }
 
+/** Mehr einzelne Mining-Einnahmen je Tag liefert der Verlauf nicht (zum Aufklappen). */
+export const MINING_JE_TAG_MAX = 50;
+
+/** Eine einzelne Mining-Einnahme: ein eigener Block oder ein Pool-Anteil. */
+export interface MiningEinnahme {
+  hoehe: number;
+  zeit: number;
+  betrag: string;
+  art: 'solo' | 'pool';
+  /** Name im Block -- bei Pool-Anteilen der Pool; null, wenn keiner dasteht. */
+  name: string | null;
+}
+
 export interface MiningTag {
   /** Kalendertag in der Zeitzone dieses PCs, JJJJ-MM-TT. */
   tag: string;
@@ -43,6 +56,8 @@ export interface MiningTag {
   summe: string;
   letzteHoehe: number;
   letzteZeit: number;
+  /** Die juengsten Einnahmen dieses Tages, neueste zuerst (hoechstens MINING_JE_TAG_MAX). */
+  einzeln: MiningEinnahme[];
 }
 
 /** Der juengste Block, der diese Adresse zusammen mit anderen ausgezahlt hat. */
@@ -73,7 +88,7 @@ export function tagVon(sekunden: number): string {
 export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
                             tiefe: number = VERLAUF_TIEFE): KettenVerlauf {
   const ueberweisungen: Ueberweisung[] = [];
-  const tage = new Map<string, { solo: number; pool: number; summe: bigint; letzteHoehe: number; letzteZeit: number }>();
+  const tage = new Map<string, { solo: number; pool: number; summe: bigint; letzteHoehe: number; letzteZeit: number; einzeln: MiningEinnahme[] }>();
   const gesendetAn = new Set<string>();
   let letztePool: PoolAuszahlung | null = null;
   const bis = Math.max(0, kopf - tiefe);
@@ -90,8 +105,12 @@ export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
         if (!meiner) continue;
         const tag = tagVon(zeit);
         let e = tage.get(tag);
-        if (!e) { e = { solo: 0, pool: 0, summe: 0n, letzteHoehe: h, letzteZeit: zeit }; tage.set(tag, e); }
-        if (t.outputs.length === 1) e.solo++; else {
+        if (!e) { e = { solo: 0, pool: 0, summe: 0n, letzteHoehe: h, letzteZeit: zeit, einzeln: [] }; tage.set(tag, e); }
+        const solo = t.outputs.length === 1;
+        if (e.einzeln.length < MINING_JE_TAG_MAX) {
+          e.einzeln.push({ hoehe: h, zeit, betrag: meiner.amount.toString(), art: solo ? 'solo' : 'pool', name: solo ? null : finderAnzeige(finderName(toHex(t.extra))) });
+        }
+        if (solo) e.solo++; else {
           e.pool++;
           // Rueckwaerts gelesen: Der erste Treffer ist der juengste.
           letztePool ??= { hoehe: h, zeit, betrag: meiner.amount.toString(), name: finderAnzeige(finderName(toHex(t.extra))) };
@@ -130,7 +149,7 @@ export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
     ueberweisungen,
     mining: [...tage.entries()].map(([tag, e]) => ({
       tag, solo: e.solo, pool: e.pool, summe: e.summe.toString(),
-      letzteHoehe: e.letzteHoehe, letzteZeit: e.letzteZeit,
+      letzteHoehe: e.letzteHoehe, letzteZeit: e.letzteZeit, einzeln: e.einzeln,
     })),
     letztePool,
     gesendetAn: [...gesendetAn],

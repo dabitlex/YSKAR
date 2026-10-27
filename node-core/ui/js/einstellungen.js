@@ -147,6 +147,9 @@ export function baue(ctx) {
           el('div.schaltzeile', el('span', t('einst.miningFortsetzen'), el('span.hinweis', t('einst.miningFortsetzenHinweis'))),
             schalter(t('einst.miningFortsetzen'), e0.miningFortsetzen === true, an => stelle({ miningFortsetzen: an }))),
           el('div.schaltzeile', el('label', { for: 'e-sprache' }, t('einst.sprache')), sprachwahl),
+          // Nur Linux: die Titelleiste des Systems statt der eigenen (gilt nach dem Neustart).
+          h0.vorhanden && ctx.stand().plattform === 'linux' ? el('div.schaltzeile', el('span', t('einst.systemTitel'), el('span.hinweis', t('einst.systemTitelHinweis'))),
+            schalter(t('einst.systemTitel'), e0.systemTitelleiste === true, an => stelle({ systemTitelleiste: an }))) : null,
           el('div.schaltzeile', el('span', t('einst.beendenText'), el('span.hinweis', t('einst.beendenHinweis'))), beenden)),
         el('section.karte', { 'aria-label': t('einst.updates') },
           el('h2', t('einst.updates')),

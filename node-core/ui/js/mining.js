@@ -235,7 +235,7 @@ export function baue(ctx) {
     text(zielHinweis, pool ? t('pool.hinweis') : t('min.gehtAnHinweis'));
     poolFeld.hidden = !pool;
     nameFeld.hidden = pool;      // Im Pool trägt der Block den Namen des Pools.
-    spalteSolo.hidden = pool; spaltePool.hidden = !pool;
+    spaltePool.hidden = !pool;
     if (pool) { if (!listeTakt) listeTakt = setInterval(ladeListe, POOL_TAKT_MS); if (pools === null) ladeListe(); }
     else if (listeTakt) { clearInterval(listeTakt); listeTakt = null; }
     const s = ctx.stand();
@@ -345,63 +345,195 @@ export function baue(ctx) {
     beschaeftigt = false; start.disabled = false;
   }
 
-  const spalteSolo = el('div.stapel',
-    el('section.karte', { 'aria-label': t('min.erwartung') },
-      el('h2', t('min.erwartung')),
-      el('div.spalten',
-        el('div.stapel', { style: 'flex:1 1 150px;gap:6px' }, el('span.cap', t('min.deine')), el('span.gross', { style: 'font-size:26px' }, eigene), el('span.hinweis', eigeneSub)),
-        el('div.stapel', { style: 'flex:1 1 150px;gap:6px' }, el('span.cap', t('ueb.netz')), el('span.gross', { style: 'font-size:26px' }, netz), el('span.hinweis', t('ueb.netzSub')))),
-      el('div.notiz', zeichen('info', 18), schaetzung)),
-    el('section.karte', { 'aria-label': t('min.messwerte') },
-      el('div.karte-kopf', el('h2', t('min.messwerte'))),
-      el('div.tab-huelle', el('table.tab',
-        el('thead', el('tr', el('th', t('min.geraet')), el('th.r', t('min.leistung')), el('th.r', 'Hashes'), el('th.r', t('min.fehler')))),
-        mess)),
-      el('div.zeilen', zeile(t('min.arbeitetAn'), z.hoehe), zeile(t('min.laeuftSeit'), z.seit))),
-    el('section.karte', { 'aria-label': t('min.funde') },
-      el('div.karte-kopf', el('h2', t('min.funde')), fundeKopf),
-      funde));
+  // ------------------------------------------------------------ Aufbau
+  /*
+   * Oben die Leistung gross und mittig, darunter die Ziel-Zeile. Die
+   * Einstellungen liegen in einem Seitenfeld ("Ändern") -- gesperrt,
+   * solange das Mining läuft.
+   */
+  start.classList.add('gross');
+  const held = { zahl: el('div.mn-zahl', '0', el('small', 'MH/s')), meta: el('div.mn-meta') };
+  const zz = { ziel: el('b'), empf: el('b'), name: el('b'), nameZelle: null };
+  const zelle = (z, name, wert) => el('div', el('span.ic', zeichen(z, 15)), el('div.t', el('span', name), wert));
+  zz.nameZelle = zelle('etikett', t('min.name'), zz.name);
+  const geraeteListe = el('div');
+  const geraeteSumme = el('div.gr-summe');
+  const erw = el('div.zeilen');
+  const erwHinweis = el('p.hinweis');
+  const verlaufKopf = el('span.mut.mono', { style: 'font-size:11px;letter-spacing:.06em;text-transform:uppercase' });
 
-  const spaltePool = el('div.stapel',
-    ende,
-    el('section.karte', { 'aria-label': t('min.leistung') },
-      el('div.karte-kopf', el('h2', t('min.leistung')), lSeit),
-      el('div.reihe.umbrechen', { style: 'align-items:baseline;gap:8px 22px' },
-        lGesamt,
-        el('span', { style: 'font-size:13px' }, el('span.dim', t('min.cpu')), ' ', lCpu),
-        el('span', { style: 'font-size:13px' }, el('span.dim', t('min.gpu')), ' ', lGpu)),
-      verlauf.wurzel),
-    el('section.karte', { 'aria-label': t('pool.verbindung') },
-      el('div.karte-kopf', el('h2', t('pool.verbindung')), vChip),
-      el('div.zeilen',
-        zeile(t('pool.pool'), v.pool), zeile(t('pool.minerImPool'), v.miner),
-        zeile(t('pool.angenommen'), v.gut), zeile(t('pool.abgelehnt'), v.schlecht),
-        zeile(t('pool.anteil'), v.anteil), zeile(t('pool.auszahlung'), v.auszahlung)),
-      vFehler,
-      el('p.hinweis', t('pool.nieSolo'))));
+  const seitenfeld = el('aside.seitenfeld', { hidden: true, 'aria-label': t('min.einstellen') },
+    el('div.dialog-kopf', el('h2', t('min.einstellen')), el('button.x', { type: 'button', 'aria-label': t('allg.schliessen'), onclick: () => { seitenfeld.hidden = true; } }, zeichen('kreuz', 14))),
+    el('div.seitenfeld-inhalt',
+      gesperrt,
+      el('div.feldgruppe', el('span.feldname', t('min.ziel')), zielWahl, zielHinweis),
+      poolFeld,
+      el('fieldset.feldgruppe', { style: 'border:0;margin:0;padding:0' }, el('legend.feldname', { style: 'padding:0;margin-bottom:6px' }, t('min.gehtAn')),
+        wahlWallet, wahlAndere, adresse, el('p.hinweis', t('min.nurNormale'))),
+      el('div.feldgruppe', el('span.feldname', t('min.geraet')), geraet),
+      cpuKasten, gpuKasten,
+      nameFeld),
+    el('div.dialog-fuss', el('span.hinweis', t('min.giltBeimStart')), knopf(t('min.fertig'), () => { seitenfeld.hidden = true; aktualisiere(ctx.stand()); }, 'haupt')));
+
+  const spalteSolo = el('div');
+  const spaltePool = el('section.karte', { 'aria-label': t('pool.verbindung') },
+    el('div.karte-kopf', el('h2', t('pool.verbindung')), vChip),
+    el('div.zeilen',
+      zeile(t('pool.pool'), v.pool), zeile(t('pool.minerImPool'), v.miner),
+      zeile(t('pool.angenommen'), v.gut), zeile(t('pool.abgelehnt'), v.schlecht),
+      zeile(t('pool.anteil'), v.anteil), zeile(t('pool.auszahlung'), v.auszahlung)),
+    vFehler,
+    el('p.hinweis', t('pool.nieSolo')));
 
   const wurzel = el('div.stapel',
-    kopf(t('min.titel'), t('min.sub'), zustand, start),
-    el('div.spalten',
-      el('section.karte', { style: 'flex:1 1 440px;gap:18px', 'aria-label': t('min.einstellungen') },
-        el('div.feldgruppe', el('span.feldname', t('min.ziel')), zielWahl, zielHinweis),
-        poolFeld,
-        el('fieldset.feldgruppe', { style: 'border:0;margin:0;padding:0' }, el('legend.feldname', { style: 'padding:0;margin-bottom:6px' }, t('min.gehtAn')),
-          wahlWallet, wahlAndere, adresse),
-        el('div.feldgruppe', el('span.feldname', t('min.geraet')), geraet),
-        cpuKasten, gpuKasten,
-        nameFeld,
-        gesperrt),
-      el('div', { style: 'flex:1 1 400px;min-width:0' }, spalteSolo, spaltePool)));
+    kopf(t('min.titel'), t('min.sub')),
+    ende,
+    el('section.mn-held', { 'aria-label': t('min.titel') }, zustand, held.zahl, held.meta, start),
+    el('section.mn-ziel', { 'aria-label': t('min.zielZeile') },
+      zelle('leute', t('min.ziel'), zz.ziel),
+      zelle('wallet', t('min.gehtAn'), zz.empf),
+      zz.nameZelle,
+      el('div', knopf(t('allg.aendern'), () => { seitenfeld.hidden = false; }, 'klein'))),
+    el('div.mn-2',
+      el('section.karte', { 'aria-label': t('min.geraete') },
+        el('div.karte-kopf', el('h2', t('min.geraete')), el('span.blass', { style: 'font-size:12px' }, t('min.gemessen'))),
+        geraeteListe, geraeteSumme),
+      el('section.karte', { 'aria-label': t('min.erwartung') },
+        el('div.karte-kopf', el('h2', t('min.erwartung')), chip('', t('min.schaetzungChip'))),
+        erw, erwHinweis)),
+    el('section.karte', { 'aria-label': t('min.leistung') },
+      el('div.karte-kopf', el('h2', t('min.leistung')), verlaufKopf),
+      verlauf.wurzel),
+    spaltePool,
+    el('section.karte', { 'aria-label': t('min.funde') },
+      el('div.karte-kopf', el('h2', t('min.funde')), fundeKopf),
+      funde),
+    seitenfeld);
+
+  // --------------------------------------------- Kopf, Ziel-Zeile, Geräte
+  /** Modus aus den Schaltern: Prozessor an/aus, Karten an/aus. */
+  function setzeModus(cpuAn, gpuAn) {
+    if (!cpuAn && !gpuAn) return false;
+    modus = cpuAn && gpuAn ? 'beide' : gpuAn ? 'gpu' : 'cpu';
+    geraet.setze(modus); zeigeKaesten();
+    for (const b of gpuListe.querySelectorAll('input[type=checkbox]')) b.checked = gpuGewaehlt?.has(Number(b.value)) ?? false;
+    return true;
+  }
+
+  function zeigeKopf(s) {
+    const m = s.mining, laeuftJetzt = m.running;
+    const [wert, einheit] = (laeuftJetzt ? leistung(m.totalHashrate) : '0 MH/s').split(' ');
+    fuelle(held.zahl, wert, el('small', einheit));
+    held.zahl.className = 'mn-zahl' + (laeuftJetzt ? '' : ' aus');
+    const imPool = ziel === 'pool';
+    const p = m.pool;
+    const poolName = p?.name ?? pools?.find(x => x.host === poolHost)?.anzeige ?? poolHost ?? '—';
+    const karten = m.gpuErkennung?.geraete ?? [];
+    const nGpu = modus === 'cpu' ? 0 : karten.filter(k => gpuGewaehlt?.has(k.id)).length;
+    const kerneZahl = modus === 'gpu' ? 0 : Number(kerne.value);
+    const geraete = [nGpu ? t('min.nGrafik', nGpu) : null, kerneZahl ? t('min.nKerne', kerneZahl) : null].filter(Boolean).join(' + ');
+    const anteil = laeuftJetzt && m.totalHashrate > 0
+      ? (imPool && p?.stand?.hashrate > 0 ? Math.min(1, m.totalHashrate / p.stand.hashrate) : s.netzHashrate > 0 ? Math.min(1, m.totalHashrate / Math.max(m.totalHashrate, s.netzHashrate)) : null)
+      : null;
+    const pct = a => (a * 100).toLocaleString(sprache() === 'en' ? 'en-GB' : 'de-DE', { maximumFractionDigits: a < 0.1 ? 1 : 0 }) + ' %';
+    const hoehe = m.cpu?.height ?? m.gpu?.height ?? null;
+    const teile = [
+      el('span', imPool ? [t('pool.pool') + ' ', el('b', poolName)] : el('b', t('min.solo'))),
+      anteil !== null ? el('span', t('min.deinAnteil') + ' ', el('b', pct(anteil))) : null,
+      geraete ? el('span', el('b', geraete)) : null,
+      laeuftJetzt && hoehe !== null ? el('span', t('min.arbeitetAn') + ' ', el('b', t('kette.block', zahl(hoehe)))) : null,
+    ].filter(Boolean);
+    const mitTrenner = [];
+    teile.forEach((x, i) => { if (i) mitTrenner.push(el('span.sep', '·')); mitTrenner.push(x); });
+    fuelle(held.meta, mitTrenner);
+
+    // Ziel-Zeile
+    const fee = (p?.stand?.feeBps ?? pools?.find(x => x.host === poolHost)?.feeBps);
+    text(zz.ziel, imPool ? t('pool.pool') + ' ' + poolName + (fee != null ? ' · ' + t('min.gebuehrKurz', prozent(fee)) : '') : t('min.solo'));
+    fuelle(zz.empf, zielWallet ? [t('min.meineWallet'), ' · ', el('span.mono', { style: 'font-size:12px;color:var(--lese)' }, kurzAdresse(s.wallet.adresse))] : el('span.mono', kurzAdresse(adresse.value.trim()) || '—'));
+    text(zz.name, name.value.trim() || '—');
+    zz.nameZelle.hidden = imPool;
+  }
+
+  function geraetZeile(z, titel, unter, hashrate, summe, an, wennSchalter, warn = false) {
+    const sch = el('button.schalter', { type: 'button', role: 'switch', 'aria-checked': an ? 'true' : 'false', 'aria-label': titel, disabled: laeuft });
+    sch.addEventListener('click', () => { if (!laeuft) wennSchalter(sch.getAttribute('aria-checked') !== 'true'); });
+    const anteil = summe > 0 ? Math.round(hashrate / summe * 100) : 0;
+    return el('div.gr',
+      el('span.ic' + (an ? '' : '.aus') + (warn ? '.warn' : ''), zeichen(z, 17)),
+      el('div.mitte', el('b', titel), el('span', unter), el('div.anteil', el('i', { style: 'width:' + anteil + '%' }))),
+      el('div.wert', laeuft && an ? leistung(hashrate) : '—'),
+      sch);
+  }
+
+  function zeigeGeraete(s) {
+    const m = s.mining, e = m.gpuErkennung;
+    const karten = e?.geraete ?? [];
+    const gk = m.gpu?.karten ?? [];
+    const summe = m.running ? m.totalHashrate : 0;
+    const zeilen = [];
+    if (!e?.verfuegbar) {
+      zeilen.push(el('div.warnung', { style: 'margin-bottom:6px' }, zeichen('warnung', 16),
+        el('span', el('strong', t('min.keineKarteTitel')), ' ', t('min.gpuHinweis'), ' ',
+          el('a', { href: '#', onclick: async ev => { ev.preventDefault(); try { await sende('/api/mining/detect'); await ctx.neuLaden(); } catch (err) { melde(err.message, true); } } }, t('min.gpuSuchen')))));
+    } else {
+      for (const k of karten) {
+        const lauf = gk.find(x => x.id === k.id) ?? (gk.length === 0 && m.gpu?.running ? m.gpu : null);
+        const an = modus !== 'cpu' && (gpuGewaehlt?.has(k.id) ?? false);
+        const fehlerText = lauf && !lauf.running && lauf.lastError ? ' · ' + t('min.karteAus') : '';
+        zeilen.push(geraetZeile('karte', k.name, t('min.cudaBereit') + (k.vram ? ' · ' + (k.vram / 1073741824).toFixed(0) + ' GB' : '') + (k.emulation ? ' · ' + t('min.nachbildung') : '') + fehlerText,
+          lauf?.running ? lauf.hashrate : 0, summe, an, neu => {
+            if (gpuGewaehlt === null) gpuGewaehlt = new Set();
+            if (neu) gpuGewaehlt.add(k.id); else gpuGewaehlt.delete(k.id);
+            const gpuAn = karten.some(x => gpuGewaehlt.has(x.id));
+            if (!setzeModus(modus !== 'gpu', gpuAn)) { gpuGewaehlt.add(k.id); }
+            aktualisiere(ctx.stand());
+          }, !!fehlerText));
+      }
+    }
+    const cpuAn = modus !== 'gpu';
+    zeilen.push(geraetZeile('chip', t('min.cpu'), t('min.kerneVon', kerne.value, kerne.max) + ' · ' + t('min.lastHinweis'),
+      m.cpu?.running ? m.cpu.hashrate : 0, summe, cpuAn, neu => {
+        const gpuAn = modus !== 'cpu' && karten.some(x => gpuGewaehlt?.has(x.id));
+        if (setzeModus(neu, gpuAn)) aktualisiere(ctx.stand());
+      }));
+    fuelle(geraeteListe, zeilen);
+    fuelle(geraeteSumme, el('span', t('min.zusammen')), el('b', m.running ? leistung(summe) : '—'));
+  }
+
+  function zeigeErwartung(s) {
+    const m = s.mining, p = m.pool, eig = m.running ? m.totalHashrate : 0;
+    const imPool = ziel === 'pool';
+    const anteilNetz = eig > 0 && s.netzHashrate > 0 ? Math.min(1, eig / Math.max(eig, s.netzHashrate)) : null;
+    const zeilenListe = [];
+    if (imPool) {
+      const anteil = p && eig > 0 && p.stand?.hashrate > 0 ? Math.min(1, eig / p.stand.hashrate) : null;
+      const lohn = BigInt(s.naechsteBelohnung ?? '0');
+      const fee = BigInt(p?.stand?.feeBps ?? 0);
+      const jeBlock = anteil !== null ? (lohn * (10000n - fee) / 10000n) * BigInt(Math.round(anteil * 1e6)) / 1000000n : null;
+      zeilenListe.push(zeile(t('min.anteilPool'), anteil !== null ? t('pool.rund', Math.max(1, Math.round(anteil * 100))) : '—', true));
+      zeilenListe.push(zeile(t('min.jePoolblock'), jeBlock !== null ? el('span.mono.gut', t('min.etwa', ysr(jeBlock, 2))) : '—'));
+    } else {
+      zeilenListe.push(zeile(t('min.deine'), eig > 0 ? leistung(eig) : '—', true));
+      zeilenListe.push(zeile(t('ueb.netz'), s.netzHashrate ? leistung(s.netzHashrate) : '—', true));
+    }
+    zeilenListe.push(zeile(imPool ? t('min.soloVergleich') : t('min.soloBlock'), anteilNetz ? t('min.etwaAlle', dauer(s.zielBlockzeit / anteilNetz)) : '—'));
+    fuelle(erw, zeilenListe);
+    text(erwHinweis, eig > 0 ? t('min.erwartungHinweis', s.netzHashrate ? leistung(s.netzHashrate) : '—') : t('min.schaetzungOhne'));
+    verlauf.setze(m.running ? m.verlauf : []);
+    text(verlaufKopf, m.running && m.verlauf?.length > 1 ? t('min.verlaufSpanne', leistung(Math.min(...m.verlauf.map(x => x.hashrate))), leistung(Math.max(...m.verlauf.map(x => x.hashrate)))) : '');
+  }
 
   async function ladeFunde(adr) {
     try {
       const k = await hole('/api/lesen/account/' + adr);
       text(fundeKopf, t('min.fundeZahl', k.blocksFound));
-      const solo = k.history.filter(h => h.kind === 'reward').slice(0, 5);
-      fuelle(funde, solo.length ? solo.map(h => el('div.zeile',
-        el('span', el('a.mono', { href: '#/blockchain/' + h.height }, zahl(h.height)), el('span.dim', ' · ' + tagOderZeit(h.timestamp))),
-        el('span.mono.gut', '+' + ysr(h.amount)))) : el('p.hinweis', t('min.fundeKeine')));
+      const liste = k.history.filter(h => h.kind === 'reward').slice(0, 8);
+      fuelle(funde, liste.length ? el('div.tab-huelle', el('table.tab',
+        el('thead', el('tr', el('th', t('kette.hoehe')), el('th', t('kette.zeit')), el('th.r', t('kette.betrag')))),
+        el('tbody', liste.map(h => el('tr.wahl', { onclick: () => ctx.gehe('blockchain/' + h.height) },
+          el('td.mono', zahl(h.height)), el('td.blass', tagOderZeit(h.timestamp)), el('td.r.mono.gut', '+ ' + ysr(h.amount) + ' YSR'))))))
+        : el('p.hinweis', t('min.fundeKeine')));
     } catch { fuelle(funde, el('p.hinweis', t('min.fundeKeine'))); text(fundeKopf, ''); }
   }
 
@@ -425,7 +557,6 @@ export function baue(ctx) {
     // Mit mehreren Karten: wie viele davon rechnen.
     const gk = g?.karten ?? [];
     text(lGpu, g?.running ? leistung(g.hashrate) + (gk.length > 1 ? ' · ' + t('min.nKarten', gk.filter(k => k.running).length, gk.length) : '') : '—');
-    verlauf.setze(m.running && p ? m.verlauf : []);
 
     // Vor dem Start stehen hier die Angaben des gewählten Pools aus der Liste.
     const wahl = p ? { ...p.stand, anzeige: p.name } : pools?.find(x => x.host === poolHost) ?? null;
@@ -521,29 +652,17 @@ export function baue(ctx) {
     text(gpuGrund, e && !e.verfuegbar && e.grund ? knotenText(e.grundCode, [], e.grund) : (m.gpu?.lastError ? t('min.letzterFehler', m.gpu.lastError) : t('min.gpuHinweis')));
     if (!e?.verfuegbar && modus !== 'cpu' && !m.running) { modus = 'cpu'; geraet.setze('cpu'); zeigeKaesten(); }
 
-    if (pool) return zeigePool(s);
+    zeigeKopf(s); zeigeGeraete(s); zeigeErwartung(s);
+    spaltePool.hidden = !pool;
+    if (pool) zeigePool(s);
+    zeigeFunde(s);
+    if (pool) return;
 
-    // Erwartung
-    const eig = m.running ? m.totalHashrate : 0;
-    text(eigene, m.running ? leistung(eig) : '—');
-    text(eigeneSub, m.running ? t('min.gemessen') : t('min.nochNicht'));
-    text(netz, s.netzHashrate ? leistung(s.netzHashrate) : '—');
-    if (m.running && eig > 0 && s.netzHashrate > 0) {
-      const anteil = Math.min(1, eig / Math.max(eig, s.netzHashrate));
-      text(schaetzung, t('min.schaetzung', dauer(s.zielBlockzeit / anteil)));
-    } else text(schaetzung, t('min.schaetzungOhne'));
+  }
 
-    // Messwerte
-    const c = m.cpu, g = m.gpu;
-    fuelle(mess,
-      el('tr', el('td', t('min.cpu'), c?.running ? el('span.blass', ' · ' + t('min.nKerne', c.workers)) : null),
-        el('td.r.mono', c?.running ? leistung(c.hashrate) : '—'), el('td.r.mono', c ? zahl(c.hashes) : '—'), el('td.r.mono', c ? zahl(c.errors) : '—')),
-      ...gpuZeilen(g, karten));
-    const hoehe = c?.height ?? g?.height ?? null;
-    text(z.hoehe, m.running && hoehe !== null ? t('kette.block', zahl(hoehe)) : '—');
-    text(z.seit, m.running ? dauer(Math.max(c?.uptimeSeconds ?? 0, g?.uptimeSeconds ?? 0)) : '—');
-
-    // Funde: nur neu holen, wenn sich Adresse oder Höhe geändert haben.
+  /** Funde und Auszahlungen: nur neu holen, wenn sich Adresse oder Höhe geändert haben. */
+  function zeigeFunde(s) {
+    const m = s.mining;
     const adr = (m.config.address || '').trim();
     if (s.running && adr && (adr !== fundeFuer || s.height !== fundeHoehe)) { fundeFuer = adr; fundeHoehe = s.height; ladeFunde(adr); }
     if (!adr) { text(fundeKopf, ''); fuelle(funde, el('p.hinweis', t('min.fundeOhneAdresse'))); }
