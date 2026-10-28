@@ -182,7 +182,9 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
     });
 
     kind.on('error', e => { clearTimeout(zeit); fertig(`Programm nicht startbar: ${e.message}`, 'gpu_nicht_startbar'); });
-    kind.on('exit', () => { clearTimeout(zeit); fertig(null); });
+    // 'close', nicht 'exit': Erst dann sind alle Zeilen der Ausgabe gelesen.
+    // Unter Last kam 'exit' vor den Zeilen, und die Karten galten als fehlend.
+    kind.on('close', () => { clearTimeout(zeit); fertig(null); });
   });
 }
 
@@ -241,7 +243,9 @@ export function pruefeGpu(programm: string, geraet: number): Promise<GpuSelbstte
       } catch { /* keine JSON-Zeile */ }
     });
     kind.on('error', e => { clearTimeout(zeit); fertig(`Programm nicht startbar: ${e.message}`); });
-    kind.on('exit', () => { clearTimeout(zeit); fertig(null); });
+    // 'close', nicht 'exit': Erst dann sind alle Zeilen der Ausgabe gelesen.
+    // Unter Last kam 'exit' vor den Zeilen, und die Karten galten als fehlend.
+    kind.on('close', () => { clearTimeout(zeit); fertig(null); });
   });
 }
 
