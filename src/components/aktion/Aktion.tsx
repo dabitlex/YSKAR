@@ -194,7 +194,7 @@ function Uebersicht({ stand, fehler, code, onTeilen, onEmpfehlungen, onRegeln, o
           <span className={`aktion-badge ${aktiv ? 'lauf' : 'nein'}`}>{aktiv ? t.rd.aktion.aktiv : t.rd.aktion.beendet}</span>
         </div>
         <span className="zahl-gross text-[52px]">
-          {zahl(TOPF_USD)}<span className="ml-2 text-[18px] font-normal tracking-normal text-dim">USD</span>
+          {zahl(TOPF_USD, { useGrouping: false })}<span className="ml-2 text-[18px] font-normal tracking-normal text-dim">USD</span>
         </span>
         <div className="flex flex-col gap-2">
           <div className="h-1 overflow-hidden rounded-sm bg-[rgb(140_170_255/.22)]">
@@ -310,7 +310,7 @@ function Empfehlungen({ stand, fehler }: { stand: AktionStand | null; fehler: bo
 
 function Regeln() {
   const { t, zahl } = useT();
-  const usd = (n: number) => `${zahl(n)} USD`;
+  const usd = (n: number) => `${zahl(n, { useGrouping: false })} USD`;
   const zeilen: [string, string, boolean][] = [
     [t.rd.aktion.platz1, usd(PREISE_USD[0]), true],
     [t.rd.aktion.platz2, usd(PREISE_USD[1]), true],
@@ -384,7 +384,7 @@ function Ergebnis({ stand, fehler }: { stand: AktionStand | null; fehler: boolea
           <span className="aktion-badge ok">{t.rd.aktion.gewinner}</span>
         </div>
         <span className="zahl-gross text-[46px]">
-          {zahl(g.betrag_usd)}<span className="ml-2 text-[18px] font-normal tracking-normal text-dim">USD</span>
+          {zahl(g.betrag_usd, { useGrouping: false })}<span className="ml-2 text-[18px] font-normal tracking-normal text-dim">USD</span>
         </span>
         <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
           <span className="font-mono text-lese">{t.rd.aktion.code(g.code)}</span>
