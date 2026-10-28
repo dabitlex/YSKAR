@@ -1,4 +1,4 @@
-# YSKAR Node Core 0.7.1
+# YSKAR Node Core 1.0.0
 
 A full YSKAR node for Windows and Linux with its own window: wallet, mining
 (solo, in a pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -12,9 +12,28 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Wallet** | 12 words, encrypted on this PC (PBKDF2-SHA256 400,000 rounds, AES-256-GCM). Send with a review step, receive with QR code, contacts, history from the own chain. The password is asked before every transfer. |
 | **Mining, solo** | CPU and one or more NVIDIA GPUs (CUDA, on Windows and Linux). Work comes from the own node; a found block is announced to the peers directly. |
 | **Mining, pool** | The same miners take their work from a pool node. The list is the one the app uses; any other pool can be entered by address. |
-| **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients). Name, fee 0 to 5 %, number of places. |
+| **Run a pool** | The node pays every block out itself (PPLNS, coinbase with up to 64 recipients, up to 255 from consensus revision 6). Name, fee 0 to 5 %, number of places. |
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
+| **Shared accounts** | From block 10,000 (consensus revision 6): accounts with several keys, spending needs k of n signatures; co-signing by file (`src/GemeinsameKonten.ts`, `src/lib/wallet/mehrfach.ts`). |
 | **Program** | German and English, start when you log in, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 1.0.0
+
+- **Consensus revision 6** from block 10,000: handshake with revision and
+  activation height, update hints, send pause in the last 3 blocks before the
+  height, pools with up to 255 coinbase outputs, raising the fee of a waiting
+  transfer, received batch payments in the history. Versions up to 0.7.1 do
+  not follow the network from block 10,000.
+- **Shared accounts** (`src/GemeinsameKonten.ts`, `ui/js/gemeinsam.js`):
+  create or join, propose, co-sign by file, submit; active from block 10,000.
+- **New interface** (`ui/`): every page with a header card (main figure,
+  illustration from `ui/js/bilder.js`, key numbers), content at most 1280 px
+  wide, glass cards over a full-window gradient. Blocks, addresses and
+  transfers open as a window (`ui/js/fenster.js`); hourly details in the
+  24-hour chart; search with Ctrl K; peers' IP addresses partly hidden;
+  notices for own blocks and pool payouts. Fonts Geist and Geist Mono.
+- **Linux:** own title bar, switchable to the system title bar in Settings.
+- **App icon:** only the Y sign, transparent (`build/icon.png`, `build/icon.ico`).
 
 ## What changed in 0.7.1
 

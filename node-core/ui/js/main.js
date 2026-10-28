@@ -168,7 +168,7 @@ function aktualisiereGeruest() {
   text(st.leistung, stand.netzHashrate ? t('status.netz', leistung(stand.netzHashrate)) : '');
   const vorAktivierung = stand.nextActivationHeight && (stand.height ?? -1) < stand.nextActivationHeight;
   text(st.fassung, stand.konsensfassung ? (vorAktivierung ? t('status.fassungAb', stand.konsensfassung, zahl(stand.nextActivationHeight)) : t('status.fassung', stand.konsensfassung)) : '');
-  text(st.version, 'v' + (stand.versionAnzeige ?? stand.version));
+  text(st.version, 'v' + stand.version);
 }
 
 function zeige() {
