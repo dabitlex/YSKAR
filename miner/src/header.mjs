@@ -90,7 +90,7 @@ export function selfTest(mem, initJob, mine) {
   const got = toHex(mem.slice(MEM.HASH, MEM.HASH + 32));
   if (treffer !== 1 || got !== GENESIS.hash) {
     throw new Error(
-      'Selbsttest fehlgeschlagen — die Engine passt nicht zu diesem Miner.\n' +
-      `  erwartet ${GENESIS.hash}\n  erhalten ${got}`);
+      'Self-test failed — the engine does not match this miner.\n' +
+      `  expected ${GENESIS.hash}\n  received ${got}`);
   }
 }

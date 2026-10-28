@@ -24,7 +24,7 @@ import { encodeAddress } from '../src/lib/core/address.ts';
 import { MINER_A } from './helpers/regtest.ts';
 
 const ADRESSE = encodeAddress(MINER_A);
-const ANGENOMMEN = 'BLOCK GEFUNDEN';
+const ANGENOMMEN = 'BLOCK FOUND';
 const MINER = join(import.meta.dirname, '..', 'miner', 'src', 'cli.mjs');
 
 async function knoten(port: number) {
@@ -88,8 +88,8 @@ test('Miner: meldet sich neu an, wenn der Knoten die Sitzung nicht mehr kennt', 
     sitzungen.clear();
 
     // 3. Der Miner merkt es, meldet sich neu an und sagt das auch.
-    const nachMeldung = await m.warte('Sitzung beim Knoten beendet', nachErstem);
-    const nachAnmeldung = await m.warte('neu angemeldet', nachMeldung);
+    const nachMeldung = await m.warte('session closed by the node', nachErstem);
+    const nachAnmeldung = await m.warte('new session', nachMeldung);
 
     // 4. Beim Knoten steht eine NEUE Sitzung, nicht die alte.
     const neue = [...sitzungen.keys()];
@@ -100,7 +100,7 @@ test('Miner: meldet sich neu an, wenn der Knoten die Sitzung nicht mehr kennt', 
     //    der Extranonce der neuen Sitzung rechnen. Mit der alten wiese der
     //    Knoten jeden Treffer ab.
     await m.warte(ANGENOMMEN, nachAnmeldung);
-    assert.ok(!m.text().includes('abgelehnt'), 'kein Share wurde abgelehnt');
+    assert.ok(!m.text().includes('] rejected '), 'kein Share wurde abgelehnt');
   } finally {
     m.kind.kill('SIGKILL');
     await m.ende;
@@ -117,7 +117,7 @@ test('Miner: ein Knoten ohne Pool beendet den Start, statt solo zu rechnen', asy
       new Promise<'frist'>(auf => setTimeout(() => auf('frist'), 30_000)),
     ]);
     assert.equal(code, 1, `der Miner endet mit Fehlercode 1. Ausgabe:\n${m.text().slice(-800)}`);
-    assert.match(m.text(), /betreibt keinen Pool/);
+    assert.match(m.text(), /does not run a pool/);
     assert.ok(!m.text().includes(ANGENOMMEN), 'es wurde nichts gerechnet');
     const sitzungen = (k.server as unknown as { sessions: Map<string, unknown> }).sessions;
     assert.equal(sitzungen.size, 0, 'beim Knoten steht keine Sitzung');

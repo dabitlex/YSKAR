@@ -206,6 +206,46 @@ test('Protokolle: Zaehler, Leistung, Kuerzen', opt, () => {
   rmSync(d, { recursive: true, force: true });
 });
 
+test('Protokolle: englische Zeilen ab Miner 0.2.0', opt, () => {
+  const d = mkdtempSync(join(tmpdir(), 'yskar-hive-log-en-'));
+  const f = join(d, 'gpu0.log');
+  const lade = (s: string) => bash(`. ./yskar-log.sh; ${s}`);
+
+  writeFileSync(f, [
+    '### Start 2026-10-28 10:00:00 GPU 0 YSKAR 1.0.0',
+    '[10:00:03] job       new work · block 6,767 · difficulty 331,084,912',
+    '[10:00:05] accepted  #1 · diff 21,904 · 0.007% of a block',
+    '[10:00:10] rejected  bad_nonce',
+    '[10:01:00] stats     10s 3.52 GH/s 60s 3.51 GH/s 15m 3.50 GH/s · 1.2 TH total · up 1 min',
+    '[10:01:30] accepted  #2 · diff 1,000 · 0.003% of a block',
+    '[10:01:40] block     ★ BLOCK FOUND  #6,792   +875 YSR',
+    '[10:02:30] accepted  #4 · diff 9,876 · 0.003% of a block',
+    '   Shares         4 accepted · 1 rejected (20.0%)',
+  ].join('\n') + '\n');
+  assert.equal(lade(`yskar_zaehle ${f}`).aus.trim(), '4 1', 'Block und Zusammenfassung zaehlen nicht doppelt');
+  assert.equal(lade(`yskar_khs ${f}`).aus.trim(), '3520000.000');
+  // Ein Pool-Block ist ebenfalls ein angenommener Share.
+  writeFileSync(f, readFileSync(f, 'utf8') + '[10:03:00] block     ★ BLOCK FOUND FOR POOL YSKAR MAIN  #6,793\n');
+  assert.equal(lade(`yskar_zaehle ${f}`).aus.trim(), '5 1');
+
+  for (const [zeile, khs] of [
+    ['[1] stats     10s 950.3 kH/s 60s', '950.300'], ['[1] stats     10s 41.20 MH/s 60s', '41200.000'],
+    ['[1] stats     10s 812 H/s 60s', '0.812'],
+  ]) {
+    writeFileSync(f, zeile + '\n');
+    assert.equal(lade(`yskar_khs ${f}`).aus.trim(), khs, zeile);
+  }
+
+  // Kuerzen zaehlt englische Ablehnungen genauso.
+  const zeilen = ['### Start s GPU 0'];
+  for (let i = 1; i <= 300; i++) zeilen.push(`[x] accepted  #${i} · y`, '[x] rejected  stale', '[x] stats     10s 1.00 MH/s 60s');
+  writeFileSync(f, zeilen.join('\n') + '\n');
+  lade(`yskar_kuerze ${f} 1000 50`);
+  assert.match(readFileSync(f, 'utf8').split('\n')[0], /^### gekuerzt .* A=300 R=283$/);
+  assert.equal(lade(`yskar_zaehle ${f}`).aus.trim(), '300 300');
+  rmSync(d, { recursive: true, force: true });
+});
+
 test('h-stats.sh liefert khs und stats wie der Agent sie erwartet', opt, () => {
   logsLeeren();
   const jetzt = new Date();

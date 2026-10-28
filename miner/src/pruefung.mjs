@@ -60,7 +60,7 @@ export async function liesRumpf(res) {
       laenge += value.length;
       if (laenge > ANTWORT_MAX) {
         try { await leser.cancel(); } catch { /* schon zu */ }
-        throw new Error('Die Antwort des Knotens ist zu groß.');
+        throw new Error('The node\'s response is too large.');
       }
       teile.push(value);
     }
@@ -71,7 +71,7 @@ export async function liesRumpf(res) {
   } catch { return {}; }
 }
 
-const UNLESBAR = 'Der Knoten schickt unlesbare Arbeit.';
+const UNLESBAR = 'The node sent unreadable work.';
 const hex = (x, zeichen) => {
   if (typeof x !== 'string' || x.length !== zeichen || !/^[0-9a-f]+$/.test(x)) throw new Error(UNLESBAR);
   return x;

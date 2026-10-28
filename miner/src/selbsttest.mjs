@@ -19,7 +19,7 @@ const ort = [join(HIER, '..'), join(HIER, '..', '..', 'public')]
               return t ? join(o, t) : null; })
   .find(Boolean);
 
-if (!ort) { console.error('miner.<hash>.wasm nicht gefunden.'); process.exit(1); }
+if (!ort) { console.error('miner.<hash>.wasm not found.'); process.exit(1); }
 
 const { instance } = await WebAssembly.instantiate(readFileSync(ort), {});
 const mem = new Uint8Array(instance.exports.memory.buffer);
@@ -27,7 +27,7 @@ const { init_job: initJob, mine } = instance.exports;
 
 console.log(`Engine      ${ort.split('/').pop()}`);
 selfTest(mem, initJob, mine);
-console.log(`Selbsttest  bestanden (Genesis-Hash stimmt)`);
+console.log(`Self-test   passed (genesis hash matches)`);
 
 // Durchsatz eines Kerns messen
 mem.fill(0, MEM.TARGET, MEM.TARGET + 32);            // unerreichbar -> reine Messung
@@ -39,7 +39,7 @@ mine(0, N);
 const ms = Number(process.hrtime.bigint() - t0) / 1e6;
 const proKern = N / ms / 1000;
 
-console.log(`Ein Kern    ${proKern.toFixed(2)} MH/s`);
-console.log(`Kerne       ${os.cpus().length}`);
-console.log(`Erwartet    ${(proKern * Math.max(1, os.cpus().length - 1)).toFixed(2)} MH/s` +
-            ` mit ${Math.max(1, os.cpus().length - 1)} Threads`);
+console.log(`One core    ${proKern.toFixed(2)} MH/s`);
+console.log(`Cores       ${os.cpus().length}`);
+console.log(`Expected    ${(proKern * Math.max(1, os.cpus().length - 1)).toFixed(2)} MH/s` +
+            ` with ${Math.max(1, os.cpus().length - 1)} thread${os.cpus().length - 1 > 1 ? 's' : ''}`);

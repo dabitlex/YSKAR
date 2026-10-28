@@ -64,7 +64,7 @@ test('Miner: kennt der Knoten den Job nicht mehr, holt er sofort neue Arbeit', a
 
   try {
     // Er rechnet; im Testnetz ist jeder angenommene Share ein Block.
-    await warte(() => ausgabe.includes('BLOCK GEFUNDEN'), 'Kein erster Block', 60_000);
+    await warte(() => ausgabe.includes('BLOCK FOUND'), 'Kein erster Block', 60_000);
 
     // Fremde Bloecke nachstellen: Der Knoten verwirft alle offenen Jobs --
     // mehrmals hintereinander, wie bei Bloecken kurz nacheinander.
@@ -76,11 +76,11 @@ test('Miner: kennt der Knoten den Job nicht mehr, holt er sofort neue Arbeit', a
       // Arbeit neu geholt werden und wieder ein Block entstehen -- lange
       // vor der naechsten regulaeren Abfrage nach 45 Sekunden.
       const t0 = Date.now();
-      await warte(() => abrufe > abrufeVorher && ausgabe.indexOf('BLOCK GEFUNDEN', ab) >= 0,
+      await warte(() => abrufe > abrufeVorher && ausgabe.indexOf('BLOCK FOUND', ab) >= 0,
         `Runde ${runde + 1}: keine neue Arbeit und kein Block`, 30_000);
       assert.ok(Date.now() - t0 < 30_000);
     }
-    assert.ok(!/abgelehnt/.test(ausgabe), `Ein unbekannter Job zaehlt nicht als Ablehnung:\n${ausgabe.slice(-800)}`);
+    assert.ok(!/\] rejected /.test(ausgabe), `Ein unbekannter Job zaehlt nicht als Ablehnung:\n${ausgabe.slice(-800)}`);
   } finally {
     kind.kill('SIGKILL');
     await ende;

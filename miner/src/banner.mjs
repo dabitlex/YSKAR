@@ -1,54 +1,41 @@
 /**
- * Der Kopf beim Start -- was dieser Miner ist, worauf er laeuft, wogegen
- * er rechnet.
+ * Der Kopf beim Start -- was dieser Miner ist, worauf er laeuft, wohin er
+ * auszahlt und wogegen er rechnet.
  *
- * Aufbau nach dem Vorbild von XMRig: eine Spalte Marken, eine Spalte
- * Werte, jede Zeile mit einem Stern am Anfang. Das liest sich in einem
- * Blick und laesst sich aus einem Screenshot vorlesen -- beides zaehlt,
- * wenn jemand fragt "warum findet mein Miner nichts".
+ * Aufbau: Abschnitte (SYSTEM, ACCOUNT, NETWORK, SESSION), darin eine Spalte
+ * Marken und eine Spalte Werte, jede Zeile mit einem Stern am Anfang. Das
+ * liest sich in einem Blick und laesst sich aus einem Screenshot vorlesen --
+ * beides zaehlt, wenn jemand fragt "warum findet mein Miner nichts".
  *
- * WAS BEWUSST DRINSTEHT
- *
- * Die Netzangaben (Hoehe, Difficulty, erwartete Zeit) kosten einen
- * zusaetzlichen Aufruf vor der Anmeldung. Das ist es wert: Ohne sie sieht
- * jeder Start gleich aus, egal ob der Knoten bei Hoehe 2.600 steht oder
- * bei 12. Und die erwartete Zeit bis zum naechsten Block ist die einzige
- * Zahl, die der Frage "ist das normal, dass stundenlang nichts passiert"
- * vorbeugt.
+ * Ab 0.2.0 englisch (vorher deutsch) und mit mehr Netzangaben: Knoten,
+ * Halbierung, Umlaufmenge. Alles kommt aus EINEM Aufruf von /api/v2/summary;
+ * fehlt ein Feld (aeltere Knoten), faellt seine Zeile weg statt "—" zu zeigen.
  *
  * WAS BEWUSST FEHLT
  *
  * Keine Spendenzeile -- dieser Miner nimmt nichts. Keine Angabe zur
- * Kartenleistung: Die steht erst nach dem Selbsttest fest, und eine Zahl,
- * die beim Start geraten waere, ist schlimmer als keine.
+ * Kartenleistung und keine Ertragsschaetzung: Beides steht erst fest, wenn
+ * gerechnet wird. Die Schaetzung steht deshalb im festen Kopf und unter s.
  */
 import os from 'node:os';
+import { readFileSync } from 'node:fs';
+import { zahl, zahlFest, dauer, rate } from './anzeige.mjs';
 
 /** Feste Breite der Markenspalte -- danach beginnen alle Werte buendig. */
-const MARKE = 12;
+const MARKE = 13;
+const LINIE = 88;
+
+/** Blöcke je Halbierung -- EPOCH_BLOCKS in src/lib/core/params.ts. */
+export const HALBIERUNG_ALLE = 12_000;
 
 export function erzeugeZeile(farben, marke, wert) {
   const { grau, cyan } = farben;
   // Eine leere Marke setzt die Zeile unter die vorige -- fuer Fortsetzungen.
   const m = marke === '' ? ' '.repeat(MARKE) : cyan(marke.padEnd(MARKE));
-  return `${grau(' *')} ${m}${wert}`;
+  return ` ${grau('*')} ${m}${wert}`;
 }
 
-/**
- * "31,3 GB" aus Bytes -- mit Komma.
- *
- * toFixed liefert immer einen Punkt, unabhaengig von der Sprache. In einer
- * sonst deutschen Ausgabe faellt das auf, und zwar unangenehm: Es sieht
- * nach halb uebersetzt aus.
- */
-function gb(bytes) {
-  return `${(bytes / 1024 ** 3).toLocaleString('de-DE', {
-    minimumFractionDigits: 1, maximumFractionDigits: 1 })} GB`;
-}
-
-/** Wie gb, fuer die Hashrate-Nachkommastellen. */
-const komma = (n, stellen) => n.toLocaleString('de-DE', {
-  minimumFractionDigits: stellen, maximumFractionDigits: stellen });
+const gb = bytes => `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 
 /**
  * Der Prozessorname, wie ihn das Betriebssystem meldet.
@@ -58,32 +45,30 @@ const komma = (n, stellen) => n.toLocaleString('de-DE', {
  */
 function prozessor() {
   const c = os.cpus();
-  if (!c.length) return 'unbekannt';
+  if (!c.length) return 'unknown';
   return c[0].model.replace(/\((R|TM)\)/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/** Zahl mit deutschen Tausenderpunkten, oder ein Strich. */
-const nf = n => (n === null || n === undefined || !Number.isFinite(Number(n)))
-  ? '—' : Number(n).toLocaleString('de-DE');
-
-/** Sekunden als "10 min" oder "2 h 5 min". */
-function dauer(sek) {
-  if (sek === null || !Number.isFinite(sek)) return '—';
-  const s = Math.round(sek);
-  if (s < 60) return `${s} s`;
-  if (s < 3600) return `${Math.round(s / 60)} min`;
-  const h = Math.floor(s / 3600);
-  return `${h} h ${Math.round((s % 3600) / 60)} min`;
+/**
+ * Das Betriebssystem so, wie es der Nutzer kennt.
+ *
+ * os.release() liefert unter Windows "10.0.26100" -- auch auf Windows 11.
+ * os.version() kennt den Namen; unter Linux steht er in /etc/os-release.
+ */
+function system() {
+  try {
+    if (process.platform === 'win32') return `${os.version()} ${process.arch}`;
+    if (process.platform === 'darwin') return `macOS ${os.release()} ${process.arch}`;
+    if (process.platform === 'linux') {
+      const name = /^PRETTY_NAME="?([^"\n]+)"?/m.exec(readFileSync('/etc/os-release', 'utf8'))?.[1];
+      if (name) return `${name} ${process.arch}`;
+    }
+  } catch { /* faellt auf die schlichte Angabe zurueck */ }
+  return `${process.platform} ${process.arch} ${os.release()}`;
 }
 
-/** Hashrate lesbar. */
-function rate(h) {
-  if (!h) return '—';
-  if (h >= 1e9) return `${komma(h / 1e9, 2)} GH/s`;
-  if (h >= 1e6) return `${komma(h / 1e6, 2)} MH/s`;
-  if (h >= 1e3) return `${komma(h / 1e3, 1)} kH/s`;
-  return `${nf(Math.round(h))} H/s`;
-}
+/** Basiseinheiten (8 Nachkommastellen) als ganze YSR. */
+const ysr = basis => Number(BigInt(basis) / 100_000_000n);
 
 /**
  * Den Kopf ausgeben.
@@ -95,64 +80,73 @@ function rate(h) {
  */
 export function zeigeKopf(opt) {
   const {
-    version, adresse, api, modus, threads, intensitaet, rechner, geraet,
-    netz, farben,
+    version, adresse, api, modus, poolName, threads, intensitaet, rechner, geraet,
+    netz, latenz, farben,
   } = opt;
-  const { grau, fett, gelb } = farben;
+  const { grau, fett, gelb, gruen } = farben;
   const z = (m, w) => console.log(erzeugeZeile(farben, m, w));
+  const p = grau(' · ');
+  const abschnitt = t => console.log(` ${fett(t)}`);
 
   const kerne = os.cpus().length;
   const belegt = os.totalmem() - os.freemem();
   const anteil = Math.round((belegt / os.totalmem()) * 100);
 
   console.log('');
-  console.log(fett(' YSKAR Miner'));
-  console.log(grau(' ' + '─'.repeat(62)));
+  console.log(` ${fett('YSKAR Miner')} ${grau(version)}${' '.repeat(Math.max(2, LINIE - 32 - version.length))}${grau('Fair from block 0.')}`);
+  console.log(grau(' ' + '─'.repeat(LINIE)));
 
-  z('ÜBER', `YSKAR Miner/${version}  node/${process.version.slice(1)}`);
-  z('SYSTEM', `${process.platform} ${process.arch}  ·  ${os.release()}`);
-  z('CPU', prozessor());
-  z('', grau(`${kerne} ${kerne === 1 ? 'Kern' : 'Kerne'}`));
-  z('SPEICHER', `${gb(belegt)} / ${gb(os.totalmem())}  ${grau(`(${anteil} %)`)}`);
-  z('ALGO', 'SHA-256d  ·  Header 136 Byte');
+  abschnitt('SYSTEM');
+  z('VERSION', `yskar-miner ${version}${p}node ${process.version.slice(1)}${p}${system()}`);
+  z('CPU', `${prozessor()}${p}${kerne} ${kerne === 1 ? 'thread' : 'threads'}`);
+  z('MEMORY', `${gb(belegt)} of ${gb(os.totalmem())} in use ${grau(`(${anteil}%)`)}`);
+  const werk = rechner === 'gpu' ? `graphics card ${geraet} only`
+    : rechner === 'beides' ? `${threads} CPU threads + graphics card ${geraet}`
+    : `${threads} CPU ${threads === 1 ? 'thread' : 'threads'}`;
+  z('COMPUTE', `${werk}${rechner === 'gpu' ? '' : `${p}intensity ${intensitaet}%`}`);
+  if (rechner !== 'cpu') z('', grau('the graphics card is checked before the first job'));
+  z('ALGORITHM', `SHA-256d${p}136-byte block header`);
+  console.log('');
 
-  const werk = rechner === 'gpu' ? 'nur Grafikkarte'
-    : rechner === 'beides' ? `${threads} CPU-Threads + Grafikkarte`
-    : `${threads} von ${kerne} Kernen`;
-  z('RECHENWERK', `${werk}  ·  Intensität ${intensitaet} %`);
-  if (rechner !== 'cpu') {
-    z('', grau(`Gerät ${geraet} — wird vor dem ersten Job geprüft`));
-  }
-
-  console.log(grau(' ' + '─'.repeat(62)));
-
-  z('ADRESSE', adresse);
-  z('KNOTEN', api);
-  z('MODUS', modus === 'pool' ? 'Pool (wird beim Anmelden bestätigt)' : 'Solo');
+  abschnitt('ACCOUNT');
+  z('PAYOUT TO', adresse);
+  z('NODE', `${api}${p}${netz
+    ? `${gruen('reachable')}${latenz != null ? grau(` (${latenz} ms)`) : ''}`
+    : gelb('not reachable — trying anyway')}`);
+  z('MODE', modus === 'pool'
+    ? `Pool${poolName ? `${p}${poolName}` : grau(' (confirmed when the session opens)')}`
+    : `Solo${grau(' — you receive the full reward, but only for blocks you find yourself')}`);
 
   if (netz) {
-    z('NETZ', `Höhe ${nf(netz.height)}  ·  Difficulty ${nf(netz.difficulty)}`);
-    z('', grau(
-      `${nf(netz.activeMiners ?? 0)} Miner aktiv  ·  Netzleistung ${
-        rate(netz.hashrate)}  ·  Ziel ${dauer(netz.targetBlockTime)} je Block`));
-
-    /*
-      Die ehrlichste Zahl im ganzen Kopf.
-
-      Sie sagt: Wenn du die gesamte Netzleistung haettest, kaeme alle
-      soundso lange ein Block. Was DEIN Anteil daran ist, steht erst fest,
-      wenn gerechnet wird -- deshalb hier nur das Netz und keine
-      Hochrechnung auf diesen Rechner.
-    */
+    console.log('');
+    abschnitt('NETWORK');
+    const hoehe = Number(netz.height);
+    const diff = netz.difficultyWert ?? netz.difficulty;
+    z('HEIGHT', `${zahl(hoehe)}${p}difficulty ${zahl(diff)}`);
+    const zusatz = [
+      netz.hashrate ? rate(Number(netz.hashrate)) : null,
+      netz.activeMiners != null ? `${zahl(netz.activeMiners)} active miners` : null,
+      netz.knoten != null ? `${zahl(netz.knoten)} nodes` : null,
+    ].filter(Boolean);
+    if (zusatz.length) z('HASHRATE', zusatz.join(p));
+    const ziel = Number(netz.targetBlockTime) || 600;
     if (netz.nextReward) {
-      z('REWARD', `${(Number(netz.nextReward) / 1e8).toLocaleString('de-DE')} YSR je Block`);
+      z('REWARD', `${zahl(ysr(netz.nextReward))} YSR per block${p}target ${dauer(ziel)} per block`);
     }
-  } else {
-    z('NETZ', gelb('nicht erreichbar — es wird trotzdem versucht'));
+    if (Number.isFinite(hoehe)) {
+      const naechste = (Math.floor(hoehe / HALBIERUNG_ALLE) + 1) * HALBIERUNG_ALLE;
+      const rest = naechste - hoehe;
+      z('HALVING', `at block ${zahl(naechste)}${p}${zahl(rest)} blocks to go ${
+        grau(`(≈ ${dauer(rest * ziel)})`)}`);
+    }
+    if (netz.totalSupply && netz.maxSupply) {
+      const im = ysr(netz.totalSupply), max = ysr(netz.maxSupply);
+      z('SUPPLY', `${zahl(im)} of ${zahl(max)} YSR mined ${
+        grau(`(${zahlFest((im / max) * 100, 1)}%)`)}`);
+    }
   }
 
-  console.log(grau(' ' + '─'.repeat(62)));
-  console.log('');
+  console.log(grau(' ' + '─'.repeat(LINIE)));
 }
 
 /**
@@ -161,20 +155,26 @@ export function zeigeKopf(opt) {
  * Bewusst GETRENNT vom Kopf und nicht darin. Sitzungsnummer, Share-Ziel
  * und Pool-Angaben gibt es vor der Anmeldung schlicht nicht -- ein Kopf,
  * der sie enthielte, muesste sie beim Start leer lassen oder erfinden.
- *
- * Diese Angaben standen bisher nur hinter der Taste `c`. Das ist eine
- * Taste zu viel: Wer den Miner startet und wissen will, gegen welches
- * Share-Ziel er rechnet, soll nicht erst ein Tastenkuerzel lernen.
  */
 export function zeigeSitzung(opt) {
-  const { sitzung, shareZiel, pool, poolGewuenscht, parallel, farben } = opt;
+  const { sitzung, extranonce, shareZiel, netzDiff, pool, poolGewuenscht, parallel, farben } = opt;
   const { grau, gelb, fett } = farben;
   const z = (m, w) => console.log(erzeugeZeile(farben, m, w));
+  const p = grau(' · ');
 
-  console.log(fett(' Sitzung'));
-  console.log(grau(' ' + '─'.repeat(62)));
+  console.log(` ${fett('SESSION')}`);
+  z('SESSION', `${String(sitzung).slice(0, 8)}${extranonce != null ? `${p}extranonce ${extranonce}` : ''}`);
 
-  z('SITZUNG', sitzung);
+  if (pool) {
+    const teile = [pool.name, `fee ${(Number(pool.feeBps) / 100).toFixed(2)}%`];
+    if (pool.belegt != null && pool.plaetze != null) teile.push(`${zahl(pool.belegt)} of ${zahl(pool.plaetze)} miners`);
+    else if (pool.miner != null) teile.push(`${zahl(pool.miner)} miners`);
+    teile.push(pool.modus === 'batch' ? 'paid out by the pool' : 'paid directly in each block');
+    z('POOL', teile.join(p));
+  } else if (poolGewuenscht) {
+    z('POOL', gelb('This node does not run a pool — mining solo.'));
+  }
+
   /*
     Das Share-Ziel ist NICHT die Netz-Difficulty.
 
@@ -183,23 +183,17 @@ export function zeigeSitzung(opt) {
     nebeneinander sieht, versteht, warum staendig Shares kommen und
     trotzdem kein Block: Das eine ist ein Bruchteil des anderen.
   */
-  z('SHARE-ZIEL', `${nf(shareZiel)}  ${grau('— ein Share, nicht ein Block')}`);
-
-  if (pool) {
-    z('POOL', `${pool.name}  ·  Gebühr ${(pool.feeBps / 100).toFixed(2).replace('.', ',')} %` +
-      `  ·  ${nf(pool.miner)} Miner`);
-  } else if (poolGewuenscht) {
-    z('POOL', gelb('Dieser Knoten betreibt keinen Pool — es wird solo gemint.'));
-  }
+  z('SHARE TARGET', `${zahl(shareZiel)} ${grau(netzDiff
+    ? `— a share proves your work; a block needs ${zahl(netzDiff)}`
+    : '— a share proves your work, it is not a block')}`);
 
   if (parallel > 1) {
     /*
       Ohne diesen Hinweis wundert man sich, warum das Guthaben schneller
       waechst, als die eigene Hashrate erklaert.
     */
-    z('PARALLEL', `${nf(parallel)} Miner auf dieser Adresse`);
+    z('PARALLEL', `${zahl(parallel)} miners are running on this address`);
   }
 
-  console.log(grau(' ' + '─'.repeat(62)));
-  console.log('');
+  console.log(grau(' ' + '─'.repeat(LINIE)));
 }

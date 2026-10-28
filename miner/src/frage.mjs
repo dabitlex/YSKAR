@@ -42,7 +42,7 @@ export async function frage(text, { vorgabe } = {}) {
 }
 
 export async function jaNein(text, vorgabeJa = true) {
-  const antwort = await frage(`${text} ${vorgabeJa ? '[J/n]' : '[j/N]'} `);
+  const antwort = await frage(`${text} ${vorgabeJa ? '[Y/n]' : '[y/N]'} › `);
   if (antwort === null) return false;
   if (!antwort) return vorgabeJa;
   const a = antwort.toLowerCase();
@@ -58,6 +58,6 @@ export async function jaNein(text, vorgabeJa = true) {
  */
 export async function warteAufTaste() {
   if (!interaktiv()) return;
-  await frage('\nZum Schließen Eingabetaste drücken… ');
+  await frage('\nPress Enter to close. ');
   schliessen();
 }

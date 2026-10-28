@@ -79,11 +79,11 @@ export function pruefeGpu(programm, geraet) {
       if (m.t === 'device' && m.name) name = `${m.name} (CC ${m.cc})`;
       if (m.t === 'selftest' && m.result === 'PASSED') bestanden = true;
       if (m.t === 'selftest' && m.ok === false) {
-        return { ok: false, grund: `Selbsttest fehlgeschlagen: ${m.check}` };
+        return { ok: false, grund: `self-test failed: ${m.check}` };
       }
     } catch { /* Zeilen, die kein JSON sind, ignorieren */ }
   }
-  if (!bestanden) return { ok: false, grund: 'Selbsttest nicht bestanden' };
+  if (!bestanden) return { ok: false, grund: 'self-test did not pass' };
   return { ok: true, name };
 }
 
@@ -104,8 +104,8 @@ export function pruefeGpu(programm, geraet) {
  */
 export function headerHex(job) {
   if (job.extranonce === undefined || job.extranonce === null) {
-    throw new Error('Job ohne Extranonce -- sie gehört zur Sitzung, '
-      + 'nicht zum Job, und muss vom Aufrufer ergänzt werden.');
+    throw new Error('Job without extranonce -- it belongs to the session, '
+      + 'not to the job, and must be added by the caller.');
   }
   return Array.from(serializeHeader(job, 0n),
     (b) => b.toString(16).padStart(2, '0')).join('');
@@ -159,10 +159,10 @@ export function starteGpu(opt) {
         const roh = Number(m.hashes);
         opt.onRate?.((roh * 1000) / Math.max(1, Number(m.ms)), roh);
       } else if (m.t === 'device') {
-        opt.onLog?.(`GPU: ${m.name} · ${m.cc} · ${
+        opt.onLog?.(`${m.name} · ${m.cc} · ${
           (Number(m.vram) / 1024 ** 3).toFixed(1)} GB`);
       } else if (m.t === 'error') {
-        opt.onLog?.(`GPU: ${m.message}`);
+        opt.onLog?.(`${m.message}`);
       }
     }
   });
@@ -171,12 +171,12 @@ export function starteGpu(opt) {
   // Treiberfehler, die sonst niemand sieht.
   kind.stderr.on('data', (d) => {
     const t = d.toString().trim();
-    if (t) opt.onLog?.(`GPU: ${t}`);
+    if (t) opt.onLog?.(`${t}`);
   });
 
   kind.on('exit', (code, signal) => {
     lebt = false;
-    opt.onAus?.(signal ? `Signal ${signal}` : `Rückgabe ${code}`);
+    opt.onAus?.(signal ? `signal ${signal}` : `exit code ${code}`);
   });
   kind.on('error', (e) => {
     lebt = false;
@@ -216,7 +216,7 @@ export function starteGpu(opt) {
         kind.stdin.write(JSON.stringify({
           t: 'job', jobId: job.jobId, header: headerHex(job), target: zielHex,
         }) + '\n');
-      } catch (e) { opt.onLog?.(`GPU: Job nicht übergeben (${e.message})`); }
+      } catch (e) { opt.onLog?.(`job not handed over (${e.message})`); }
     },
 
     stop() {

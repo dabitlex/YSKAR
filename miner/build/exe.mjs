@@ -51,25 +51,25 @@ function schritt(n, text) { console.log(`\n[${n}] ${text}`); }
 
 const [haupt] = process.versions.node.split('.').map(Number);
 if (haupt < 20) {
-  console.error(`Node ${process.versions.node} ist zu alt. Gebraucht wird ab 20.`);
+  console.error(`Node ${process.versions.node} is too old. Version 20 or newer is required.`);
   process.exit(1);
 }
 
 if (!existsSync(BUNDLE)) {
-  console.error('dist/yskar-miner.cjs fehlt. Zuerst: node build/bundle.mjs');
+  console.error('dist/yskar-miner.cjs is missing. First run: node build/bundle.mjs');
   process.exit(1);
 }
 
 mkdirSync(DIST, { recursive: true });
 
-console.log(`\nYSKAR Miner — Binaerdatei bauen`);
+console.log(`\nYSKAR Miner — build standalone executable`);
 console.log(`  System   ${process.platform} ${process.arch}`);
 console.log(`  Node     ${process.versions.node}`);
-console.log(`  Ziel     ${ZIEL.replace(WURZEL + '/', '').replace(WURZEL + '\\\\', '')}`);
+console.log(`  Target   ${ZIEL.replace(WURZEL + '/', '').replace(WURZEL + '\\\\', '')}`);
 
 // ------------------------------------------------------------------- 1. Blob
 
-schritt(1, 'Skript zu einem Datenblock verpacken');
+schritt(1, 'Pack the script into a blob');
 writeFileSync(KONFIG, JSON.stringify({
   main: BUNDLE,
   output: BLOB,
@@ -88,7 +88,7 @@ console.log(`    ${mb(BLOB)} MB`);
 
 // -------------------------------------------------------- 2. Node kopieren
 
-schritt(2, 'Node-Binaerdatei als Grundlage kopieren');
+schritt(2, 'Copy the Node binary as the base');
 rmSync(ROH, { force: true });
 copyFileSync(process.execPath, ROH);
 if (!istWindows) chmodSync(ROH, 0o755);
@@ -99,13 +99,13 @@ console.log(`    ${mb(ROH)} MB`);
 if (process.platform === 'darwin') {
   try {
     execFileSync('codesign', ['--remove-signature', ROH], { stdio: 'ignore' });
-    console.log('    Signatur entfernt');
-  } catch { console.log('    codesign nicht gefunden — weiter ohne'); }
+    console.log('    signature removed');
+  } catch { console.log('    codesign not found — continuing without'); }
 }
 
 // --------------------------------------------------------- 3. Blob einfuegen
 
-schritt(3, 'Datenblock in die Binaerdatei schreiben');
+schritt(3, 'Inject the blob into the binary');
 
 /*
   postject wird DIREKT aufgerufen, nicht ueber npx.
@@ -120,22 +120,22 @@ await inject(ROH, 'NODE_SEA_BLOB', readFileSync(BLOB), {
   sentinelFuse: 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2',
   ...(process.platform === 'darwin' ? { machoSegmentName: 'NODE_SEA' } : {}),
 });
-console.log('    eingefuegt');
+console.log('    injected');
 
 if (process.platform === 'darwin') {
   try {
     execFileSync('codesign', ['--sign', '-', ROH], { stdio: 'ignore' });
-    console.log('    neu signiert');
+    console.log('    re-signed');
   } catch { /* ohne Signatur weiter */ }
 }
 
 // ------------------------------------------------------------------ 4. Probe
 
-schritt(4, 'Probe');
+schritt(4, 'Test run');
 const ausgabe = execFileSync(ROH, ['--version'], { encoding: 'utf8' }).trim();
-console.log(`    --version meldet ${ausgabe}`);
+console.log(`    --version reports ${ausgabe}`);
 
-schritt(5, 'An den endgueltigen Platz legen');
+schritt(5, 'Move into place');
 try {
   rmSync(ZIEL, { force: true });
   renameSync(ROH, ZIEL);
@@ -144,17 +144,17 @@ try {
   // liegt nur unter dem Zwischennamen. Das ist eine brauchbare Lage, also
   // wird sie erklaert statt mit einem Stapelabzug abgebrochen.
   const ist = err.code === 'EBUSY' || err.code === 'EPERM';
-  console.error(`\n  ${ist ? 'Die alte Datei ist gesperrt.' : err.message}`);
-  console.error(`  Die neue Fassung liegt fertig unter:`);
+  console.error(`\n  ${ist ? 'The old file is locked.' : err.message}`);
+  console.error(`  The new build is ready at:`);
   console.error(`    ${ROH}\n`);
-  console.error('  Meist laeuft der Miner noch, oder ein Virenscanner haelt die');
-  console.error('  Datei offen. Miner beenden, kurz warten, dann:');
+  console.error('  Usually the miner is still running, or a virus scanner keeps the');
+  console.error('  file open. Stop the miner, wait a moment, then:');
   console.error(`    ${istWindows ? 'del dist\\yskar-miner.exe' : 'rm dist/yskar-miner'}`);
   console.error('    npm run build:exe\n');
   process.exit(1);
 }
 
-console.log(`\nFertig: ${ZIEL}  (${mb(ZIEL)} MB)`);
-console.log('\nDiese Datei laeuft ohne Node und ohne Installation.');
-console.log('Naechster Schritt:');
+console.log(`\nDone: ${ZIEL}  (${mb(ZIEL)} MB)`);
+console.log('\nThis file runs without Node and without installation.');
+console.log('Next step:');
 console.log(`  ${istWindows ? 'yskar-miner.exe' : './yskar-miner'} --address ysr1…\n`);

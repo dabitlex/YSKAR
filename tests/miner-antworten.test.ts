@@ -53,7 +53,7 @@ test('pruefeJob: Ziel leichter als Difficulty 1, Ziel 0 und kaputte Felder werde
     { ...JOB, jobId: 'mit leerzeichen' },
     { ...JOB, shareDifficulty: '0' },
     { ...JOB, shareDifficulty: 0.5 },
-  ]) assert.throws(() => pruefeJob(kaputt), /unlesbare Arbeit/, JSON.stringify(kaputt).slice(0, 80));
+  ]) assert.throws(() => pruefeJob(kaputt), /unreadable work/, JSON.stringify(kaputt).slice(0, 80));
   // Genau Difficulty 1 (2^240) ist erlaubt.
   assert.doesNotThrow(() => pruefeJob({ ...JOB, target: '0001' + '00'.repeat(30) }));
 });
@@ -71,7 +71,7 @@ test('sauber: Escape-Sequenzen und Richtungszeichen verschwinden', () => {
 
 test('liesRumpf: hoechstens ANTWORT_MAX Byte; Texte gesaeubert', async () => {
   const gross = new Response('{"x":"' + 'a'.repeat(ANTWORT_MAX) + '"}');
-  await assert.rejects(liesRumpf(gross), /zu groß/);
+  await assert.rejects(liesRumpf(gross), /too large/);
   const ok = await liesRumpf(new Response(JSON.stringify({ detail: '\x1b[2Jweg', n: { name: 'a\x07b' } })));
   assert.deepEqual(ok, { detail: '[2Jweg', n: { name: 'ab' } });
   assert.deepEqual(await liesRumpf(new Response('kein json')), {});
@@ -125,7 +125,7 @@ test('Issue #2: Knoten vergisst die Sitzung sofort -- der Miner bremst und schli
     assert.ok(anmeldungen >= 2, `der Miner versucht es weiter: ${anmeldungen}\n${m.text().slice(-800)}`);
     assert.ok(anmeldungen <= 6, `gebremst: ${anmeldungen} Anmeldungen in 14 s`);
     assert.ok(stopps >= anmeldungen - 2, `alte Sitzungen abgemeldet: ${stopps} von ${anmeldungen}`);
-    assert.match(m.text(), /gebremst/);
+    assert.match(m.text(), /slowed down/);
   } finally { m.stopp(); await k.zu(); }
 });
 
@@ -143,7 +143,7 @@ test('Issue #3: Job mit Ziel "ff..ff" wird verworfen; Steuerzeichen des Knotens 
   const m = miner(k.url);
   try {
     await warte(6_000);
-    assert.match(m.text(), /Job verworfen: Der Knoten schickt unlesbare Arbeit/);
+    assert.match(m.text(), /job discarded: The node sent unreadable work/);
     assert.equal(k.zaehler.get('/share') ?? 0, 0, 'mit dem Ziel ff..ff haette jeder Hash einen Share ausgeloest');
     assert.ok(!m.text().includes('\x1b]0;'), 'keine Terminal-Steuerfolge aus der Antwort');
     assert.ok(!m.text().includes('\x07'));
@@ -162,9 +162,9 @@ test('Issue #3: haengender Knoten -- die Anmeldung bricht nach der Frist ab', as
   const m = miner(`http://127.0.0.1:${port}`);
   try {
     const t0 = Date.now();
-    while (!/Verbindung fehlgeschlagen/.test(m.text()) && Date.now() - t0 < 30_000) await warte(200);
+    while (!/Cannot reach the node/.test(m.text()) && Date.now() - t0 < 30_000) await warte(200);
     const dauer = Date.now() - t0;
-    assert.match(m.text(), /Verbindung fehlgeschlagen/);
+    assert.match(m.text(), /Cannot reach the node/);
     assert.ok(dauer < 25_000, `nach ${dauer} ms`);
   } finally { m.stopp(); server.closeAllConnections(); await new Promise(r => server.close(r)); }
 });

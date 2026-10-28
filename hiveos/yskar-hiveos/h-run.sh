@@ -46,7 +46,7 @@ else
   liste=$(tr ',' ' ' <<< "$KARTEN")
 fi
 
-args=(--address "$ADRESSE" --api "$API" --gpu --gpu-bin "$CUDA" --einfach)
+args=(--address "$ADRESSE" --api "$API" --gpu --gpu-bin "$CUDA" --simple)
 [[ $MODUS == pool ]] && args+=(--mode pool)
 # shellcheck disable=SC2206 # EXTRA darf mehrere Optionen enthalten
 [[ -n $EXTRA ]] && args+=($EXTRA)

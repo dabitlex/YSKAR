@@ -29,7 +29,7 @@ mkdirSync(DIST, { recursive: true });
 // ---- Engine finden. Der Name traegt den Inhalts-Hash. ----
 const wasmName = readdirSync(WURZEL).find(n => /^miner\.[0-9a-f]{10}\.wasm$/.test(n));
 if (!wasmName) {
-  console.error('miner.<hash>.wasm nicht gefunden. Erst "npm run wasm" im Projekt.');
+  console.error('miner.<hash>.wasm not found. Run "npm run wasm" in the project first.');
   process.exit(1);
 }
 const wasmB64 = readFileSync(join(WURZEL, wasmName)).toString('base64');
@@ -63,5 +63,5 @@ await build({
 
 const groesse = readFileSync(join(DIST, 'yskar-miner.cjs')).length;
 console.log(`dist/yskar-miner.cjs  ${(groesse / 1024).toFixed(0)} KB`);
-console.log(`  Engine eingebettet: ${wasmName}`);
-console.log(`  Rechen-Thread:      ${(hasherSrc.length / 1024).toFixed(0)} KB`);
+console.log(`  engine embedded:  ${wasmName}`);
+console.log(`  hashing thread:   ${(hasherSrc.length / 1024).toFixed(0)} KB`);

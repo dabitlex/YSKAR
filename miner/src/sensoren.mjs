@@ -253,7 +253,7 @@ export class Sensoren {
     for (const g of this.gpus) {
       const zusatz = [
         g.watt !== null ? `${g.watt} W` : null,
-        g.luefter !== null ? `Lüfter ${g.luefter} %` : null,
+        g.luefter !== null ? `fan ${g.luefter}%` : null,
       ].filter(Boolean).join(' ');
       teile.push(`${grau('GPU')} ${faerbe(g.grad)}${zusatz ? grau(` (${zusatz})`) : ''}`);
     }

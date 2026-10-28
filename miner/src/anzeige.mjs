@@ -109,46 +109,73 @@ export class Kennzahlen {
 
 // --------------------------------------------------------------- Formate
 
-/**
- * Zahl mit deutschem Dezimalkomma.
- *
- * toFixed liefert IMMER einen Punkt, unabhaengig von der Sprache. In einer
- * sonst deutschen Ausgabe faellt das auf: "103.18 MH/s" neben "Höhe 2.668"
- * liest sich, als waere der Punkt einmal Tausender- und einmal
- * Dezimaltrenner -- und genau das ist er dann auch.
- */
-const komma = (n, stellen) => n.toLocaleString('de-DE', {
+/*
+  Englische Schreibweise (en-US): Punkt als Dezimal-, Komma als
+  Tausendertrennzeichen. Bis 0.1.0 war die Ausgabe deutsch; der Miner ist ab
+  0.2.0 englisch, und eine Zahl darf nicht anders aussehen als der Text um
+  sie herum.
+
+  ACHTUNG HiveOS: hiveos/yskar-hiveos/yskar-log.sh liest die Hashrate aus der
+  Minutenzeile. Eine Rate hat nie ein Tausendertrennzeichen -- ab 1000 springt
+  die Einheit --, ein Komma darin heisst dort deshalb "altes deutsches Format".
+*/
+const fest = (n, stellen) => n.toLocaleString('en-US', {
   minimumFractionDigits: stellen, maximumFractionDigits: stellen });
 
 const STUFEN = [[1e24, 'YH/s'], [1e21, 'ZH/s'], [1e18, 'EH/s'], [1e15, 'PH/s'], [1e12, 'TH/s']];
 
 export function rate(h) {
   if (!h) return '0 H/s';
-  if (h >= 1e27) return `${h.toExponential(2).replace('.', ',')} H/s`;
-  for (const [ab, einheit] of STUFEN) if (h >= ab) return `${komma(h / ab, 2)} ${einheit}`;
-  if (h >= 1e9) return `${komma(h / 1e9, 2)} GH/s`;
-  if (h >= 1e6) return `${komma(h / 1e6, 2)} MH/s`;
-  if (h >= 1e3) return `${komma(h / 1e3, 1)} kH/s`;
-  return `${komma(Math.round(h), 0)} H/s`;
+  if (h >= 1e27) return `${h.toExponential(2)} H/s`;
+  for (const [ab, einheit] of STUFEN) if (h >= ab) return `${(h / ab).toFixed(2)} ${einheit}`;
+  if (h >= 1e9) return `${(h / 1e9).toFixed(2)} GH/s`;
+  if (h >= 1e6) return `${(h / 1e6).toFixed(2)} MH/s`;
+  if (h >= 1e3) return `${(h / 1e3).toFixed(1)} kH/s`;
+  return `${Math.round(h)} H/s`;
 }
 
 export function hashes(n) {
   const x = Number(n);
-  if (x >= 1e12) return `${komma(x / 1e12, 2)} TH`;
-  if (x >= 1e9) return `${komma(x / 1e9, 2)} GH`;
-  if (x >= 1e6) return `${komma(x / 1e6, 1)} MH`;
-  if (x >= 1e3) return `${komma(x / 1e3, 0)} kH`;
-  return `${komma(x, 0)}`;
+  if (x >= 1e15) return `${fest(x / 1e12, 1)} TH`;
+  if (x >= 1e12) return `${(x / 1e12).toFixed(2)} TH`;
+  if (x >= 1e9) return `${(x / 1e9).toFixed(1)} GH`;
+  if (x >= 1e6) return `${(x / 1e6).toFixed(1)} MH`;
+  if (x >= 1e3) return `${(x / 1e3).toFixed(0)} kH`;
+  return `${Math.round(x)}`;
 }
 
+/** "45 s", "12 min", "2h 14m", "3d 4h". */
 export function dauer(sek) {
   if (sek === null || !Number.isFinite(sek)) return '—';
   const s = Math.round(sek);
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
-  return `${Math.floor(s / 86400)} d ${Math.floor((s % 86400) / 3600)} h`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+  return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h`;
 }
 
-export const zahl = n => Number(n).toLocaleString('de-DE');
+/** Ganze Zahl mit Tausenderkomma: 6,764. */
+export const zahl = n => (n === null || n === undefined || !Number.isFinite(Number(n)))
+  ? '—' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+/** Feste Nachkommastellen mit Tausenderkomma: 5,919,375.00 */
+export const zahlFest = fest;
+
+/**
+ * Prozent, mit so vielen Stellen, dass etwas Sichtbares dasteht.
+ *
+ * Bis 0.1.0 stand hier toFixed(1) -- bei einer Netz-Difficulty von 300
+ * Millionen ergab das fuer JEDEN Share "0.0 %". Ein Wert, der immer gleich
+ * ist, sagt nichts.
+ */
+export function prozent(p) {
+  if (p === null || !Number.isFinite(p)) return '—';
+  if (p === 0) return '0%';
+  if (p >= 10) return `${p.toFixed(0)}%`;
+  if (p >= 1) return `${p.toFixed(1)}%`;
+  if (p >= 0.1) return `${p.toFixed(2)}%`;
+  if (p >= 0.001) return `${p.toFixed(3)}%`;
+  return '<0.001%';
+}
+
 export const uhr = () => new Date().toTimeString().slice(0, 8);

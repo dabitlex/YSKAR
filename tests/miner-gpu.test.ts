@@ -85,7 +85,7 @@ test('Ein Job ohne Extranonce wird abgelehnt, nicht stillschweigend gefüllt', (
     Ein Fehler ist besser als stilles Falschrechnen.
   */
   const { extranonce, ...ohne } = JOB;
-  assert.throws(() => headerHex(ohne as typeof JOB), /Extranonce/);
+  assert.throws(() => headerHex(ohne as typeof JOB), /extranonce/i);
 });
 
 test('Ohne Programm wird nichts vorgegaukelt', () => {

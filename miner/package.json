@@ -1,7 +1,7 @@
 {
   "name": "yskar-miner",
-  "version": "0.1.0",
-  "description": "Eigenständiger YSKAR-Miner für den Desktop. Braucht nur eine Adresse.",
+  "version": "0.2.0",
+  "description": "Standalone YSKAR miner for the desktop. Needs only a payout address.",
   "type": "module",
   "bin": {
     "yskar-miner": "./src/cli.mjs"

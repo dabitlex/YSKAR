@@ -62,14 +62,14 @@ prints five lines:
 | Line | Meaning |
 |---|---|
 | `Engine` | The engine file that was found, for example `miner.57f237a2a4.wasm` |
-| `Selbsttest  bestanden (Genesis-Hash stimmt)` | Passed: the computed genesis hash is correct |
-| `Ein Kern` | Measured hashrate of one core |
-| `Kerne` | Number of CPU cores |
-| `Erwartet` | The one-core figure multiplied by the default number of threads |
+| `Self-test   passed (genesis hash matches)` | Passed: the computed genesis hash is correct |
+| `One core` | Measured hashrate of one core |
+| `Cores` | Number of CPU cores |
+| `Expected` | The one-core figure multiplied by the default number of threads |
 
 If the test passes, the engine and the way the miner builds a block header fit together. If it
 fails, do not mine with this folder. Every computing thread runs the same check when it starts
-and reports `Thread <n>: Selbsttest fehlgeschlagen …` if it fails.
+and reports `error     CPU thread <n>: Self-test failed …` if it fails.
 
 ## Get an address
 
@@ -116,81 +116,94 @@ describes how to set one up.
 ### Without `--api`
 
 Without `--api` the miner contacts the public main node, `https://pool.yskar.app`, in the
-mode given by `--mode` (solo unless you choose `pool`). Until 9 October 2026 the default was
+mode given by `--mode`. Without `--mode` the miner asks on first start (see below); without a
+terminal it mines solo. Until 9 October 2026 the default was
 `https://yskar.vercel.app`, which no longer hands out mining work and answers every request for a
 mining session with HTTP 410 (issue #8).
 
-### Entering and saving the address
+### First start: address and mining mode
 
-If you start the miner in a terminal without `--address` and no address is saved yet, it asks
-for the address (`YSKAR-Adresse:`) and then whether to remember it
-(`Adresse merken, damit die Frage künftig entfällt? [J/n]`; `J` or Enter means yes).
+If you start the miner in a terminal without `--address` or without `--mode`, and nothing is
+saved yet, it asks what is missing:
 
-If you agree, it writes the file `yskar-miner.json` into the `miner` folder. The file holds the
-address, the number of threads and the intensity, all of which are public. It does not hold the
-server or the mode, so `--mode pool` is still needed on every start, and `--api` whenever you do
-not use the public main node:
+1. **Payout address** — the address that receives the mined YSR. You find it in your YSKAR
+   wallet under Receive (YSKAR app, Mini App or Node Core).
+2. **Mining mode** — the miner loads the list of open pools from
+   `https://yskar.vercel.app/api/v2/pools` (the same list the website shows) and offers each pool
+   with its fee and free seats, plus solo. The public main pool is marked as recommended. If the
+   list cannot be loaded, it offers the main pool and solo. If you gave `--api`, it only asks
+   whether to mine in the pool of that node or solo on it.
 
-```bash
-node src/cli.mjs --api https://pool.yskar.app --mode pool
-```
+Then it asks whether to remember the answers (`Save address and mode for next time? [Y/n]`;
+`Y` or Enter means yes). The file `yskar-miner.json` in the `miner` folder (next to the program
+for the standalone executable) then holds the address, the mode, the server, the number of
+threads and the intensity, all of which are public. On the next start no question is asked.
 
-The saved values are used only when `--address` is not given. `--forget` deletes the file.
+Arguments always win over the file: `--address` replaces the saved address, and `--api` or
+`--mode` replace the saved server and mode together. `--forget` deletes the file.
+
+Without a terminal (as a service, under HiveOS, in a pipe) the miner asks nothing: `--address` is
+then required, and without `--mode` it mines solo.
 
 ### While the miner runs
 
-At the start the miner prints two blocks of information. The most important lines:
+At the start the miner prints four sections:
 
-| Line | Meaning |
+| Section | Lines |
 |---|---|
-| `RECHENWERK` | What computes: number of CPU threads, graphics card, intensity |
-| `ADRESSE` | The address that receives the reward |
-| `KNOTEN` | The server given with `--api` |
-| `MODUS` | `Solo` or `Pool` |
-| `NETZ` | Block height, network difficulty, active miners and network hashrate as reported by the server |
-| `SITZUNG` | The ID of your mining session on the node |
-| `SHARE-ZIEL` | The share difficulty the node asks of this session |
-| `POOL` | Pool name, fee and number of miners (pool mode only) |
-| `PARALLEL` | Shown when more than one miner is working for this address on this node |
+| `SYSTEM` | Miner and Node version, operating system, CPU, memory, what computes (`COMPUTE`), algorithm |
+| `ACCOUNT` | `PAYOUT TO` address, `NODE` with response time, `MODE` (pool or solo) |
+| `NETWORK` | Height and difficulty, network hashrate, active miners and nodes, reward per block, next halving, mined supply — as reported by the node |
+| `SESSION` | Session ID and extranonce, `POOL` with fee, seats and payout method (pool mode only), `SHARE TARGET`, and `PARALLEL` when more miners work for this address |
 
-Then events follow, one per line:
+Then events follow, one per line. The second column says what kind of event it is:
 
 | Message | Meaning |
 |---|---|
-| `neue Arbeit · Block N · Difficulty D` | New work: the miner now works on block height N |
-| `angenommen #n · Difficulty d · p % eines Blocks` | Share number n was accepted. `d` is the difficulty this hash reached; `p` is that value as a percentage of the block difficulty. At 100 % the share is a block. |
-| `Ziel angepasst a → b` | The node changed the share difficulty of your session |
-| `abgelehnt <reason>` | A share was rejected, with the node's reason |
-| `BLOCK GEFUNDEN  #N   +R YSR` | You found block N. The next line shows the block hash. |
-| `Einreichen fehlgeschlagen: …` | A share could not be sent (network error) |
-| `Sitzung beim Knoten beendet (…) — melde neu an …` | The node no longer knows your session. The computing threads pause and the miner opens a new session. |
-| `neu angemeldet · Sitzung …` | The new session is open and mining continues |
-| `Anmeldung fehlgeschlagen: … — es wird alle 15 s erneut versucht` | The new session could not be opened yet. The miner keeps trying every 15 seconds and prints the reason once. |
-| `Keine Arbeit vom Knoten: …` | The node answered the request for work with an error |
-| `Job holen fehlgeschlagen: …` | New work could not be fetched (network error) |
+| `job       new work · block N · difficulty D` | The miner now works on block height N |
+| `accepted  #n · diff d · p of a block` | Share number n was accepted. `d` is the difficulty this hash reached; `p` is that value as a percentage of the block difficulty. At 100 % the share is a block. |
+| `target    share difficulty a → b` | The node changed the share difficulty of your session |
+| `rejected  <reason>` | A share was rejected, with the node's reason |
+| `block     ★ BLOCK FOUND  #N   +R YSR` | Solo: you found block N. The next lines show the payout address, the effort, the hash and a link to the explorer. |
+| `block     ★ BLOCK FOUND FOR POOL <name>  #N` | Pool: your share completed block N for the pool. The reward is split among the pool's miners by their work, in that block. |
+| `stats     10s … 60s … 15m …` | Once a minute: hashrate over 10 seconds, 60 seconds and 15 minutes, total hashes, running time and the average time between shares |
+| `node      session closed by the node (…) — reconnecting …` | The node no longer knows your session. The computing threads pause and the miner opens a new session. |
+| `connected new session …` | The new session is open and mining continues |
+| `node      reconnect failed: … — retrying every 15 s` | The new session could not be opened yet. The miner keeps trying every 15 seconds and prints the reason once. |
+| `node      no work from the node: …` / `could not fetch work: …` | The request for work failed |
+| `error     share not submitted: …` | A share could not be sent (network error) |
 
-Once a minute the miner prints the hashrate over the last 10 seconds, 60 seconds and 15 minutes,
-the total number of hashes and the running time.
+In a terminal with at least 20 rows, four lines stay fixed at the top:
 
-In a terminal with at least 20 rows, four lines stay fixed at the top: block height and
-difficulty, the current hashrate with accepted and rejected shares, temperatures where the
-system exposes sensors, and a separator. The fixed header is not used when the environment
-variable `NO_COLOR` is set. While it is active, lines that scroll out at the top are not kept in
-the scrollback of most terminals. Start with `--einfach` to turn the fixed header off and keep
-the full scrollback. If the window looks wrong after the miner ends, type `cls` (Windows) or
-`reset`.
+- state (mining or reconnecting), pool or solo, block height, difficulty, network hashrate and
+  running time;
+- your hashrate (now, 10 s, 60 s, 15 min) and the accepted and rejected shares;
+- in pool mode the **estimated earnings per day** after the pool fee, your share of the network
+  and the time since the last share; in solo mode the **estimated time per block** and the effort;
+  temperatures where the system exposes sensors;
+- a separator.
+
+The estimates are your hashrate divided by the network hashrate reported by the node, times
+the blocks per day and the reward. They are averages, not a forecast: luck and changes of the
+network hashrate are not in them.
+
+The fixed header is not used when the environment variable `NO_COLOR` is set. While it is active,
+lines that scroll out at the top are not kept in the scrollback of most terminals. Start with
+`--simple` to turn the fixed header off and keep the full scrollback (`--einfach`, the name up
+to version 0.1.0, still works). If the window looks wrong after the miner ends, type `cls`
+(Windows) or `reset`.
 
 Keys while the miner runs in a terminal:
 
 | Key | Action |
 |---|---|
-| `h` | Hashrate over 10 s, 60 s and 15 min, per thread, and temperatures |
-| `s` | Summary: running time, hashes, shares, blocks |
-| `c` | Connection: server, address, session, share difficulty |
+| `h` | Hashrate over 10 s, 60 s and 15 min, per CPU thread and for the graphics card, and temperatures |
+| `s` | Summary: running time, hashes, shares, blocks, your network share, estimated earnings, and the solo or pool alternative |
+| `c` | Connection: server, mode and pool, address, session, extranonce, difficulty, share target, compute |
 | `q` or Ctrl+C | Stop |
 
 When you stop it with `q` or Ctrl+C in a terminal, the miner closes its session on the node and
-prints a summary.
+prints a summary with a link to the address in the explorer.
 
 ## Several miners on one address
 
@@ -219,13 +232,13 @@ Options can be written as `--option value` or `--option=value`.
 | `--workers <n>` | `-w` | Number of CPU threads | CPU cores minus 1, at least 1 |
 | `--intensity <1-100>` | `-i` | Share of the time the CPU threads compute, in percent | `100` |
 | `--api <url>` | | Server that hands out work: a pool or your own full node | `https://pool.yskar.app` (the public main node) |
-| `--mode <solo\|pool>` | | Mine solo or in the pool of the node. Any value other than `pool` means solo. | `solo` |
+| `--mode <solo\|pool>` | | Mine solo or in the pool of the node. Any other value is an error. | Asked on first start; `solo` without a terminal |
 | `--gpu` | | Compute with the graphics card instead of the CPU | Off |
 | `--cpu-gpu` | | Compute with CPU and graphics card at the same time | Off |
 | `--device <n>` | | Number of the graphics card to use | `0` |
 | `--gpu-bin <path>` | | Path to the `yskar-cuda` program if the miner does not find it | Searched automatically, see below |
 | `--forget` | | Delete the saved `yskar-miner.json` and exit | |
-| `--einfach` | | No fixed header at the top; the scrollback stays complete ("einfach" means "plain") | Off |
+| `--simple` | | No fixed header at the top; the scrollback stays complete. `--einfach` still works. | Off |
 | `--help` | `-h` | Print the help text and exit | |
 | `--version` | `-v` | Print the version and exit | |
 
@@ -274,8 +287,8 @@ genesis hash. A card that fails is not used. What happens next depends on the mo
 
 | Situation | With `--gpu` | With `--cpu-gpu` |
 |---|---|---|
-| Program not found (`yskar-cuda nicht gefunden.`) | The miner stops | Mining continues on the CPU |
-| Self-test fails (`GPU nicht verwendbar: …`) | The miner stops | Mining continues on the CPU |
+| Program not found (`GPU not available — yskar-cuda was not found`) | The miner stops | Mining continues on the CPU |
+| Self-test fails (`GPU self-test failed on device n`) | The miner stops | Mining continues on the CPU |
 | Program ends while mining (`GPU ausgefallen: …`) | The miner stops | Mining continues on the CPU |
 
 With `--gpu` no CPU threads run, and `--workers` and `--intensity` have no effect.
@@ -359,8 +372,8 @@ journalctl -u yskar-miner -f
 
 Notes for running without a terminal:
 
-- The miner cannot ask for the address. Pass `--address`, or the miner ends with
-  `Es fehlt die Adresse.` ("the address is missing").
+- The miner cannot ask for the address or the mode. Pass `--address`, or the miner ends with
+  `The payout address is missing (--address).` Without `--mode` it mines solo.
 - When the service is stopped, the miner exits at once without closing its session. The node
   drops the session after 300 seconds.
 - If the node restarts or forgets the session, the miner opens a new session by itself and
@@ -368,45 +381,47 @@ Notes for running without a terminal:
 
 ## Troubleshooting
 
-**`Verbindung fehlgeschlagen: …` (connection failed).** The server refused the session or cannot
-be reached. Check that `--api` is set and correct. The miner prints the address to test; for the
-public pool:
+**`✖ Cannot reach the node`.** The server cannot be reached; the second line says why (no
+answer within 15 s, connection refused, name not resolved). Check that `--api` is set and
+correct, and test the server:
 
 ```bash
 curl https://pool.yskar.app/api/v2/summary
 ```
 
-If the message continues with `Mining und Transaktionen laufen nicht mehr über diese Adresse`,
-you are talking to `https://yskar.vercel.app`, the old default of miner versions before 9 October
-2026: update the miner or set `--api https://pool.yskar.app`. If it continues with
-`Pool voll`, all seats of the pool are taken by active miners; a seat of a miner who stops
-becomes free again after a few minutes.
+If you use `https://yskar.vercel.app` (the old default of miner versions before 9 October 2026),
+update the miner or set `--api https://pool.yskar.app`.
 
-**`Das sieht nicht nach einer YSKAR-Adresse aus.` (this does not look like a YSKAR address).**
-The address begins with `ysr1` and has 42 characters. A space or a line break is easily copied
-along with it.
+**`✖ That does not look like a YSKAR address.`** The address begins with `ysr1` and has 42
+characters. A space or a line break is easily copied along with it.
 
-**The self-test fails.** If it prints `miner.<hash>.wasm nicht gefunden.`, the engine file is
-missing: fetch the folder again. If it prints `Selbsttest fehlgeschlagen`, the engine file does
-not match this version of the miner.
+**The self-test fails.** If it prints `miner.<hash>.wasm not found.`, the engine file is
+missing: fetch the folder again. If it prints `Self-test failed`, the engine file does not
+match this version of the miner.
 
 **The node refuses the session at start.** The miner prints the reason and ends. It never
 continues without a session:
 
-- `Der Knoten nimmt diese Adresse nicht an.` ("the node does not accept this address"): the
-  address contains a typing error. The miner checks only the form of the address; the node also
-  checks its checksum.
-- `Dieser Knoten betreibt keinen Pool.` ("this node runs no pool"): you asked for `--mode pool`,
-  but the node at `--api` runs no pool. The miner does not fall back to solo mining. Start it
-  without `--mode pool`, or against a node that runs a pool.
-- `Der Knoten hat zu viele offene Sitzungen.` ("the node has too many open sessions"): the node
-  has reached its limit. Try again a few minutes later.
+- `✖ The address checksum does not match`: the address contains a typing error. The miner checks
+  only the form of the address; the node also checks its checksum.
+- `✖ This address cannot receive mining rewards`: it is a shared account (`ysr1p…`). Mining pays
+  only to a normal wallet address.
+- `✖ This node does not run a pool`: you asked for `--mode pool`, but the node at `--api` runs no
+  pool. The miner does not fall back to solo mining. Start it with `--mode solo`, or against a
+  node that runs a pool.
+- `✖ The pool is full`: all seats of the pool are taken by active miners. The miner lists other
+  open pools; a seat of a miner who stops becomes free again after a few minutes.
+- `✖ Too many miners on this address` or `✖ The node has too many open sessions`: the limit of
+  the node is reached. Stop another miner or try again a few minutes later.
 
-**`Sitzung beim Knoten beendet … melde neu an`.** The node no longer knows your session: it was
+For the known error codes of the node the miner prints its own message; for unknown ones it
+prints the code.
+
+**`session closed by the node … reconnecting`.** The node no longer knows your session: it was
 restarted, it did not hear from the miner for 300 seconds, or its name now points to another
 machine. The miner pauses its threads, opens a new session and continues; you see
-`neu angemeldet` when it has succeeded. If the node cannot be reached or refuses the session,
-the miner prints `Anmeldung fehlgeschlagen` with the reason and tries again every 15 seconds.
+`connected new session` when it has succeeded. If the node cannot be reached or refuses the
+session, the miner prints `reconnect failed` with the reason and tries again every 15 seconds.
 In pool mode it waits for the pool and never switches to solo mining by itself.
 
 **Other rejected shares.** Single rejections are normal. They happen when the node has just
@@ -419,7 +434,7 @@ fetches new work instead.
 and the node then adjusts it so that a share arrives about every 30 seconds. If no share is
 accepted for several minutes, stop the miner and run the self-test.
 
-**`yskar-cuda nicht gefunden.`** The GPU program is not in any of the places listed under
+**`GPU not available — yskar-cuda was not found`.** The GPU program is not in any of the places listed under
 "GPU mining". Build it, or give its location with `--gpu-bin`.
 
 ## What the miner does not do

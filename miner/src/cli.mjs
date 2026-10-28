@@ -9,6 +9,14 @@
  * Genau deshalb ist es unbedenklich, ihn auf einem fremden Rechner laufen
  * zu lassen -- und genau deshalb kann jemand auch fuer dich minen, ohne
  * dass du ihm etwas anvertraust.
+ *
+ * Ab 0.2.0 sind alle Ausgaben englisch (vorher deutsch). Die Kommentare im
+ * Quelltext bleiben deutsch wie im ganzen Repository.
+ *
+ * ACHTUNG: HiveOS liest dieses Protokoll maschinell (hiveos/yskar-hiveos/
+ * yskar-log.sh). Die Zeilen "] accepted  #<n>", "] rejected ", "BLOCK FOUND"
+ * und "] stats     10s <rate>" sind dort Schnittstelle -- wer sie aendert,
+ * passt den Parser und hiveos/test/paket.test.ts mit an.
  */
 import { Worker } from 'node:worker_threads';
 import { findeGpuProgramm, pruefeGpu, starteGpu } from './gpu.mjs';
@@ -18,11 +26,12 @@ import { dirname, join } from 'node:path';
 import os from 'node:os';
 import { targetBytes, toHex } from './header.mjs';
 import { ANFRAGE_MS, liesRumpf, pruefeJob, shareDifficulty as pruefeShareZiel } from './pruefung.mjs';
-import { Kennzahlen, rate as fmtRate2, hashes as fmtHashes, dauer, zahl as zahl2 }
+import { Kennzahlen, rate as fmtRate, hashes as fmtHashes, dauer, zahl, prozent }
   from './anzeige.mjs';
 import * as konfig from './konfig.mjs';
-import { frage, jaNein, interaktiv, warteAufTaste, schliessen } from './frage.mjs';
+import { jaNein, interaktiv, warteAufTaste, schliessen } from './frage.mjs';
 import { zeigeKopf, zeigeSitzung } from './banner.mjs';
+import { ADRESSE, frageAdresse, frageModus, ladePools } from './erststart.mjs';
 import { Sensoren } from './sensoren.mjs';
 import { FesterKopf } from './festerKopf.mjs';
 
@@ -37,11 +46,13 @@ import { FesterKopf } from './festerKopf.mjs';
 const HIER = typeof __dirname !== 'undefined'
   ? __dirname
   : dirname(fileURLToPath(import.meta.url));
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const STRIDE = 4096;   // Nonce-Abstand zwischen den Threads
 const WIEDER_MS = 15_000;   // Abstand zwischen zwei Anmeldeversuchen nach einer Unterbrechung
 /** Knoten, wenn --api fehlt: der oeffentliche Hauptknoten (Pool YSKAR Main). */
 const VORGABE_API = 'https://pool.yskar.app';
+/** Explorer fuer Links zu Block und Adresse. */
+const EXPLORER = 'https://yskar.app/explorer';
 
 // --------------------------------------------------------------- Argumente
 
@@ -50,7 +61,10 @@ function argumente(argv) {
     Vorgabe: der oeffentliche Hauptknoten (Issue #8). Bisher war es
     https://yskar.vercel.app -- der Webserver vergibt aber seit dem Umzug
     auf die Full Nodes keine Mining-Arbeit mehr und antwortet auf /session
-    mit 410. Ein Miner ohne --api zeigte den Netzkopf und scheiterte dann.
+    mit 410.
+
+    `mode` bleibt undefined, wenn --mode fehlt: Ab 0.2.0 waehlt der Nutzer
+    beim ersten Start selbst (siehe erststart.mjs).
   */
   const a = { workers: 0, intensity: 100, api: VORGABE_API,
               rechner: 'cpu', device: 0 };
@@ -61,11 +75,15 @@ function argumente(argv) {
     switch (schluessel) {
       case '--address': case '-a': a.address = nimm(); break;
       case '--workers': case '-w': a.workers = Number(nimm()); a.workersGesetzt = true; break;
-      case '--intensity': case '-i': a.intensity = Number(nimm()); break;
-      case '--api': a.api = nimm().replace(/\/+$/, ''); break;
+      case '--intensity': case '-i': a.intensity = Number(nimm()); a.intensityGesetzt = true; break;
+      case '--api': a.api = String(nimm() ?? '').replace(/\/+$/, ''); a.apiGesetzt = true; break;
       // solo oder pool. Ein Knoten ohne Pool lehnt "pool" ab, statt die
       // Sitzung stillschweigend als solo zu fuehren.
-      case '--mode': a.mode = nimm() === 'pool' ? 'pool' : 'solo'; break;
+      case '--mode': {
+        const m = String(nimm() ?? '').toLowerCase();
+        if (m === 'pool' || m === 'solo') a.mode = m; else a.falscherModus = m || '(empty)';
+        break;
+      }
       // Rechenwerk: cpu, gpu oder beides. Vorgabe bleibt cpu -- wer keine
       // Karte hat, soll nicht ueber eine Fehlermeldung stolpern.
       case '--gpu': a.rechner = 'gpu'; break;
@@ -75,7 +93,9 @@ function argumente(argv) {
       case '--forget': a.forget = true; break;
       // Fester Kopf aus. Er kostet den Verlauf: Zeilen, die aus dem
       // Scrollbereich laufen, sind bei den meisten Terminals weg.
-      case '--einfach': a.einfach = true; break;
+      // --einfach ist der Name bis 0.1.0 und bleibt gueltig (HiveOS-Pakete,
+      // Dienste, Verknuepfungen).
+      case '--simple': case '--einfach': a.einfach = true; break;
       case '--help': case '-h': a.help = true; break;
       case '--version': case '-v': a.version = true; break;
       default:
@@ -85,54 +105,61 @@ function argumente(argv) {
   return a;
 }
 
-const HILFE = `
-YSKAR Miner ${VERSION}
-
-  yskar-miner --address <ysr1…> [Optionen]
-
-Optionen
-  -a, --address <adr>    Zieladresse für den Blockreward (Pflicht)
-  -w, --workers <n>      Rechen-Threads (Vorgabe: Kerne minus 1)
-  -i, --intensity <1-100>  Anteil der Rechenzeit (Vorgabe: 100)
-      --einfach          ohne festen Kopf — dafür bleibt der Verlauf scrollbar
-      --api <url>        Knoten (Vorgabe: https://pool.yskar.app)
-      --mode <solo|pool> Solo oder Pool (Vorgabe: solo)
-      --gpu              mit der Grafikkarte rechnen statt mit der CPU
-      --cpu-gpu          mit beidem gleichzeitig
-      --device <n>       welche Karte (Vorgabe: 0)
-      --gpu-bin <pfad>   Pfad zu yskar-cuda, falls er nicht gefunden wird
-
-  GPU-Mining braucht das Programm yskar-cuda. Es wird im Repository unter
-  node-core/gpu gebaut -- siehe node-core/gpu/README.md. Nur NVIDIA.
-      --forget           Gespeicherte Adresse löschen
-  -h, --help             Diese Hilfe
-  -v, --version          Fassung
-
-Beispiele
-  yskar-miner -a ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4
-  yskar-miner -a ysr1… -w 4 -i 75
-
-Beim ersten Start fragt der Miner nach der Adresse und merkt sie sich auf
-Wunsch in yskar-miner.json — danach genügt ein Doppelklick.
-
-Der Miner braucht keinen privaten Schlüssel. Er kennt nur die Adresse, an
-die der Reward gehen soll.
-`;
-
-const ADRESSE = /^ysr1[02-9ac-hj-np-z]{38,}$/;
-
 // ------------------------------------------------------------------ Format
-
-const uhr = () => new Date().toTimeString().slice(0, 8);
-const zahl = n => Number(n).toLocaleString('de-DE');
 
 const FARBE = process.stdout.isTTY && !process.env.NO_COLOR;
 const f = (code, s) => FARBE ? `\x1b[${code}m${s}\x1b[0m` : s;
 const gelb = s => f('33', s), gruen = s => f('32', s);
 const rot = s => f('31', s), grau = s => f('90', s), fett = s => f('1', s);
-const cyan = s => f('36', s);
-/** Gebündelt für banner.mjs — dort sind die Helfer nicht definiert. */
-const FARBEN = { gelb, gruen, rot, grau, fett, cyan };
+const cyan = s => f('36', s), blau = s => f('94', s);
+/** Gebündelt für banner.mjs und erststart.mjs — dort sind die Helfer nicht definiert. */
+const FARBEN = { gelb, gruen, rot, grau, fett, cyan, blau };
+
+const HILFE = () => `
+ ${fett('YSKAR Miner')} ${grau(VERSION)} — mine YSR with your CPU or an NVIDIA graphics card
+
+ ${fett('USAGE')}
+   yskar-miner [--address <ysr1…>] [options]
+   ${grau('Without options the miner asks for your address and mining mode on first')}
+   ${grau('start and can remember them in yskar-miner.json.')}
+
+ ${fett('PAYOUT')}
+   ${cyan('-a, --address <addr>   ')} address that receives the mined YSR
+   ${cyan('    --forget           ')} delete the saved address and settings
+
+ ${fett('POOL OR SOLO')}
+   ${cyan('    --mode <pool|solo> ')} pool: a share of every block the pool finds
+                           solo: the whole reward, only for blocks you find
+   ${cyan('    --api <url>        ')} node or pool to connect to ${grau(`(default: ${VORGABE_API})`)}
+
+ ${fett('COMPUTE')}
+   ${cyan('-w, --workers <n>      ')} CPU threads ${grau('(default: all cores minus one)')}
+   ${cyan('-i, --intensity <1-100>')} share of CPU time to use ${grau('(default: 100)')}
+   ${cyan('    --gpu              ')} use the graphics card instead of the CPU
+   ${cyan('    --cpu-gpu          ')} use CPU and graphics card together
+   ${cyan('    --device <n>       ')} which graphics card ${grau('(default: 0)')}
+   ${cyan('    --gpu-bin <path>   ')} path to yskar-cuda if it is not found next to the miner
+   ${grau('GPU mining needs the program yskar-cuda (NVIDIA only), see node-core/gpu/README.md.')}
+
+ ${fett('DISPLAY')}
+   ${cyan('    --simple           ')} plain scrolling log without the fixed header
+   ${cyan('-h, --help             ')} show this help
+   ${cyan('-v, --version          ')} show the version
+
+ ${fett('WHILE MINING')}
+   ${blau('h')} hashrate   ${blau('s')} summary   ${blau('c')} connection   ${blau('q')} quit
+
+ ${fett('EXAMPLES')}
+   yskar-miner -a ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4 --mode pool
+   yskar-miner -a ysr1… --mode solo --api http://127.0.0.1:8645   ${grau('# your own full node')}
+   yskar-miner -a ysr1… -w 4 -i 75                                ${grau('# keep the PC usable')}
+   yskar-miner -a ysr1… --gpu --device 1
+
+ ${grau('The miner never needs a private key or your 12 words — only the payout address.')}
+ ${grau('Docs: https://github.com/dabitlex/YSKAR/tree/main/miner')}
+`;
+
+const uhr = () => new Date().toTimeString().slice(0, 8);
 
 function zeile(text) {
   // Statuszeile ueberschreiben statt anhaengen, damit das Fenster nicht
@@ -146,13 +173,49 @@ function ereignis(text) {
   console.log(text);
 }
 
+/**
+ * Eine Protokollzeile: Uhrzeit, Art (feste Breite), Text.
+ *
+ * Die Art steht immer an derselben Stelle, damit man das Protokoll
+ * ueberfliegen kann -- und damit HiveOS es lesen kann (siehe Kopf der Datei).
+ */
+const ART = 9;
+function log(art, farbe, text) {
+  ereignis(`${grau('[' + uhr() + ']')} ${farbe(art.padEnd(ART))} ${text}`);
+}
+/** Fortsetzung unter einer Protokollzeile, buendig mit deren Text. */
+const einzug = ' '.repeat(10 + 1 + ART + 1);
+
+// ---------------------------------------------------------------- Rechnen
+
+/**
+ * Ertrag und Erwartung -- immer als Schaetzung.
+ *
+ * Grundlage ist die eigene Leistung gegen die Difficulty: Fuer einen Block
+ * braucht es im Mittel difficulty * 2^16 Hashes. Daraus folgt der Anteil am
+ * Netz und, mal Bloecke je Tag und Belohnung, der Ertrag. Glueck, Verluste
+ * und Schwankungen der Netzleistung stecken darin nicht -- deshalb steht
+ * ueberall "estimate".
+ */
+function schaetzung({ rate, netzRate, ziel, belohnung, gebuehrBps }) {
+  if (!rate || !netzRate) return null;
+  const anteil = rate / netzRate;
+  const bloeckeJeTag = anteil * (86400 / ziel);
+  const jeTag = belohnung != null
+    ? bloeckeJeTag * belohnung * (1 - (gebuehrBps ?? 0) / 10_000) : null;
+  return { anteil, netzRate, jeTag, blockAlle: 86400 / bloeckeJeTag };
+}
+
+const ysrTag = n => n >= 100 ? zahl(Math.round(n)) : n >= 1 ? n.toFixed(1) : n.toFixed(2);
+const abstand = sek => sek < 86400 ? dauer(sek)
+  : sek < 2 * 365 * 86400 ? `${(sek / 86400).toFixed(1)} days` : `${(sek / (365 * 86400)).toFixed(1)} years`;
+
 // -------------------------------------------------------------------- Netz
 
 /*
   Eine Anfrage an den Knoten (Issue #3): mit Frist, ohne Umleitung, mit
   Groessengrenze, und alle Texte der Antwort ohne Steuerzeichen -- siehe
-  pruefung.mjs. Vorher galten nur die Vorgaben von fetch (Minuten), und ein
-  haengendes /session hielt Start oder Neuanmeldung so lange auf.
+  pruefung.mjs.
 */
 async function api(basis, pfad, init) {
   const res = await fetch(`${basis}/api/v2${pfad}`, {
@@ -164,11 +227,42 @@ async function api(basis, pfad, init) {
   const body = await liesRumpf(res);
   if (!res.ok) {
     const fehler = new Error(body.detail ?? body.error ?? `HTTP ${res.status}`);
-    fehler.code = body.error;
+    fehler.code = body.error ?? `http_${res.status}`;
     fehler.daten = body;
     throw fehler;
   }
   return body;
+}
+
+/**
+ * Ein Fehler in einem englischen Satz.
+ *
+ * Der Knoten schreibt in `detail` deutsche Saetze ("Der Knoten hat zu viele
+ * offene Sitzungen."). Ein englischer Miner darf die nicht durchreichen --
+ * deshalb zaehlt der Code, und der Knotentext ist nur noch Rueckfall fuer
+ * Codes, die dieser Miner nicht kennt.
+ */
+function erklaere(e) {
+  switch (e?.code) {
+    case 'pool_unavailable': return 'this node does not run a pool';
+    case 'pool_full': return 'the pool is full';
+    case 'too_many_sessions': return 'too many open sessions';
+    case 'bad_address': case 'missing_address': return 'the node does not accept this address';
+    case 'session_inactive': return 'session expired';
+    case 'keine_sitzung': return 'the node did not open a session';
+    case 'rate_limited': return 'too many requests, slowing down';
+  }
+  if (e?.name === 'TimeoutError' || e?.cause?.name === 'TimeoutError') {
+    return `no answer within ${ANFRAGE_MS / 1000} s`;
+  }
+  const c = e?.cause?.code;
+  if (c === 'ENOTFOUND' || c === 'EAI_AGAIN') return 'the node name could not be resolved';
+  if (c === 'ECONNREFUSED') return 'the connection was refused';
+  if (c === 'ECONNRESET') return 'the connection was reset';
+  if (c === 'CERT_HAS_EXPIRED' || /certificate/i.test(e?.cause?.message ?? '')) return 'TLS certificate problem';
+  if (typeof e?.code === 'string') return `node error: ${e.code}`;
+  if (e?.message === 'fetch failed') return 'the node could not be reached';
+  return e?.message ?? String(e);
 }
 
 // -------------------------------------------------------------------- Lauf
@@ -177,69 +271,97 @@ async function main() {
   const arg = argumente(process.argv.slice(2));
 
   if (arg.version) { console.log(VERSION); return; }
-  if (arg.help) { console.log(HILFE); return; }
+  if (arg.help) { console.log(HILFE()); return; }
   if (arg.unbekannt) {
-    console.error(rot(`Unbekannte Option: ${arg.unbekannt}`));
-    console.log(HILFE); process.exit(1);
+    console.error(rot(` Unknown option: ${arg.unbekannt}`));
+    console.log(HILFE()); process.exit(1);
+  }
+  if (arg.falscherModus) {
+    console.error(rot(` --mode must be pool or solo, not ${arg.falscherModus}.`)); process.exit(1);
   }
   const WURZEL = join(HIER, '..');
 
   if (arg.forget) {
     const weg = konfig.vergessen(WURZEL);
-    console.log(weg ? `Gelöscht: ${weg}` : 'Es war nichts gespeichert.');
+    console.log(weg ? ` Deleted ${weg}` : ' Nothing was saved.');
     return;
   }
 
   // Reihenfolge: Argument schlaegt Datei, Datei schlaegt Nachfrage.
   const gespeichert = konfig.laden(WURZEL);
   let merken = false;
+  let ausDatei = false;
 
-  if (!arg.address && gespeichert) {
-    arg.address = gespeichert.address;
+  if (gespeichert) {
+    if (!arg.address) { arg.address = gespeichert.address; ausDatei = true; }
     if (!arg.workersGesetzt && gespeichert.workers) arg.workers = gespeichert.workers;
-    if (arg.intensity === 100 && gespeichert.intensity) arg.intensity = gespeichert.intensity;
+    if (!arg.intensityGesetzt && gespeichert.intensity) arg.intensity = gespeichert.intensity;
+    /*
+      Modus und Knoten nur ZUSAMMEN aus der Datei: Wer einen eigenen Knoten
+      angibt, meint nicht den gespeicherten Pool -- und ein gespeichertes
+      "pool" gegen einen fremden Knoten endete mit "kein Pool".
+    */
+    if (!arg.apiGesetzt && arg.mode === undefined
+        && (gespeichert.mode === 'pool' || gespeichert.mode === 'solo')) {
+      arg.mode = gespeichert.mode;
+      if (typeof gespeichert.api === 'string' && /^https?:\/\//.test(gespeichert.api)) {
+        arg.api = gespeichert.api.replace(/\/+$/, '');
+      }
+      arg.poolName = typeof gespeichert.poolName === 'string' ? gespeichert.poolName : undefined;
+    }
   }
 
-  if (!arg.address) {
-    if (!interaktiv()) {
-      // Kein Terminal, niemand der antworten koennte -- etwa als Dienst.
-      console.error(rot('Es fehlt die Adresse.\n'));
-      console.log(HILFE); process.exit(1);
-    }
-    console.log(fett('\nYSKAR Miner') + grau(` ${VERSION}`));
-    console.log(grau('─'.repeat(52)));
-    console.log('Der Reward eines gefundenen Blocks geht an diese Adresse.');
-    console.log(grau('Zu finden in der Telegram Mini App unter Wallet → Empfangen.\n'));
+  /*
+    Erster Start: fragen, was fehlt.
 
-    for (let versuch = 0; versuch < 3 && !arg.address; versuch++) {
-      const roh = await frage('YSKAR-Adresse: ');
-      if (roh === null) { console.log(grau('\nAbgebrochen.')); process.exit(0); }
-      const eingabe = roh.replace(/\s+/g, '');
-      if (ADRESSE.test(eingabe)) { arg.address = eingabe; break; }
-      console.log(rot('  Das sieht nicht nach einer YSKAR-Adresse aus.'));
-      console.log(grau('  Sie beginnt mit ysr1 und ist rund 42 Zeichen lang.\n'));
+    Ohne Terminal fragt niemand -- etwa als Dienst oder unter HiveOS. Dann
+    ist die Adresse Pflicht, und ohne --mode bleibt es bei solo wie bis 0.1.0.
+  */
+  const frageAdresseNoetig = !arg.address;
+  const frageModusNoetig = arg.mode === undefined;
+
+  if ((frageAdresseNoetig || frageModusNoetig) && interaktiv()) {
+    console.log(`\n ${fett('YSKAR Miner')} ${grau(VERSION)}`);
+    console.log(grau(' ' + '─'.repeat(88)));
+    console.log(frageAdresseNoetig
+      ? ` First start — ${frageModusNoetig ? 'two questions' : 'one question'}, then mining begins.\n`
+      : ' Choose how you want to mine.\n');
+    let nr = 1;
+    if (frageAdresseNoetig) {
+      arg.address = await frageAdresse(FARBEN, String(nr++));
+      if (!arg.address) {
+        console.error(rot('\n No valid address. Stopping.'));
+        await warteAufTaste();
+        process.exit(1);
+      }
     }
-    if (!arg.address) {
-      console.error(rot('\nKeine gültige Adresse. Abbruch.'));
-      await warteAufTaste();
-      process.exit(1);
+    if (frageModusNoetig) {
+      const w = await frageModus(FARBEN, String(nr++),
+        { api: arg.api, apiGesetzt: Boolean(arg.apiGesetzt), vorgabeApi: VORGABE_API });
+      if (!w) { console.log(grau('\n Cancelled.')); process.exit(0); }
+      arg.mode = w.mode; arg.api = w.api; arg.poolName = w.poolName ?? undefined;
     }
-    merken = await jaNein('\nAdresse merken, damit die Frage künftig entfällt?');
+    merken = await jaNein(` Save ${frageAdresseNoetig ? 'address and mode' : 'this choice'} for next time?`);
     // Schliessen, sonst haelt die offene Eingabe den Prozess am Leben und
     // Strg+C verhaelt sich unerwartet.
     schliessen();
+  } else if (frageAdresseNoetig) {
+    // Kein Terminal, niemand der antworten koennte -- etwa als Dienst.
+    console.error(rot(' The payout address is missing (--address).\n'));
+    console.log(HILFE()); process.exit(1);
   }
+  if (arg.mode === undefined) arg.mode = 'solo';
 
   // Grobpruefung, die endgueltige macht der Server. Ein Tippfehler soll
   // nicht erst nach dem ersten Share auffallen.
   if (!ADRESSE.test(arg.address)) {
-    console.error(rot('Das sieht nicht nach einer YSKAR-Adresse aus.'));
-    console.error(grau('Erwartet wird etwas wie ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4'));
+    console.error(rot(' ✖ That does not look like a YSKAR address.'));
+    console.error(grau('   Expected something like ysr1at4jxzcln84ys38s0spw23l0wn7pquz5w6eyf4'));
     await warteAufTaste();
     process.exit(1);
   }
   if (!(arg.intensity >= 1 && arg.intensity <= 100)) {
-    console.error(rot('--intensity muss zwischen 1 und 100 liegen.')); process.exit(1);
+    console.error(rot(' --intensity must be between 1 and 100.')); process.exit(1);
   }
 
   // Bei reinem GPU-Betrieb laufen keine CPU-Threads. Sonst raubten sie der
@@ -255,36 +377,40 @@ async function main() {
 
     Ein zusaetzlicher Aufruf, und er darf scheitern: Ist der Knoten nicht
     erreichbar, sagt das der Kopf, und die Anmeldung gleich darauf sagt es
-    noch einmal mit dem genauen Grund. Ein abgebrochener Start ohne jede
-    Ausgabe waere die schlechtere Antwort.
+    noch einmal mit dem genauen Grund. Die Laufzeit der Anfrage ist die
+    Antwortzeit des Knotens, die der Kopf zeigt.
   */
-  let netz = null;
-  try { netz = await api(arg.api, '/summary'); }
-  catch { /* Der Kopf zeigt dann "nicht erreichbar". */ }
+  let netz = null, latenz = null;
+  {
+    const t0 = Date.now();
+    try { netz = await api(arg.api, '/summary'); latenz = Date.now() - t0; }
+    catch { /* Der Kopf zeigt dann "not reachable". */ }
+  }
 
   zeigeKopf({
     version: VERSION,
     adresse: arg.address,
     api: arg.api,
-    modus: arg.mode ?? 'solo',
+    modus: arg.mode,
+    poolName: arg.poolName,
     threads,
     intensitaet: arg.intensity,
     rechner: arg.rechner,
     geraet: arg.device,
     netz,
+    latenz,
     farben: FARBEN,
   });
 
   if (merken) {
     const pfad = konfig.speichern(WURZEL, {
-      address: arg.address, workers: threads, intensity: arg.intensity,
+      address: arg.address, mode: arg.mode, api: arg.api,
+      ...(arg.poolName ? { poolName: arg.poolName } : {}),
+      workers: threads, intensity: arg.intensity,
     });
-    console.log(grau(`  Gemerkt in ${pfad}`));
-    console.log(grau('  Löschen mit --forget'));
-    console.log('');
-  } else if (gespeichert) {
-    console.log(grau('  Adresse aus yskar-miner.json · ändern mit --address'));
-    console.log('');
+    console.log(grau(` Saved to ${pfad} · change with --address or --mode, delete with --forget`));
+  } else if (ausDatei) {
+    console.log(grau(' Settings from yskar-miner.json · change with --address or --mode, delete with --forget'));
   }
 
   // ---- Session ----
@@ -292,9 +418,7 @@ async function main() {
     Anmelden -- beim Start und nach jeder Unterbrechung wieder.
 
     Der Knoten lehnt manche Anmeldung mit HTTP 200 ab und schreibt den
-    Grund in `error` (kein Pool, zu viele Sitzungen). Frueher galt jede
-    200-Antwort als Sitzung: Der Miner rechnete dann mit einer Sitzung, die
-    es nicht gab, und nichts davon wurde gutgeschrieben. Eine Antwort ohne
+    Grund in `error` (kein Pool, zu viele Sitzungen). Eine Antwort ohne
     sessionId ist deshalb ein Fehler, egal mit welchem Status sie kam.
   */
   async function anmelden() {
@@ -302,11 +426,11 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({
         address: arg.address, platform: `desktop/${process.platform}`,
-        mode: arg.mode ?? 'solo',
+        mode: arg.mode,
       }),
     });
     if (s?.error || typeof s?.sessionId !== 'string') {
-      const fehler = new Error(s?.detail ?? s?.error ?? 'Der Knoten hat keine Sitzung eröffnet.');
+      const fehler = new Error(s?.detail ?? s?.error ?? 'no session');
       fehler.code = s?.error ?? 'keine_sitzung';
       fehler.daten = s;
       throw fehler;
@@ -314,40 +438,62 @@ async function main() {
     return s;
   }
 
+  const fehlerKopf = t => console.error(`\n ${rot(fett('✖ ' + t))}`);
+  const fehlerZeile = t => console.error(`   ${t}`);
+
   let session;
   try {
     session = await anmelden();
   } catch (e) {
     if (e.code === 'pool_unavailable') {
-      console.error(rot('Dieser Knoten betreibt keinen Pool.'));
-      console.error(grau(
-        `  ${arg.api} nimmt keine Pool-Sitzung an. Es wird NICHT stillschweigend\n` +
-        `  solo gerechnet. Wähle einen Pool-Knoten mit --api, oder starte ohne --mode pool.`));
+      fehlerKopf('This node does not run a pool');
+      fehlerZeile(`${arg.api} accepts solo sessions only. Nothing is mined solo silently.`);
+      fehlerZeile('Start with --mode solo, or choose a pool with --api <url>.');
+    } else if (e.code === 'pool_full') {
+      fehlerKopf(`${arg.poolName ? `Pool ${arg.poolName}` : 'The pool'} is full`);
+      fehlerZeile(grau(arg.api));
+      const plaetze = Number(e.daten?.plaetze);
+      fehlerZeile(`${Number.isFinite(plaetze) ? `All ${zahl(plaetze)}` : 'All'} miner slots are taken. ` +
+        'The miner does not switch to solo on its own.');
+      const andere = (await ladePools()).filter(p => p.api !== arg.api).slice(0, 2);
+      for (const p of andere) fehlerZeile(`${grau('·')} Another pool:  --api ${p.api} --mode pool   ${grau(`(${p.name})`)}`);
+      fehlerZeile(`${grau('·')} Mine solo:     --mode solo`);
     } else if (e.code === 'too_many_sessions' && e.daten?.active !== undefined) {
-      console.error(rot(`Zu viele Miner auf dieser Adresse.`));
-      console.error(grau(
-        `  Es laufen bereits ${e.daten?.active ?? '?'} von höchstens ` +
-        `${e.daten?.max ?? '?'} gleichzeitig.\n` +
-        `  Beende einen anderen Miner, oder warte fünf Minuten — ` +
-        `abgestürzte Sitzungen\n  werden dann von selbst geschlossen.`));
+      fehlerKopf('Too many miners on this address');
+      fehlerZeile(`${e.daten?.active ?? '?'} of ${e.daten?.max ?? '?'} allowed sessions are already running.`);
+      fehlerZeile('Stop another miner, or wait 5 minutes — sessions of crashed miners close by themselves.');
     } else if (e.code === 'too_many_sessions') {
       // Der Full Node zaehlt nicht je Adresse, sondern insgesamt.
-      console.error(rot('Der Knoten hat zu viele offene Sitzungen.'));
-      console.error(grau(
-        `  Versuche es in ein paar Minuten erneut, oder wähle einen anderen Knoten mit --api.`));
+      fehlerKopf('The node has too many open sessions');
+      fehlerZeile('Try again in a few minutes, or choose another node with --api <url>.');
     } else if (e.code === 'bad_address' || e.code === 'missing_address') {
-      console.error(rot('Der Knoten nimmt diese Adresse nicht an.'));
-      // Nennt der Knoten den Grund (etwa: ein gemeinsames Konto ysr1p…), gilt der.
-      console.error(grau(e.message && e.message !== e.code ? `  ${e.message}` :
-        `  Die Form stimmt, die Prüfsumme nicht — meist ein Tippfehler oder ein\n` +
-        `  fehlendes Zeichen. Kopiere die Adresse noch einmal aus der Wallet.`));
+      // Nennt der Knoten ein gemeinsames Konto (ysr1p…), ist das der Grund.
+      if (/ysr1p/.test(e.message ?? '')) {
+        fehlerKopf('This address cannot receive mining rewards');
+        fehlerZeile('It is a shared account (ysr1p…). Mining pays only to a normal wallet address');
+        fehlerZeile('(ysr1…, 42 characters). Copy the Receive address from your wallet.');
+      } else {
+        fehlerKopf('The address checksum does not match');
+        fehlerZeile(arg.address);
+        fehlerZeile(grau('Usually a typo or a missing character. Copy the address again from your wallet.'));
+      }
+    } else if (e.daten !== undefined && !String(e.code).startsWith('http_')) {
+      // Der Knoten hat geantwortet, aber abgelehnt -- kein Netzproblem.
+      fehlerKopf('The node refused the session');
+      fehlerZeile(`${arg.api}: ${erklaere(e)}`);
     } else {
-      console.error(rot(`Verbindung fehlgeschlagen: ${e.message}`));
-      console.error(grau(`Erreichbar? ${arg.api}/api/v2/summary`));
+      fehlerKopf('Cannot reach the node');
+      fehlerZeile(`${arg.api}: ${erklaere(e)}.`);
+      fehlerZeile(`${grau('·')} Check your internet connection and firewall.`);
+      fehlerZeile(`${grau('·')} Network status: https://yskar.app`);
+      fehlerZeile(`${grau('·')} Or connect to another pool with --api <url>.`);
     }
     await warteAufTaste();
     process.exit(1);
   }
+
+  const k = new Kennzahlen();
+  k.netzDifficulty = netz ? Number(netz.difficultyWert ?? netz.difficulty) || null : null;
 
   /*
     Erst HIER, nicht im Startkopf: Vorher gibt es keine Sitzung, kein
@@ -356,9 +502,11 @@ async function main() {
   */
   zeigeSitzung({
     sitzung: session.sessionId,
+    extranonce: session.extranonce,
     shareZiel: Number(session.shareDifficulty),
+    netzDiff: k.netzDifficulty,
     pool: session.pool ?? null,
-    poolGewuenscht: (arg.mode ?? 'solo') === 'pool',
+    poolGewuenscht: arg.mode === 'pool',
     parallel: session.concurrentSessions ?? 1,
     farben: FARBEN,
   });
@@ -369,12 +517,8 @@ async function main() {
     Zwischen Anmeldung und erstem Job kann es noch scheitern -- keine
     Karte gefunden, Selbsttest nicht bestanden. Wer dann einfach
     aussteigt, laesst die Sitzung beim Knoten offen stehen, bis sie nach
-    Minuten von selbst verfaellt.
-
-    Das ist keine Kleinigkeit: Der Knoten begrenzt die Sitzungen je
-    Adresse. Wer zweimal hintereinander so abbricht, laeuft beim dritten
-    Versuch in "Zu viele Miner auf dieser Adresse" -- und sucht den Fehler
-    dann an der falschen Stelle.
+    Minuten von selbst verfaellt -- und laeuft beim dritten Versuch in
+    "too many miners on this address".
   */
   async function abbrechen(code = 1) {
     await api(arg.api, '/session/stop', {
@@ -385,15 +529,11 @@ async function main() {
     process.exit(code);
   }
 
-  const k = new Kennzahlen();
-
   /*
     Sensoren im Hintergrund, alle zehn Sekunden.
 
     Nicht bei jeder Anzeige: Unter Windows kostet jede Messung einen
-    PowerShell-Prozess. Temperaturen aendern sich in Sekunden, nicht in
-    Millisekunden -- die Anzeige liest immer den zuletzt gemessenen Wert
-    und wartet nie auf einen neuen.
+    PowerShell-Prozess.
   */
   const sensoren = new Sensoren();
   sensoren.start();
@@ -404,41 +544,71 @@ async function main() {
     // Leistung der Karte, zuletzt gemeldet. null = keine Karte oder
     // laenger nichts gehoert.
     gpuRate: null,
+    neuanmeldungen: 0,
+    poolBloecke: 0,
   };
+
+  /** Belohnung je Block in YSR, aus der letzten Netzabfrage. */
+  const belohnung = () => netz?.nextReward ? Number(BigInt(netz.nextReward) / 100_000_000n) : null;
+  const zielZeit = () => Number(netz?.targetBlockTime) || 600;
+  const gebuehr = () => session?.pool ? Number(session.pool.feeBps) || 0 : 0;
+  const imPool = () => Boolean(session?.pool);
+  const poolName = () => session?.pool?.name ?? arg.poolName ?? null;
+  /*
+    Netzleistung: die, die der Knoten meldet (dieselbe Zahl wie im Startkopf),
+    sonst aus der Difficulty. Beide Wege muessen dieselbe Zahl fuer Anteil,
+    Ertrag und "network" liefern -- sonst passen die Angaben auf einem
+    Schirm nicht zusammen.
+  */
+  const netzRate = () => Number(netz?.hashrate) > 0 ? Number(netz.hashrate)
+    : k.netzDifficulty ? (k.netzDifficulty * 65536) / zielZeit() : null;
+  const jetztSchaetzung = r => schaetzung({
+    rate: r, netzRate: netzRate(), ziel: zielZeit(), belohnung: belohnung(), gebuehrBps: gebuehr(),
+  });
 
   /*
     Fester Kopf.
 
-    Vier Zeilen oben, die stehen bleiben: Was gerade gerechnet wird, wie
-    schnell, wie warm, und eine Trennlinie. Darunter laufen die Ereignisse
-    durch wie bisher.
-
-    Der Kopf zeigt NUR Werte, die sich aendern. Adresse, Knoten und
-    Sitzungsnummer stehen im Startkopf und aendern sich nicht -- sie hier
-    zu wiederholen, waere vier Zeilen weniger Platz fuer das, was
-    tatsaechlich passiert.
+    Drei Zeilen oben, die stehen bleiben, und eine Trennlinie: was gerade
+    gerechnet wird, wie schnell, was es voraussichtlich bringt. Darunter
+    laufen die Ereignisse durch.
 
     letzteSumme haelt die zuletzt gemessene Leistung: Der Kopf wird
     haeufiger gemalt als gemessen, und eine Zahl, die zwischen zwei
     Messungen auf null springt, waere falsch.
   */
   let letzteSumme = 0;
+  let getrennt = false;        // true: Der Knoten kennt unsere Sitzung nicht mehr.
+  const kurz = r => r ? fmtRate(r).replace(/ \S+$/, '') : '—';
   const kopfZeilen = () => {
-    const l1 = ` ${fett('YSKAR')} ${grau('·')} Block ${
-      k.hoehe != null ? '#' + zahl2(k.hoehe) : '—'} ${grau('·')} Diff ${
-      k.netzDifficulty ? zahl2(k.netzDifficulty) : '—'}${
-      k.bloecke ? ` ${grau('·')} ${gruen(k.bloecke + (k.bloecke === 1 ? ' Block' : ' Blöcke'))}` : ''}`;
+    const p = grau(' · ');
+    const zustandText = getrennt ? `${gelb('●')} ${fett('RECONNECTING')}` : `${gruen('●')} ${fett('MINING')}`;
+    const art = imPool() ? `Pool ${poolName()}` : 'Solo';
+    const s = jetztSchaetzung(letzteSumme);
+    const nr = netzRate();
+    const l1 = ` ${zustandText}   ${art}${p}block ${k.hoehe != null ? zahl(k.hoehe) : '—'}${p}difficulty ${
+      k.netzDifficulty ? zahl(k.netzDifficulty) : '—'}${nr ? `${p}network ${fmtRate(nr)}` : ''}   ${grau('up')} ${dauer(k.laufzeit())}`;
 
-    const aufwand = k.aufwand();
-    const l2 = ` ${gelb(fmtRate2(letzteSumme).padEnd(11))} ${grau('·')} ${
-      k.angenommen}${grau('/')}${k.abgelehnt} ${grau('Shares')} ${grau('·')} Aufwand ${
-      aufwand === null ? '—' : aufwand.toFixed(0) + ' %'} ${grau('·')} ${
-      dauer(k.laufzeit())}`;
+    const quote = k.angenommen + k.abgelehnt > 0 ? (k.abgelehnt / (k.angenommen + k.abgelehnt)) * 100 : null;
+    const l2 = ` ${cyan('HASHRATE')} ${gelb(fmtRate(letzteSumme))}  ${grau('10s')} ${kurz(k.rate(10))}  ${
+      grau('60s')} ${kurz(k.rate(60))}  ${grau('15m')} ${kurz(k.rate(900))}     ${cyan('SHARES')} ${
+      zahl(k.angenommen)} accepted${p}${zahl(k.abgelehnt)} rejected${quote !== null ? grau(` (${quote.toFixed(1)}%)`) : ''}${
+      k.bloecke ? `${p}${gruen(`${k.bloecke} ${k.bloecke === 1 ? 'block' : 'blocks'}`)}` : ''}`;
 
-    // Ohne Sensoren bleibt die Zeile leer statt zu verschwinden -- sonst
-    // ruckte die Trennlinie bei jedem Mess-Aussetzer eine Zeile hoch.
     const temp = sensoren.zeile(FARBEN);
-    const l3 = temp ? ` ${temp}` : grau(' Keine Sensoren erreichbar');
+    let l3;
+    if (imPool()) {
+      const seit = k.letzterShare ? dauer((Date.now() - k.letzterShare) / 1000) + ' ago' : '—';
+      l3 = ` ${cyan('EARNINGS')} ${s?.jeTag != null ? `≈ ${ysrTag(s.jeTag)} YSR/day` : '—'} ${
+        grau(`(estimate${gebuehr() ? `, after ${(gebuehr() / 100).toFixed(gebuehr() % 100 ? 2 : 0)}% fee` : ''})`)}${
+        s ? grau(` · ${prozent(s.anteil * 100)} of network`) : ''}   ${cyan('LAST SHARE')} ${seit}`;
+    } else {
+      const aufwand = k.aufwand();
+      l3 = ` ${cyan('EXPECTED')} ${s ? `≈ 1 block every ${abstand(s.blockAlle)}` : '—'} ${grau('(estimate)')}${
+        s ? grau(` · ${prozent(s.anteil * 100)} of network`) : ''}   ${cyan('EFFORT')} ${
+        aufwand === null ? '—' : aufwand.toFixed(0) + '%'}`;
+    }
+    if (temp) l3 += `   ${temp}`;
 
     return [l1, l2, l3, grau(' ' + '─'.repeat((process.stdout.columns ?? 80) - 2))];
   };
@@ -446,7 +616,6 @@ async function main() {
   const festerKopf = (!arg.einfach && FesterKopf.moeglich())
     ? new FesterKopf({ hoehe: 4, zeichnen: kopfZeilen })
     : null;
-  if (festerKopf) festerKopf.start();
 
   // ---- Threads ----
   const arbeiter = [];
@@ -467,12 +636,12 @@ async function main() {
           workerData: { wasm, extranonce: session.extranonce, slot, stride: STRIDE, versatz: cpuVersatz },
         });
     w.on('message', m => nachricht(m, w));
-    w.on('error', e => ereignis(rot(`Thread ${slot}: ${e.message}`)));
+    w.on('error', e => log('error', rot, `CPU thread ${slot}: ${e.message}`));
     arbeiter.push(w);
   }
 
   let bereit = 0;
-  function nachricht(m, w) {
+  function nachricht(m) {
     if (m.t === 'bereit') {
       if (++bereit === threads) holeJob();
       return;
@@ -483,7 +652,7 @@ async function main() {
       k.hashes(m.hashes);
       return;
     }
-    if (m.t === 'fehler') { ereignis(rot(`Thread ${m.slot}: ${m.message}`)); return; }
+    if (m.t === 'fehler') { log('error', rot, `CPU thread ${m.slot}: ${m.message}`); return; }
     if (m.t === 'share') sendeShare(m);
   }
 
@@ -491,32 +660,17 @@ async function main() {
     Neu anmelden, wenn der Knoten die Sitzung nicht mehr kennt.
 
     Der Knoten schliesst eine Sitzung nach fuenf Minuten ohne Kontakt, und
-    nach einem Neustart kennt er gar keine mehr. Dasselbe passiert, wenn
-    der Name des Knotens ploetzlich auf einen anderen Rechner zeigt. Vorher
-    rechnete der Miner dann stundenlang weiter, und jede Antwort war
-    "session_inactive" -- bis ihn jemand von Hand neu startete.
-
-    Solange keine Sitzung steht, ruhen die Threads: Arbeit ohne Sitzung
-    wird nirgends gutgeschrieben. Im Pool wird NIE auf solo ausgewichen --
-    lehnt der Knoten die Pool-Sitzung ab, wird gewartet und es wieder
-    versucht.
+    nach einem Neustart kennt er gar keine mehr. Solange keine Sitzung
+    steht, ruhen die Threads: Arbeit ohne Sitzung wird nirgends
+    gutgeschrieben. Im Pool wird NIE auf solo ausgewichen.
   */
-  let getrennt = false;        // true: Der Knoten kennt unsere Sitzung nicht mehr.
   let anmeldungLaeuft = null;
   let letzterGrund = null;
   /*
-    Abstand zwischen Anmeldungen (Issue #2).
-
-    Nimmt ein Knoten die Anmeldung an, kennt die Sitzung beim folgenden
-    /job aber nicht (mehrere Rechner hinter einem Namen, ein fehlerhafter
-    Pool), riefen sich neuAnmelden() und holeJob() bisher gegenseitig auf --
-    im Takt der Netzlaufzeit, mit zwei Zeilen Ausgabe je Runde und einer
-    neuen Sitzung beim Knoten je Runde, bis dessen Sitzungstabelle voll war.
-
-    Jetzt: Folgt eine Neuanmeldung einer erfolgreichen in weniger als
-    WIEDER_MS, wartet der Miner erst -- 2, 4, 8 ... Sekunden, hoechstens
-    eine Minute. Und die alte Sitzung wird vorher abgemeldet, damit keine
-    liegen bleibt.
+    Abstand zwischen Anmeldungen (Issue #2): Folgt eine Neuanmeldung einer
+    erfolgreichen in weniger als WIEDER_MS, wartet der Miner erst -- 2, 4,
+    8 ... Sekunden, hoechstens eine Minute. Die alte Sitzung wird vorher
+    abgemeldet, damit keine liegen bleibt.
   */
   let letzteAnmeldungAm = Date.now();
   let schnelleFolge = 0;
@@ -527,16 +681,14 @@ async function main() {
       getrennt = true;
       zustand.jobId = null;
       arbeiter.forEach(w => w.postMessage({ t: 'stop' }));
-      ereignis(`${grau('[' + uhr() + ']')} ${gelb('Sitzung beim Knoten beendet')} ` +
-        `${grau('(' + grund + ') — melde neu an …')}`);
+      log('node', gelb, `session closed by the node ${grau(`(${grund}) — reconnecting …`)}`);
     }
     anmeldungLaeuft = (async () => {
       if (Date.now() - letzteAnmeldungAm < WIEDER_MS) {
         schnelleFolge++;
         const pause = Math.min(60_000, 1000 * 2 ** Math.min(schnelleFolge, 6));
         if (schnelleFolge === 3) {
-          ereignis(grau(`[${uhr()}] Der Knoten verliert die Sitzung sofort wieder — ` +
-            `Anmeldungen werden jetzt gebremst (bis zu einer Minute Abstand)`));
+          log('node', grau, grau('the node keeps dropping the session — reconnects are slowed down (up to one minute apart)'));
         }
         await schlafe(pause);
       } else {
@@ -554,17 +706,17 @@ async function main() {
         letzteAnmeldungAm = Date.now();
         session = neu;
         zustand.shareDifficulty = pruefeShareZiel(neu.shareDifficulty) ?? zustand.shareDifficulty;
+        zustand.neuanmeldungen++;
         getrennt = false;
         letzterGrund = null;
-        ereignis(`${grau('[' + uhr() + ']')} ${gruen('neu angemeldet')} ` +
-          `${grau('· Sitzung ' + String(neu.sessionId).slice(0, 8))}` +
-          (neu.pool ? grau(` · Pool ${neu.pool.name}`) : ''));
+        log('connected', gruen, `new session ${String(neu.sessionId).slice(0, 8)}` +
+          (neu.pool ? `${grau(' · ')}Pool ${neu.pool.name}` : ''));
       } catch (e) {
         // Denselben Grund nicht alle paar Sekunden wiederholen.
-        if (e.message !== letzterGrund) {
-          letzterGrund = e.message;
-          ereignis(grau(`[${uhr()}] Anmeldung fehlgeschlagen: ${e.message} — ` +
-            `es wird alle ${WIEDER_MS / 1000} s erneut versucht`));
+        const grundNeu = erklaere(e);
+        if (grundNeu !== letzterGrund) {
+          letzterGrund = grundNeu;
+          log('node', grau, grau(`reconnect failed: ${grundNeu} — retrying every ${WIEDER_MS / 1000} s`));
         }
       } finally {
         anmeldungLaeuft = null;
@@ -589,19 +741,14 @@ async function main() {
 
       if (!r.accepted) {
         if (r.reason === 'session_inactive') {
-          if (sitzung === session.sessionId) void neuAnmelden('Sitzung abgelaufen');
+          if (sitzung === session.sessionId) void neuAnmelden('session expired');
           return;
         }
         /*
           Die Arbeit ist veraltet -- sofort neue holen, statt bis zur
-          naechsten Abfrage (45 s) weiter an ihr zu rechnen.
-
-          job_unknown gehoert dazu: Nach JEDEM neuen Block im Netz verwirft
-          der Knoten alle offenen Jobs (MiningCoordinator.invalidate), und
-          der naechste Treffer auf den alten Job bekommt genau diese
-          Antwort. Bis Oktober 2026 zaehlte sie als Ablehnung, und der Miner
-          rechnete nach jedem Block bis zu 45 Sekunden umsonst. Node Core
-          behandelt sie schon immer so (PoolQuelle).
+          naechsten Abfrage (45 s) weiter an ihr zu rechnen. job_unknown
+          gehoert dazu: Nach JEDEM neuen Block verwirft der Knoten alle
+          offenen Jobs. Das ist keine Ablehnung.
         */
         if (r.reason === 'job_expired' || r.reason === 'stale_job' || r.reason === 'job_unknown') {
           holeJob(); return;
@@ -610,7 +757,7 @@ async function main() {
         // Vereinzelte Ablehnungen sind normal, wenn der Server das Ziel
         // gerade nachzieht. Nur die uebrigen sind eine Meldung wert.
         if (r.reason !== 'duplicate' && r.reason !== 'low_difficulty') {
-          ereignis(`${grau('[' + uhr() + ']')} ${gelb('abgelehnt')} ${grau(r.reason)}`);
+          log('rejected', gelb, `${String(r.reason ?? 'unknown')}`);
         }
         return;
       }
@@ -621,63 +768,66 @@ async function main() {
       const neuesZiel = pruefeShareZiel(r.shareDifficulty);
       if (neuesZiel !== null && neuesZiel !== zustand.shareDifficulty) {
         // VarDiff: Der Server passt das Share-Target an. Ohne Nachfuehrung
-        // rechneten die Threads weiter gegen den alten Wert.
+        // rechneten Threads und Karte weiter gegen den alten Wert -- die
+        // Karte gegen ein LEICHTERES Ziel, und jeder Treffer waere
+        // "low_difficulty".
         const vorher = zustand.shareDifficulty;
         zustand.shareDifficulty = neuesZiel;
         const t = toHex(targetBytes(zustand.shareDifficulty));
         arbeiter.forEach(w => w.postMessage({ t: 'target', target: t }));
-        /*
-          Und die Karte. Ohne das rechnet sie weiter gegen das alte,
-          LEICHTERE Ziel -- der Server weist ihre Treffer dann als
-          "low_difficulty" ab, und zwar jeden einzelnen.
-        */
         if (zustand.job) gpu?.job(zustand.job, t);
-        ereignis(`${grau('[' + uhr() + ']')} ${grau('Ziel angepasst')} ` +
-          `${zahl2(vorher)} ${grau('→')} ${zahl2(zustand.shareDifficulty)}`);
+        log('target', grau, `share difficulty ${zahl(vorher)} ${grau('→')} ${zahl(zustand.shareDifficulty)}`);
       }
 
       if (r.block) {
         const aufwand = k.blockGefunden();
-        const reward = (Number(r.reward) / 1e8).toFixed(0);
+        const hoehe = Number(r.height);
+        const link = `${EXPLORER}#block-${hoehe}`;
         ereignis('');
-        ereignis(gruen(fett(`[${uhr()}] BLOCK GEFUNDEN  #${r.height}   +${reward} YSR`)));
-        ereignis(grau(`           ${r.hash}`));
-        if (aufwand !== null) {
-          // Erst beim Fund steht fest, wie viel Arbeit es wirklich war.
-          const urteil = aufwand < 100 ? gruen('Glück') : gelb('Pech');
-          ereignis(grau(`           Aufwand ${aufwand.toFixed(0)} % — `) + urteil +
-            grau(aufwand < 100 ? ', schneller als erwartet' : ', länger als erwartet'));
+        if (r.pool || imPool()) {
+          /*
+            Im Pool gehoert der Block dem Pool: Die Belohnung wird im
+            selben Block nach Arbeit auf alle Miner verteilt. Bis 0.1.0 stand
+            hier "+875 YSR", als ginge alles an diese Adresse.
+          */
+          zustand.poolBloecke++;
+          log('block', s => gruen(fett(s)), gruen(fett(`★ BLOCK FOUND FOR POOL ${poolName() ?? ''}  #${zahl(hoehe)}`)));
+          const yr = r.reward ? zahl(Number(BigInt(r.reward) / 100_000_000n)) : null;
+          ereignis(grau(`${einzug}The ${yr ? yr + ' YSR ' : ''}reward is split among the pool's miners by their work,`));
+          ereignis(grau(`${einzug}${session.pool?.modus === 'batch' ? 'paid out by the pool.' : 'paid directly in this block.'}`));
+        } else {
+          const yr = r.reward ? zahl(Number(BigInt(r.reward) / 100_000_000n)) : '?';
+          log('block', s => gruen(fett(s)), gruen(fett(`★ BLOCK FOUND  #${zahl(hoehe)}   +${yr} YSR`)));
+          ereignis(`${einzug}${grau('paid to ')}${arg.address}`);
+          if (aufwand !== null) {
+            // Erst beim Fund steht fest, wie viel Arbeit es wirklich war.
+            ereignis(`${einzug}${grau('effort  ')}${aufwand.toFixed(0)}% ${grau('—')} ${aufwand < 100
+              ? `${gruen('luck')}${grau(', found faster than expected')}`
+              : `${gelb('bad luck')}${grau(', took longer than expected')}`}`);
+          }
         }
+        if (r.hash) ereignis(`${einzug}${grau('hash    ')}${r.hash}`);
+        ereignis(`${einzug}${grau('explorer')} ${link}`);
         ereignis('');
         holeJob();
         return;
       }
 
       /*
-        Eine Zeile JE angenommenem Share. Vorher passierte stundenlang
-        sichtbar nichts, obwohl durchgehend gerechnet wurde.
-
-        Gezeigt wird die TATSAECHLICH erreichte Difficulty, nicht die
-        verlangte. Die verlangte ist eine Servereinstellung und keine
-        Leistung -- sie nebeneinander zu zeigen liest sich wie dieselbe
-        Groesse in zwei Zustaenden und verwirrt mehr, als sie erklaert.
-        Aendert sie sich, wird das ohnehin eigens gemeldet, und unter der
-        Taste c steht sie jederzeit.
-
-        Der Prozentwert ist die Aussage, um die es geht: Ein Share mit
+        Eine Zeile JE angenommenem Share. Gezeigt wird die TATSAECHLICH
+        erreichte Difficulty und ihr Anteil an einem Block: Ein Share mit
         100 % IST ein Block -- das ist keine Analogie, sondern genau die
         Bedingung.
+
+        Die Nummer bleibt OHNE Tausenderkomma: HiveOS liest sie als Zaehler.
       */
       const erreicht = Number(r.achieved ?? 0);
-      const netz = Number(r.blockDifficulty ?? k.netzDifficulty ?? 0);
-      const anteil = netz > 0 ? (erreicht / netz) * 100 : 0;
-      ereignis(
-        `${grau('[' + uhr() + ']')} ${gruen('angenommen')} ` +
-        `${grau('#')}${k.angenommen}` +
-        `${grau(' · Difficulty ')}${zahl2(erreicht)}` +
-        `${grau(' · ')}${anteil.toFixed(anteil < 10 ? 1 : 0)} %${grau(' eines Blocks')}`);
+      const netzD = Number(r.blockDifficulty ?? k.netzDifficulty ?? 0);
+      const anteil = netzD > 0 ? (erreicht / netzD) * 100 : null;
+      log('accepted', gruen,
+        `#${k.angenommen}${grau(' · diff ')}${zahl(erreicht)}${grau(' · ')}${prozent(anteil)}${grau(' of a block')}`);
     } catch (e) {
-      ereignis(grau(`[${uhr()}] Einreichen fehlgeschlagen: ${e.message}`));
+      log('error', grau, grau(`share not submitted: ${erklaere(e)}`));
     }
   }
 
@@ -688,24 +838,22 @@ async function main() {
       const job = await api(arg.api, `/job?session=${sitzung}`);
       /*
         Der Knoten antwortet auch im Fehlerfall mit HTTP 200 und schreibt
-        den Grund in `error`. Eine solche Antwort ist KEIN Job -- sie an
-        die Threads zu reichen, liess diese frueher an einem Header ohne
-        Felder scheitern.
+        den Grund in `error`. Eine solche Antwort ist KEIN Job.
       */
       if (job?.error === 'session_inactive') {
-        if (sitzung === session.sessionId) void neuAnmelden('Sitzung abgelaufen');
+        if (sitzung === session.sessionId) void neuAnmelden('session expired');
         return;
       }
       // Eine Antwort fuer eine inzwischen abgeloeste Sitzung ist veraltet.
       if (sitzung !== session.sessionId) return;
       if (job?.error || typeof job?.jobId !== 'string') {
-        ereignis(grau(`[${uhr()}] Keine Arbeit vom Knoten: ${job?.detail ?? job?.error ?? 'Antwort ohne Job'}`));
+        log('node', grau, grau(`no work from the node: ${job?.error ? erklaere({ code: job.error }) : 'answer without a job'}`));
         return;
       }
       // Jedes Feld pruefen, bevor es an die Threads und die Karte geht (Issue #3).
       try { pruefeJob(job); }
       catch (e) {
-        ereignis(gelb(`[${uhr()}] Job verworfen: ${e.message}`));
+        log('job', gelb, `job discarded: ${e.message}`);
         return;
       }
       if (job.jobId === zustand.jobId) return;
@@ -725,14 +873,6 @@ async function main() {
       // Die Extranonce der AKTUELLEN Sitzung mitgeben: Nach einer
       // Neuanmeldung ist sie eine andere als beim Start der Threads.
       arbeiter.forEach(w => w.postMessage({ t: 'job', job: { ...job, extranonce: session.extranonce } }));
-      /*
-        Die Karte rechnet gegen dasselbe Share-Ziel wie die Threads -- und
-        braucht dieselbe Extranonce.
-
-        Sie steht in der SITZUNG, nicht im Job: Sie trennt die Nonce-Raeume
-        der Miner und aendert sich waehrend einer Sitzung nicht. Die Worker
-        bekommen sie ueber workerData; die Karte bekommt sie hier.
-      */
       // Den Job merken: Bei einer Ziel-Anpassung muss er der Karte erneut
       // geschickt werden -- sie kennt kein eigenes Ziel-Kommando.
       zustand.job = { ...job, extranonce: session.extranonce };
@@ -741,11 +881,10 @@ async function main() {
       // Neue Arbeit melden -- so sieht man, dass die Kette weiterlaeuft,
       // auch wenn gerade kein eigener Share faellt.
       if (neueHoehe || neueDiff) {
-        ereignis(`${grau('[' + uhr() + ']')} ${grau('neue Arbeit · Block')} ` +
-          `${job.height}${grau(' · Difficulty ')}${zahl2(wert)}`);
+        log('job', blau, `new work${grau(' · block ')}${zahl(job.height)}${grau(' · difficulty ')}${zahl(wert)}`);
       }
     } catch (e) {
-      ereignis(grau(`[${uhr()}] Job holen fehlgeschlagen: ${e.message}`));
+      log('node', grau, grau(`could not fetch work: ${erklaere(e)}`));
     }
   }
 
@@ -758,35 +897,35 @@ async function main() {
   let gpu = null;
   if (arg.rechner !== 'cpu') {
     const programm = findeGpuProgramm(arg.gpuBin);
+    const weiterMitCpu = () => ereignis(grau(`   Continuing with ${threads} CPU ${threads === 1 ? 'thread' : 'threads'}.`));
     if (!programm) {
-      ereignis(gelb('  yskar-cuda nicht gefunden.'));
-      ereignis(grau('  Bauen: siehe node-core/gpu/README.md, oder --gpu-bin <pfad>'));
+      ereignis(`\n ${gelb(fett('! GPU not available — yskar-cuda was not found'))}`);
+      ereignis(`   Put ${process.platform === 'win32' ? 'yskar-cuda.exe' : 'yskar-cuda'} next to the miner, or pass --gpu-bin <path>. NVIDIA only.`);
+      ereignis(grau('   How to build it: node-core/gpu/README.md'));
       if (arg.rechner === 'gpu') await abbrechen();
+      weiterMitCpu();
     } else {
       /*
-        Selbsttest VOR dem ersten Job.
-
-        Eine falsch rechnende Karte liefert Nonces, die der Server ablehnt.
-        Das sieht aus wie ein Netzproblem und kostet Stunden Suche.
+        Selbsttest VOR dem ersten Job. Eine falsch rechnende Karte liefert
+        Nonces, die der Server ablehnt. Das sieht aus wie ein Netzproblem
+        und kostet Stunden Suche.
       */
-      ereignis(grau('  GPU wird geprüft …'));
+      ereignis(grau(`   Checking graphics card ${arg.device} …`));
       const p = pruefeGpu(programm, arg.device);
       if (!p.ok) {
-        ereignis(rot(`  GPU nicht verwendbar: ${p.grund}`));
+        ereignis(`\n ${gelb(fett(`! GPU self-test failed on device ${arg.device}`))}`);
+        ereignis(grau(`   ${p.grund} — the card would only produce rejected shares.`));
         if (arg.rechner === 'gpu') await abbrechen();
+        weiterMitCpu();
       } else {
-        ereignis(gruen(`  GPU bereit: ${p.name ?? 'Gerät ' + arg.device}`));
+        ereignis(gruen(`   ✓ GPU ready: ${p.name ?? 'device ' + arg.device}`));
         gpu = starteGpu({
           programm, geraet: arg.device,
           onShare: (m) => {
             /*
               Treffer zu einem alten Job verwerfen, statt sie einzureichen.
-
-              Die Karte arbeitet in Stapeln von 100 bis 250 ms. Wechselt der
-              Job, laeuft der angefangene Stapel zu Ende -- seine Treffer
-              tragen noch die alte jobId. Der Server wiese sie als
-              "job_foreign" ab; das ist richtig, aber es ist eine Anfrage
-              ueber das Netz fuer ein Ergebnis, das hier schon feststeht.
+              Die Karte arbeitet in Stapeln von 100 bis 250 ms; wechselt der
+              Job, laeuft der angefangene Stapel zu Ende.
             */
             if (m.jobId !== zustand.jobId) { k.verworfen = (k.verworfen ?? 0) + 1; return; }
             sendeShare(m);
@@ -796,50 +935,66 @@ async function main() {
             // Ohne das zaehlt der Aufwand nur die CPU -- siehe gpu.mjs.
             if (roh > 0) k.hashes(roh);
           },
-          onLog: (t) => ereignis(grau(`[${uhr()}] ${t}`)),
+          onLog: (t) => log('gpu', grau, t),
           onAus: (grund) => {
             gpu = null;
             zustand.gpuRate = null;
-            ereignis(rot(`[${uhr()}] GPU ausgefallen: ${grund}`));
+            log('gpu', rot, rot(`graphics card stopped: ${grund}`));
             if (threads === 0) {
-              ereignis(rot('  Ohne CPU-Threads bleibt nichts zu rechnen — Miner beendet.'));
+              ereignis(rot(`${einzug}No CPU threads left to mine with — the miner stops.`));
               void abbrechen();
               return;
             }
-            ereignis(grau('  Es wird mit der CPU weitergerechnet.'));
+            ereignis(grau(`${einzug}Continuing with the CPU.`));
           },
         });
       }
     }
   }
 
+  // Tastenhinweis und fester Kopf -- nach den GPU-Meldungen, damit sie im
+  // Verlauf stehen bleiben.
+  if (process.stdin.isTTY) {
+    console.log(` ${grau('Keys')}  ${blau('h')} hashrate   ${blau('s')} summary   ${blau('c')} connection   ${blau('q')} quit`);
+    /*
+      Der Hinweis auf --simple gehoert hierher und nicht in die Hilfe
+      allein: Wer den festen Kopf stoerend findet, sitzt gerade davor.
+    */
+    if (festerKopf) {
+      console.log(grau(' Fixed header is on — older lines above it cannot be scrolled back.'));
+      console.log(grau(' Run with --simple for a plain, scrollable log. If the window looks broken after'));
+      console.log(grau(` quitting, type ${process.platform === 'win32' ? 'cls' : 'reset'}.\n`));
+    } else {
+      console.log('');
+    }
+  }
+  if (festerKopf) festerKopf.start();
+
   arbeiter.forEach(w => w.postMessage({ t: 'duty', value: arg.intensity }));
 
-  // Job erneuern, bevor er nach 90 s ablaeuft
   /*
-    Ohne CPU-Threads den ersten Job selbst holen.
-
-    Sonst haengt der Start am Zaehler "alle Threads bereit" -- und der
-    erreicht null nie. Der Miner liefe dann bis zum ersten Takt (45 s)
-    ohne Arbeit, und die Karte stuende still.
+    Ohne CPU-Threads den ersten Job selbst holen. Sonst haengt der Start am
+    Zaehler "alle Threads bereit" -- und der erreicht null nie.
   */
   if (threads === 0) await holeJob();
 
+  // Job erneuern, bevor er nach 90 s ablaeuft.
   const jobTakt = setInterval(holeJob, 45_000);
   // Solange keine Sitzung steht, in kurzem Takt erneut anmelden.
-  const wiederTakt = setInterval(() => { if (getrennt) void neuAnmelden('erneuter Versuch'); }, WIEDER_MS);
-  // Die Karte mit herunterfahren -- ein zurueckgelassener Kindprozess
-  // rechnet sonst weiter und haelt das Geraet belegt.
-  for (const sig of ['SIGINT', 'SIGTERM']) {
-    process.on(sig, () => { gpu?.stop(); process.exit(0); });
-  }
+  const wiederTakt = setInterval(() => { if (getrennt) void neuAnmelden('retry'); }, WIEDER_MS);
+  /*
+    Netzangaben alle fuenf Minuten erneuern -- fuer die Belohnung in der
+    Ertragsschaetzung (sie halbiert sich alle 12.000 Bloecke). Darf
+    scheitern; dann bleibt der letzte Stand.
+  */
+  const netzTakt = setInterval(() => {
+    api(arg.api, '/summary').then(n => { netz = n; }).catch(() => {});
+  }, 300_000);
 
   /*
-    Statuszeile, die sich an Ort und Stelle erneuert.
-
-    Sie zeigt nur, was sich staendig aendert. Alles Uebrige steht in der
-    Uebersicht einmal je Minute oder laesst sich per Taste abrufen -- eine
-    Zeile, die alles enthaelt, liest niemand mehr.
+    Statuszeile, die sich an Ort und Stelle erneuert. Mit festem Kopf gibt
+    es keine eigene Statuszeile: Dieselben Zahlen stuenden zweimal auf dem
+    Schirm. Der Kopf wird stattdessen neu gemalt.
   */
   const statusTakt = setInterval(() => {
     const jetzt = Date.now();
@@ -848,12 +1003,7 @@ async function main() {
       if (jetzt - r.at > 3000) zustand.raten.delete(slot);
       else summe += r.rate;
     }
-    /*
-      Die Karte meldet ihre Leistung seltener als die Threads -- ein Stapel
-      dauert 100 bis 250 ms, gemeldet wird danach. Deshalb hier ein
-      groesseres Fenster: Mit 3 Sekunden fiele sie zwischendurch heraus und
-      die Anzeige sprunge.
-    */
+    // Die Karte meldet seltener als die Threads -- deshalb ein groesseres Fenster.
     if (zustand.gpuRate) {
       if (jetzt - zustand.gpuRate.at > 10_000) zustand.gpuRate = null;
       else summe += zustand.gpuRate.rate;
@@ -861,81 +1011,49 @@ async function main() {
     k.probe(summe);
     letzteSumme = summe;
 
-    /*
-      Mit festem Kopf gibt es keine eigene Statuszeile mehr: Dieselben
-      Zahlen stuenden zweimal auf dem Schirm, einmal oben fest und einmal
-      unten mitlaufend. Der Kopf wird stattdessen neu gemalt.
-    */
     if (festerKopf) { festerKopf.malen(); return; }
 
+    const p = grau(' · ');
     const aufwand = k.aufwand();
     zeile(
-      /*
-        padEnd sorgt fuer eine ruhige Spalte, solange der Wert kuerzer ist.
-        Ab drei Stellen vor dem Komma ("103,18 MH/s") ist er es nicht mehr --
-        dann fehlte das Trennzeichen davor und es stand "MH/s·" aneinander.
-        Das Leerzeichen gehoert deshalb hinter das padEnd, nicht hinein.
-      */
-      `${grau('[' + uhr() + ']')} ${gelb(fmtRate2(summe).padEnd(11))} ` +
-      `${grau('·')} ${k.angenommen}${grau('/')}${k.abgelehnt} ` +
-      `${grau('·')} Aufwand ${aufwand === null ? '—' : aufwand.toFixed(0) + ' %'} ` +
-      `${grau('·')} Block ${k.hoehe != null ? '#' + k.hoehe : '—'} ` +
-      `${grau('·')} Diff ${k.netzDifficulty ? zahl2(k.netzDifficulty) : '—'} ` +
-      /*
-        Laufzeit gehoert HIER hin und nicht in den Startkopf: Dort waere
-        sie null. Sie beantwortet die Frage "wie lange laeuft das jetzt
-        schon ohne Block", und die stellt sich erst im Betrieb.
-      */
-      `${grau('·')} ${dauer(k.laufzeit())}` +
-      (k.bloecke ? ` ${grau('·')} ${gruen(k.bloecke + (k.bloecke === 1 ? ' Block' : ' Blöcke'))}` : ''),
+      // Das Leerzeichen gehoert hinter das padEnd, nicht hinein -- sonst
+      // klebt bei langen Werten das Trennzeichen an der Einheit.
+      `${grau('[' + uhr() + ']')} ${gelb(fmtRate(summe).padEnd(11))} ` +
+      `${p}${zahl(k.angenommen)}${grau('/')}${zahl(k.abgelehnt)} shares` +
+      (imPool() ? '' : `${p}effort ${aufwand === null ? '—' : aufwand.toFixed(0) + '%'}`) +
+      `${p}block ${k.hoehe != null ? zahl(k.hoehe) : '—'}` +
+      `${p}up ${dauer(k.laufzeit())}` +
+      (k.bloecke ? `${p}${gruen(k.bloecke + (k.bloecke === 1 ? ' block' : ' blocks'))}` : ''),
     );
   }, 1000);
 
   /*
     Uebersicht einmal je Minute.
 
-    Drei Zeitfenster statt einer Momentaufnahme: Eine einzelne Zahl
-    schwankt, drei zeigen, ob die Leistung stabil ist. Faellt der
-    15-Minuten-Wert deutlich unter den 10-Sekunden-Wert, drosselt das Geraet.
+    Drei Zeitfenster statt einer Momentaufnahme: Faellt der 15-Minuten-Wert
+    deutlich unter den 10-Sekunden-Wert, drosselt das Geraet.
+
+    Die Zeile beginnt mit "stats     10s <rate>" -- HiveOS liest daraus die
+    Hashrate (yskar-log.sh). Eine Rate hat nie ein Tausenderkomma.
   */
   const uebersichtTakt = setInterval(() => {
-    const abstand = k.shareAbstand();
-    ereignis(
-      `${grau('[' + uhr() + ']')} ${grau('10s')} ${fmtRate2(k.rate(10))} ` +
-      `${grau('60s')} ${fmtRate2(k.rate(60))} ` +
-      `${grau('15m')} ${fmtRate2(k.rate(900))} ` +
-      `${grau('·')} ${fmtHashes(k.hashesGesamt)} ${grau('gesamt')} ` +
-      `${grau('· Laufzeit')} ${dauer(k.laufzeit())}` +
-      (abstand ? ` ${grau('· Share alle')} ${dauer(abstand)}` : ''));
-
-    /*
-      Temperaturen, wenn welche messbar sind.
-
-      Eine eigene Zeile statt angehaengt: Die Uebersichtszeile ist schon
-      lang, und wer auf die Kuehlung schaut, sucht etwas anderes als wer
-      auf die Leistung schaut.
-
-      Sind keine Sensoren erreichbar -- macOS, ein Mainboard ohne WMI, ein
-      Container -- steht hier dauerhaft nichts. Das ist kein Fehler und
-      wird auch nicht als einer gemeldet.
-    */
-    /*
-      Beim festen Kopf entfaellt das: Dort steht die Temperatur dauerhaft.
-      Sie zusaetzlich jede Minute in den Verlauf zu schreiben, waere
-      dieselbe Zahl an zwei Stellen.
-    */
+    const abst = k.shareAbstand();
+    log('stats', grau,
+      `${grau('10s')} ${fmtRate(k.rate(10))} ${grau('60s')} ${fmtRate(k.rate(60))} ` +
+      `${grau('15m')} ${fmtRate(k.rate(900))}${grau(' · ')}${fmtHashes(k.hashesGesamt)}${grau(' total')}` +
+      `${grau(' · up ')}${dauer(k.laufzeit())}` +
+      (abst ? `${grau(' · share every ')}${dauer(abst)}` : ''));
+    // Beim festen Kopf steht die Temperatur dauerhaft oben.
     if (!festerKopf) {
       const temp = sensoren.zeile(FARBEN);
-      if (temp) ereignis(`${grau('[' + uhr() + ']')} ${temp}`);
+      if (temp) log('sensors', grau, temp);
     }
   }, 60_000);
 
   /*
-    Tastenbefehle, uebernommen von etablierten Minern: h fuer Hashrate,
-    s fuer eine Zusammenfassung, c fuer die Verbindung.
-
-    Im Rohmodus liefert das System kein SIGINT mehr -- Strg+C muss deshalb
-    selbst abgefangen werden, sonst liesse sich das Programm nicht beenden.
+    Tastenbefehle: h fuer Hashrate, s fuer eine Zusammenfassung, c fuer die
+    Verbindung. Im Rohmodus liefert das System kein SIGINT mehr -- Strg+C
+    muss deshalb selbst abgefangen werden.
   */
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
@@ -943,78 +1061,83 @@ async function main() {
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', taste => {
       if (taste === '\u0003' || taste === 'q') { aufhoeren(); return; }
+      const titel = (t, b) => { ereignis(''); ereignis(` ${blau(t)}  ${fett(b)}`); };
+      const reihe = (m, w) => ereignis(`    ${cyan(m.padEnd(19))} ${w}`);
+      const p = grau(' · ');
 
       if (taste === 'h') {
-        ereignis('');
-        ereignis(fett('  Hashrate'));
-        ereignis(`    10 s    ${fmtRate2(k.rate(10))}`);
-        ereignis(`    60 s    ${fmtRate2(k.rate(60))}`);
-        ereignis(`    15 min  ${fmtRate2(k.rate(900))}`);
-        ereignis(grau('    je Thread'));
-        if (zustand.gpuRate) {
-          console.log(`  ${grau('GPU')}        ${fmtRate2(zustand.gpuRate.rate)}`);
-        }
-        for (const [slot, r] of [...zustand.raten].sort((x, y) => x[0] - y[0])) {
-          ereignis(grau(`      ${String(slot).padStart(2)}    `) + fmtRate2(r.rate));
+        titel('h', 'HASHRATE');
+        reihe('10 s', fmtRate(k.rate(10)));
+        reihe('60 s', fmtRate(k.rate(60)));
+        reihe('15 min', `${fmtRate(k.rate(900))}     ${grau('a drop against 10 s usually means the device is throttling')}`);
+        if (zustand.gpuRate) reihe('GPU', fmtRate(zustand.gpuRate.rate));
+        const liste = [...zustand.raten].sort((x, y) => x[0] - y[0]);
+        if (liste.length) {
+          ereignis(grau('    per CPU thread (MH/s)'));
+          for (let i = 0; i < liste.length; i += 8) {
+            ereignis('     ' + liste.slice(i, i + 8)
+              .map(([slot, r]) => `${grau(String(slot).padStart(2))} ${(r.rate / 1e6).toFixed(2)}`).join('   '));
+          }
         }
         /*
           Temperatur gehoert zur Hashrate, nicht zur Verbindung: Wer sie
-          nachschlaegt, fragt sich meistens, warum die Leistung faellt --
-          und Drosseln wegen Hitze ist die haeufigste Antwort.
+          nachschlaegt, fragt sich meistens, warum die Leistung faellt.
         */
         const t = sensoren.zeile(FARBEN);
-        if (t) { ereignis(''); ereignis(`    ${t}`); }
-        else if (sensoren.verfuegbar === false) {
-          ereignis(grau('    Keine Sensoren erreichbar auf diesem System.'));
-        }
+        if (t) reihe('Sensors', t);
+        else if (sensoren.verfuegbar === false) reihe('Sensors', grau('none available on this system'));
         ereignis('');
       } else if (taste === 's') {
+        const r = k.rate(60) || k.rate(10);
+        const sch = jetztSchaetzung(r);
         const aufwand = k.aufwand();
         const schnitt = k.aufwandVerlauf.length
           ? k.aufwandVerlauf.reduce((x, y) => x + y, 0) / k.aufwandVerlauf.length : null;
-        ereignis('');
-        ereignis(fett('  Zusammenfassung'));
-        ereignis(`    Laufzeit          ${dauer(k.laufzeit())}`);
-        ereignis(`    Hashes gesamt     ${fmtHashes(k.hashesGesamt)}`);
-        ereignis(`    Shares            ${k.angenommen} angenommen, ${k.abgelehnt} abgelehnt`);
-        ereignis(`    Blöcke            ${k.bloecke}`);
-        ereignis(`    Aufwand jetzt     ${aufwand === null ? '—' : aufwand.toFixed(0) + ' %'}`);
-        if (schnitt !== null) {
-          ereignis(`    Aufwand im Mittel ${schnitt.toFixed(0)} % ` +
-            grau(`über ${k.aufwandVerlauf.length} Blöcke`));
+        const abst = k.shareAbstand();
+        titel('s', 'SUMMARY');
+        reihe('Runtime', dauer(k.laufzeit()));
+        reihe('Hashes', fmtHashes(k.hashesGesamt));
+        reihe('Shares', `${zahl(k.angenommen)} accepted${p}${zahl(k.abgelehnt)} rejected${
+          abst ? grau(` · one every ${dauer(abst)}`) : ''}`);
+        reihe('Blocks found', imPool() ? `${zahl(zustand.poolBloecke)} for the pool` : zahl(k.bloecke));
+        if (sch) {
+          reihe('Your network share', `${prozent(sch.anteil * 100)} ${grau(`(${fmtRate(r)} of ${fmtRate(sch.netzRate)})`)}`);
+          if (sch.jeTag != null) {
+            reihe(imPool() ? 'Pool earnings' : 'Solo earnings', `≈ ${ysrTag(sch.jeTag)} YSR/day ${grau(imPool() && gebuehr()
+              ? `(estimate, after ${(gebuehr() / 100).toFixed(2)}% fee)` : '(estimate, on average)')}`);
+          }
+          reihe(imPool() ? 'Solo instead' : 'Next block', `≈ 1 block every ${abstand(sch.blockAlle)} ${grau('(estimate)')}`);
         }
-        ereignis(`    Nächster Block    ${grau('erwartet in')} ${dauer(k.erwarteteZeit())}`);
-        ereignis(grau('    Die Erwartung ist ein Mittelwert, kein Countdown —'));
-        ereignis(grau('    Mining ist gedächtnislos.'));
+        if (!imPool()) {
+          reihe('Effort now', aufwand === null ? '—' : `${aufwand.toFixed(0)}%`);
+          if (schnitt !== null) reihe('Effort average', `${schnitt.toFixed(0)}% ${grau(`over ${k.aufwandVerlauf.length} blocks`)}`);
+        }
+        ereignis(grau('    Estimates are averages, not a countdown — every hash has the same chance.'));
         ereignis('');
       } else if (taste === 'c') {
-        ereignis('');
-        ereignis(fett('  Verbindung'));
-        ereignis(`    Server            ${arg.api}`);
-        ereignis(`    Adresse           ${arg.address}`);
-        ereignis(`    Session           ${session.sessionId}`);
-        ereignis(`    Extranonce        ${session.extranonce}`);
-        ereignis(`    Block             ${k.hoehe ?? '—'}`);
-        ereignis(`    Netz-Difficulty   ${k.netzDifficulty ? zahl2(k.netzDifficulty) : '—'}`);
-        ereignis(`    Share-Ziel        ${zahl2(zustand.shareDifficulty)}`);
-        ereignis(`    Threads           ${threads}, Intensität ${arg.intensity} %`);
+        titel('c', 'CONNECTION');
+        reihe('Node', arg.api);
+        reihe('Mode', imPool()
+          ? [`Pool`, session.pool.name, `fee ${(gebuehr() / 100).toFixed(2)}%`,
+              session.pool.belegt != null && session.pool.plaetze != null
+                ? `${zahl(session.pool.belegt)} of ${zahl(session.pool.plaetze)} miners` : null]
+              .filter(Boolean).join(p)
+          : 'Solo');
+        reihe('Payout address', arg.address);
+        reihe('Session', `${session.sessionId}${zustand.neuanmeldungen
+          ? grau(` (reconnected ${zustand.neuanmeldungen}×)`) : ''}`);
+        reihe('Extranonce', String(session.extranonce ?? '—'));
+        reihe('Block', k.hoehe != null ? zahl(k.hoehe) : '—');
+        reihe('Network difficulty', k.netzDifficulty ? zahl(k.netzDifficulty) : '—');
+        reihe('Share target', zahl(zustand.shareDifficulty));
+        reihe('Compute', [
+          threads ? `${threads} CPU ${threads === 1 ? 'thread' : 'threads'}` : null,
+          gpu ? `graphics card ${arg.device}` : null,
+          threads ? `intensity ${arg.intensity}%` : null,
+        ].filter(Boolean).join(p));
         ereignis('');
       }
     });
-
-    console.log(grau('  Tasten: h Hashrate · s Zusammenfassung · c Verbindung · q Ende'));
-    /*
-      Der Hinweis auf --einfach gehoert hierher und nicht in die Hilfe
-      allein: Wer den festen Kopf stoerend findet, sitzt gerade davor.
-      Und der Satz zum Verlauf beugt der Frage vor, warum sich nicht mehr
-      hochscrollen laesst.
-    */
-    if (festerKopf) {
-      console.log(grau('  Fester Kopf aktiv — der Verlauf oberhalb ist nicht scrollbar.'));
-      console.log(grau('  Mit --einfach abschalten. Bleibt das Fenster nach dem Ende schief: cls\n'));
-    } else {
-      console.log('');
-    }
   }
 
   // ---- Sauber beenden ----
@@ -1022,23 +1145,38 @@ async function main() {
   async function aufhoeren() {
     if (beendet) return;
     beendet = true;
-    clearInterval(jobTakt); clearInterval(wiederTakt); clearInterval(statusTakt); clearInterval(uebersichtTakt);
+    clearInterval(jobTakt); clearInterval(wiederTakt); clearInterval(statusTakt);
+    clearInterval(uebersichtTakt); clearInterval(netzTakt);
     sensoren.stop();
+    gpu?.stop();
     festerKopf?.stop();
     if (process.stdin.isTTY) { try { process.stdin.setRawMode(false); } catch { /* egal */ } }
     ereignis('');
-    ereignis(grau('Beende…'));
+    ereignis(grau(' Stopping …'));
     arbeiter.forEach(w => { w.postMessage({ t: 'stop' }); w.terminate(); });
     // Session schliessen, damit sie nicht bis zum Zeitablauf offen bleibt
     await api(arg.api, '/session/stop', {
       method: 'POST',
       body: JSON.stringify({ sessionId: session.sessionId }),
     }).catch(() => {});
-    console.log(`\n  Laufzeit      ${dauer(k.laufzeit())}`);
-    console.log(`  Hashes        ${fmtHashes(k.hashesGesamt)}`);
-    console.log(`  Angenommen    ${k.angenommen}`);
-    console.log(`  Abgelehnt     ${k.abgelehnt}`);
-    console.log(`  Blöcke        ${k.bloecke}\n`);
+    const sek = k.laufzeit();
+    const schnitt = sek > 0 ? Number(k.hashesGesamt) / sek : 0;
+    const quote = k.angenommen + k.abgelehnt > 0 ? (k.abgelehnt / (k.angenommen + k.abgelehnt)) * 100 : null;
+    const r = (m, w) => console.log(`   ${cyan(m.padEnd(14))} ${w}`);
+    console.log(`\n ${fett('SESSION SUMMARY')}`);
+    console.log(grau(' ' + '─'.repeat(56)));
+    r('Runtime', dauer(sek));
+    r('Hashes', `${fmtHashes(k.hashesGesamt)} ${grau(`(average ${fmtRate(schnitt)})`)}`);
+    r('Shares', `${zahl(k.angenommen)} accepted ${grau('·')} ${zahl(k.abgelehnt)} rejected${
+      quote !== null ? grau(` (${quote.toFixed(1)}%)`) : ''}`);
+    r('Blocks found', zustand.poolBloecke && zustand.poolBloecke === k.bloecke
+      ? `${zahl(k.bloecke)} for the pool`
+      : zustand.poolBloecke
+        ? `${zahl(k.bloecke - zustand.poolBloecke)} solo ${grau('·')} ${zahl(zustand.poolBloecke)} for the pool`
+        : zahl(k.bloecke));
+    r('Payout address', arg.address);
+    r('Balance', `${EXPLORER}#adr-${arg.address}`);
+    console.log(grau(' ' + '─'.repeat(56)) + '\n');
     process.exit(0);
   }
   process.on('SIGINT', aufhoeren);
@@ -1067,8 +1205,8 @@ function wasmPfad() {
     const treffer = readdirSync(ort).find(n => /^miner\.[0-9a-f]{10}\.wasm$/.test(n));
     if (treffer) return join(ort, treffer);
   }
-  console.error(rot('miner.<hash>.wasm nicht gefunden.'));
-  console.error(grau('Erwartet neben dem Miner oder in public/ des Projekts.'));
+  console.error(rot(' miner.<hash>.wasm not found.'));
+  console.error(grau(' Expected next to the miner or in public/ of the project.'));
   process.exit(1);
 }
 
