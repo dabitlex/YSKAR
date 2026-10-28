@@ -22,7 +22,6 @@ export const PREISE_USD = [300, 200, 150, 50, 50, 50, 50, 50, 50, 50] as const;
 
 export const MINING_TAGE = 3;
 export const FENSTER_TAGE = 14;
-export const MAX_LOSE = 20;
 export const TAGESLIMIT = 10;
 
 export const PREIS_ADRESSE = 'ysr1r05c00cn880ckwlknuv2yc7resp400reqwu3wx';
@@ -58,8 +57,9 @@ export function fristFuer(angemeldetMs: number): number {
 
 /**
  * Lose einer Person: je bestaetigte Empfehlung 1, plus 1 fuer die eigene
- * bestaetigte Teilnahme als Geworbener. Hoechstens MAX_LOSE.
+ * bestaetigte Teilnahme als Geworbener. Ohne Obergrenze (seit 28.10.2026);
+ * gebremst wird nur ueber TAGESLIMIT. Gewinnen kann jede Person hoechstens einmal.
  */
 export function lose(bestaetigteEmpfehlungen: number, selbstBestaetigt: boolean): number {
-  return Math.min(MAX_LOSE, bestaetigteEmpfehlungen + (selbstBestaetigt ? 1 : 0));
+  return bestaetigteEmpfehlungen + (selbstBestaetigt ? 1 : 0);
 }

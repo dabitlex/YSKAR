@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Eigene Empfehlung',
     } as Record<string, string>,
     keine: 'Noch keine Empfehlungen. Teile deinen Link, um zu starten.',
-    regelHinweis: 'Ein Los je Telegram-Konto und Wallet. Gezählt werden bis zu 10 Empfehlungen pro Tag und 20 Lose pro Person.',
+    regelHinweis: 'Ein Los je Telegram-Konto und Wallet. Gezählt werden bis zu 10 Empfehlungen pro Tag, ohne Obergrenze bei den Losen.',
     preisStruktur: 'Preisaufteilung · 10 Gewinner',
     platz1: '1. Platz', platz2: '2. Platz', platz3: '3. Platz', platz410: '4.–10. Platz',
     jeweils: (n: number) => `je ${n} USD`, summe: 'Summe',

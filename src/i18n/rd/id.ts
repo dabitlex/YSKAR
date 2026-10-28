@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Referral sendiri',
     } as Record<string, string>,
     keine: 'Belum ada referral. Bagikan link-mu untuk memulai.',
-    regelHinweis: 'Satu tiket per akun Telegram dan wallet. Dihitung maksimal 10 referral per hari dan 20 tiket per orang.',
+    regelHinweis: 'Satu tiket per akun Telegram dan wallet. Dihitung maksimal 10 referral per hari, tanpa batas jumlah tiket.',
     preisStruktur: 'Pembagian hadiah · 10 pemenang',
     platz1: 'Peringkat 1', platz2: 'Peringkat 2', platz3: 'Peringkat 3', platz410: 'Peringkat 4–10',
     jeweils: (n: number) => `Masing-masing ${n} USD`, summe: 'Total',

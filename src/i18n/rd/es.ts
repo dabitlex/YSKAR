@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Referido propio',
     } as Record<string, string>,
     keine: 'Aún no tienes referidos. Comparte tu enlace para empezar.',
-    regelHinweis: 'Una participación por cuenta de Telegram y wallet. Se cuentan hasta 10 referidos por día y 20 participaciones por persona.',
+    regelHinweis: 'Una participación por cuenta de Telegram y wallet. Se cuentan hasta 10 referidos por día, sin límite de participaciones.',
     preisStruktur: 'Reparto de premios · 10 ganadores',
     platz1: '1.er puesto', platz2: '2.º puesto', platz3: '3.er puesto', platz410: '4.º – 10.º puesto',
     jeweils: (n: number) => `${n} USD cada uno`, summe: 'Total',

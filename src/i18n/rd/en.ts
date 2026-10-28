@@ -119,7 +119,7 @@ const rd = {
       selbst: 'Own referral',
     } as Record<string, string>,
     keine: 'No referrals yet. Share your link to get started.',
-    regelHinweis: 'One entry per Telegram account and wallet. Up to 10 referrals per day and 20 entries per person are counted.',
+    regelHinweis: 'One entry per Telegram account and wallet. Up to 10 referrals per day are counted, with no cap on entries.',
     preisStruktur: 'Prize structure · 10 winners',
     platz1: '1st place', platz2: '2nd place', platz3: '3rd place', platz410: '4th – 10th place',
     jeweils: (n: number) => `${n} USD each`, summe: 'Total',

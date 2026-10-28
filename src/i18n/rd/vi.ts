@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Tự giới thiệu chính mình',
     } as Record<string, string>,
     keine: 'Chưa có lượt giới thiệu nào. Hãy chia sẻ liên kết của bạn để bắt đầu.',
-    regelHinweis: 'Mỗi tài khoản Telegram và mỗi ví chỉ được một vé. Tính tối đa 10 lượt giới thiệu mỗi ngày và 20 vé mỗi người.',
+    regelHinweis: 'Mỗi tài khoản Telegram và mỗi ví chỉ được một vé. Tính tối đa 10 lượt giới thiệu mỗi ngày, không giới hạn số vé.',
     preisStruktur: 'Cơ cấu giải thưởng · 10 người thắng',
     platz1: 'Hạng 1', platz2: 'Hạng 2', platz3: 'Hạng 3', platz410: 'Hạng 4–10',
     jeweils: (n: number) => `Mỗi người ${n} USD`, summe: 'Tổng',

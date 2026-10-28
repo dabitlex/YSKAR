@@ -181,7 +181,11 @@ export async function stand(initData: string): Promise<{ ok: true; stand: Stand 
   const { data: geworbene } = await T().select('*').eq('geworben_von', selbst!.code)
     .order('angemeldet_am', { ascending: false }).limit(200);
   const liste = await pruefen((geworbene ?? []) as Zeile[]);
-  const bestaetigt = liste.filter(z => z.status === 'bestaetigt').length;
+  // Angezeigt werden die neuesten 200; die Lose zaehlen ALLE bestaetigten
+  // (ohne Obergrenze kann ein Werber mehr als 200 haben).
+  const { count } = await T().select('tg_fingerabdruck', { count: 'exact', head: true })
+    .eq('geworben_von', selbst!.code).eq('status', 'bestaetigt');
+  const bestaetigt = Math.max(count ?? 0, liste.filter(z => z.status === 'bestaetigt').length);
 
   const { data: g } = await db().schema('chain2').from('aktion_gewinner')
     .select('platz, betrag_usd, code').eq('adresse', selbst!.adresse).maybeSingle();

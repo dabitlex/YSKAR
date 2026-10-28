@@ -32,10 +32,11 @@ test('Fristen in UTC', () => {
   assert.equal(fristFuer(Date.UTC(2027, 1, 5)), PRUEF_ENDE);
 });
 
-test('Lose: je bestaetigte Empfehlung 1, eigene Bestaetigung 1, hoechstens 20', () => {
+test('Lose: je bestaetigte Empfehlung 1, eigene Bestaetigung 1, ohne Obergrenze', () => {
   assert.equal(lose(0, false), 0);
   assert.equal(lose(3, true), 4);
-  assert.equal(lose(40, true), 20);
+  assert.equal(lose(40, true), 41);
+  assert.equal(lose(500, false), 500);
 });
 
 test('Empfehlungscode wie im bisherigen Einladungslink', () => {

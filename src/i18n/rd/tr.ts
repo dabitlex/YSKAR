@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Kendi davetin',
     } as Record<string, string>,
     keine: 'Henüz davet yok. Başlamak için bağlantını paylaş.',
-    regelHinweis: 'Telegram hesabı ve cüzdan başına bir çekiliş hakkı. Günde en fazla 10 davet ve kişi başı en fazla 20 çekiliş hakkı sayılır.',
+    regelHinweis: 'Telegram hesabı ve cüzdan başına bir çekiliş hakkı. Günde en fazla 10 davet sayılır, çekiliş hakkı sayısında sınır yoktur.',
     preisStruktur: 'Ödül dağılımı · 10 kazanan',
     platz1: '1. sıra', platz2: '2. sıra', platz3: '3. sıra', platz410: '4.–10. sıra',
     jeweils: (n: number) => `Kişi başı ${n} USD`, summe: 'Toplam',
