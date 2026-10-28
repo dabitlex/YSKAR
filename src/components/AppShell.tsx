@@ -32,7 +32,11 @@ import Benchmark from '@/components/Benchmark';
 import { gespeichert, type BenchErgebnis } from '@/hooks/useBenchmark';
 import Settings from '@/components/Settings';
 import { einstiegAbholen, SICHERN_PFLICHT } from '@/lib/einstieg';
-import { useZurueckTaste, haptik, kampagneMerken } from '@/lib/telegram/webapp';
+import { useZurueckTaste, haptik, kampagneMerken, startParam } from '@/lib/telegram/webapp';
+import AktionSeite, { AktionHinweis } from '@/components/aktion/Aktion';
+import { useAktion } from '@/lib/aktion/useAktion';
+import { PREIS_ADRESSE } from '@/lib/aktion/regeln';
+import type { Zahlung } from '@/lib/wallet/qr';
 
 /**
  * Rahmen der App.
@@ -53,7 +57,17 @@ import { useZurueckTaste, haptik, kampagneMerken } from '@/lib/telegram/webapp';
  */
 
 type Ansicht = null | 'senden' | 'scannen' | 'empfangen' | 'einstellungen' | 'benchmark' | 'sichern'
-  | { artikel: string };
+  | 'aktion' | 'aktionErgebnis' | { artikel: string };
+
+/**
+ * Gewinn abholen: Der Community-Bot oeffnet die App mit
+ * startapp=claim_W_XXXX_TAG. Daraus wird eine vorbereitete Zahlung von
+ * 0.0001 YSR mit der Notiz W-XXXX-TAG an die Preis-Adresse (Eigentumsnachweis).
+ */
+function nachweisAusStart(): Zahlung | null {
+  const m = /^claim_W_([A-Z0-9]{4,8})_([A-F0-9]{4})$/.exec(startParam() ?? '');
+  return m ? { adresse: PREIS_ADRESSE, betrag: 10_000n, notiz: `W-${m[1]}-${m[2]}` } : null;
+}
 
 export default function AppShell({ platform }: { platform: string }) {
   const wallet = useWallet();
@@ -78,6 +92,10 @@ export default function AppShell({ platform }: { platform: string }) {
   // Gebuehr erhoehen: welche eigene Zahlung ersetzt wird (Send beginnt dann beim Pruefen).
   const [ersetzen, setErsetzen] = useState<EigeneZahlung | null>(null);
   const [gesperrt, setGesperrt] = useState(false);
+  const aktion = useAktion();
+  // Vorbereitete Zahlung (Eigentumsnachweis fuer einen Gewinn), einmal je Start.
+  const [vorgabe, setVorgabe] = useState<Zahlung | null>(null);
+  const nachweisGeprueft = useRef(false);
 
   useEffect(() => { kampagneMerken(); }, []);
   // Eigener Blockfund: kurzer Erfolgs-Ruck, einmal pro Fund.
@@ -158,6 +176,16 @@ export default function AppShell({ platform }: { platform: string }) {
     return () => clearTimeout(id);
   }, [autostart, pflichtOffen, wallet.phase, pool.geladen, pool.modus, hatVorschlag]);
 
+  useEffect(() => {
+    if (nachweisGeprueft.current || wallet.phase !== 'offen' || pflichtOffen) return;
+    nachweisGeprueft.current = true;
+    const z = nachweisAusStart();
+    if (!z) return;
+    setVorgabe(z);
+    senden('senden');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet.phase, pflichtOffen]);
+
   const startStopp = () => { if (m.mining) m.stop(); else starten(); };
 
   /** Senden nur mit gesicherten Woertern. */
@@ -195,12 +223,18 @@ export default function AppShell({ platform }: { platform: string }) {
           <Benchmark onZurueck={() => setAnsicht(null)}
                      onUebernehmen={(w) => { setWorker(w); setAnsicht(null); }}
                      onErgebnis={setBench} />
+        ) : ansicht === 'aktion' || ansicht === 'aktionErgebnis' ? (
+          <AktionSeite code={aktion.code} ergebnisZuerst={ansicht === 'aktionErgebnis'} onZurueck={() => setAnsicht(null)} />
         ) : ansicht && typeof ansicht === 'object' ? (
           <Artikel artikel={inhalte(sprache, locale).ARTIKEL.find(a => a.slug === ansicht.artikel)
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
         ) : tab === 'mine' ? (<>
           <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
+                   hinweis={aktion.hinweis ? (
+                     <AktionHinweis gewinnUsd={aktion.gewinn?.betrag_usd ?? null} onSchliessen={aktion.schliessen}
+                                    onOeffnen={() => setAnsicht(aktion.gewinn ? 'aktionErgebnis' : 'aktion')} />
+                   ) : null}
                    onStartStopp={startStopp}
                    onSichern={() => setAnsicht('sichern')}
                    onEinstellungen={() => setAnsicht('einstellungen')}
@@ -222,7 +256,7 @@ export default function AppShell({ platform }: { platform: string }) {
           <EntdeckenTab summary={m.summary} decimals={dec} symbol={sym} meineAdresse={wallet.address}
                         onEinstellungen={() => setAnsicht('einstellungen')} />
         ) : (
-          <CommunityTab adresse={wallet.address} />
+          <CommunityTab adresse={wallet.address} onAktion={aktion.bereit ? () => setAnsicht('aktion') : undefined} />
         )}
       </main>
 
@@ -231,13 +265,13 @@ export default function AppShell({ platform }: { platform: string }) {
       <BottomNav aktiv={tab} onWechsel={t => { setAnsicht(null); setTab(t); }} />
 
       {/* Senden und Empfangen sind Blaetter ueber dem Reiter. */}
-      <Blatt offen={ansicht === 'senden' || ansicht === 'scannen'} onSchliessen={() => setAnsicht(null)} grund="ink">
+      <Blatt offen={ansicht === 'senden' || ansicht === 'scannen'} onSchliessen={() => { setVorgabe(null); setAnsicht(null); }} grund="ink">
         {(ansicht === 'senden' || ansicht === 'scannen') && (
           <Send account={m.account} decimals={dec} symbol={sym} ersetzen={ersetzen}
-                key={ersetzen?.txid ?? 'neu'}
+                key={ersetzen?.txid ?? (vorgabe ? 'nachweis' : 'neu')} vorgabe={ersetzen ? null : vorgabe}
                 scanSofort={ansicht === 'scannen'} onGesendet={m.refreshAccount}
-                onFertig={() => { m.refreshAccount(); setAnsicht(null); }}
-                onAbbruch={() => setAnsicht(null)} />
+                onFertig={() => { m.refreshAccount(); setVorgabe(null); setAnsicht(null); }}
+                onAbbruch={() => { setVorgabe(null); setAnsicht(null); }} />
         )}
       </Blatt>
       <Blatt offen={ansicht === 'empfangen'} onSchliessen={() => setAnsicht(null)} grund="ink">

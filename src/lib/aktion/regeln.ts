@@ -5,6 +5,8 @@
  * wiederverwendet werden koennen.
  */
 
+/** Start der Aktion (fuer die Fortschrittsleiste). */
+export const START = Date.UTC(2026, 9, 28, 0, 0, 0);
 /** Empfehlungen bis 31.01.2027, 00:00 UTC. */
 export const ENDE = Date.UTC(2027, 0, 31, 0, 0, 0);
 /** Pruefung (3 Mining-Tage) bis 14.02.2027, 00:00 UTC. */

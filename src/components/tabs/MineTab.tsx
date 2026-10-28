@@ -34,9 +34,11 @@ function heuteEingang(history: HistoryEintrag[] | undefined, dec: number): numbe
     .reduce((s, e) => s + Number(e.amount), 0) / 10 ** dec;
 }
 
-export default function MineTab({ m, dec, pool, gesichert, poolName, onStartStopp, onSichern, onEinstellungen, onPoolWaehlen }: {
+export default function MineTab({ m, dec, pool, gesichert, poolName, hinweis, onStartStopp, onSichern, onEinstellungen, onPoolWaehlen }: {
   m: Mining; dec: number; pool: PoolAuswahl; gesichert: boolean;
   poolName: string | null;
+  /** Schmale, schliessbare Zeile unter dem Gruss (Aktion). Die Sicherung geht vor. */
+  hinweis?: React.ReactNode;
   onStartStopp: () => void; onSichern: () => void; onEinstellungen: () => void; onPoolWaehlen: () => void;
 }) {
   const { t, zahl } = useT();
@@ -89,6 +91,7 @@ export default function MineTab({ m, dec, pool, gesichert, poolName, onStartStop
           <span className="font-mono text-[13px] text-amber">{t.rd.sicher.zeit}</span>
         </button>
       )}
+      {gesichert && hinweis}
 
       <LastRing aktiv={m.mining} last={m.duty} onLast={v => m.setDuty(v)}>
         {m.mining ? (<>

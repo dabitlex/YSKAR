@@ -7,6 +7,7 @@ import { ExternLink } from '@/components/ui/ExternLink';
 import { COMMUNITY, einladungsLink } from '@/lib/community';
 import { teilen } from '@/lib/telegram/webapp';
 import { useT } from '@/i18n';
+import { AktionZeile } from '@/components/aktion/Aktion';
 
 /**
  * Community: alle Wege nach draussen an einer Stelle.
@@ -16,7 +17,7 @@ import { useT } from '@/i18n';
  * Mini App mit einer Kennung (startapp=ref_...), die nur aus einem Stueck
  * der eigenen, ohnehin oeffentlichen Adresse besteht.
  */
-export default function CommunityTab({ adresse }: { adresse: string | null }) {
+export default function CommunityTab({ adresse, onAktion }: { adresse: string | null; onAktion?: () => void }) {
   const { t } = useT();
   const [kopiert, setKopiert] = useState(false);
 
@@ -54,6 +55,7 @@ export default function CommunityTab({ adresse }: { adresse: string | null }) {
       </section>
 
       <ul className="rise rise-1 mt-6 border-t border-line">
+        {onAktion && <AktionZeile onOeffnen={onAktion} />}
         {eintraege.map(e => (
           <li key={e.href} className="border-b border-line">
             <ExternLink href={e.href} className="flex items-center gap-3.5 py-[14px] active:bg-surface">

@@ -11,6 +11,7 @@ import { telegramFarben, useZurueckTaste, haptik, imTelegram } from '@/lib/teleg
 import { leistenFaerben } from '@/lib/native/leisten';
 import { einstiegMerken } from '@/lib/einstieg';
 import { Zeichen, Muenze3D, Schild, Boerse } from '@/components/ui/Marke';
+import { AktionEingeladen, useEingeladen } from '@/components/aktion/Aktion';
 
 /**
  * Der Einstieg (Redesign Oktober 2026) -- fuer jemanden, der YSKAR noch nicht
@@ -185,8 +186,10 @@ const IC = {
 
 function Willkommen1({ onWeiter, onSkip }: { onWeiter: () => void; onSkip: () => void }) {
   const { t, sprache, setSprache } = useT();
+  const eingeladen = useEingeladen();
   return (
     <Seite gap="gap-3.5">
+      {eingeladen && <AktionEingeladen />}
       <div className="relative flex min-h-10 items-center justify-between">
         <Punkte aktiv={0} />
         {/* Sprache zuerst: Wer die Sprache nicht versteht, kann den Rest nicht beurteilen. */}

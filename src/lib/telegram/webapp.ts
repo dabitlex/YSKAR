@@ -156,3 +156,37 @@ export function kampagneMerken(): void {
     localStorage.setItem(KAMPAGNE, JSON.stringify({ code, am: new Date().toISOString() }));
   } catch { /* privates Fenster */ }
 }
+
+/** Die rohen Startdaten (fuer Serverpruefungen); leer ausserhalb von Telegram. */
+export function initDataRoh(): string {
+  const d = webApp()?.initData;
+  return typeof d === 'string' ? d : '';
+}
+
+/** start_param aus t.me/YSKAR_bot?startapp=<…>, sonst null. */
+export function startParam(): string | null {
+  const p = webApp()?.initDataUnsafe?.start_param;
+  return typeof p === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(p) ? p : null;
+}
+
+/** Telegram-Nutzer-ID (nur fuer die Signatur der Aktion-Anmeldung). */
+export function telegramId(): number | null {
+  const id = webApp()?.initDataUnsafe?.user?.id;
+  return typeof id === 'number' ? id : null;
+}
+
+/**
+ * Telegram CloudStorage (gilt fuer das Telegram-Konto, auf allen Geraeten).
+ * Ausserhalb von Telegram oder bei aelteren Clients: null bzw. nichts.
+ */
+export function cloudLesen(schluessel: string): Promise<string | null> {
+  const cs = webApp()?.CloudStorage;
+  if (!cs?.getItem) return Promise.resolve(null);
+  return new Promise(resolve => {
+    try { cs.getItem(schluessel, (err: unknown, wert?: string) => resolve(err ? null : (wert || null))); }
+    catch { resolve(null); }
+  });
+}
+export function cloudSchreiben(schluessel: string, wert: string): void {
+  try { webApp()?.CloudStorage?.setItem?.(schluessel, wert); } catch { /* aeltere Clients */ }
+}

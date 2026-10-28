@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
 import { isValidAddress, decodeAddress } from '@/lib/core/address';
 import { buildTransfer, serializeTx, txid } from '@/lib/core/tx';
@@ -78,7 +78,7 @@ interface Ausgang {
 }
 
 export default function Send({ account, decimals, symbol, scanSofort, onGesendet,
-                               onFertig, onAbbruch, ersetzen }: {
+                               onFertig, onAbbruch, ersetzen, vorgabe }: {
   account: (Account & { history?: Ausgang[] }) | null; decimals: number; symbol: string;
   /** Aus der Wallet mit „Scannen" geoeffnet: Kamera zuerst, Formular danach. */
   scanSofort?: boolean;
@@ -91,6 +91,8 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
    * beim Pruefen; Empfaenger und Betrag stehen fest.
    */
   ersetzen?: EigeneZahlung | null;
+  /** Vorbereitete Zahlung (z. B. Eigentumsnachweis fuer einen Gewinn): wie aus einem QR-Code. */
+  vorgabe?: Zahlung | null;
 }) {
   const wallet = useWallet();
   const { t, locale } = useT();
@@ -136,6 +138,14 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     setAlles(false); setAusCode(!!z.betrag);
     setNotiz(z.notiz ? notizKuerzen(z.notiz) : ''); setNotizAusCode(!!z.notiz);
   }, [zeichen]);
+  // Vorbereitete Zahlung: einmal uebernehmen, dann gleich zum Betrag.
+  const vorgabeUebernommen = useRef(false);
+  useEffect(() => {
+    if (!vorgabe || vorgabeUebernommen.current) return;
+    vorgabeUebernommen.current = true;
+    uebernehmen(vorgabe, false);
+    setSchritt('betrag');
+  }, [vorgabe, uebernehmen]);
   // Anderer Empfaenger von Hand: Was aus einem Code kam, gehoert nicht zu ihm.
   const empfaengerWechsel = () => {
     setGescannt(false); setEinfuegeFehler(null);
