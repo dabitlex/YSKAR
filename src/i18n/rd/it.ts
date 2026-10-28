@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Autoinvito',
     } as Record<string, string>,
     keine: 'Ancora nessun invito. Condividi il tuo link per iniziare.',
-    regelHinweis: 'Un biglietto per account Telegram e wallet. Vengono contati fino a 10 inviti al giorno, senza limite di biglietti.',
+    regelHinweis: 'Un biglietto per account Telegram e wallet. Nessun limite: ogni invito confermato conta.',
     preisStruktur: 'Ripartizione dei premi · 10 vincitori',
     platz1: '1° posto', platz2: '2° posto', platz3: '3° posto', platz410: '4° – 10° posto',
     jeweils: (n: number) => `${n} USD ciascuno`, summe: 'Totale',

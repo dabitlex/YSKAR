@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Własne polecenie',
     } as Record<string, string>,
     keine: 'Brak poleceń. Udostępnij swój link, aby zacząć.',
-    regelHinweis: 'Jeden los na konto Telegram i portfel. Liczy się do 10 poleceń dziennie, bez limitu losów.',
+    regelHinweis: 'Jeden los na konto Telegram i portfel. Bez limitu: liczy się każde potwierdzone polecenie.',
     preisStruktur: 'Podział nagród · 10 zwycięzców',
     platz1: '1. miejsce', platz2: '2. miejsce', platz3: '3. miejsce', platz410: '4.–10. miejsce',
     jeweils: (n: number) => `po ${n} USD`, summe: 'Suma',

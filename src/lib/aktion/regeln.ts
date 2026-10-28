@@ -22,7 +22,6 @@ export const PREISE_USD = [300, 200, 150, 50, 50, 50, 50, 50, 50, 50] as const;
 
 export const MINING_TAGE = 3;
 export const FENSTER_TAGE = 14;
-export const TAGESLIMIT = 10;
 
 export const PREIS_ADRESSE = 'ysr1r05c00cn880ckwlknuv2yc7resp400reqwu3wx';
 export const COMMUNITY_BOT = 'yskar_community_bot';
@@ -57,8 +56,8 @@ export function fristFuer(angemeldetMs: number): number {
 
 /**
  * Lose einer Person: je bestaetigte Empfehlung 1, plus 1 fuer die eigene
- * bestaetigte Teilnahme als Geworbener. Ohne Obergrenze (seit 28.10.2026);
- * gebremst wird nur ueber TAGESLIMIT. Gewinnen kann jede Person hoechstens einmal.
+ * bestaetigte Teilnahme als Geworbener. Ohne Obergrenze und ohne
+ * Tagesgrenze (seit 28.10.2026). Gewinnen kann jede Person hoechstens einmal.
  */
 export function lose(bestaetigteEmpfehlungen: number, selbstBestaetigt: boolean): number {
   return bestaetigteEmpfehlungen + (selbstBestaetigt ? 1 : 0);

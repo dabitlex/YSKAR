@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Autoindicação',
     } as Record<string, string>,
     keine: 'Nenhuma indicação ainda. Compartilhe seu link para começar.',
-    regelHinweis: 'Uma participação por conta do Telegram e por carteira. Contam até 10 indicações por dia, sem limite de participações.',
+    regelHinweis: 'Uma participação por conta do Telegram e por carteira. Sem limite: toda indicação confirmada conta.',
     preisStruktur: 'Divisão dos prêmios · 10 ganhadores',
     platz1: '1º lugar', platz2: '2º lugar', platz3: '3º lugar', platz410: '4º – 10º lugar',
     jeweils: (n: number) => `${n} USD cada`, summe: 'Total',

@@ -4,7 +4,7 @@ import { toHex, fromHex } from '@/lib/core/codec';
 import { verifySignature } from '@/lib/core/wallet';
 import { pruefeInitData, fingerabdruck } from '@/lib/aktion/initData';
 import {
-  ENDE, PRUEF_ENDE, MINING_TAGE, TAGESLIMIT, laeuft, codeAusAdresse, fristFuer, lose,
+  ENDE, PRUEF_ENDE, MINING_TAGE, laeuft, codeAusAdresse, fristFuer, lose,
   type Status,
 } from '@/lib/aktion/regeln';
 
@@ -102,13 +102,8 @@ export async function anmelden(e: {
         p_addr: roh(adresse), p_vor: Math.floor(jetzt / 1000),
       });
       if (aktiv === true) { status = 'ungueltig'; grund = 'wallet_alt'; }
-      else {
-        // Hoechstens TAGESLIMIT gezaehlte Empfehlungen je Werber und Tag (UTC).
-        const tag = new Date(jetzt); tag.setUTCHours(0, 0, 0, 0);
-        const { count } = await T().select('tg_fingerabdruck', { count: 'exact', head: true })
-          .eq('geworben_von', ref).neq('status', 'ungueltig').gte('angemeldet_am', tag.toISOString());
-        if ((count ?? 0) >= TAGESLIMIT) { status = 'ungueltig'; grund = 'tageslimit'; }
-      }
+      // Keine Tagesgrenze mehr (seit 28.10.2026): jede Empfehlung zaehlt,
+      // sobald die 3 Mining-Tage erreicht sind.
     } else if (werber.data) {
       grund = 'selbst';
     }

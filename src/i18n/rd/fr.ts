@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: 'Auto-parrainage',
     } as Record<string, string>,
     keine: 'Pas encore de filleuls. Partage ton lien pour commencer.',
-    regelHinweis: 'Une participation par compte Telegram et par portefeuille. Sont comptés au maximum 10 parrainages par jour, sans limite de participations.',
+    regelHinweis: 'Une participation par compte Telegram et par portefeuille. Sans limite : chaque parrainage confirmé compte.',
     preisStruktur: 'Répartition des prix · 10 gagnants',
     platz1: '1re place', platz2: '2e place', platz3: '3e place', platz410: '4e – 10e place',
     jeweils: (n: number) => `${n} USD chacun`, summe: 'Total',

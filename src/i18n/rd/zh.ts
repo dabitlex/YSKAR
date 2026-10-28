@@ -117,7 +117,7 @@ const rd: RdWoerterbuch = {
       selbst: '自我推荐',
     } as Record<string, string>,
     keine: '还没有推荐。分享你的链接即可开始。',
-    regelHinweis: '每个 Telegram 账号和钱包仅限一张抽奖券。每天最多计入 10 个推荐，抽奖券数量不设上限。',
+    regelHinweis: '每个 Telegram 账号和钱包仅限一张抽奖券。不设上限：每个已确认的推荐都计入。',
     preisStruktur: '奖项设置 · 10 位获奖者',
     platz1: '第 1 名', platz2: '第 2 名', platz3: '第 3 名', platz410: '第 4–10 名',
     jeweils: (n: number) => `每人 ${n} USD`, summe: '合计',
