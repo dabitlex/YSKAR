@@ -26,7 +26,7 @@
 
 /** Arbeit eines einzelnen Blocks. */
 export function blockWork(difficulty: bigint): bigint {
-  if (difficulty <= 0n) throw new Error('difficulty muss positiv sein');
+  if (difficulty <= 0n) throw new Error('difficulty must be positive');
   return difficulty;
 }
 
@@ -79,14 +79,14 @@ export function compareTips(a: Tip, b: Tip): number {
  * abgelegt waere die Sortierung falsch, weil '9' groesser als '10' ist.
  */
 export function workToBytes(work: bigint): Uint8Array {
-  if (work < 0n) throw new Error('Arbeit kann nicht negativ sein');
+  if (work < 0n) throw new Error('work cannot be negative');
   const out = new Uint8Array(32);
   let x = work;
   for (let i = 31; i >= 0 && x > 0n; i--) {
     out[i] = Number(x & 0xffn);
     x >>= 8n;
   }
-  if (x > 0n) throw new Error('Arbeit passt nicht in 32 Byte');
+  if (x > 0n) throw new Error('work does not fit into 32 bytes');
   return out;
 }
 

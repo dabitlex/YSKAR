@@ -34,7 +34,7 @@ test('Betraege: YSR <-> Einheiten', () => {
   assert.equal(ysrInEinheiten('0,001'), 100_000n);
   assert.equal(ysrInEinheiten('12.00000001'), 12n * UNIT + 1n);
   for (const falsch of ['', '-1', '1.123456789', 'abc', '1e3']) {
-    assert.throws(() => ysrInEinheiten(falsch), /kein Betrag/, falsch);
+    assert.throws(() => ysrInEinheiten(falsch), /not an amount/, falsch);
   }
   assert.equal(einheitenInYsr(150_000_000n), '1.5');
   assert.equal(einheitenInYsr(4375n * UNIT), '4375');
@@ -125,7 +125,7 @@ test('ueberweisen: ein Knoten eines anderen Netzes bekommt nichts', async () => 
     const api = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
     await assert.rejects(
       ueberweise({ api, schluessel, an: EMPF, betrag: 1n, params: REGTEST }),
-      /gehoert zu "yskar-main-1"/);
+      /belongs to "yskar-main-1"/);
     assert.deepEqual(gesendet, []);
   } finally {
     await new Promise(r => srv.close(r));
@@ -141,7 +141,7 @@ test('cli: testkonto und ueberweisen nur mit --regtest', () => {
         ['--experimental-strip-types', CLI, befehl, '--key', join(ordner, 'k.json'), '--to', EMPF, '--amount', '1'],
         { encoding: 'utf8', timeout: 60_000, env: { ...process.env, NO_COLOR: '1' } });
       assert.equal(r.status, 1, befehl);
-      assert.match(`${r.stdout}${r.stderr}`, /nur zusammen mit --regtest/, befehl);
+      assert.match(`${r.stdout}${r.stderr}`, /only works with --regtest/, befehl);
     }
     // Und es wurde kein Schluessel angelegt.
     assert.throws(() => readFileSync(join(ordner, 'k.json')));

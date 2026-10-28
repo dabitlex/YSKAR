@@ -38,7 +38,7 @@ export function testkonto(datei: string): { schluessel: Keypair; neu: boolean } 
   if (existsSync(datei)) {
     const roh = JSON.parse(readFileSync(datei, 'utf8')) as Partial<Schluesseldatei>;
     if (typeof roh.seed !== 'string' || !/^[0-9a-f]{64}$/i.test(roh.seed)) {
-      throw new Error(`${datei} ist keine Testschluessel-Datei`);
+      throw new Error(`${datei} is not a test key file`);
     }
     return { schluessel: keypairFromSeed(fromHex(roh.seed)), neu: false };
   }
@@ -56,7 +56,7 @@ export function testkonto(datei: string): { schluessel: Keypair; neu: boolean } 
 /** "1.5" -> 150.000.000 Einheiten. Hoechstens acht Nachkommastellen, nichts Negatives. */
 export function ysrInEinheiten(text: string): bigint {
   const m = text.trim().replace(',', '.').match(/^(\d+)(?:\.(\d{1,8}))?$/);
-  if (!m) throw new Error(`"${text}" ist kein Betrag in YSR (z. B. 10 oder 0.5)`);
+  if (!m) throw new Error(`"${text}" is not an amount in YSR (for example 10 or 0.5)`);
   return BigInt(m[1]) * UNIT + BigInt((m[2] ?? '').padEnd(8, '0'));
 }
 
@@ -93,11 +93,11 @@ async function holeJson(url: string, init?: RequestInit): Promise<Record<string,
   let r: Response;
   try { r = await fetch(url, init); }
   catch {
-    throw new Error(`kein Knoten erreichbar unter ${new URL(url).origin} -- laeuft er, und stimmt --api?`);
+    throw new Error(`no node reachable at ${new URL(url).origin} -- is it running, and is --api right?`);
   }
   const text = await r.text();
   try { return JSON.parse(text) as Record<string, unknown>; }
-  catch { throw new Error(`${url}: keine JSON-Antwort (HTTP ${r.status})`); }
+  catch { throw new Error(`${url}: no JSON answer (HTTP ${r.status})`); }
 }
 
 /**
@@ -114,7 +114,7 @@ export async function ueberweise(a: UeberweisungsAuftrag): Promise<Ueberweisungs
 
   const stand = await holeJson(`${basis}/status`);
   if (stand.network !== a.params.network) {
-    throw new Error(`Der Knoten unter ${a.api} gehoert zu "${String(stand.network)}", nicht zu "${a.params.network}"`);
+    throw new Error(`The node at ${a.api} belongs to "${String(stand.network)}", not to "${a.params.network}"`);
   }
   const hoehe = typeof stand.height === 'number' ? stand.height : -1;
   const naechste = hoehe + 1;
@@ -126,7 +126,7 @@ export async function ueberweise(a: UeberweisungsAuftrag): Promise<Ueberweisungs
   const automatisch = a.fassung === undefined;
   const fassung = a.fassung ?? transferVersionAt(naechste, a.params.v6Height);
   if (fassung !== TX_VERSION && fassung !== TRANSFER_V2) {
-    throw new Error(`Fassung ${fassung} gibt es nicht -- 1 oder 2`);
+    throw new Error(`There is no transfer version ${fassung} -- use 1 or 2`);
   }
 
   const tx = buildTransfer({

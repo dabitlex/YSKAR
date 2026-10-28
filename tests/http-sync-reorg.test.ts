@@ -79,8 +79,8 @@ test('Abzweigung unter dem eigenen Kopf: sync geht zurueck und wechselt auf den 
 
     const r = await syncLauf(daten, q.url);
     assert.equal(r.code, 0, r.aus);
-    assert.match(r.aus, /Abzweigung/);
-    assert.match(r.aus, /Reorg/);
+    assert.match(r.aus, /follows another branch/);
+    assert.match(r.aus, /switched to the branch with more work/);
     const k = kopf(daten);
     assert.equal(k.height, 14);
     assert.equal(k.hash, toHex(b[b.length - 1].hash));

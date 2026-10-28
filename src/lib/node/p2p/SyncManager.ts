@@ -344,7 +344,7 @@ export class SyncManager {
     const tip = this.chain.tip();
     const eigene = tip ? tip.chainWork : 0n;
     if (p.fremdeArbeit() > eigene) {
-      this.log(`${p.host} hat mehr Arbeit (${p.fremdeArbeit()} > ${eigene})`);
+      this.log(`${p.host} has more work (${p.fremdeArbeit()} > ${eigene}), catching up`);
       this.frageHeader(p);
     }
   }
@@ -621,7 +621,7 @@ export class SyncManager {
       dazu++;
     }
     if (dazu > 0) {
-      this.log(`${dazu} neue Header von ${p.host}`);
+      this.log(`${dazu} new headers from ${p.host}`);
       this.warteschlange.sort((a, b) => a.hoehe - b.hoehe);
       // Was frei ist, gibt seine ganze Vorgeschichte in der Warteschlange
       // frei: Ohne seine Vorgaenger liesse er sich nicht annehmen.
@@ -719,7 +719,7 @@ export class SyncManager {
       this.offen.delete(hash);
       this.entferneMitNachfahren(hash);
       this.merkeLeicht(hash);
-      this.log(`Block ${kopf.height} von ${p.host} nicht angesehen: zu wenig Arbeit im Zweig`);
+      this.log(`block ${kopf.height} from ${p.host} ignored: too little work on its branch`);
       return;
     }
 
@@ -759,8 +759,8 @@ export class SyncManager {
         this.merkeFremdeFassung(hash);
         if (!this.fassungGemeldet) {
           this.fassungGemeldet = true;
-          this.log(`Block ${kopf.height} von ${p.host} nennt eine hoehere Konsensfassung `
-            + `(${r.detail ?? ''}). Dieser Knoten ist veraltet -- bitte aktualisieren.`);
+          this.log(`OUTDATED: block ${kopf.height} from ${p.host} uses a higher consensus revision `
+            + `(${r.detail ?? ''}). This node is outdated -- please update yskar-node.`);
         }
         return;
       }
@@ -786,7 +786,7 @@ export class SyncManager {
         return;
       }
       // Alles andere ist ein ungueltiger Block. Getrennt, nicht gesperrt.
-      this.log(`Block von ${p.host} abgelehnt: ${r.grund} ${r.detail ?? ''}`);
+      this.log(`block from ${p.host} rejected: ${r.grund} ${r.detail ?? ''}`.trim());
       p.close(`ungueltiger_block:${r.grund}`);
       return;
     }
@@ -1069,7 +1069,7 @@ export class SyncManager {
     this.warteschlange = this.warteschlange.filter(w => !weg.has(w.key));
     for (const k of weg) { this.wartend.delete(k); this.offen.delete(k); }
     this.mehrVermutet = true;
-    this.log(`${weg.size} Header aus der Warteschlange genommen (kein Koerper lieferbar oder Zweig zu leicht)`);
+    this.log(`${weg.size} headers dropped from the queue (no peer can deliver the block, or the branch is too light)`);
     return weg.size;
   }
 
@@ -1205,7 +1205,7 @@ export class SyncManager {
       }
       for (const q of saeumig) this.meiden.add(q);
       if (this.lieferant && saeumig.has(this.lieferant)) this.lieferant = null;
-      this.log(`${frei} Anfragen ohne Antwort freigegeben`);
+      this.log(`${frei} unanswered requests released`);
     }
 
     /*

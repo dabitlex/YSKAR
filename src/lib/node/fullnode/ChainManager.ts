@@ -238,11 +238,11 @@ export class ChainManager {
     const v6 = this.params.v6Height;
     const gespeichert = this.store.meta(ChainManager.V6_ERREICHT);
     if (gespeichert !== null && gespeichert !== String(v6)) {
-      const neu = v6 === V6_HEIGHT_UNSET ? 'keine' : String(v6);
+      const neu = v6 === V6_HEIGHT_UNSET ? 'none' : String(v6);
       throw new AktivierungsFehler(
-        `Diese Ablage hat Konsensfassung 6 an Hoehe ${gespeichert} aktiviert, dieses Programm verwendet ` +
-        `${neu}. Eine erreichte Aktivierungshoehe laesst sich nicht verschieben -- bitte die passende ` +
-        `Programmversion verwenden.`);
+        `This data folder activated consensus revision 6 at height ${gespeichert}; this program uses ` +
+        `${neu}. An activation height that was reached cannot be moved -- use the program version ` +
+        `that matches this chain.`);
     }
     if (gespeichert === null) {
       const kopf = this.store.mainTip();
@@ -251,9 +251,9 @@ export class ChainManager {
         try { version = deserializeBlock(kopf.body).header.version; } catch { /* prueft alteFassungAbschneiden */ }
         if (version !== null && version >= 6 && blockVersionAt(kopf.height, v6) < 6) {
           throw new AktivierungsFehler(
-            `Die Ablage enthaelt an Hoehe ${kopf.height} einen Block der Fassung 6, dieses Programm ` +
-            `aktiviert sie ${v6 === V6_HEIGHT_UNSET ? 'nicht' : 'erst an Hoehe ' + v6}. ` +
-            `Die Ablage gehoert zu einer anderen Kette.`);
+            `This data folder holds a revision 6 block at height ${kopf.height}; this program ` +
+            `${v6 === V6_HEIGHT_UNSET ? 'does not activate revision 6' : 'activates it only at height ' + v6}. ` +
+            `The data folder belongs to another chain.`);
         }
       }
     }
@@ -499,7 +499,7 @@ export class ChainManager {
         this._hoehereFassungGesehen = { version: vor.header.version, height: vor.header.height };
         this.merkeHoehereFassung(plausibel);
         return { ok: false, grund: 'fassung_unbekannt',
-                 detail: `version ${vor.header.version} bei Hoehe ${vor.header.height}` };
+                 detail: `version ${vor.header.version} at height ${vor.header.height}` };
       }
       return { ok: false, grund: 'struktur', detail: 'bad_version' };
     }
@@ -541,7 +541,7 @@ export class ChainManager {
       }
       if (block.header.height !== vorgaenger.height + 1) {
         return { ok: false, grund: 'hoehe_passt_nicht',
-                 detail: `${block.header.height} nach ${vorgaenger.height}` };
+                 detail: `${block.header.height} after ${vorgaenger.height}` };
       }
     }
 
@@ -613,7 +613,7 @@ export class ChainManager {
     const meine = stateRootAt(nachher, block.header.height, this.params);
     if (toHex(meine) !== toHex(block.header.stateRoot)) {
       return { ok: false, grund: 'state_root',
-               detail: `errechnet ${toHex(meine).slice(0, 16)}…` };
+               detail: `computed ${toHex(meine).slice(0, 16)}…` };
     }
 
     const arbeit = (vorgaenger?.chainWork ?? 0n) + blockWork(block.header.difficulty);
@@ -834,11 +834,11 @@ export class ChainManager {
 
     for (let h = ab; h <= tip.height; h++) {
       const b = this.store.mainAt(h);
-      if (!b) throw new Error(`Aktive Kette hat eine Luecke bei Hoehe ${h}`);
+      if (!b) throw new Error(`The active chain has a gap at height ${h}`);
       const block = deserializeBlock(b.body);
       const r = applyBlock(zustand, block, this.params);
       if (!r.ok) {
-        throw new Error(`Block ${h} laesst sich nicht anwenden: ${r.error?.reason}`);
+        throw new Error(`Block ${h} cannot be applied: ${r.error?.reason}`);
       }
       if (h % SNAPSHOT_INTERVAL === 0) {
         this.store.putSnapshot({
@@ -851,8 +851,8 @@ export class ChainManager {
     const wurzel = stateRootAt(zustand, tip.height, this.params);
     if (toHex(wurzel) !== toHex(tip.stateRoot)) {
       throw new Error(
-        `Zustandswurzel weicht ab: errechnet ${toHex(wurzel).slice(0, 16)}…, ` +
-        `im Block ${toHex(tip.stateRoot).slice(0, 16)}…`);
+        `State root differs: computed ${toHex(wurzel).slice(0, 16)}…, ` +
+        `in the block ${toHex(tip.stateRoot).slice(0, 16)}…`);
     }
 
     this.zustand = zustand;
@@ -896,7 +896,7 @@ export class ChainManager {
       zweig.push(anker);
       if (anker.height === 0) { anker = null; break; }
       const davor = this.store.get(anker.prevHash);
-      if (!davor) throw new Error(`Zweig hat eine Luecke unter Hoehe ${anker.height}`);
+      if (!davor) throw new Error(`The branch has a gap below height ${anker.height}`);
       anker = davor;
     }
     zweig.reverse();
@@ -904,7 +904,7 @@ export class ChainManager {
     const state = anker ? this.zustandDerAktivenKette(anker) : emptyState();
     for (const b of zweig) {
       const r = applyBlock(state, deserializeBlock(b.body), this.params);
-      if (!r.ok) throw new Error(`Zweig bei ${b.height}: ${r.error?.reason}`);
+      if (!r.ok) throw new Error(`Branch at ${b.height}: ${r.error?.reason}`);
     }
     return state;
   }
@@ -949,9 +949,9 @@ export class ChainManager {
 
     for (let h = ab; h <= anker.height; h++) {
       const b = this.store.mainAt(h);
-      if (!b) throw new Error(`Aktive Kette hat eine Luecke bei Hoehe ${h}`);
+      if (!b) throw new Error(`The active chain has a gap at height ${h}`);
       const r = applyBlock(state, deserializeBlock(b.body), this.params);
-      if (!r.ok) throw new Error(`Block ${h} laesst sich nicht anwenden: ${r.error?.reason}`);
+      if (!r.ok) throw new Error(`Block ${h} cannot be applied: ${r.error?.reason}`);
     }
     return state;
   }

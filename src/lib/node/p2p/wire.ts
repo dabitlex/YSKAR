@@ -81,7 +81,7 @@ export interface Frame {
 
 /** Die vier Magic-Bytes eines Netzes -- der Anfang seiner Chain-ID. */
 export function magicFor(chainId: Uint8Array): Uint8Array {
-  if (chainId.length < 4) throw new Error('Chain-ID ist zu kurz fuer Magic-Bytes');
+  if (chainId.length < 4) throw new Error('chain ID too short for magic bytes');
   return chainId.slice(0, 4);
 }
 
@@ -89,10 +89,10 @@ export function magicFor(chainId: Uint8Array): Uint8Array {
 export function encodeFrame(
   magic: Uint8Array, command: Command, payload: Uint8Array,
 ): Uint8Array {
-  if (magic.length !== 4) throw new Error('Magic muss vier Byte sein');
-  if (!istBefehl(command)) throw new Error(`Unbekannter Befehl: ${command}`);
+  if (magic.length !== 4) throw new Error('magic must be four bytes');
+  if (!istBefehl(command)) throw new Error(`unknown command: ${command}`);
   if (payload.length > MAX_PAYLOAD) {
-    throw new Error(`Nutzlast ${payload.length} ueberschreitet ${MAX_PAYLOAD}`);
+    throw new Error(`payload ${payload.length} exceeds ${MAX_PAYLOAD}`);
   }
 
   const out = new Uint8Array(HEADER_SIZE + payload.length);
@@ -197,7 +197,7 @@ export class FrameReader {
   private readonly magic: Uint8Array;
 
   constructor(magic: Uint8Array) {
-    if (magic.length !== 4) throw new Error('Magic muss vier Byte sein');
+    if (magic.length !== 4) throw new Error('magic must be four bytes');
     this.magic = magic;
   }
 

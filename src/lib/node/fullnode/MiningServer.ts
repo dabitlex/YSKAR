@@ -24,7 +24,14 @@ import { NetzStatistik, type LokaleStatistik, type NetzSumme } from './NetzStati
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-import { decodeAddress, istAuszahlungsAdresse, REGELKONTO_KEIN_MINING } from '../../core/address.ts';
+import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
+
+/*
+  Texte an Miner und Apps (Feld `detail`) sind ab Full Node 1.0.0 englisch.
+  Clients werten den Code in `error` bzw. `reason` aus, nie den Text.
+*/
+const KEIN_AUSZAHLUNGSKONTO = 'Mining pays only to a normal wallet address (ysr1…, 42 characters). ' +
+  'Shared accounts (ysr1p…) cannot receive a block reward yet.';
 import { toHex, fromHex } from '../../core/codec.ts';
 import { rewardAt } from '../../core/params.ts';
 import { MAINNET, type ConsensusParams } from '../../core/networks.ts';
@@ -458,7 +465,7 @@ export class MiningServer {
   private server = createServer((req, res) => {
     // Nichts, was eine Anfrage ausloest, darf den Knoten beenden.
     this.behandle(req, res).catch(e => {
-      this.onFehler?.('Anfrage', e as Error);
+      this.onFehler?.('request', e as Error);
       try { if (!res.headersSent) this.json(res, { error: 'internal' }, 500); else res.end(); }
       catch { /* Verbindung schon weg */ }
     });
@@ -669,7 +676,7 @@ export class MiningServer {
         return info
           ? this.json(res, info)
           : this.json(res, { error: 'pool_unavailable',
-                             detail: 'Dieser Knoten betreibt keinen Pool.' }, 404);
+                             detail: 'This node does not run a pool.' }, 404);
       }
       if (req.method === 'GET' && pfad === '/job') {
         return this.json(res, this.job(url.searchParams.get('session')));
@@ -726,7 +733,7 @@ export class MiningServer {
       this.onFehler?.(`${req.method} ${pfad}`, fehler);
       this.json(res, {
         error: 'internal',
-        detail: 'Interner Fehler des Knotens -- Einzelheiten stehen in seinem Protokoll.',
+        detail: 'Internal error of the node -- details are in its log.',
         where: `${req.method} ${pfad}`,
       }, 500);
     }
@@ -782,7 +789,7 @@ export class MiningServer {
     catch { return ok({ error: 'bad_address' }); }
     // Die Coinbase zahlt nur an Version 0 -- sonst scheiterte erst der Job
     // mit einem internen Fehler, und im Pool der Block fuer alle.
-    if (!istAuszahlungsAdresse(roh)) return ok({ error: 'bad_address', detail: REGELKONTO_KEIN_MINING });
+    if (!istAuszahlungsAdresse(roh)) return ok({ error: 'bad_address', detail: KEIN_AUSZAHLUNGSKONTO });
 
     /*
       Solo oder Pool -- die Sitzung legt das beim Anmelden fest und behaelt
@@ -796,7 +803,7 @@ export class MiningServer {
     const modus: MiningModus = b.mode === 'pool' ? 'pool' : 'solo';
     if (modus === 'pool' && !this.poolKoordinator) {
       return ok({ error: 'pool_unavailable',
-                  detail: 'Dieser Knoten betreibt keinen Pool.' });
+                  detail: 'This node does not run a pool.' });
     }
 
     this.aufraeumen();
@@ -835,14 +842,14 @@ export class MiningServer {
         const nativ = NATIV_MINER.test(String(req.headers['user-agent'] ?? ''));
         return { status: nativ ? 200 : 409, body: {
           error: 'pool_full',
-          detail: `Pool voll: alle ${plaetze} Plätze sind belegt (pool_full).`,
+          detail: `Pool full: all ${plaetze} seats are taken (pool_full).`,
           plaetze, belegt: belegt.size,
         } };
       }
     }
 
     if (!this.platzSchaffen(absender)) {
-      return ok({ error: 'too_many_sessions', detail: 'Der Knoten hat zu viele offene Sitzungen.' });
+      return ok({ error: 'too_many_sessions', detail: 'The node has too many open sessions.' });
     }
 
     const s: Session = {
@@ -1119,13 +1126,13 @@ export class MiningServer {
 
         this.onBlock?.(r.height, r.hash, s.addressHex);
       } catch (e) {
-        this.onFehler?.('nach Blockfund', e as Error);
+        this.onFehler?.('after block found', e as Error);
       }
 
       // Nicht abwarten: Der Miner bekommt seine Antwort sofort, die
       // Weitergabe darf ihn nicht aufhalten.
       this.weitergeben(r.hash).catch(e =>
-        this.onFehler?.('Weitergabe', e as Error));
+        this.onFehler?.('forwarding', e as Error));
 
       return antwort;
     }
@@ -1279,7 +1286,7 @@ export class MiningServer {
     if (!this.upstream) return;
     const gespeichert = this.store.get(fromHex(hashHex));
     if (!gespeichert) {
-      this.onUpstream?.({ ok: false, grund: 'lokal nicht gefunden' });
+      this.onUpstream?.({ ok: false, grund: 'not found in the local store' });
       return;
     }
     try {
@@ -1346,7 +1353,7 @@ export class MiningServer {
 
       // Den Peers sagen, dass es sie gibt -- sonst kennt sie nur dieser Knoten.
       try { this.onNeueTx?.(txid(tx)); }
-      catch (e) { this.onFehler?.('Tx ankündigen', e as Error); }
+      catch (e) { this.onFehler?.('announce tx', e as Error); }
 
       return { accepted: true, txid: r.txid, replaced: r.ersetzt ?? null };
     } catch (e) {

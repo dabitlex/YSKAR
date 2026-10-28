@@ -148,7 +148,7 @@ function zwischenzustand(
     const kandidat = new Uint8Array(ADDRESS_BYTES).fill(b);
     if (!belegt.has(toHex(kandidat)) && !state.has(toHex(kandidat))) platzhalter = kandidat;
   }
-  if (!platzhalter) throw new Error('Vorlage: keine freie Platzhalter-Adresse');
+  if (!platzhalter) throw new Error('Template: no free placeholder address');
 
   const probe: Block = {
     header: {
@@ -162,7 +162,7 @@ function zwischenzustand(
   const nachher = cloneState(state);
   const r = applyBlock(nachher, probe, params);
   if (!r.ok) {
-    throw new Error(`Blockbau fehlgeschlagen: ${r.error?.reason} (tx ${r.error?.tx})`);
+    throw new Error(`Block building failed: ${r.error?.reason} (tx ${r.error?.tx})`);
   }
   nachher.delete(toHex(platzhalter));
   return nachher;
@@ -186,12 +186,12 @@ export function baueAusVorlage(v: JobVorlage, p: JobAngaben): BuildResult & { ar
     Fassung 1 hat immer genau einen Empfaenger.
   */
   if (coinbase.version === COINBASE_V2 && height < p.params.coinbaseV2Height) {
-    throw new Error(`Blockbau fehlgeschlagen: coinbase_v2_zu_frueh:${height}<${p.params.coinbaseV2Height} (tx 0)`);
+    throw new Error(`Block building failed: coinbase_v2_zu_frueh:${height}<${p.params.coinbaseV2Height} (tx 0)`);
   }
   let summe = 0n;
   for (const o of coinbase.outputs) summe += o.amount;
   if (v.menge + summe > MAX_SUPPLY) {
-    throw new Error('Blockbau fehlgeschlagen: supply_exceeded (tx 0)');
+    throw new Error('Block building failed: supply_exceeded (tx 0)');
   }
 
   const txs: Tx[] = [coinbase, ...v.included];

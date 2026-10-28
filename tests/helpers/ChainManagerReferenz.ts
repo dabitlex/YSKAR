@@ -136,7 +136,7 @@ export class ChainManager {
       }
       if (block.header.height !== vorgaenger.height + 1) {
         return { ok: false, grund: 'hoehe_passt_nicht',
-                 detail: `${block.header.height} nach ${vorgaenger.height}` };
+                 detail: `${block.header.height} after ${vorgaenger.height}` };
       }
     }
 
@@ -177,7 +177,7 @@ export class ChainManager {
     const meine = stateRoot(nachher);
     if (toHex(meine) !== toHex(block.header.stateRoot)) {
       return { ok: false, grund: 'state_root',
-               detail: `errechnet ${toHex(meine).slice(0, 16)}…` };
+               detail: `computed ${toHex(meine).slice(0, 16)}…` };
     }
 
     const arbeit = (vorgaenger?.chainWork ?? 0n) + blockWork(block.header.difficulty);

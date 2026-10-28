@@ -1,7 +1,7 @@
 {
   "name": "yskar-node",
-  "version": "0.1.0",
-  "description": "YSKAR Full Node — prüft die Kette lokal und vollständig.",
+  "version": "1.0.0",
+  "description": "YSKAR full node — checks the whole chain locally.",
   "type": "module",
   "bin": {
     "yskar-node": "./dist/yskar-node.cjs"

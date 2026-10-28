@@ -215,7 +215,7 @@ export class PeerManager {
       srv.on('error', ab);
       srv.listen(port, host, () => {
         this.server = srv;
-        this.log(`lauscht auf ${host}:${port}`);
+        this.log(`listening on ${host}:${port}`);
         auf();
       });
     });
@@ -350,11 +350,11 @@ export class PeerManager {
       const e = this.buch.get(k);
       if (e) e.fehlversuche++;
       try { sock.destroy(); } catch { /* egal */ }
-      this.log(`${k} nicht erreichbar: ${grund}`);
+      this.log(`${k} not reachable: ${grund}`);
     };
 
     sock.once('error', e => scheitern(e.message));
-    sock.once('timeout', () => scheitern('Zeit abgelaufen'));
+    sock.once('timeout', () => scheitern('timed out'));
     sock.once('connect', () => {
       sock.setTimeout(0);
       sock.removeAllListeners('timeout');
@@ -388,13 +388,13 @@ export class PeerManager {
             const k = peerKey({ host: peer.host, port: zielPort });
             this.selbst.add(k);
             this.buch.delete(k);
-            this.log(`${k} ist die eigene Adresse -- aus dem Buch genommen`);
+            this.log(`${k} is this node itself -- removed from the address book`);
           }
           this.opt.onClose?.(peer, grund);
         },
         onMisbehave: (peer, grund) => {
           this.vermerke(peer.host);
-          this.log(`${peer.host} auffaellig: ${grund}`);
+          this.log(`${peer.host} misbehaves: ${grund}`);
         },
       },
     });

@@ -125,7 +125,7 @@ test('Nicht druckbare Zeichen im Befehl werden abgewiesen', () => {
 
 test('Zu große Nutzlast lässt sich gar nicht erst verpacken', () => {
   assert.throws(() => encodeFrame(M, 'block', new Uint8Array(MAX_PAYLOAD + 1)),
-    /ueberschreitet/);
+    /exceeds/);
 });
 
 // ------------------------------------------------- TCP kennt keine Grenzen

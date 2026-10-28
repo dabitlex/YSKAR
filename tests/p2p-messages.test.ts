@@ -48,7 +48,7 @@ test('Chain Work muss eine Zahl sein', () => {
     height: 1, chainWork: '12; drop table', nonce: 0n, port: 1, timestamp: 0n, revision: 6, nextActivationHeight: 0,
   };
   // Beim Verpacken geht es noch durch -- beim Auspacken nicht.
-  assert.throws(() => M.decodeVersion(M.encodeVersion(v)), /keine Zahl/);
+  assert.throws(() => M.decodeVersion(M.encodeVersion(v)), /not a number/);
 });
 
 test('Eine übergroße Kennung wird abgewiesen', () => {
@@ -57,7 +57,7 @@ test('Eine übergroße Kennung wird abgewiesen', () => {
     agent: 'a'.repeat(M.MAX_AGENT + 1),
     height: 1, chainWork: '1', nonce: 0n, port: 1, timestamp: 0n, revision: 6, nextActivationHeight: 0,
   };
-  assert.throws(() => M.encodeVersion(v), /zu lang/);
+  assert.throws(() => M.encodeVersion(v), /too long/);
 });
 
 test('ping und pong tragen denselben Wert zurück', () => {
@@ -80,7 +80,7 @@ test('getheaders trägt den Locator', () => {
 test('Ein überlanger Locator wird abgewiesen', () => {
   const zuviel = Array.from({ length: M.MAX_LOCATOR + 1 }, (_, i) => hash(i));
   assert.throws(() => M.encodeGetHeaders({ locator: zuviel, stop: hash(0) }),
-    /zu lang/);
+    /too long/);
 });
 
 test('headers trägt rohe 136-Byte-Header', () => {
@@ -95,12 +95,12 @@ test('Ein Header mit falscher Länge wird abgewiesen', () => {
   // Der Header ist auf 136 Byte festgenagelt. Alles andere ist kein
   // YSKAR-Header, und die Prüfung gehört an die Leitung, nicht erst in die
   // Validierung.
-  assert.throws(() => M.encodeHeaders([new Uint8Array(80)]), /statt 136/);
+  assert.throws(() => M.encodeHeaders([new Uint8Array(80)]), /instead of 136/);
 });
 
 test('Zu viele Header werden abgewiesen', () => {
   const zuviel = Array.from({ length: M.MAX_HEADERS + 1 }, () => new Uint8Array(136));
-  assert.throws(() => M.encodeHeaders(zuviel), /Zu viele/);
+  assert.throws(() => M.encodeHeaders(zuviel), /too many/);
 });
 
 test('2000 Header passen in eine Nachricht', () => {
@@ -128,13 +128,13 @@ test('inv trägt Typ und Hash', () => {
 test('Ein unbekannter inv-Typ wird abgewiesen', () => {
   const roh = M.encodeInv([{ typ: M.INV_BLOCK, hash: hash(1) }]);
   roh[2] = 99;
-  assert.throws(() => M.decodeInv(roh), /Unbekannter Typ/);
+  assert.throws(() => M.decodeInv(roh), /unknown type/);
 });
 
 test('Zu viele inv-Einträge werden abgewiesen', () => {
   const zuviel = Array.from({ length: M.MAX_INV + 1 },
     () => ({ typ: M.INV_BLOCK, hash: hash(0) }));
-  assert.throws(() => M.encodeInv(zuviel), /Zu viele/);
+  assert.throws(() => M.encodeInv(zuviel), /too many/);
 });
 
 // ---------------------------------------------------------------- Peers
@@ -157,13 +157,13 @@ test('Port null wird abgewiesen', () => {
   const roh = M.encodeAddr([{ host: 'a', port: 1, gesehen: 0n }]);
   // Port auf null setzen: nach u16-Länge, u8-Hostlänge und einem Byte Host
   new DataView(roh.buffer).setUint32(2 + 1 + 1, 0, true);
-  assert.throws(() => M.decodeAddr(roh), /Ungueltiger Port/);
+  assert.throws(() => M.decodeAddr(roh), /invalid port/);
 });
 
 test('Zu viele Adressen werden abgewiesen', () => {
   const zuviel = Array.from({ length: M.MAX_ADDR + 1 },
     () => ({ host: 'a', port: 1, gesehen: 0n }));
-  assert.throws(() => M.encodeAddr(zuviel), /Zu viele/);
+  assert.throws(() => M.encodeAddr(zuviel), /too many/);
 });
 
 test('Derselbe Peer ergibt denselben Schlüssel', () => {

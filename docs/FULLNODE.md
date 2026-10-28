@@ -130,61 +130,80 @@ On the first start the node:
 5. downloads the chain from the first peer that has more work, and validates and stores every
    block.
 
-The output is in German. On the first start it looks like this:
+The output is in English (up to version 0.1.0 it was German). On the first start it looks like
+this:
 
 ```text
-YSKAR Full Node 0.1.0  Mining
-────────────────────────────────────────────────────────
-  Netz     yskar-main-1
-  Ablage   ./knoten/chain.db
-  Kette    —
-  Lauscht  http://127.0.0.1:8645
-  Blöcke   bleiben lokal
-  Sync     aus
-  Pool     aus (nur Solo-Mining)
-  Knoten   lauscht auf 8646, 2 Seeds
-────────────────────────────────────────────────────────
+ YSKAR Full Node 1.0.0  mine                                           Fair from block 0.
+ ────────────────────────────────────────────────────────────────────────────────────────
+ NODE
+ * VERSION      yskar-node 1.0.0 · node 22.13.1 · linux x64
+ * NETWORK      yskar-main-1 (mainnet)
+ * DATA         ./knoten/chain.db · 0 blocks stored
+ * CHAIN        empty — the chain is loaded from the peers
 
-  Miner verbinden mit:
-    yskar-miner --address ysr1… --api http://127.0.0.1:8645
+ CONSENSUS
+ * REVISION     5 (active now)
+ * ACTIVATION   revision 6 from block 10,000 · 3,188 blocks to go (≈ 22 days, around 19 Nov 2026)
+ * THIS NODE    ✓ ready for revision 6 — no update needed before the activation
+
+ SERVICES
+ * MINING API   http://127.0.0.1:8645 · no limits per sender
+ * POOL         off (solo mining only)
+ * PEERS        listening on 0.0.0.0:8646 · 2 seeds
+ * FORWARDING   found blocks go to the peers · no upstream server
+ * MEMPOOL      up to 32 MB
+ ────────────────────────────────────────────────────────────────────────────────────────
+
+ Connect a miner:
+   yskar-miner --address ysr1… --api http://127.0.0.1:8645
 ```
 
 | Line | Meaning |
 |---|---|
-| `Netz` | Network name |
-| `Ablage` | Path of the store |
-| `Kette` | Height of the local chain; `—` while the store is empty |
-| `Lauscht` | Address of the HTTP interface |
-| `Blöcke` | Where accepted blocks are forwarded over HTTP. `bleiben lokal` ("stay local") means no upstream is set. Blocks still go to other nodes over P2P |
-| `Sync` | HTTP polling of `--api`: `aus` (off) or every 30 s |
-| `Pool` | Pool name, fee and seats, or `aus (nur Solo-Mining)` (off, solo mining only) |
-| `Knoten` | Node network: listening port and number of seeds, `nur ausgehend` (outbound only) or `aus` (off) |
+| `VERSION` | Program version, Node.js version and platform |
+| `NETWORK` | Network name; `(mainnet)` or `(test network)` |
+| `DATA` | Path of the store and the number of stored blocks |
+| `CHAIN` | Height and difficulty of the local chain and the age of its last block; `empty` while the store is empty |
+| `REVISION` | The consensus revision that applies to the next block |
+| `ACTIVATION` | Height from which revision 6 applies and how many blocks are left. The days and the date are estimates from the target of 10 minutes per block |
+| `THIS NODE` | Whether this program implements revision 6. `OUTDATED` (red) means a block of a higher revision with valid work was seen: update the node |
+| `MINING API` | Address of the HTTP interface and how senders are limited (`--sender-ip`) |
+| `POOL` | Pool name, fee, fee address and seats (and the seats from the activation height), or `off (solo mining only)` |
+| `PEERS` | Node network: listening port and number of seeds, `outgoing only` or `off` |
+| `FORWARDING` | Where accepted blocks go. `no upstream server` means they go only to other nodes over P2P |
+| `MEMPOOL` | Size limit of the mempool (`--mempool-mb`) |
 
-After that the node reports events as they happen:
+After that the node reports events, one per line. The word after the time says what kind of
+event it is, so the journal can be filtered with `grep`:
 
 | Line | Meaning |
 |---|---|
-| `lauscht auf 0.0.0.0:8646` | The P2P listener is open. This line is printed before the configuration |
-| `Peer <host> · Höhe <n>` | The handshake with a peer is complete; `<n>` is the peer's height |
-| `<host> hat mehr Arbeit (...)` | The peer's chain has more work; the node asks it for headers |
-| `<n> neue Header von <host>` | New headers arrived; the node requests the blocks |
-| `Block #<n> von <host> <hash>…` | A block from the network was validated and stored |
-| `Reorg auf Höhe <n>` | The node switched to another branch. Printed only for blocks fetched over HTTP from `--api` |
-| `BLOCK GEFUNDEN  #<n>` | A miner connected to this node found a block |
-| `Peer <host> weg: <reason>` | A connection was closed |
-| `<host:port> nicht erreichbar: <reason>` | An outbound connection attempt failed |
+| `peer      listening on 0.0.0.0:8646` | The P2P listener is open. This line is printed before the configuration |
+| `peer      <host> connected · height <n> · revision <r> · yskar-node/<v>` | The handshake with a peer is complete |
+| `peer      <host> speaks revision 5 · …` | The peer runs an older program. It still receives transfers but is not asked for blocks from the activation height on |
+| `sync      <host> has more work (...)` | The peer's chain has more work; the node asks it for headers |
+| `sync      <n> new headers from <host>` | New headers arrived; the node requests the blocks |
+| `block     #<n> · from peer <host> · <t> transfers · miner <name> · <hash>…` | A block from the network was validated and stored. `miner` is the name the finder wrote into the block, if any |
+| `rejected  block from <host> rejected: <reason>` | A peer sent a block that breaks the rules. The local chain is not affected |
+| `fork` / `reorg` | The HTTP source follows another branch / the node switched to the branch with more work |
+| `block     ★ BLOCK FOUND  #<n>` | A miner connected to this node found a block. In pool mode the reward is split in that block |
+| `consensus revision 6 activates in <n> blocks` | Reminder at 1,000, 500, 100 and 10 blocks before the activation |
+| `consensus ★ REVISION 6 ACTIVE  from block #10,000` | The node has passed the activation height while running |
+| `consensus ! THIS NODE IS OUTDATED` | A block of a higher revision with valid work was seen. This program no longer follows the network: update it |
+| `stats     height … · peers · mining sessions · mempool` | Every ten minutes, also without a terminal |
+| `peer      <host> disconnected (<reason>)` / `<host:port> not reachable: <reason>` | A connection was closed / an outbound connection attempt failed |
 
 In a terminal the last line is a status line that is refreshed every second:
 
 ```text
-[12:00:00] Kette 3.310 · baut an 3.311 · Diff — · 0 Miner · Mempool 0 · 2 Peers
+[12:00:00] chain 6,811 · building 6,812 · diff 345,927,690 · 0 miners · mempool 0 · 2 peers
 ```
 
-It shows the height of the active chain (`Kette`), the height of the block the node is building
-jobs for (`baut an`), the difficulty of the most recent job (`Diff`, `—` until a job was built),
-the number of mining sessions (`Miner`), the number of pending transfers (`Mempool`) and the
-number of connected peers. Numbers are printed in German format, with a point as thousands
-separator.
+It shows the height of the active chain, the height of the block the node is building jobs for,
+the difficulty of the most recent job (`—` until a job was built), the number of mining sessions,
+the number of pending transfers and the number of connected peers. Numbers use a comma as
+thousands separator.
 
 Stop the node with Ctrl+C. It closes its connections, prints the status of the chain and closes
 the store. `SIGTERM` does the same.
@@ -205,18 +224,20 @@ command is `sync`.
 |---|---|
 | `sync` | Downloads blocks over HTTP from `--api`, validates and stores them. Repeats every `--interval` seconds until you stop it; with `--once` it exits when it has caught up. No P2P, no HTTP interface |
 | `mine` | Runs the full node: HTTP interface for miners and wallets, mempool, node network, optional pool |
-| `spiegel` | Pushes blocks that the mirror is missing to the mirror, one by one. For the main node only; see [Upstream and the mirror](#upstream-and-the-mirror) |
-| `status` | Prints the state of the local store: network, height, best block hash, chain work, difficulty, number of stored blocks, number of branch tips, state root, supply, age of the last block |
+| `mirror` | Pushes blocks that the mirror is missing to the mirror, one by one. For the main node only; see [Upstream and the mirror](#upstream-and-the-mirror). The old name `spiegel` still works |
+| `status` | Prints the state of the local store (network, height, age of the last block, best block hash, difficulty, chain work, state root, supply, stored blocks and branch tips) and the consensus section: the revision that applies now, the activation of revision 6 and whether this program implements it |
 | `chain` | Prints the last 15 blocks of the active chain with hash and difficulty, and marks heights that have blocks on other branches |
-| `tips` | Prints every known branch tip with height, hash and chain work; the active one is marked `aktiv` |
-| `testkonto` | Only with `--regtest`. Creates a test key in the file given by `--key` (default `./testkonto.json`), or reads it if the file exists, and prints its address. The key is stored unencrypted; the file is never overwritten. For the transition test only |
-| `ueberweisen` | Only with `--regtest`. Signs a transfer from the test key with the regtest chain ID and sends it to the node given by `--api` (`POST /api/v2/tx`). Options `--to`, `--amount` (YSR), `--fee` (YSR, default 0.001), `--tx-version 1\|2` (default: by the height of the next block and `--v6-height`), `--memo`. Prints the node's answer |
+| `tips` | Prints every known branch tip with height, hash and chain work; the active one is marked `active` |
+| `testkey` | Only with `--regtest`. Creates a test key in the file given by `--key` (default `./testkonto.json`), or reads it if the file exists, and prints its address. The key is stored unencrypted; the file is never overwritten. For the transition test only. The old name `testkonto` still works |
+| `send` | Only with `--regtest`. Signs a transfer from the test key with the regtest chain ID and sends it to the node given by `--api` (`POST /api/v2/tx`). Options `--to`, `--amount` (YSR), `--fee` (YSR, default 0.001), `--tx-version 1\|2` (default: by the height of the next block and `--v6-height`), `--memo`. Prints the node's answer. The old name `ueberweisen` still works |
 
 `status`, `chain` and `tips` do not change the chain. The store runs in SQLite's write-ahead-log
 mode, so you can run them while a node is running on the same data directory. If the data
 directory does not exist yet, they create an empty store.
 
-`spiegel` is German for "mirror".
+Up to version 0.1.0 the commands `mirror`, `testkey` and `send` were called `spiegel`, `testkonto`
+and `ueberweisen`. The old names keep working, so existing services and scripts need no change.
+`--version` prints the version of the program.
 
 ### `sync`
 
@@ -262,14 +283,14 @@ ignored without a message.
 | Option | Default | Used by | Meaning |
 |---|---|---|---|
 | `-d`, `--data <dir>` | `./knoten` | all | Data directory. The store is `<dir>/chain.db` |
-| `--api <url>` | `https://yskar.vercel.app` | `sync`, `mine`, `spiegel` | HTTP source of blocks; also the default upstream |
+| `--api <url>` | `https://yskar.vercel.app` | `sync`, `mine`, `mirror` | HTTP source of blocks; also the default upstream |
 | `--interval <seconds>` | `60` | `sync` | Pause between two polls |
 | `--once` | off | `sync` | Catch up once and exit |
 | `--bind <address>` | `127.0.0.1` | `mine` | Address the HTTP interface listens on |
 | `--port <number>` | `8645` | `mine` | Port of the HTTP interface |
 | `--regtest` | off | all | Use the regtest network instead of the main network |
 | `--v6-height <n>` | not set | all, only with `--regtest` | Consensus revision 6 applies from block `n` (a whole number from 1). Network name and chain ID stay those of regtest, so the node connects to regtest nodes without revision 6. For the transition test in [The regtest network](#the-regtest-network). Without `--regtest` the node stops with an error; the main network's activation height cannot be set from outside |
-| `--upstream <url>` | value of `--api`; none with `--regtest` | `mine`, `spiegel` | Server that receives accepted blocks |
+| `--upstream <url>` | value of `--api`; none with `--regtest` | `mine`, `mirror` | Server that receives accepted blocks |
 | `--no-upstream` | off | `mine` | No forwarding and no HTTP fetching |
 | `--p2p-port <number>` | `8646` | `mine` | Port for inbound node connections. `0` means outbound connections only |
 | `--seed <host:port>` | none | `mine` | A known node. Can be given several times |
@@ -303,7 +324,7 @@ Notes:
 | Code | When |
 |---|---|
 | 0 | Normal end, including Ctrl+C |
-| 1 | The store cannot be used, an unknown command, invalid options, an unreachable mirror in `spiegel`, or an unexpected error |
+| 1 | The store cannot be used, an unknown command, invalid options, an unreachable mirror in `mirror`, or an unexpected error |
 | 2 | `sync` received a block that failed validation |
 
 ## The HTTP interface
@@ -675,8 +696,8 @@ Three options control how a node deals with that server:
 | `--no-upstream` | No upstream. The node neither forwards blocks nor fetches blocks from `--api`. It talks to the network only through other nodes |
 
 Forwarding runs in the background. A miner gets its answer at once and does not wait for the
-upstream. The node prints the result: `weitergegeben, dort als Höhe <n> angenommen` (forwarded,
-accepted there as height n) or `nicht weitergegeben: <reason>` (not forwarded). A refusal does
+upstream. The node prints the result: `forwarded to the mirror, accepted there as height <n>` or
+`not forwarded to the mirror: <reason>`. A refusal does
 not change the local chain.
 
 ### Only the main node writes to the mirror
@@ -697,14 +718,14 @@ three reasons:
 A node started with `--no-upstream` loses nothing. Its blocks reach the network through the
 other nodes, and the main node passes them on to the mirror.
 
-### `spiegel`
+### `mirror`
 
-`spiegel` repairs a mirror that has fallen behind. It reads the mirror's height from
+`mirror` (formerly `spiegel`) repairs a mirror that has fallen behind. It reads the mirror's height from
 `<target>/api/v2/blocks?limit=1`, compares it with the local chain and POSTs each missing block
 in order. The target is `--upstream` if given, otherwise `--api`. Because the mirror accepts
 only the next block, the command stops at the first block the mirror refuses and names it.
 
-The main node's configuration, the token and the timer that runs `spiegel` regularly are
+The main node's configuration, the token and the timer that runs `mirror` regularly are
 described in [OPERATIONS.md](OPERATIONS.md).
 
 ## Running a pool
@@ -784,8 +805,8 @@ What to expect (observed on 2026-10-21 with exactly this setup, height 10):
   fetches the same block again after each new connection. Nothing breaks; it is the
   behaviour of the old code and stops once every node runs revision 6.
 - From then on there are two chains. `chain` and `status` show different best blocks on old and
-  new nodes; `status` on a new node shows `Fassung 6 ab Block 10`.
-- Transfers across the height, with `testkonto` and `ueberweisen` from the new build (observed on
+  new nodes; `status` on a new node shows `revision 6 from block 10`.
+- Transfers across the height, with `testkey` and `send` from the new build (observed on
   2026-10-21, height 12, miners paying to the test key): before the height a version 1 transfer is
   accepted by the new node and relayed to the old one; a version 2 transfer is rejected by the new
   node (`bad_version`) and by the old node, which reads it with the old layout (`unknown_account`).
@@ -793,10 +814,10 @@ What to expect (observed on 2026-10-21 with exactly this setup, height 10):
   accepting version 1 and rejects version 2.
 
   ```bash
-  node dist/yskar-node.cjs testkonto --regtest --key ./sender.json
-  node dist/yskar-node.cjs ueberweisen --regtest --v6-height 10 --key ./sender.json \
+  node dist/yskar-node.cjs testkey --regtest --key ./sender.json
+  node dist/yskar-node.cjs send --regtest --v6-height 10 --key ./sender.json \
        --to ysr1… --amount 1 --api http://127.0.0.1:8665
-  node dist/yskar-node.cjs ueberweisen --regtest --key ./sender.json \
+  node dist/yskar-node.cjs send --regtest --key ./sender.json \
        --to ysr1… --amount 1 --tx-version 2 --api http://127.0.0.1:8645
   ```
 - Regtest aims at 600 seconds per block like the main network. The first blocks come within
@@ -811,8 +832,6 @@ Notes:
 - Use a separate data directory for regtest and pass `--regtest` to every command that opens it,
   including `status`, `chain` and `tips`. Otherwise the node stops because the store belongs to
   another network.
-- `status` and the header of `sync` always print the network name `yskar-main-1`, also for a
-  regtest store.
 - `/fees` evaluates pending transfers with main-network parameters. On regtest its projection
   (`bloecke`) stays empty.
 
@@ -828,21 +847,23 @@ The node shuts down cleanly on `SIGINT` and `SIGTERM`: it closes the store befor
 
 | What you see | Cause and remedy |
 |---|---|
-| `Diese Ablage gehoert zu network=..., erwartet wird ...` and exit code 1 | The data directory belongs to another network or has an older store format. Check `--data` and whether `--regtest` is set or missing |
-| `Die lokale Ablage ist nicht verwendbar` and exit code 1 | The store could not be replayed: a block is missing on the active chain, a block cannot be applied, or the state root does not match. Remove the data directory and sync again |
-| `BLOCK ABGELEHNT` and exit code 2 in `sync` | The HTTP source delivered a block that fails validation. The node names the height and the reason and keeps what it validated before |
-| `Unbekannter Befehl: ...` and exit code 1 | The first argument is not a command |
-| `Seed "..." muss host:port sein` | A `--seed` value has no port |
-| `Knotennetz konnte nicht starten: ...` | The P2P listener could not open, usually because the port is in use. The node keeps running without the node network. Free the port or choose another with `--p2p-port` |
-| The node exits with `EADDRINUSE` | The HTTP port is in use. Choose another with `--port` |
-| `<host:port> nicht erreichbar: ...` | A seed or another node cannot be reached. The node retries with growing pauses |
-| `<host:port> ist die eigene Adresse -- aus dem Buch genommen` | The node tried to connect to itself and removed that address from its address book. This is harmless |
-| `nicht weitergegeben: ...` after every block | The node is forwarding blocks to an upstream that refuses them. A node that is not the main node should be started with `--no-upstream` |
-| `Nicht erreichbar: ...` followed by `Es wird auf dem lokalen Stand weitergebaut.` | The HTTP source could not be reached at start. The node continues with its local chain |
-| `--pool-fee ohne --pool-payout`, `--pool-payout ist keine gültige YSKAR-Adresse`, `Pool konnte nicht starten: ...` | The pool options are incomplete or invalid; the node exits with code 1 |
+| `✖ The data folder cannot be used` with `belongs to network …` and exit code 1 | The data directory belongs to another network or has an older store format. Check `--data` and whether `--regtest` is set or missing |
+| `✖ The data folder cannot be used` with another reason and exit code 1 | The store could not be replayed: a block is missing on the active chain, a block cannot be applied, or the state root does not match. Remove the data directory and sync again |
+| `✖ The data folder does not match this program` | The store reached the activation height of revision 6 with another height than this program uses. Do not delete the folder; use the program version that matches the chain |
+| `✖ BLOCK REJECTED` and exit code 2 in `sync` | The HTTP source delivered a block that fails validation. The node names the height and the reason and keeps what it validated before |
+| `✖ Unknown command: ...` and exit code 1 | The first argument is not a command |
+| `✖ --seed "..." must be host:port` | A `--seed` value has no port |
+| `peer network not started: ...` | The P2P listener could not open, usually because the port is in use. The node keeps running without the node network. Free the port or choose another with `--p2p-port` |
+| `✖ Port 8645 is already in use` | The HTTP port is in use, often by a second node. Stop it or choose another port with `--port` |
+| `<host:port> not reachable: ...` | A seed or another node cannot be reached. The node retries with growing pauses |
+| `<host:port> is this node itself -- removed from the address book` | The node tried to connect to itself and removed that address from its address book. This is harmless |
+| `not forwarded to the mirror: ...` after every block | The node is forwarding blocks to an upstream that refuses them. A node that is not the main node should be started with `--no-upstream` |
+| `sync      <url>: …` at start, then mining continues on the local chain | The HTTP source could not be reached at start. The node continues with its local chain |
+| `✖ --pool-fee needs --pool-payout`, `✖ --pool-payout is not a valid YSKAR address`, `✖ The pool could not start` | The pool options are incomplete or invalid; the node exits with code 1 |
+| `consensus ! THIS NODE IS OUTDATED` | The network follows a consensus revision this program does not know. Update the node (see [OPERATIONS.md](OPERATIONS.md#updating-a-node)) |
 | Blocks from peers are rejected with `timestamp` | Check the system clock. Blocks more than 120 seconds in the future are invalid |
 | A miner reports `session_inactive` | The session timed out or the node was restarted. The miner has to open a new session; the command-line miner does that by itself |
-| `Kette` stays at `—` | The node has no peers. Check the `--seed` values and your outbound network access. If the seed names cannot be resolved, the main node is also reached as `45.84.199.206:8646` |
+| `CHAIN` stays `empty` | The node has no peers. Check the `--seed` values and your outbound network access. If the seed names cannot be resolved, the main node is also reached as `45.84.199.206:8646` |
 | Ctrl+C in `sync` does not stop at once | `sync` finishes its current pause first, which lasts up to `--interval` seconds |
 
 Node.js prints a warning that `node:sqlite` is experimental. The node filters exactly this one

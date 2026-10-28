@@ -6,18 +6,21 @@
  * Merkle-Wurzel, Signaturen, Guthaben, Zustandswurzel, Difficulty-Regel.
  * Gespeichert wird lokal in SQLite, mit Block-Index und Gabelungen.
  *
- * Unterschied zum Beobachter: Der Beobachter kennt nur eine Kette und legt
- * Bloecke nach Hoehe ab. Dieser Knoten haelt mehrere Bloecke je Hoehe,
- * rechnet kumulierte Arbeit und kann auf einen anderen Zweig umschalten.
+ * Ab 1.0.0 sind alle Ausgaben englisch (vorher deutsch), und der Knoten
+ * zeigt den Stand der Konsensfassung 6: ab welcher Hoehe sie gilt, wie viele
+ * Bloecke es bis dahin sind, ob dieses Programm sie umsetzt -- und meldet
+ * sich laut, wenn es veraltet ist. Die Kommentare im Quelltext bleiben
+ * deutsch wie im ganzen Repository.
  *
- * Was er NOCH NICHT kann: Bloecke annehmen (P2P), selbst minen, Pool. Die
- * Bloecke kommen bis dahin ueber die oeffentliche Leseschnittstelle --
- * geprueft werden sie trotzdem vollstaendig und ohne dem Server zu glauben.
+ * Die Befehle heissen ab 1.0.0 englisch (mirror, testkey, send). Die alten
+ * Namen (spiegel, testkonto, ueberweisen) bleiben gueltig -- der Dienst
+ * yskar-spiegel auf dem Hauptknoten ruft "spiegel" auf.
  */
 import { stateRootAt, totalSupply } from '../../core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
-import { NETWORK } from '../../core/params.ts';
+import { MAX_SUPPLY, TARGET_BLOCK_TIME } from '../../core/params.ts';
+import { deserializeBlock } from '../../core/block.ts';
 import { ChainStore } from './ChainStore.ts';
 import { spiegelKopf } from './spiegelKopf.ts';
 import { ChainManager, AktivierungsFehler } from './ChainManager.ts';
@@ -32,14 +35,19 @@ import { NetzStatistik } from './NetzStatistik.ts';
 import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { fensterGroesse } from '../../pool/pplns.ts';
 import { leseFenster, schreibeFenster, schreibeFensterSofort, kuerze } from '../../pool/fensterDatei.ts';
-import { nameToExtra } from '../../chain/finderName.ts';
-import { decodeAddress, istAuszahlungsAdresse, REGELKONTO_KEIN_MINING } from '../../core/address.ts';
+import { nameToExtra, finderName, finderAnzeige } from '../../chain/finderName.ts';
+import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 
-const VERSION = '0.1.0';
+const VERSION = '1.0.0';
 /** Wie oft das Fenster des Pools gesichert wird (wie in Node Core). */
 const FENSTER_TAKT_MS = 120_000;
+/** Wie oft im Betrieb eine Uebersichtszeile ins Protokoll geht. */
+const UEBERSICHT_TAKT_MS = 600_000;
+const DOKU = 'https://github.com/dabitlex/YSKAR/blob/main/docs/FULLNODE.md';
+const V6_DOKU = 'https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md';
+const EXPLORER = 'https://yskar.app/explorer';
 
 /*
   Node warnt bei jedem Start, dass node:sqlite experimentell sei. Fuer den
@@ -50,8 +58,6 @@ const FENSTER_TAKT_MS = 120_000;
 */
 // removeAllListeners zuerst: Node druckt Warnungen ueber einen eigenen
 // Empfaenger, der bestehen bleibt, wenn man nur einen weiteren hinzufuegt.
-// Ohne diese Zeile erscheint die Warnung trotz Filter -- so gesehen und
-// korrigiert.
 process.removeAllListeners('warning');
 process.on('warning', w => {
   if (w.name === 'ExperimentalWarning' && /SQLite/i.test(w.message)) return;
@@ -60,7 +66,7 @@ process.on('warning', w => {
 
 interface Optionen {
   api: string; daten: string; befehl: string;
-  einmal: boolean; intervall: number; help?: boolean;
+  einmal: boolean; intervall: number; help?: boolean; version?: boolean;
   bind: string; port: number; regtest: boolean;
   /** Lauschport fuer P2P. 0 = nur ausgehend. */
   p2pPort: number;
@@ -91,16 +97,26 @@ interface Optionen {
    * Fuer den Uebergangstest mit alten und neuen Knoten nebeneinander.
    */
   v6Hoehe?: string;
-  /** testkonto / ueberweisen (nur --regtest): Datei mit dem Testschluessel. */
+  /** testkey / send (nur --regtest): Datei mit dem Testschluessel. */
   schluessel: string;
-  /** ueberweisen: Empfaenger, Betrag und Gebuehr in YSR, erzwungene Fassung, Notiz. */
+  /** send: Empfaenger, Betrag und Gebuehr in YSR, erzwungene Fassung, Notiz. */
   an?: string; betrag?: string; gebuehr?: string; txFassung?: string; memo?: string;
 }
 
+/**
+ * Befehlsnamen. Bis 0.1.0 deutsch -- die alten Namen bleiben gueltig, damit
+ * bestehende Dienste (yskar-spiegel.service) und Skripte weiterlaufen.
+ */
+const BEFEHL_ALIAS: Readonly<Record<string, string>> = {
+  spiegel: 'mirror', testkonto: 'testkey', ueberweisen: 'send',
+};
+const BEFEHLE = ['sync', 'mine', 'status', 'chain', 'tips', 'mirror', 'testkey', 'send'];
+
 function argumente(argv: string[]): Optionen {
+  const roh = argv[0] && !argv[0].startsWith('-') ? argv[0] : 'sync';
   const o: Optionen = {
     api: 'https://yskar.vercel.app', daten: './knoten',
-    befehl: argv[0] && !argv[0].startsWith('-') ? argv[0] : 'sync',
+    befehl: BEFEHL_ALIAS[roh] ?? roh,
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false,
@@ -132,7 +148,7 @@ function argumente(argv: string[]): Optionen {
       case '--sender-ip': {
         const w = nimm();
         if (w !== 'proxy' && w !== 'socket') {
-          console.error(`  --sender-ip kennt "proxy" oder "socket", nicht "${w}".`);
+          console.error(`  --sender-ip takes "proxy" or "socket", not "${w}".`);
           process.exit(1);
         }
         o.absender = w;
@@ -146,6 +162,7 @@ function argumente(argv: string[]): Optionen {
       case '--tx-version': o.txFassung = nimm(); break;
       case '--memo': o.memo = nimm(); break;
       case '--help': case '-h': o.help = true; break;
+      case '--version': case '-v': o.version = true; break;
     }
   }
   return o;
@@ -159,121 +176,148 @@ function argumente(argv: string[]): Optionen {
  */
 function netzParameter(opt: Optionen): ConsensusParams {
   if (opt.v6Hoehe !== undefined) {
-    if (!opt.regtest) throw new Error('--v6-height gibt es nur zusammen mit --regtest');
+    if (!opt.regtest) {
+      throw new Error('--v6-height only works with --regtest. The mainnet activation height is fixed ' +
+        'in the program and cannot be changed.');
+    }
     const hoehe = /^\d+$/.test(opt.v6Hoehe) ? Number(opt.v6Hoehe) : NaN;
-    return regtestMitV6(hoehe);
+    // regtestMitV6 (core, mit anderen Programmen geteilt) meldet deutsch -- hier englisch.
+    try { return regtestMitV6(hoehe); }
+    catch { throw new Error(`--v6-height needs a whole number from 1, not "${opt.v6Hoehe}"`); }
   }
   return opt.regtest ? REGTEST : MAINNET;
 }
 
-const HILFE = `
-YSKAR Full Node ${VERSION}
-
-  yskar-node <befehl> [Optionen]
-
-Befehle
-  sync      Kette holen und jeden Block selbst prüfen (Vorgabe)
-  spiegel   liegengebliebene Blöcke an die Gegenstelle nachschieben
-  mine      Mining-Schnittstelle öffnen, damit Miner hier arbeiten können
-  status    Stand des lokalen Knotens
-  chain     die letzten Blöcke der aktiven Kette
-  tips      alle bekannten Zweigenden
-  testkonto Testschlüssel anlegen oder zeigen (nur --regtest)
-  ueberweisen  Überweisung im Testnetz signieren und senden (nur --regtest)
-
-Optionen
-  -d, --data <ordner>   Ablage (Vorgabe: ./knoten)
-      --api <url>       Quelle (Vorgabe: https://yskar.vercel.app)
-      --interval <sek>  Abstand zwischen Abfragen (Vorgabe: 60)
-      --once            einmal aufholen und beenden
-      --bind <adresse>  für "mine" (Vorgabe: 127.0.0.1)
-      --port <nummer>   für "mine" (Vorgabe: 8645)
-      --regtest         eigenes Testnetz statt der echten Kette
-      --v6-height <n>   nur mit --regtest: Fassung 6 ab Block n (Übergangstest)
-      --upstream <url>  wohin gefundene Blöcke gehen (Vorgabe: --api)
-      --no-upstream     gefundene Blöcke nur lokal behalten
-      --p2p-port <nr>   Lauschport für andere Knoten (Vorgabe: 8646)
-      --seed host:port  ein bekannter Knoten, mehrfach angebbar
-      --no-p2p          ohne Knotennetz laufen
-
-Testnetz-Überweisungen (nur mit --regtest)
-      --key <datei>     Testschlüssel (Vorgabe: ./testkonto.json)
-      --to <ysr1…>      Empfänger
-      --amount <ysr>    Betrag in YSR, z. B. 10 oder 0.5
-      --fee <ysr>       Gebühr in YSR (Vorgabe: 0.001)
-      --tx-version <n>  Fassung 1 oder 2 erzwingen (Vorgabe: nach Höhe)
-      --memo <text>     Notiz, höchstens 32 Byte
-      --api <url>       der Knoten, z. B. http://127.0.0.1:18665
-
-Spiegel nachziehen
-  yskar-node spiegel --data ./knoten
-
-  Vergleicht die Höhe der Gegenstelle mit der eigenen und schiebt jeden
-  fehlenden Block einzeln nach -- in der richtigen Reihenfolge, denn die
-  Gegenstelle nimmt immer nur den nächsten an. Bricht beim ersten Fehler ab
-  und sagt, welcher Block ihn ausgelöst hat.
-      --pool <name>     Pool betreiben, Name steht im Block
-      --pool-fee <bp>   Gebühr in Basispunkten (100 = 1,00 %, höchstens 500)
-      --pool-payout <a> Adresse für die Gebühr (nötig ab --pool-fee > 0)
-      --pool-max <n>    höchstens so viele Adressen aufnehmen, 1 bis 255
-                        (Vorgabe: was ein Block auszahlen kann -- 64, mit
-                        Gebühr 63; ab Konsensfassung 6 255 bzw. 254)
-      --mempool-mb <n>  Obergrenze des Mempools in MB (Vorgabe: 32, rund
-                        190.000 Überweisungen). Ist er voll, verdrängt eine
-                        höhere Gebühr die niedrigste; abgewiesen wird nur,
-                        wer unter der dann gestiegenen Untergrenze bleibt.
-      --sender-ip <q>   Absender von Mining-Anfragen erkennen und je
-                        Absender begrenzen: "proxy" hinter Caddy o. ä.
-                        (letzter Eintrag von X-Forwarded-For), "socket"
-                        ohne Proxy. Vorgabe: keine Grenzen je Absender.
-
-Pool betreiben
-  yskar-node mine --data ./knoten --pool pool.yskar.net --pool-fee 100 \
-                  --pool-payout ysr1…
-
-  Miner melden sich dann mit mode=pool an. Der Block selbst zahlt alle
-  Beteiligten aus — der Betreiber hält zu keinem Zeitpunkt fremdes Guthaben.
-
-  Ein voller Pool lehnt neue Adressen ab; wer schon dabei ist, darf weitere
-  Geräte anmelden. Stand für alle lesbar unter /api/v2/pool.
-
-Mit anderen Knoten verbinden
-  yskar-node mine --data ./knoten --seed 203.0.113.5:8646
-
-  Jeder Block, der über das Netz kommt, wird vollständig selbst geprüft --
-  Header, Proof of Work, Signaturen, Guthaben, Zustandswurzel. Ein Peer
-  liefert Daten, sonst nichts.
-
-Mining gegen den eigenen Knoten
-  yskar-node mine --regtest --data ./testnetz
-  yskar-miner --address ysr1… --api http://127.0.0.1:8645
-
-  Der bestehende Miner läuft unverändert -- der Knoten spricht dasselbe
-  Protokoll wie der Server. Nur die Adresse ist eine andere.
-`;
-
 // ----------------------------------------------------------------- Ausgabe
+
+const FARBE = process.stdout.isTTY && !process.env.NO_COLOR;
+const f = (c: string, s: string) => FARBE ? `\x1b[${c}m${s}\x1b[0m` : s;
+const gruen = (s: string) => f('32', s), rot = (s: string) => f('31', s);
+const gelb = (s: string) => f('33', s), grau = (s: string) => f('90', s);
+const fett = (s: string) => f('1', s), cyan = (s: string) => f('36', s);
+const blau = (s: string) => f('94', s);
+const uhr = () => new Date().toTimeString().slice(0, 8);
+/** Zahlen im englischen Format: 6,809. */
+const nf = (n: number | bigint) => Number(n).toLocaleString('en-US');
 
 /**
  * Meldung ausgeben, ohne die laufende Statuszeile zu zerreissen.
  *
  * Die Statuszeile wird mit \r an Ort und Stelle erneuert. Wer daneben
- * einfach console.log benutzt, haengt seinen Text an ihren Rest an -- so
- * entstand "Mempool 0[06:20:58] 1 Bloecke geprueft". Erst loeschen, dann
- * drucken.
+ * einfach console.log benutzt, haengt seinen Text an ihren Rest an. Erst
+ * loeschen, dann drucken.
  */
 function melde(text: string): void {
   if (process.stdout.isTTY) process.stdout.write('\r\x1b[2K');
   console.log(text);
 }
 
-const FARBE = process.stdout.isTTY && !process.env.NO_COLOR;
-const f = (c: string, s: string) => FARBE ? `\x1b[${c}m${s}\x1b[0m` : s;
-const gruen = (s: string) => f('32', s), rot = (s: string) => f('31', s);
-const gelb = (s: string) => f('33', s), grau = (s: string) => f('90', s);
-const fett = (s: string) => f('1', s);
-const uhr = () => new Date().toTimeString().slice(0, 8);
-const nf = (n: number | bigint) => Number(n).toLocaleString('de-DE');
+/**
+ * Eine Protokollzeile: Uhrzeit, Art (feste Breite), Text. Die Art steht immer
+ * an derselben Stelle, damit sich das Journal ueberfliegen und mit grep
+ * filtern laesst.
+ */
+const ART = 9;
+function log(art: string, farbe: (s: string) => string, text: string): void {
+  melde(`${grau('[' + uhr() + ']')} ${farbe(art.padEnd(ART))} ${text}`);
+}
+/** Fortsetzung unter einer Protokollzeile, buendig mit deren Text. */
+const EINZUG = ' '.repeat(10 + 1 + ART + 1);
+
+const LINIE = 88;
+const linie = () => console.log(grau(' ' + '─'.repeat(LINIE)));
+const abschnitt = (t: string) => console.log(` ${fett(t)}`);
+const MARKE = 13;
+const zeile = (m: string, w: string) => console.log(` ${grau('*')} ${cyan(m.padEnd(MARKE))}${w}`);
+const P = grau(' · ');
+
+function kopf(titel = ''): void {
+  console.log('');
+  const links = `YSKAR Full Node ${VERSION}${titel ? '  ' + titel : ''}`;
+  console.log(` ${fett('YSKAR Full Node')} ${grau(VERSION)}${titel ? '  ' + grau(titel) : ''}` +
+    `${' '.repeat(Math.max(2, LINIE - links.length - 18))}${grau('Fair from block 0.')}`);
+  linie();
+}
+
+/** Ein Fehler, der den Start beendet: Titel, dann was zu tun ist. */
+function abbruch(titel: string, ...zeilen: string[]): never {
+  console.error(`\n ${rot(fett('✖ ' + titel))}`);
+  for (const z of zeilen) console.error(`   ${z}`);
+  console.error('');
+  process.exit(1);
+}
+
+/** Sekunden als "45 s", "12 min", "5h 20m", "22 days". */
+function dauer(sek: number): string {
+  const s = Math.round(sek);
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.round(s / 60)} min`;
+  if (s < 2 * 86400) return `${Math.floor(s / 3600)}h ${Math.round((s % 3600) / 60)}m`;
+  return `${Math.round(s / 86400)} days`;
+}
+
+/** "around 20 Nov 2026" -- nur ein Anhaltspunkt aus der Zielblockzeit. */
+function ungefaehrAm(sekunden: number): string {
+  const d = new Date(Date.now() + sekunden * 1000);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+const netzName = (params: ConsensusParams) =>
+  `${params.network} ${grau(params === MAINNET ? '(mainnet)' : '(test network)')}`;
+
+/**
+ * Der Stand der Konsensfassung 6 in Worten -- fuer Startkopf, status und
+ * die Hinweise im Betrieb. Eine Quelle fuer alle drei, damit sie sich nie
+ * widersprechen.
+ */
+function fassungsLage(params: ConsensusParams, hoehe: number) {
+  const ab = naechsteAktivierung(params);
+  const aktiv = ab > 0 && hoehe + 1 >= ab;   // der NAECHSTE Block folgt schon den neuen Regeln
+  const rest = ab > 0 ? Math.max(0, ab - (hoehe + 1)) : null;
+  return {
+    ab, aktiv, rest,
+    jetzt: aktiv ? 6 : 5,
+    sekunden: rest === null ? null : rest * Number(TARGET_BLOCK_TIME),
+    umgesetzt: gemeldeteFassung(params),
+  };
+}
+
+/** Interne Ablehnungsgruende der Kette in Worten. Der Code steht dahinter. */
+const GRUENDE: Readonly<Record<string, string>> = {
+  unlesbar: 'unreadable block',
+  struktur: 'broken block structure',
+  fassung_unbekannt: 'unknown consensus revision',
+  kodierung: 'non-canonical encoding',
+  vorgaenger_fehlt: 'unknown parent block',
+  vorgaenger_ungueltig: 'parent block is invalid',
+  hoehe_passt_nicht: 'height does not follow the parent',
+  zweig_unlesbar: 'branch cannot be read',
+  timestamp: 'timestamp rule broken',
+  difficulty: 'difficulty rule broken',
+  anwenden: 'transactions cannot be applied',
+  state_root: 'state root does not match',
+};
+const grundText = (g: string) => GRUENDE[g] ? `${GRUENDE[g]} ${grau(`(${g})`)}` : g;
+
+/** Gruende fuer das Ende einer Peer-Verbindung, soweit sie intern deutsch heissen. */
+function trennGrund(g: string): string {
+  return g
+    .replace(/^herunterfahren$/, 'shutting down')
+    .replace(/^verdraengt$/, 'replaced by a better peer')
+    .replace(/^selbstverbindung/, 'connected to itself')
+    .replace(/^stats_unlesbar/, 'unreadable statistics');
+}
+
+/** Hinweis aus fensterDatei.ts (mit Node Core geteilt, deshalb dort deutsch). */
+function fensterHinweis(h: string): string {
+  return h
+    .replace(/^gesicherte Arbeit nicht übernommen \((.*)\); die Datei liegt als pool-fenster\.json\.unlesbar daneben\.$/,
+      'saved work not loaded ($1); the file was kept as pool-fenster.json.unlesbar.')
+    .replace(/^nur die jüngsten (\d+) Einträge übernommen\.$/, 'only the newest $1 entries were loaded.');
+}
+
+const KEIN_AUSZAHLUNGSKONTO = 'Mining pays only to a normal wallet address (ysr1…, 42 characters). ' +
+  'Shared accounts (ysr1p…) cannot receive a block reward yet.';
 
 // -------------------------------------------------------------------- Netz
 
@@ -291,36 +335,41 @@ async function hole(api: string, pfad: string): Promise<Record<string, unknown>>
   return body as Record<string, unknown>;
 }
 
+/** Netzwerkfehler von fetch in einem lesbaren Satz. */
+function netzFehler(e: unknown): string {
+  const err = e as Error & { cause?: { code?: string } };
+  if (err?.name === 'TimeoutError') return `no answer within ${ANFRAGE_FRIST_MS / 1000} s`;
+  const c = err?.cause?.code;
+  if (c === 'ENOTFOUND' || c === 'EAI_AGAIN') return 'the host name could not be resolved';
+  if (c === 'ECONNREFUSED') return 'the connection was refused';
+  if (c === 'ECONNRESET') return 'the connection was reset';
+  return err?.message === 'fetch failed' ? 'not reachable' : (err?.message ?? String(e));
+}
+
 // ------------------------------------------------------------------ Befehle
 
 /**
- * Liegengebliebene Bloecke an die Gegenstelle nachschieben.
+ * Liegengebliebene Bloecke an die Gegenstelle nachschieben (Befehl mirror,
+ * frueher spiegel).
  *
  * WOZU: Die Gegenstelle nimmt immer nur den NAECHSTEN Block an. Scheitert
- * einer -- durch einen Ausfall, einen Netzfehler oder einen Fehler wie den
- * mit den u64-Spalten --, blockiert er alle weiteren. Der Spiegel bleibt
- * stehen, waehrend die Kette weiterlaeuft.
- *
- * Diese Funktion schliesst die Luecke, ohne dass die Kette angefasst wird:
- * Sie liest die Bloecke aus der eigenen Ablage und schickt sie einzeln in
- * der richtigen Reihenfolge.
+ * einer, blockiert er alle weiteren. Der Spiegel bleibt stehen, waehrend die
+ * Kette weiterlaeuft. Diese Funktion schliesst die Luecke, ohne dass die
+ * Kette angefasst wird.
  *
  * Beim ERSTEN Fehler wird abgebrochen. Weitermachen waere sinnlos -- der
- * naechste Block braucht den vorigen -- und wuerde den eigentlichen Grund
- * unter einer Fehlerlawine begraben.
+ * naechste Block braucht den vorigen.
  */
 async function spiegel(
   opt: Optionen, store: ChainStore, chain: ChainManager,
 ): Promise<void> {
   const ziel = opt.upstream || opt.api;
-  console.log(fett(`\nYSKAR Spiegel`));
-  console.log(grau('─'.repeat(56)));
-  console.log(`  Gegenstelle  ${ziel}`);
+  kopf('mirror');
+  zeile('MIRROR', ziel);
 
   const eigene = chain.height();
-  if (eigene === null) {
-    console.error(rot('  Die eigene Kette ist leer -- erst "sync" laufen lassen.'));
-    process.exit(1);
+  if (eigene === null || eigene < 0) {
+    abbruch('The local chain is empty', 'Run "sync" or "mine" first.');
   }
 
   let dort: number;
@@ -328,51 +377,39 @@ async function spiegel(
     /*
       WARUM NICHT /api/v2/summary
 
-      Seit der Umstellung reicht die Gegenstelle ihr summary an DIESEN
-      Knoten durch. Gefragt, wie hoch sie stehe, antwortete sie also mit
-      unserer eigenen Hoehe -- und der Vergleich unten saehe immer
-      "gleichauf". Bei einem vollstaendig geleerten Spiegel hiesse das:
-      "Nichts nachzuschieben", waehrend in Wahrheit alles fehlt. Ein
-      Fehler, der sich als Erfolg meldet, ist schlimmer als ein Abbruch.
-
-      /api/v2/blocks liest dagegen aus dem Spiegel selbst. Eine leere
-      Liste ist die ehrliche Antwort "ich habe nichts" und wird zu -1,
-      damit die Schleife unten bei Hoehe 0 anfaengt.
+      Die Gegenstelle reicht ihr summary an DIESEN Knoten durch. Gefragt,
+      wie hoch sie stehe, antwortete sie also mit unserer eigenen Hoehe.
+      /api/v2/blocks liest dagegen aus dem Spiegel selbst. Eine leere Liste
+      ist die ehrliche Antwort "ich habe nichts" und wird zu -1.
     */
     const res = await fetch(`${ziel}/api/v2/blocks?limit=1`, { signal: AbortSignal.timeout(ANFRAGE_FRIST_MS) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    /*
-      Erst pruefen, DANN auswerten. Antwortet dort ein Vorschaltserver mit
-      einer Fehlerseite, kaeme aus json() ein Parserfehler -- und der
-      verdeckt, was wirklich los ist.
-    */
     const text = await res.text();
     let r: { blocks?: { height?: number }[] };
     try { r = JSON.parse(text); }
-    catch { throw new Error(`keine JSON-Antwort: ${text.slice(0, 60)}`); }
-    if (!Array.isArray(r.blocks)) throw new Error('Antwort ohne Blockliste');
-    // Leerer Spiegel -> -1, damit unten bei Hoehe 0 begonnen wird.
+    catch { throw new Error(`no JSON answer: ${text.slice(0, 60)}`); }
+    if (!Array.isArray(r.blocks)) throw new Error('answer without a block list');
     dort = r.blocks.length === 0 ? -1 : Number(r.blocks[0].height ?? -1);
-    if (!Number.isFinite(dort)) throw new Error('Antwort ohne Höhe');
+    if (!Number.isFinite(dort)) throw new Error('answer without a height');
   } catch (e) {
-    console.error(rot(`  Gegenstelle nicht erreichbar: ${(e as Error).message}`));
-    process.exit(1);
+    abbruch('The mirror cannot be reached', `${ziel}: ${netzFehler(e)}`);
   }
 
-  console.log(`  dort         ${nf(dort)}`);
-  console.log(`  hier         ${nf(eigene)}`);
+  zeile('MIRROR HEIGHT', nf(dort));
+  zeile('LOCAL HEIGHT', nf(eigene));
+  linie();
 
   if (dort >= eigene) {
-    console.log(gruen('\n  Nichts nachzuschieben -- der Spiegel ist aktuell.\n'));
+    console.log(gruen('\n Nothing to push -- the mirror is up to date.\n'));
     return;
   }
-  console.log(grau(`\n  ${nf(eigene - dort)} Blöcke nachzuschieben.\n`));
+  console.log(grau(`\n ${nf(eigene - dort)} blocks to push.\n`));
 
   let geschafft = 0;
   for (let h = dort + 1; h <= eigene; h++) {
     const b = store.mainAt(h);
     if (!b) {
-      console.error(rot(`  Block ${nf(h)} fehlt in der eigenen Ablage.`));
+      console.error(rot(` Block ${nf(h)} is missing from the local store.`));
       break;
     }
     try {
@@ -384,57 +421,92 @@ async function spiegel(
       });
       const body = await res.json().catch(() => ({}));
       if (!body.accepted) {
-        console.error(rot(`  Block ${nf(h)} abgelehnt: ${
+        console.error(rot(` Block ${nf(h)} rejected by the mirror: ${
           body.detail ?? body.reason ?? `HTTP ${res.status}`}`));
-        console.error(grau('  Abgebrochen -- die folgenden brauchen diesen Block.\n'));
+        console.error(grau(' Stopped -- the following blocks need this one.\n'));
         break;
       }
       geschafft++;
-      if (geschafft % 10 === 0 || h === eigene) {
-        console.log(grau(`  ${nf(h)} …`));
-      }
+      if (geschafft % 10 === 0 || h === eigene) console.log(grau(` ${nf(h)} …`));
     } catch (e) {
-      console.error(rot(`  Block ${nf(h)}: ${(e as Error).message}`));
+      console.error(rot(` Block ${nf(h)}: ${netzFehler(e)}`));
       break;
     }
   }
 
   console.log(geschafft === eigene - dort
-    ? gruen(`\n  ${nf(geschafft)} Blöcke nachgeschoben. Spiegel ist aktuell.\n`)
-    : gelb(`\n  ${nf(geschafft)} von ${nf(eigene - dort)} nachgeschoben.\n`));
+    ? gruen(`\n ${nf(geschafft)} blocks pushed. The mirror is up to date.\n`)
+    : gelb(`\n ${nf(geschafft)} of ${nf(eigene - dort)} blocks pushed.\n`));
 }
 
 function status(store: ChainStore, chain: ChainManager, params: ConsensusParams = MAINNET): void {
   const tip = chain.tip();
-  console.log(fett(`\nYSKAR Full Node ${VERSION}`));
-  console.log(grau('─'.repeat(56)));
-  console.log(`  Netz            ${NETWORK}`);
-  const aktivierung = naechsteAktivierung(params);
-  const stand = fassungsStatus(chain.hoehereFassungGesehen !== null);
-  console.log(`  Konsensfassung  ${gemeldeteFassung(params)}` +
-    (aktivierung ? grau(`  (Fassung 6 ab Block ${nf(aktivierung)})`) : grau('  (Aktivierungshöhe von Fassung 6 noch nicht gesetzt)')));
-  if (stand !== 'current') {
-    console.log(gelb(`  Fassungsstand   ${stand}` +
-      (stand === 'outdated' ? ' – ein Block einer höheren Fassung wurde gesehen, Update nötig' : ' – Update prüfen')));
-  }
-  console.log(`  Höhe            ${tip ? nf(tip.height) : '—'}`);
-  console.log(`  Bester Block    ${tip ? toHex(tip.hash) : '—'}`);
-  console.log(`  Chain Work      ${tip ? nf(tip.chainWork) : '—'}`);
-  console.log(`  Difficulty      ${tip ? nf(tip.difficulty) : '—'}`);
-  console.log(`  Blöcke gespeichert ${nf(store.count())}`);
-  console.log(`  Zweigenden      ${store.tips().length}`);
+  kopf();
+  abschnitt('CHAIN');
+  /*
+    Bis 0.1.0 stand hier die Konstante NETWORK -- mit --regtest zeigte
+    status deshalb "yskar-main-1". Die Kennung kommt aus den Parametern.
+  */
+  zeile('NETWORK', netzName(params));
   if (tip) {
-    console.log(`  Zustandswurzel  ${toHex(stateRootAt(chain.state(), chain.height(), params))}`);
-    console.log(`  Im Umlauf       ${nf(Number(totalSupply(chain.state())) / 1e8)} YSR`);
     const alter = Math.round(Date.now() / 1000 - Number(tip.blockTime));
-    console.log(`  Letzter Block   vor ${alter < 90 ? alter + ' s' : Math.round(alter / 60) + ' min'}`);
+    zeile('HEIGHT', `${nf(tip.height)}${P}last block ${dauer(Math.max(0, alter))} ago`);
+    zeile('BEST BLOCK', toHex(tip.hash));
+    zeile('DIFFICULTY', nf(tip.difficulty));
+    zeile('CHAIN WORK', nf(tip.chainWork));
+    zeile('STATE ROOT', toHex(stateRootAt(chain.state(), chain.height(), params)));
+    const umlauf = Number(totalSupply(chain.state())) / 1e8;
+    const max = Number(MAX_SUPPLY) / 1e8;
+    zeile('SUPPLY', `${nf(Math.round(umlauf))} of ${nf(max)} YSR ${grau(`(${((umlauf / max) * 100).toFixed(1)}%)`)}`);
+  } else {
+    zeile('HEIGHT', grau('no blocks yet'));
   }
-  console.log(grau('─'.repeat(56)) + '\n');
+  const zweige = store.tips().length;
+  zeile('STORED', `${nf(store.count())} blocks${P}${nf(zweige)} branch ${zweige === 1 ? 'tip' : 'tips'}${
+    zweige > 1 ? grau(' (a fork was seen; the branch with the most work is active)') : ''}`);
+  console.log('');
+  fassungsBlock(params, tip ? tip.height : -1, chain);
+  linie();
+  console.log('');
+}
+
+/** Der Abschnitt CONSENSUS -- gleich in status und im Startkopf. */
+function fassungsBlock(params: ConsensusParams, hoehe: number, chain: ChainManager, knapp = false): void {
+  const l = fassungsLage(params, hoehe);
+  const stand = fassungsStatus(chain.hoehereFassungGesehen !== null);
+  abschnitt('CONSENSUS');
+  zeile('REVISION', `${l.jetzt} ${grau('(active now)')}`);
+  if (l.ab === 0) {
+    zeile('NEXT', grau('no activation height for revision 6 is set in this program'));
+  } else if (!l.aktiv) {
+    zeile(knapp ? 'ACTIVATION' : 'NEXT', `revision 6 from block ${nf(l.ab)}${P}${nf(l.rest!)} blocks to go ${
+      grau(`(≈ ${dauer(l.sekunden!)}${params === MAINNET ? `, around ${ungefaehrAm(l.sekunden!)}` : ''})`)}`);
+  } else {
+    zeile('SINCE', `block ${nf(l.ab)}`);
+  }
+  if (stand === 'outdated') {
+    zeile('THIS NODE', rot(fett('OUTDATED')) + rot(' — a block of a higher revision was seen. Update yskar-node now.'));
+  } else if (l.umgesetzt >= 6) {
+    zeile('THIS NODE', gruen(l.aktiv ? '✓ runs revision 6' : '✓ ready for revision 6') +
+      grau(l.aktiv ? '' : ' — no update needed before the activation'));
+  } else {
+    zeile('THIS NODE', gelb('follows revision 5 only'));
+  }
+  if (stand === 'update_recommended' || stand === 'probably_forked') {
+    zeile('', gelb(stand === 'probably_forked'
+      ? 'This program is more than a year old and probably no longer follows the network. Update it.'
+      : 'This program is more than half a year old. Check for a newer version.'));
+  }
+  if (!knapp && l.umgesetzt >= 6 && !l.aktiv) {
+    zeile('WHAT CHANGES', `block version 6${P}shared accounts (multisig)${P}hash and time locks`);
+    zeile('', `up to 255 coinbase outputs${P}larger blocks${P}fork ID in every signature`);
+    zeile('', grau(`Details: ${V6_DOKU}`));
+  }
 }
 
 function chainListe(store: ChainStore): void {
   const tip = store.mainTip();
-  if (!tip) { console.log('Noch keine Blöcke.'); return; }
+  if (!tip) { console.log('\n No blocks yet.\n'); return; }
   console.log('');
   for (let h = Math.max(0, tip.height - 14); h <= tip.height; h++) {
     const b = store.mainAt(h);
@@ -442,8 +514,8 @@ function chainListe(store: ChainStore): void {
     const andere = store.atHeight(h).length - 1;
     console.log(
       `  ${grau('#' + String(h).padStart(6))}  ${toHex(b.hash).slice(0, 32)}…  ` +
-      `${grau('Diff')} ${String(nf(b.difficulty)).padStart(9)}` +
-      (andere > 0 ? gelb(`  +${andere} Zweig${andere > 1 ? 'e' : ''}`) : ''));
+      `${grau('diff')} ${String(nf(b.difficulty)).padStart(12)}` +
+      (andere > 0 ? gelb(`  +${andere} side ${andere > 1 ? 'branches' : 'branch'}`) : ''));
   }
   console.log('');
 }
@@ -451,18 +523,18 @@ function chainListe(store: ChainStore): void {
 function tipsListe(store: ChainStore): void {
   const alle = store.tips();
   console.log('');
-  if (alle.length === 0) { console.log('  Keine.'); return; }
+  if (alle.length === 0) { console.log('  None.\n'); return; }
   for (const t of alle) {
     const aktiv = t.mainChain;
     console.log(
-      `  ${aktiv ? gruen('aktiv ') : grau('Zweig ')} ` +
+      `  ${aktiv ? gruen('active') : grau('branch')} ` +
       `${grau('#' + String(t.height).padStart(6))}  ${toHex(t.hash).slice(0, 32)}…  ` +
-      `${grau('Arbeit')} ${nf(t.chainWork)}`);
+      `${grau('work')} ${nf(t.chainWork)}`);
   }
   console.log('');
   if (alle.length > 1) {
-    console.log(grau('  Mehrere Zweigenden heißt: Es gab eine Gabelung. Aktiv ist der\n' +
-                     '  mit der meisten kumulierten Arbeit.\n'));
+    console.log(grau('  Several branch tips mean there was a fork. The active one is the branch\n' +
+                     '  with the most cumulative work.\n'));
   }
 }
 
@@ -472,14 +544,11 @@ function tipsListe(store: ChainStore): void {
  * Stapelweise, weil ein Aufruf je Block bei zehntausenden Bloecken
  * unzumutbar waere. Jeder Block wird einzeln geprueft -- der Stapel ist
  * nur die Transportform.
- */
-/**
+ *
  * `pool` ist optional, weil dieselbe Funktion zwei Rollen spielt: beim
  * Start den Erstabgleich (da gibt es noch keinen Mempool) und im Betrieb
  * den Takt alle 30 Sekunden (da gibt es einen, und er muss gepflegt
- * werden). Ohne ihn blieben ueber sync hereingeholte Bloecke die letzte
- * Luecke, durch die eine erledigte Ueberweisung in der Warteschlange
- * stehen bleibt.
+ * werden).
  */
 async function sync(
   opt: Optionen, store: ChainStore, chain: ChainManager, pool?: TxPool,
@@ -492,12 +561,9 @@ async function sync(
 
     Folgt die Gegenstelle einem ANDEREN Zweig, der an oder unter unserem
     Kopf abzweigt, passt ihr Block h+1 an nichts, was wir haben
-    ("vorgaenger_fehlt"). Bisher endete der Abgleich dort -- im Betrieb alle
-    30 Sekunden mit BLOCK ABGELEHNT, und der Knoten blieb auf seinem Zweig
-    (Issue #11). Jetzt geht er schrittweise zurueck (1, 2, 4, ... Bloecke),
-    bis die Gegenstelle einen Block liefert, dessen Vorgaenger wir kennen.
-    Ab dort werden ihre Bloecke normal geprueft; hat ihr Zweig mehr Arbeit,
-    wechselt die Kette (Reorg) wie bei Bloecken aus dem Knotennetz.
+    ("vorgaenger_fehlt"). Dann geht der Abgleich schrittweise zurueck
+    (1, 2, 4, ... Bloecke), bis die Gegenstelle einen Block liefert, dessen
+    Vorgaenger wir kennen (Issue #11).
   */
   let von = chain.height() + 1;
   let schritt = 0;
@@ -510,14 +576,11 @@ async function sync(
     for (const b of bloecke) {
       const r = chain.accept(fromHex(b.body));
       if (!r.ok && r.grund === 'vorgaenger_fehlt' && b.height > 0) {
-        // Abzweigung: weiter zurueck fragen. Nie unter Hoehe 0 -- passt auch
-        // der Genesis nicht, ist es eine andere Kette, und das meldet accept()
-        // dann selbst.
         schritt = schritt === 0 ? 1 : schritt * 2;
         const zurueck = Math.max(0, b.height - schritt);
         if (schritt === 1) {
-          melde(`${grau('[' + uhr() + ']')} ${gelb('Abzweigung')} ` +
-            `bei Höhe ${nf(b.height)}: Gegenstelle folgt einem anderen Zweig, suche den gemeinsamen Vorgänger…`);
+          log('fork', gelb, `at height ${nf(b.height)}: the source follows another branch, ` +
+            `looking for the common parent…`);
         }
         von = zurueck;
         continue abgleich;
@@ -525,20 +588,20 @@ async function sync(
       if (!r.ok) {
         // Der Zweck dieses Programms. Ab hier ist jede weitere Aussage wertlos.
         melde('');
-        melde(rot(fett('BLOCK ABGELEHNT')));
-        melde(rot(`  Höhe ${b.height}: ${r.grund}`));
-        if (r.detail) melde(rot(`  ${r.detail}`));
+        melde(rot(fett(' ✖ BLOCK REJECTED')));
+        melde(rot(`   height ${nf(b.height)}: ${grundText(r.grund)}`));
+        if (r.detail) melde(rot(`   ${r.detail}`));
+        melde(grau('   The source delivers something that breaks the rules of the chain.'));
+        melde(grau(`   Checked locally up to height ${nf(chain.height())}.`));
         melde('');
-        melde(grau('  Der Server liefert etwas, das der Kette widerspricht.'));
-        melde(grau(`  Lokal geprüft bis Höhe ${chain.height()}.`));
         return false;
       }
       if (r.stored) {
         geprueft++;
         if (pool) mempoolNachziehen(r, pool, chain.state(), chain.height());
         if (r.reorg) {
-          melde(`${grau('[' + uhr() + ']')} ${gelb('Reorg')} ` +
-            `auf Höhe ${r.height}, neuer Tip ${toHex(r.tip).slice(0, 16)}…`);
+          log('reorg', gelb, `switched to the branch with more work${P}height ${nf(r.height)}${P}` +
+            `new tip ${toHex(r.tip).slice(0, 16)}…`);
         }
       }
       von = b.height + 1;
@@ -547,16 +610,70 @@ async function sync(
 
   if (geprueft > 0) {
     const tip = chain.tip()!;
-    melde(
-      `${grau('[' + uhr() + ']')} ${gruen('✓')} ${geprueft} Blöcke geprüft ` +
-      `${grau('·')} Höhe ${nf(tip.height)} ` +
-      `${grau('·')} Arbeit ${nf(tip.chainWork)} ` +
-      `${grau('·')} ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+    log('sync', blau, `${gruen('✓')} ${nf(geprueft)} ${geprueft === 1 ? 'block' : 'blocks'} checked${P}` +
+      `height ${nf(tip.height)}${P}work ${nf(tip.chainWork)}${P}${((Date.now() - t0) / 1000).toFixed(1)} s`);
   } else if (process.stdout.isTTY) {
     process.stdout.write(`\r\x1b[2K${grau('[' + uhr() + ']')} ` +
-      `auf Höhe ${nf(chain.height())}, warte…`);
+      `at height ${nf(chain.height())}, waiting…`);
   }
   return true;
+}
+
+/**
+ * Hinweise zur Konsensfassung 6 im Betrieb.
+ *
+ * Einmal je Schwelle (1.000, 500, 100 und 10 Bloecke vorher), einmal bei der
+ * Aktivierung -- und laut, sobald die Kette einen Block hoeherer Fassung mit
+ * gueltiger Arbeit gesehen hat: Dann ist DIESES Programm veraltet, und der
+ * Betreiber muss es erfahren, auch wenn er nur ins Journal schaut.
+ */
+function fassungsHinweise(params: ConsensusParams, chain: ChainManager) {
+  const gemeldet = new Set<string>();
+  let veraltetGemeldet = false;
+  const SCHWELLEN = [1000, 500, 100, 10];
+  return () => {
+    const hoehe = chain.height();
+    const l = fassungsLage(params, hoehe);
+    if (l.ab > 0 && hoehe >= 0) {
+      if (l.aktiv) {
+        // Nur melden, wenn der Knoten die Aktivierung WAEHREND des Laufs
+        // erlebt -- nicht bei jedem Start auf einer Kette, die laengst darueber ist.
+        if (!gemeldet.has('aktiv') && gemeldet.size > 0 && hoehe + 1 - l.ab < 3) {
+          melde('');
+          log('consensus', s => gruen(fett(s)), gruen(fett(`★ REVISION 6 ACTIVE  from block #${nf(l.ab)}`)));
+          melde(grau(`${EINZUG}Block version 6, shared accounts, locks and 255 coinbase outputs are now valid.`));
+          melde(grau(`${EINZUG}Peers below revision 6 are no longer asked for blocks.`));
+          melde('');
+        }
+        gemeldet.add('aktiv');
+      } else {
+        // Die kleinste erreichte Schwelle zaehlt. Alle groesseren gelten mit
+        // als erledigt -- ein Start bei 80 Bloecken Rest meldet einmal, nicht viermal.
+        const erreicht = SCHWELLEN.filter(s => l.rest! <= s);
+        const schwelle = erreicht.length ? Math.min(...erreicht) : undefined;
+        if (schwelle !== undefined && !gemeldet.has(String(schwelle))) {
+          for (const s of erreicht) gemeldet.add(String(s));
+          log('consensus', gelb, `revision 6 activates in ${nf(l.rest!)} ${l.rest === 1 ? 'block' : 'blocks'} ` +
+            `${grau(`(block ${nf(l.ab)}, ≈ ${dauer(l.sekunden!)})`)}` +
+            (l.umgesetzt >= 6 ? grau(' · this node is ready') : ''));
+          if (schwelle <= 100) {
+            melde(grau(`${EINZUG}Wallets pause sending shortly before the activation; the node keeps working normally.`));
+          }
+        }
+      }
+    }
+    if (!veraltetGemeldet && chain.hoehereFassungGesehen !== null) {
+      veraltetGemeldet = true;
+      const h = chain.hoehereFassungGesehen;
+      melde('');
+      log('consensus', s => rot(fett(s)), rot(fett('! THIS NODE IS OUTDATED')));
+      melde(`${EINZUG}A peer sent a block of version ${h.version} at height ${nf(h.height)} with valid work.`);
+      melde(`${EINZUG}This program (yskar-node ${VERSION}) does not know that revision and follows a chain`);
+      melde(`${EINZUG}the rest of the network has left. Update yskar-node now:`);
+      melde(grau(`${EINZUG}git pull && cd node && npm install && npm run build && sudo systemctl restart yskar-node`));
+      melde('');
+    }
+  };
 }
 
 /**
@@ -570,7 +687,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   const params = netzParameter(opt);
   const mb = opt.mempoolMb;
   if (mb !== null && !(Number.isFinite(mb) && mb >= 1 && mb <= 4096)) {
-    throw new Error('--mempool-mb braucht eine Zahl von 1 bis 4096');
+    abbruch('--mempool-mb needs a number from 1 to 4096');
   }
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
   const koordinator = new MiningCoordinator(chain, store, pool, params);
@@ -579,7 +696,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   });
   // Weicht ein Job aus der Vorarbeit je vom vollen Blockbau ab, schaltet
   // sich die Vorarbeit ab -- und das gehoert ins Protokoll.
-  koordinator.onFehler = (wo, e) => melde(rot(`[${uhr()}] ${wo}: ${e.message}`));
+  koordinator.onFehler = (wo, e) => log('error', rot, rot(`${wo}: ${e.message}`));
 
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
@@ -591,31 +708,30 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
   /*
     Eine ueber die Schnittstelle eingereichte Ueberweisung an die Peers
-    ankuendigen.
-
-    Der SyncManager entsteht erst weiter unten -- deshalb die Closure und
-    nicht die Referenz: Sie liest `abgleich` erst, wenn tatsaechlich eine
-    Ueberweisung hereinkommt. Ohne P2P ist er nie gesetzt, dann passiert
-    hier nichts, und das ist richtig so.
+    ankuendigen. Der SyncManager entsteht erst weiter unten -- deshalb die
+    Closure und nicht die Referenz.
   */
   server.onNeueTx = hash => { abgleich?.kuendigeAnTx(hash); };
 
   server.onUpstream = e => {
     melde(e.ok
-      ? grau(`           weitergegeben, dort als Höhe ${nf(e.hoehe ?? 0)} angenommen`)
-      : gelb(`           nicht weitergegeben: ${e.grund}`));
+      ? grau(`${EINZUG}forwarded to the mirror, accepted there as height ${nf(e.hoehe ?? 0)}`)
+      : gelb(`${EINZUG}not forwarded to the mirror: ${e.grund}`));
   };
 
   server.onFehler = (wo, e) => {
-    melde(rot(`[${uhr()}] Fehler bei ${wo}: ${e.message}`));
+    log('error', rot, rot(`${wo}: ${e.message}`));
     if (e.stack) melde(grau(e.stack.split('\n').slice(1, 4).join('\n')));
   };
 
   server.onBlock = (h, hash, adresse) => {
     melde('');
-    melde(gruen(fett(`[${uhr()}] BLOCK GEFUNDEN  #${nf(h)}`)));
-    melde(grau(`           ${hash}`));
-    melde(grau(`           an ${adresse.slice(0, 16)}…`));
+    const pk = server.poolKoordinator;
+    log('block', s => gruen(fett(s)), gruen(fett(`★ BLOCK FOUND  #${nf(h)}`)) +
+      (pk ? grau(`   pool ${opt.poolName}`) : ''));
+    melde(`${EINZUG}${grau('hash    ')}${hash}`);
+    melde(`${EINZUG}${grau(pk ? 'pool    ' : 'paid to ')}${pk ? 'reward split among the pool\'s miners in this block' : adresse}`);
+    if (params === MAINNET) melde(`${EINZUG}${grau('explorer')} ${EXPLORER}#block-${h}`);
   };
 
   /*
@@ -623,8 +739,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     Es laeuft neben der Mining-Schnittstelle und unabhaengig von ihr: Ein
     Knoten ohne Miner ist ein vollwertiger Teilnehmer, und ein Miner ohne
-    Peers arbeitet weiter. Faellt das Netz aus, prueft der Knoten seine
-    Kette trotzdem.
+    Peers arbeitet weiter.
   */
   let netz: PeerManager | null = null;
   let abgleich: SyncManager | null = null;
@@ -635,8 +750,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     Gesendet wird NUR an Peers, deren Kennung "+stats" traegt. Ein Knoten
     aelterer Fassung kennt den Befehl nicht und wuerde die Verbindung
-    trennen -- er bekommt deshalb nie eine Meldung und sieht auch sonst
-    keinen Unterschied.
+    trennen.
   */
   const statistik = new NetzStatistik(
     BigInt.asUintN(64, BigInt(Math.floor(Math.random() * 2 ** 32)) << 32n
@@ -657,10 +771,24 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     }
   };
 
+  /** Anzahl Transaktionen und Finder eines gespeicherten Blocks -- fuer die Protokollzeile. */
+  const blockInfo = (hashHex: string): string => {
+    try {
+      const g = store.get(fromHex(hashHex));
+      if (!g) return '';
+      const b = deserializeBlock(g.body);
+      const ueberweisungen = b.txs.length - 1;
+      const cb = b.txs[0] as { extra?: Uint8Array };
+      const name = finderAnzeige(cb?.extra ? finderName(toHex(cb.extra)) : null);
+      return `${P}${nf(ueberweisungen)} ${ueberweisungen === 1 ? 'transfer' : 'transfers'}` +
+        (name ? `${P}miner ${name}` : '');
+    } catch { return ''; }
+  };
+
   if (!opt.keinP2P) {
     const seeds = opt.seeds.map(s => {
       const i = s.lastIndexOf(':');
-      if (i < 1) throw new Error(`Seed "${s}" muss host:port sein`);
+      if (i < 1) abbruch(`--seed "${s}" must be host:port`, 'For example: --seed pool.yskar.app:8646');
       return { host: s.slice(0, i), port: Number(s.slice(i + 1)) };
     });
 
@@ -674,48 +802,48 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
         return { height: t?.height ?? -1, chainWork: t?.chainWork ?? 0n };
       },
       onReady: p => {
-        melde(`${grau('[' + uhr() + ']')} ${grau('Peer')} ${p.host} ` +
-          `${grau('· Höhe')} ${nf(p.fremdeHoehe())}`);
+        const i = p.info();
+        const agent = i.agent.replace(` ${STATS_FAEHIG}`, '').trim();
+        log('peer', gruen, `${p.host} connected${P}height ${nf(p.fremdeHoehe())}${P}revision ${
+          i.revision || '?'}${agent ? grau(` · ${agent}`) : ''}`);
+        if (i.revision > 0 && i.revision < 6 && naechsteAktivierung(params) > 0) {
+          log('peer', gelb, `${p.host} speaks revision ${i.revision}${grau(` · kept for transfers, not asked for blocks from ${
+            nf(naechsteAktivierung(params))} on`)}`);
+        }
         abgleich?.aufPeer(p);
         meldeStats(p);
       },
-      onMessage: (p, f) => {
-        if (f.command === 'stats') {
-          try { statistik.aufnehmen(decodeStats(f.payload), `v:${p.id}`); }
+      onMessage: (p, fr) => {
+        if (fr.command === 'stats') {
+          try { statistik.aufnehmen(decodeStats(fr.payload), `v:${p.id}`); }
           catch (e) { p.close(`stats_unlesbar:${(e as Error).message}`); }
           return;
         }
-        abgleich?.aufNachricht(p, f);
+        abgleich?.aufNachricht(p, fr);
       },
       onClose: (p, g) => {
-        if (p.ready) melde(grau(`[${uhr()}] Peer ${p.host} weg: ${g}`));
+        if (p.ready) log('peer', grau, grau(`${p.host} disconnected (${trennGrund(g)})`));
       },
-      onLog: t => melde(grau(`[${uhr()}] ${t}`)),
+      onLog: t => log('peer', grau, grau(t)),
     });
 
     abgleich = new SyncManager({
       chain, store, peers: netz, params, pool,
       onBlock: (h, hash, von) => {
         koordinator.invalidate();
-        melde(`${grau('[' + uhr() + ']')} ${gruen('Block')} ${grau('#')}${nf(h)} ` +
-          `${grau('von')} ${von} ${grau(hash.slice(0, 16) + '…')}`);
+        log('block', gruen, `#${nf(h)}${P}from peer ${von}${blockInfo(hash)}${grau(` · ${hash.slice(0, 16)}…`)}`);
 
         /*
-          Auch Bloecke aus dem Netz in den Spiegel geben.
-
-          Bisher ging nur der SELBST gefundene Block nach oben -- das
-          genuegte, solange Supabase die Wahrheit war und die Bloecke
-          ohnehin dort entstanden. Sobald der Knoten die Wahrheit ist, muss
-          jeder angenommene Block dorthin, sonst bleibt der Spiegel stehen,
-          waehrend die Kette weiterlaeuft.
-
-          Fehler werden nur gemeldet, nicht behandelt: Der Spiegel darf die
-          Kette nicht aufhalten. Faellt er aus, holt ihn der naechste Block
-          nicht ein -- dafuer gibt es "sync" von der anderen Seite.
+          Auch Bloecke aus dem Netz in den Spiegel geben. Sobald der Knoten
+          die Wahrheit ist, muss jeder angenommene Block dorthin, sonst bleibt
+          der Spiegel stehen, waehrend die Kette weiterlaeuft. Fehler werden
+          nur gemeldet: Der Spiegel darf die Kette nicht aufhalten.
         */
         void server.weitergeben(hash);
       },
-      onLog: t => melde(grau(`[${uhr()}] ${t}`)),
+      onLog: t => /veraltet|OUTDATED/.test(t)
+        ? log('consensus', rot, rot(t))
+        : /rejected|abgelehnt/.test(t) ? log('rejected', rot, t) : log('sync', grau, grau(t)),
     });
 
     try {
@@ -723,7 +851,10 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       abgleich.start();
       statsTakt = setInterval(() => meldeStats(), 30_000);
     } catch (e) {
-      melde(gelb(`  Knotennetz konnte nicht starten: ${(e as Error).message}`));
+      const err = e as Error & { code?: string };
+      log('peer', gelb, err.code === 'EADDRINUSE'
+        ? `peer network not started: port ${opt.p2pPort} is already in use (another yskar-node?)`
+        : `peer network not started: ${err.message}`);
       netz = null; abgleich = null;
     }
   }
@@ -734,7 +865,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     vorherOnBlock?.(h, hash, adresse);
     if (abgleich) {
       const n = abgleich.kuendigeAn(fromHex(hash));
-      if (n > 0) melde(grau(`           an ${n} Peer${n > 1 ? 's' : ''} gemeldet`));
+      if (n > 0) melde(`${EINZUG}${grau('sent to ')}${n} ${n > 1 ? 'peers' : 'peer'}`);
     }
   };
 
@@ -743,32 +874,29 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     Die Pruefung passiert HIER und nicht erst beim ersten Block: Ein Pool,
     der Gebuehr nimmt, muss sagen wohin -- sonst startet er nicht. Und der
-    Name wandert in die Coinbase jedes Pool-Blocks, also gelten dieselben
-    Regeln wie ueberall: druckbares ASCII, hoechstens 32 Zeichen.
+    Name wandert in die Coinbase jedes Pool-Blocks.
   */
   const fensterPfad = `${opt.daten}/pool-fenster.json`;
   let fensterAusLauf = 0;
+  const fensterHinweise: string[] = [];
   if (opt.poolName) {
     let auszahlung: Uint8Array | null = null;
     if (opt.poolFee > 0) {
       if (!opt.poolAuszahlung) {
-        console.error('  --pool-fee ohne --pool-payout: Wohin soll die Gebühr gehen?');
-        process.exit(1);
+        abbruch('--pool-fee needs --pool-payout', 'A pool with a fee needs an address that receives the fee: --pool-payout ysr1…');
       }
       try { auszahlung = decodeAddress(opt.poolAuszahlung); }
-      catch { console.error('  --pool-payout ist keine gültige YSKAR-Adresse.'); process.exit(1); }
-      if (!istAuszahlungsAdresse(auszahlung)) { console.error(`  --pool-payout: ${REGELKONTO_KEIN_MINING}`); process.exit(1); }
+      catch { abbruch('--pool-payout is not a valid YSKAR address', opt.poolAuszahlung); }
+      if (!istAuszahlungsAdresse(auszahlung!)) abbruch('--pool-payout cannot receive a block reward', KEIN_AUSZAHLUNGSKONTO);
     }
     try {
       /*
         Das gesicherte Fenster vom letzten Lauf (Issue #7). Liegt darin noch
         Arbeit, gilt fuer sie die Gebuehr von damals -- eine geaenderte
-        --pool-fee erst ab dem naechsten Block, wie im laufenden Betrieb und
-        wie in Node Core. Sonst liesse sich die Gebuehr fuer schon geleistete
-        Arbeit anheben, indem man den Knoten neu startet.
+        --pool-fee erst ab dem naechsten Block.
       */
       const stand = leseFenster(fensterPfad, params.network);
-      if (stand.hinweis) console.log(gelb(`  Fenster des Pools: ${stand.hinweis}`));
+      if (stand.hinweis) fensterHinweise.push(fensterHinweis(stand.hinweis));
       let fee = opt.poolFee;
       if (stand.eintraege.length > 0 && stand.feeBps !== null && stand.feeBps !== fee) {
         fee = stand.feeBps > 0 && !auszahlung ? 0 : stand.feeBps;
@@ -785,84 +913,112 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       server.poolKoordinator = pk;
       server.blockName = nameToExtra(opt.poolName);
     } catch (e) {
-      console.error(`  Pool konnte nicht starten: ${(e as Error).message}`);
-      process.exit(1);
+      const m = (e as Error).message;
+      abbruch('The pool could not start',
+        /^Gebuehr .* liegt nicht/.test(m) ? '--pool-fee must be between 0 and 500 basis points (0.00% to 5.00%).'
+        : /^Platzzahl .* liegt nicht/.test(m) ? '--pool-max must be between 1 and 255.'
+        : /Auszahlungsadresse/.test(m) ? 'A pool with a fee needs --pool-payout.'
+        : m);
     }
   }
 
-  await server.listen(opt.bind, opt.port);
+  try {
+    await server.listen(opt.bind, opt.port);
+  } catch (e) {
+    const err = e as Error & { code?: string };
+    if (err.code === 'EADDRINUSE') {
+      abbruch(`Port ${opt.port} is already in use`,
+        `Another program (often a second yskar-node) listens on ${opt.bind}:${opt.port}.`,
+        'Stop it, or choose another port with --port.');
+    }
+    if (err.code === 'EACCES') abbruch(`No permission to listen on port ${opt.port}`, 'Use a port above 1024.');
+    throw e;
+  }
 
   /** Die geltende Gebuehr -- und eine angekuendigte, falls das Fenster noch unter der alten steht. */
   const gebuehrJetzt = () => {
     const e = server.poolKoordinator?.einstellungen();
-    if (!e) return `${(opt.poolFee / 100).toFixed(2)} %`;
-    const jetzt = `${(e.feeBps / 100).toFixed(2)} %`;
+    if (!e) return `${(opt.poolFee / 100).toFixed(2)}%`;
+    const jetzt = `${(e.feeBps / 100).toFixed(2)}%`;
     return e.feeBpsAbNaechstem !== null && e.feeBpsAbNaechstem !== e.feeBps
-      ? `${jetzt} (ab dem nächsten Block ${(e.feeBpsAbNaechstem / 100).toFixed(2)} %)` : jetzt;
+      ? `${jetzt} (from the next block ${(e.feeBpsAbNaechstem / 100).toFixed(2)}%)` : jetzt;
   };
 
-  console.log(fett(`\nYSKAR Full Node ${VERSION}  ${grau('Mining')}`));
-  console.log(grau('─'.repeat(56)));
-  console.log(`  Netz     ${params.network}`);
-  console.log(`  Ablage   ${opt.daten}/chain.db`);
-  console.log(`  Kette    ${chain.height() < 0 ? '—' : 'Höhe ' + nf(chain.height())}`);
-  console.log(`  Lauscht  http://${opt.bind}:${opt.port}`);
-  console.log(`  Blöcke   ${nachOben ? '→ ' + nachOben : 'bleiben lokal'}`);
-  console.log(`  Sync     ${nachOben ? 'alle 30 s von ' + opt.api : 'aus'}`);
-  console.log(`  Pool     ${opt.poolName
-    ? `${opt.poolName} · Gebühr ${gebuehrJetzt()} · ${
-        server.poolKoordinator?.plaetze() ?? '?'} Plätze${
-        fensterAusLauf ? ` · ${nf(fensterAusLauf)} Shares aus dem letzten Lauf` : ''}`
-    : 'aus (nur Solo-Mining)'}`);
-  console.log(`  Absender ${opt.absender === 'proxy' ? 'aus X-Forwarded-For (hinter Proxy)'
-    : opt.absender === 'socket' ? 'aus der Verbindung' : 'nicht erkannt (keine Grenzen je Absender)'}`);
-  console.log(`  Knoten   ${netz
-    ? (opt.p2pPort > 0 ? `lauscht auf ${opt.p2pPort}` : 'nur ausgehend') +
-      (opt.seeds.length ? `, ${opt.seeds.length} Seed${opt.seeds.length > 1 ? 's' : ''}` : '')
-    : 'aus'}`);
-  console.log(grau('─'.repeat(56)));
+  kopf('mine');
+  abschnitt('NODE');
+  zeile('VERSION', `yskar-node ${VERSION}${P}node ${process.version.slice(1)}${P}${process.platform} ${process.arch}`);
+  zeile('NETWORK', netzName(params));
+  zeile('DATA', `${opt.daten}/chain.db${P}${nf(store.count())} blocks stored`);
+  const tip0 = chain.tip();
+  zeile('CHAIN', tip0
+    ? `height ${nf(tip0.height)}${P}difficulty ${nf(tip0.difficulty)}${P}last block ${
+        dauer(Math.max(0, Date.now() / 1000 - Number(tip0.blockTime)))} ago`
+    : grau(netz ? 'empty — the chain is loaded from the peers' : 'empty'));
+  console.log('');
+  fassungsBlock(params, chain.height(), chain, true);
+  console.log('');
+  abschnitt('SERVICES');
+  zeile('MINING API', `http://${opt.bind}:${opt.port}${P}${opt.absender === 'proxy'
+    ? 'sender limits from X-Forwarded-For (behind a proxy)'
+    : opt.absender === 'socket' ? 'sender limits from the connection' : grau('no limits per sender')}`);
+  if (opt.poolName) {
+    const pk = server.poolKoordinator;
+    const v6ab = naechsteAktivierung(params);
+    const plaetzeV6 = v6ab > 0 && chain.height() + 1 < v6ab && pk ? pk.plaetze(v6ab) : null;
+    zeile('POOL', `${opt.poolName}${P}fee ${gebuehrJetzt()}${opt.poolAuszahlung && opt.poolFee > 0
+      ? ` to ${opt.poolAuszahlung.slice(0, 8)}…${opt.poolAuszahlung.slice(-4)}` : ''}${P}up to ${
+        pk?.plaetze() ?? '?'} addresses${plaetzeV6 && plaetzeV6 !== pk?.plaetze()
+        ? grau(` (${plaetzeV6} from block ${nf(v6ab)})`) : ''}`);
+    if (fensterAusLauf) zeile('', grau(`${nf(fensterAusLauf)} shares loaded from the last run`));
+    for (const h of fensterHinweise) zeile('', gelb(h));
+  } else {
+    zeile('POOL', grau('off (solo mining only)'));
+  }
+  zeile('PEERS', netz
+    ? `${opt.p2pPort > 0 ? `listening on 0.0.0.0:${opt.p2pPort}` : 'outgoing only'}${
+        opt.seeds.length ? `${P}${opt.seeds.length} ${opt.seeds.length > 1 ? 'seeds' : 'seed'}` : ''}`
+    : grau('off'));
+  zeile('FORWARDING', nachOben
+    ? `found blocks go to the peers and to ${nachOben}${P}sync every 30 s from ${opt.api}`
+    : `found blocks go to the peers${P}${grau('no upstream server')}`);
+  zeile('MEMPOOL', `up to ${mb ?? 32} MB`);
+  linie();
 
   /*
-    Einmal aufholen, bevor der erste Miner einen Job bekommt.
-
-    Ohne das baut der Knoten die ersten Jobs auf dem Stand vom letzten
-    Beenden -- und jeder Fund waere "stale", bis der Takt nach 30 Sekunden
-    das erste Mal greift. Bei einer halben Stunde je Block waere das
-    verlorene Arbeit.
+    Einmal aufholen, bevor der erste Miner einen Job bekommt. Ohne das baut
+    der Knoten die ersten Jobs auf dem Stand vom letzten Beenden -- und jeder
+    Fund waere "stale".
   */
   if (nachOben) {
-    melde(grau('  Hole auf…'));
+    log('sync', blau, `catching up from ${opt.api} …`);
     try {
       await sync({ ...opt, einmal: true }, store, chain);
       const tip = chain.tip();
-      melde(grau(`  Stand: Höhe ${nf(chain.height())}`) +
-        (tip ? grau(`, Difficulty ${nf(tip.difficulty)}`) : ''));
+      log('sync', blau, `up to date${P}height ${nf(chain.height())}` +
+        (tip ? `${P}difficulty ${nf(tip.difficulty)}` : ''));
     } catch (e) {
-      melde(gelb(`  Nicht erreichbar: ${(e as Error).message}`));
-      melde(gelb('  Es wird auf dem lokalen Stand weitergebaut.'));
+      log('sync', gelb, `${opt.api}: ${netzFehler(e)}${grau(' · mining continues on the local chain')}`);
     }
   }
 
-  console.log(grau('\n  Miner verbinden mit:'));
-  console.log(`    yskar-miner --address ysr1… --api http://${opt.bind}:${opt.port}\n`);
+  console.log(`\n Connect a miner:`);
+  console.log(`   yskar-miner --address ysr1… --api http://${opt.bind}:${opt.port}${opt.poolName ? ' --mode pool' : ''}\n`);
   if (opt.bind !== '127.0.0.1') {
-    console.log(gelb('  Diese Schnittstelle ist nicht nur lokal erreichbar.'));
-    console.log(gelb('  Sie nimmt Arbeit entgegen und baut Blöcke -- nicht ' +
-                     'ungeschützt ins Netz.\n'));
+    console.log(` ${gelb(fett('! The mining API is reachable from outside'))}`);
+    console.log(`   It listens on ${opt.bind}:${opt.port}. Put it behind a proxy with TLS${
+      opt.absender ? '' : ' and start with --sender-ip proxy,'}`);
+    console.log(`   ${opt.absender ? 'It' : 'otherwise one sender can open all sessions. It'} accepts work and builds blocks.\n`);
   }
 
   /*
     Das Fenster des Pools sichern (Issue #7): alle zwei Minuten, wenn sich
-    etwas geaendert hat, und beim Beenden in einem Zug. Nach einem Absturz
-    fehlt so hoechstens die Arbeit der letzten zwei Minuten.
+    etwas geaendert hat, und beim Beenden in einem Zug.
   */
   let fensterGesichert = '';
   let fensterFolge = 0;
   const sichereFenster = async () => {
     const pk = server.poolKoordinator;
     if (!pk) return;
-    // Kuerzen, wenn das Fenster weit ueber das hinausgewachsen ist, was zaehlen
-    // kann -- nur mit einer Kette, die auf dem Stand ist.
     const d = chain.tip()?.difficulty;
     if (d && d > 0n && (abgleich?.fehlendeBloecke() ?? 0) <= 1) {
       const behalten = fensterGroesse(d) * 3n;
@@ -876,7 +1032,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       const geschrieben = await schreibeFenster(fensterPfad, params.network, fee, pk.exportieren(),
         () => folge === fensterFolge);
       if (geschrieben) fensterGesichert = stand;
-    } catch (e) { melde(gelb(`  Fenster des Pools nicht gesichert: ${(e as Error).message}`)); }
+    } catch (e) { log('pool', gelb, `pool window not saved: ${(e as Error).message}`); }
   };
   const fensterTakt = server.poolKoordinator ? setInterval(() => { void sichereFenster(); }, FENSTER_TAKT_MS) : null;
   fensterTakt?.unref?.();
@@ -887,18 +1043,20 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     laeuft = false;
     clearInterval(syncTakt);
     clearInterval(takt);
+    clearInterval(uebersichtTakt);
     if (statsTakt) clearInterval(statsTakt);
     if (fensterTakt) clearInterval(fensterTakt);
+    melde('');
+    log('stop', grau, 'stopping …');
     const pk = server.poolKoordinator;
     if (pk) {
       fensterFolge++;
       try { schreibeFensterSofort(fensterPfad, params.network, pk.einstellungen().feeBps, pk.exportieren()); }
-      catch (e) { console.error(`  Fenster des Pools nicht gesichert: ${(e as Error).message}`); }
+      catch (e) { console.error(`  pool window not saved: ${(e as Error).message}`); }
     }
     abgleich?.stop();
     await netz?.stop();
     await server.close();
-    console.log('');
     status(store, chain, params);
     store.close();
     process.exit(0);
@@ -907,15 +1065,9 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   process.on('SIGTERM', aufhoeren);
 
   /*
-    Waehrend des Minens weiter synchronisieren.
-
-    Ohne das steht der Knoten auf der Hoehe, die er beim Start hatte, und
-    baut dort weiter -- waehrend die andere Seite laengst weiter ist. Jeder
-    gefundene Block kaeme als "stale" zurueck, und die ganze Rechenarbeit
-    waere verloren.
-
-    Nach jedem neuen Block muessen die offenen Jobs verworfen werden: Sie
-    zeigen auf einen Vorgaenger, den es als Kettenkopf nicht mehr gibt.
+    Waehrend des Minens weiter synchronisieren. Nach jedem neuen Block
+    muessen die offenen Jobs verworfen werden: Sie zeigen auf einen
+    Vorgaenger, den es als Kettenkopf nicht mehr gibt.
   */
   let syncLaeuft = false;
   const syncTakt = setInterval(async () => {
@@ -928,34 +1080,46 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       await sync({ ...opt, einmal: true }, store, chain, pool);
       if ((chain.tip() ? toHex(chain.tip()!.hash) : '') !== vorher) {
         koordinator.invalidate();
-        const tip = chain.tip();
-        melde(`${grau('[' + uhr() + ']')} ${grau('Kette weiter:')} ` +
-          `Höhe ${nf(chain.height())}${grau(', Jobs neu gebaut')}`);
+        log('sync', blau, `chain moved on${P}height ${nf(chain.height())}${grau(' · jobs rebuilt')}`);
       }
     } catch (e) {
-      melde(`${grau('[' + uhr() + ']')} ${gelb('!')} Sync: ${(e as Error).message}`);
+      log('sync', gelb, `${opt.api}: ${netzFehler(e)}`);
     } finally { syncLaeuft = false; }
   }, 30_000);
   syncTakt.unref();
 
+  const hinweise = fassungsHinweise(params, chain);
+  hinweise();
+
   const takt = setInterval(() => {
+    hinweise();
     if (!process.stdout.isTTY) return;
     const tip = chain.tip();
     // Gezeigt wird, WORAN GEARBEITET WIRD -- also der naechste Block, nicht
-    // der letzte fertige. Beide haben verschiedene Difficulties, und die
-    // Verwechslung ist naheliegend: Block 839 kann 63.980 haben, waehrend
-    // an 840 mit 65.736 gearbeitet wird.
+    // der letzte fertige. Beide haben verschiedene Difficulties.
     const arbeit = koordinator.aktuelleArbeit();
     const naechste = arbeit ? arbeit.height : (tip ? tip.height + 1 : 0);
     process.stdout.write(`\r\x1b[2K${grau('[' + uhr() + ']')} ` +
-      `${grau('Kette')} ${tip ? nf(tip.height) : '—'} ` +
-      `${grau('· baut an')} ${nf(naechste)} ` +
-      `${grau('· Diff')} ${arbeit ? nf(arbeit.difficulty) : grau('—')} ` +
-      `${grau('·')} ${server.aktiveSessions()} Miner ` +
-      `${grau('·')} Mempool ${pool.size()}` +
-      (netz ? `${grau(' · ')}${netz.bereite().length} Peers` : ''));
+      `${grau('chain')} ${tip ? nf(tip.height) : '—'} ` +
+      `${grau('· building')} ${nf(naechste)} ` +
+      `${grau('· diff')} ${arbeit ? nf(arbeit.difficulty) : grau('—')} ` +
+      `${grau('·')} ${server.aktiveSessions()} ${server.aktiveSessions() === 1 ? 'miner' : 'miners'} ` +
+      `${grau('·')} mempool ${pool.size()}` +
+      (netz ? `${grau(' · ')}${netz.bereite().length} peers` : ''));
   }, 1000);
   takt.unref();
+
+  /*
+    Uebersicht alle zehn Minuten -- auch ohne Terminal. Im Journal steht so
+    regelmaessig, dass der Knoten lebt und wie er steht, ohne dass jemand
+    "status" aufrufen muss.
+  */
+  const uebersichtTakt = setInterval(() => {
+    const tip = chain.tip();
+    log('stats', grau, `height ${tip ? nf(tip.height) : '—'}${P}${netz ? netz.bereite().length : 0} peers${P}` +
+      `${server.aktiveSessions()} mining sessions${P}mempool ${pool.size()}`);
+  }, UEBERSICHT_TAKT_MS);
+  uebersichtTakt.unref();
 
   await new Promise(() => { /* bis Strg+C */ });
 }
@@ -963,134 +1127,204 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 // --------------------------------------------------- Testnetz-Ueberweisungen
 
 /**
- * testkonto und ueberweisen. Nur im Testnetz: Der Schluessel liegt
- * unverschluesselt in einer Datei (testnetzUeberweisung.ts).
+ * testkey und send (frueher testkonto und ueberweisen). Nur im Testnetz:
+ * Der Schluessel liegt unverschluesselt in einer Datei
+ * (testnetzUeberweisung.ts).
  */
 async function testnetzBefehl(opt: Optionen, params: ConsensusParams): Promise<void> {
   if (!opt.regtest) {
-    console.error(rot(`\n${opt.befehl} gibt es nur zusammen mit --regtest.\n`));
-    process.exit(1);
+    abbruch(`"${opt.befehl}" only works with --regtest`, 'Test keys and test transfers exist only on the test network.');
   }
   const { testkonto, ueberweise, ysrInEinheiten, einheitenInYsr } = await import('./testnetzUeberweisung.ts');
   let konto: ReturnType<typeof testkonto>;
   try { konto = testkonto(opt.schluessel); }
-  catch (e) { console.error(rot(`\n${(e as Error).message}\n`)); process.exit(1); }
+  catch (e) { abbruch('The test key cannot be used', (e as Error).message); }
 
-  if (opt.befehl === 'testkonto') {
-    console.log(`\n  ${konto.neu ? 'Neuer Testschlüssel in' : 'Testschlüssel aus'} ${opt.schluessel}`);
-    console.log(`  Adresse  ${fett(konto.schluessel.address)}`);
-    console.log(grau(`  Nur für das Testnetz -- der Schlüssel liegt unverschlüsselt in der Datei.\n`));
+  if (opt.befehl === 'testkey') {
+    console.log(`\n  ${konto.neu ? 'New test key in' : 'Test key from'} ${opt.schluessel}`);
+    console.log(`  Address  ${fett(konto.schluessel.address)}`);
+    console.log(grau(`  Test network only -- the key is stored unencrypted in the file.\n`));
     return;
   }
 
   if (!opt.an || !opt.betrag) {
-    console.error(rot(`\nueberweisen braucht --to <ysr1…> und --amount <ysr>.\n`));
-    process.exit(1);
+    abbruch('"send" needs --to <ysr1…> and --amount <ysr>');
   }
   let ergebnis;
   try {
     const fassung = opt.txFassung === undefined ? undefined : Number(opt.txFassung);
     ergebnis = await ueberweise({
-      api: opt.api, schluessel: konto.schluessel, an: opt.an,
-      betrag: ysrInEinheiten(opt.betrag),
+      api: opt.api, schluessel: konto.schluessel, an: opt.an!,
+      betrag: ysrInEinheiten(opt.betrag!),
       gebuehr: opt.gebuehr === undefined ? undefined : ysrInEinheiten(opt.gebuehr),
       fassung, memo: opt.memo, params,
     });
   } catch (e) {
-    console.error(rot(`\nÜberweisung nicht gesendet: ${(e as Error).message}\n`));
-    process.exit(1);
+    abbruch('Transfer not sent', (e as Error).message);
   }
   const a = ergebnis.antwort;
-  console.log(`\n  Knoten        ${opt.api} (Höhe ${nf(ergebnis.hoehe)}, nächster Block ${nf(ergebnis.hoehe + 1)})`);
-  console.log(`  Von           ${konto.schluessel.address} (Guthaben ${einheitenInYsr(ergebnis.guthaben)} YSR, Nonce ${ergebnis.nonce})`);
-  console.log(`  Fassung       ${ergebnis.fassung}${ergebnis.automatisch ? grau(' (nach Höhe gewählt)') : gelb(' (erzwungen)')}`);
-  console.log(`  Transaktion   ${ergebnis.txid}`);
+  console.log(`\n  Node          ${opt.api} (height ${nf(ergebnis.hoehe)}, next block ${nf(ergebnis.hoehe + 1)})`);
+  console.log(`  From          ${konto.schluessel.address} (balance ${einheitenInYsr(ergebnis.guthaben)} YSR, nonce ${ergebnis.nonce})`);
+  console.log(`  Version       ${ergebnis.fassung}${ergebnis.automatisch ? grau(' (chosen by height)') : gelb(' (forced)')}`);
+  console.log(`  Transaction   ${ergebnis.txid}`);
   if (ergebnis.sendepause && ergebnis.automatisch) {
-    console.log(gelb(`  Hinweis       Sendepause vor der Aktivierungshöhe -- eine Wallet würde jetzt nicht senden.`));
+    console.log(gelb(`  Note          sending pause before the activation height -- a wallet would not send now.`));
   }
-  if (a.accepted === true) console.log(`  Ergebnis      ${fett('angenommen')}`);
-  else console.log(`  Ergebnis      ${rot('abgelehnt')}: ${String(a.reason ?? a.error ?? '?')}${a.detail ? ` (${String(a.detail)})` : ''}`);
+  if (a.accepted === true) console.log(`  Result        ${fett('accepted')}`);
+  else console.log(`  Result        ${rot('rejected')}: ${String(a.reason ?? a.error ?? '?')}${a.detail ? ` (${String(a.detail)})` : ''}`);
   console.log('');
 }
+
+// --------------------------------------------------------------------- Hilfe
+
+const HILFE = () => `
+ ${fett('YSKAR Full Node')} ${grau(VERSION)} — checks every block itself${grau(' · consensus revision 6 from block 10,000')}
+
+ ${fett('USAGE')}   yskar-node <command> [options]
+
+ ${fett('COMMANDS')}
+   ${cyan('sync     ')} download the chain and check every block ${grau('(default)')}
+   ${cyan('mine     ')} also open the mining API so miners can work on this node
+   ${cyan('status   ')} state of the local node, including the consensus revision
+   ${cyan('chain    ')} the last blocks of the active chain
+   ${cyan('tips     ')} all known branch tips
+   ${cyan('mirror   ')} push missing blocks to the mirror ${grau('(was: spiegel — still works)')}
+   ${cyan('testkey  ')} create or show a test key ${grau('(--regtest only; was: testkonto)')}
+   ${cyan('send     ')} sign and send a test transfer ${grau('(--regtest only; was: ueberweisen)')}
+
+ ${fett('GENERAL')}
+   ${cyan('-d, --data <dir>      ')} data folder ${grau('(default: ./knoten)')}
+   ${cyan('    --api <url>       ')} source for sync ${grau('(default: https://yskar.vercel.app)')}
+   ${cyan('    --interval <s>    ')} seconds between sync rounds ${grau('(default: 60)')}
+   ${cyan('    --once            ')} catch up once, then exit
+   ${cyan('    --regtest         ')} private test network instead of the real chain
+   ${cyan('    --v6-height <n>   ')} --regtest only: revision 6 from block n
+   ${cyan('-h, --help            ')} show this help
+   ${cyan('-v, --version         ')} show the version
+
+ ${fett('MINING API')}
+   ${cyan('    --bind <addr>     ')} address to listen on ${grau('(default: 127.0.0.1)')}
+   ${cyan('    --port <n>        ')} port ${grau('(default: 8645)')}
+   ${cyan('    --sender-ip <how> ')} limit per sender: proxy (X-Forwarded-For) or socket ${grau('(default: no limits)')}
+   ${cyan('    --upstream <url>  ')} where found blocks go ${grau('(default: --api)')}
+   ${cyan('    --no-upstream     ')} keep found blocks on this node and its peers
+   ${cyan('    --mempool-mb <n>  ')} mempool limit in MB ${grau('(default: 32, ≈ 190,000 transfers)')}
+
+ ${fett('POOL')}
+   ${cyan('    --pool <name>     ')} run a pool; the name is written into its blocks
+   ${cyan('    --pool-fee <bp>   ')} fee in basis points, 100 = 1.00% ${grau('(max 500)')}
+   ${cyan('    --pool-payout <a> ')} address that receives the fee ${grau('(needed when the fee is above 0)')}
+   ${cyan('    --pool-max <n>    ')} max addresses, 1–255 ${grau('(default: 64, or 63 with a fee; 255/254 from revision 6)')}
+
+ ${fett('PEERS')}
+   ${cyan('    --p2p-port <n>    ')} port for other nodes ${grau('(default: 8646)')}
+   ${cyan('    --seed host:port  ')} a known node, can be given several times
+   ${cyan('    --no-p2p          ')} run without other nodes
+
+ ${fett('TEST TRANSFERS')} ${grau('(--regtest only)')}
+   ${cyan('    --key <file>      ')} test key ${grau('(default: ./testkonto.json)')}
+   ${cyan('    --to <ysr1…>      ')} recipient
+   ${cyan('    --amount <ysr>    ')} amount in YSR, for example 10 or 0.5
+   ${cyan('    --fee <ysr>       ')} fee in YSR ${grau('(default: 0.001)')}
+   ${cyan('    --tx-version <n>  ')} force transfer version 1 or 2 ${grau('(default: by height)')}
+   ${cyan('    --memo <text>     ')} note, at most 32 bytes
+
+ ${fett('EXAMPLES')}
+   yskar-node mine --data ./knoten --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 --no-upstream
+   yskar-node mine --data ./knoten --pool "My Pool" --pool-fee 100 --pool-payout ysr1…
+   yskar-node status --data ./knoten
+   yskar-node mine --regtest --data ./testnet        ${grau('# then: yskar-miner --address ysr1… --api http://127.0.0.1:8645')}
+
+ ${grau(`Docs: ${DOKU}`)}
+`;
 
 // --------------------------------------------------------------------- Lauf
 
 async function main(): Promise<void> {
   const opt = argumente(process.argv.slice(2));
-  if (opt.help) { console.log(HILFE); return; }
+  if (opt.version) { console.log(VERSION); return; }
+  if (opt.help) { console.log(HILFE()); return; }
+  if (!BEFEHLE.includes(opt.befehl)) {
+    abbruch(`Unknown command: ${opt.befehl}`, `Commands: ${BEFEHLE.join(', ')}. Help: yskar-node --help`);
+  }
 
   let params: ConsensusParams;
   try { params = netzParameter(opt); }
-  catch (e) {
-    console.error(rot(`\n${(e as Error).message}\n`));
-    process.exit(1);
-  }
-  if (opt.befehl === 'testkonto' || opt.befehl === 'ueberweisen') {
+  catch (e) { abbruch((e as Error).message); }
+  if (opt.befehl === 'testkey' || opt.befehl === 'send') {
     await testnetzBefehl(opt, params);
     return;
   }
 
   /*
     Die erwartete Kennung kommt aus den Parametern, nicht aus einer
-    Konstante. Sonst liesse sich ein Testnetz-Ordner nur einmal oeffnen:
-    Beim zweiten Start stuende network=yskar-regtest darin, erwartet wuerde
-    yskar-main-1, und der Knoten braeche ab.
-
-    Die Pruefung bleibt scharf -- Testnetz- und Mainnet-Bloecke koennen nach
-    wie vor nicht in derselben Ablage landen.
+    Konstante. Sonst liesse sich ein Testnetz-Ordner nur einmal oeffnen.
   */
-  const store = new ChainStore(`${opt.daten}/chain.db`,
-    { network: params.network, chainId: params.chainId });
+  let store: ChainStore;
+  try {
+    store = new ChainStore(`${opt.daten}/chain.db`,
+      { network: params.network, chainId: params.chainId });
+  } catch (e) {
+    const m = (e as Error).message;
+    const netzFalsch = /^This data folder belongs to network=(\S+), expected (\S+)\./.exec(m);
+    if (netzFalsch) {
+      abbruch('The data folder cannot be used',
+        `${opt.daten}/chain.db belongs to network ${netzFalsch[1]}, not ${netzFalsch[2]}.`,
+        netzFalsch[1].includes('regtest') ? 'Start with --regtest, or use another folder with --data.'
+          : 'Start without --regtest, or use another folder with --data.');
+    }
+    abbruch('The data folder cannot be used', m, `Remove the folder ${opt.daten} and synchronize again.`);
+  }
   let chain: ChainManager;
   try {
     chain = new ChainManager(store, params);
   } catch (e) {
-    console.error(rot(`\nDie lokale Ablage ist nicht verwendbar:`));
-    console.error(rot(`  ${(e as Error).message}\n`));
     if (e instanceof AktivierungsFehler) {
       // Die Ablage ist richtig, das Programm passt nicht zu ihr. Loeschen und
       // neu synchronisieren hiesse: mit der falschen Hoehe auf eine andere Kette.
-      console.error(grau(`  Die Ablage NICHT loeschen. Bitte die Programmversion verwenden, deren ` +
-        `Aktivierungshoehe zu dieser Kette passt.\n`));
-    } else {
-      console.error(grau(`  Ordner ${opt.daten} entfernen und neu synchronisieren.\n`));
+      abbruch('The data folder does not match this program', (e as Error).message,
+        `${fett('Do NOT delete the folder.')} Use the program version whose activation height matches this chain.`);
     }
-    process.exit(1);
+    abbruch('The data folder cannot be used', (e as Error).message,
+      `Remove the folder ${opt.daten} and synchronize again.`);
   }
   if (chain.alteBloeckeVerworfen > 0) {
-    console.log(gelb(`\n${chain.alteBloeckeVerworfen} Block/Bloecke alter Fassung ab der ` +
-      `Aktivierungshoehe ${params.v6Height} verworfen. Die richtigen Bloecke kommen von den Peers.`));
+    log('consensus', gelb, `${nf(chain.alteBloeckeVerworfen)} stored ${chain.alteBloeckeVerworfen === 1
+      ? 'block' : 'blocks'} from block ${nf(params.v6Height)} on followed the old rules and ${
+      chain.alteBloeckeVerworfen === 1 ? 'was' : 'were'} discarded.`);
+    melde(grau(`${EINZUG}The correct blocks come from the peers.`));
   }
 
   if (opt.befehl === 'mine') { await mine(opt, store, chain); return; }
   if (opt.befehl === 'status') { status(store, chain, params); store.close(); return; }
   if (opt.befehl === 'chain') { chainListe(store); store.close(); return; }
   if (opt.befehl === 'tips') { tipsListe(store); store.close(); return; }
-  if (opt.befehl === 'spiegel') { await spiegel(opt, store, chain); store.close(); return; }
-  if (opt.befehl !== 'sync') {
-    console.error(rot(`Unbekannter Befehl: ${opt.befehl}`));
-    console.log(HILFE); process.exit(1);
-  }
+  if (opt.befehl === 'mirror') { await spiegel(opt, store, chain); store.close(); return; }
 
-  console.log(fett(`\nYSKAR Full Node ${VERSION}`));
-  console.log(grau('─'.repeat(56)));
-  console.log(`  Netz     ${NETWORK}`);
-  console.log(`  Quelle   ${opt.api}`);
-  console.log(`  Ablage   ${opt.daten}/chain.db`);
-  console.log(`  Stand    Höhe ${chain.height() < 0 ? '—' : nf(chain.height())}`);
-  console.log(grau('─'.repeat(56)) + '\n');
+  // sync
+  kopf('sync');
+  zeile('NETWORK', netzName(params));
+  zeile('SOURCE', opt.api);
+  zeile('DATA', `${opt.daten}/chain.db`);
+  zeile('HEIGHT', chain.height() < 0 ? grau('empty') : nf(chain.height()));
+  console.log('');
+  fassungsBlock(params, chain.height(), chain, true);
+  linie();
+  console.log('');
 
   let laeuft = true;
   const aufhoeren = () => { laeuft = false; };
   process.on('SIGINT', aufhoeren);
   process.on('SIGTERM', aufhoeren);
+  const hinweise = fassungsHinweise(params, chain);
 
   for (;;) {
     try {
       const ok = await sync(opt, store, chain);
+      hinweise();
       if (!ok) { store.close(); process.exit(2); }
     } catch (e) {
-      console.log(`${grau('[' + uhr() + ']')} ${gelb('!')} ${(e as Error).message}`);
+      log('sync', gelb, `${opt.api}: ${netzFehler(e)}`);
     }
     if (opt.einmal || !laeuft) break;
     await new Promise(r => setTimeout(r, opt.intervall * 1000));
@@ -1101,4 +1335,4 @@ async function main(): Promise<void> {
   store.close();
 }
 
-main().catch(e => { console.error(rot(`\n${e.stack ?? e.message}`)); process.exit(1); });
+main().catch(e => { console.error(rot(`\n${(e as Error).stack ?? (e as Error).message}`)); process.exit(1); });

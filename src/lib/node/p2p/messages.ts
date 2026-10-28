@@ -64,12 +64,12 @@ export interface Version {
 export const FASSUNG_OHNE_FELDER = 5;
 
 export function encodeVersion(v: Version): Uint8Array {
-  if (v.agent.length > MAX_AGENT) throw new Error('Kennung zu lang');
+  if (v.agent.length > MAX_AGENT) throw new Error('agent too long');
   const netz = new TextEncoder().encode(v.network);
   const agent = new TextEncoder().encode(v.agent);
   const work = new TextEncoder().encode(v.chainWork);
-  if (netz.length > 32) throw new Error('Netzname zu lang');
-  if (work.length > 96) throw new Error('Chain Work zu lang');
+  if (netz.length > 32) throw new Error('network name too long');
+  if (work.length > 96) throw new Error('chain work too long');
 
   return new Writer()
     .u32(v.protocol)
@@ -92,14 +92,14 @@ export function decodeVersion(b: Uint8Array): Version {
   const network = new TextDecoder().decode(r.bytes(r.u8()));
   const chainId = r.bytes(32);
   const agentLen = r.u8();
-  if (agentLen > MAX_AGENT) throw new Error('Kennung zu lang');
+  if (agentLen > MAX_AGENT) throw new Error('agent too long');
   const agent = new TextDecoder().decode(r.bytes(agentLen));
   const height = r.u32();
   const workLen = r.u8();
-  if (workLen > 96) throw new Error('Chain Work zu lang');
+  if (workLen > 96) throw new Error('chain work too long');
   const chainWork = new TextDecoder().decode(r.bytes(workLen));
   // Nur Ziffern -- sonst landet fremder Text in einem BigInt-Aufruf.
-  if (!/^\d+$/.test(chainWork)) throw new Error('Chain Work ist keine Zahl');
+  if (!/^\d+$/.test(chainWork)) throw new Error('chain work is not a number');
   const nonce = r.u64();
   const port = r.u32();
   const timestamp = r.u64();
@@ -108,7 +108,7 @@ export function decodeVersion(b: Uint8Array): Version {
   let revision = FASSUNG_OHNE_FELDER;
   let nextActivationHeight = 0;
   if (r.rest > 0) {
-    if (r.rest < 5) throw new Error('Fassungsfelder unvollstaendig');
+    if (r.rest < 5) throw new Error('revision fields incomplete');
     revision = r.u8();
     nextActivationHeight = r.u32();
   }
@@ -151,7 +151,7 @@ export interface GetHeaders {
 }
 
 export function encodeGetHeaders(g: GetHeaders): Uint8Array {
-  if (g.locator.length > MAX_LOCATOR) throw new Error('Locator zu lang');
+  if (g.locator.length > MAX_LOCATOR) throw new Error('locator too long');
   const w = new Writer().u8(g.locator.length);
   for (const h of g.locator) w.bytes(h, 32);
   return w.bytes(g.stop, 32).finish();
@@ -160,7 +160,7 @@ export function encodeGetHeaders(g: GetHeaders): Uint8Array {
 export function decodeGetHeaders(b: Uint8Array): GetHeaders {
   const r = new Reader(b);
   const n = r.u8();
-  if (n > MAX_LOCATOR) throw new Error('Locator zu lang');
+  if (n > MAX_LOCATOR) throw new Error('locator too long');
   const locator: Uint8Array[] = [];
   for (let i = 0; i < n; i++) locator.push(r.bytes(32));
   return { locator, stop: r.bytes(32) };
@@ -175,10 +175,10 @@ export function decodeGetHeaders(b: Uint8Array): GetHeaders {
  * Bloecke herunter, die man gleich wieder verwirft.
  */
 export function encodeHeaders(header: Uint8Array[]): Uint8Array {
-  if (header.length > MAX_HEADERS) throw new Error('Zu viele Header');
+  if (header.length > MAX_HEADERS) throw new Error('too many headers');
   const w = new Writer().u16(header.length);
   for (const h of header) {
-    if (h.length !== 136) throw new Error(`Header hat ${h.length} statt 136 Byte`);
+    if (h.length !== 136) throw new Error(`header has ${h.length} instead of 136 bytes`);
     w.bytes(h, 136);
   }
   return w.finish();
@@ -187,7 +187,7 @@ export function encodeHeaders(header: Uint8Array[]): Uint8Array {
 export function decodeHeaders(b: Uint8Array): Uint8Array[] {
   const r = new Reader(b);
   const n = r.u16();
-  if (n > MAX_HEADERS) throw new Error('Zu viele Header');
+  if (n > MAX_HEADERS) throw new Error('too many headers');
   const out: Uint8Array[] = [];
   for (let i = 0; i < n; i++) out.push(r.bytes(136));
   return out;
@@ -208,7 +208,7 @@ export interface InvEintrag { typ: number; hash: Uint8Array }
  * kennen.
  */
 export function encodeInv(eintraege: InvEintrag[]): Uint8Array {
-  if (eintraege.length > MAX_INV) throw new Error('Zu viele Eintraege');
+  if (eintraege.length > MAX_INV) throw new Error('too many entries');
   const w = new Writer().u16(eintraege.length);
   for (const e of eintraege) w.u8(e.typ).bytes(e.hash, 32);
   return w.finish();
@@ -217,12 +217,12 @@ export function encodeInv(eintraege: InvEintrag[]): Uint8Array {
 export function decodeInv(b: Uint8Array): InvEintrag[] {
   const r = new Reader(b);
   const n = r.u16();
-  if (n > MAX_INV) throw new Error('Zu viele Eintraege');
+  if (n > MAX_INV) throw new Error('too many entries');
   const out: InvEintrag[] = [];
   for (let i = 0; i < n; i++) {
     const typ = r.u8();
     const hash = r.bytes(32);
-    if (typ !== INV_BLOCK && typ !== INV_TX) throw new Error(`Unbekannter Typ ${typ}`);
+    if (typ !== INV_BLOCK && typ !== INV_TX) throw new Error(`unknown type ${typ}`);
     out.push({ typ, hash });
   }
   return out;
@@ -253,11 +253,11 @@ export interface PeerAdresse {
  * Groessenordnungen hier Sparen an der falschen Stelle.
  */
 export function encodeAddr(liste: PeerAdresse[]): Uint8Array {
-  if (liste.length > MAX_ADDR) throw new Error('Zu viele Adressen');
+  if (liste.length > MAX_ADDR) throw new Error('too many addresses');
   const w = new Writer().u16(liste.length);
   for (const a of liste) {
     const h = new TextEncoder().encode(a.host);
-    if (h.length > 255) throw new Error('Hostname zu lang');
+    if (h.length > 255) throw new Error('host name too long');
     w.u8(h.length).bytes(h).u32(a.port).u64(a.gesehen);
   }
   return w.finish();
@@ -266,13 +266,13 @@ export function encodeAddr(liste: PeerAdresse[]): Uint8Array {
 export function decodeAddr(b: Uint8Array): PeerAdresse[] {
   const r = new Reader(b);
   const n = r.u16();
-  if (n > MAX_ADDR) throw new Error('Zu viele Adressen');
+  if (n > MAX_ADDR) throw new Error('too many addresses');
   const out: PeerAdresse[] = [];
   for (let i = 0; i < n; i++) {
     const host = new TextDecoder().decode(r.bytes(r.u8()));
     const port = r.u32();
     const gesehen = r.u64();
-    if (port === 0 || port > 65535) throw new Error(`Ungueltiger Port ${port}`);
+    if (port === 0 || port > 65535) throw new Error(`invalid port ${port}`);
     out.push({ host, port, gesehen });
   }
   return out;
@@ -313,7 +313,7 @@ export function encodeStats(s: Stats): Uint8Array {
   const sessions = Math.min(Math.max(0, s.sessions), 0xffffffff);
   const w = new Writer().u64(s.knoten).u64(hashrate).u32(sessions).u16(liste.length);
   for (const a of liste) {
-    if (a.length !== 20) throw new Error('Adresse muss 20 Byte haben');
+    if (a.length !== 20) throw new Error('address must have 20 bytes');
     w.bytes(a);
   }
   return w.finish();
@@ -325,7 +325,7 @@ export function decodeStats(b: Uint8Array): Stats {
   const hashrate = r.u64();
   const sessions = r.u32();
   const n = r.u16();
-  if (n > MAX_STATS_ADRESSEN) throw new Error('Zu viele Adressen');
+  if (n > MAX_STATS_ADRESSEN) throw new Error('too many addresses');
   const adressen: Uint8Array[] = [];
   for (let i = 0; i < n; i++) adressen.push(r.bytes(20));
   return { knoten, hashrate, sessions, adressen };

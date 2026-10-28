@@ -70,7 +70,7 @@ test('Spaetere Hoehe nach dem Erreichen: Start verweigert', () => {
   try {
     mitV6Kette(a.pfad).store.close();
     const s = oeffne(a.pfad, P);
-    assert.throws(() => new ChainManager(s, regtestMitV6(4)), /Hoehe 3 aktiviert.*verwendet 4.*nicht verschieben/s);
+    assert.throws(() => new ChainManager(s, regtestMitV6(4)), /at height 3; this program uses 4.*cannot be moved/s);
     // Die Ablage bleibt unangetastet.
     assert.equal(s.mainTip()!.height, 5);
     s.close();
@@ -82,7 +82,7 @@ test('Fruehere Hoehe nach dem Erreichen: Start verweigert, nichts abgeschnitten'
   try {
     mitV6Kette(a.pfad).store.close();
     const s = oeffne(a.pfad, P);
-    assert.throws(() => new ChainManager(s, regtestMitV6(2)), /nicht verschieben/);
+    assert.throws(() => new ChainManager(s, regtestMitV6(2)), /cannot be moved/);
     assert.equal(s.mainTip()!.height, 5);
     s.close();
   } finally { a.weg(); }
@@ -93,7 +93,7 @@ test('Programm ohne Hoehe auf einer Ablage, die sie erreicht hat: Start verweige
   try {
     mitV6Kette(a.pfad).store.close();
     const s = oeffne(a.pfad, P);
-    assert.throws(() => new ChainManager(s, REGTEST), /verwendet keine/);
+    assert.throws(() => new ChainManager(s, REGTEST), /this program uses none/);
     assert.equal(s.mainTip()!.height, 5);
     s.close();
   } finally { a.weg(); }
@@ -110,7 +110,7 @@ test('Ablage ohne Eintrag, aber mit Bloecken der Fassung 6: Start verweigert', (
     assert.equal(roh.meta(ChainManager.V6_ERREICHT), null);
     roh.close();
     const s = oeffne(a.pfad, P);
-    assert.throws(() => new ChainManager(s, REGTEST), /Block der Fassung 6.*nicht.*anderen Kette/s);
+    assert.throws(() => new ChainManager(s, REGTEST), /revision 6 block.*does not activate.*another chain/s);
     s.close();
   } finally { a.weg(); }
 });

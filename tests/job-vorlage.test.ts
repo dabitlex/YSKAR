@@ -284,6 +284,6 @@ test('Coordinator: Weicht ein Job aus der Vorarbeit ab, schaltet sie sich ab und
   const richtig = k.ohne.createJob(miner, 2n);
   assert.equal(job.header, richtig.header, 'ausgegeben wird der richtige Job');
   assert.equal(k.mitVorlage.vorlageAn, false);
-  assert.match(gemeldet.join(), /Job-Vorlage/);
+  assert.match(gemeldet.join(), /job template/);
   k.store.close();
 });

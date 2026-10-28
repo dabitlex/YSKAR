@@ -298,8 +298,8 @@ export class MiningCoordinator {
     if (!gleich) {
       this.vorlageAn = false;
       this.vorlage = null;
-      this.onFehler?.('Job-Vorlage', new Error(
-        'Ein Job aus der Vorarbeit wich vom vollen Blockbau ab -- die Vorarbeit ist bis zum Neustart abgeschaltet.'));
+      this.onFehler?.('job template', new Error(
+        'A job from the precomputed template differed from a full block build -- the template is off until restart.'));
       return voll;
     }
     this.vorlageGeprueft.add(art);
@@ -454,7 +454,7 @@ export class MiningCoordinator {
     const out: { blockTime: bigint; difficulty: bigint }[] = [];
     for (let h = ab; h <= bisHoehe; h++) {
       const b = this.store.mainAt(h);
-      if (!b) throw new Error(`Aktive Kette hat eine Luecke bei Hoehe ${h}`);
+      if (!b) throw new Error(`The active chain has a gap at height ${h}`);
       out.push({ blockTime: b.blockTime, difficulty: b.difficulty });
     }
     return out;

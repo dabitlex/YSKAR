@@ -302,7 +302,7 @@ export class TxPool {
       return { ok: false, reason: 'malformed', detail: 'bad_amount' };
     }
     if (tx.validUntil !== 0 && height > tx.validUntil) {
-      return { ok: false, reason: 'expired', detail: `gueltig bis ${tx.validUntil}` };
+      return { ok: false, reason: 'expired', detail: `valid until ${tx.validUntil}` };
     }
     // Noch nicht faellig (validFrom in der Zukunft): nicht aufnehmen -- der
     // Mempool haelt nur, was in den NAECHSTEN Block passt. Wer eine
@@ -345,7 +345,7 @@ export class TxPool {
       const naechste = konto.nonce + BigInt(wartend.size);
       if (tx.nonce > naechste) {
         return { ok: false, reason: 'nonce_gap',
-                 detail: `${tx.nonce}, erwartet bis ${naechste}` };
+                 detail: `${tx.nonce}, expected at most ${naechste}` };
       }
       if (wartend.size >= MAX_PER_SENDER && !reorg) {
         return { ok: false, reason: 'sender_limit' };
@@ -360,7 +360,7 @@ export class TxPool {
     }
     if (konto.balance < gebunden + spendTotal(tx)) {
       return { ok: false, reason: 'insufficient_funds',
-               detail: `${konto.balance} deckt ${gebunden + spendTotal(tx)} nicht` };
+               detail: `${konto.balance} does not cover ${gebunden + spendTotal(tx)}` };
     }
 
     // Platz: wer weichen muesste. Noch nichts entfernen -- erst muss die
@@ -378,16 +378,16 @@ export class TxPool {
       const plan = this.planeVerdraengung(this.bytesBelegt + zusaetzlich - this.maxBytes, wirksam, absender, lokal);
       if ('fehlt' in plan) {
         if (plan.fehlt === null) {
-          return { ok: false, reason: 'pool_min_fee', detail: 'voll: nichts verdraengbar' };
+          return { ok: false, reason: 'pool_min_fee', detail: 'full: nothing can be replaced' };
         }
         if (vorn < plan.fehlt) {
           // Mehr Gebuehr HIER hilft nicht: Ein wartender Vorgaenger ist zu
           // billig. Erst ihn erhoehen -- kein Betrag fuer diese hier.
-          return { ok: false, reason: 'pool_min_fee', detail: 'voll: ein wartender Vorgaenger ist zu billig' };
+          return { ok: false, reason: 'pool_min_fee', detail: 'full: a waiting predecessor pays too little' };
         }
         const noetig = this.genugBeiAndrang(tx, bytes, boden, mindest);
         return { ok: false, reason: 'pool_min_fee',
-                 detail: `voll: ${tx.fee} < ${noetig ?? '?'}`, noetig };
+                 detail: `full: ${tx.fee} < ${noetig ?? '?'}`, noetig };
       }
       opfer = plan.opfer;
     }

@@ -29,9 +29,9 @@ const { existsSync } = await import('node:fs');
   Node-Interna -- und nicht den einen Satz, der ihm weiterhilft.
 */
 if (!existsSync(join(HIER, 'node_modules', 'esbuild'))) {
-  console.error('\nesbuild fehlt in diesem Ordner.');
-  console.error(`Eine Installation im Projektwurzelverzeichnis genuegt nicht --`);
-  console.error(`dieser Ordner braucht seine eigene:\n`);
+  console.error('\nesbuild is missing in this folder.');
+  console.error(`An installation in the project root is not enough --`);
+  console.error(`this folder needs its own:\n`);
   console.error(`  cd ${HIER.split(/[\\/]/).pop()}`);
   console.error('  npm install\n');
   process.exit(1);
@@ -40,8 +40,8 @@ const { build } = await import('esbuild');
 const noetig = ['@noble/hashes', '@noble/curves', '@scure/base', '@scure/bip39'];
 const fehlend = noetig.filter(m => !existsSync(join(HIER, 'node_modules', m)));
 if (fehlend.length > 0) {
-  console.error(`\nEs fehlen: ${fehlend.join(', ')}`);
-  console.error('Erst "npm install" in diesem Ordner ausfuehren.\n');
+  console.error(`\nMissing: ${fehlend.join(', ')}`);
+  console.error('Run "npm install" in this folder first.\n');
   process.exit(1);
 }
 

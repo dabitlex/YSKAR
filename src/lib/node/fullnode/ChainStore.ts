@@ -142,8 +142,8 @@ export class ChainStore {
       if (vorhanden === null) this.setMeta(key, wert);
       else if (vorhanden !== wert) {
         throw new Error(
-          `Diese Ablage gehoert zu ${key}=${vorhanden}, erwartet wird ${wert}. ` +
-          `Falscher Datenordner oder veraltetes Format.`);
+          `This data folder belongs to ${key}=${vorhanden}, expected ${wert}. ` +
+          `Wrong data folder or outdated format.`);
       }
     }
   }
@@ -361,7 +361,7 @@ export class ChainStore {
 function alsBytes(v: unknown): Uint8Array {
   if (v instanceof Uint8Array) return v;
   if (typeof v === 'string') return fromHex(v);
-  throw new Error('Bytefeld hat unerwarteten Typ: ' + typeof v);
+  throw new Error('Byte field has an unexpected type: ' + typeof v);
 }
 
 function zuBlock(z: Record<string, unknown>): StoredBlock {

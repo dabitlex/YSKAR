@@ -69,23 +69,23 @@ test('--v6-height: nur mit --regtest, nur ganze Zahlen ab 1, Mainnet unberuehrt'
   try {
     const ohneRegtest = knoten(['status', '--v6-height', '10', '--data', join(ordner, 'a')]);
     assert.equal(ohneRegtest.code, 1);
-    assert.match(ohneRegtest.text, /--v6-height gibt es nur zusammen mit --regtest/);
+    assert.match(ohneRegtest.text, /--v6-height only works with --regtest/);
 
     for (const falsch of ['0', 'abc', '1.5', '-3']) {
       const r = knoten(['status', '--regtest', '--v6-height', falsch, '--data', join(ordner, 'b')]);
       assert.equal(r.code, 1, `--v6-height ${falsch}`);
-      assert.match(r.text, /ganze Zahl ab 1/, `--v6-height ${falsch}`);
+      assert.match(r.text, /whole number from 1/, `--v6-height ${falsch}`);
     }
 
     const gut = knoten(['status', '--regtest', '--v6-height', '10', '--data', join(ordner, 'c')]);
     assert.equal(gut.code, 0, gut.text);
-    assert.match(gut.text, /Fassung 6 ab Block 10/);
+    assert.match(gut.text, /revision 6 from block 10/);
 
     // Derselbe Ordner ohne die Option: ein gewoehnlicher Regtest-Knoten. Die
     // Ablage gehoert zum selben Netz, nur die Hoehe ist nicht gesetzt.
     const ohne = knoten(['status', '--regtest', '--data', join(ordner, 'c')]);
     assert.equal(ohne.code, 0, ohne.text);
-    assert.match(ohne.text, /Aktivierungsh(ö|oe)he von Fassung 6 noch nicht gesetzt/);
+    assert.match(ohne.text, /no activation height for revision 6 is set/);
   } finally {
     rmSync(ordner, { recursive: true, force: true });
   }
@@ -109,8 +109,8 @@ test('Erreichte Hoehe, anderes Programm: Start verweigert -- und kein Rat, die A
     store.close();
     const r = knoten(['status', '--regtest', '--v6-height', '4', '--data', join(ordner, 'd')]);
     assert.equal(r.code, 1, r.text);
-    assert.match(r.text, /nicht verschieben/);
-    assert.match(r.text, /NICHT loeschen/);
+    assert.match(r.text, /cannot be moved/);
+    assert.match(r.text, /Do NOT delete the folder/);
     assert.doesNotMatch(r.text, /entfernen und neu synchronisieren/);
     // Mit der passenden Hoehe laeuft er.
     const gut = knoten(['status', '--regtest', '--v6-height', '3', '--data', join(ordner, 'd')]);

@@ -56,7 +56,7 @@ test('Gesichertes Fenster wird beim Start geladen und beim Beenden wieder geschr
     const k = await knoten(daten, ['--pool', 'TESTPOOL']);
     assert.equal(k.pool.eintraege, 3);
     assert.equal(k.pool.arbeitGesamt, '1500');
-    assert.match(k.ausgabe(), /3 Shares aus dem letzten Lauf/);
+    assert.match(k.ausgabe(), /3 shares loaded from the last run/);
 
     // Datei weg -- beim Beenden muss sie neu entstehen, mit derselben Arbeit.
     rmSync(join(daten, 'pool-fenster.json'));
@@ -76,7 +76,7 @@ test('Geaenderte Gebuehr gilt erst ab dem naechsten Block, nicht fuer gesicherte
     assert.equal(k.pool.feeBps, 0, 'die Arbeit im Fenster wurde ohne Gebuehr geleistet');
     assert.equal(k.pool.feeBpsNext, 100);
     assert.equal(k.pool.plaetze, 63, 'die angekuendigte Gebuehr belegt schon einen Platz');
-    assert.match(k.ausgabe(), /Gebühr 0\.00 % \(ab dem nächsten Block 1\.00 %\)/);
+    assert.match(k.ausgabe(), /fee 0\.00% \(from the next block 1\.00%\)/);
     assert.equal(await k.stopp(), 0);
   } finally { rmSync(daten, { recursive: true, force: true }); }
 });

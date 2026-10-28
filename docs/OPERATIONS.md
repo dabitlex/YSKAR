@@ -182,7 +182,7 @@ blocks over HTTP from `--api`.
 A failed forward is reported in the node's log (`nicht weitergegeben: <reason>`) and not repeated.
 The mirror must never hold up the chain.
 
-### The `spiegel` command and the timer
+### The `mirror` command (formerly `spiegel`) and the timer
 
 Because a failed forward is not repeated and the mirror accepts only the next block, one lost
 block stops all that follow: each later block is answered with `height_gap`. The `spiegel` command
@@ -476,9 +476,12 @@ Things to know before you restart:
 
 - **Consensus revisions.** A node must run code that knows a revision before the chain reaches the
   height at which it applies. Otherwise it can reject valid blocks from that height on and stop
-  following the chain. Revision 3 applies from height 4,000 and revision 4 from height 6,000; the code in
-  this repository contains both. Before those heights an updated node behaves exactly like an older
-  one.
+  following the chain. Revision 3 applies from height 4,000, revision 4 from height 6,000, revision 5
+  from height 7,000 and revision 6 (a hard fork, [CONSENSUS_V6.md](CONSENSUS_V6.md)) from height
+  10,000; the code in this repository contains all of them. Before those heights an updated node
+  behaves exactly like an older one. A node that does not know revision 6 splits off from the
+  network at height 10,000. `node dist/yskar-node.cjs --version` prints `1.0.0` or newer for a node
+  that knows revision 6, and `status` shows `✓ ready for revision 6`.
 - **The Vercel server validates too.** The mirror's write path uses the same consensus code as the
   node. Deploy the app project before a revision's height as well, otherwise the mirror rejects
   the first block that uses the new rule and stops.

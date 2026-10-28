@@ -59,7 +59,7 @@ test('version ohne die Felder (alter Peer) liest sich als Fassung 5 ohne Aktivie
 test('version mit halbem Fassungsfeld ist unlesbar', () => {
   const voll = M.encodeVersion(basis);
   for (const kuerzung of [1, 2, 3, 4]) {
-    assert.throws(() => M.decodeVersion(voll.slice(0, voll.length - kuerzung)), /unvollstaendig/);
+    assert.throws(() => M.decodeVersion(voll.slice(0, voll.length - kuerzung)), /incomplete/);
   }
 });
 
