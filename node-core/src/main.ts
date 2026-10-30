@@ -111,7 +111,7 @@ interface MiningEinstellung {
   lief: boolean;
 }
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 const GUI_PORT = 8650;
 /** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
 const STATS_TAKT_MS = 30_000;

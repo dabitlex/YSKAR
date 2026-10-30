@@ -1,4 +1,4 @@
-# YSKAR Node Core 1.0.0
+# YSKAR Node Core 1.1.0
 
 A full YSKAR node for Windows and Linux with its own window: wallet, mining
 (solo, in a pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -16,6 +16,22 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Shared accounts** | From block 10,000 (consensus revision 6): accounts with several keys, spending needs k of n signatures; co-signing by file (`src/GemeinsameKonten.ts`, `src/lib/wallet/mehrfach.ts`). |
 | **Program** | German and English, start when you log in, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 1.1.0
+
+- **Sign and verify messages** (`src/Nachrichten.ts`, `ui/js/nachricht.js`,
+  format in `src/lib/core/signedMessage.ts`): the wallet signs a text or a
+  sign-in message with the password, each time; the result can be checked by
+  anyone. Only messages starting with `YSKAR Signed Message` are signed, never
+  bytes that could count as a transfer.
+- **Sign in with a link:** a `yskar:login?…` link from the browser opens Node
+  Core (the installer registers the `yskar:` scheme). Node Core shows site,
+  address and expiry and signs only after confirmation with the password.
+  Only `yskar.app` and its subdomains are accepted. With the Linux AppImage
+  the link is not always handed to the program; use the `.deb` or sign by hand.
+- **GPU mining on AMD and Intel cards** with `yskar-opencl` (OpenCL), next to
+  `yskar-cuda` for NVIDIA. All cards appear in one list; see `gpu/README.md`.
+- The full node can check signed messages with `verify-message`.
 
 ## What changed in 1.0.0
 
