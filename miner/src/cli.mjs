@@ -19,7 +19,7 @@
  * passt den Parser und hiveos/test/paket.test.ts mit an.
  */
 import { Worker } from 'node:worker_threads';
-import { findeGpuProgramm, pruefeGpu, starteGpu } from './gpu.mjs';
+import { waehleGpuProgramm, pruefeGpu, starteGpu } from './gpu.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -67,7 +67,7 @@ function argumente(argv) {
     beim ersten Start selbst (siehe erststart.mjs).
   */
   const a = { workers: 0, intensity: 100, api: VORGABE_API,
-              rechner: 'cpu', device: 0 };
+              rechner: 'cpu', device: 0, gpuApi: 'auto' };
   for (let i = 0; i < argv.length; i++) {
     const [schluessel, direkt] = argv[i].split('=');
     const wert = direkt ?? argv[i + 1];
@@ -90,6 +90,13 @@ function argumente(argv) {
       case '--cpu-gpu': a.rechner = 'beides'; break;
       case '--device': a.device = Math.max(0, Number(nimm()) || 0); break;
       case '--gpu-bin': a.gpuBin = nimm(); break;
+      // Welches Programm die Karte rechnet: cuda (NVIDIA), opencl (AMD,
+      // Intel) oder auto -- das erste, das eine Karte findet.
+      case '--gpu-api': {
+        const w = String(nimm() ?? '').toLowerCase();
+        if (w === 'auto' || w === 'cuda' || w === 'opencl') a.gpuApi = w; else a.falscheGpuApi = w || '(empty)';
+        break;
+      }
       case '--forget': a.forget = true; break;
       // Fester Kopf aus. Er kostet den Verlauf: Zeilen, die aus dem
       // Scrollbereich laufen, sind bei den meisten Terminals weg.
@@ -138,8 +145,9 @@ const HILFE = () => `
    ${cyan('    --gpu              ')} use the graphics card instead of the CPU
    ${cyan('    --cpu-gpu          ')} use CPU and graphics card together
    ${cyan('    --device <n>       ')} which graphics card ${grau('(default: 0)')}
-   ${cyan('    --gpu-bin <path>   ')} path to yskar-cuda if it is not found next to the miner
-   ${grau('GPU mining needs the program yskar-cuda (NVIDIA only), see node-core/gpu/README.md.')}
+   ${cyan('    --gpu-api <api>    ')} cuda (NVIDIA), opencl (AMD, Intel) or auto ${grau('(default: auto)')}
+   ${cyan('    --gpu-bin <path>   ')} path to yskar-cuda or yskar-opencl if not found next to the miner
+   ${grau('GPU mining needs yskar-cuda (NVIDIA) or yskar-opencl (AMD, Intel), see node-core/gpu/README.md.')}
 
  ${fett('DISPLAY')}
    ${cyan('    --simple           ')} plain scrolling log without the fixed header
@@ -154,6 +162,7 @@ const HILFE = () => `
    yskar-miner -a ysr1… --mode solo --api http://127.0.0.1:8645   ${grau('# your own full node')}
    yskar-miner -a ysr1… -w 4 -i 75                                ${grau('# keep the PC usable')}
    yskar-miner -a ysr1… --gpu --device 1
+   yskar-miner -a ysr1… --gpu --gpu-api opencl                    ${grau('# AMD or Intel card')}
 
  ${grau('The miner never needs a private key or your 12 words — only the payout address.')}
  ${grau('Docs: https://github.com/dabitlex/YSKAR/tree/main/miner')}
@@ -278,6 +287,9 @@ async function main() {
   }
   if (arg.falscherModus) {
     console.error(rot(` --mode must be pool or solo, not ${arg.falscherModus}.`)); process.exit(1);
+  }
+  if (arg.falscheGpuApi) {
+    console.error(rot(` --gpu-api must be auto, cuda or opencl, not ${arg.falscheGpuApi}.`)); process.exit(1);
   }
   const WURZEL = join(HIER, '..');
 
@@ -896,11 +908,12 @@ async function main() {
   */
   let gpu = null;
   if (arg.rechner !== 'cpu') {
-    const programm = findeGpuProgramm(arg.gpuBin);
+    const wahl = waehleGpuProgramm(arg.gpuBin, arg.gpuApi);
+    const programm = wahl.programm;
     const weiterMitCpu = () => ereignis(grau(`   Continuing with ${threads} CPU ${threads === 1 ? 'thread' : 'threads'}.`));
     if (!programm) {
-      ereignis(`\n ${gelb(fett('! GPU not available — yskar-cuda was not found'))}`);
-      ereignis(`   Put ${process.platform === 'win32' ? 'yskar-cuda.exe' : 'yskar-cuda'} next to the miner, or pass --gpu-bin <path>. NVIDIA only.`);
+      ereignis(`\n ${gelb(fett(`! GPU not available — ${wahl.gesucht.join(' or ')} was not found`))}`);
+      ereignis(`   Put ${wahl.gesucht.join(' (NVIDIA) or ')}${wahl.gesucht.length > 1 ? ' (AMD, Intel)' : ''} next to the miner, or pass --gpu-bin <path>.`);
       ereignis(grau('   How to build it: node-core/gpu/README.md'));
       if (arg.rechner === 'gpu') await abbrechen();
       weiterMitCpu();
@@ -910,7 +923,7 @@ async function main() {
         Nonces, die der Server ablehnt. Das sieht aus wie ein Netzproblem
         und kostet Stunden Suche.
       */
-      ereignis(grau(`   Checking graphics card ${arg.device} …`));
+      ereignis(grau(`   Checking graphics card ${arg.device} (${wahl.api === 'opencl' ? 'OpenCL' : 'CUDA'}) …`));
       const p = pruefeGpu(programm, arg.device);
       if (!p.ok) {
         ereignis(`\n ${gelb(fett(`! GPU self-test failed on device ${arg.device}`))}`);

@@ -1,9 +1,16 @@
 /**
  * GPU-Miner.
  *
- * Startet das CUDA-Programm (gpu/yskar_gpu.cu) als Kindprozess und
- * verbindet es mit dem MiningCoordinator -- genau wie LocalMiner die
- * CPU-Worker verbindet.
+ * Startet das Programm fuer die Karte als Kindprozess und verbindet es mit
+ * dem MiningCoordinator -- genau wie LocalMiner die CPU-Worker verbindet.
+ * Zwei Programme mit demselben Protokoll:
+ *
+ *   yskar-cuda    NVIDIA (gpu/yskar_gpu.cu)
+ *   yskar-opencl  AMD und Intel (gpu/yskar_opencl.cpp + yskar_opencl.cl)
+ *
+ * Die Erkennung fragt beide und legt ihre Karten in EINE Liste. NVIDIA-
+ * Karten kommen nur ueber CUDA -- yskar-opencl laesst sie aus --, sodass
+ * keine Karte doppelt erscheint.
  *
  * DER KNOTEN BLEIBT DER PRUEFER. Das Programm meldet nur Nonces, deren Hash
  * das Ziel erfuellt. Jeder Treffer geht durch MiningCoordinator.submitNonce()
@@ -35,6 +42,12 @@ import type { Arbeitsquelle, Einreichung } from './PoolQuelle.ts';
 export const GPU_JOB_REFRESH_MS = 30_000;
 /** Wie lange die Geraeteerkennung dauern darf. */
 export const PROBE_TIMEOUT_MS = 15_000;
+/**
+ * Wie lange der Selbsttest mit OpenCL dauern darf. Dort uebersetzt der
+ * Treiber den Kernel erst beim Start -- beim allerersten Mal je nach Treiber
+ * mehrere Sekunden.
+ */
+export const OPENCL_SELBSTTEST_MS = 60_000;
 /** Gibt eine Quelle im Netz gerade keine Arbeit, wird es so bald wieder versucht. */
 const JOB_NOCHMAL_MS = 5_000;
 /** So viele Treffer warten hoechstens auf ihre Einreichung -- siehe LocalMiner. */
@@ -44,19 +57,42 @@ const JOB_TOT_MS = 90_000;
 /** Nach einem neuen Block noch einmal nachfragen -- siehe LocalMiner. */
 const NACHFRAGE_MS = 2_000;
 
+/** Welche Schnittstelle eine Karte rechnet. */
+export type GpuApi = 'cuda' | 'opencl';
+
+/**
+ * Kennungen: CUDA-Karten behalten ihre Nummer 0, 1, 2 … wie bisher (so
+ * bleibt eine gespeicherte Wahl gueltig). OpenCL-Karten zaehlen ab 32.
+ */
+export const OPENCL_ID_BASIS = 32;
+
 export interface GpuGeraet {
+  /** Kennung in Node Core, eindeutig ueber beide Programme. */
   id: number;
   name: string;
+  /** CUDA: Compute Capability. OpenCL: Fassung, etwa "2.0". */
   cc: string;
   vram: number;
+  /** CUDA: Multiprozessoren. OpenCL: Recheneinheiten. */
   sm: number;
   /** Nur die CPU-Nachbildung zum Pruefen -- keine echte Karte. */
   emulation?: boolean;
+  /** Fehlt bei aelteren Staenden: dann CUDA. */
+  api?: GpuApi;
+  /** Nummer der Karte im eigenen Programm (--device). Fehlt: wie id. */
+  nr?: number;
+  /** Das Programm, das diese Karte rechnet. Fehlt: das CUDA-Programm. */
+  programm?: string;
+  /** PCI-Adresse wie "03:00.0", soweit das Programm sie kennt (OpenCL). */
+  bus?: string;
 }
 
 export interface GpuErkennung {
   verfuegbar: boolean;
+  /** Das erste gefundene Programm (CUDA vor OpenCL) -- wie bisher ein Pfad. */
   programm: string | null;
+  /** Beide Programme einzeln, null = nicht installiert. */
+  programme?: { cuda: string | null; opencl: string | null };
   geraete: GpuGeraet[];
   /** Warum nicht verfuegbar -- fuer die Anzeige, nicht zum Raten. */
   grund: string | null;
@@ -92,8 +128,9 @@ export interface GpuMinerOptionen {
  * Zuerst die Umgebungsvariable, dann neben dem Bundle, dann im Quellbaum.
  * Nicht gefunden ist kein Fehler, sondern der Normalfall ohne CUDA.
  */
-export function findeProgramm(ausdruecklich?: string): string | null {
-  const name = process.platform === 'win32' ? 'yskar-cuda.exe' : 'yskar-cuda';
+export function findeProgramm(ausdruecklich?: string, api: GpuApi = 'cuda'): string | null {
+  const basis = api === 'opencl' ? 'yskar-opencl' : 'yskar-cuda';
+  const name = process.platform === 'win32' ? `${basis}.exe` : basis;
   /*
     Im installierten Programm gibt es genau EINEN Ort: den Ordner "resources"
     neben der Anwendung, wohin der Installer das Programm legt. Weder das
@@ -114,7 +151,7 @@ export function findeProgramm(ausdruecklich?: string): string | null {
     ? __dirname : dirname(fileURLToPath(import.meta.url));
   const kandidaten = [
     ausdruecklich,
-    process.env.YSKAR_CUDA_EXE,
+    api === 'opencl' ? process.env.YSKAR_OPENCL_EXE : process.env.YSKAR_CUDA_EXE,
     join(hier, name),
     join(hier, 'gpu', name),
     join(hier, '..', 'gpu', 'bin', name),
@@ -126,19 +163,49 @@ export function findeProgramm(ausdruecklich?: string): string | null {
 /**
  * Welche GPUs gibt es?
  *
- * Startet das Programm mit --probe und liest, was es meldet. Scheitert
- * irgendetwas, ist die Antwort "nicht verfuegbar" -- mit Grund, aber ohne
- * Ausnahme. Der Knoten soll hier nie haengen oder abstuerzen.
+ * Fragt yskar-cuda und yskar-opencl (beide mit --probe, gleichzeitig) und
+ * legt die Karten in eine Liste. Scheitert irgendetwas, ist die Antwort
+ * "nicht verfuegbar" -- mit Grund, aber ohne Ausnahme. Der Knoten soll hier
+ * nie haengen oder abstuerzen.
+ *
+ * Mit ausdruecklich genannten Programmen (Tests) wird nur nach diesen
+ * gefragt; `opencl` = null heisst dann: kein OpenCL-Programm.
  */
-export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
-  const pfad = findeProgramm(programm);
-  if (!pfad) {
-    return Promise.resolve({
-      verfuegbar: false, programm: null, geraete: [],
-      grund: 'GPU-Miner nicht installiert (yskar-cuda fehlt).', grundCode: 'gpu_kein_programm',
-    });
+export async function erkenneGpu(programm?: string, opencl?: string | null): Promise<GpuErkennung> {
+  const ausdruecklich = programm !== undefined || opencl !== undefined;
+  const cudaPfad = ausdruecklich ? (programm ? findeProgramm(programm, 'cuda') : null) : findeProgramm(undefined, 'cuda');
+  const openclPfad = ausdruecklich ? (opencl ? findeProgramm(opencl, 'opencl') : null) : findeProgramm(undefined, 'opencl');
+  const programme = { cuda: cudaPfad, opencl: openclPfad };
+
+  if (!cudaPfad && !openclPfad) {
+    return {
+      verfuegbar: false, programm: null, programme, geraete: [],
+      grund: 'GPU-Miner nicht installiert (yskar-cuda und yskar-opencl fehlen).', grundCode: 'gpu_kein_programm',
+    };
   }
 
+  const [c, o] = await Promise.all([
+    cudaPfad ? frageProgramm(cudaPfad, 'cuda') : Promise.resolve(null),
+    openclPfad ? frageProgramm(openclPfad, 'opencl') : Promise.resolve(null),
+  ]);
+  const geraete = [...(c?.geraete ?? []), ...(o?.geraete ?? [])];
+  if (geraete.length > 0) {
+    return { verfuegbar: true, programm: cudaPfad ?? openclPfad, programme, geraete, grund: null, grundCode: null };
+  }
+  // Keine Karte: der Grund des Programms, das einen eigenen Fehler meldet,
+  // sonst der allgemeine. Nur ein Programm da: genau dessen Antwort, wie bisher.
+  const eins = c && o ? (c.grundCode === 'gpu_keine_karte' ? o : c) : (c ?? o)!;
+  const beide = !!(c && o);
+  return {
+    verfuegbar: false, programm: cudaPfad ?? openclPfad, programme, geraete: [],
+    grund: beide && c!.grundCode === 'gpu_keine_karte' && o!.grundCode === 'gpu_keine_karte'
+      ? 'Keine passende Grafikkarte gefunden.' : eins.grund,
+    grundCode: eins.grundCode ?? null,
+  };
+}
+
+/** Ein Programm mit --probe fragen. */
+function frageProgramm(pfad: string, api: GpuApi): Promise<GpuErkennung> {
   return new Promise(auf => {
     const geraete: GpuGeraet[] = [];
     let fehler: string | null = null;
@@ -147,13 +214,16 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
     const fertig = (grund: string | null, code: string | null = null) => {
       if (erledigt) return;
       erledigt = true;
-      const text = geraete.length > 0 ? grund : (grund ?? fehler ?? 'Keine CUDA-GPU gefunden.');
+      const keine = api === 'opencl' ? 'Keine AMD- oder Intel-GPU mit OpenCL gefunden.' : 'Keine CUDA-GPU gefunden.';
+      const text = geraete.length > 0 ? grund : (grund ?? fehler ?? keine);
       auf({
         verfuegbar: geraete.length > 0 && grund === null,
         programm: pfad, geraete,
         grund: text,
         // Meldet das Programm selbst einen Fehler, bleibt dessen Text stehen.
-        grundCode: text === null ? null : code ?? (grund === null && fehler === null ? 'gpu_keine_karte' : null),
+        // Ausnahme: "keine Karte" von yskar-opencl ist der Normalfall ohne
+        // AMD/Intel und bekommt das allgemeine Kuerzel.
+        grundCode: text === null ? null : code ?? (grund === null && (fehler === null || api === 'opencl') ? 'gpu_keine_karte' : null),
       });
     };
 
@@ -173,10 +243,16 @@ export function erkenneGpu(programm?: string): Promise<GpuErkennung> {
     createInterface({ input: kind.stdout! }).on('line', z => {
       try {
         const m = JSON.parse(z);
-        if (m.t === 'device') geraete.push({
-          id: Number(m.id), name: String(m.name), cc: String(m.cc),
-          vram: Number(m.vram), sm: Number(m.sm ?? 0), emulation: !!m.emulation,
-        });
+        if (m.t === 'device') {
+          const nr = Number(m.id);
+          geraete.push({
+            id: api === 'opencl' ? OPENCL_ID_BASIS + nr : nr,
+            name: String(m.name), cc: String(m.cc),
+            vram: Number(m.vram), sm: Number(m.sm ?? 0), emulation: !!m.emulation,
+            api, nr, programm: pfad,
+            ...(typeof m.bus === 'string' && m.bus ? { bus: m.bus } : {}),
+          });
+        }
         if (m.t === 'error') fehler = String(m.message);
       } catch { /* keine JSON-Zeile -- ignorieren */ }
     });
@@ -204,7 +280,7 @@ export interface GpuSelbsttest {
  * nicht? Faellt einer davon durch, darf mit dieser Karte nicht gemint
  * werden -- sonst meldete sie Treffer, die keine sind, und uebersaehe echte.
  */
-export function pruefeGpu(programm: string, geraet: number): Promise<GpuSelbsttest> {
+export function pruefeGpu(programm: string, geraet: number, zeitMs = PROBE_TIMEOUT_MS): Promise<GpuSelbsttest> {
   return new Promise(auf => {
     const pruefungen: { check: string; ok: boolean }[] = [];
     let hash: string | null = null;
@@ -230,7 +306,7 @@ export function pruefeGpu(programm: string, geraet: number): Promise<GpuSelbstte
     const zeit = setTimeout(() => {
       try { kind.kill(); } catch { /* egal */ }
       fertig('Der GPU-Selbsttest hat nicht geantwortet.');
-    }, PROBE_TIMEOUT_MS);
+    }, zeitMs);
     zeit.unref?.();
 
     createInterface({ input: kind.stdout! }).on('line', z => {
@@ -334,7 +410,10 @@ export class GpuMiner {
    */
   async start(adresse: Uint8Array, geraet: GpuGeraet): Promise<void> {
     if (this.running) return;
-    if (!this.programm) throw new Error('GPU-Miner nicht installiert (yskar-cuda fehlt).');
+    const programm = geraet.programm ?? this.programm;
+    const nr = geraet.nr ?? geraet.id;
+    if (!programm) throw new Error(geraet.api === 'opencl'
+      ? 'GPU-Miner nicht installiert (yskar-opencl fehlt).' : 'GPU-Miner nicht installiert (yskar-cuda fehlt).');
     /*
       Der Selbsttest dauert. Kommt in dieser Zeit ein Stopp (oder ein zweiter
       Start), darf DIESER Start danach nicht doch noch loslaufen -- sonst
@@ -346,7 +425,7 @@ export class GpuMiner {
     // Erst pruefen, dann minen. Einmal je Geraet und Sitzung.
     if (!this.geprueft.has(geraet.id)) {
       this.log(`GPU-Selbsttest auf ${geraet.name}…`);
-      this.selbsttest = await pruefeGpu(this.programm, geraet.id);
+      this.selbsttest = await pruefeGpu(programm, nr, geraet.api === 'opencl' ? OPENCL_SELBSTTEST_MS : PROBE_TIMEOUT_MS);
       if (!this.selbsttest.ok) {
         this.lastError = this.selbsttest.grund;
         throw new Error(`GPU rechnet nicht korrekt -- Mining abgelehnt. ${this.selbsttest.grund ?? ''}`.trim());
@@ -368,7 +447,7 @@ export class GpuMiner {
     this.bereit = false;
     this.startedAt = Date.now();
 
-    const kind = spawn(this.programm, ['--device', String(geraet.id)], {
+    const kind = spawn(programm, ['--device', String(nr)], {
       stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
     });
     this.kind = kind;

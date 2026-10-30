@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Baut das HiveOS-Paket.
 #
-#   bash hiveos/bauen.sh <version> <yskar-cuda> <node-...-linux-x64*.tar.xz> <zielordner>
+#   bash hiveos/bauen.sh <version> <yskar-cuda> <node-...-linux-x64*.tar.xz> <zielordner> [yskar-opencl]
 #
 # Ergebnis: <zielordner>/yskar-hiveos-<version>.tar.gz mit einem Ordner
 # yskar-hiveos/ darin -- so verlangt es HiveOS:
@@ -11,6 +11,7 @@
 #     LICENSE README.md
 #     miner/   der CLI-Miner aus diesem Repository (src/, Engine, package.json)
 #     miner/gpu/yskar-cuda
+#     miner/gpu/yskar-opencl   AMD und Intel, wenn angegeben
 #     node/    Node.js (bin/node und seine Lizenz)
 set -euo pipefail
 
@@ -18,10 +19,12 @@ version=${1:?Version fehlt}
 cuda=${2:?Pfad zu yskar-cuda fehlt}
 nodetar=${3:?Node-Archiv fehlt}
 ziel=${4:?Zielordner fehlt}
+opencl=${5:-}
 
 [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version '$version' ist keine x.y.z" >&2; exit 1; }
 [[ -f $cuda ]] || { echo "$cuda fehlt" >&2; exit 1; }
 [[ -f $nodetar ]] || { echo "$nodetar fehlt" >&2; exit 1; }
+[[ -z $opencl || -f $opencl ]] || { echo "$opencl fehlt" >&2; exit 1; }
 
 hier="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(dirname "$hier")"
@@ -43,13 +46,14 @@ engine=$(cd "$repo/miner" && ls miner.*.wasm)
 cp -r "$repo/miner/src" "$p/miner/src"
 cp "$repo/miner/$engine" "$repo/miner/package.json" "$p/miner/"
 cp "$cuda" "$p/miner/gpu/yskar-cuda"
+if [[ -n $opencl ]]; then cp "$opencl" "$p/miner/gpu/yskar-opencl"; fi
 
 # Node.js: nur das Programm und seine Lizenz.
 tar -xJf "$nodetar" -C "$arbeit" --wildcards '*/bin/node' '*/LICENSE'
 cp "$arbeit"/node-v*/bin/node "$p/node/bin/node"
 cp "$arbeit"/node-v*/LICENSE "$p/node/LICENSE"
 
-chmod 755 "$p"/*.sh "$p/miner/gpu/yskar-cuda" "$p/node/bin/node"
+chmod 755 "$p"/*.sh "$p"/miner/gpu/yskar-* "$p/node/bin/node"
 chmod 644 "$p/h-manifest.conf"
 
 mkdir -p "$ziel"

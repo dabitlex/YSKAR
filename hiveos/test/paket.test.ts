@@ -107,7 +107,8 @@ test('Aufbau: Name, Version, Programme', opt, () => {
   const s = spawnSync(join(ORDNER, 'node/bin/node'), [join(ORDNER, 'miner/src/selbsttest.mjs')],
     { encoding: 'utf8', env: { ...process.env, NO_COLOR: '1' } });
   assert.equal(s.status, 0, s.stdout + s.stderr);
-  assert.match(s.stdout, /bestanden/);
+  // Ab Miner 0.2.0 englisch ("passed"), bis 0.1.0 deutsch ("bestanden").
+  assert.match(s.stdout, /passed|bestanden/);
 
   const cli = spawnSync(join(ORDNER, 'node/bin/node'), [join(ORDNER, 'miner/src/cli.mjs'), '--version'], { encoding: 'utf8' });
   assert.equal(cli.status, 0, cli.stderr);
@@ -248,6 +249,8 @@ test('Protokolle: englische Zeilen ab Miner 0.2.0', opt, () => {
 
 test('h-stats.sh liefert khs und stats wie der Agent sie erwartet', opt, () => {
   logsLeeren();
+  // Ohne Kartenliste von h-run.sh: wie bisher die n-te NVIDIA-Karte.
+  rmSync(join(ORDNER, '.karten'), { force: true });
   const jetzt = new Date();
   writeFileSync(`${LOG}_gpu0.log`, '### Start\n[1] angenommen #5 · y\n[1] abgelehnt stale\n[1] 10s 2,00 GH/s 60s\n');
   writeFileSync(`${LOG}_gpu2.log`, '### Start\n[1] angenommen #3 · y\n[1] 10s 500,0 MH/s 60s\n');
@@ -287,6 +290,31 @@ test('h-stats.sh liefert khs und stats wie der Agent sie erwartet', opt, () => {
   const leer = stats({ GPU_STATS_JSON: '/gibt/es/nicht' });
   assert.equal(leer.khs, 0);
   assert.deepEqual(leer.stats.hs, []);
+});
+
+test('h-stats.sh: AMD- und NVIDIA-Karten ueber die Kartenliste, nach Bus', opt, () => {
+  logsLeeren();
+  writeFileSync(`${LOG}_gpu0.log`, '### Start\n[1] angenommen #1 · y\n[1] 10s 1,00 GH/s 60s\n');
+  writeFileSync(`${LOG}_gpu1.log`, '### Start\n[1] angenommen #1 · y\n[1] 10s 2,00 GH/s 60s\n');
+  writeFileSync(`${LOG}_gpu2.log`, '### Start\n[1] angenommen #1 · y\n[1] 10s 3,00 GH/s 60s\n');
+  // Wie h-run.sh sie schreibt: Nummer, Programm, Nummer im Programm, Bus.
+  writeFileSync(join(ORDNER, '.karten'), '0 cuda 0 01:00.0\n1 opencl 0 03:00.0\n2 opencl 1 -\n');
+  const gs = join(mkdtempSync(join(tmpdir(), 'yskar-gs-')), 'gpu-stats.json');
+  writeFileSync(gs, JSON.stringify({
+    brand: ['nvidia', 'amd', 'amd'], busids: ['01:00.0', '03:00.0', '06:00.0'],
+    temp: [61, 55, 57], fan: [40, 33, 35],
+  }));
+  try {
+    const { stats: s } = stats({ GPU_STATS_JSON: gs });
+    assert.deepEqual(s.hs, [1_000_000, 2_000_000, 3_000_000]);
+    // Karte 1 ist die AMD-Karte auf Bus 03; Karte 2 ohne bekannten Bus bleibt bei 0.
+    assert.deepEqual(s.bus_numbers, [1, 3, 0]);
+    assert.deepEqual(s.temp, [61, 55, 0]);
+    assert.deepEqual(s.fan, [40, 33, 0]);
+  } finally {
+    rmSync(join(ORDNER, '.karten'), { force: true });
+    logsLeeren();
+  }
 });
 
 // ------------------------------------------------------------- im Betrieb
@@ -359,7 +387,8 @@ test('Im Betrieb: zwei Karten minen im Pool, Ausfall und Stopp', { ...opt, timeo
     assert.equal((await ruf(ports.api, '/api/v2/pool')).json.belegt, 1, 'Zwei Karten derselben Adresse belegen einen Platz');
 
     // Die Minutenzeile kommt nach 60 s.
-    await bis('Leistung je Karte', () => [0, 1].every(n => /\] 10s /.test(log(n))));
+    // Ab Miner 0.2.0 "] stats     10s …", bis 0.1.0 "] 10s …" -- wie yskar_khs in yskar-log.sh.
+    await bis('Leistung je Karte', () => [0, 1].every(n => /\] (stats +)?10s /.test(log(n))));
     const s = stats();
     assert.equal(s.stats.hs.length, 2);
     assert.ok(s.stats.hs.every((h: number) => h > 0), JSON.stringify(s.stats));

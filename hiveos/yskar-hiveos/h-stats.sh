@@ -26,11 +26,16 @@ yskar_stats() {
 
   # Temperatur, Luefter und Bus der NVIDIA-Karten, in der Reihenfolge von
   # HiveOS -- dieselbe wie CUDA_DEVICE_ORDER=PCI_BUS_ID in h-run.sh.
-  local gs="${GPU_STATS_JSON:-/run/hive/gpu-stats.json}"
+  # Dazu alle Karten mit ihrem Bus: h-run.sh schreibt in .karten, welche
+  # Karte auf welchem Bus rechnet (auch AMD und Intel).
+  local gs="${GPU_STATS_JSON:-/run/hive/gpu-stats.json}" alle=() karten=()
   if [[ -r $gs ]] && command -v jq > /dev/null; then
     readarray -t nv < <(jq -r '[.brand, .busids, .temp, .fan] | transpose[]
       | select(.[0] == "nvidia") | "\(.[1]) \(.[2] // 0) \(.[3] // 0)"' "$gs" 2>/dev/null)
+    readarray -t alle < <(jq -r '[.busids, .temp, .fan] | transpose[]
+      | "\(.[0]) \(.[1] // 0) \(.[2] // 0)"' "$gs" 2>/dev/null)
   fi
+  [[ -r $ordner/.karten ]] && readarray -t karten < "$ordner/.karten"
 
   local b t f
   while IFS= read -r log; do
@@ -46,7 +51,24 @@ yskar_stats() {
     hs+=("$wert")
 
     b=""; t=0; f=0
-    read -r b t f <<< "${nv[$n]:-}"
+    # Steht die Karte in .karten mit Bus, gilt dieser; sonst wie bisher die
+    # n-te NVIDIA-Karte.
+    local k_n k_api="" k_nr="" k_bus="" z
+    for z in "${karten[@]}"; do
+      read -r k_n k_api k_nr k_bus <<< "$z"
+      [[ $k_n == "$n" ]] && break
+      k_api=""; k_nr=""; k_bus=""
+    done
+    if [[ -n $k_bus && $k_bus != - ]]; then
+      b=$k_bus
+      for z in "${alle[@]}"; do
+        local zb zt zf
+        read -r zb zt zf <<< "$z"
+        if [[ ${zb,,} == "${k_bus,,}" ]]; then t=$zt; f=$zf; break; fi
+      done
+    elif [[ -z $k_api || $k_api == cuda ]]; then
+      read -r b t f <<< "${nv[${k_nr:-$n}]:-}"
+    fi
     local nr=0
     [[ $b =~ ^([0-9a-fA-F]{2}): ]] && nr=$(( 16#${BASH_REMATCH[1]} ))
     bus+=("$nr"); temp+=("${t:-0}"); fan+=("${f:-0}")

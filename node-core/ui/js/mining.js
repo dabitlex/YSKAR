@@ -484,7 +484,7 @@ export function baue(ctx) {
         const lauf = gk.find(x => x.id === k.id) ?? (gk.length === 0 && m.gpu?.running ? m.gpu : null);
         const an = modus !== 'cpu' && (gpuGewaehlt?.has(k.id) ?? false);
         const fehlerText = lauf && !lauf.running && lauf.lastError ? ' · ' + t('min.karteAus') : '';
-        zeilen.push(geraetZeile('karte', k.name, t('min.cudaBereit') + (k.vram ? ' · ' + (k.vram / 1073741824).toFixed(0) + ' GB' : '') + (k.emulation ? ' · ' + t('min.nachbildung') : '') + fehlerText,
+        zeilen.push(geraetZeile('karte', k.name, (k.api === 'opencl' ? t('min.openclBereit') : t('min.cudaBereit')) + (k.vram ? ' · ' + (k.vram / 1073741824).toFixed(0) + ' GB' : '') + (k.emulation ? ' · ' + t('min.nachbildung') : '') + fehlerText,
           lauf?.running ? lauf.hashrate : 0, summe, an, neu => {
             if (gpuGewaehlt === null) gpuGewaehlt = new Set();
             if (neu) gpuGewaehlt.add(k.id); else gpuGewaehlt.delete(k.id);
@@ -631,7 +631,7 @@ export function baue(ctx) {
 
     const e = m.gpuErkennung;
     const karten = e?.geraete ?? [];
-    fuelle(gpuChip, m.gpuSucheLaeuft ? chip('', t('min.gpuSucht')) : e?.verfuegbar ? chip('gruen', [zeichen('haken', 14), t('min.cudaBereit')]) : chip('', t('min.gpuFehlt')));
+    fuelle(gpuChip, m.gpuSucheLaeuft ? chip('', t('min.gpuSucht')) : e?.verfuegbar ? chip('gruen', [zeichen('haken', 14), t('min.gpuBereit')]) : chip('', t('min.gpuFehlt')));
     // Beim ersten Stand: die zuletzt gewählten Karten.
     if (gpuGewaehlt === null) gpuGewaehlt = new Set(m.config.gpuDevices ?? [m.config.gpuDevice ?? 0]);
     const wahl = JSON.stringify(karten.map(g => [g.id, g.name]));

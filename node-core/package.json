@@ -13,6 +13,9 @@
     "dist:linux": "npm run build && electron-builder --linux deb AppImage --x64 --publish never",
     "build:gpu": "powershell -ExecutionPolicy Bypass -File gpu/build-gpu.ps1",
     "build:gpu-emu": "g++ -std=c++17 -O2 -o gpu/bin/yskar-cuda-emu gpu/yskar_host.cpp gpu/yskar_cpu.cpp -pthread",
+    "build:opencl": "powershell -ExecutionPolicy Bypass -File gpu/build-opencl.ps1",
+    "build:opencl:linux": "bash gpu/build-opencl.sh",
+    "test:opencl": "python3 gpu/test/test_opencl.py",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "test:sha": "gcc -O2 -o gpu/bin/test_sha gpu/test/test_sha.c && gpu/bin/test_sha"
   },
@@ -72,7 +75,9 @@
         "to": ".",
         "filter": [
           "yskar-cuda.exe",
-          "yskar-cuda"
+          "yskar-cuda",
+          "yskar-opencl.exe",
+          "yskar-opencl"
         ]
       },
       {

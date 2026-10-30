@@ -194,3 +194,25 @@ test('GPU-Fortschritt liefert die Rohzahl der Hashes, nicht nur die Rate', async
   assert.equal(raten[0], 20_000_000, '5 Mio in 250 ms sind 20 MH/s');
   assert.equal(raten[1], 20_000_000, '4 Mio in 200 ms sind 20 MH/s');
 });
+
+test('Programmwahl: --gpu-api und der Dateiname entscheiden, auto nimmt das erste mit Karte', async () => {
+  const { waehleGpuProgramm, apiAusPfad } = await import('../miner/src/gpu.mjs');
+  const { mkdtempSync, writeFileSync, chmodSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+
+  assert.equal(apiAusPfad('/opt/x/yskar-opencl'), 'opencl');
+  assert.equal(apiAusPfad('C:\\yskar\\yskar-opencl.exe'), 'opencl');
+  assert.equal(apiAusPfad('/opt/x/yskar-cuda'), 'cuda');
+
+  const d = mkdtempSync(join(tmpdir(), 'yskar-wahl-'));
+  const ocl = join(d, 'yskar-opencl');
+  writeFileSync(ocl, '#!/bin/sh\n'); chmodSync(ocl, 0o755);
+  // Ein eigener Pfad: die Schnittstelle aus dem Namen, ausser sie ist genannt.
+  assert.deepEqual(waehleGpuProgramm(ocl, 'auto').api, 'opencl');
+  assert.deepEqual(waehleGpuProgramm(ocl, 'cuda').api, 'cuda');
+  assert.equal(waehleGpuProgramm(join(d, 'fehlt'), 'auto').programm, null);
+  // Nichts installiert: beide Namen in der Meldung.
+  const leer = waehleGpuProgramm(undefined, 'auto', () => 0);
+  if (leer.programm === null) assert.equal(leer.gesucht.length, 2);
+});

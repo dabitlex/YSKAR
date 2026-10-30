@@ -1,9 +1,15 @@
 /*
  * GPU-Rechenwerk fuer den CLI-Miner.
  *
- * Startet dasselbe Programm, das auch der Node Core benutzt --
- * yskar-cuda(.exe) -- als Kindprozess und spricht mit ihm ueber Zeilen aus
- * JSON.
+ * Startet dieselben Programme, die auch der Node Core benutzt, als
+ * Kindprozess und spricht mit ihnen ueber Zeilen aus JSON:
+ *
+ *   yskar-cuda(.exe)    NVIDIA
+ *   yskar-opencl(.exe)  AMD und Intel
+ *
+ * Beide sprechen dasselbe Protokoll. Welches laeuft, entscheidet
+ * waehleGpuProgramm(): --gpu-api cuda|opencl, sonst das erste, das eine
+ * Karte findet.
  *
  * WARUM EIN EIGENER PROZESS: Ein Absturz im Treiber reisst nur ihn mit. Der
  * Miner meldet dann "GPU ausgefallen" und rechnet mit der CPU weiter,
@@ -32,7 +38,7 @@
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeHeader } from './header.mjs';
 
@@ -46,9 +52,10 @@ const HIER = typeof __dirname !== 'undefined'
   : dirname(fileURLToPath(import.meta.url));
 
 /** Wo das Programm liegen koennte -- in der Reihenfolge des Nachsehens. */
-export function findeGpuProgramm(eigen) {
+export function findeGpuProgramm(eigen, api = 'cuda') {
   if (eigen) return existsSync(eigen) ? eigen : null;
-  const name = process.platform === 'win32' ? 'yskar-cuda.exe' : 'yskar-cuda';
+  const basis = api === 'opencl' ? 'yskar-opencl' : 'yskar-cuda';
+  const name = process.platform === 'win32' ? `${basis}.exe` : basis;
   const orte = [
     join(HIER, '..', 'gpu', name),
     join(HIER, '..', '..', 'node-core', 'gpu', 'bin', name),
@@ -56,6 +63,48 @@ export function findeGpuProgramm(eigen) {
     join(process.cwd(), name),
   ];
   return orte.find(existsSync) ?? null;
+}
+
+/** Wie viele Karten meldet ein Programm mit --probe? 0 bei jedem Fehler. */
+export function zaehleKarten(programm) {
+  const r = spawnSync(programm, ['--probe'], { encoding: 'utf8', timeout: 15_000 });
+  if (r.error) return 0;
+  return String(r.stdout || '').split('\n').filter(z => z.includes('"t":"device"')).length;
+}
+
+/** Ein Pfad gehoert zu OpenCL, wenn der Dateiname es sagt. */
+export function apiAusPfad(pfad) {
+  return /opencl/i.test(basename(String(pfad))) ? 'opencl' : 'cuda';
+}
+
+/**
+ * Welches Programm rechnet?
+ *
+ * @param eigen  --gpu-bin (Pfad), oder leer
+ * @param api    'cuda', 'opencl' oder 'auto'
+ * @returns {{ programm: string|null, api: 'cuda'|'opencl', gesucht: string[] }}
+ *
+ * Bei 'auto' zuerst CUDA, dann OpenCL -- das erste, das eine Karte findet.
+ * Findet keines eine Karte, kommt das erste vorhandene zurueck, damit sein
+ * Selbsttest den Grund nennt. `gesucht` nennt die Programmnamen fuer die
+ * Meldung, wenn gar keines da ist.
+ */
+export function waehleGpuProgramm(eigen, api = 'auto', zaehle = zaehleKarten) {
+  const exe = (b) => (process.platform === 'win32' ? `${b}.exe` : b);
+  if (eigen) {
+    const p = findeGpuProgramm(eigen);
+    return { programm: p, api: api === 'auto' ? apiAusPfad(eigen) : api, gesucht: [String(eigen)] };
+  }
+  if (api === 'cuda' || api === 'opencl') {
+    return { programm: findeGpuProgramm(null, api), api, gesucht: [exe(api === 'opencl' ? 'yskar-opencl' : 'yskar-cuda')] };
+  }
+  const kandidaten = [
+    { programm: findeGpuProgramm(null, 'cuda'), api: 'cuda' },
+    { programm: findeGpuProgramm(null, 'opencl'), api: 'opencl' },
+  ].filter((k) => k.programm);
+  const gesucht = [exe('yskar-cuda'), exe('yskar-opencl')];
+  for (const k of kandidaten) if (zaehle(k.programm) > 0) return { ...k, gesucht };
+  return kandidaten[0] ? { ...kandidaten[0], gesucht } : { programm: null, api: 'cuda', gesucht };
 }
 
 /**
@@ -76,7 +125,7 @@ export function pruefeGpu(programm, geraet) {
   for (const z of zeilen) {
     try {
       const m = JSON.parse(z);
-      if (m.t === 'device' && m.name) name = `${m.name} (CC ${m.cc})`;
+      if (m.t === 'device' && m.name) name = `${m.name} (${m.api === 'opencl' ? 'OpenCL' : 'CC'} ${m.cc})`;
       if (m.t === 'selftest' && m.result === 'PASSED') bestanden = true;
       if (m.t === 'selftest' && m.ok === false) {
         return { ok: false, grund: `self-test failed: ${m.check}` };
@@ -114,7 +163,7 @@ export function headerHex(job) {
 /**
  * Das laufende GPU-Rechenwerk.
  *
- * @param opt.programm  Pfad zu yskar-cuda
+ * @param opt.programm  Pfad zu yskar-cuda oder yskar-opencl
  * @param opt.geraet    Geraetenummer
  * @param opt.onShare   ({jobId, nonce}) -- ein Treffer
  * @param opt.onRate    (hashesProSekunde, hashes) -- Leistung UND Rohzahl
@@ -200,7 +249,8 @@ export function starteGpu(opt) {
      * liefert Treffer, die der Server als "low_difficulty" abweist. Genau
      * das war der Grund fuer 269 Ablehnungen gegen 14 Annahmen.
      *
-     * Bei gleicher Kennung und gleichem Header rechnet yskar-cuda ab dem
+     * Bei gleicher Kennung und gleichem Header rechnet yskar-cuda (wie
+     * yskar-opencl) ab dem
      * 9. Oktober 2026 dort weiter, wo es steht (Issue #4); aeltere Fassungen
      * beginnen wieder bei Nonce 0, und ihre ersten Treffer kommen als
      * "duplicate" zurueck. Seit das Share-Ziel je Job fest ist (Knoten ab

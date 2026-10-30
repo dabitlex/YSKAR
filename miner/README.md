@@ -236,7 +236,8 @@ Options can be written as `--option value` or `--option=value`.
 | `--gpu` | | Compute with the graphics card instead of the CPU | Off |
 | `--cpu-gpu` | | Compute with CPU and graphics card at the same time | Off |
 | `--device <n>` | | Number of the graphics card to use | `0` |
-| `--gpu-bin <path>` | | Path to the `yskar-cuda` program if the miner does not find it | Searched automatically, see below |
+| `--gpu-api <api>` | | `cuda` (NVIDIA), `opencl` (AMD, Intel) or `auto` | `auto` |
+| `--gpu-bin <path>` | | Path to `yskar-cuda` or `yskar-opencl` if the miner does not find it | Searched automatically, see below |
 | `--forget` | | Delete the saved `yskar-miner.json` and exit | |
 | `--simple` | | No fixed header at the top; the scrollback stays complete. `--einfach` still works. | Off |
 | `--help` | `-h` | Print the help text and exit | |
@@ -259,11 +260,18 @@ proportional time. At 50 the miner computes half as many hashes.
 
 ## GPU mining
 
-The miner can use NVIDIA graphics cards. Other manufacturers are not supported.
+The miner can use NVIDIA, AMD and Intel graphics cards. It needs a separate program for this,
+which is not part of this folder:
 
-GPU mining needs a separate program, `yskar-cuda` (`yskar-cuda.exe` on Windows), which is not
-part of this folder. It is built from the sources in `node-core/gpu`; the build script there is
-for Windows. See [node-core/gpu/README.md](../node-core/gpu/README.md).
+| Cards | Program | Interface |
+|---|---|---|
+| NVIDIA | `yskar-cuda` (`yskar-cuda.exe` on Windows) | CUDA |
+| AMD, Intel | `yskar-opencl` (`yskar-opencl.exe` on Windows) | OpenCL |
+
+Both are built from the sources in `node-core/gpu` and speak the same protocol. See
+[node-core/gpu/README.md](../node-core/gpu/README.md). With `--gpu-api auto` (the default) the
+miner takes the first program that finds a card, CUDA first. `--gpu-api opencl` uses the AMD and
+Intel program even if an NVIDIA card is present.
 
 ```bash
 # Graphics card only
@@ -271,6 +279,9 @@ node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool --gpu
 
 # CPU and graphics card together
 node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool --cpu-gpu
+
+# AMD or Intel card
+node src/cli.mjs -a ysr1… --api https://pool.yskar.app --mode pool --gpu --gpu-api opencl
 ```
 
 The miner looks for the program in these places, in this order:
@@ -280,14 +291,16 @@ The miner looks for the program in these places, in this order:
 3. `gpu/bin/` below the current working directory
 4. the current working directory
 
-With `--gpu-bin <path>` it uses that file only.
+With `--gpu-bin <path>` it uses that file only; a file name containing `opencl` counts as the
+AMD and Intel program unless `--gpu-api` says otherwise. `--device n` counts the cards of the
+chosen program.
 
 Before the first job the miner runs the program's self-test, in which the card computes the
 genesis hash. A card that fails is not used. What happens next depends on the mode:
 
 | Situation | With `--gpu` | With `--cpu-gpu` |
 |---|---|---|
-| Program not found (`GPU not available — yskar-cuda was not found`) | The miner stops | Mining continues on the CPU |
+| Program not found (`GPU not available — yskar-cuda or yskar-opencl was not found`) | The miner stops | Mining continues on the CPU |
 | Self-test fails (`GPU self-test failed on device n`) | The miner stops | Mining continues on the CPU |
 | Program ends while mining (`GPU ausgefallen: …`) | The miner stops | Mining continues on the CPU |
 
@@ -434,7 +447,7 @@ fetches new work instead.
 and the node then adjusts it so that a share arrives about every 30 seconds. If no share is
 accepted for several minutes, stop the miner and run the self-test.
 
-**`GPU not available — yskar-cuda was not found`.** The GPU program is not in any of the places listed under
+**`GPU not available — yskar-cuda or yskar-opencl was not found`.** The GPU program is not in any of the places listed under
 "GPU mining". Build it, or give its location with `--gpu-bin`.
 
 ## What the miner does not do

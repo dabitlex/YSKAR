@@ -184,6 +184,16 @@ struct Geraet {
   void frei()    { yskar_dev_free(); }
 };
 
+/* Welche Schnittstelle dahinter steht: "cuda" oder "opencl". Der Bau von
+   yskar-opencl setzt -DYSKAR_API_OPENCL; ohne Angabe ist es CUDA, wie
+   bisher. Node Core zeigt es an und haelt die Karten so auseinander. */
+#ifdef YSKAR_API_OPENCL
+#  define YSKAR_API "opencl"
+extern "C" const char *yskar_ocl_bus_text(int id);
+#else
+#  define YSKAR_API "cuda"
+#endif
+
 /* Geraete auflisten -- fuer --probe und beim Start. */
 static int liste(bool ausgeben) {
   int n = 0;
@@ -196,10 +206,15 @@ static int liste(bool ausgeben) {
     int major = 0, minor = 0, sm = 0;
     unsigned long long vram = 0;
     if (yskar_dev_info(i, name, (int)sizeof name, &major, &minor, &vram, &sm) != 0) continue;
-    char z[512];
+    std::string bus;
+#ifdef YSKAR_API_OPENCL
+    const char *b = yskar_ocl_bus_text(i);
+    if (b && b[0]) bus = std::string(",\"bus\":\"") + b + "\"";
+#endif
+    char z[640];
     std::snprintf(z, sizeof z,
-      "{\"t\":\"device\",\"id\":%d,\"name\":\"%s\",\"cc\":\"%d.%d\",\"vram\":%llu,\"sm\":%d%s}",
-      i, esc(name).c_str(), major, minor, vram, sm,
+      "{\"t\":\"device\",\"id\":%d,\"name\":\"%s\",\"cc\":\"%d.%d\",\"vram\":%llu,\"sm\":%d,\"api\":\"%s\"%s%s}",
+      i, esc(name).c_str(), major, minor, vram, sm, YSKAR_API, bus.c_str(),
       yskar_dev_is_emulation() ? ",\"emulation\":true" : "");
     sende(z);
   }

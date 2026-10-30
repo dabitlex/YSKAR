@@ -709,7 +709,7 @@ export class NodeCoreApp {
       this.gpuErkennung = await erkenneGpu();
       const e = this.gpuErkennung;
       this.log(e.verfuegbar
-        ? `GPU: ${e.geraete.map(g => `${g.name} (CC ${g.cc})`).join(', ')}`
+        ? `GPU: ${e.geraete.map(g => `${g.name} (${g.api === 'opencl' ? 'OpenCL' : 'CC'} ${g.cc})`).join(', ')}`
         : `GPU nicht verfuegbar: ${e.grund}`);
       return e;
     } finally {

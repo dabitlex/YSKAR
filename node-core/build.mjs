@@ -95,8 +95,14 @@ console.log('Node-Core-Bundle erstellt: dist/node-core.cjs');
  * gpu/build-gpu.ps1. Liegt gpu/bin/yskar-cuda.exe vor, nimmt der Installer
  * sie mit; sonst zeigt die App GPU-Mining als nicht verfuegbar an.
  */
-const gpuExe = resolve(here, 'gpu', 'bin', process.platform === 'win32' ? 'yskar-cuda.exe' : 'yskar-cuda');
+const exe = (n) => resolve(here, 'gpu', 'bin', process.platform === 'win32' ? `${n}.exe` : n);
+const gpuExe = exe('yskar-cuda');
 console.log(existsSync(gpuExe)
-  ? `GPU-Miner gefunden: ${gpuExe}`
-  : 'GPU-Miner nicht gebaut -- der Node Core laeuft ohne GPU-Mining.');
+  ? `GPU-Miner NVIDIA gefunden: ${gpuExe}`
+  : 'GPU-Miner NVIDIA (yskar-cuda) nicht gebaut -- ohne Mining auf NVIDIA-Karten.');
+/* Dasselbe fuer AMD und Intel: gpu/build-opencl.ps1 bzw. build-opencl.sh. */
+const openclExe = exe('yskar-opencl');
+console.log(existsSync(openclExe)
+  ? `GPU-Miner AMD/Intel gefunden: ${openclExe}`
+  : 'GPU-Miner AMD/Intel (yskar-opencl) nicht gebaut -- ohne Mining auf AMD- und Intel-Karten.');
 console.log('Die Desktop-Hülle verwendet Electron und öffnet kein Microsoft Edge.');

@@ -1,7 +1,16 @@
-# GPU mining program (CUDA)
+# GPU mining programs (CUDA, OpenCL)
 
-This folder contains `yskar-cuda`, the program that mines YSKAR on NVIDIA graphics cards. This
-guide is for developers who want to build it, test it on a card, or understand how it works.
+This folder contains the two programs that mine YSKAR on graphics cards:
+
+| Program | Cards | Interface |
+|---|---|---|
+| `yskar-cuda` | NVIDIA | CUDA |
+| `yskar-opencl` | AMD and Intel | OpenCL |
+
+Both share the protocol, the self-test, the benchmark and the SHA-256d code
+(`yskar_sha256.h`). Most of this guide describes `yskar-cuda`; what is different for
+`yskar-opencl` is in [AMD and Intel (OpenCL)](#amd-and-intel-opencl). This guide is for
+developers who want to build them, test them on a card, or understand how they work.
 
 `yskar-cuda.exe` is a standalone program. Node Core and the command-line miner start it as a
 child process, send it jobs and receive nonces from it. It computes hashes and reports nonces
@@ -336,16 +345,128 @@ code themselves on first start. To choose the architectures yourself:
 powershell -ExecutionPolicy Bypass -File gpu\build-gpu.ps1 -Arch 50,61,86
 ```
 
+## AMD and Intel (OpenCL)
+
+`yskar-opencl` is `yskar_host.cpp` (the same protocol, self-test and benchmark as
+`yskar-cuda`) together with `yskar_opencl.cpp`, which implements the same interface
+(`yskar_backend.h`) with OpenCL. Node Core and the command-line miner start it exactly like
+`yskar-cuda`.
+
+### What the user needs
+
+Only the graphics driver. AMD and Intel drivers bring OpenCL with them on Windows. On Linux,
+AMD cards need ROCm or the AMDGPU-PRO OpenCL driver (HiveOS installs one for AMD rigs), Intel
+cards need the Intel Compute Runtime, and some systems also need the package
+`ocl-icd-libopencl1`. The program loads `OpenCL.dll` or `libOpenCL.so.1` when it starts. If it
+is missing, the program says so (`OpenCL nicht gefunden …`) and Node Core shows GPU mining as
+unavailable for these cards.
+
+### Which cards
+
+Every GPU of every OpenCL platform, ordered by PCI bus, except NVIDIA cards: they are mined with
+`yskar-cuda`, which is faster on them, and would otherwise appear twice. If a card is visible
+through two platforms (on Linux, for example, ROCm and Mesa), it is listed once, through the
+manufacturer's platform. The probe line carries `"api":"opencl"` and, where the driver reports
+it, the PCI address as `"bus":"03:00.0"`.
+
+In Node Core, CUDA cards keep their numbers 0, 1, 2 …; OpenCL cards are numbered from 32, so a
+saved choice stays valid and the two lists never collide.
+
+### Build
+
+Windows (Visual Studio or Build Tools with C++, and node):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File gpu\build-opencl.ps1
+```
+
+Linux (g++ and node):
+
+```bash
+bash gpu/build-opencl.sh
+```
+
+No OpenCL SDK and no CUDA are needed. The result is `gpu/bin/yskar-opencl(.exe)`. First,
+`gpu/opencl-quelle.mjs` writes the kernel source into `gpu/bin/yskar_opencl_quelle.h`: it is
+`yskar_sha256.h` followed by `yskar_opencl.cl`. The driver compiles that source for the exact
+card when the program starts, so there is no list of architectures as with CUDA; the first
+start on a card can take a few seconds. On Windows the program is linked with `/MT`, so no
+Visual C++ redistributable is needed. The release workflow builds it on Windows and in
+`ubuntu:20.04` and puts it next to `yskar-cuda` in the installer, the Linux packages and the
+HiveOS package.
+
+Detect, self-test and measure exactly as with `yskar-cuda`:
+
+```powershell
+.\gpu\bin\yskar-opencl.exe --probe
+.\gpu\bin\yskar-opencl.exe --selftest --device 0
+.\gpu\bin\yskar-opencl.exe --bench 10 --device 0
+```
+
+### How the kernel is tuned
+
+The kernel is the CUDA kernel in OpenCL: midstate once per job, two compressions per attempt,
+all 64 rounds unrolled so the working words stay in registers, the target compared as eight
+words, a grid stride so a batch covers a range without gaps, and a thread keeps computing after
+a hit. In addition:
+
+- `rotate()` and `bitselect()` for the rotations and for Ch and Maj. On AMD each becomes one
+  instruction (`v_alignbit`, `v_bfi`) instead of three to five. The results are bit-identical;
+  the tests check that.
+- The work-group size is 256 where kernel and card allow it, rounded to the multiple the driver
+  prefers (AMD 32 or 64, Intel 8 to 32).
+- **The grid size is measured, not guessed.** Before the first batch the program runs short
+  measurements with 4 to 128 work-groups per compute unit and keeps the fastest. The batch length
+  (100 to 250 ms) is then adjusted as with CUDA.
+- A hit is stored with a 32-bit `atomic_cmpxchg`; 64-bit atomics are not available on every
+  card.
+
+### What is verified and what is not
+
+| What | How |
+|---|---|
+| The kernel source is the same SHA-256d as for CUDA and gcc | `yskar_sha256.h` is passed to the driver unchanged, with `rotate`/`bitselect` only under `__OPENCL_VERSION__` |
+| 2,500 random headers and nonces bit-exact, and the target comparison at the boundaries (more than 12,000 cases), against Python's `hashlib` | `gpu/test/test_opencl.py` (`npm run test:opencl`), on any OpenCL device, without a graphics card on the CPU runtime PoCL |
+| A full batch checks each nonce exactly once | the same test |
+| Detection, self-test, protocol, hits that become blocks the node validates completely, CUDA and OpenCL cards side by side | `test/gpu-opencl.test.ts` with the real `yskar-opencl` on PoCL |
+| The program compiles on Windows (MSVC) and Linux | the release workflow |
+
+**Not verified by any automated run:** that the kernel computes correctly on a real AMD or
+Intel card, and how fast it is there. The build machines have no such card. The self-test on
+the card is the proof of the first; Node Core and the command-line miner run it before they mine
+and refuse a card that fails. `--bench` measures the second.
+
+To run the checks without a graphics card:
+
+```bash
+pip install pyopencl pocl-binary-distribution numpy
+python3 gpu/test/test_opencl.py
+YSKAR_OPENCL_CPU=1 gpu/bin/yskar-opencl --selftest --device 0
+```
+
+Environment variables, for testing and troubleshooting only:
+
+| Variable | Effect |
+|---|---|
+| `YSKAR_OPENCL_CPU=1` | also accept processors as devices; the program then reports itself as an emulation (`"emulation":true`) |
+| `YSKAR_OPENCL_NVIDIA=1` | also list NVIDIA cards (normally they are left to `yskar-cuda`) |
+
 ## Files
 
 ```text
-gpu/yskar_sha256.h     SHA-256d, compiles with nvcc and with gcc
+gpu/yskar_sha256.h     SHA-256d, compiles with nvcc, gcc and the OpenCL compiler
 gpu/yskar_gpu.cu       kernel and CUDA access, without the C++ standard library
-gpu/yskar_host.cpp     protocol, self-test, benchmark, without CUDA
+gpu/yskar_opencl.cl    kernel for OpenCL (AMD, Intel)
+gpu/yskar_opencl.cpp   OpenCL access, loaded at run time; device list, tuning
+gpu/opencl-quelle.mjs  writes the OpenCL kernel source into gpu/bin/yskar_opencl_quelle.h
+gpu/yskar_host.cpp     protocol, self-test, benchmark, without CUDA or OpenCL
 gpu/yskar_cpu.cpp      CPU emulation for testing
 gpu/yskar_backend.h    the narrow C interface between them
-gpu/build-gpu.ps1      Windows build
-gpu/build-gpu.sh       Linux build
+gpu/build-gpu.ps1      Windows build, CUDA
+gpu/build-gpu.sh       Linux build, CUDA
+gpu/build-opencl.ps1   Windows build, OpenCL
+gpu/build-opencl.sh    Linux build, OpenCL
 gpu/test/test_sha.c    check against the genesis block, without a GPU
+gpu/test/test_opencl.py  OpenCL kernel against hashlib, on any OpenCL device
 gpu/bin/               build output, not in the repository
 ```

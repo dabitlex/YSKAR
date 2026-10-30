@@ -108,6 +108,35 @@ jobs:
       - name: Tests der Mining-Schnittstelle
         run: node --experimental-strip-types --no-warnings --test tests/miningserver-haertung.test.ts tests/miningserver.test.ts tests/pool-server.test.ts tests/pool-plaetze.test.ts tests/netz-statistik.test.ts
 
+      # Der OpenCL-Kernel fuer AMD und Intel, auf einer OpenCL-Laufzeit fuer
+      # den Prozessor (PoCL): 2.500 Hashes und ueber 12.000 Zielvergleiche
+      # gegen hashlib, dann yskar-opencl im Node Core bis zu echten Bloecken.
+      # Ob eine bestimmte Karte richtig und schnell rechnet, zeigt nur ein
+      # Lauf auf der Karte (Selbsttest und --bench).
+      - name: OpenCL-Laufzeit fuer den Prozessor
+        run: |
+          set -euo pipefail
+          # Der OpenCL-Lader des Systems (libOpenCL.so.1), dazu PoCL als
+          # Laufzeit. pocl.icd liegt neben den Bibliotheken von pyopencl.
+          sudo apt-get install -y -qq ocl-icd-libopencl1 > /dev/null
+          python3 -m venv "$RUNNER_TEMP/ocl"
+          "$RUNNER_TEMP/ocl/bin/pip" install -q pyopencl pocl-binary-distribution numpy
+          echo "$RUNNER_TEMP/ocl/bin" >> "$GITHUB_PATH"
+          icd=$(find "$RUNNER_TEMP/ocl" -name 'pocl.icd' | head -1)
+          [ -n "$icd" ] || { echo "::error::pocl.icd nicht gefunden"; exit 1; }
+          echo "OCL_ICD_VENDORS=$(dirname "$icd")" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$(dirname "$icd")" >> "$GITHUB_ENV"
+
+      - name: OpenCL-Kernel gegen hashlib
+        working-directory: node-core
+        run: python3 gpu/test/test_opencl.py
+
+      - name: yskar-opencl im Node Core
+        working-directory: node-core
+        run: |
+          bash gpu/build-opencl.sh
+          node --experimental-strip-types --no-warnings --test test/gpu-opencl.test.ts
+
   gpu:
     name: GPU-Miner (CUDA)
     runs-on: windows-2022
@@ -181,10 +210,51 @@ jobs:
         shell: pwsh
         run: '"gebaut=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8'
 
+  opencl:
+    name: GPU-Miner (OpenCL, AMD und Intel)
+    runs-on: windows-2022
+    # Wie der CUDA-Teil: auf dem Arbeitszweig darf er scheitern, eine
+    # Veroeffentlichung braucht ihn.
+    continue-on-error: ${{ !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
+    outputs:
+      gebaut: ${{ steps.fertig.outputs.gebaut }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Nur der C++-Compiler von Visual Studio und node. Kein OpenCL-SDK:
+      # Das Programm laedt OpenCL.dll erst beim Start. build-opencl.ps1
+      # ruft am Ende --probe auf; ohne Karte endet das hier mit einer Meldung.
+      - name: yskar-opencl.exe bauen
+        working-directory: node-core
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File gpu\build-opencl.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Der Bau des OpenCL-Miners ist gescheitert.' }
+          if (-not (Test-Path gpu\bin\yskar-opencl.exe)) { throw 'gpu\bin\yskar-opencl.exe fehlt.' }
+          $aus = & gpu\bin\yskar-opencl.exe --probe 2>&1 | Out-String
+          if ($aus -notmatch '"t":') { throw "yskar-opencl.exe antwortet nicht wie erwartet: $aus" }
+          $hash = (Get-FileHash gpu\bin\yskar-opencl.exe -Algorithm SHA256).Hash.ToLower()
+          Write-Host "::notice title=GPU-Miner OpenCL::yskar-opencl.exe gebaut ($((Get-Item gpu\bin\yskar-opencl.exe).Length) Byte, sha256 $($hash.Substring(0, 16))). --probe: $($aus.Trim() -replace '\s+', ' ')"
+          $global:LASTEXITCODE = 0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yskar-opencl
+          path: node-core/gpu/bin/yskar-opencl.exe
+          if-no-files-found: error
+
+      - id: fertig
+        shell: pwsh
+        run: '"gebaut=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8'
+
   installer:
     name: Windows-Installer
-    needs: [pruefen, gpu]
-    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
+    needs: [pruefen, gpu, opencl]
+    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) && (needs.opencl.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
     runs-on: windows-2022
     defaults:
       run:
@@ -216,6 +286,13 @@ jobs:
           name: yskar-cuda
           path: node-core/gpu/bin
 
+      - name: GPU-Miner AMD/Intel holen
+        if: ${{ needs.opencl.outputs.gebaut == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: yskar-opencl
+          path: node-core/gpu/bin
+
       - name: Abhängigkeiten
         run: npm ci
 
@@ -240,6 +317,9 @@ jobs:
           $gpu = Test-Path "$res\yskar-cuda.exe"
           Write-Host "GPU-Miner im Paket: $gpu"
           if ('${{ needs.gpu.outputs.gebaut }}' -eq 'true' -and -not $gpu) { throw 'Der GPU-Miner wurde gebaut, liegt aber nicht im Paket.' }
+          $ocl = Test-Path "$res\yskar-opencl.exe"
+          Write-Host "GPU-Miner AMD/Intel im Paket: $ocl"
+          if ('${{ needs.opencl.outputs.gebaut }}' -eq 'true' -and -not $ocl) { throw 'yskar-opencl.exe wurde gebaut, liegt aber nicht im Paket.' }
 
       # Das ausgepackte Programm wirklich starten. Hier laufen die Teile, die
       # sich nirgends sonst prüfen lassen: die Hülle, das Laden aus dem
@@ -388,10 +468,55 @@ jobs:
         shell: bash
         run: echo "gebaut=true" >> "$GITHUB_OUTPUT"
 
+  opencl-linux:
+    name: GPU-Miner Linux (OpenCL, AMD und Intel)
+    runs-on: ubuntu-22.04
+    # Auf Ubuntu 20.04 gebaut wie yskar-cuda: Es laeuft dann auf diesem und
+    # neueren Systemen (glibc 2.31). Gebraucht werden nur g++ und node.
+    container: ubuntu:20.04
+    continue-on-error: ${{ !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true')) }}
+    outputs:
+      gebaut: ${{ steps.fertig.outputs.gebaut }}
+    steps:
+      - name: Compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq g++ binutils ca-certificates > /dev/null
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: yskar-opencl bauen
+        working-directory: node-core
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash gpu/build-opencl.sh
+          aus=$(gpu/bin/yskar-opencl --probe 2>&1 || true)
+          case "$aus" in *'"t":'*) ;; *) echo "::error::yskar-opencl antwortet nicht wie erwartet: $aus"; exit 1 ;; esac
+          glibc=$(objdump -T gpu/bin/yskar-opencl | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          echo "::notice title=GPU-Miner Linux OpenCL::yskar-opencl gebaut ($(stat -c %s gpu/bin/yskar-opencl) Byte, sha256 $(sha256sum gpu/bin/yskar-opencl | cut -c1-16), braucht $glibc). --probe: $(echo $aus | tr -s ' ')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yskar-opencl-linux
+          path: node-core/gpu/bin/yskar-opencl
+          if-no-files-found: error
+
+      - id: fertig
+        shell: bash
+        run: echo "gebaut=true" >> "$GITHUB_OUTPUT"
+
   linux:
     name: Linux-Pakete
-    needs: [pruefen, gpu-linux]
-    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu-linux.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
+    needs: [pruefen, gpu-linux, opencl-linux]
+    if: ${{ always() && needs.pruefen.result == 'success' && (needs.gpu-linux.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) && (needs.opencl-linux.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
     # 22.04: Was auf der älteren glibc gebaut ist, läuft auch auf neueren Systemen.
     runs-on: ubuntu-22.04
     defaults:
@@ -429,6 +554,17 @@ jobs:
         if: ${{ needs.gpu-linux.outputs.gebaut == 'true' }}
         run: chmod 755 gpu/bin/yskar-cuda
 
+      - name: GPU-Miner AMD/Intel holen
+        if: ${{ needs.opencl-linux.outputs.gebaut == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: yskar-opencl-linux
+          path: node-core/gpu/bin
+
+      - name: GPU-Miner AMD/Intel ausführbar machen
+        if: ${{ needs.opencl-linux.outputs.gebaut == 'true' }}
+        run: chmod 755 gpu/bin/yskar-opencl
+
       - name: Abhängigkeiten
         run: npm ci
 
@@ -446,6 +582,10 @@ jobs:
           if [ '${{ needs.gpu-linux.outputs.gebaut }}' = true ]; then
             [ -x "$res/yskar-cuda" ] || { echo "::error::Der GPU-Miner wurde gebaut, liegt aber nicht ausführbar im Paket."; exit 1; }
             dpkg-deb -c "release/YSKAR-Node-Core-$v-amd64.deb" | grep -E 'resources/yskar-cuda$'
+          fi
+          if [ '${{ needs.opencl-linux.outputs.gebaut }}' = true ]; then
+            [ -x "$res/yskar-opencl" ] || { echo "::error::yskar-opencl wurde gebaut, liegt aber nicht ausführbar im Paket."; exit 1; }
+            dpkg-deb -c "release/YSKAR-Node-Core-$v-amd64.deb" | grep -E 'resources/yskar-opencl$'
           fi
           for f in "release/YSKAR-Node-Core-$v-amd64.deb" "release/YSKAR-Node-Core-$v-x86_64.AppImage"; do
             [ -f "$f" ] || { echo "::error::$f fehlt."; exit 1; }
@@ -525,6 +665,10 @@ jobs:
         if: ${{ needs.gpu-linux.outputs.gebaut == 'true' }}
         run: cp gpu/bin/yskar-cuda "release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64"
 
+      - name: GPU-Miner AMD/Intel als einzelne Datei
+        if: ${{ needs.opencl-linux.outputs.gebaut == 'true' }}
+        run: cp gpu/bin/yskar-opencl "release/yskar-opencl-${{ steps.version.outputs.version }}-linux-x86_64"
+
       - name: Prüfsummen
         run: |
           set -euo pipefail
@@ -532,6 +676,7 @@ jobs:
           cd release
           dateien=("YSKAR-Node-Core-$v-amd64.deb" "YSKAR-Node-Core-$v-x86_64.AppImage")
           [ -f "yskar-cuda-$v-linux-x86_64" ] && dateien+=("yskar-cuda-$v-linux-x86_64")
+          [ -f "yskar-opencl-$v-linux-x86_64" ] && dateien+=("yskar-opencl-$v-linux-x86_64")
           for f in "${dateien[@]}"; do
             sha256sum "$f" > "$f.sha256"
             echo "::notice title=$f::$(stat -c %s "$f") Byte, SHA-256 $(cut -d' ' -f1 "$f.sha256")"
@@ -547,6 +692,8 @@ jobs:
             node-core/release/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
             node-core/release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64
             node-core/release/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64.sha256
+            node-core/release/yskar-opencl-${{ steps.version.outputs.version }}-linux-x86_64
+            node-core/release/yskar-opencl-${{ steps.version.outputs.version }}-linux-x86_64.sha256
           if-no-files-found: error
 
   # Das Paket für HiveOS: der CLI-Miner, yskar-cuda aus dem Job gpu-linux und
@@ -557,7 +704,7 @@ jobs:
   # Dashboard ankommen, zeigt nur ein echtes Rig.
   hiveos:
     name: HiveOS-Paket
-    needs: [pruefen, gpu-linux]
+    needs: [pruefen, gpu-linux, opencl-linux]
     if: ${{ always() && needs.pruefen.result == 'success' && needs.gpu-linux.outputs.gebaut == 'true' }}
     runs-on: ubuntu-22.04
     steps:
@@ -578,6 +725,13 @@ jobs:
           name: yskar-cuda-linux
           path: ${{ runner.temp }}/cuda
 
+      - name: GPU-Miner AMD/Intel holen
+        if: ${{ needs.opencl-linux.outputs.gebaut == 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: yskar-opencl-linux
+          path: ${{ runner.temp }}/opencl
+
       - name: Node.js holen und prüfen
         id: node
         run: |
@@ -590,13 +744,19 @@ jobs:
         run: |
           set -euo pipefail
           v='${{ steps.version.outputs.version }}'
-          bash hiveos/bauen.sh "$v" "$RUNNER_TEMP/cuda/yskar-cuda" '${{ steps.node.outputs.archiv }}' node-core/release
+          ocl=""
+          [ -f "$RUNNER_TEMP/opencl/yskar-opencl" ] && ocl="$RUNNER_TEMP/opencl/yskar-opencl"
+          bash hiveos/bauen.sh "$v" "$RUNNER_TEMP/cuda/yskar-cuda" '${{ steps.node.outputs.archiv }}' node-core/release $ocl
           f="node-core/release/yskar-hiveos-$v.tar.gz"
           tar -tzvf "$f"
           # Das echte yskar-cuda im Paket muss starten -- ohne Karte endet es mit einer Meldung.
           mkdir -p "$RUNNER_TEMP/probe" && tar -xzf "$f" -C "$RUNNER_TEMP/probe"
           set +e; aus=$("$RUNNER_TEMP/probe/yskar-hiveos/miner/gpu/yskar-cuda" --probe 2>&1); set -e
           case "$aus" in *'"t":'*) ;; *) echo "::error::yskar-cuda im Paket antwortet nicht: $aus"; exit 1 ;; esac
+          if [ -n "$ocl" ]; then
+            set +e; aus=$("$RUNNER_TEMP/probe/yskar-hiveos/miner/gpu/yskar-opencl" --probe 2>&1); set -e
+            case "$aus" in *'"t":'*) ;; *) echo "::error::yskar-opencl im Paket antwortet nicht: $aus"; exit 1 ;; esac
+          fi
           echo "::notice title=HiveOS-Paket::$(stat -c %s "$f") Byte, SHA-256 $(cut -d' ' -f1 "$f.sha256"), Node $("$RUNNER_TEMP/probe/yskar-hiveos/node/bin/node" --version)"
 
       - name: Abhängigkeiten
@@ -680,6 +840,8 @@ jobs:
             dateien/YSKAR-Node-Core-${{ steps.version.outputs.version }}-x86_64.AppImage.sha256
             dateien/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64
             dateien/yskar-cuda-${{ steps.version.outputs.version }}-linux-x86_64.sha256
+            dateien/yskar-opencl-${{ steps.version.outputs.version }}-linux-x86_64
+            dateien/yskar-opencl-${{ steps.version.outputs.version }}-linux-x86_64.sha256
             dateien/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz
             dateien/yskar-hiveos-${{ steps.version.outputs.version }}.tar.gz.sha256
 

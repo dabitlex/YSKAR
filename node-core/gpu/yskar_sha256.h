@@ -39,11 +39,26 @@
 #ifndef YSKAR_SHA256_H
 #define YSKAR_SHA256_H
 
-#include <stdint.h>
+/*
+ * Ein dritter Uebersetzer: der OpenCL-Compiler im Grafiktreiber (AMD, Intel).
+ * yskar_opencl.cpp gibt ihm diese Datei als Quelltext, zusammen mit
+ * yskar_opencl.cl. OpenCL C kennt stdint.h nicht; die Typen heissen dort
+ * uint, ulong, uchar und haben dieselbe Breite.
+ */
+#ifdef __OPENCL_VERSION__
+typedef uint  uint32_t;
+typedef ulong uint64_t;
+typedef uchar uint8_t;
+#else
+#  include <stdint.h>
+#endif
 
 #ifdef __CUDACC__
 #  define YSKAR_FN __host__ __device__ __forceinline__
 #  define YSKAR_CONST __constant__
+#elif defined(__OPENCL_VERSION__)
+#  define YSKAR_FN static inline __attribute__((always_inline))
+#  define YSKAR_CONST __constant
 #else
 #  define YSKAR_FN static inline
 #  define YSKAR_CONST static const
@@ -53,7 +68,7 @@
    alle Indizes Konstanten, und die Arbeitswoerter liegen in Registern statt
    im langsamen lokalen Speicher. Nur im Uebersetzungslauf fuer die Karte;
    gcc, cl.exe und der Host-Teil von nvcc sehen nichts davon. */
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__OPENCL_VERSION__)
 #  define YSKAR_UNROLL _Pragma("unroll")
 #else
 #  define YSKAR_UNROLL
@@ -73,7 +88,26 @@ YSKAR_CONST uint32_t YSKAR_K[64] = {
   0x748f82eeu,0x78a5636fu,0x84c87814u,0x8cc70208u,0x90befffau,0xa4506cebu,0xbef9a3f7u,0xc67178f2u,
 };
 
-#define YSKAR_ROTR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
+/*
+ * Rotation, Ch und Maj.
+ *
+ * In OpenCL ueber die eingebauten Funktionen: rotate() wird auf AMD zu einem
+ * einzigen Befehl (v_alignbit), bitselect() zu v_bfi -- Ch und Maj kosten so
+ * je einen Befehl statt drei bis fuenf. Das Ergebnis ist bitgleich:
+ *   Ch(e,f,g)  = (e & f) ^ (~e & g)          = bitselect(g, f, e)
+ *   Maj(a,b,c) = (a & b) ^ (a & c) ^ (b & c) = bitselect(a, b, c ^ a)
+ * Ueberall sonst die gewohnte Schreibweise, die nvcc und gcc selbst auf
+ * ihre Befehle abbilden.
+ */
+#ifdef __OPENCL_VERSION__
+#  define YSKAR_ROTR(x, n) rotate((uint)(x), (uint)(32 - (n)))
+#  define YSKAR_CH(e, f, g)  bitselect((uint)(g), (uint)(f), (uint)(e))
+#  define YSKAR_MAJ(a, b, c) bitselect((uint)(a), (uint)(b), (uint)((c) ^ (a)))
+#else
+#  define YSKAR_ROTR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
+#  define YSKAR_CH(e, f, g)  (((e) & (f)) ^ (~(e) & (g)))
+#  define YSKAR_MAJ(a, b, c) (((a) & (b)) ^ ((a) & (c)) ^ ((b) & (c)))
+#endif
 
 /* Anfangszustand von SHA-256. */
 YSKAR_FN void yskar_sha_init(uint32_t s[8]) {
@@ -114,10 +148,10 @@ YSKAR_FN void yskar_sha_block(uint32_t s[8], const uint32_t in[16]) {
       w[i & 15] = wi;
     }
     const uint32_t S1 = YSKAR_ROTR(e, 6) ^ YSKAR_ROTR(e, 11) ^ YSKAR_ROTR(e, 25);
-    const uint32_t ch = (e & f) ^ (~e & g);
+    const uint32_t ch = YSKAR_CH(e, f, g);
     const uint32_t t1 = h + S1 + ch + YSKAR_K[i] + wi;
     const uint32_t S0 = YSKAR_ROTR(a, 2) ^ YSKAR_ROTR(a, 13) ^ YSKAR_ROTR(a, 22);
-    const uint32_t mj = (a & b) ^ (a & c) ^ (b & c);
+    const uint32_t mj = YSKAR_MAJ(a, b, c);
     const uint32_t t2 = S0 + mj;
     h = g; g = f; f = e; e = d + t1; d = c; c = b; b = a; a = t1 + t2;
   }
