@@ -114,25 +114,33 @@ jobs:
       # Ob eine bestimmte Karte richtig und schnell rechnet, zeigt nur ein
       # Lauf auf der Karte (Selbsttest und --bench).
       - name: OpenCL-Laufzeit fuer den Prozessor
+        id: ocl
         run: |
           set -euo pipefail
           # Der OpenCL-Lader des Systems (libOpenCL.so.1), dazu PoCL als
           # Laufzeit. pocl.icd liegt neben den Bibliotheken von pyopencl.
+          sudo apt-get update -qq
           sudo apt-get install -y -qq ocl-icd-libopencl1 > /dev/null
           python3 -m venv "$RUNNER_TEMP/ocl"
           "$RUNNER_TEMP/ocl/bin/pip" install -q pyopencl pocl-binary-distribution numpy
           echo "$RUNNER_TEMP/ocl/bin" >> "$GITHUB_PATH"
           icd=$(find "$RUNNER_TEMP/ocl" -name 'pocl.icd' | head -1)
           [ -n "$icd" ] || { echo "::error::pocl.icd nicht gefunden"; exit 1; }
-          echo "OCL_ICD_VENDORS=$(dirname "$icd")" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$(dirname "$icd")" >> "$GITHUB_ENV"
+          # Nur fuer die beiden OpenCL-Schritte, nicht fuer den ganzen Job.
+          echo "libs=$(dirname "$icd")" >> "$GITHUB_OUTPUT"
 
       - name: OpenCL-Kernel gegen hashlib
         working-directory: node-core
+        env:
+          OCL_ICD_VENDORS: ${{ steps.ocl.outputs.libs }}
+          LD_LIBRARY_PATH: ${{ steps.ocl.outputs.libs }}
         run: python3 gpu/test/test_opencl.py
 
       - name: yskar-opencl im Node Core
         working-directory: node-core
+        env:
+          OCL_ICD_VENDORS: ${{ steps.ocl.outputs.libs }}
+          LD_LIBRARY_PATH: ${{ steps.ocl.outputs.libs }}
         run: |
           bash gpu/build-opencl.sh
           node --experimental-strip-types --no-warnings --test test/gpu-opencl.test.ts
@@ -705,7 +713,7 @@ jobs:
   hiveos:
     name: HiveOS-Paket
     needs: [pruefen, gpu-linux, opencl-linux]
-    if: ${{ always() && needs.pruefen.result == 'success' && needs.gpu-linux.outputs.gebaut == 'true' }}
+    if: ${{ always() && needs.pruefen.result == 'success' && needs.gpu-linux.outputs.gebaut == 'true' && (needs.opencl-linux.outputs.gebaut == 'true' || !(github.ref == 'refs/heads/node-core-release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.entwurf == 'true'))) }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4

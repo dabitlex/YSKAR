@@ -47,6 +47,9 @@ export NO_COLOR=1
 # PCI_BUS_ID), der der AMD- und Intel-Karten von yskar-opencl selbst. Ohne
 # Bus: NVIDIA zuerst, dann AMD/Intel.
 GS="${GPU_STATS_JSON:-/run/hive/gpu-stats.json}"
+# Kurz nach dem Booten schreibt HiveOS die Kartenliste noch -- bis zu 30 s
+# warten, damit die Reihenfolge zum Dashboard passt.
+for (( w = 0; w < 30 && ! -r $GS; w++ )); do sleep 1; done
 nvbus=()
 if [[ -r $GS ]] && command -v jq > /dev/null; then
   readarray -t nvbus < <(jq -r '[.brand, .busids] | transpose[] | select(.[0] == "nvidia") | .[1]' "$GS" 2>/dev/null)
@@ -58,6 +61,8 @@ if [[ -x $CUDA ]]; then
 fi
 if [[ -x $OCL ]]; then
   while IFS= read -r z; do
+    # Integrierte Grafik minet auf einem Rig nicht mit (HiveOS zaehlt sie nicht).
+    [[ $z == *'"integrated":true'* ]] && continue
     nr=$(sed -n 's/.*"id":\([0-9]*\).*/\1/p' <<< "$z")
     b=$(sed -n 's/.*"bus":"\([^"]*\)".*/\1/p' <<< "$z")
     [[ -n $nr ]] && eintraege+=("${b:-zz$(printf %03d "$nr")} opencl $nr")

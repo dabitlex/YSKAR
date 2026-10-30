@@ -29,6 +29,9 @@
  * Zeichenkette in yskar_opencl_quelle.h. Erzeugt wird sie beim Bau von
  * gpu/opencl-quelle.mjs -- die beiden Dateien bleiben die Quelle.
  */
+#if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
+#  define _CRT_SECURE_NO_WARNINGS   /* vor den Kopfdateien, sonst wirkt es nicht */
+#endif
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -39,9 +42,6 @@
 #include <algorithm>
 
 #ifdef _WIN32
-#  ifndef _CRT_SECURE_NO_WARNINGS
-#    define _CRT_SECURE_NO_WARNINGS
-#  endif
 #  define WIN32_LEAN_AND_MEAN
 #  define NOMINMAX
 #  include <windows.h>
@@ -91,6 +91,7 @@ typedef struct _cl_event *cl_event;
 #define CL_DEVICE_NAME 0x102B
 #define CL_DEVICE_VENDOR 0x102C
 #define CL_DEVICE_VERSION 0x102F
+#define CL_DEVICE_HOST_UNIFIED_MEMORY 0x1035
 #define CL_DEVICE_BOARD_NAME_AMD 0x4038
 #define CL_DEVICE_TOPOLOGY_AMD 0x4037
 #define CL_DEVICE_PCI_BUS_INFO_KHR 0x410F
@@ -171,7 +172,14 @@ struct Eintrag {
   int major, minor;
   unsigned long long vram;
   int cu;
-  bool mesa;
+  /* Plattform, die Karten nur nachbildet oder uebersetzt: Mesa (Clover,
+     rusticl) und Microsofts OpenCLOn12. Sie zaehlt nur, wenn keine Plattform
+     eines Herstellers Karten liefert -- sonst erschiene jede Karte doppelt. */
+  bool zweitrangig;
+  /* Integrierte Grafik (teilt den Arbeitsspeicher mit dem Prozessor). Sie
+     steht am Ende der Liste, damit die Karte 0 die eigentliche Grafikkarte
+     ist. */
+  bool integriert;
   /* PCI-Adresse, -1 = unbekannt. HiveOS nummeriert Karten nach Bus; mit
      derselben Reihenfolge passen Nummern, Temperaturen und Luefter. */
   int bus, dev, fn;
@@ -238,8 +246,9 @@ static int baueListe() {
   std::vector<Eintrag> alle;
   for (cl_platform_id p : plattformen) {
     const std::string pn = plattformText(p, CL_PLATFORM_NAME) + " " + plattformText(p, CL_PLATFORM_VENDOR);
-    const bool mesa = pn.find("Mesa") != std::string::npos || pn.find("Clover") != std::string::npos
-                   || pn.find("rusticl") != std::string::npos;
+    const bool zweitrangig = pn.find("Mesa") != std::string::npos || pn.find("Clover") != std::string::npos
+                   || pn.find("rusticl") != std::string::npos || pn.find("Microsoft") != std::string::npos
+                   || pn.find("OpenCLOn12") != std::string::npos;
     const cl_device_type typ = mitCpu ? (cl_device_type)CL_DEVICE_TYPE_ALL : (cl_device_type)CL_DEVICE_TYPE_GPU;
     cl_uint nd = 0;
     if (p_clGetDeviceIDs(p, typ, 0, NULL, &nd) != CL_SUCCESS || nd == 0) continue;
@@ -254,7 +263,10 @@ static int baueListe() {
       if (vendor == VENDOR_NVIDIA && !mitNvidia) continue;
 
       Eintrag e;
-      e.plattform = p; e.geraet = d; e.mesa = mesa;
+      e.plattform = p; e.geraet = d; e.zweitrangig = zweitrangig;
+      cl_uint geteilt = 0;   /* cl_bool */
+      e.integriert = p_clGetDeviceInfo(d, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof geteilt, &geteilt, NULL) == CL_SUCCESS
+                     && geteilt != 0 && (dt & CL_DEVICE_TYPE_GPU);
       /* Unter ROCm heisst eine Karte "gfx1030"; der Name fuer Menschen
          steht dann in CL_DEVICE_BOARD_NAME_AMD. */
       e.name = textInfo(d, CL_DEVICE_BOARD_NAME_AMD);
@@ -273,24 +285,29 @@ static int baueListe() {
     }
   }
 
-  /* Dieselbe Karte ueber zwei Plattformen nur einmal -- die des Herstellers
-     zuerst, Mesa danach. Gleich heisst: gleiche PCI-Adresse, oder, wo die
-     fehlt, gleicher Name, gleicher Speicher, gleich viele Recheneinheiten. */
-  for (int runde = 0; runde < 2; runde++) {
-    for (const Eintrag &e : alle) {
-      if (e.mesa != (runde == 1)) continue;
-      bool doppelt = false;
-      for (const Eintrag &x : g_liste) {
-        const bool gleicherBus = x.bus >= 0 && e.bus >= 0 && x.bus == e.bus && x.dev == e.dev && x.fn == e.fn;
-        const bool ohneBus = (x.bus < 0 || e.bus < 0) && x.name == e.name && x.vram == e.vram && x.cu == e.cu;
-        if (gleicherBus || ohneBus) { doppelt = true; break; }
-      }
-      if (!doppelt) g_liste.push_back(e);
+  /* Zweitrangige Plattformen nur ohne Herstellerplattform. Danach dieselbe
+     Karte ueber zwei Herstellerplattformen nur einmal: gleiche PCI-Adresse,
+     oder -- nur zwischen VERSCHIEDENEN Plattformen und wo die Adresse fehlt --
+     gleicher Name, Speicher und Recheneinheiten. Zwei baugleiche Karten
+     derselben Plattform bleiben so zwei Karten. */
+  bool hersteller = false;
+  for (const Eintrag &e : alle) if (!e.zweitrangig) hersteller = true;
+  for (const Eintrag &e : alle) {
+    if (hersteller && e.zweitrangig) continue;
+    bool doppelt = false;
+    for (const Eintrag &x : g_liste) {
+      const bool gleicherBus = x.bus >= 0 && e.bus >= 0 && x.bus == e.bus && x.dev == e.dev && x.fn == e.fn;
+      const bool ohneBus = x.plattform != e.plattform && (x.bus < 0 || e.bus < 0)
+                        && x.name == e.name && x.vram == e.vram && x.cu == e.cu;
+      if (gleicherBus || ohneBus) { doppelt = true; break; }
     }
+    if (!doppelt) g_liste.push_back(e);
   }
-  /* Nach PCI-Bus ordnen, wie HiveOS und die Treiber-Werkzeuge. Karten ohne
-     bekannte Adresse kommen danach, in der Reihenfolge der Plattform. */
+  /* Eigenstaendige Karten zuerst, nach PCI-Bus wie HiveOS und die
+     Treiber-Werkzeuge; Karten ohne bekannte Adresse danach, in der
+     Reihenfolge der Plattform; integrierte Grafik zuletzt. */
   std::stable_sort(g_liste.begin(), g_liste.end(), [](const Eintrag &a, const Eintrag &b) {
+    if (a.integriert != b.integriert) return !a.integriert;
     if ((a.bus < 0) != (b.bus < 0)) return a.bus >= 0;
     if (a.bus != b.bus) return a.bus < b.bus;
     if (a.dev != b.dev) return a.dev < b.dev;
@@ -382,16 +399,17 @@ static int stimmeAb(int cu) {
     /* Ein Aufwaermlauf (Treiber uebersetzt manches erst beim ersten Start),
        dann gemessen mit so vielen Iterationen, dass der Lauf messbar ist. */
     if (starte(g_kern, 0, 1, global, g_lokal)) return 1;
-    cl_uint iters = 4;
+    cl_uint iters = 4, gemessen = 4;
     double ms = 0;
     for (int versuch = 0; versuch < 8; versuch++) {
       const auto t0 = std::chrono::steady_clock::now();
       if (starte(g_kern, 0, iters, global, g_lokal)) return 1;
       ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+      gemessen = iters;   /* die Iterationen DIESES Laufs -- nicht die verdoppelten */
       if (ms >= 40.0) break;
       iters *= 2;
     }
-    const double rate = (double)global * iters / (ms > 0 ? ms : 1);
+    const double rate = (double)global * gemessen / (ms > 0 ? ms : 1);
     if (rate > besteRate * 1.02) { besteRate = rate; besteGroesse = global; }
   }
   g_global = besteGroesse;
@@ -429,6 +447,12 @@ int yskar_dev_info(int id, char *name, int namelen,
 /* PCI-Adresse als "03:00.0" (wie HiveOS sie schreibt), leer wenn unbekannt.
    Nur yskar-opencl kennt diese Funktion; yskar_host.cpp ruft sie nur im Bau
    mit -DYSKAR_API_OPENCL. */
+/* 1, wenn das Geraet integrierte Grafik ist. */
+int yskar_ocl_integriert(int id) {
+  if (baueListe() != 0 || id < 0 || id >= (int)g_liste.size()) return 0;
+  return g_liste[(size_t)id].integriert ? 1 : 0;
+}
+
 const char *yskar_ocl_bus_text(int id) {
   static char b[16];
   b[0] = 0;

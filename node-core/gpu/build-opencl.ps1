@@ -58,11 +58,13 @@ New-Item -ItemType Directory -Force -Path $arbeit | Out-Null
 try {
   $vorher = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
+  # Die .obj-Dateien entstehen im Arbeitsordner (kein /Fo mit Backslash am
+  # Ende -- mit Leerzeichen im Pfad verdirbt das die Argumente).
   $a = @('/nologo', '/EHsc', '/O2', '/MT', '/std:c++17', '/W3', '/DYSKAR_API_OPENCL',
-         "/I$hier", "/I$bin", "/Fo:$arbeit\", "/Fe:$ziel",
+         "/I$hier", "/I$bin", "/Fe:$ziel",
          (Join-Path $hier 'yskar_host.cpp'), (Join-Path $hier 'yskar_opencl.cpp'))
-  $text = (& cl.exe @a 2>&1 | Out-String)
-  $code = $LASTEXITCODE
+  Push-Location $arbeit
+  try { $text = (& cl.exe @a 2>&1 | Out-String); $code = $LASTEXITCODE } finally { Pop-Location }
   $ErrorActionPreference = $vorher
   if ($code -ne 0) { Write-Host $text; throw "cl.exe ist fehlgeschlagen (Code $code)." }
 } finally {

@@ -45,7 +45,13 @@
  * yskar_opencl.cl. OpenCL C kennt stdint.h nicht; die Typen heissen dort
  * uint, ulong, uchar und haben dieselbe Breite.
  */
-#ifdef __OPENCL_VERSION__
+/* Der OpenCL-Compiler setzt __OPENCL_C_VERSION__ (clang) und, im Treiber,
+   __OPENCL_VERSION__. Eines von beiden genuegt. */
+#if defined(__OPENCL_VERSION__) || defined(__OPENCL_C_VERSION__)
+#  define YSKAR_IST_OPENCL 1
+#endif
+
+#ifdef YSKAR_IST_OPENCL
 typedef uint  uint32_t;
 typedef ulong uint64_t;
 typedef uchar uint8_t;
@@ -56,8 +62,13 @@ typedef uchar uint8_t;
 #ifdef __CUDACC__
 #  define YSKAR_FN __host__ __device__ __forceinline__
 #  define YSKAR_CONST __constant__
-#elif defined(__OPENCL_VERSION__)
-#  define YSKAR_FN static inline __attribute__((always_inline))
+#elif defined(YSKAR_IST_OPENCL)
+/* "static" kennt OpenCL C erst ab 1.2 (Mesa Clover uebersetzt mit 1.1). */
+#  if defined(__OPENCL_C_VERSION__) && __OPENCL_C_VERSION__ >= 120
+#    define YSKAR_FN static inline __attribute__((always_inline))
+#  else
+#    define YSKAR_FN inline __attribute__((always_inline))
+#  endif
 #  define YSKAR_CONST __constant
 #else
 #  define YSKAR_FN static inline
@@ -68,7 +79,7 @@ typedef uchar uint8_t;
    alle Indizes Konstanten, und die Arbeitswoerter liegen in Registern statt
    im langsamen lokalen Speicher. Nur im Uebersetzungslauf fuer die Karte;
    gcc, cl.exe und der Host-Teil von nvcc sehen nichts davon. */
-#if defined(__CUDA_ARCH__) || defined(__OPENCL_VERSION__)
+#if defined(__CUDA_ARCH__) || defined(YSKAR_IST_OPENCL)
 #  define YSKAR_UNROLL _Pragma("unroll")
 #else
 #  define YSKAR_UNROLL
@@ -99,7 +110,7 @@ YSKAR_CONST uint32_t YSKAR_K[64] = {
  * Ueberall sonst die gewohnte Schreibweise, die nvcc und gcc selbst auf
  * ihre Befehle abbilden.
  */
-#ifdef __OPENCL_VERSION__
+#ifdef YSKAR_IST_OPENCL
 #  define YSKAR_ROTR(x, n) rotate((uint)(x), (uint)(32 - (n)))
 #  define YSKAR_CH(e, f, g)  bitselect((uint)(g), (uint)(f), (uint)(e))
 #  define YSKAR_MAJ(a, b, c) bitselect((uint)(a), (uint)(b), (uint)((c) ^ (a)))

@@ -190,6 +190,7 @@ struct Geraet {
 #ifdef YSKAR_API_OPENCL
 #  define YSKAR_API "opencl"
 extern "C" const char *yskar_ocl_bus_text(int id);
+extern "C" int yskar_ocl_integriert(int id);
 #else
 #  define YSKAR_API "cuda"
 #endif
@@ -210,6 +211,7 @@ static int liste(bool ausgeben) {
 #ifdef YSKAR_API_OPENCL
     const char *b = yskar_ocl_bus_text(i);
     if (b && b[0]) bus = std::string(",\"bus\":\"") + b + "\"";
+    if (yskar_ocl_integriert(i)) bus += ",\"integrated\":true";
 #endif
     char z[640];
     std::snprintf(z, sizeof z,
