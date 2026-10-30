@@ -31,6 +31,7 @@ import { zahlungsCode } from '../../src/lib/wallet/qr.ts';
 // @ts-ignore -- nur der Kern der Bibliothek, ohne Bildausgabe
 import qrKern from 'qrcode/lib/core/qrcode.js';
 import { WalletDienst, WalletFehler } from './Wallet.ts';
+import { Nachrichten } from './Nachrichten.ts';
 import { GemeinsameKonten } from './GemeinsameKonten.ts';
 import {
   mitzeichnungAnlegen, mitzeichnungLesen, mitzeichnen, zusammensetzen, mitzeichnungText, mitzeichnungAusText,
@@ -504,6 +505,8 @@ export class NodeCoreApp {
   private gemeinsam: GemeinsameKonten;
   private einstellungenPfad: string;
   private wallet: WalletDienst;
+  /** Nachrichten signieren und pruefen, Anmelden per Link (Nachrichten.ts). */
+  private nachrichten: Nachrichten;
   /** Verlauf der Wallet aus der Kette -- gilt, bis ein neuer Block kommt. */
   private verlaufMerker: { kopf: string; je: Map<string, KettenVerlauf> } | null = null;
   /** Bloecke je Name in der eigenen Kette -- fuer die Pool-Liste. */
@@ -609,6 +612,7 @@ export class NodeCoreApp {
     this.betrieb = ladeBetrieb(this.betriebPfad);
     this.einstellungen = ladeEinstellungen(this.einstellungenPfad);
     this.wallet = new WalletDienst(base);
+    this.nachrichten = new Nachrichten(this.wallet);
     this.gemeinsam = new GemeinsameKonten(base);
     this.wallet.sperreMinuten = this.einstellungen.sperreMinuten;
     this.ladeMining();
@@ -2009,6 +2013,8 @@ export class NodeCoreApp {
       huelle: this.huelleStatus(),
       update: this.update,
       wallet: this.wallet.stand(),
+      // Ein Anmelde-Link aus dem Browser wartet auf die Entscheidung des Nutzers.
+      link: this.nachrichten.linkStand(),
       uptimeSeconds: this.startedAt ? Math.floor((Date.now() - this.startedAt) / 1000) : 0,
     };
   }
@@ -2797,6 +2803,13 @@ export class NodeCoreApp {
    */
   zugangFuerFenster(): string { return this.zugang; }
 
+  /**
+   * Ein yskar:-Link vom Betriebssystem (Doppelklick, Browser). Er wird nur
+   * gelesen und aufgehoben; unterschrieben wird erst, wenn der Nutzer im
+   * Fenster zustimmt und sein Passwort eingibt.
+   */
+  oeffneYskarLink(link: string): void { this.nachrichten.oeffneLink(link); }
+
   /** Die Seite -- ohne Zugangsschluessel (siehe `zugang`). */
   private seite(): string | null {
     const roh = uiDatei('/ui/index.html');
@@ -2864,6 +2877,7 @@ export class NodeCoreApp {
         if (GET && pfad === '/api/wallet') return json(res, w.stand());
         if (GET && pfad === '/api/wallet/uebersicht') return json(res, this.walletUebersicht());
         if (GET && pfad === '/api/wallet/qr') return json(res, this.walletQr(url.searchParams));
+        if (GET && pfad === '/api/wallet/link') return json(res, { link: this.nachrichten.link() });
         if (POST) {
           const b = await readBody(req);
           if (pfad === '/api/wallet/neu') return json(res, { woerter: w.neueWoerter() });
@@ -2881,6 +2895,12 @@ export class NodeCoreApp {
           if (pfad === '/api/wallet/entfernen') { await w.entfernen(b.passwort); this.walletGeaendert(); return json(res, w.stand()); }
           if (pfad === '/api/wallet/kontakt') return json(res, { kontakte: w.setzeKontakt(b.name, b.adresse) });
           if (pfad === '/api/wallet/kontakt/entfernen') return json(res, { kontakte: w.entferneKontakt(b.adresse) });
+          // Nachricht signieren und pruefen, Anmelden per Link (Nachrichten.ts)
+          if (pfad === '/api/wallet/nachricht/vorschau') return json(res, this.nachrichten.vorschau(b.text));
+          if (pfad === '/api/wallet/nachricht/signieren') return json(res, await this.nachrichten.signieren(b.text, b.passwort));
+          if (pfad === '/api/wallet/nachricht/pruefen') return json(res, this.nachrichten.pruefen(b));
+          if (pfad === '/api/wallet/link/anmelden') return json(res, await this.nachrichten.anmelden(b.passwort));
+          if (pfad === '/api/wallet/link/verwerfen') { this.nachrichten.verwerfen(); return json(res, { ok: true }); }
         }
         return json(res, { error: 'not_found' }, 404);
       }

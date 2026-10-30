@@ -33,6 +33,14 @@
       "build/icon.png"
     ],
     "asar": true,
+    "protocols": [
+      {
+        "name": "YSKAR",
+        "schemes": [
+          "yskar"
+        ]
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"

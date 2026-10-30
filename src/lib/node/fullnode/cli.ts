@@ -16,6 +16,8 @@
  * Namen (spiegel, testkonto, ueberweisen) bleiben gueltig -- der Dienst
  * yskar-spiegel auf dem Hauptknoten ruft "spiegel" auf.
  */
+import { readFileSync } from 'node:fs';
+import { liesErgebnis, pruefe as pruefeNachricht } from '../../core/signedMessage.ts';
 import { stateRootAt, totalSupply } from '../../core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
@@ -110,7 +112,7 @@ interface Optionen {
 const BEFEHL_ALIAS: Readonly<Record<string, string>> = {
   spiegel: 'mirror', testkonto: 'testkey', ueberweisen: 'send',
 };
-const BEFEHLE = ['sync', 'mine', 'status', 'chain', 'tips', 'mirror', 'testkey', 'send'];
+const BEFEHLE = ['sync', 'mine', 'status', 'chain', 'tips', 'mirror', 'testkey', 'send', 'verify-message'];
 
 function argumente(argv: string[]): Optionen {
   const roh = argv[0] && !argv[0].startsWith('-') ? argv[0] : 'sync';
@@ -1191,6 +1193,7 @@ const HILFE = () => `
    ${cyan('mirror   ')} push missing blocks to the mirror ${grau('(was: spiegel — still works)')}
    ${cyan('testkey  ')} create or show a test key ${grau('(--regtest only; was: testkonto)')}
    ${cyan('send     ')} sign and send a test transfer ${grau('(--regtest only; was: ueberweisen)')}
+   ${cyan('verify-message [file]')} check a signed message from a wallet ${grau('(JSON from the file or stdin)')}
 
  ${fett('GENERAL')}
    ${cyan('-d, --data <dir>      ')} data folder ${grau('(default: ./knoten)')}
@@ -1238,6 +1241,56 @@ const HILFE = () => `
  ${grau(`Docs: ${DOKU}`)}
 `;
 
+// ------------------------------------------------------- Signierte Nachricht
+
+/*
+ * verify-message: Prueft das Ergebnis einer Wallet {address, publicKey,
+ * signature, message} nach den Regeln aus src/lib/core/signedMessage.ts.
+ * Der Full Node signiert selbst nichts -- er hat keine Wallet. Pruefen kann
+ * aber jeder: Dafuer braucht es keinen Schluessel und keine Kette.
+ * Rueckgabe: 0 gueltig, 1 ungueltig, 2 Eingabe nicht lesbar.
+ */
+async function pruefeNachrichtBefehl(rest: string[]): Promise<number> {
+  const datei = rest.find(a => !a.startsWith('-'));
+  let roh: string;
+  try {
+    if (datei) roh = readFileSync(datei, 'utf8');
+    else if (process.stdin.isTTY) {
+      console.error(`${rot('✗')} No input. Give a file, or pipe the JSON in: ${cyan('yskar-node verify-message result.json')}`);
+      return 2;
+    } else {
+      const teile: Buffer[] = [];
+      for await (const c of process.stdin) teile.push(c as Buffer);
+      roh = Buffer.concat(teile).toString('utf8');
+    }
+  } catch (e) {
+    console.error(`${rot('✗')} Cannot read ${datei}: ${(e as Error).message}`);
+    return 2;
+  }
+  const ergebnis = liesErgebnis(roh);
+  if (!ergebnis) {
+    console.error(`${rot('✗')} This is not a wallet result. Expected JSON with address, publicKey, signature and message.`);
+    return 2;
+  }
+  const p = pruefeNachricht(ergebnis);
+  if (!p.gueltig) {
+    console.log(`${rot('✗ Not valid.')} ${p.text}`);
+    return 1;
+  }
+  console.log(`${gruen('✓ Valid.')} Signed by ${fett(p.address)}`);
+  if (p.inhalt.art === 'login') {
+    const a = p.inhalt.anmeldung;
+    console.log(`  ${grau('purpose')}  login`);
+    console.log(`  ${grau('domain ')}  ${a.domain}`);
+    console.log(`  ${grau('issued ')}  ${a.issued}`);
+    console.log(`  ${grau('expires')}  ${a.expires}`);
+  } else {
+    console.log(`  ${grau('purpose')}  text`);
+    for (const z of p.inhalt.text.split('\n')) console.log(`  ${grau('│')} ${z}`);
+  }
+  return 0;
+}
+
 // --------------------------------------------------------------------- Lauf
 
 async function main(): Promise<void> {
@@ -1247,6 +1300,8 @@ async function main(): Promise<void> {
   if (!BEFEHLE.includes(opt.befehl)) {
     abbruch(`Unknown command: ${opt.befehl}`, `Commands: ${BEFEHLE.join(', ')}. Help: yskar-node --help`);
   }
+
+  if (opt.befehl === 'verify-message') { process.exitCode = await pruefeNachrichtBefehl(process.argv.slice(3)); return; }
 
   let params: ConsensusParams;
   try { params = netzParameter(opt); }

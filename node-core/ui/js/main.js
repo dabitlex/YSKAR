@@ -21,6 +21,7 @@ import * as blockchain from './blockchain.js';
 import * as peers from './peers.js';
 import * as einstellungen from './einstellungen.js';
 import { zeigeStart } from './start.js';
+import { pruefeLink } from './nachricht.js';
 
 const ANSICHTEN = [
   { id: 'uebersicht', zeichen: 'uebersicht', modul: uebersicht, gruppe: 'knoten' },
@@ -91,6 +92,7 @@ async function lies() {
   try {
     stand = await hole('/api/status');
     pruefeEreignisse(stand);
+    pruefeLink(ctx, stand);
     aktualisiereGeruest();
     aktiv?.ansicht.aktualisiere?.(stand);
   } catch (e) {

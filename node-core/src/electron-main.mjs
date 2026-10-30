@@ -35,6 +35,22 @@ const SYMBOLE = [
 ];
 /** So startet das System das Programm beim Anmelden -- dann ohne Fenster. */
 const AUTOSTART_ARG = '--versteckt';
+
+/*
+ * Anmelden per Link: Klickt man auf einer Seite wie lab.yskar.app auf
+ * "Open in YSKAR Wallet", gibt das Betriebssystem den Link yskar:login?...
+ * an dieses Programm -- beim ersten Start in process.argv, sonst ueber
+ * 'second-instance'. Der Kern liest ihn nur und hebt ihn auf; unterschrieben
+ * wird erst, wenn der Nutzer im Fenster zustimmt (Nachrichten.ts).
+ */
+const SCHEMA = 'yskar';
+const linkAus = argv => (Array.isArray(argv) ? argv : []).find(a => typeof a === 'string' && /^yskar:/i.test(a)) ?? null;
+let wartenderLink = linkAus(process.argv);
+function uebergibLink(link) {
+  if (!link) return;
+  if (core) { core.oeffneYskarLink(link); log('Anmelde-Link empfangen.'); }
+  else wartenderLink = link;
+}
 const VERSTECKT_GESTARTET = process.argv.includes(AUTOSTART_ARG);
 
 let core = null;
@@ -134,6 +150,7 @@ async function createMainWindow() {
   core = new NodeCoreApp();
   core.setzeHuelle(huelle);
   await core.startGui();
+  if (wartenderLink) { uebergibLink(wartenderLink); wartenderLink = null; }
   log('GUI-Server bereit.');
 
   const symbol = ladeSymbol();
@@ -325,7 +342,22 @@ if (!einzig) {
 } else {
   // Vor allem anderen: Unter dieser Kennung legt Windows auch den Start beim Anmelden ab (nur Windows).
   app.setAppUserModelId(KENNUNG);
-  app.on('second-instance', () => zeigeFenster());
+  app.on('second-instance', (_ereignis, argv) => { uebergibLink(linkAus(argv)); zeigeFenster(); });
+
+  /*
+   * Fuer yskar:-Links anmelden. Im installierten Programm tragen der
+   * Windows-Installer und das Linux-Paket das Schema ein (package.json,
+   * build.protocols); dieser Aufruf haelt den Eintrag aktuell. Aus dem
+   * Quellbaum gestartet zeigt er auf electron mit diesem Skript.
+   */
+  try {
+    const ok = app.isPackaged
+      ? app.setAsDefaultProtocolClient(SCHEMA)
+      : app.setAsDefaultProtocolClient(SCHEMA, process.execPath, [join(here, '..')]);
+    if (!ok) log('yskar:-Links: Eintrag beim System nicht möglich.');
+  } catch (error) {
+    log(`yskar:-Links nicht verfügbar: ${error?.message || error}`);
+  }
 
   app.whenReady()
     .then(async () => {

@@ -12,6 +12,7 @@
 import { hole, sende, el, fuelle, haenge, text, zeile, chip, knopf, kopf, melde, zahl, ysr, ysrGross, kurzAdresse, uhrzeit, zeichen, kopiere, segment, vierer, tagSchluessel, tagName, dialog, kopfKarte, kennzahl, platz, ysrKurz } from './kern.js';
 import { bild } from './bilder.js';
 import { t } from './i18n.js';
+import { signierenDialog } from './nachricht.js';
 import { baueEinrichten, passwortFelder } from './walletEinrichten.js';
 import { kontenEintraege, baueKonto, anlegenDialog } from './gemeinsam.js';
 
@@ -150,7 +151,8 @@ function baueHaupt(ctx, startReiter) {
           el('button.x', { type: 'button', 'aria-label': t('wal.adresseKopieren'), title: t('wal.adresseKopieren'), onclick: () => kopiere(adr) }, zeichen('kopieren', 14))),
         el('div.held-knoepfe',
           knopf([zeichen('aufwaerts', 15), t('wal.rSenden')], () => sendeDialog(ctx, '', lade), 'haupt'),
-          knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(ctx))),
+          knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(ctx)),
+          knopf([zeichen('etikett', 15), t('sig.knopf')], () => signierenDialog(ctx))),
       ], bild('boerse', 250), [kz.heute, kz.sieben, kz.dreissig, kz.gesamt]),
       el('section.karte.ruhig', { style: 'gap:12px' },
         el('div.karte-kopf', reiterLeiste, werkzeug),
