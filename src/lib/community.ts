@@ -16,6 +16,8 @@ export const COMMUNITY = {
   explorer: 'https://www.yskar.app/explorer',
   whitepaper: 'https://www.yskar.app/whitepaper',
   anleitungen: 'https://www.yskar.app/anleitungen',
+  /** YSKAR Lab: Ideen und Entwuerfe der Community. */
+  lab: 'https://lab.yskar.app',
   github: 'https://github.com/dabitlex/YSKAR',
   releases: 'https://github.com/dabitlex/YSKAR/releases',
   /** Der Bot, ueber den die Mini App startet. */
