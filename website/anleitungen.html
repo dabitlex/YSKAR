@@ -119,7 +119,8 @@
 
 <h2 id="android" data-t="an.apk.titel">Android app with mining</h2>
 <p data-t="an.apk.text">The Android app keeps mining in the background, even with the screen locked, and shows your mining in a widget on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.</p>
-<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/latest" data-t="an.apk.knopf">Download the latest version</a></p>
+<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/tag/app-v1.1.1" data-t="an.apk.knopf">Download the latest version</a></p>
+<p data-t="an.apk.name">On your phone this app is called “YSKAR Wallet”. It is a different app from the new YSKAR Wallet without mining, and both can be installed side by side; your 12 words work in both.</p>
 <h3 data-t="an.apk.inst">Installing</h3>
 <ol>
 <li data-th="an.apk.s1">On your phone, open the download page and tap the file <code>yskar-wallet-….apk</code>.</li>
@@ -151,6 +152,7 @@
 <p data-t="an.nc.text">Node Core is the YSKAR program for Windows and Linux: your own node with wallet and mining in one window. It downloads the blockchain to your PC and checks every block itself.</p>
 <p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-Setup-1.1.0.exe" data-t="nc.knopfWin">Download for Windows</a> <a class="knopf tinte" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-amd64.deb" data-t="nc.knopfLinux">Download for Linux (.deb)</a></p>
 <p class="klein-meta">v1.1.0 · <span data-t="nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-x86_64.AppImage" data-t="nc.appimage">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.1.0" data-t="nc.mehr">Checksum and release notes</a></p>
+<figure class="nc-bild"><img src="/assets/img/node-core-en.webp?v=2" width="1600" height="1125" alt="Overview of YSKAR Node Core: block height, peers, network hashrate, the last 24 hours and latest blocks" data-ta="src:nc.bild;alt:nc.bildAlt" loading="lazy"><figcaption data-t="nc.bildNotiz">Example view – the numbers are examples.</figcaption></figure>
 <h3 data-t="an.nc.vor">What you need</h3>
 <ul>
 <li data-t="an.nc.v1">Windows 10 or 11 (64-bit) or Linux (64-bit, x86-64) and an internet connection</li>
@@ -207,6 +209,8 @@
 <li data-th="an.nc.s3"><strong>Resume mining after start:</strong> mining continues with the last settings as soon as the node is in sync.</li>
 <li data-th="an.nc.s4"><strong>Updates:</strong> Node Core tells you when a new version is available. Nothing is installed by itself.</li>
 </ul>
+<h3 data-t="an.nc.sig">Signing and YSKAR Lab</h3>
+<p data-th="an.nc.sigText">Since version 1.1.0, “Sign” in the wallet signs a text with your address, for example to prove that an address is yours; “Verify” checks a signed message from someone else. On <a href="https://lab.yskar.app">lab.yskar.app</a>, “Sign in with wallet” opens Node Core: it shows the website, your address and how long the request is valid, and signs only after you confirm with your password. A signature cannot move YSR.</p>
 <h3 data-t="an.nc.update">Updating</h3>
 <p data-t="an.nc.updateText">Download the new installer, quit Node Core – also in the notification area – and run the installer. Your wallet and the blockchain are kept.</p>
 <h3 data-t="an.nc.port">Do I have to open a port?</h3>
@@ -399,6 +403,8 @@ node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
 <a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
 <a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
 <a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="fuss.wallet">YSKAR Wallet</a>
+<a href="https://lab.yskar.app" data-t="fuss.lab">YSKAR Lab</a>
 <a href="https://x.com/yskar_official">X</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>

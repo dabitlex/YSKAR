@@ -399,10 +399,10 @@
 <h2 class="h2" style="margin-top:20px" data-t="road.titel">What comes next.</h2>
 <div class="fahrlinie" aria-hidden="true"><i></i></div>
 <div class="etappen">
-<div class="etappe fertig"><span class="wann" data-t="road.e1.wann">Block 6,000 · live</span><b data-t="road.e1.titel">Uncapped difficulty</b><p data-t="road.e1.text">The difficulty can follow mining power far beyond the former limit of about 469 GH/s.</p></div>
-<div class="etappe naechste"><span class="wann" data-t="road.e2.wann">Block 7,000 · scheduled</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
-<div class="etappe gross"><span class="wann" data-t="road.e3.wann">Block 10,000 · set</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
-<div class="etappe"><span class="wann" data-t="road.e4.wann">Launch</span><b data-t="road.e4.titel">Wallet on Google Play</b><p data-t="road.e4.text">Released together with the official launch.</p></div>
+<div class="etappe fertig"><span class="wann" data-t="road.e2.wann">Block 7,000 · live</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
+<div class="etappe fertig"><span class="wann" data-t="road.e4.wann">Live</span><b data-t="road.e4.titel">YSKAR Wallet</b><p data-t="road.e4.text">The Android wallet without mining, on GitHub: send, receive and sign.</p></div>
+<div class="etappe fertig"><span class="wann" data-t="road.e4.wann">Live</span><b data-t="road.lab.titel">YSKAR Lab</b><p data-t="road.lab.text">The open place to shape YSKAR together. Sign in with your wallet.</p></div>
+<div class="etappe gross naechste"><span class="wann" data-t="road.e3.wann">Block 10,000 · set</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
 <div class="etappe"><span class="wann" data-t="road.e5.wann">Planned</span><b data-t="road.e5.titel">Instant payments</b><p data-t="road.e5.text">Real-time payments. No date set yet.</p></div>
 </div>
 </div>
@@ -432,12 +432,12 @@
 <div class="kacheln">
 <article class="kachel k-wallet" id="wallet">
 <div class="txt">
-<span class="marke-tag" data-t="wallet.titel">Coming soon to Google Play</span>
+<span class="marke-tag" data-t="wallet.titel">Now on GitHub</span>
 <h3>YSKAR Wallet</h3>
 <p data-t="use.wallet.text">Send and receive YSR, scan QR codes, keep contacts and see every payment. Bring an existing wallet over with your 12 words.</p>
-<p class="leise" data-t="use.wallet.hinweis">The Play Store version cannot mine, because Google Play does not allow it. Mining has its own page.</p>
+<p class="leise" data-t="use.wallet.hinweis">The YSKAR Wallet does not mine; it is made for sending and receiving. Mining has its own page.</p>
 <p class="leise klein-notiz" data-t="use.wallet.bildNotiz">Example view: amounts and addresses are examples.</p>
-<a class="weiter" href="/anleitungen#wallet"><span data-t="use.mehr">Learn more</span> →</a>
+<div class="wallet-links"><a class="knopf hell klein" href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="use.wallet.laden">Download from GitHub</a> <a class="weiter" href="/anleitungen#wallet"><span data-t="use.mehr">Learn more</span> →</a></div>
 </div>
 <div class="telefon"><img src="/assets/img/wallet-start-en.webp?v=4" width="600" height="1298" alt="Home screen of the YSKAR Wallet with balance, send, receive, scan and recent payments" data-ta="alt:use.wallet.bildAlt;src:use.wallet.bild" loading="lazy"></div>
 </article>
@@ -481,7 +481,7 @@
 <details><summary data-t="faq.q1">Does it cost anything to take part?</summary><p data-t="faq.a1">No. The app, Mini App, Node Core and miner are free. You pay for the electricity your device uses; sending YSR costs a small network fee, and a pool keeps its fee (the public pool: 1 %).</p></details>
 <details><summary data-t="faq.q2">What if I lose my phone?</summary><p data-t="faq.a2">With your 12 words you can restore your wallet on any device. Without them, nobody can recover the funds, not even us.</p></details>
 <details><summary data-t="faq.q6">What is V6, and do I have to do anything?</summary><p data-t="faq.a6">V6 is the next revision of the consensus rules, a hard fork. It activates at block 10,000. Your address, keys and balance stay valid. Before that height, update your wallet or app, Node Core and your node; the command-line miner, the GPU miner and the HiveOS package need no update.</p></details>
-<details><summary data-t="faq.q3">Why doesn’t the Play Store app mine?</summary><p data-t="faq.a3">Google Play does not allow apps that mine cryptocurrency on the device itself. That is why the Android app with mining is available directly on this website.</p></details>
+<details><summary data-t="faq.q3">Does the YSKAR Wallet mine?</summary><p data-t="faq.a3">No. The YSKAR Wallet is made for sending, receiving and signing. To mine on your phone, use the Telegram Mini App or the Android app with mining from this website; on a PC, use Node Core or the miner.</p></details>
 <details><summary data-t="faq.q4">Is the code open source?</summary><p data-th="faq.a4">Yes. The entire code – node, app, miner and this website – is public on <a href="https://github.com/dabitlex/YSKAR">GitHub</a> and released under the MIT License.</p></details>
 <details><summary data-t="faq.q5">How do I know the numbers are real?</summary><p data-t="faq.a5">The explorer checks the proof of work of every block in your browser and follows the chain. A full node or the observer goes further and verifies every transfer, signature and balance from block 0 – anyone can run one.</p></details>
 </div>
@@ -530,6 +530,8 @@
 <a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
 <a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
 <a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="fuss.wallet">YSKAR Wallet</a>
+<a href="https://lab.yskar.app" data-t="fuss.lab">YSKAR Lab</a>
 <a href="https://x.com/yskar_official">X</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>

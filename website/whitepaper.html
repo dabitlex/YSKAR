@@ -172,7 +172,7 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <h2 id="k9">9. Mining</h2>
 <p>A miner opens a session at a node with its payout address and receives jobs: a complete block template with all fields except the nonce. Each session gets its own extranonce, which lies in the header, so two miners can never compute the same candidate.</p>
 <p>The miner does not only report blocks but <strong>shares</strong>: hashes that meet an easier, personal target. The node adjusts this target so that each device finds about one share every 30 seconds. Shares show that the device is working and, in a pool, are the basis of the payout. The node recomputes every submitted hash itself and trusts no claim of the device.</p>
-<p>Ways to mine today: the Telegram Mini App (computing in WebAssembly), the Android app (also in the background) and the PC miner for processors and NVIDIA graphics cards.</p>
+<p>Ways to mine today: the Telegram Mini App (computing in WebAssembly), the Android app (also in the background), Node Core for Windows and Linux, and the PC miner. Node Core and the PC miner compute on processors and on graphics cards from NVIDIA (CUDA), AMD and Intel (OpenCL).</p>
 
 <h2 id="k10">10. Pool mining without custody</h2>
 <p>A pool is not a separate service but a full node that splits its coinbase. Pool blocks pay the participants directly in the coinbase (consensus version 2). At no point does the operator hold anyone else’s money, and anyone can check the split in the explorer.</p>
@@ -194,7 +194,8 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <tr><td>2</td><td>Block 2,000</td><td>Coinbase with up to 64 recipients (pool mining without custody)</td></tr>
 <tr><td>3</td><td>Block 4,000</td><td>Fee per byte, dust limit</td></tr>
 <tr><td>4</td><td>Block 6,000</td><td>Difficulty without an upper limit</td></tr>
-<tr><td>5</td><td>Block 7,000 (scheduled)</td><td>Soft fork: timestamp not before the parent’s; canonical block encoding, at most 1,048,576 bytes per block; coinbase version 1 or 2 with at most 32 bytes of name; no version 2 coinbase output below 100 units</td></tr>
+<tr><td>5</td><td>Block 7,000</td><td>Soft fork: timestamp not before the parent’s; canonical block encoding, at most 1,048,576 bytes per block; coinbase version 1 or 2 with at most 32 bytes of name; no version 2 coinbase output below 100 units</td></tr>
+<tr><td>6</td><td>Block 10,000 (set)</td><td>Hard fork: versioned accounts and addresses, shared accounts (multi-signature, up to 16 keys), hash and time locks, batch payments to up to 1,000 recipients, a state tree, up to 5,000 transactions per block and up to 255 coinbase recipients; see <a href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md">CONSENSUS_V6.md</a></td></tr>
 </tbody>
 </table>
 
@@ -307,7 +308,7 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <h2 id="k9-de">9. Mining</h2>
 <p>Ein Miner eröffnet bei einem Knoten eine Sitzung mit seiner Auszahlungsadresse und bekommt Aufgaben: eine vollständige Blockvorlage mit allen Feldern außer der Nonce. Jede Sitzung erhält ihre eigene Extranonce, die im Kopf steht; zwei Miner können also nie denselben Kandidaten berechnen.</p>
 <p>Der Miner meldet nicht nur Blöcke, sondern <strong>Shares</strong>: Hashes, die ein leichteres, persönliches Ziel erreichen. Der Knoten stellt dieses Ziel so ein, dass jedes Gerät etwa alle 30 Sekunden einen Share findet. Shares zeigen, dass das Gerät arbeitet, und sind im Pool die Grundlage der Auszahlung. Der Knoten rechnet jeden eingereichten Hash selbst nach und glaubt keiner Angabe des Geräts.</p>
-<p>Wege zum Mining heute: die Telegram Mini App (gerechnet in WebAssembly), die Android-App (auch im Hintergrund) und der PC-Miner für CPUs und NVIDIA-GPUs.</p>
+<p>Wege zum Mining heute: die Telegram Mini App (gerechnet in WebAssembly), die Android-App (auch im Hintergrund), Node Core für Windows und Linux sowie der PC-Miner. Node Core und der PC-Miner rechnen mit der CPU und mit Grafikkarten von NVIDIA (CUDA), AMD und Intel (OpenCL).</p>
 
 <h2 id="k10-de">10. Pool-Mining ohne Verwahrung</h2>
 <p>Ein Pool ist kein eigener Dienst, sondern ein Fullnode, der seine Coinbase aufteilt. Pool-Blöcke zahlen die Beteiligten direkt in der Coinbase aus (Konsensfassung 2). Zu keinem Zeitpunkt hält der Betreiber fremdes Geld, und jeder kann die Aufteilung im Explorer nachprüfen.</p>
@@ -329,7 +330,8 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <tr><td>2</td><td>Block 2.000</td><td>Coinbase mit bis zu 64 Empfängern (Pool-Mining ohne Verwahrung)</td></tr>
 <tr><td>3</td><td>Block 4.000</td><td>Gebühr je Byte, Staubgrenze</td></tr>
 <tr><td>4</td><td>Block 6.000</td><td>Difficulty ohne Obergrenze</td></tr>
-<tr><td>5</td><td>Block 7.000 (geplant)</td><td>Soft Fork: Zeitstempel nicht vor dem des Vorgängers; kanonische Kodierung, höchstens 1.048.576 Byte je Block; Coinbase Fassung 1 oder 2 mit höchstens 32 Byte Name; keine Ausgabe einer Coinbase der Fassung 2 unter 100 Einheiten</td></tr>
+<tr><td>5</td><td>Block 7.000</td><td>Soft Fork: Zeitstempel nicht vor dem des Vorgängers; kanonische Kodierung, höchstens 1.048.576 Byte je Block; Coinbase Fassung 1 oder 2 mit höchstens 32 Byte Name; keine Ausgabe einer Coinbase der Fassung 2 unter 100 Einheiten</td></tr>
+<tr><td>6</td><td>Block 10.000 (festgelegt)</td><td>Hard Fork: versionierte Konten und Adressen, gemeinsame Konten (Mehrfachsignatur, bis zu 16 Schlüssel), Hash- und Zeitsperren, Sammelzahlungen an bis zu 1.000 Empfänger, ein Zustandsbaum, bis zu 5.000 Transaktionen je Block und bis zu 255 Coinbase-Empfänger; siehe <a href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md">CONSENSUS_V6.md</a></td></tr>
 </tbody>
 </table>
 
@@ -371,6 +373,8 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
 <a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
 <a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
+<a href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="fuss.wallet">YSKAR Wallet</a>
+<a href="https://lab.yskar.app" data-t="fuss.lab">YSKAR Lab</a>
 <a href="https://x.com/yskar_official">X</a>
 <a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
 <a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>

@@ -86,6 +86,16 @@ python3 -m http.server 8080
 Then open `http://localhost:8080/index.html`. Clean URLs such as `/anleitungen` and the explorer
 work only on Vercel.
 
+## Links to the apps
+
+- **Android app with mining** (`anleitungen.html`, section `android`): the download button links the
+  release of one specific version (`releases/tag/app-v…`), not `releases/latest`, because the
+  newest release in the repository can also be a Node Core release. Update the tag after each app release.
+- **YSKAR Wallet** (without mining, own repository): the start page tile, the footer of every page and
+  the roadmap link to `https://github.com/dabitlex/YSKAR--WALLET/releases/latest`. That repository
+  only holds wallet releases, so `latest` is always right there.
+- **YSKAR Lab**: footer of every page and roadmap, `https://lab.yskar.app`.
+
 ## After each Node Core release
 
 The website links the installer of one specific Node Core version directly on GitHub. It does
@@ -94,7 +104,8 @@ from every visitor's browser. After each new Node Core release, update by hand:
 
 - in `mining.html`, the Node Core tile (`id="nodecore"`): the download link, the link to the release notes
   and checksum, the version number and the file size;
-- in `anleitungen.html`: the same download link, release link, version number and file size, and
-  the installer file name in the `Get-FileHash` command;
+- in `anleitungen.html`: the same download link, release link, version number and file size, the
+  installer file name in the `Get-FileHash` command and the other commands, and if the interface
+  changed, the screenshots `assets/img/node-core-en.webp` / `-de.webp` (bump `?v=` in `nc.bild`);
 - in the "Download" section of the [README](../README.md) in the repository root: the installer
   link and the release link.
