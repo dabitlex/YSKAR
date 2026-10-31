@@ -117,30 +117,30 @@ jobs:
         id: ocl
         run: |
           set -euo pipefail
-          # Der OpenCL-Lader des Systems (libOpenCL.so.1), dazu PoCL als
-          # Laufzeit. pocl.icd liegt neben den Bibliotheken von pyopencl.
+          # Der OpenCL-Lader des Systems (libOpenCL.so.1), dazu PoCL aus
+          # Ubuntu als Laufzeit. Das Paket ist fuer beliebige x86-Prozessoren
+          # gebaut und waehlt den Code erst beim Start. Die PoCL-Fassung aus
+          # pip kannte den Prozessor des Runners nicht ("unknown target CPU
+          # 'generic'") und konnte den Kernel nicht uebersetzen.
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ocl-icd-libopencl1 > /dev/null
+          sudo apt-get install -y -qq ocl-icd-libopencl1 pocl-opencl-icd > /dev/null
+          [ -f /etc/OpenCL/vendors/pocl.icd ] || { echo "::error::pocl.icd nicht gefunden"; exit 1; }
           python3 -m venv "$RUNNER_TEMP/ocl"
-          "$RUNNER_TEMP/ocl/bin/pip" install -q pyopencl pocl-binary-distribution numpy
+          "$RUNNER_TEMP/ocl/bin/pip" install -q pyopencl numpy
           echo "$RUNNER_TEMP/ocl/bin" >> "$GITHUB_PATH"
-          icd=$(find "$RUNNER_TEMP/ocl" -name 'pocl.icd' | head -1)
-          [ -n "$icd" ] || { echo "::error::pocl.icd nicht gefunden"; exit 1; }
           # Nur fuer die beiden OpenCL-Schritte, nicht fuer den ganzen Job.
-          echo "libs=$(dirname "$icd")" >> "$GITHUB_OUTPUT"
+          echo "libs=/etc/OpenCL/vendors" >> "$GITHUB_OUTPUT"
 
       - name: OpenCL-Kernel gegen hashlib
         working-directory: node-core
         env:
           OCL_ICD_VENDORS: ${{ steps.ocl.outputs.libs }}
-          LD_LIBRARY_PATH: ${{ steps.ocl.outputs.libs }}
         run: python3 gpu/test/test_opencl.py
 
       - name: yskar-opencl im Node Core
         working-directory: node-core
         env:
           OCL_ICD_VENDORS: ${{ steps.ocl.outputs.libs }}
-          LD_LIBRARY_PATH: ${{ steps.ocl.outputs.libs }}
         run: |
           bash gpu/build-opencl.sh
           node --experimental-strip-types --no-warnings --test test/gpu-opencl.test.ts
