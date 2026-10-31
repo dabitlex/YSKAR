@@ -14,10 +14,12 @@ accounting, the wallet and mining apps, the miners, the explorer and the website
 
 | | | |
 |---|---|---|
-| **Android app** | YSKAR Wallet with mining | [Download the APK](https://github.com/dabitlex/YSKAR/releases/latest) |
-| **Node Core for Windows** | Full node, wallet and mining in one program | [Installer 1.0.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.0.0/YSKAR-Node-Core-Setup-1.0.0.exe) · [Notes and checksum](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.0.0) |
-| **Node Core for Linux** | The same program for 64-bit Linux (x86-64) | [.deb 1.0.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.0.0/YSKAR-Node-Core-1.0.0-amd64.deb) for Ubuntu, Debian, Mint · [AppImage 1.0.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.0.0/YSKAR-Node-Core-1.0.0-x86_64.AppImage) for other distributions · [GPU miner for Linux](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.0.0/yskar-cuda-1.0.0-linux-x86_64) |
-| **HiveOS** | Command-line miner for mining rigs, one miner per NVIDIA card | [Package 1.0.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.0.0/yskar-hiveos-1.0.0.tar.gz) · [Flight sheet and setup](hiveos/README.md) |
+| **YSKAR Wallet** | Android wallet: send, receive, sign, sign in to YSKAR Lab | [Download the APK](https://github.com/dabitlex/YSKAR--WALLET/releases/latest) · [Source](https://github.com/dabitlex/YSKAR--WALLET) |
+| **Android app** | The Mini App as an Android app, with mining | [Download the APK](https://github.com/dabitlex/YSKAR/releases/latest) |
+| **Node Core for Windows** | Full node, wallet and mining in one program | [Installer 1.1.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-Setup-1.1.0.exe) · [Notes and checksum](https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.1.0) |
+| **Node Core for Linux** | The same program for 64-bit Linux (x86-64) | [.deb 1.1.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-amd64.deb) for Ubuntu, Debian, Mint · [AppImage 1.1.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-x86_64.AppImage) for other distributions · GPU miners for Linux: [NVIDIA (CUDA)](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/yskar-cuda-1.1.0-linux-x86_64) · [AMD and Intel (OpenCL)](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/yskar-opencl-1.1.0-linux-x86_64) |
+| **HiveOS** | Command-line miner for mining rigs with NVIDIA, AMD and Intel cards | [Package 1.1.0](https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/yskar-hiveos-1.1.0.tar.gz) · [Flight sheet and setup](hiveos/README.md) |
+| **YSKAR Lab** | Ideas, drafts and proposals for YSKAR – everyone can take part | [lab.yskar.app](https://lab.yskar.app) |
 | **Telegram Mini App** | Nothing to install | [@YSKAR_bot](https://t.me/YSKAR_bot) |
 | **Website** | Guides, whitepaper, explorer | [www.yskar.app](https://www.yskar.app) |
 | **Telegram channel** | Releases and news | [@yskar_official](https://t.me/yskar_official) |
@@ -139,11 +141,17 @@ the pool of pending transfers, exchanges blocks and transfers with other nodes, 
 to miners and can run a pool. Sources in `src/lib/node/`, build folder `node/`. See
 [docs/FULLNODE.md](docs/FULLNODE.md) and [docs/P2P.md](docs/P2P.md).
 
-**Node Core (Windows).** The same full node as a desktop program with a built-in wallet, CPU
-and GPU mining and pool operation. No Node.js installation is needed. See
+**Node Core (Windows and Linux).** The same full node as a desktop program with a built-in wallet, CPU
+and GPU mining on NVIDIA, AMD and Intel cards, pool operation and message signing, including
+sign-in to [YSKAR Lab](https://lab.yskar.app). No Node.js installation is needed. See
 [node-core/README.md](node-core/README.md).
 
-**YSKAR Wallet (Android).** Wallet and mining on the phone, with fingerprint unlock, mining in
+**YSKAR Wallet (Android).** The wallet for YSR without mining: send, receive, request payments,
+sign messages and sign in to YSKAR Lab by QR code. It has its own repository,
+[dabitlex/YSKAR--WALLET](https://github.com/dabitlex/YSKAR--WALLET), and is distributed as an APK
+through its GitHub Releases.
+
+**Android app.** Wallet and mining on the phone, with fingerprint unlock, mining in
 the background, a home-screen widget and notifications. Distributed as an APK through GitHub
 Releases. See [docs/APP.md](docs/APP.md).
 
@@ -154,8 +162,8 @@ words, not on the Telegram account. Sources in `src/app/` and `src/components/`.
 transactions and addresses. It rebuilds each header from its fields and recomputes the hash in
 your browser. Source: `public/explorer.html`.
 
-**Command-line miner.** A miner for the CPU, and with an extra program for NVIDIA graphics
-cards. It needs only an address, never a key and has no dependencies to install. See [miner/README.md](miner/README.md).
+**Command-line miner.** A miner for the CPU, and with extra programs for graphics cards:
+`yskar-cuda` for NVIDIA and `yskar-opencl` for AMD and Intel. It needs only an address, never a key and has no dependencies to install. See [miner/README.md](miner/README.md).
 
 **Observer.** Downloads the mirror's copy of the chain, recomputes every block without building
 any, and compares its tip with the main node (`--compare`, switched off with `--no-compare`).
@@ -218,7 +226,8 @@ src/i18n/, src/content/  texts of the app in ten languages
 src/lib/native/          bridge to the Android app
 android/                 Android app (Capacitor)
 node/                    build of the command-line full node
-node-core/               Node Core for Windows (Electron), including the GPU miner in gpu/
+node-core/               Node Core for Windows and Linux (Electron), including the GPU miners in gpu/
+                         (yskar-cuda for NVIDIA, yskar-opencl for AMD and Intel)
 miner/                   command-line miner
 observer/                observer
 website/                 static website www.yskar.app
@@ -265,8 +274,8 @@ the workflows in `.github/workflows/`.
 | [docs/APP.md](docs/APP.md) | The Android app: build, signing, release, notifications, testing |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security model and known limits |
 | [deploy/README.md](deploy/README.md) | Running a node as a service on a server |
-| [node-core/README.md](node-core/README.md) | Node Core for Windows |
-| [node-core/gpu/README.md](node-core/gpu/README.md) | The GPU miner of Node Core |
+| [node-core/README.md](node-core/README.md) | Node Core for Windows and Linux |
+| [node-core/gpu/README.md](node-core/gpu/README.md) | The GPU miners of Node Core (CUDA, OpenCL) |
 | [miner/README.md](miner/README.md) | The command-line miner |
 | [observer/README.md](observer/README.md) | The observer |
 | [website/README.md](website/README.md) | The website |
