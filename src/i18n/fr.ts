@@ -10,10 +10,12 @@ const pl = (n: number, un: string, plusieurs: string) => (Math.abs(n) < 2 ? un :
 
 import neu from './neu/fr';
 import rd from './rd/fr';
+import ys from './ys/fr';
 
 const fr = {
   ...neu,
   rd,
+  ys,
   name: 'Français',
   locale: 'fr-FR',
 

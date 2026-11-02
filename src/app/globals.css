@@ -36,9 +36,16 @@
   --risk:  255 107 107;     /* #FF6B6B  unwiderruflich */
   --amber: 255 180 84;      /* #FFB454  bitte tun */
 
-  --r-sm: 16px;
-  --r-md: 22px;
+  /*
+    Drei Radien (Redesign November 2026): 14 fuer Chips, Felder und kleine
+    Kacheln, 20 fuer Flaechen, 28 fuer Blaetter. Dazu die Pille (rounded-full).
+    Vorher standen 19 verschiedene Werte im Code.
+  */
+  --r-sm: 14px;
+  --r-md: 20px;
   --r-lg: 28px;
+  /* Haarlinien als Farbe mit Deckkraft -- dieselben drei Staerken ueberall. */
+  --haar: 140 170 255;
   color-scheme: dark;
 }
 :root[data-thema="dunkel"], .thema-dunkel { color-scheme: dark; }
@@ -319,3 +326,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .aktion-tage i.an { background: rgb(var(--cyan)); }
 .aktion-schritte > div { display: grid; grid-template-columns: 24px 1fr; gap: 12px; padding-bottom: 16px; position: relative; }
 .aktion-schritte > div:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 26px; bottom: 2px; width: 1px; background: rgb(140 170 255 / .22); }
+
+/* ---------------------------------------------------- YSKAR-System (Redesign November 2026)
+   Gerüst aus Konzept A, Markenelemente aus B, Bedienlogik aus C.
+   Neue Bausteine liegen in src/components/ys/. Sie nutzen nur:
+   - Farben aus :root (oben), Haarlinien rgb(var(--haar) / .12|.18|.24)
+   - Radien --r-sm/--r-md/--r-lg und die Pille
+   - die acht Schriftstufen text-ys-* aus tailwind.config.ts
+   Keine Leuchteffekte, keine Verlaeufe auf Flaechen. */
+.ys-flaeche { background: rgb(var(--surface)); border: 1px solid rgb(var(--haar) / .12); border-radius: var(--r-md); }
+.ys-flaeche-akzent { background: rgb(var(--surface)); border: 1px solid rgb(var(--work) / .38); border-radius: var(--r-md); }
+.ys-linie { border-color: rgb(var(--haar) / .12); }
+.ys-etikett { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; color: rgb(var(--dim)); }
+/* Y-Statuszeichen: das Mining-Band atmet leicht, solange gemint wird. */
+@keyframes ys-band { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
+.ys-band-an { animation: ys-band 2.4s ease-in-out infinite; }

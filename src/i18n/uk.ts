@@ -6,6 +6,7 @@ import type { Woerterbuch } from './de';
  */
 import neu from './neu/uk';
 import rd from './rd/uk';
+import ys from './ys/uk';
 
 /** Ukrainian plural: one (1, 21, …), few (2–4, 22–24, …), many (everything else). */
 const mn = (n: number, one: string, few: string, many: string) =>
@@ -15,6 +16,7 @@ const mn = (n: number, one: string, few: string, many: string) =>
 const uk = {
   ...neu,
   rd,
+  ys,
   name: 'Українська',
   locale: 'uk-UA',
 

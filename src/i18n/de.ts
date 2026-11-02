@@ -10,10 +10,12 @@
  */
 import neu from './neu/de';
 import rd from './rd/de';
+import ys from './ys/de';
 
 const de = {
   ...neu,
   rd,
+  ys,
   name: 'Deutsch',
   locale: 'de-DE',
 

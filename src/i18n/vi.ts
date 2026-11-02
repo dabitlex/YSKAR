@@ -6,10 +6,12 @@ import type { Woerterbuch } from './de';
  */
 import neu from './neu/vi';
 import rd from './rd/vi';
+import ys from './ys/vi';
 
 const vi = {
   ...neu,
   rd,
+  ys,
   name: 'Tiếng Việt',
   locale: 'vi-VN',
 

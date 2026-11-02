@@ -27,6 +27,22 @@ export default {
         amber: 'rgb(var(--amber) / <alpha-value>)',
       },
       borderRadius: { sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)' },
+      /*
+        Schriftstufen des YSKAR-Systems (Redesign November 2026). Acht
+        Stufen statt der 27 Einzelgroessen von vorher; neue Bildschirme
+        nutzen NUR diese. Namen mit "ys-", damit sie nicht mit der Farbe
+        "text" kollidieren (text-text ist die Farbe).
+      */
+      fontSize: {
+        'ys-etikett': ['11px', { lineHeight: '1.3', letterSpacing: '0.14em' }],
+        'ys-meta': ['12.5px', { lineHeight: '1.4' }],
+        'ys-klein': ['14px', { lineHeight: '1.45' }],
+        'ys-fliess': ['15px', { lineHeight: '1.5' }],
+        'ys-zeile': ['17px', { lineHeight: '1.35' }],
+        'ys-abschnitt': ['22px', { lineHeight: '1.2', letterSpacing: '-0.02em' }],
+        'ys-seite': ['26px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
+        'ys-anzeige': ['52px', { lineHeight: '1', letterSpacing: '-0.05em' }],
+      },
       // Geist wirkt ab 700 schnell schwer; die Bildschirme nutzen bold/extrabold
       // fuer Hervorhebung, im neuen Design sitzt die bei 600.
       fontWeight: { bold: '600', extrabold: '600', black: '700' },
