@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: 'Налаштування',
     benchmark: 'Бенчмарк',
   },
+  netz: {
+    naechster: 'Наступний',
+    laeuft: (n: number) => `уже ${n} хв`,
+    ketteAria: 'Останні блоки ланцюга',
+  },
 };
 
 export default ys;

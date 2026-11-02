@@ -269,7 +269,7 @@ export default function AppShell({ platform }: { platform: string }) {
                      onErhoehen={z => senden('senden', z)} />
         ) : tab === 'entdecken' ? (
           <EntdeckenTab summary={m.summary} decimals={dec} symbol={sym} meineAdresse={wallet.address}
-                        kopfzeile={kopf(t.rd.netz.titel)} />
+                        kopfzeile={kopf(t.nav.netz)} />
         ) : (
           <CommunityTab adresse={wallet.address} kopfzeile={kopf(t.community.titel)} onAktion={aktion.bereit ? () => setAnsicht('aktion') : undefined} />
         )}

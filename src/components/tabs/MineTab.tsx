@@ -58,7 +58,7 @@ export default function MineTab({ m, dec, sym, pool, gesichert, poolName, kopfze
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
   onStartStopp: () => void; onSichern: () => void; onPoolWaehlen: () => void; onDetails: () => void;
 }) {
-  const { t, zahl } = useT();
+  const { t, zahl, locale } = useT();
   const y = t.ys.mining;
 
   const account = m.account as ({ address?: string; history?: HistoryEintrag[] } | null);
@@ -67,7 +67,7 @@ export default function MineTab({ m, dec, sym, pool, gesichert, poolName, kopfze
   const heute = genau !== null ? betragZahl(genau, dec) : heuteEingang(account?.history, dec);
 
   const minuten = m.seit ? Math.max(0, Math.round((Date.now() - m.seit) / 60000)) : 0;
-  const r = hashrateTeile(m.hashrate);
+  const r = hashrateTeile(m.hashrate, locale);
   // Neuer Nutzer ohne gewaehlten Pool: erst den Pool waehlen, dann starten.
   const mussWaehlen = !m.mining && pool.modus === 'pool' && !pool.gewaehlt;
 

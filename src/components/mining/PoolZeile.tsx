@@ -28,7 +28,7 @@ export function PoolZeile({ pool, mining, anteil, sym, poolName, onOeffnen, onDe
   onOeffnen: () => void;
   onDetails: () => void;
 }) {
-  const { t, zahl } = useT();
+  const { t, zahl, locale } = useT();
   const klasse = 'ys-flaeche flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left';
 
   if (pool.modus === 'solo') {
@@ -68,7 +68,7 @@ export function PoolZeile({ pool, mining, anteil, sym, poolName, onOeffnen, onDe
   const name = mining ? (poolName ?? g.name) : g.name;
   const zeile = s && s.belegt !== null && s.plaetze !== null
     ? [t.pool.zeile(s.belegt, s.plaetze),
-       s.hashrate !== null ? (() => { const r = hashrateTeile(s.hashrate!); return `${r.wert} ${r.einheit}`; })() : null,
+       s.hashrate !== null ? (() => { const r = hashrateTeile(s.hashrate!, locale); return `${r.wert} ${r.einheit}`; })() : null,
        s.feeBps !== null ? t.pool.gebuehrZeile(zahl(s.feeBps / 100)) : null,
       ].filter(Boolean).join(' · ').replace(/ %/g, ' %')
     : standText(s, t);

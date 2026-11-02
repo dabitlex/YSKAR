@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: 'Pengaturan',
     benchmark: 'Benchmark',
   },
+  netz: {
+    naechster: 'Berikutnya',
+    laeuft: (n: number) => `sejak ${n} mnt`,
+    ketteAria: 'Blok terbaru di rantai',
+  },
 };
 
 export default ys;

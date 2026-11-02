@@ -1,6 +1,7 @@
 'use client';
 
-import { SubHeader } from '@/components/ui/Primitives';
+import { SeitenKopf } from '@/components/ys/SeitenKopf';
+import { Etikett } from '@/components/ys';
 import { ExternLink } from '@/components/ui/ExternLink';
 import { COMMUNITY } from '@/lib/community';
 import { useT } from '@/i18n';
@@ -25,27 +26,27 @@ export default function NetzStaerken({ onZurueck }: { onZurueck: () => void }) {
   ];
   return (
     <>
-      <SubHeader titel={n.titel} onZurueck={onZurueck} />
+      <SeitenKopf titel={n.titel} onZurueck={onZurueck} />
       <div className="rise -mt-2 flex justify-center"><Erde /></div>
-      <p className="label mt-2 text-center">{n.gEtikett}</p>
-      <h1 className="mt-2 text-center text-[28px] font-semibold leading-[1.12] tracking-[-0.025em]">
+      <Etikett as="p" className="mt-2 text-center">{n.gEtikett}</Etikett>
+      <h2 className="mt-2 text-center text-ys-seite font-semibold leading-[1.15]">
         {n.gA} <span className="grad">{n.gB}</span>
-      </h1>
-      <p className="mx-auto mt-3 max-w-[330px] text-center text-[14px] leading-[1.55] text-dim">{n.gText}</p>
+      </h2>
+      <p className="mx-auto mt-3 max-w-[330px] text-center text-ys-klein leading-[1.55] text-lese">{n.gText}</p>
 
-      <ul className="rise rise-1 mt-6 border-t border-line">
+      <ul className="ys-flaeche rise rise-1 mt-6 px-4 [&>li:not(:first-child)]:border-t [&>li]:border-[rgb(var(--haar)/.12)]">
         {wege.map(w => (
-          <li key={w.titel} className="border-b border-line">
-            <ExternLink href={w.href} className="flex items-start gap-3.5 py-[14px] active:bg-surface">
-              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line text-cyan">
+          <li key={w.titel}>
+            <ExternLink href={w.href} className="flex items-start gap-3.5 py-3.5 active:opacity-70">
+              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--haar)/.18)] text-cyan">
                 <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7"
                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{w.icon}</svg>
               </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-[15px] font-medium">{w.titel}</span>
-                <span className="text-[12.5px] leading-[1.45] text-dim">{w.text}</span>
+                <span className="text-ys-fliess">{w.titel}</span>
+                <span className="text-ys-meta leading-[1.45] text-dim">{w.text}</span>
               </span>
-              <span className="mt-2 text-[16px] text-faint" aria-hidden="true">›</span>
+              <span className="mt-2 text-faint" aria-hidden="true">↗</span>
             </ExternLink>
           </li>
         ))}
@@ -53,11 +54,11 @@ export default function NetzStaerken({ onZurueck }: { onZurueck: () => void }) {
 
       <div className="rise rise-2 mt-7 flex flex-col gap-2.5">
         <ExternLink href={COMMUNITY.releases}
-                    className="flex min-h-[56px] items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink active:scale-[.985]">
+                    className="flex min-h-14 items-center justify-center rounded-full bg-work text-ys-fliess font-semibold text-white active:scale-[.985]">
           {n.nodeCore}
         </ExternLink>
         <ExternLink href={COMMUNITY.anleitungen}
-                    className="flex min-h-[52px] items-center justify-center rounded-full border border-line text-[15px] font-medium active:scale-[.985]">
+                    className="flex min-h-14 items-center justify-center rounded-full border border-[rgb(var(--haar)/.24)] text-ys-fliess font-semibold active:scale-[.985]">
           {n.anleitungen}
         </ExternLink>
       </div>

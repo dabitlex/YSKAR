@@ -18,9 +18,9 @@ import { useT, type Woerterbuch } from '@/i18n';
  * bricht der Benchmark ab, statt eine Zahl zu zeigen.
  */
 
-function rate(h: number): string {
+function rate(h: number, locale?: string): string {
   if (!h || !Number.isFinite(h)) return '—';
-  return hashrateText(h);
+  return hashrateText(h, locale);
 }
 
 export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
@@ -31,7 +31,7 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
   const { phase, starten, abbrechen } = useBenchmark();
   const [alt] = useState<BenchErgebnis | null>(() => gespeichert());
   const [dauertest, setDauertest] = useState(false);
-  const { t } = useT();
+  const { t, locale } = useT();
 
   const laeuft = phase.t === 'pruefe' || phase.t === 'messe' || phase.t === 'dauertest';
   const ergebnis = phase.t === 'fertig' ? phase.ergebnis : alt;
@@ -106,7 +106,7 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
                          className="flex justify-between border-b border-line/50 py-1.5
                                     text-[13px] last:border-0">
                       <span className="text-dim">{x.duty} %</span>
-                      <span>{rate(x.hashrate)}</span>
+                      <span>{rate(x.hashrate, locale)}</span>
                     </div>
                   ))}
                 </div>
@@ -120,7 +120,7 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
               <span className="text-[26px] font-medium tracking-tight">
                 {t.bench.workerN(ergebnis.besteWorker)}
               </span>
-              <span className="mono text-[15px] text-work">{rate(ergebnis.besteRate)}</span>
+              <span className="mono text-[15px] text-work">{rate(ergebnis.besteRate, locale)}</span>
             </div>
             <p className="mt-2 text-[12.5px] text-dim">
               {hinweis(ergebnis, t)}
@@ -136,8 +136,8 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
               <GroupTitle>{t.bench.dauertest}</GroupTitle>
               <Flaeche className="mb-5 p-4">
                 <dl className="grid gap-0">
-                  <Zeile label={t.bench.start} wert={rate(ergebnis.dauertest.start)} />
-                  <Zeile label={t.bench.ende} wert={rate(ergebnis.dauertest.ende)} />
+                  <Zeile label={t.bench.start} wert={rate(ergebnis.dauertest.start, locale)} />
+                  <Zeile label={t.bench.ende} wert={rate(ergebnis.dauertest.ende, locale)} />
                   <Zeile label={t.bench.gehalten}
                          wert={`${(ergebnis.dauertest.anteil * 100).toFixed(1)} %`} />
                 </dl>
@@ -188,12 +188,13 @@ function Zeile({ label, wert }: { label: string; wert: string }) {
 }
 
 function MessZeile({ m, best }: { m: Messung; best: boolean }) {
+  const { locale } = useT();
   return (
     <div className={`grid grid-cols-[auto_1fr_auto] items-baseline gap-x-3
                      border-b border-line/50 py-1.5 text-[13px] last:border-0 ${
                    best ? 'text-work' : ''}`}>
       <span className="w-10 tabular-nums">{m.workers}</span>
-      <span className="tabular-nums">{rate(m.hashrate)}</span>
+      <span className="tabular-nums">{rate(m.hashrate, locale)}</span>
       <span className="tabular-nums text-faint">{m.skalierung.toFixed(2)}×</span>
     </div>
   );

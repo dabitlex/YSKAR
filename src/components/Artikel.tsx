@@ -23,17 +23,16 @@ export default function Artikel({ artikel, onZurueck, unten }: {
   return (
     <>
       <SubHeader titel="" onZurueck={onZurueck}
-                 rechts={<span className="label text-work">
+                 rechts={<span className="ys-etikett !text-cyan">
                    {t.entdecken.lesezeit(artikel.lesezeit)}</span>} />
 
-      <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
       <div className="rise relative">
-        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-[16px]
+        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-sm
                           ${FARBE[artikel.farbe]}`}>{Icon[artikel.icon]}</span>
-        <h1 className="mt-4 text-[28px] font-extrabold leading-[1.15] tracking-[-0.02em]">
+        <h1 className="mt-4 text-ys-seite font-semibold leading-[1.15]">
           {artikel.titel}
         </h1>
-        <p className="mt-3 text-[15px] font-medium leading-[1.65] text-dim">
+        <p className="mt-3 text-ys-fliess leading-[1.65] text-dim">
           {artikel.einleitung}
         </p>
       </div>
@@ -51,15 +50,15 @@ function Stein({ b, i }: { b: Baustein; i: number }) {
   const rise = `rise rise-${Math.min(3, i)}`;
   switch (b.art) {
     case 'absatz':
-      return <p className={`${rise} px-0.5 text-[15px] font-medium leading-[1.65] text-lese`}>
+      return <p className={`${rise} px-0.5 text-ys-fliess leading-[1.65] text-lese`}>
         {b.text}</p>;
     case 'kennzahlen':
       return (
         <dl className={`${rise} grid grid-cols-2 gap-2.5`}>
           {b.werte.map(k => (
-            <div key={k.label} className="rounded-[16px] border border-line bg-surface px-4 py-3.5">
-              <dt className="label">{k.label}</dt>
-              <dd className="tnum mt-1 text-[17px] font-extrabold tracking-[-0.01em]">{k.wert}</dd>
+            <div key={k.label} className="rounded-sm border border-[rgb(var(--haar)/.12)] bg-surface px-4 py-3.5">
+              <dt className="ys-etikett">{k.label}</dt>
+              <dd className="tnum mt-1 font-mono text-ys-fliess">{k.wert}</dd>
             </div>
           ))}
         </dl>
@@ -67,15 +66,15 @@ function Stein({ b, i }: { b: Baustein; i: number }) {
     case 'schritte':
       return (
         <Panel className={rise}>
-          <h2 className="text-[17px] font-extrabold tracking-[-0.01em]">{b.titel}</h2>
+          <h2 className="text-ys-fliess font-semibold">{b.titel}</h2>
           <ol className="mt-3.5 space-y-3">
             {b.punkte.map((p, k) => (
               <li key={k} className="flex items-start gap-3">
                 <span className="tnum flex h-[26px] w-[26px] shrink-0 items-center justify-center
-                                 rounded-full bg-work/10 text-[12.5px] font-extrabold text-work">
+                                 rounded-full bg-work/10 text-ys-meta font-semibold text-work">
                   {k + 1}
                 </span>
-                <span className="text-[14px] font-medium leading-[1.5] text-lese">{p}</span>
+                <span className="text-ys-klein leading-[1.5] text-lese">{p}</span>
               </li>
             ))}
           </ol>
@@ -85,17 +84,17 @@ function Stein({ b, i }: { b: Baustein; i: number }) {
       const toene = ['bg-work', 'bg-[#5A8AF3]', 'bg-[#8FB0F5]', 'bg-[#B9CCF8]', 'bg-[#DCE6FB]', 'bg-[#DCE6FB]'];
       return (
         <Panel className={rise}>
-          <h2 className="text-[17px] font-extrabold tracking-[-0.01em]">{b.titel}</h2>
+          <h2 className="text-ys-fliess font-semibold">{b.titel}</h2>
           <div className="mt-4 flex h-[90px] items-end gap-1.5">
             {b.werte.map((w, k) => (
               <div key={k} className={`flex-1 rounded-t-[6px] ${toene[k] ?? toene[5]}`}
                    style={{ height: `${Math.max(3, w.anteil * 100)}%` }} />
             ))}
           </div>
-          <div className="mt-2 flex justify-between text-[11px] font-bold text-faint">
+          <div className="mt-2 flex justify-between text-ys-meta text-faint">
             {b.werte.filter(w => w.label).map(w => <span key={w.label}>{w.label}</span>)}
           </div>
-          <p className="mt-3 text-[13.5px] font-medium leading-[1.55] text-dim">{b.fuss}</p>
+          <p className="mt-3 text-ys-klein leading-[1.55] text-dim">{b.fuss}</p>
         </Panel>
       );
     }

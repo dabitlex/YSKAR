@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: 'Configurações',
     benchmark: 'Benchmark',
   },
+  netz: {
+    naechster: 'Próximo',
+    laeuft: (n: number) => `há ${n} min`,
+    ketteAria: 'Os últimos blocos da cadeia',
+  },
 };
 
 export default ys;

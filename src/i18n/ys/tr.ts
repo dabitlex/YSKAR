@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: 'Ayarlar',
     benchmark: 'Kıyaslama testi',
   },
+  netz: {
+    naechster: 'Sonraki',
+    laeuft: (n: number) => `${n} dk'dır`,
+    ketteAria: 'Zincirin son blokları',
+  },
 };
 
 export default ys;

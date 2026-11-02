@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: 'Einstellungen',
     benchmark: 'Benchmark',
   },
+  netz: {
+    naechster: 'Nächster',
+    laeuft: (n: number) => `seit ${n} min`,
+    ketteAria: 'Die letzten Blöcke der Kette',
+  },
 };
 
 export default ys;

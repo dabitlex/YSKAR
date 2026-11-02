@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: '设置',
     benchmark: '性能测试',
   },
+  netz: {
+    naechster: '下一个',
+    laeuft: (n: number) => `已 ${n} 分钟`,
+    ketteAria: '链上最新区块',
+  },
 };
 
 export default ys;

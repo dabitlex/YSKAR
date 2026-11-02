@@ -14,18 +14,29 @@ const STUFEN: [number, string][] = [
   [1e12, 'TH/s'], [1e9, 'GH/s'], [1e6, 'MH/s'], [1e3, 'kH/s'],
 ];
 
-export function hashrateTeile(h: number): { wert: string; einheit: string } {
+/**
+ * Mit `locale` steht das Dezimalzeichen der Sprache im Wert ("52,64" im
+ * Deutschen, "52.64" im Englischen). Ohne bleibt es beim Punkt -- so
+ * schreiben Benachrichtigung und Widget der Android-App die Zahl wie bisher.
+ */
+export function hashrateTeile(h: number, locale?: string): { wert: string; einheit: string } {
   if (!Number.isFinite(h) || h <= 0) return { wert: '0', einheit: 'H/s' };
   if (h >= 1e27) return { wert: h.toExponential(2), einheit: 'H/s' };
   for (const [ab, einheit] of STUFEN) {
-    if (h >= ab) return { wert: (h / ab).toFixed(ab === 1e3 ? 1 : 2), einheit };
+    if (h >= ab) {
+      const stellen = ab === 1e3 ? 1 : 2;
+      const wert = locale
+        ? new Intl.NumberFormat(locale, { minimumFractionDigits: stellen, maximumFractionDigits: stellen, useGrouping: false }).format(h / ab)
+        : (h / ab).toFixed(stellen);
+      return { wert, einheit };
+    }
   }
   return { wert: String(Math.round(h)), einheit: 'H/s' };
 }
 
-export function hashrateText(h: number | null | undefined): string {
+export function hashrateText(h: number | null | undefined, locale?: string): string {
   if (h == null || !Number.isFinite(h)) return '—';
-  const { wert, einheit } = hashrateTeile(h);
+  const { wert, einheit } = hashrateTeile(h, locale);
   return `${wert} ${einheit}`;
 }
 

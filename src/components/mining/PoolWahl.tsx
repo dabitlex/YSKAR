@@ -23,9 +23,9 @@ import type { PoolAuswahl } from '@/hooks/usePoolAuswahl';
  * Was hier steht, ist bis auf die Bloecke Selbstauskunft des Pools.
  */
 
-const rate = (h: number | null) => {
+const rate = (h: number | null, locale?: string) => {
   if (h === null) return '—';
-  const r = hashrateTeile(h);
+  const r = hashrateTeile(h, locale);
   return `${r.wert} ${r.einheit}`;
 };
 
@@ -96,7 +96,7 @@ function Karte({ s, gewaehlt, eigen, laedt, onWaehlen }: {
             {s.belegt !== null && s.plaetze !== null
               ? <>{s.belegt} <span className="font-bold text-faint">/ {s.plaetze}</span></> : '—'}
           </Wert>
-          <Wert name={t.pool.leistung}>{rate(s.hashrate)}</Wert>
+          <Wert name={t.pool.leistung}>{rate(s.hashrate, locale)}</Wert>
           <Wert name={t.pool.bloecke}>{s.bloecke !== null ? zahl(s.bloecke) : '—'}</Wert>
           <Wert name={t.pool.gebuehr}>{s.feeBps !== null ? prozent(s.feeBps) : '—'}</Wert>
         </div>

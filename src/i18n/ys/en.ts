@@ -32,6 +32,11 @@ const ys = {
     einstellungen: 'Settings',
     benchmark: 'Benchmark',
   },
+  netz: {
+    naechster: 'Next',
+    laeuft: (n: number) => `${n} min so far`,
+    ketteAria: 'The latest blocks of the chain',
+  },
 };
 
 export default ys;

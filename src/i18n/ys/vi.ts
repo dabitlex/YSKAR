@@ -30,6 +30,11 @@ const ys: YsWoerterbuch = {
     einstellungen: 'Cài đặt',
     benchmark: 'Đo hiệu năng',
   },
+  netz: {
+    naechster: 'Tiếp theo',
+    laeuft: (n: number) => `đã ${n} phút`,
+    ketteAria: 'Các khối mới nhất của chuỗi',
+  },
 };
 
 export default ys;
