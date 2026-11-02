@@ -205,14 +205,14 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts, grund = 's
     <div className={`fixed inset-0 z-40 flex flex-col justify-end transition-opacity duration-200 ${offen ? 'opacity-100' : 'opacity-0'}`}
          style={{ background: 'rgb(3 6 15 / .78)' }}
          onClick={onSchliessen} role="dialog" aria-modal="true">
-      <div className={`mx-auto w-full max-w-md max-h-[calc(100dvh-var(--oben)-12px)] overflow-y-auto overscroll-contain rounded-t-[30px]
-                       border-t border-[rgb(140_170_255/.22)] px-[22px] pt-2.5
+      <div className={`mx-auto w-full max-w-md max-h-[calc(100dvh-var(--oben)-12px)] overflow-y-auto overscroll-contain rounded-t-lg
+                       border-t border-[rgb(var(--haar)/.22)] px-[22px] pt-2.5
                        pb-[calc(24px+var(--unten))] ${grund === 'ink' ? 'bg-ink' : 'bg-sunk'}`}
            onClick={e => e.stopPropagation()}>
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[rgb(140_170_255/.22)]" />
         {(titel || rechts) && (
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-[22px] font-semibold tracking-[-0.03em]">{titel}</span>
+            <span className="text-ys-abschnitt font-semibold">{titel}</span>
             {rechts ?? (
               <button onClick={onSchliessen} aria-label={t.allgemein.schliessen}
                       className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text">
@@ -241,7 +241,7 @@ export function BlattKopf({ titel, onZurueck, rechts, art = 'schliessen' }: {
           <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l-6 6 6 6" /></svg>
         </button>
       )}
-      <span className="flex-1 text-[22px] font-semibold tracking-[-0.03em]">{titel}</span>
+      <span className="flex-1 text-ys-abschnitt font-semibold">{titel}</span>
       {rechts}
       {art === 'schliessen' && (
         <button onClick={onZurueck} aria-label={t.allgemein.schliessen}

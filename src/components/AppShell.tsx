@@ -32,7 +32,8 @@ import Benchmark from '@/components/Benchmark';
 import { gespeichert, type BenchErgebnis } from '@/hooks/useBenchmark';
 import Settings from '@/components/Settings';
 import { einstiegAbholen, SICHERN_PFLICHT } from '@/lib/einstieg';
-import { useZurueckTaste, haptik, kampagneMerken, startParam } from '@/lib/telegram/webapp';
+import { useZurueckTaste, haptik, kampagneMerken, startParam, telegramNutzer } from '@/lib/telegram/webapp';
+import { Kopfzeile, appStatus } from '@/components/ys';
 import AktionSeite, { AktionHinweis } from '@/components/aktion/Aktion';
 import { useAktion } from '@/lib/aktion/useAktion';
 import { PREIS_ADRESSE } from '@/lib/aktion/regeln';
@@ -201,6 +202,20 @@ export default function AppShell({ platform }: { platform: string }) {
 
   const dec = m.summary?.token?.decimals ?? 8;
   const sym = m.summary?.token?.token_symbol ?? 'YSR';
+  // Kopfzeile aller vier Bereiche (Paket 2): Y-Statuszeichen, Titel, Zahnrad.
+  const status = appStatus({ gesichert: wallet.gesichert, hoehe: m.summary?.height, mining: m.mining });
+  const [vorname, setVorname] = useState<string | null>(null);
+  useEffect(() => { setVorname(telegramNutzer()?.vorname ?? null); }, []);
+  const stunde = new Date().getHours();
+  const kopf = (titel?: string) => (
+    <Kopfzeile status={status} hoehe={m.summary?.height ?? null}
+               onEinstellungen={() => setAnsicht('einstellungen')}
+               {...(titel ? { titel } : { gruss: {
+                 zeile: stunde < 11 ? t.home.morgen : stunde < 18 ? t.home.tag : t.home.abend,
+                 name: vorname ?? t.home.beiYskar,
+               } })} />
+  );
+
   const poolName = m.mining && pool.modus === 'pool'
     ? (pool.gewaehlt && !pool.gewaehlt.eigen ? pool.gewaehlt.name : m.poolInfo?.name ?? pool.gewaehlt?.name ?? null)
     : null;
@@ -230,33 +245,31 @@ export default function AppShell({ platform }: { platform: string }) {
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
         ) : tab === 'mine' ? (<>
-          <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
+          <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName} kopfzeile={kopf()}
                    hinweis={aktion.hinweis ? (
                      <AktionHinweis gewinnUsd={aktion.gewinn?.betrag_usd ?? null} onSchliessen={aktion.schliessen}
                                     onOeffnen={() => setAnsicht(aktion.gewinn ? 'aktionErgebnis' : 'aktion')} />
                    ) : null}
                    onStartStopp={startStopp}
                    onSichern={() => setAnsicht('sichern')}
-                   onEinstellungen={() => setAnsicht('einstellungen')}
                    onPoolWaehlen={() => pool.setBlatt(true)} />
           <MiningTab m={m} dec={dec} sym={sym} wach={wach} pool={pool}
                      worker={worker} setWorker={setWorker} kerne={kerne} workerStufen={workerStufen}
                      bench={bench} onStarten={starten} onBenchmark={() => setAnsicht('benchmark')} />
         </>        ) : tab === 'wallet' ? (
-          <WalletTab account={m.account as never} decimals={dec} symbol={sym}
+          <WalletTab account={m.account as never} decimals={dec} symbol={sym} kopfzeile={kopf(t.wallet.titel)}
                      address={wallet.address}
                      onSenden={() => senden('senden')}
                      onScannen={() => senden('scannen')}
                      onEmpfangen={() => setAnsicht('empfangen')}
                      hoehe={m.summary?.height ?? null}
-                     onEinstellungen={() => setAnsicht('einstellungen')}
                      onSichern={wallet.gesichert ? undefined : () => setAnsicht('sichern')}
                      onErhoehen={z => senden('senden', z)} />
         ) : tab === 'entdecken' ? (
           <EntdeckenTab summary={m.summary} decimals={dec} symbol={sym} meineAdresse={wallet.address}
-                        onEinstellungen={() => setAnsicht('einstellungen')} />
+                        kopfzeile={kopf(t.rd.netz.titel)} />
         ) : (
-          <CommunityTab adresse={wallet.address} onAktion={aktion.bereit ? () => setAnsicht('aktion') : undefined} />
+          <CommunityTab adresse={wallet.address} kopfzeile={kopf(t.community.titel)} onAktion={aktion.bereit ? () => setAnsicht('aktion') : undefined} />
         )}
       </main>
 

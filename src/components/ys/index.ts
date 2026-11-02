@@ -17,3 +17,6 @@ export { Kennzahl, KennzahlRaster, Anzeige } from './Kennzahl';
 export { Hinweis, Fortschritt } from './Hinweis';
 export { YZeichen, Statuszeichen, Band, BAND_FARBE } from './Zeichen';
 export type { WalletStand, NetzStand, MiningStand } from './Zeichen';
+export { Kopfzeile } from './Kopfzeile';
+export { appStatus } from './status';
+export type { AppStatus } from './status';

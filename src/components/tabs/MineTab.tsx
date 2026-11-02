@@ -2,12 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useT } from '@/i18n';
-import { Icon } from '@/components/ui/Primitives';
-import { Zeichen } from '@/components/ui/Marke';
 import { hashrateTeile } from '@/lib/format/hashrate';
 import { useEinnahmen, heuteDazu } from '@/lib/wallet/useEinnahmen';
 import { betragZahl } from '@/lib/wallet/betrag';
-import { telegramNutzer, haptik, type TgNutzer } from '@/lib/telegram/webapp';
+import { haptik } from '@/lib/telegram/webapp';
 import type { useMining } from '@/hooks/useMining';
 import type { PoolAuswahl } from '@/hooks/usePoolAuswahl';
 import type { HistoryEintrag } from '@/components/tabs/WalletTab';
@@ -34,24 +32,22 @@ function heuteEingang(history: HistoryEintrag[] | undefined, dec: number): numbe
     .reduce((s, e) => s + Number(e.amount), 0) / 10 ** dec;
 }
 
-export default function MineTab({ m, dec, pool, gesichert, poolName, hinweis, onStartStopp, onSichern, onEinstellungen, onPoolWaehlen }: {
+export default function MineTab({ m, dec, pool, gesichert, poolName, kopfzeile, hinweis, onStartStopp, onSichern, onPoolWaehlen }: {
   m: Mining; dec: number; pool: PoolAuswahl; gesichert: boolean;
   poolName: string | null;
+  /** Gemeinsame Kopfzeile (Statuszeichen, Gruss, Zahnrad) aus AppShell. */
+  kopfzeile: React.ReactNode;
   /** Schmale, schliessbare Zeile unter dem Gruss (Aktion). Die Sicherung geht vor. */
   hinweis?: React.ReactNode;
-  onStartStopp: () => void; onSichern: () => void; onEinstellungen: () => void; onPoolWaehlen: () => void;
+  onStartStopp: () => void; onSichern: () => void; onPoolWaehlen: () => void;
 }) {
   const { t, zahl } = useT();
-  const [nutzer, setNutzer] = useState<TgNutzer | null>(null);
-  useEffect(() => { setNutzer(telegramNutzer()); }, []);
 
   const account = m.account as ({ address?: string; history?: HistoryEintrag[] } | null);
   const genau = heuteDazu(useEinnahmen(account?.address ?? null,
     account?.history?.[0] ? `${account.history[0].txid}:${account.history[0].kind}` : ''));
   const heute = genau !== null ? betragZahl(genau, dec) : heuteEingang(account?.history, dec);
 
-  const stunde = new Date().getHours();
-  const gruss = stunde < 11 ? t.home.morgen : stunde < 18 ? t.home.tag : t.home.abend;
   const minuten = m.seit ? Math.max(0, Math.round((Date.now() - m.seit) / 60000)) : 0;
   const r = hashrateTeile(m.hashrate);
   // Neuer Nutzer ohne gewaehlten Pool: erst den Pool waehlen, dann starten.
@@ -66,22 +62,7 @@ export default function MineTab({ m, dec, pool, gesichert, poolName, hinweis, on
 
   return (
     <>
-      <header className="relative mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {nutzer?.foto
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={nutzer.foto} alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
-            : <Zeichen g={30} />}
-          <div className="flex flex-col leading-[1.25]">
-            <span className="text-[12.5px] text-dim">{gruss}</span>
-            <span className="text-[16px] font-semibold">{nutzer?.vorname ?? t.home.beiYskar}</span>
-          </div>
-        </div>
-        <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text active:scale-95">
-          {Icon.Zahnrad}
-        </button>
-      </header>
+      {kopfzeile}
 
       {!gesichert && (
         <button type="button" onClick={onSichern}

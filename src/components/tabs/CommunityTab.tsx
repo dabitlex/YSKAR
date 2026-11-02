@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Muenze3D } from '@/components/ui/Marke';
-import { TopBar } from '@/components/ui/Chrome';
 import { ExternLink } from '@/components/ui/ExternLink';
 import { COMMUNITY, einladungsLink } from '@/lib/community';
 import { teilen } from '@/lib/telegram/webapp';
@@ -17,7 +16,12 @@ import { AktionZeile } from '@/components/aktion/Aktion';
  * Mini App mit einer Kennung (startapp=ref_...), die nur aus einem Stueck
  * der eigenen, ohnehin oeffentlichen Adresse besteht.
  */
-export default function CommunityTab({ adresse, onAktion }: { adresse: string | null; onAktion?: () => void }) {
+export default function CommunityTab({ adresse, kopfzeile, onAktion }: {
+  adresse: string | null;
+  /** Gemeinsame Kopfzeile (Statuszeichen, Titel, Zahnrad) aus AppShell. */
+  kopfzeile: React.ReactNode;
+  onAktion?: () => void;
+}) {
   const { t } = useT();
   const [kopiert, setKopiert] = useState(false);
 
@@ -47,7 +51,7 @@ export default function CommunityTab({ adresse, onAktion }: { adresse: string | 
 
   return (
     <>
-      <TopBar titel={t.community.titel} />
+      {kopfzeile}
 
       {/* Die Muenze dreht sich -- wie im Einstieg. Keine Karte, nur Buehne und Satz. */}
       <section className="rise relative flex flex-col items-center pb-2 pt-4 text-center">

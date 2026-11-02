@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useT } from '@/i18n';
+import { haptik } from '@/lib/telegram/webapp';
 
 /**
  * Rahmen der App: Navigationsleiste, Kopfzeile, Startbild.
@@ -17,8 +18,12 @@ const PUNKTE: { key: Tab; pfad: React.ReactNode }[] = [
 ];
 
 /**
- * Navigationsleiste wie in der YSKAR Wallet: eine schwebende Pille, der
+ * Navigationsleiste (YSKAR-System, Paket 2): eine schwebende Pille, der
  * aktive Bereich als blaue Pille mit Wort, die anderen nur als Symbol.
+ *
+ * Breite: Bei 360 px bleiben 324 px fuer die Pille; der laengste aktive
+ * Eintrag ("Community", ~130 px) plus drei Symbole a 56 px passt mit Luft.
+ * Der Abstand nach unten rechnet die Gestenleiste mit ein (rand-unten).
  */
 export function BottomNav({ aktiv, onWechsel }: {
   aktiv: Tab; onWechsel: (t: Tab) => void;
@@ -28,16 +33,17 @@ export function BottomNav({ aktiv, onWechsel }: {
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 rand-unten">
       <div className="mx-auto max-w-md px-[18px] pb-[22px]">
-      <div className="tabs pointer-events-auto flex h-16 items-center justify-between rounded-[32px] px-[7px]">
+      <div className="tabs pointer-events-auto flex h-16 items-center justify-between rounded-full px-[7px]">
         {PUNKTE.map(p => {
           const an = aktiv === p.key;
           return (
             <button
               key={p.key}
-              onClick={() => onWechsel(p.key)}
+              type="button"
+              onClick={() => { if (!an) haptik('auswahl'); onWechsel(p.key); }}
               aria-current={an ? 'page' : undefined}
               aria-label={name[p.key]}
-              className={`flex h-[50px] min-w-[56px] items-center justify-center gap-2 rounded-[25px] text-[14.5px] font-semibold
+              className={`flex h-[50px] min-w-[56px] items-center justify-center gap-2 rounded-full text-ys-klein font-semibold
                           transition-colors ${an ? 'bg-work px-5 text-white' : 'text-dim active:bg-raised'}`}
             >
               <svg viewBox="0 0 24 24" width={an ? 20 : 22} height={an ? 20 : 22} fill="none"

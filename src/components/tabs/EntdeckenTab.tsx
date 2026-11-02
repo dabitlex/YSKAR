@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Panel, GroupTitle, Notice, Icon, SubHeader } from '@/components/ui/Primitives';
-import { TopBar } from '@/components/ui/Chrome';
 import Artikel, { FARBE } from '@/components/Artikel';
 import { inhalte, type Neuigkeit } from '@/content/entdecken';
 import { useT } from '@/i18n';
@@ -30,9 +29,10 @@ const V6_DOKU = 'https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.m
 
 type Ansicht = { art: 'liste' } | { art: 'artikel'; slug: string } | { art: 'faq'; i: number } | { art: 'netz' } | { art: 'staerken' };
 
-export default function EntdeckenTab({ summary, decimals, symbol, onEinstellungen, meineAdresse }: {
+export default function EntdeckenTab({ summary, decimals, symbol, kopfzeile, meineAdresse }: {
   summary: Summary | null; decimals: number; symbol: string;
-  onEinstellungen: () => void;
+  /** Gemeinsame Kopfzeile (Statuszeichen, Titel, Zahnrad) aus AppShell. */
+  kopfzeile: React.ReactNode;
   meineAdresse: string | null;
 }) {
   const [ansicht, setAnsicht] = useState<Ansicht>({ art: 'liste' });
@@ -89,10 +89,7 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
 
   return (
     <>
-      <TopBar titel={t.rd.netz.titel} rechts={
-        <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-dim active:scale-95">{Icon.Zahnrad}</button>
-      } />
+      {kopfzeile}
 
       <NetzLive summary={summary} decimals={decimals} />
 

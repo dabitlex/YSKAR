@@ -2,7 +2,6 @@
 
 import { SicherungsHinweis } from '@/components/Sicherung';
 import { useEffect, useMemo, useState } from 'react';
-import { Icon } from '@/components/ui/Primitives';
 import type { Account, Wartend } from '@/hooks/useMining';
 import { useT } from '@/i18n';
 import { sucheAus } from '@/lib/api/suche';
@@ -70,14 +69,15 @@ function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
   return [...m.values()].sort((a, b) => b.height - a.height || (b.idx ?? 0) - (a.idx ?? 0));
 }
 
-export default function WalletTab({ account, symbol, decimals, address, hoehe,
-                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onSichern, onErhoehen }: {
+export default function WalletTab({ account, symbol, decimals, address, hoehe, kopfzeile,
+                                    onSenden, onScannen, onEmpfangen, onSichern, onErhoehen }: {
   account: (Account & { history?: HistoryEintrag[]; historyWeiter?: string | null; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
   /** Aktuelle Hoehe der Kette -- fuer "n Bloecke danach" in den Einzelheiten. */
   hoehe: number | null;
   onSenden: () => void; onScannen: () => void; onEmpfangen: () => void;
-  onEinstellungen: () => void;
+  /** Gemeinsame Kopfzeile (Statuszeichen, Titel, Zahnrad) aus AppShell. */
+  kopfzeile: React.ReactNode;
   /** Gesetzt, solange die Woerter nicht gesichert sind: zeigt den Hinweis. */
   onSichern?: () => void;
   /** Eine festhaengende eigene Zahlung mit hoeherer Gebuehr ersetzen. */
@@ -443,11 +443,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
 
   return (
     <>
-      <header className="relative mb-2 flex items-center justify-between">
-        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{t.wallet.titel}</h1>
-        <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-dim active:scale-95">{Icon.Zahnrad}</button>
-      </header>
+      {kopfzeile}
 
       {/* Guthaben: gross und mittig. Darunter wird bewusst nichts eingeblendet. */}
       <section aria-label={t.wallet.guthaben} className="rise relative flex flex-col items-center pb-2 pt-6 text-center">

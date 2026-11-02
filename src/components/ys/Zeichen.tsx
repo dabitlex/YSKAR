@@ -3,6 +3,9 @@
 import { useId } from 'react';
 import { useT } from '@/i18n';
 import { ZEICHEN_PFADE, ZEICHEN_VIEWBOX } from './zeichenPfade';
+import type { WalletStand, NetzStand, MiningStand } from './status';
+
+export type { WalletStand, NetzStand, MiningStand };
 
 /**
  * Das YSKAR-Zeichen -- das zentrale Markenelement der App.
@@ -33,10 +36,6 @@ export function YZeichen({ groesse = 32, farbe = 'marke', label }: {
     </svg>
   );
 }
-
-export type WalletStand = 'gesichert' | 'offen';
-export type NetzStand = 'verbunden' | 'getrennt';
-export type MiningStand = 'an' | 'aus';
 
 /** Farben der Baender -- gleiche Bedeutung wie ueberall in der App. */
 const FARBE = {
