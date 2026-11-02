@@ -22,7 +22,7 @@ export default function Ziffernfeld({ onTaste, zeichen }: {
       {REIHE.map(k => (
         <button key={k} type="button" onClick={() => onTaste(k)}
                 aria-label={k === 'komma' ? t.senden.komma : k === 'loeschen' ? t.senden.loeschen : undefined}
-                className="panel flex h-[50px] items-center justify-center !rounded-[16px] !shadow-none text-[22px] font-bold
+                className="ys-flaeche flex h-[50px] items-center justify-center !rounded-sm text-ys-abschnitt
                            transition-transform active:scale-95 active:bg-raised"
                 style={{ height: 'clamp(42px, 6.2dvh, 50px)' }}>
           {k === 'komma' ? zeichen : k === 'loeschen' ? Zeichen.Loeschen() : k}

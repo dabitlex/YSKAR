@@ -58,23 +58,23 @@ export default function Einnahmen({ tage, symbol, decimals, verborgen }: {
   };
 
   return (
-    <section aria-label={t.wallet.einnahmen} className="rise rise-2 mt-7 border-t border-line pt-4">
+    <section aria-label={t.wallet.einnahmen} className="rise rise-2 mt-7 border-t border-[rgb(var(--haar)/.12)] pt-4">
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-col gap-1">
           <Kappe>{gewaehlt ? name(gewaehlt.tag) : t.wallet.einnahmen}</Kappe>
-          <span className="tnum text-[26px] font-light leading-tight tracking-[-0.03em]">
+          <span className="tnum text-ys-seite font-light leading-tight">
             {zeigen(gewaehlt ? gewaehlt.wert : gesamt)}{' '}
-            <span className="font-mono text-[12px] text-dim">{symbol}</span>
+            <span className="font-mono text-ys-meta text-dim">{symbol}</span>
           </span>
           {gewaehlt && (
-            <span className="text-[12.5px] font-semibold text-dim">{t.wallet.miningBloecke(gewaehlt.bloecke)}</span>
+            <span className="text-ys-meta text-dim">{t.wallet.miningBloecke(gewaehlt.bloecke)}</span>
           )}
         </div>
-        <div role="group" aria-label={t.wallet.zeitraum} className="flex shrink-0 rounded-full border border-line p-[3px]">
+        <div role="group" aria-label={t.wallet.zeitraum} className="flex shrink-0 rounded-full border border-[rgb(var(--haar)/.12)] p-[3px]">
           {([7, 30] as const).map(n => (
             <button key={n} type="button" aria-pressed={spanne === n}
                     onClick={() => { setSpanne(n); setWahl(null); }}
-                    className={`h-[34px] min-w-[50px] rounded-full px-3 text-[12.5px] font-medium transition-colors ${
+                    className={`h-[34px] min-w-[50px] rounded-full px-3 text-ys-meta font-medium transition-colors ${
                       spanne === n ? 'bg-text text-ink' : 'text-dim'}`}>
               {n === 7 ? t.wallet.tage7 : t.wallet.tage30}
             </button>
@@ -101,21 +101,21 @@ export default function Einnahmen({ tage, symbol, decimals, verborgen }: {
       </div>
 
       {spanne === 7 ? (
-        <div aria-hidden="true" className="mt-[7px] grid text-center text-[11px] font-bold text-dim"
+        <div aria-hidden="true" className="mt-[7px] grid text-center text-[11px] text-dim"
              style={{ gridTemplateColumns: `repeat(${sicht.length}, minmax(0, 1fr))`, columnGap: 9 }}>
           {sicht.map(x => (
             // Nicht abschneiden: "Сегодня" ist breiter als die Spalte und darf
             // ein paar Pixel in den Rand ragen -- daneben ist Platz.
-            <span key={x.tag} className={`flex justify-center whitespace-nowrap ${x.tag === heute ? 'font-extrabold text-work' : ''}`}>
+            <span key={x.tag} className={`flex justify-center whitespace-nowrap ${x.tag === heute ? 'font-medium text-work' : ''}`}>
               {x.tag === heute ? t.wallet.heute : wochentag.format(alsDatum(x.tag))}
             </span>
           ))}
         </div>
       ) : (
-        <div aria-hidden="true" className="mt-[7px] flex justify-between text-[11px] font-bold text-dim">
+        <div aria-hidden="true" className="mt-[7px] flex justify-between text-[11px] text-dim">
           <span>{sicht[0] ? tagKurz.format(alsDatum(sicht[0].tag)) : ''}</span>
           {sicht.length > 1 && (sicht[sicht.length - 1].tag === heute
-            ? <span className="font-extrabold text-work">{t.wallet.heute}</span>
+            ? <span className="font-medium text-work">{t.wallet.heute}</span>
             : <span>{tagKurz.format(alsDatum(sicht[sicht.length - 1].tag))}</span>)}
         </div>
       )}

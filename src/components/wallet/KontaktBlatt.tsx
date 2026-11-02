@@ -45,25 +45,25 @@ export default function KontaktBlatt({ adresse, onSchliessen }: {
   return (
     <Blatt offen={!!adresse} onSchliessen={onSchliessen} grund="ink">
       <WKopf titel={vorhanden ? t.kontakt.bearbeiten : t.kontakt.neu} onSchliessen={onSchliessen} />
-      <div className="panel !rounded-[20px] flex items-center gap-3 px-3.5 py-3">
+      <div className="ys-flaeche !rounded-md flex items-center gap-3 px-3.5 py-3">
         <Gegenkachel adresse={a} size={40} />
-        <AdresseVierer adresse={a} className="min-w-0 flex-1 !text-[13px]" />
+        <AdresseVierer adresse={a} className="min-w-0 flex-1 !text-ys-klein" />
       </div>
       <form onSubmit={e => { e.preventDefault(); speichern(); }}>
-        <label htmlFor="kontaktname" className="mb-1.5 mt-4 block text-[13px] font-bold text-dim">{t.kontakt.name}</label>
+        <label htmlFor="kontaktname" className="mb-1.5 mt-4 block text-ys-klein text-dim">{t.kontakt.name}</label>
         <input id="kontaktname" ref={feld} value={eingabe} maxLength={NAME_MAX}
                onChange={e => setEingabe(e.target.value)}
                autoComplete="off" autoCorrect="off" enterKeyHint="done"
                placeholder={t.kontakt.platzhalter}
-               className="sunk w-full !rounded-[16px] px-4 py-3.5 text-[15px] font-semibold outline-none transition-colors focus:border-work placeholder:font-medium placeholder:text-faint" />
-        <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-dim">{t.kontakt.hinweis}</p>
+               className="sunk w-full !rounded-sm px-4 py-3.5 text-ys-fliess outline-none transition-colors focus:border-work placeholder:font-medium placeholder:text-faint" />
+        <p className="mt-2 text-ys-meta leading-relaxed text-dim">{t.kontakt.hinweis}</p>
         <div className="mt-5 space-y-2.5">
-          <Button type="submit" disabled={!eingabe.trim()} className="!rounded-[18px] !py-4 !font-extrabold">
+          <Button type="submit" disabled={!eingabe.trim()} className="!rounded-full !py-4 !font-semibold">
             {t.kontakt.speichern}
           </Button>
           {vorhanden && (
             <Button variant="risk" onClick={() => { kontaktEntfernen(a); onSchliessen(); }}
-                    className="!rounded-[18px] !py-4 !font-extrabold">
+                    className="!rounded-full !py-4 !font-semibold">
               {t.kontakt.entfernen}
             </Button>
           )}

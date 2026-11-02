@@ -71,44 +71,44 @@ export default function Detail({ eintrag, decimals, symbol, hoehe, onSchliessen 
           vor={ueberweisung ? <Gegenkachel adresse={gegen} size={48} /> : <MiningKachel size={48} />}
           oben={e.kind === 'in' ? t.wallet.dEmpfangenVon : e.kind === 'out' ? t.wallet.dGesendetAn : t.wallet.dMining}
           titel={ueberweisung
-            ? (gegenName ?? <span className="font-mono text-[16px] font-medium tracking-normal">{kurzAdresse(gegen, t.allgemein.unbekannt)}</span>)
+            ? (gegenName ?? <span className="font-mono text-ys-fliess font-medium tracking-normal">{kurzAdresse(gegen, t.allgemein.unbekannt)}</span>)
             : e.kind === 'pool' ? t.wallet.dPoolAnteil : t.wallet.dBlockreward}
           onSchliessen={onSchliessen} />
 
         <p className="tnum mt-[18px] flex flex-wrap items-baseline gap-x-2">
-          <span className={`font-extrabold leading-none tracking-[-0.04em] ${eingang ? 'text-proof' : 'text-text'}`}
+          <span className={`font-light leading-none tracking-[-0.04em] ${eingang ? 'text-proof' : 'text-text'}`}
                 style={{ fontSize: Math.max(26, Math.min(44, Math.floor(300 / ((betragGenau(e.amount, locale, decimals).length + 1) * 0.6)))) }}>
             {eingang ? '+' : '−'}{betragGenau(e.amount, locale, decimals)}
           </span>
-          <span className="text-[16px] font-extrabold text-dim">{symbol}</span>
+          <span className="text-ys-fliess font-medium text-dim">{symbol}</span>
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <span className="inline-flex h-[30px] items-center gap-1.5 rounded-full bg-proof/[.12] pl-2 pr-3 text-[12.5px] font-extrabold text-proof">
+          <span className="inline-flex h-[30px] items-center gap-1.5 rounded-full bg-proof/[.12] pl-2 pr-3 text-ys-meta font-medium text-proof">
             {Zeichen.Haken()}{t.wallet.bestaetigtKurz}
           </span>
-          <span className="tnum text-[13px] font-semibold text-dim">
+          <span className="tnum text-ys-klein text-dim">
             {t.wallet.blockNr(zahl(e.height))}{danach != null && ` · ${t.wallet.bloeckeDanach(danach)}`}
           </span>
         </div>
 
-        <section className="panel mt-4 flex flex-col !rounded-[24px] px-[18px] py-1">
+        <section className="ys-flaeche mt-4 flex flex-col !rounded-lg px-[18px] py-1">
           {ueberweisung && (
             <div className="pb-3.5 pt-3">
               <div className="flex items-center justify-between gap-2.5">
-                <span className="text-[12.5px] font-bold text-dim">{eingang ? t.wallet.dAbsender : t.wallet.dEmpfaenger}</span>
+                <span className="text-ys-meta text-dim">{eingang ? t.wallet.dAbsender : t.wallet.dEmpfaenger}</span>
                 {gegen && (
                   <button type="button" onClick={() => kopiere('adresse', gegen)}
-                          className="-my-2 -mr-2 flex h-11 items-center gap-1.5 px-2 text-[13px] font-extrabold text-work">
+                          className="-my-2 -mr-2 flex h-11 items-center gap-1.5 px-2 text-ys-klein font-medium text-cyan">
                     {Zeichen.Kopieren(16)}{kopiert === 'adresse' ? t.allgemein.Kopiert : t.allgemein.Kopieren}
                   </button>
                 )}
               </div>
               {gegen
                 ? <AdresseVierer adresse={gegen} className="mt-2" />
-                : <p className="mt-2 text-[13.5px] font-semibold text-dim">{t.allgemein.unbekannt}</p>}
+                : <p className="mt-2 text-ys-klein text-dim">{t.allgemein.unbekannt}</p>}
               {gegen && (
                 <button type="button" onClick={() => setKontakt(gegen)}
-                        className="-mb-1.5 mt-1.5 flex h-11 items-center gap-2 text-[13px] font-extrabold text-work">
+                        className="-mb-1.5 mt-1.5 flex h-11 items-center gap-2 text-ys-klein font-medium text-cyan">
                   {gegenName ? Zeichen.Stift() : Zeichen.Person(17)}
                   {gegenName ? t.kontakt.bearbeiten : t.kontakt.alsKontakt}
                 </button>
@@ -124,25 +124,25 @@ export default function Detail({ eintrag, decimals, symbol, hoehe, onSchliessen 
             <WertZeile label={t.wallet.dAufgeteilt}>{t.wallet.adressen(e.shares!)}</WertZeile>
           )}
           <button type="button" aria-expanded={technik} onClick={() => setTechnik(x => !x)}
-                  className="flex min-h-[56px] w-full items-center justify-between gap-3 border-t border-line py-1.5 text-left">
+                  className="flex min-h-[56px] w-full items-center justify-between gap-3 border-t border-[rgb(var(--haar)/.12)] py-1.5 text-left">
             <span className="flex flex-col gap-0.5">
-              <span className="text-[13.5px] font-extrabold">{t.wallet.technik}</span>
-              <span className="text-[12.5px] font-semibold text-dim">{t.wallet.technikText}</span>
+              <span className="text-ys-klein font-medium">{t.wallet.technik}</span>
+              <span className="text-ys-meta text-dim">{t.wallet.technikText}</span>
             </span>
             <span className={`shrink-0 text-dim transition-transform ${technik ? 'rotate-180' : ''}`}>{Zeichen.Unten()}</span>
           </button>
           {technik && (
             <div className="pb-3">
               <div className="flex items-center justify-between gap-2.5">
-                <span className="text-[12.5px] font-bold text-dim">{t.wallet.txid}</span>
+                <span className="text-ys-meta text-dim">{t.wallet.txid}</span>
                 <button type="button" onClick={() => kopiere('txid', e.txid)}
-                        className="-my-2 -mr-2 flex h-11 items-center gap-1.5 px-2 text-[13px] font-extrabold text-work">
+                        className="-my-2 -mr-2 flex h-11 items-center gap-1.5 px-2 text-ys-klein font-medium text-cyan">
                   {Zeichen.Kopieren(16)}{kopiert === 'txid' ? t.allgemein.Kopiert : t.allgemein.Kopieren}
                 </button>
               </div>
-              <p className="mt-1 break-all font-mono text-[12.5px] leading-[1.5] text-dim">{e.txid}</p>
+              <p className="mt-1 break-all font-mono text-ys-meta leading-[1.5] text-dim">{e.txid}</p>
               {e.idx != null && (
-                <p className="tnum mt-2 text-[12.5px] font-semibold text-dim">{t.wallet.position(zahl(e.height), e.idx)}</p>
+                <p className="tnum mt-2 text-ys-meta text-dim">{t.wallet.position(zahl(e.height), e.idx)}</p>
               )}
             </div>
           )}
@@ -150,11 +150,11 @@ export default function Detail({ eintrag, decimals, symbol, hoehe, onSchliessen 
 
         <div className="mt-4 space-y-2.5">
           <ExternLink href={`${EXPLORER_URL}#block-${e.height}`}
-                      className="flex h-[54px] items-center justify-center gap-2 rounded-[18px] border border-line bg-surface text-[15px] font-extrabold text-text">
+                      className="flex h-14 items-center justify-center gap-2 rounded-full border border-[rgb(var(--haar)/.24)] text-ys-fliess font-semibold text-text">
             {t.wallet.imExplorer}{Zeichen.Extern(17)}
           </ExternLink>
           <button type="button" onClick={onSchliessen}
-                  className="h-[54px] w-full rounded-[18px] bg-raised text-[15px] font-extrabold active:scale-[.985]">
+                  className="h-14 w-full rounded-full border border-[rgb(var(--haar)/.24)] text-ys-fliess font-semibold active:scale-[.985]">
             {t.allgemein.schliessen}
           </button>
         </div>

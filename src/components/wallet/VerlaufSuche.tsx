@@ -80,7 +80,7 @@ function Chip({ an, aktiv, onClick, children, label }: {
 }) {
   return (
     <button onClick={onClick} aria-pressed={an} aria-label={label}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-[11px] py-1.5 text-[12px] font-extrabold transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-[11px] py-1.5 text-ys-meta font-medium transition-colors ${
               an ? 'bg-work text-white' : aktiv ? 'bg-work/10 text-work' : 'bg-raised text-dim'}`}>
       {children}
     </button>
@@ -101,12 +101,12 @@ export function SuchLeiste({ eingabe, onEingabe, zeitraum, onZeitraum, onDatum }
 
   return (
     <div className="pb-1.5 pt-2">
-      <label className="flex items-center gap-2 rounded-[14px] border-[1.5px] border-work bg-sunk px-3 py-[9px] text-faint">
+      <label className="flex items-center gap-2 rounded-sm border-[1.5px] border-work bg-sunk px-3 py-[9px] text-faint">
         <Lupe g={16} />
         <input ref={feld} value={eingabe} onChange={e => onEingabe(e.target.value)}
                placeholder={t.wallet.suchePlatzhalter} enterKeyHint="search"
                autoCapitalize="off" autoCorrect="off" spellCheck={false} maxLength={100}
-               className="min-w-0 flex-1 bg-transparent font-mono text-[13px] text-text outline-none focus-visible:outline-none placeholder:font-sans placeholder:text-[13px] placeholder:font-semibold placeholder:text-faint" />
+               className="min-w-0 flex-1 bg-transparent font-mono text-ys-klein text-text outline-none focus-visible:outline-none placeholder:font-sans placeholder:text-ys-klein placeholder: placeholder:text-faint" />
         {eingabe && (
           <button onClick={() => { onEingabe(''); feld.current?.focus(); }} aria-label={t.wallet.sucheLeeren}
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-raised text-dim">
@@ -183,14 +183,14 @@ export function ZeitraumBlatt({ offen, zeitraum, onSchliessen, onAnwenden }: {
   return (
     <Blatt offen={offen} onSchliessen={onSchliessen} titel={t.wallet.zeitraum}
            rechts={
-             <button onClick={() => { onAnwenden(IMMER); }} className="text-[13.5px] font-extrabold text-work">
+             <button onClick={() => { onAnwenden(IMMER); }} className="text-ys-klein font-medium text-cyan">
                {t.wallet.zuruecksetzen}
              </button>
            }>
       <div className="mb-4 grid grid-cols-2 gap-2">
         {schnell.map(s => (
           <button key={s.z.art} onClick={() => setWahl(s.z)} aria-pressed={wahl.art === s.z.art}
-                  className={`rounded-[14px] px-2 py-3 text-[13.5px] font-extrabold transition-colors ${
+                  className={`rounded-sm px-2 py-3 text-ys-klein font-medium transition-colors ${
                     wahl.art === s.z.art ? 'bg-work/10 text-work ring-[1.5px] ring-inset ring-work' : 'bg-raised text-dim'}`}>
             {s.text}
           </button>
@@ -199,19 +199,19 @@ export function ZeitraumBlatt({ offen, zeitraum, onSchliessen, onAnwenden }: {
       <div className="grid grid-cols-2 gap-2.5">
         {(['von', 'bis'] as const).map(feld => (
           <label key={feld} className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-[.1em] text-faint">
+            <span className="text-[11px] font-medium uppercase tracking-[.1em] text-faint">
               {feld === 'von' ? t.wallet.vonDatum : t.wallet.bisDatum}
             </span>
             <input type="date" max={heute}
                    value={feld === 'von' ? vonText : bisText}
                    onChange={e => setzeTag(feld, e.target.value)}
-                   className="sunk w-full min-w-0 px-3 py-[11px] text-[14px] font-bold text-text outline-none focus:border-work" />
+                   className="sunk w-full min-w-0 px-3 py-[11px] text-ys-klein text-text outline-none focus:border-work" />
           </label>
         ))}
       </div>
-      <p className="mb-4 mt-2.5 text-[12px] font-semibold leading-relaxed text-faint">{t.wallet.zeitraumHinweis}</p>
+      <p className="mb-4 mt-2.5 text-ys-meta leading-relaxed text-faint">{t.wallet.zeitraumHinweis}</p>
       <button onClick={() => onAnwenden(wahl)} disabled={!gueltig}
-              className="w-full rounded-[16px] bg-work py-3.5 text-[15px] font-extrabold text-white disabled:opacity-50">
+              className="w-full rounded-sm bg-work py-3.5 text-ys-fliess font-medium text-white disabled:opacity-50">
         {t.wallet.anwenden}
       </button>
     </Blatt>

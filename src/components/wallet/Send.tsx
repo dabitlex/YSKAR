@@ -472,11 +472,11 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
 
   const zielName = name(adresse);
   const wer = zielName
-    ? <span className="truncate text-[14.5px] font-extrabold">{zielName}</span>
-    : <span className="truncate font-mono text-[13.5px] font-medium">{kurzAdresse(adresse, '')}</span>;
+    ? <span className="truncate text-ys-fliess font-medium">{zielName}</span>
+    : <span className="truncate font-mono text-ys-klein font-medium">{kurzAdresse(adresse, '')}</span>;
   const rahmen = 'flex min-h-[min(700px,calc(92dvh_-_64px))] flex-col';
-  const haupt = 'flex h-14 w-full shrink-0 items-center justify-center gap-2.5 rounded-[18px] bg-work text-[15px] font-extrabold text-white ' +
-    'shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)] transition-[transform,opacity] active:scale-[.985] disabled:opacity-45 disabled:shadow-none disabled:active:scale-100';
+  const haupt = 'flex h-14 w-full shrink-0 items-center justify-center gap-2.5 rounded-full bg-work text-ys-fliess font-semibold text-white ' +
+    ' transition-[transform,opacity] active:scale-[.985] disabled:opacity-45 disabled:shadow-none disabled:active:scale-100';
 
   // ------------------------------------------------------------- fertig
   if (schritt === 'fertig') {
@@ -493,37 +493,37 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     return (
       <div className={rahmen}>
         <div className="mt-10 flex flex-col items-center gap-2 text-center">
-          <span aria-hidden="true" className="zoom flex h-[72px] w-[72px] items-center justify-center rounded-full bg-proof text-white shadow-[0_14px_28px_-14px_rgb(var(--proof)/.8)]">
+          <span aria-hidden="true" className="zoom flex h-[72px] w-[72px] items-center justify-center rounded-full bg-proof text-ink">
             {Zeichen.Haken(32, 2.4)}
           </span>
-          <h1 className="rise mt-3 text-[26px] font-extrabold tracking-[-0.02em]">{t.senden.gesendet}</h1>
-          <p className="rise rise-1 max-w-[300px] text-[15px] font-medium leading-[1.5] text-dim">
-            <strong className="font-extrabold text-text">{genau(ergebnis?.betrag ?? einheiten)} {symbol}</strong>{' '}
+          <h1 className="rise mt-3 text-ys-seite font-semibold">{t.senden.gesendet}</h1>
+          <p className="rise rise-1 max-w-[300px] text-ys-fliess leading-[1.5] text-dim">
+            <strong className="font-medium text-text">{genau(ergebnis?.betrag ?? einheiten)} {symbol}</strong>{' '}
             {t.senden.unterwegsAn}{' '}
             {anName
-              ? <strong className="font-extrabold text-text">{anName}</strong>
-              : <span className="whitespace-nowrap font-mono text-[13.5px]">{kurzAdresse(an, '')}</span>}
+              ? <strong className="font-medium text-text">{anName}</strong>
+              : <span className="whitespace-nowrap font-mono text-ys-klein">{kurzAdresse(an, '')}</span>}
           </p>
         </div>
 
-        <section aria-label={t.senden.stand} className="panel rise rise-2 mt-[26px] flex flex-col !rounded-[24px] px-[18px] pb-4 pt-[18px]">
+        <section aria-label={t.senden.stand} className="ys-flaeche rise rise-2 mt-[26px] flex flex-col !rounded-lg px-[18px] pb-4 pt-[18px]">
           {stufen.map((s, i) => (
             <div key={i} className="flex gap-3.5">
               <div aria-hidden="true" className="flex shrink-0 flex-col items-center">
                 {s.stand === 'fertig' ? (
-                  <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-proof text-white">{Zeichen.Haken(14, 3)}</span>
+                  <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-proof text-ink">{Zeichen.Haken(14, 3)}</span>
                 ) : s.stand === 'dran' ? (
                   <span className="puls h-[26px] w-[26px] rounded-full border-[3px] border-work bg-work/10" />
                 ) : (
-                  <span className="h-[26px] w-[26px] rounded-full border-2 border-line bg-surface" />
+                  <span className="h-[26px] w-[26px] rounded-full border-2 border-[rgb(var(--haar)/.12)] bg-surface" />
                 )}
                 {i < stufen.length - 1 && (
-                  <span className={`min-h-[22px] w-0.5 flex-1 ${s.stand === 'fertig' ? 'bg-proof' : 'bg-line'}`} />
+                  <span className={`min-h-[22px] w-0.5 flex-1 ${s.stand === 'fertig' ? 'bg-proof' : 'bg-[rgb(var(--haar)/.18)]'}`} />
                 )}
               </div>
               <div className={`flex flex-col gap-0.5 ${i < stufen.length - 1 ? 'pb-[18px]' : ''}`}>
-                <span className={`text-[14.5px] font-extrabold ${s.stand === 'offen' ? 'text-dim' : ''}`}>{s.titel}</span>
-                <span className="text-[12.5px] font-semibold text-dim">{s.text}</span>
+                <span className={`text-ys-fliess font-medium ${s.stand === 'offen' ? 'text-dim' : ''}`}>{s.titel}</span>
+                <span className="text-ys-meta text-dim">{s.text}</span>
               </div>
             </div>
           ))}
@@ -532,7 +532,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         <div className="mt-auto flex flex-col gap-2.5 pt-6">
           {!anName && (
             <button type="button" onClick={() => setKontaktBlatt(an)}
-                    className="flex h-[54px] w-full items-center justify-center gap-2 rounded-[18px] border border-line bg-surface text-[15px] font-extrabold active:scale-[.985]">
+                    className="flex h-14 w-full items-center justify-center gap-2 rounded-full border border-[rgb(var(--haar)/.24)] text-ys-fliess font-semibold active:scale-[.985]">
               {Zeichen.Person()}{t.kontakt.alsKontakt}
             </button>
           )}
@@ -552,37 +552,37 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
                rechts={ersetzen ? undefined : <Schritte schritt={3} />} />
         {ersetzen && <div className="mb-3"><Notice tone="work">{ersetzen.abgelehnt ? t.wallet.abgelehntText : t.senden.erhoehenText}</Notice></div>}
 
-        <section className="panel rise !rounded-[24px] px-[18px] pb-1.5 pt-4">
+        <section className="ys-flaeche rise !rounded-lg px-[18px] pb-1.5 pt-4">
           <Kappe>{t.senden.duSendest}</Kappe>
           <p className="tnum mt-1 flex flex-wrap items-baseline gap-x-[7px]">
-            <span className="font-extrabold leading-[1.1] tracking-[-0.03em]"
+            <span className="font-normal leading-[1.1] tracking-[-0.03em]"
                   style={{ fontSize: Math.max(22, Math.min(36, Math.floor(280 / (genau(einheiten).length * 0.6)))) }}>
               {genau(einheiten)}
             </span>
-            <span className="text-[15px] font-extrabold text-dim">{symbol}</span>
+            <span className="text-ys-fliess font-medium text-dim">{symbol}</span>
           </p>
 
-          <div className="mt-3.5 border-t border-line pt-3.5">
+          <div className="mt-3.5 border-t border-[rgb(var(--haar)/.12)] pt-3.5">
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex min-w-0 items-center gap-2.5">
                 <Gegenkachel adresse={adresse} size={34} />
                 <div className="flex min-w-0 flex-col">
                   <Kappe>{t.senden.an}</Kappe>
-                  {zielName && <span className="truncate text-[14.5px] font-extrabold">{zielName}</span>}
+                  {zielName && <span className="truncate text-ys-fliess font-medium">{zielName}</span>}
                 </div>
               </div>
               {bekannt === 'nein' ? (
-                <span className="warte inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-[11px] text-[12px] font-extrabold">
+                <span className="warte inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-[11px] text-ys-meta font-medium">
                   {Zeichen.Warnung()}{t.senden.neueAdresse}
                 </span>
               ) : bekannt === 'ja' ? (
-                <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-proof/[.12] pl-2 pr-[11px] text-[12px] font-extrabold text-proof">
+                <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-proof/[.12] pl-2 pr-[11px] text-ys-meta font-medium text-proof">
                   {Zeichen.Haken(14)}{t.senden.bekannt}
                 </span>
               ) : null}
             </div>
-            <AdresseVierer adresse={adresse} gross className="mt-2.5 rounded-[16px] bg-raised px-3.5 py-3" />
-            <p className={`mt-2 text-[12.5px] font-semibold leading-[1.45] ${bekannt === 'nein' ? 'warte-text' : 'text-dim'}`}>
+            <AdresseVierer adresse={adresse} gross className="mt-2.5 rounded-sm bg-raised px-3.5 py-3" />
+            <p className={`mt-2 text-ys-meta leading-[1.45] ${bekannt === 'nein' ? 'warte-text' : 'text-dim'}`}>
               {bekannt === 'nein' ? t.senden.neuText : bekannt === 'ja' ? t.senden.bekanntText : t.senden.pruefText}
               {gescannt && ` ${t.senden.perScan}`}
             </p>
@@ -603,7 +603,7 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         {!bereit && !(fassungUnbekannt && !marktFehlt) ? (
           <div className="mt-3"><Notice tone="risk">{wechselPause ? t.senden.wechselPause : fassungMeldung ? t.senden.fassungUnbekannt : staub ? t.senden.staub : t.senden.zuViel(fmtGebuehr(gebuehr))}</Notice></div>
         ) : (
-          <p className="rise rise-1 mx-1 mt-3 text-[12.5px] font-semibold leading-[1.45] text-dim">{t.senden.warnung}</p>
+          <p className="rise rise-1 mx-1 mt-3 text-ys-meta leading-[1.45] text-dim">{t.senden.warnung}</p>
         )}
 
         {bio && !pinManuell ? (
@@ -613,17 +613,17 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
               {Zeichen.Finger()}{busy ? t.senden.signiert : t.senden.mitBio}
             </button>
             <button type="button" onClick={() => { setFehler(null); setPinManuell(true); }}
-                    className="mt-1 h-11 text-[13.5px] font-extrabold text-work">
+                    className="mt-1 h-11 text-ys-klein font-medium text-cyan">
               {t.senden.pinStatt}
             </button>
           </div>
         ) : (
           <form className="mt-auto flex flex-col pt-5" onSubmit={e => { e.preventDefault(); if (pin.length === 6 && !busy && bereit) senden(); }}>
-            <label htmlFor="spin" className="mb-1.5 block text-[13px] font-bold text-dim">{t.senden.pinSignieren}</label>
+            <label htmlFor="spin" className="mb-1.5 block text-ys-klein text-dim">{t.senden.pinSignieren}</label>
             <input
               id="spin" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} autoFocus
               onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-              className="tnum sunk w-full !rounded-[16px] px-4 py-3.5 text-center font-mono text-xl
+              className="tnum sunk w-full !rounded-sm px-4 py-3.5 text-center font-mono text-xl
                          tracking-[0.45em] outline-none transition-colors focus:border-work"
             />
             {fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
@@ -644,56 +644,56 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
       <div className={rahmen}>
         <WKopf titel={t.senden.betrag} onZurueck={() => setSchritt('empfaenger')} rechts={<Schritte schritt={2} />} />
 
-        <div className="panel flex items-center gap-3 !rounded-[18px] py-2 pl-3 pr-1.5">
+        <div className="ys-flaeche flex items-center gap-3 !rounded-md py-2 pl-3 pr-1.5">
           <Gegenkachel adresse={adresse} size={40} />
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-            <span className="text-[11.5px] font-bold text-dim">{t.senden.an}</span>
+            <span className="text-ys-meta text-dim">{t.senden.an}</span>
             {wer}
           </div>
           <button type="button" onClick={() => setSchritt('empfaenger')}
-                  className="h-11 shrink-0 px-3 text-[13px] font-extrabold text-work">{t.senden.aendern}</button>
+                  className="h-11 shrink-0 px-3 text-ys-klein font-medium text-cyan">{t.senden.aendern}</button>
         </div>
 
         <div className="mt-[18px] flex flex-col items-center gap-1.5 text-center">
           <p className="tnum flex items-baseline gap-2" aria-live="polite">
-            <span className={`font-extrabold leading-none tracking-[-0.04em] ${anzeige ? '' : 'text-faint'}`} style={{ fontSize: groesse }}>
+            <span className={`font-light leading-none tracking-[-0.05em] ${anzeige ? '' : 'text-faint'}`} style={{ fontSize: groesse }}>
               {anzeige || '0'}
             </span>
-            <span className="text-[18px] font-extrabold text-dim">{symbol}</span>
+            <span className="font-mono text-ys-zeile text-dim">{symbol}</span>
           </p>
-          <p className="tnum text-[13px] font-semibold text-dim">{t.senden.verfuegbar(betragText(guthaben, locale, decimals), symbol)}</p>
+          <p className="tnum text-ys-klein text-dim">{t.senden.verfuegbar(betragText(guthaben, locale, decimals), symbol)}</p>
           {einheiten > 0n && !reicht ? (
-            <p className="text-[12.5px] font-bold text-risk">{t.senden.zuViel(fmtGebuehr(gebuehr))}</p>
+            <p className="text-ys-meta text-risk">{t.senden.zuViel(fmtGebuehr(gebuehr))}</p>
           ) : staub ? (
-            <p className="text-[12.5px] font-bold text-risk">{t.senden.staub}</p>
+            <p className="text-ys-meta text-risk">{t.senden.staub}</p>
           ) : wechselPause ? (
-            <p className="text-[12.5px] font-bold text-risk">{t.senden.wechselPause}</p>
+            <p className="text-ys-meta text-risk">{t.senden.wechselPause}</p>
           ) : fassungMeldung ? (
-            <p className="text-[12.5px] font-bold text-risk">{t.senden.fassungUnbekannt}</p>
+            <p className="text-ys-meta text-risk">{t.senden.fassungUnbekannt}</p>
           ) : ausCode ? (
-            <p className="text-[12.5px] font-semibold text-work">{t.senden.ausCode}</p>
+            <p className="text-ys-meta text-work">{t.senden.ausCode}</p>
           ) : null}
         </div>
 
         <div role="group" aria-label={t.senden.anteil} className="mt-3 flex justify-center gap-2">
           {([25, 50, 100] as const).map(p => (
             <button key={p} type="button" onClick={() => setzeAnteil(p)} aria-pressed={p === 100 && alles}
-                    className={`h-10 rounded-[13px] px-4 text-[13px] font-extrabold transition-colors ${
-                      p === 100 && alles ? 'bg-work/10 text-work' : 'bg-raised text-dim'}`}>
+                    className={`h-10 rounded-full border px-4 text-ys-klein transition-colors ${
+                      p === 100 && alles ? 'border-work bg-work/10 text-text' : 'border-[rgb(var(--haar)/.18)] text-dim'}`}>
               {p === 100 ? t.senden.alles : `${p} %`}
             </button>
           ))}
         </div>
 
-        <div className="panel mt-3.5 flex h-[50px] items-center gap-2.5 !rounded-[16px] px-3.5 focus-within:border-work">
-          <label htmlFor="notiz" className="shrink-0 text-[13px] font-bold text-dim">{t.senden.notiz}</label>
+        <div className="ys-flaeche mt-3.5 flex h-[50px] items-center gap-2.5 !rounded-sm px-3.5 focus-within:border-work">
+          <label htmlFor="notiz" className="shrink-0 text-ys-klein text-dim">{t.senden.notiz}</label>
           <input id="notiz" value={notiz} onChange={e => { setNotiz(notizKuerzen(e.target.value)); setNotizAusCode(false); }}
                  autoComplete="off" enterKeyHint="done"
-                 className="h-11 min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none focus-visible:outline-none" />
-          <span className="tnum shrink-0 text-[12px] font-semibold text-dim">{notizBytes(notiz)} / {NOTIZ_BYTES}</span>
+                 className="h-11 min-w-0 flex-1 bg-transparent text-ys-klein outline-none focus-visible:outline-none" />
+          <span className="tnum shrink-0 text-ys-meta text-dim">{notizBytes(notiz)} / {NOTIZ_BYTES}</span>
         </div>
 
-        <div className="mt-2.5 flex justify-between gap-3 text-[13px] font-semibold">
+        <div className="mt-2.5 flex justify-between gap-3 text-ys-klein">
           <span className="text-dim">{t.senden.netzgebuehr}</span>
           <span className="tnum text-right">
             {fmtGebuehr(gebuehr)} {symbol} · {zielBlock === 1 ? t.senden.naechsterKurz : t.senden.inBloeckenKurz(zielBlock)}
@@ -705,16 +705,16 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         */}
         {markt?.andrang && (
           <div className="mt-2">
-            <div className="flex overflow-hidden rounded-[13px] bg-raised p-[3px]">
+            <div className="flex overflow-hidden rounded-sm bg-raised p-[3px]">
               {(['langsam', 'normal', 'schnell'] as const).map(k => (
                 <button key={k} type="button" onClick={() => setStufe(k)} aria-pressed={stufe === k}
-                        className={`h-9 flex-1 rounded-[10px] text-[12.5px] font-extrabold capitalize transition-colors ${
+                        className={`h-9 flex-1 rounded-[10px] text-ys-meta font-medium transition-colors ${
                           stufe === k ? 'bg-surface text-text shadow-sm' : 'text-dim'}`}>
                   {t.senden.stufe[k]}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[12px] font-medium leading-relaxed text-faint">
+            <p className="mt-1.5 text-ys-meta font-medium leading-relaxed text-faint">
               {t.senden.warten(markt.wartend)} · {t.senden.geschaetzt}
             </p>
           </div>
@@ -761,17 +761,17 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
     <div className={rahmen}>
       <WKopf titel={t.senden.titel} onSchliessen={onAbbruch} rechts={<Schritte schritt={1} />} />
 
-      <label htmlFor="ziel" className="block text-[13px] font-bold text-dim">{t.senden.empfaenger}</label>
-      <div className="panel mt-[7px] flex h-[58px] items-center gap-1 !rounded-[18px] pl-4 pr-1.5 transition-colors focus-within:border-work">
+      <label htmlFor="ziel" className="block text-ys-klein text-dim">{t.senden.empfaenger}</label>
+      <div className="ys-flaeche mt-[7px] flex h-[58px] items-center gap-1 !rounded-md pl-4 pr-1.5 transition-colors focus-within:border-work">
         <input
           id="ziel" value={ziel} onChange={e => { setZiel(e.target.value); empfaengerWechsel(); }}
           autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false}
           placeholder={t.senden.platzhalter}
-          className="h-11 min-w-0 flex-1 bg-transparent font-mono text-[14px] outline-none focus-visible:outline-none
+          className="h-11 min-w-0 flex-1 bg-transparent font-mono text-ys-klein outline-none focus-visible:outline-none
                      placeholder:text-faint"
         />
         {!eingabe && (
-          <button type="button" onClick={einfuegen} className="h-11 shrink-0 px-2.5 text-[13px] font-extrabold text-work">
+          <button type="button" onClick={einfuegen} className="h-11 shrink-0 px-2.5 text-ys-klein font-medium text-cyan">
             {t.senden.einfuegen}
           </button>
         )}
@@ -783,24 +783,24 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           </button>
         )}
         <button type="button" onClick={() => setScanner(true)} aria-label={t.senden.scanAria}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-work/10 text-work active:scale-95">
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-work/10 text-work active:scale-95">
           {Zeichen.Scan(20)}
         </button>
       </div>
       {einfuegeFehler ? (
-        <p className="mt-1.5 text-[12.5px] font-bold text-risk">{einfuegeFehler}</p>
+        <p className="mt-1.5 text-ys-meta text-risk">{einfuegeFehler}</p>
       ) : eigene ? (
-        <p className="mt-1.5 text-[12.5px] font-bold text-risk">{t.senden.eigene}</p>
+        <p className="mt-1.5 text-ys-meta text-risk">{t.senden.eigene}</p>
       ) : zuFrueh ? (
-        <p className="mt-1.5 text-[12.5px] font-bold text-risk">{t.senden.adresseAbV6}</p>
+        <p className="mt-1.5 text-ys-meta text-risk">{t.senden.adresseAbV6}</p>
       ) : zielGueltig ? (
-        <p className="mt-1.5 text-[12.5px] font-bold text-proof">
+        <p className="mt-1.5 text-ys-meta text-proof">
           {zielName ? `✓ ${zielName}` : gescannt ? t.senden.gueltigScan : t.senden.gueltig}
         </p>
       ) : eingabe && !suchtName && eingabe.length >= 42 ? (
-        <p className="mt-1.5 text-[12.5px] font-bold text-risk">{t.senden.ungueltig}</p>
+        <p className="mt-1.5 text-ys-meta text-risk">{t.senden.ungueltig}</p>
       ) : suchtName && kontaktListe.length === 0 ? (
-        <p className="mt-1.5 text-[12.5px] font-bold text-dim">{t.senden.keinKontakt}</p>
+        <p className="mt-1.5 text-ys-meta text-dim">{t.senden.keinKontakt}</p>
       ) : null}
 
       {kontaktListe.length > 0 && (
@@ -808,19 +808,19 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
           <div className="mb-1 mt-5 flex items-center justify-between">
             <Kappe als="h2">{t.kontakt.titel}</Kappe>
             <button type="button" onClick={() => setKontakteBearbeiten(b => !b)} aria-pressed={kontakteBearbeiten}
-                    className="-my-2 h-9 px-1 text-[12.5px] font-extrabold text-work">
+                    className="-my-2 h-9 px-1 text-ys-klein text-cyan">
               {kontakteBearbeiten ? t.allgemein.fertig : t.kontakt.bearbeitenKurz}
             </button>
           </div>
-          <ul className="panel flex flex-col !rounded-[20px] px-3.5">
+          <ul className="ys-flaeche flex flex-col !rounded-md px-3.5">
             {kontaktListe.map(([adr, n], i) => (
               <li key={adr}>
                 <button type="button" onClick={() => kontakteBearbeiten ? setKontaktBlatt(adr) : waehle(adr)}
-                        className={`flex min-h-[62px] w-full items-center gap-3 py-2 text-left active:opacity-70 ${i ? 'border-t border-line' : ''}`}>
+                        className={`flex min-h-[62px] w-full items-center gap-3 py-2 text-left active:opacity-70 ${i ? 'border-t border-[rgb(var(--haar)/.12)]' : ''}`}>
                   <Gegenkachel adresse={adr} size={40} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-[14.5px] font-extrabold">{n}</span>
-                    <span className="truncate font-mono text-[12px] text-dim">{kurzAdresse(adr, '')}</span>
+                    <span className="truncate text-ys-fliess font-medium">{n}</span>
+                    <span className="truncate font-mono text-ys-meta text-dim">{kurzAdresse(adr, '')}</span>
                   </span>
                   <span className="shrink-0 text-dim">{kontakteBearbeiten ? Zeichen.Stift() : Zeichen.Rechts()}</span>
                 </button>
@@ -833,15 +833,15 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
       {zuletzt.length > 0 && (
         <>
           <Kappe als="h2" className="mb-1 mt-5 block">{t.senden.zuletzt}</Kappe>
-          <ul className="panel flex flex-col !rounded-[20px] px-3.5">
+          <ul className="ys-flaeche flex flex-col !rounded-md px-3.5">
             {zuletzt.map((e, i) => (
               <li key={e.counterparty}>
                 <button type="button" onClick={() => waehle(e.counterparty!)}
-                        className={`flex min-h-[62px] w-full items-center gap-3 py-2 text-left active:opacity-70 ${i ? 'border-t border-line' : ''}`}>
+                        className={`flex min-h-[62px] w-full items-center gap-3 py-2 text-left active:opacity-70 ${i ? 'border-t border-[rgb(var(--haar)/.12)]' : ''}`}>
                   <Gegenkachel adresse={e.counterparty} size={40} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate font-mono text-[13.5px] font-medium">{kurzAdresse(e.counterparty, '')}</span>
-                    <span className="tnum truncate text-[12.5px] font-semibold text-dim">
+                    <span className="truncate font-mono text-ys-klein font-medium">{kurzAdresse(e.counterparty, '')}</span>
+                    <span className="tnum truncate text-ys-meta text-dim">
                       {t.senden.zuletztZeile(tagText(e.timestamp), betragText(e.amount, locale, decimals), symbol)}
                     </span>
                   </span>
@@ -853,9 +853,9 @@ export default function Send({ account, decimals, symbol, scanSofort, onGesendet
         </>
       )}
 
-      <div className="mt-4 flex gap-[11px] rounded-[18px] bg-raised px-3.5 py-[13px]">
+      <div className="mt-4 flex gap-3 rounded-sm border border-work/20 bg-work/[.06] px-4 py-3">
         <span className="mt-px shrink-0 text-work">{Zeichen.Info()}</span>
-        <p className="text-[12.5px] font-semibold leading-[1.5] text-dim">{t.senden.info}</p>
+        <p className="text-ys-meta leading-[1.5] text-lese">{t.senden.info}</p>
       </div>
 
       <div className="mt-auto pt-5">

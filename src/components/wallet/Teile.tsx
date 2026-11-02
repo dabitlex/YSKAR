@@ -47,7 +47,7 @@ export function Kappe({ children, className = '', als: Als = 'span' }: {
   children: React.ReactNode; className?: string; als?: 'span' | 'h2' | 'h3';
 }) {
   return (
-    <Als className={`text-[11.5px] font-bold uppercase tracking-[.08em] text-dim ${className}`}>{children}</Als>
+    <Als className={`ys-etikett ${className}`}>{children}</Als>
   );
 }
 
@@ -57,7 +57,7 @@ export function RundTaste({ onClick, label, children }: {
 }) {
   return (
     <button type="button" onClick={onClick} aria-label={label}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-raised text-text active:scale-95">
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgb(var(--haar)/.18)] text-text active:scale-95">
       {children}
     </button>
   );
@@ -69,7 +69,7 @@ export function Schritte({ schritt, von = 3 }: { schritt: number; von?: number }
   return (
     <div role="img" aria-label={t.senden.schritt(schritt, von)} className="flex gap-[5px]">
       {Array.from({ length: von }, (_, i) => (
-        <span key={i} className={`h-1 w-5 rounded-full ${i < schritt ? 'bg-work' : 'bg-line'}`} />
+        <span key={i} className={`h-1 w-5 rounded-full ${i < schritt ? 'bg-work' : 'bg-[rgb(var(--haar)/.18)]'}`} />
       ))}
     </div>
   );
@@ -94,9 +94,9 @@ export function WKopf({ titel, oben, vor, onZurueck, onSchliessen, rechts }: {
         {onZurueck && <RundTaste onClick={onZurueck} label={t.allgemein.zurueck}>{Zeichen.Zurueck()}</RundTaste>}
         {vor}
         <div className="flex min-w-0 flex-col gap-0.5">
-          {oben && <span className="truncate text-[12.5px] font-bold text-dim">{oben}</span>}
+          {oben && <span className="truncate text-ys-meta text-dim">{oben}</span>}
           {/* Lange Titel (Russisch: "Проверить и отправить") brechen um, statt abzureissen. */}
-          <h1 className="line-clamp-2 break-words text-[20px] font-extrabold leading-[1.15] tracking-[-0.01em]">{titel}</h1>
+          <h1 className="line-clamp-2 break-words text-ys-abschnitt font-semibold leading-[1.15]">{titel}</h1>
         </div>
       </div>
       {(rechts || onSchliessen) && (
@@ -120,7 +120,7 @@ export function AdresseVierer({ adresse, className = '', mittig = false, gross =
   const g = vierer(adresse);
   return (
     <div role="group" aria-label={adresse}
-         className={`flex flex-wrap font-mono leading-[1.35] ${gross ? 'gap-x-3 gap-y-1.5 text-[15px]' : 'gap-x-[11px] gap-y-1 text-[14.5px]'} ${
+         className={`flex flex-wrap font-mono leading-[1.35] ${gross ? 'gap-x-3 gap-y-1.5 text-ys-fliess' : 'gap-x-[11px] gap-y-1 text-ys-fliess'} ${
            mittig ? 'justify-center' : ''} ${className}`}>
       {g.map((teil, i) => (
         <span key={i} aria-hidden="true"
@@ -164,9 +164,9 @@ export function WertZeile({ label, children, stark = false, ohneLinie = false }:
   label: string; children: React.ReactNode; stark?: boolean; ohneLinie?: boolean;
 }) {
   return (
-    <div className={`flex min-h-[44px] items-center justify-between gap-3 py-1.5 text-[13.5px] ${ohneLinie ? '' : 'border-t border-line'}`}>
-      <span className="shrink-0 font-semibold text-dim">{label}</span>
-      <span className={`tnum min-w-0 break-words text-right ${stark ? 'font-extrabold' : 'font-bold'}`}>{children}</span>
+    <div className={`flex min-h-[44px] items-center justify-between gap-3 py-1.5 text-ys-klein ${ohneLinie ? '' : 'border-t border-[rgb(var(--haar)/.12)]'}`}>
+      <span className="shrink-0 text-dim">{label}</span>
+      <span className={`tnum min-w-0 break-words text-right ${stark ? 'font-medium' : ''}`}>{children}</span>
     </div>
   );
 }

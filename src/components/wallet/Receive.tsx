@@ -92,7 +92,7 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
     return () => window.removeEventListener('keydown', hoere);
   }, [ansicht, taste]);
 
-  const knopf = 'flex h-[54px] items-center justify-center gap-2 rounded-[18px] text-[15px] font-extrabold transition-transform active:scale-[.985]';
+  const knopf = 'flex h-[52px] items-center justify-center gap-2 rounded-full text-ys-fliess font-semibold transition-transform active:scale-[.985]';
   const rahmen = 'flex min-h-[min(700px,calc(92dvh_-_64px))] flex-col';
 
   // ----------------------------------------------------------- anfordern
@@ -105,27 +105,27 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
 
         <div className="mt-6 flex flex-col items-center gap-1.5 text-center">
           <p className="tnum flex items-baseline gap-2" aria-live="polite">
-            <span className={`font-extrabold leading-none tracking-[-0.04em] ${anzeige ? '' : 'text-faint'}`} style={{ fontSize: groesse }}>
+            <span className={`font-light leading-none tracking-[-0.05em] ${anzeige ? '' : 'text-faint'}`} style={{ fontSize: groesse }}>
               {anzeige || '0'}
             </span>
-            <span className="text-[18px] font-extrabold text-dim">{symbol}</span>
+            <span className="font-mono text-ys-zeile text-dim">{symbol}</span>
           </p>
         </div>
 
-        <div className="panel mt-6 flex h-[50px] items-center gap-2.5 !rounded-[16px] px-3.5 focus-within:border-work">
-          <label htmlFor="anotiz" className="shrink-0 text-[13px] font-bold text-dim">{t.senden.notiz}</label>
+        <div className="ys-flaeche mt-6 flex h-[50px] items-center gap-2.5 !rounded-sm px-3.5 focus-within:border-work">
+          <label htmlFor="anotiz" className="shrink-0 text-ys-klein text-dim">{t.senden.notiz}</label>
           <input id="anotiz" value={notiz} onChange={e => setNotiz(notizKuerzen(e.target.value))}
                  autoComplete="off" enterKeyHint="done"
-                 className="h-11 min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none focus-visible:outline-none" />
-          <span className="tnum shrink-0 text-[12px] font-semibold text-dim">{notizBytes(notiz)} / {NOTIZ_BYTES}</span>
+                 className="h-11 min-w-0 flex-1 bg-transparent text-ys-klein outline-none focus-visible:outline-none" />
+          <span className="tnum shrink-0 text-ys-meta text-dim">{notizBytes(notiz)} / {NOTIZ_BYTES}</span>
         </div>
-        <p className="mx-1 mt-2.5 text-[12.5px] font-semibold leading-[1.5] text-dim">{t.empfangen.anfordernHinweis}</p>
+        <p className="mx-1 mt-2.5 text-ys-meta leading-[1.5] text-dim">{t.empfangen.anfordernHinweis}</p>
 
         <div className="mt-auto pt-5">
           <Ziffernfeld onTaste={taste} zeichen={zeichen} />
           <button type="button" disabled={einheiten <= 0n}
                   onClick={() => { setAnforderung({ betrag: einheiten, notiz: notiz.trim() }); setAnsicht('adresse'); }}
-                  className={`${knopf} mt-3.5 !h-14 w-full bg-work text-white shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)] disabled:opacity-45 disabled:shadow-none`}>
+                  className={`${knopf} mt-3.5 !h-14 w-full bg-work text-white disabled:opacity-45 disabled:shadow-none`}>
             {t.empfangen.codeErstellen}
           </button>
         </div>
@@ -138,15 +138,15 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
     <div className="flex flex-col">
       <WKopf titel={t.empfangen.titel} onSchliessen={onZurueck} />
 
-      <section className="panel rise flex flex-col items-center gap-4 !rounded-[28px] px-[18px] pb-[18px] pt-5">
-        <div className="relative h-[248px] w-[248px] rounded-[22px] bg-white p-3.5 ring-1 ring-line">
+      <section className="ys-flaeche rise flex flex-col items-center gap-4 !rounded-lg px-[18px] pb-[18px] pt-5">
+        <div className="relative h-[248px] w-[248px] rounded-[20px] bg-white p-3.5 ring-1 ring-[rgb(var(--haar)/.12)]">
           {bild
             ? <img src={bild} alt={anforderung ? t.empfangen.qrAltBetrag : t.empfangen.qrAlt} width={220} height={220} className="block h-[220px] w-[220px]" />
-            : <div className="flex h-[220px] w-[220px] items-center justify-center text-xs font-semibold text-[#8E9AB0]">
+            : <div className="flex h-[220px] w-[220px] items-center justify-center text-xs text-[#8E9AB0]">
                 {t.empfangen.erzeugt}
               </div>}
           {bild && (
-            <span aria-hidden="true" className="absolute left-1/2 top-1/2 flex h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[14px] bg-ink ring-4 ring-white">
+            <span aria-hidden="true" className="absolute left-1/2 top-1/2 flex h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm bg-ink ring-4 ring-white">
               <YZeichen g={32} />
             </span>
           )}
@@ -154,7 +154,7 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
 
         {anforderung && (
           <div className="flex max-w-full items-center gap-1 rounded-full bg-work/10 py-1 pl-3.5 pr-1 text-work">
-            <span className="tnum min-w-0 truncate text-[13px] font-extrabold">
+            <span className="tnum min-w-0 truncate text-ys-klein font-medium">
               {t.empfangen.fordertAn(betragGenau(anforderung.betrag, locale, decimals), symbol)}
               {anforderung.notiz && ` · ${t.wallet.zitat(anforderung.notiz)}`}
             </span>
@@ -173,11 +173,11 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
 
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <button type="button" onClick={kopiere}
-                className={`${knopf} bg-work text-white shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)]`}>
+                className={`${knopf} bg-work text-white`}>
           {kopiert === 'adresse' ? Zeichen.Haken(19, 2.2) : Zeichen.Kopieren(19)}
           {kopiert === 'adresse' ? t.allgemein.Kopiert : t.allgemein.Kopieren}
         </button>
-        <button type="button" onClick={teilen} className={`${knopf} border border-line bg-surface`}>
+        <button type="button" onClick={teilen} className={`${knopf} border border-[rgb(var(--haar)/.24)]`}>
           {kopiert === 'teilen' ? Zeichen.Haken(19, 2.2) : Zeichen.Teilen()}
           {kopiert === 'teilen' ? t.allgemein.Kopiert : t.allgemein.teilen}
         </button>
@@ -185,18 +185,18 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
 
       <button type="button"
               onClick={() => { setEingabe(''); setNotiz(anforderung?.notiz ?? ''); setAnsicht('anfordern'); }}
-              className="panel mt-2.5 flex min-h-[62px] w-full items-center gap-3 !rounded-[18px] !shadow-none px-3.5 py-[9px] text-left active:opacity-80">
-        <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-work/10 text-work">
+              className="ys-flaeche mt-2.5 flex min-h-[62px] w-full items-center gap-3 !rounded-md px-3.5 py-[9px] text-left active:opacity-80">
+        <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-work/10 text-work">
           {Zeichen.Muenze()}
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[14.5px] font-extrabold">{t.empfangen.anfordern}</span>
-          <span className="text-[12.5px] font-semibold text-dim">{t.empfangen.anfordernText}</span>
+          <span className="text-ys-fliess font-medium">{t.empfangen.anfordern}</span>
+          <span className="text-ys-meta text-dim">{t.empfangen.anfordernText}</span>
         </span>
         <span className="shrink-0 text-dim">{Zeichen.Rechts()}</span>
       </button>
 
-      <p className="mx-1 mt-3.5 text-[12.5px] font-semibold leading-[1.5] text-dim">{t.empfangen.hinweisKurz}</p>
+      <p className="mx-1 mt-3.5 text-ys-meta leading-[1.5] text-dim">{t.empfangen.hinweisKurz}</p>
     </div>
   );
 }
