@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import { useT } from '@/i18n';
 import { hashrateTeile } from '@/lib/format/hashrate';
 import { Blatt, Pille } from '@/components/ui/Bausteine';
-import { Button, Notice } from '@/components/ui/Primitives';
+import { Button } from '@/components/ui/Primitives';
 import { hostAusEingabe, waehlbar, type PoolStand } from '@/lib/pool/verzeichnis';
 import type { PoolAuswahl } from '@/hooks/usePoolAuswahl';
 
 /**
  * Pool auswaehlen statt Adresse eintippen.
  *
- *   PoolFeld   der gewaehlte Pool in der Steuerung, mit "Wechseln"
+ *   (Der gewaehlte Pool auf der Mining-Hauptansicht: mining/PoolZeile.tsx)
  *   PoolBlatt  die Liste: je Pool Miner und Plaetze, Leistung, gefundene
  *              Bloecke, Gebuehr -- und ob er noch jemanden aufnimmt
  *
@@ -42,7 +42,7 @@ function StatusPille({ s }: { s: PoolStand | null }) {
 }
 
 /** Ein Satz zum Stand -- unter dem Namen im Feld, unten links auf der Karte. */
-function standText(s: PoolStand | null, t: ReturnType<typeof useT>['t']): string {
+export function standText(s: PoolStand | null, t: ReturnType<typeof useT>['t']): string {
   if (!s) return t.pool.wirdGeprueft;
   switch (s.status) {
     case 'offen': return t.pool.frei(s.frei ?? 0);
@@ -57,62 +57,6 @@ const PFEIL = (
   <svg viewBox="0 0 10 16" width="6" height="10" fill="none" stroke="currentColor" strokeWidth="2.2"
        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 2l6 6-6 6" /></svg>
 );
-
-/** Der gewaehlte Pool in der Steuerung. Ein Tipp oeffnet die Liste. */
-export function PoolFeld({ pool, onOeffnen }: { pool: PoolAuswahl; onOeffnen: () => void }) {
-  const { t, zahl } = useT();
-  const g = pool.gewaehlt;
-  const s = g?.stand ?? null;
-  const voll = pool.hinweis === 'voll' || (!!s && s.status === 'voll' && !s.dabei);
-
-  return (
-    <div className="mb-4">
-      <span className="text-[13.5px] font-semibold text-dim">{t.mining.pool}</span>
-
-      {g ? (
-        <button type="button" onClick={onOeffnen} disabled={pool.prueft}
-                aria-label={`${t.pool.wechseln}: ${g.name}`}
-                className="sunk mt-2 block w-full px-3 py-3 text-left">
-          {/* Auf schmalen Geraeten wird es eng: Der Name bricht dann um,
-              statt abgeschnitten zu werden -- "YSKAR M…" sagt niemandem etwas. */}
-          <span className="flex items-center gap-1.5">
-            <span className={`line-clamp-2 min-w-0 break-words leading-tight ${
-                    g.eigen ? 'font-mono text-[13px] font-semibold' : 'text-[15px] font-extrabold'}`}>
-              {g.name}
-            </span>
-            <span className="shrink-0"><StatusPille s={s} /></span>
-            <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[13px] font-extrabold text-work">
-              {t.pool.wechseln}{PFEIL}
-            </span>
-          </span>
-          <span className="mt-1.5 block text-[12.5px] font-semibold leading-snug text-dim">
-            {s && s.belegt !== null && s.plaetze !== null
-              ? [t.pool.zeile(s.belegt, s.plaetze),
-                 s.hashrate !== null ? rate(s.hashrate) : null,
-                 s.feeBps !== null ? t.pool.gebuehrZeile(zahl(s.feeBps / 100)) : null,
-                // Das Prozentzeichen bleibt bei seiner Zahl, auch wenn die Zeile umbricht.
-                ].filter(Boolean).join(' · ').replace(/ %/g, '\u00a0%')
-              : standText(s, t)}
-          </span>
-        </button>
-      ) : pool.liste === null && !pool.listeFehler ? (
-        <div className="sunk mt-2 px-3.5 py-3.5 text-[13px] font-semibold text-dim">{t.pool.laedt}</div>
-      ) : (
-        <button type="button" onClick={onOeffnen}
-                className="sunk mt-2 flex w-full items-center justify-between px-3.5 py-3.5 text-left">
-          {/* Kein Vorschlag: Die Liste fehlt, oder gerade nimmt keiner ihrer Pools jemanden auf. */}
-          <span className="text-[13px] font-semibold text-dim">
-            {pool.listeFehler && pool.liste === null ? t.pool.listeFehler : t.pool.wahl}
-          </span>
-          <span className="shrink-0 pl-3 text-work">{PFEIL}</span>
-        </button>
-      )}
-
-      {voll && <div className="mt-3"><Notice tone="risk">{t.pool.vollText}</Notice></div>}
-      {pool.hinweis === 'keinPool' && <div className="mt-3"><Notice tone="risk">{t.fehler.keinPool}</Notice></div>}
-    </div>
-  );
-}
 
 function Wert({ name, children }: { name: string; children: React.ReactNode }) {
   return (

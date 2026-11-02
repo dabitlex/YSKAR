@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
 import { hashrateText } from '@/lib/format/hashrate';
-import { Panel, GroupTitle, Button } from '@/components/ui/Primitives';
+import { GroupTitle } from '@/components/ui/Primitives';
+import { Flaeche, Knopf } from '@/components/ys';
+import { SeitenKopf } from '@/components/ys/SeitenKopf';
 import {
   useBenchmark, gespeichert, verwerfen, type BenchErgebnis, type Messung,
 } from '@/hooks/useBenchmark';
@@ -39,13 +41,10 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
 
   return (
     <>
-      <button onClick={onZurueck}
-              className="mb-4 text-[13.5px] font-bold text-work">
-        ← {t.allgemein.zurueck}
-      </button>
+      <SeitenKopf titel={t.ys.mining.benchmark} onZurueck={onZurueck} />
 
       <GroupTitle>{t.bench.geraet}</GroupTitle>
-      <Panel className="mb-5">
+      <Flaeche className="mb-5 p-4">
         <dl className="grid gap-0">
           <Zeile label={t.bench.prozessoren} wert={kerne ? String(kerne) : t.bench.nichtErmittelbar} />
           <Zeile label={t.bench.engine} wert="WebAssembly SHA-256" />
@@ -55,11 +54,11 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
         {!kerne && (
           <p className="mt-3 text-[12px] text-faint">{t.bench.keineKerne}</p>
         )}
-      </Panel>
+      </Flaeche>
 
       {/* ---------------------------------------------------------- Lauf */}
       {laeuft && (
-        <Panel className="mb-5">
+        <Flaeche className="mb-5 p-4">
           <p className="mb-3 text-[13px] text-dim">
             {phase.t === 'pruefe' && t.bench.prueft}
             {phase.t === 'messe' && t.bench.messe(phase.workers, phase.duty, phase.schritt, phase.von)}
@@ -67,28 +66,24 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
           </p>
           <div className="bar"><i style={{ width: fortschritt(phase) }} /></div>
           <p className="mt-3 text-[12px] text-faint">{t.bench.warm}</p>
-          <button onClick={abbrechen}
-                  className="mt-4 w-full text-center text-[12.5px] text-dim underline
-                             decoration-line underline-offset-4">
-            {t.allgemein.abbrechen}
-          </button>
-        </Panel>
+          <Knopf art="zweit" groesse="mittel" onClick={abbrechen} className="mt-4">{t.allgemein.abbrechen}</Knopf>
+        </Flaeche>
       )}
 
       {/* --------------------------------------------------------- Fehler */}
       {phase.t === 'fehler' && (
-        <Panel className="mb-5">
+        <Flaeche className="mb-5 p-4">
           <p className="mb-2 text-[13px] text-risk">{t.bench.abgebrochen}</p>
           <p className="text-[12.5px] text-dim">{phase.meldung}</p>
           <p className="mt-3 text-[12px] text-faint">{t.bench.keineZahl}</p>
-        </Panel>
+        </Flaeche>
       )}
 
       {/* -------------------------------------------------------- Ergebnis */}
       {ergebnis && !laeuft && (
         <>
           <GroupTitle>{t.bench.messung}</GroupTitle>
-          <Panel className="mb-5">
+          <Flaeche className="mb-5 p-4">
             <div className="mb-1 grid grid-cols-[auto_1fr_auto] gap-x-3 text-[11px]
                             text-faint">
               <span>{t.bench.worker}</span><span>{t.bench.hashrate}</span><span>{t.bench.skalierung}</span>
@@ -117,10 +112,10 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
                 </div>
               </>
             )}
-          </Panel>
+          </Flaeche>
 
           <GroupTitle>{t.bench.empfehlung}</GroupTitle>
-          <Panel className="mb-5">
+          <Flaeche className="mb-5 p-4">
             <div className="flex items-baseline justify-between">
               <span className="text-[26px] font-medium tracking-tight">
                 {t.bench.workerN(ergebnis.besteWorker)}
@@ -130,16 +125,16 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
             <p className="mt-2 text-[12.5px] text-dim">
               {hinweis(ergebnis, t)}
             </p>
-            <Button className="mt-4"
-                    onClick={() => { onErgebnis(ergebnis); onUebernehmen(ergebnis.besteWorker); }}>
+            <Knopf className="mt-4"
+                   onClick={() => { onErgebnis(ergebnis); onUebernehmen(ergebnis.besteWorker); }}>
               {t.bench.uebernehmen}
-            </Button>
-          </Panel>
+            </Knopf>
+          </Flaeche>
 
           {ergebnis.dauertest && (
             <>
               <GroupTitle>{t.bench.dauertest}</GroupTitle>
-              <Panel className="mb-5">
+              <Flaeche className="mb-5 p-4">
                 <dl className="grid gap-0">
                   <Zeile label={t.bench.start} wert={rate(ergebnis.dauertest.start)} />
                   <Zeile label={t.bench.ende} wert={rate(ergebnis.dauertest.ende)} />
@@ -149,7 +144,7 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
                 <p className="mt-3 text-[12px] text-faint">
                   {ergebnis.dauertest.anteil < 0.9 ? t.bench.gesunken : t.bench.stabil}
                 </p>
-              </Panel>
+              </Flaeche>
             </>
           )}
         </>
@@ -157,28 +152,26 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
 
       {/* ----------------------------------------------------------- Start */}
       {!laeuft && (
-        <Panel>
-          <label className="mb-4 flex items-center justify-between">
+        <Flaeche className="p-4">
+          <label className="mb-4 flex min-h-11 items-center justify-between">
             <span className="text-[13px] text-dim">{t.bench.dauertestAn}</span>
             <input type="checkbox" checked={dauertest}
                    onChange={e => setDauertest(e.target.checked)}
-                   className="h-4 w-4 accent-[rgb(var(--work))]" />
+                   className="h-5 w-5 accent-[rgb(var(--work))]" />
           </label>
-          <Button onClick={() => starten({ dauertestSek: dauertest ? 60 : 0 })}
-                  variant="primary">
+          <Knopf art={ergebnis ? 'zweit' : 'haupt'} onClick={() => starten({ dauertestSek: dauertest ? 60 : 0 })}>
             {ergebnis ? t.bench.erneut : t.bench.starten}
-          </Button>
+          </Knopf>
           <p className="mt-3 text-center text-[12px] text-faint">
             {dauertest ? t.bench.zweiMin : t.bench.sekunden}
           </p>
           {ergebnis && (
-            <button onClick={() => { verwerfen(); onErgebnis(null); onZurueck(); }}
-                    className="mt-4 w-full text-center text-[12.5px] text-dim underline
-                               decoration-line underline-offset-4">
+            <Knopf art="leise" groesse="mittel" className="mt-2"
+                   onClick={() => { verwerfen(); onErgebnis(null); onZurueck(); }}>
               {t.bench.verwerfen}
-            </button>
+            </Knopf>
           )}
-        </Panel>
+        </Flaeche>
       )}
     </>
   );

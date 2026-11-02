@@ -9,6 +9,27 @@ const ys: YsWoerterbuch = {
     netz: { verbunden: 'Connecté au réseau', getrennt: 'Connexion au réseau…' },
     mining: { an: 'Le minage est en cours', aus: 'Le minage est arrêté' },
   },
+  mining: {
+    leistung: 'Puissance du téléphone',
+    laufzeit: 'Durée',
+    minuten: (n: number) => `${n} min`,
+    jeBlock: 'par bloc du pool',
+    soloUnter: 'Sans pool. À changer dans les détails du minage.',
+    details: 'Détails du minage',
+    detailsUnter: 'Shares, activité, mode, workers',
+    mehrTitel: 'Plus de puissance',
+    mehrEinstieg: 'La Mini App est ton point d’entrée pour découvrir YSKAR.',
+    mehrText: 'Pour miner sérieusement, utilise Node Core sur un PC avec CPU et GPU (NVIDIA, AMD, Intel), ou HiveOS sur des rigs.',
+    mehrLink: 'Téléchargements sur yskar.app',
+    wegZumBlock: 'Vers un bloc',
+    besterShare: (p: string) => `Ton meilleur share de cette session atteint ${p} de la cible du bloc.`,
+    blockziel: (d: string) => `Cible du bloc = difficulty ${d}. Un share au-dessus de la cible est un bloc.`,
+    letzteShares: 'Derniers shares',
+    angenommen: (n: string) => `${n} acceptés`,
+    abgelehnt: 'Share non accepté',
+    einstellungen: 'Réglages',
+    benchmark: 'Benchmark',
+  },
 };
 
 export default ys;

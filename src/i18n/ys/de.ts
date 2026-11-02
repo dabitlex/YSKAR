@@ -9,6 +9,27 @@ const ys: YsWoerterbuch = {
     netz: { verbunden: 'Mit dem Netz verbunden', getrennt: 'Verbinde mit dem Netz…' },
     mining: { an: 'Mining läuft', aus: 'Mining gestoppt' },
   },
+  mining: {
+    leistung: 'Leistung des Telefons',
+    laufzeit: 'Laufzeit',
+    minuten: (n: number) => `${n} min`,
+    jeBlock: 'je Pool-Block',
+    soloUnter: 'Ohne Pool. Umstellen in den Mining-Details.',
+    details: 'Mining-Details',
+    detailsUnter: 'Shares, Aktivität, Modus, Worker',
+    mehrTitel: 'Mehr Leistung',
+    mehrEinstieg: 'Die Mini App ist dein Einstieg, um YSKAR kennenzulernen.',
+    mehrText: 'Richtig minen kannst du am PC mit Node Core – CPU und GPU (NVIDIA, AMD, Intel) – oder auf Rigs mit HiveOS.',
+    mehrLink: 'Downloads auf yskar.app',
+    wegZumBlock: 'Weg zum Block',
+    besterShare: (p: string) => `Dein bester Share dieser Sitzung erreicht ${p} des Blockziels.`,
+    blockziel: (d: string) => `Blockziel = Difficulty ${d}. Ein Share über dem Ziel ist ein Block.`,
+    letzteShares: 'Letzte Shares',
+    angenommen: (n: string) => `${n} angenommen`,
+    abgelehnt: 'Share nicht angenommen',
+    einstellungen: 'Einstellungen',
+    benchmark: 'Benchmark',
+  },
 };
 
 export default ys;

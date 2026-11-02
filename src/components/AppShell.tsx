@@ -11,7 +11,7 @@ import { BottomNav, type Tab } from '@/components/ui/Chrome';
 import { Button, Hash } from '@/components/ui/Primitives';
 import { Blatt } from '@/components/ui/Bausteine';
 import MineTab from '@/components/tabs/MineTab';
-import MiningTab from '@/components/tabs/MiningTab';
+import MiningDetails from '@/components/mining/MiningDetails';
 import WalletTab, { type HistoryEintrag } from '@/components/tabs/WalletTab';
 import EntdeckenTab from '@/components/tabs/EntdeckenTab';
 import CommunityTab from '@/components/tabs/CommunityTab';
@@ -57,7 +57,7 @@ import type { Zahlung } from '@/lib/wallet/qr';
  *    App es -- nicht nur, wenn das eigene Telefon den Block gefunden hat.
  */
 
-type Ansicht = null | 'senden' | 'scannen' | 'empfangen' | 'einstellungen' | 'benchmark' | 'sichern'
+type Ansicht = null | 'senden' | 'scannen' | 'empfangen' | 'einstellungen' | 'benchmark' | 'sichern' | 'miningDetails'
   | 'aktion' | 'aktionErgebnis' | { artikel: string };
 
 /**
@@ -107,7 +107,7 @@ export default function AppShell({ platform }: { platform: string }) {
   const pool = usePoolAuswahl({
     address: wallet.address,
     // Die Liste wird auch auf Home gebraucht (Start-Knopf) und beim Autostart.
-    sichtbar: tab === 'mine' && ansicht === null,
+    sichtbar: tab === 'mine' && (ansicht === null || ansicht === 'miningDetails'),
     mining: m.mining, fehler: m.fehler, stop: m.stop,
   });
   const kerne = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency || null) : null;
@@ -235,28 +235,30 @@ export default function AppShell({ platform }: { platform: string }) {
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} summary={m.summary}
                     onSichern={wallet.gesichert ? undefined : () => setAnsicht('sichern')} />
         ) : ansicht === 'benchmark' ? (
-          <Benchmark onZurueck={() => setAnsicht(null)}
-                     onUebernehmen={(w) => { setWorker(w); setAnsicht(null); }}
+          <Benchmark onZurueck={() => setAnsicht('miningDetails')}
+                     onUebernehmen={(w) => { setWorker(w); setAnsicht('miningDetails'); }}
                      onErgebnis={setBench} />
+        ) : ansicht === 'miningDetails' ? (
+          <MiningDetails m={m} pool={pool} worker={worker} setWorker={setWorker} kerne={kerne}
+                         workerStufen={workerStufen} bench={bench}
+                         onBenchmark={() => setAnsicht('benchmark')} onZurueck={() => setAnsicht(null)} />
         ) : ansicht === 'aktion' || ansicht === 'aktionErgebnis' ? (
           <AktionSeite code={aktion.code} ergebnisZuerst={ansicht === 'aktionErgebnis'} onZurueck={() => setAnsicht(null)} />
         ) : ansicht && typeof ansicht === 'object' ? (
           <Artikel artikel={inhalte(sprache, locale).ARTIKEL.find(a => a.slug === ansicht.artikel)
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
-        ) : tab === 'mine' ? (<>
-          <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName} kopfzeile={kopf()}
+        ) : tab === 'mine' ? (
+          <MineTab m={m} dec={dec} sym={sym} pool={pool} gesichert={wallet.gesichert} poolName={poolName} kopfzeile={kopf()} wach={wach}
                    hinweis={aktion.hinweis ? (
                      <AktionHinweis gewinnUsd={aktion.gewinn?.betrag_usd ?? null} onSchliessen={aktion.schliessen}
                                     onOeffnen={() => setAnsicht(aktion.gewinn ? 'aktionErgebnis' : 'aktion')} />
                    ) : null}
                    onStartStopp={startStopp}
                    onSichern={() => setAnsicht('sichern')}
-                   onPoolWaehlen={() => pool.setBlatt(true)} />
-          <MiningTab m={m} dec={dec} sym={sym} wach={wach} pool={pool}
-                     worker={worker} setWorker={setWorker} kerne={kerne} workerStufen={workerStufen}
-                     bench={bench} onStarten={starten} onBenchmark={() => setAnsicht('benchmark')} />
-        </>        ) : tab === 'wallet' ? (
+                   onPoolWaehlen={() => pool.setBlatt(true)}
+                   onDetails={() => setAnsicht('miningDetails')} />
+        ) : tab === 'wallet' ? (
           <WalletTab account={m.account as never} decimals={dec} symbol={sym} kopfzeile={kopf(t.wallet.titel)}
                      address={wallet.address}
                      onSenden={() => senden('senden')}

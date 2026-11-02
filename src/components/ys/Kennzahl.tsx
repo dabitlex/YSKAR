@@ -3,15 +3,16 @@
  * grosse Anzeigezahl fuer die eine Zahl, um die es auf einem Bildschirm geht.
  *
  * Werte in Geist Mono mit Tabellenziffern, damit sie beim Aktualisieren
- * nicht springen.
+ * nicht springen. Namen duerfen umbrechen ("Heute verdient" passt bei
+ * 360 px nicht in eine Zeile von drei Kacheln); Werte nicht.
  */
 export function Kennzahl({ name, wert, ton }: {
   name: string; wert: React.ReactNode; ton?: 'erfolg' | 'akzent';
 }) {
   const farbe = ton === 'erfolg' ? 'text-proof' : ton === 'akzent' ? 'text-cyan' : 'text-text';
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-sm border border-[rgb(var(--haar)/.12)] bg-surface p-3">
-      <span className="truncate text-ys-meta text-dim">{name}</span>
+    <div className="flex min-w-0 flex-col justify-between gap-1 rounded-sm border border-[rgb(var(--haar)/.12)] bg-surface p-3">
+      <span className="break-words text-ys-meta text-dim [hyphens:auto]">{name}</span>
       <span className={`tnum truncate font-mono text-ys-fliess ${farbe}`}>{wert}</span>
     </div>
   );

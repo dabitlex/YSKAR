@@ -16,6 +16,8 @@ export const COMMUNITY = {
   explorer: 'https://www.yskar.app/explorer',
   whitepaper: 'https://www.yskar.app/whitepaper',
   anleitungen: 'https://www.yskar.app/anleitungen',
+  /** Mining am PC und auf Rigs: Node Core, CLI-Miner, HiveOS (Karte "Mehr Leistung"). */
+  mining: 'https://www.yskar.app/mining',
   /** YSKAR Lab: Ideen und Entwuerfe der Community. */
   lab: 'https://lab.yskar.app',
   github: 'https://github.com/dabitlex/YSKAR',
