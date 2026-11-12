@@ -165,7 +165,10 @@ Blocks found after the file was written are added from the API. The latest 50 al
 the regular request. If more are missing, a page that shows the history loads them, 50 per
 request and at most 12 requests per page view. So the older the file, the more every visitor
 has to load, and beyond 600 missing blocks (about four days) the history on the page stays
-incomplete and says up to which block it reaches. Refresh the file regularly:
+incomplete and says up to which block it reaches.
+
+The workflow `.github/workflows/kettenverlauf.yml` refreshes the file once a day and commits it
+to `main` (this one file only). By hand:
 
 ```bash
 node website/tools/kette.mjs            # add the blocks found since the file was written

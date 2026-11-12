@@ -7,11 +7,11 @@
  *   node website/tools/kette.mjs           ergänzt die vorhandene Datei um die Blöcke, die seither dazukamen
  *   node website/tools/kette.mjs --full    liest die ganze Kette neu (rund 180 Abrufe)
  *
- * Danach "node website/tools/build.mjs" ausführen: Die Seiten verweisen mit einer Prüfsumme auf die Datei.
+ * Die Seiten verweisen ohne Prüfsumme auf die Datei; ein neuer Bau ist danach nicht nötig.
  *
  * Was die Seite seit diesem Stand an Blöcken braucht, liest sie selbst nach (src/js/12-chain.js). Je älter
- * die Datei, desto mehr muss jeder Besucher beim ersten Aufruf nachladen. Deshalb gelegentlich auffrischen,
- * am besten bei jeder Änderung an der Website.
+ * die Datei, desto mehr muss jeder Besucher beim ersten Aufruf nachladen. Der Workflow
+ * .github/workflows/kettenverlauf.yml frischt sie deshalb einmal am Tag auf.
  *
  * Aufbau von history (alles bis drei Blöcke unter der Spitze; die jüngsten können noch ersetzt werden):
  *   t0, t1      Zeit von Block 0 und Block 1 (Unix-Sekunden)

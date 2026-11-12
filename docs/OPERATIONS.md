@@ -79,6 +79,11 @@ Both projects build from the same repository. The `ignoreCommand` in the root `v
 a build of the app project when a commit changed only files under `website/`; the one in
 `website/vercel.json` skips a build of the website when nothing under `website/` changed.
 
+Once a day the workflow `.github/workflows/kettenverlauf.yml` rewrites
+`website/assets/data/kette.js` (the block history the website starts with) from the public API
+and commits that one file to `main`. Vercel then publishes the website again; the app project
+skips the commit. See "Chain data" in `website/README.md`.
+
 ## What the Vercel server does today
 
 The server no longer issues mining jobs and no longer accepts transfers. It serves the web app,
