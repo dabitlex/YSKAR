@@ -79,8 +79,9 @@ what was changed and are not edited afterwards. See "The database" in
 ## Texts and languages
 
 - The app's texts are in `src/i18n/`, one file per language, all with the same keys.
-- The website's texts are in `website/assets/i18n/`; after a change to them, the `?v=` number in the
-  HTML files has to be raised. See [website/README.md](website/README.md).
+- The website's texts are in `website/src/texts/`. After a change to them, or to anything else under
+  `website/src/`, run `node website/tools/build.mjs` and commit the generated files as well. See
+  [website/README.md](website/README.md).
 - Documentation is written in English.
 
 ## Releases
@@ -88,7 +89,8 @@ what was changed and are not edited afterwards. See "The database" in
 - **Android app:** built and signed by `.github/workflows/android-release.yml`. See
   [docs/APP.md](docs/APP.md).
 - **Node Core:** built by `.github/workflows/node-core-release.yml`. After publishing a new
-  version, update the version and the download link in `website/index.html`,
-  `website/anleitungen.html` and the "Download" table of `README.md`. See [node-core/README.md](node-core/README.md).
+  version, set `NODE_CORE` under `versions` in `website/src/site.json`, run
+  `node website/tools/build.mjs`, and update the "Download" table of `README.md`. See
+  [node-core/README.md](node-core/README.md) and [website/README.md](website/README.md).
 - **Web app and website:** deployed by Vercel from the `main` branch. The checks to run after a
   deployment are listed under "After a deployment" in [docs/OPERATIONS.md](docs/OPERATIONS.md).

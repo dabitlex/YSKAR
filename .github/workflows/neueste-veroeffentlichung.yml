@@ -46,9 +46,11 @@ jobs:
           [ "$jetzt" = "$app" ] || { echo "::error::Neueste Veröffentlichung ist $jetzt statt $app."; exit 1; }
 
   # Webseite und README nennen die Version im Download-Link, getrennt für
-  # Windows (.exe) und Linux (.deb). Zeigen sie nach einer neuen
-  # Veröffentlichung noch auf die alte, steht das hier als Warnung am Lauf --
-  # mehr nicht: Der alte Link funktioniert weiter.
+  # Windows (.exe) und Linux (.deb). Auf der Webseite stehen die Links auf der
+  # Seite /node; website/node.html wird aus website/src erzeugt (Version in
+  # website/src/site.json, dann node website/tools/build.mjs). Zeigen Webseite
+  # oder README nach einer neuen Veröffentlichung noch auf die alte, steht das
+  # hier als Warnung am Lauf -- mehr nicht: Der alte Link funktioniert weiter.
   links:
     name: Zeigen Webseite und README auf diese Version?
     if: startsWith(github.event.release.tag_name, 'node-core-v')
@@ -62,7 +64,7 @@ jobs:
         run: |
           alt=0
           v=${TAG#node-core-v}
-          for datei in website/index.html README.md; do
+          for datei in website/node.html README.md; do
             for paket in "YSKAR-Node-Core-Setup-$v.exe" "YSKAR-Node-Core-$v-amd64.deb"; do
               if grep -qF "/releases/download/$TAG/$paket" "$datei"; then
                 echo "$datei zeigt auf $paket."

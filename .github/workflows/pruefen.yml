@@ -12,6 +12,7 @@ name: Prüfen
 # Was er prüft:
 #   - npm test: die gesamte Suite unter tests/ (Konsens, Knoten, Pool, P2P)
 #   - tsc für das Hauptprojekt und für node-core
+#   - Website: Die eingecheckten Seiten entsprechen ihren Quellen in website/src
 # Schlägt einer der Schritte fehl, schlägt der Lauf fehl.
 #
 # Abhängigkeiten kommen mit npm ci genau aus package-lock.json, wie im
@@ -45,6 +46,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      - name: Website entspricht ihren Quellen
+        run: node website/tools/build.mjs --check
 
       - name: Abhängigkeiten
         run: npm ci
