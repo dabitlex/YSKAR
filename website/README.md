@@ -261,6 +261,12 @@ A page image is written as `<img data-img="name">`. The file comes from `assets/
 `name.webp`, or the variants `name-p` / `name-w` (portrait and landscape, with `data-orient`) and
 `name-en` / `name-de` (language). The build fails if no file fits a name.
 
+The wallet screens `wshot1` to `wshot6` (German and English) are screenshots taken on a phone,
+1200×2608 pixels, scaled to 720×1565 and otherwise unchanged. The phone frame on the wallet page
+(`.phone` in `css/06-stories.css`) is drawn for this shape: its camera sits in the strip that every
+screenshot leaves free for the status bar. `wallet-desk` is a photograph with the wallet's main
+screen set onto the phone in it.
+
 `assets/img/` holds the files other sites and services refer to by address. Keep their names:
 `yskar-cmc-200.png`, `og-yskar.jpg` (share image), `og-yskar.png` (former share image),
 `zeichen.svg`, `apple-touch-icon.png`, `icon-256.png`.

@@ -869,11 +869,11 @@ wal.s3.p
   en: Payments, block rewards and pool shares appear in one place. Amounts are exact to the 8th decimal place.
   pt: Pagamentos, recompensas de bloco e cotas de pool aparecem em um só lugar. Os valores são exatos até a oitava casa decimal.
 wal.s5.h
-  en: Names instead of addresses.
-  pt: Nomes em vez de endereços.
+  en: Names for addresses.
+  pt: Nomes para os endereços.
 wal.s5.p
-  en: Save a contact once, and every payment with that person sits in a single thread.
-  pt: Salve um contato uma vez, e todos os pagamentos com essa pessoa ficam em uma única conversa.
+  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
+  pt: Salve um endereço com um nome uma única vez. A partir daí, a carteira mostra esse nome: nos seus pagamentos, ao enviar e ao revisar. Os contatos ficam no seu aparelho.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   pt: Muitas luzes pequenas piscam, se juntam em um ponto brilhante que vira um bloco, e raios saem do bloco para cada endereço que ele paga.
@@ -2552,14 +2552,14 @@ wallet.f2.h
   en: Send on purpose
   pt: Enviar com intenção
 wallet.f2.p
-  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you slide to confirm. A transfer cannot be taken back.
-  pt: Digite um endereço, escolha um contato ou escaneie um código QR. Antes de enviar, você vê mais uma vez o destinatário, o valor e a taxa de rede; depois, desliza para confirmar. Uma transferência não pode ser desfeita.
+  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
+  pt: Digite um endereço, escolha um contato ou escaneie um código QR. Antes de enviar, você vê mais uma vez o destinatário, o valor e a taxa de rede; depois, confirma com o seu PIN ou a sua impressão digital. Uma transferência não pode ser desfeita.
 wallet.f3.h
-  en: Receive and request
-  pt: Receber e solicitar
+  en: Receive
+  pt: Receber
 wallet.f3.p
-  en: Show your QR code or your address. If you like, ask for a specific amount: the sender then only has to confirm.
-  pt: Mostre o seu código QR ou o seu endereço. Se quiser, peça um valor específico: quem envia só precisa confirmar.
+  en: Show your QR code, or copy and share your address. Anyone may see it: knowing it is not enough to withdraw anything.
+  pt: Mostre o seu código QR, ou copie e compartilhe o seu endereço. Qualquer pessoa pode vê-lo: conhecê-lo não basta para retirar nada.
 wallet.f5.h
   en: Sign and sign in
   pt: Assinar e entrar

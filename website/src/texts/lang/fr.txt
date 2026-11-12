@@ -869,11 +869,11 @@ wal.s3.p
   en: Payments, block rewards and pool shares appear in one place. Amounts are exact to the 8th decimal place.
   fr: Paiements, récompenses de bloc et parts de pool apparaissent au même endroit. Les montants sont exacts jusqu’à la 8e décimale.
 wal.s5.h
-  en: Names instead of addresses.
-  fr: Des noms à la place des adresses.
+  en: Names for addresses.
+  fr: Des noms pour les adresses.
 wal.s5.p
-  en: Save a contact once, and every payment with that person sits in a single thread.
-  fr: Enregistre un contact une fois, et tous les paiements avec cette personne se retrouvent dans un seul fil.
+  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
+  fr: Enregistre une adresse sous un nom, une seule fois. Ensuite, le portefeuille affiche ce nom : dans tes paiements, à l’envoi et à la vérification. Les contacts restent sur ton appareil.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   fr: De nombreuses petites lumières scintillent, se rassemblent en un point brillant qui devient un bloc, puis des rayons partent du bloc vers chaque adresse qu’il paie.
@@ -2552,14 +2552,14 @@ wallet.f2.h
   en: Send on purpose
   fr: Envoyer en connaissance de cause
 wallet.f2.p
-  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you slide to confirm. A transfer cannot be taken back.
-  fr: Saisis une adresse, choisis un contact ou scanne un code QR. Avant l’envoi, tu revois le destinataire, le montant et les frais de réseau, puis tu fais glisser pour confirmer. Un transfert ne peut pas être annulé.
+  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
+  fr: Saisis une adresse, choisis un contact ou scanne un code QR. Avant l’envoi, tu revois le destinataire, le montant et les frais de réseau, puis tu confirmes avec ton code PIN ou ton empreinte digitale. Un transfert ne peut pas être annulé.
 wallet.f3.h
-  en: Receive and request
-  fr: Recevoir et demander
+  en: Receive
+  fr: Recevoir
 wallet.f3.p
-  en: Show your QR code or your address. If you like, ask for a specific amount: the sender then only has to confirm.
-  fr: Montre ton code QR ou ton adresse. Si tu veux, demande un montant précis : l’expéditeur n’a alors plus qu’à confirmer.
+  en: Show your QR code, or copy and share your address. Anyone may see it: knowing it is not enough to withdraw anything.
+  fr: Montre ton code QR, ou copie et partage ton adresse. Tout le monde peut la voir : la connaître ne suffit pas pour retirer quoi que ce soit.
 wallet.f5.h
   en: Sign and sign in
   fr: Signer et se connecter

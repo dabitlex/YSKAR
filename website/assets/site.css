@@ -870,10 +870,12 @@ html.anim .miles li.is-next > *{opacity:.62}
 /* Wallet: Handy mit echten Bildschirmen */
 .story--phone{height:620lvh}
 .story--phone .story__sticky{background:radial-gradient(70% 55% at 72% 26%,rgba(255,170,80,.15),transparent 70%),radial-gradient(90% 60% at 20% 90%,rgba(16,41,94,.5),transparent 70%),var(--night-950)}
-.phone{position:absolute;left:50%;top:calc(var(--bar-h) + 2.5vh);height:min(52svh,500px);aspect-ratio:1 / 2.06;transform:translateX(-50%);border-radius:11% / 5.4%;background:#04060B;
+/* Das Handy zeigt die Aufnahmen der Wallet ganz, 1200 x 2608 Bildpunkte: Rahmen ringsum gleich breit (3,2 % der Breite),
+   das Kameraloch sitzt im Bildschirm, im Streifen der Statusleiste, den jede Aufnahme oben frei lässt. */
+.phone{position:absolute;left:50%;top:calc(var(--bar-h) + 2.5vh);height:min(52svh,500px);aspect-ratio:1 / 2.098;transform:translateX(-50%);border-radius:11% / 5.24%;background:#04060B;
   box-shadow:0 0 0 1.5px #232B3D,0 0 0 6px #080B12,0 0 0 7px #1A2030,0 50px 120px -24px rgba(0,0,0,.95),0 0 110px -30px rgba(255,180,90,.3)}
-.phone::before{content:"";position:absolute;left:50%;top:2.1%;width:3.2%;aspect-ratio:1;border-radius:50%;background:#0C1018;transform:translateX(-50%);z-index:2}
-.phone img{position:absolute;left:3.2%;right:3.2%;top:3.4%;width:93.6%;height:auto;border-radius:8% / 4%;opacity:0;transform:scale(1.03);transition:opacity .55s var(--ease),transform .9s var(--ease)}
+.phone::before{content:"";position:absolute;left:50%;top:3.3%;width:3.2%;aspect-ratio:1;border-radius:50%;background:#03050A;transform:translateX(-50%);z-index:2}
+.phone img{position:absolute;left:3.2%;right:3.2%;top:1.525%;width:93.6%;height:auto;border-radius:8% / 3.68%;opacity:0;transform:scale(1.03);transition:opacity .55s var(--ease),transform .9s var(--ease)}
 .phone img.is-on{opacity:1;transform:none}
 @media (min-width:900px){
   .phone{left:auto;right:calc(var(--gutter) + 8vw);top:50%;height:min(76vh,740px);transform:translateY(-50%)}

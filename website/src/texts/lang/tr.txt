@@ -869,11 +869,11 @@ wal.s3.p
   en: Payments, block rewards and pool shares appear in one place. Amounts are exact to the 8th decimal place.
   tr: Ödemeler, blok ödülleri ve havuz payları tek bir yerde görünür. Tutarlar 8. ondalık basamağa kadar kesindir.
 wal.s5.h
-  en: Names instead of addresses.
-  tr: Adresler yerine isimler.
+  en: Names for addresses.
+  tr: Adresler için isimler.
 wal.s5.p
-  en: Save a contact once, and every payment with that person sits in a single thread.
-  tr: Bir kişiyi bir kez kaydet; o kişiyle yapılan tüm ödemeler tek bir akışta dursun.
+  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
+  tr: Bir adresi bir kez bir isimle kaydet. Bundan sonra cüzdan o ismi gösterir: ödemelerinde, gönderirken ve kontrol ederken. Kişiler cihazında kalır.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   tr: Pek çok küçük ışık titreşiyor, bir bloğa dönüşen parlak bir noktada toplanıyor ve bloktan, ödeme yaptığı her adrese ışınlar uzanıyor.
@@ -2552,14 +2552,14 @@ wallet.f2.h
   en: Send on purpose
   tr: Bilerek gönder
 wallet.f2.p
-  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you slide to confirm. A transfer cannot be taken back.
-  tr: Bir adres gir, bir kişi seç ya da bir QR kodu tara. Göndermeden önce alıcıyı, tutarı ve ağ ücretini bir kez daha görürsün, sonra onaylamak için kaydırırsın. Bir transfer geri alınamaz.
+  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
+  tr: Bir adres gir, bir kişi seç ya da bir QR kodu tara. Göndermeden önce alıcıyı, tutarı ve ağ ücretini bir kez daha görürsün, sonra PIN’inle ya da parmak izinle onaylarsın. Bir transfer geri alınamaz.
 wallet.f3.h
-  en: Receive and request
-  tr: Al ve talep et
+  en: Receive
+  tr: Ödeme al
 wallet.f3.p
-  en: Show your QR code or your address. If you like, ask for a specific amount: the sender then only has to confirm.
-  tr: QR kodunu ya da adresini göster. İstersen belirli bir tutar iste: gönderenin yalnızca onaylaması yeter.
+  en: Show your QR code, or copy and share your address. Anyone may see it: knowing it is not enough to withdraw anything.
+  tr: QR kodunu göster ya da adresini kopyalayıp paylaş. Adresini herkes görebilir: onu bilmek, bir şey çekmek için yetmez.
 wallet.f5.h
   en: Sign and sign in
   tr: İmzala ve giriş yap

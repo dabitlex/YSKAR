@@ -343,14 +343,14 @@ wallet.f2.h
   en: Send on purpose
   de: Senden mit Absicht
 wallet.f2.p
-  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you slide to confirm. A transfer cannot be taken back.
-  de: Adresse eingeben, Kontakt wählen oder QR-Code scannen. Vor dem Senden siehst du Empfänger, Betrag und Netzgebühr noch einmal, dann schiebst du zum Bestätigen. Eine Überweisung lässt sich nicht zurückholen.
+  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
+  de: Adresse eingeben, Kontakt wählen oder QR-Code scannen. Vor dem Senden siehst du Empfänger, Betrag und Netzgebühr noch einmal, dann bestätigst du mit PIN oder Fingerabdruck. Eine Überweisung lässt sich nicht zurückholen.
 wallet.f3.h
-  en: Receive and request
-  de: Empfangen und anfordern
+  en: Receive
+  de: Empfangen
 wallet.f3.p
-  en: Show your QR code or your address. If you like, ask for a specific amount: the sender then only has to confirm.
-  de: Zeig deinen QR-Code oder deine Adresse. Auf Wunsch forderst du einen bestimmten Betrag an: Der Absender muss dann nur noch bestätigen.
+  en: Show your QR code, or copy and share your address. Anyone may see it: knowing it is not enough to withdraw anything.
+  de: Zeig deinen QR-Code, oder kopiere und teile deine Adresse. Jeder darf sie sehen: Sie zu kennen genügt nicht, um etwas abzuheben.
 wallet.f5.h
   en: Sign and sign in
   de: Signieren und anmelden

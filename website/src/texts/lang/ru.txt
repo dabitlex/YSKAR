@@ -869,11 +869,11 @@ wal.s3.p
   en: Payments, block rewards and pool shares appear in one place. Amounts are exact to the 8th decimal place.
   ru: Платежи, награды за блоки и доли пула собраны в одном месте. Суммы точны до восьмого знака после запятой.
 wal.s5.h
-  en: Names instead of addresses.
-  ru: Имена вместо адресов.
+  en: Names for addresses.
+  ru: Имена для адресов.
 wal.s5.p
-  en: Save a contact once, and every payment with that person sits in a single thread.
-  ru: Сохрани контакт один раз, и все платежи с этим человеком окажутся в одной ленте.
+  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
+  ru: Один раз сохрани адрес под именем. После этого кошелёк показывает это имя: в твоих платежах, при отправке и при проверке. Контакты остаются на твоём устройстве.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   ru: Множество маленьких огоньков мерцает, собирается в одну яркую точку, которая становится блоком, а от блока лучи расходятся к каждому адресу, которому он платит.
@@ -2612,14 +2612,14 @@ wallet.f2.h
   en: Send on purpose
   ru: Отправлять осознанно
 wallet.f2.p
-  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you slide to confirm. A transfer cannot be taken back.
-  ru: Введи адрес, выбери контакт или отсканируй QR-код. Перед отправкой ты ещё раз видишь получателя, сумму и сетевую комиссию, а затем проводишь по экрану, чтобы подтвердить. Перевод нельзя отменить.
+  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
+  ru: Введи адрес, выбери контакт или отсканируй QR-код. Перед отправкой ты ещё раз видишь получателя, сумму и сетевую комиссию, а затем подтверждаешь PIN-кодом или отпечатком пальца. Перевод нельзя отменить.
 wallet.f3.h
-  en: Receive and request
-  ru: Получать и запрашивать
+  en: Receive
+  ru: Получать
 wallet.f3.p
-  en: Show your QR code or your address. If you like, ask for a specific amount: the sender then only has to confirm.
-  ru: Покажи свой QR-код или адрес. Если хочешь, запроси конкретную сумму: отправителю останется только подтвердить.
+  en: Show your QR code, or copy and share your address. Anyone may see it: knowing it is not enough to withdraw anything.
+  ru: Покажи свой QR-код либо скопируй адрес и поделись им. Его может видеть кто угодно: знать адрес недостаточно, чтобы что-то снять.
 wallet.f5.h
   en: Sign and sign in
   ru: Подписывать и входить

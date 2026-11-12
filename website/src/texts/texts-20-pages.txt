@@ -411,11 +411,11 @@ wal.s3.p
   en: Payments, block rewards and pool shares appear in one place. Amounts are exact to the 8th decimal place.
   de: Zahlungen, Blockbelohnungen und Pool-Anteile stehen an einem Ort. Beträge stimmen bis zur 8. Nachkommastelle.
 wal.s5.h
-  en: Names instead of addresses.
-  de: Namen statt Adressen.
+  en: Names for addresses.
+  de: Namen für Adressen.
 wal.s5.p
-  en: Save a contact once, and every payment with that person sits in a single thread.
-  de: Einmal als Kontakt gespeichert, stehen alle Zahlungen mit dieser Person in einem Verlauf.
+  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
+  de: Speichere eine Adresse einmal unter einem Namen. Danach zeigt die Wallet diesen Namen: in deinen Zahlungen, beim Senden und beim Prüfen. Kontakte liegen nur auf deinem Gerät.
 
 # Mining: Szene „Der Block zahlt aus“, Rechner, Pools
 pay.alt
