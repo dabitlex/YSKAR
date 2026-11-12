@@ -114,6 +114,8 @@ img[data-lazy]:not([src]){visibility:hidden}
 /* Wörter, die beim Scrollen „angehen“ */
 .lit .w{opacity:.16;transition:opacity .5s linear}
 .lit .w.on{opacity:1}
+/* Zahl und Wort als ein Stück: steht in einer Zeile, solange es hineinpasst, und bricht sonst an seinem Leerzeichen um */
+.lit .w--pair{display:inline-block;max-width:100%}
 html.no-anim .lit .w{opacity:1}
 
 /* Einblenden beim Erscheinen (nur wenn Bewegung erwünscht ist; ohne Skript bleibt alles sichtbar) */

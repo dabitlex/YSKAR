@@ -10,16 +10,38 @@ var Scenes = (function () {
   var calm = false, introDone = false, hasGsap = false, io = null;
 
   /* ---------- Wörter einzeln ansprechbar machen ---------- */
+  var NB = '\u00a0', HAN = /[\u2e80-\u9fff\uf900-\ufaff]/, HAN_SENTENCE = /[^\u3002\uff01\uff1f\uff1b]+[\u3002\uff01\uff1f\uff1b]*/g,
+    // ein Stück chinesischer Text: öffnende Zeichen, dann ein Schriftzeichen oder eine Folge lateinischer Buchstaben und Ziffern, dann schließende Zeichen
+    HAN_PIECE = /[\uff08\u300c\u300e\u201c\u2018\u300a]*(?:[A-Za-z0-9][A-Za-z0-9.,:%+-]*|[\ud800-\udbff][\udc00-\udfff]|[^\s])[\u3002\uff0c\u3001\uff1b\uff1a\uff01\uff1f\uff09\u300d\u300f\u201d\u2019\u300b\u2026\u2014]*/g;
+  /**
+   * Zerlegt ein Wort (Text ohne Leerzeichen) in die Stücke, die einzeln angehen.
+   * - Mit geschütztem Leerzeichen: ein Paar wie "124 Überweisungen.". Es bleibt ein Stück und geht gemeinsam an. Ist es
+   *   breiter als die Zeile (schmales Handy, große Schrift), darf es an seinem Leerzeichen umbrechen: siehe .w--pair.
+   * - Chinesisch schreibt ohne Wortzwischenräume; ein "Wort" wäre dort ein ganzer Absatz. Darum zählt jeder Satz für sich:
+   *   mit geschütztem Leerzeichen ist er ein Paar, sonst ist jedes Schriftzeichen ein Stück (Satzzeichen bleiben an ihrem Zeichen).
+   */
+  function pieces(w) {
+    if (!HAN.test(w)) return [{ text: w, pair: w.indexOf(NB) >= 0 }];
+    var out = [];
+    (w.match(HAN_SENTENCE) || [w]).forEach(function (sentence) {
+      if (sentence.indexOf(NB) >= 0) out.push({ text: sentence, pair: true });
+      else (sentence.match(HAN_PIECE) || [sentence]).forEach(function (piece) { out.push({ text: piece, pair: false }); });
+    });
+    return out;
+  }
   function split(root) {
     U.$$('[data-lit]', root || document).forEach(function (el) {
       if (el._split && el.querySelector('.w')) return;
-      var words = el.textContent.trim().split(/[ \n\t]+/);     // geschützte Leerzeichen halten Zahl und Wort zusammen
+      var words = el.textContent.trim().split(/[ \n\t]+/);     // geschützte Leerzeichen trennen nicht: Sie halten Zahl und Wort zusammen
       el.textContent = '';
       words.forEach(function (w, i) {
-        var s = document.createElement('span'); s.className = 'w'; s.textContent = w; el.appendChild(s);
+        pieces(w).forEach(function (piece) {
+          var s = document.createElement('span');
+          s.className = piece.pair ? 'w w--pair' : 'w'; s.textContent = piece.pair ? piece.text.split(NB).join(' ') : piece.text; el.appendChild(s);
+        });
         if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
       });
-      el._split = true; el._n = words.length; el._k = -1;
+      el._split = true; el._n = el.children.length; el._k = -1;
       light(el, el._p || 0);
     });
   }

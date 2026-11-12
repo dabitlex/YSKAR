@@ -159,6 +159,7 @@ and the translation below it.
 | `data-ta="attribute:key"` | Sets an attribute, for example `aria-label` or `alt`. Several pairs are separated by `;`. |
 | `data-live="name"` | Shows a value read from the chain; the names are the fields of `values()` in `src/js/11-live.js` |
 | `data-say="key"` | A sentence with values from the chain inserted. If `key.snap` exists, it is used while the API is not answering. |
+| `data-lit` | The text lights up piece by piece while the page scrolls. A piece is a word. A non-breaking space joins two words into one piece that stays on one line where it fits ("124 transfers."). Chinese has no spaces between words: there every character is a piece, and a sentence that contains a non-breaking space is one piece. |
 
 Scripts read texts with `t('key', { n: 3 })`; `{n}` in the text is replaced. A translation has to
 contain the placeholders and the HTML of the English text.

@@ -444,7 +444,7 @@ home.ways.more.cta
   es: Para desarrolladores
 home.early.say
   en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
-  es: Día {d}. {n} nodos. {m} mineros. {p} pools. {x} transferencias. Sin listado. Sin precio. Así se ve el comienzo.
+  es: Día {d}. {n} nodos. {m} mineros. {p} pools. {x} transferencias. Sin listado. Sin precio. Así se ve el comienzo.
 home.early.note
   en: Nodes and miners as they report themselves. All figures come from the public API.
   es: Nodos y mineros tal como ellos mismos se anuncian. Todas las cifras proceden de la API pública.

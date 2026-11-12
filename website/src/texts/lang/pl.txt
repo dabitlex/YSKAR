@@ -444,7 +444,7 @@ home.ways.more.cta
   pl: Dla deweloperów
 home.early.say
   en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
-  pl: Dzień {d}. Węzłów: {n}. Minerów: {m}. Pooli: {p}. Przelewów: {x}. Bez notowań. Bez ceny. Tak wygląda początek.
+  pl: Dzień {d}. Węzłów: {n}. Minerów: {m}. Pooli: {p}. Przelewów: {x}. Bez notowań. Bez ceny. Tak wygląda początek.
 home.early.note
   en: Nodes and miners as they report themselves. All figures come from the public API.
   pl: Węzły i minerzy według tego, jak sami się zgłaszają. Wszystkie liczby pochodzą z publicznego API.

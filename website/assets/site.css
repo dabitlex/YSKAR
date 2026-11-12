@@ -202,6 +202,8 @@ img[data-lazy]:not([src]){visibility:hidden}
 /* Wörter, die beim Scrollen „angehen“ */
 .lit .w{opacity:.16;transition:opacity .5s linear}
 .lit .w.on{opacity:1}
+/* Zahl und Wort als ein Stück: steht in einer Zeile, solange es hineinpasst, und bricht sonst an seinem Leerzeichen um */
+.lit .w--pair{display:inline-block;max-width:100%}
 html.no-anim .lit .w{opacity:1}
 
 /* Einblenden beim Erscheinen (nur wenn Bewegung erwünscht ist; ohne Skript bleibt alles sichtbar) */
@@ -515,7 +517,13 @@ html.anim .ymark3.in path{opacity:1;transform:none}
 
 /* ---------- Früh ---------- */
 .early{background:var(--night-950)}
-.early__say{max-width:17em}
+/* Auf schmalen Handys läuft die Schrift mit der Breite mit, damit ein Paar wie "124 Überweisungen." in eine Zeile passt */
+.early__say{max-width:17em;font-size:min(var(--t-xl),10.6vw)}
+/* Außerhalb des Englischen stehen hier Großbuchstaben mit Punkten und Akzenten mitten im Satz (Überweisungen, É assim, È così):
+   etwas mehr Zeilenabstand, damit sie die Zeile darüber nicht berühren */
+html:not([lang="en"]) .early__say{line-height:1.06}
+/* Chinesisch: Jede Aussage bleibt beieinander; umbrochen wird nach dem Satzzeichen. Neun Zeichen sollen in eine Handyzeile passen */
+html[lang="zh"] .early__say{font-size:min(var(--t-xl),9.8vw);word-break:keep-all;overflow-wrap:anywhere}
 .early__note{margin-top:26px;max-width:40em}
 .early__cols{display:grid;gap:clamp(36px,6vw,80px);margin-top:clamp(56px,8vw,110px)}
 .era{display:grid;gap:14px;justify-items:start;align-content:start}

@@ -444,7 +444,7 @@ home.ways.more.cta
   ru: Для разработчиков
 home.early.say
   en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
-  ru: День {d}. Узлов: {n}. Майнеров: {m}. Пулов: {p}. Переводов: {x}. Ни листинга. Ни цены. Так выглядит самое начало.
+  ru: День {d}. Узлов: {n}. Майнеров: {m}. Пулов: {p}. Переводов: {x}. Ни листинга. Ни цены. Так выглядит самое начало.
 home.early.note
   en: Nodes and miners as they report themselves. All figures come from the public API.
   ru: Узлы и майнеры по их собственным сообщениям. Все цифры взяты из публичного API.

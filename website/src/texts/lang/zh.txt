@@ -444,7 +444,7 @@ home.ways.more.cta
   zh: 面向开发者
 home.early.say
   en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
-  zh: 第 {d} 天。{n} 个节点。{m} 位矿工。{p} 个矿池。{x} 笔转账。没有上市。没有价格。早期就是这个样子。
+  zh: 第 {d} 天。{n} 个节点。{m} 位矿工。{p} 个矿池。{x} 笔转账。没有上市。没有价格。早期就是这个样子。
 home.early.note
   en: Nodes and miners as they report themselves. All figures come from the public API.
   zh: 节点和矿工的数量来自它们自己的上报。所有数字都来自公开的 API。

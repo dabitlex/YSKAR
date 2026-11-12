@@ -444,7 +444,7 @@ home.ways.more.cta
   fr: Pour les développeurs
 home.early.say
   en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
-  fr: Jour {d}. {n} nœuds. {m} mineurs. {p} pools. {x} transferts. Pas de cotation. Pas de prix. Voilà à quoi ressemble un début.
+  fr: Jour {d}. {n} nœuds. {m} mineurs. {p} pools. {x} transferts. Pas de cotation. Pas de prix. Voilà à quoi ressemble un début.
 home.early.note
   en: Nodes and miners as they report themselves. All figures come from the public API.
   fr: Nœuds et mineurs tels qu’ils se signalent eux-mêmes. Tous les chiffres viennent de l’API publique.

@@ -444,7 +444,7 @@ home.ways.more.cta
   tr: Geliştiriciler için
 home.early.say
   en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
-  tr: Gün {d}. {n} düğüm. {m} madenci. {p} havuz. {x} transfer. Borsa yok. Fiyat yok. Erken dönem böyle görünür.
+  tr: Gün {d}. {n} düğüm. {m} madenci. {p} havuz. {x} transfer. Borsa yok. Fiyat yok. Erken dönem böyle görünür.
 home.early.note
   en: Nodes and miners as they report themselves. All figures come from the public API.
   tr: Düğümler ve madenciler kendilerini bildirdikleri şekliyle. Tüm rakamlar herkese açık API’den gelir.
