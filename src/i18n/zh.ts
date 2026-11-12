@@ -6,10 +6,12 @@ import type { Woerterbuch } from './de';
  */
 import neu from './neu/zh';
 import rd from './rd/zh';
+import licht from './licht/zh';
 
 const zh = {
   ...neu,
   rd,
+  licht,
   name: '中文',
   locale: 'zh-CN',
 

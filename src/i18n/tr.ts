@@ -6,10 +6,12 @@ import type { Woerterbuch } from './de';
  */
 import neu from './neu/tr';
 import rd from './rd/tr';
+import licht from './licht/tr';
 
 const tr = {
   ...neu,
   rd,
+  licht,
   name: 'Türkçe',
   locale: 'tr-TR',
 

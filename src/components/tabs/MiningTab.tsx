@@ -29,7 +29,7 @@ type Mining = ReturnType<typeof useMining>;
 const rate = (h: number) => hashrateTeile(h);
 
 export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, kerne, workerStufen,
-                                    bench, onStarten, onBenchmark }: {
+                                    bench, onStarten, onBenchmark, erweitert, setErweitert }: {
   m: Mining; dec: number; sym: string;
   wach: 'aus' | 'aktiv' | 'nicht_moeglich';
   pool: PoolAuswahl;
@@ -39,9 +39,10 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
   /** Startet im gewaehlten Modus (prueft vorher den Pool). */
   onStarten: () => void;
   onBenchmark: () => void;
+  /** "Erweitert" (Last, Worker, Modus): Der Zustand liegt in der AppShell, weil auch der Minen-Reiter es oeffnet. */
+  erweitert: boolean; setErweitert: (v: boolean) => void;
 }) {
   const { t, zahl, locale } = useT();
-  const [erweitert, setErweitert] = useState(false);
   const { modus } = pool;
   const minuten = m.seit ? Math.max(0, Math.round((Date.now() - m.seit) / 60000)) : 0;
 

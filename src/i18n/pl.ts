@@ -14,10 +14,12 @@ const odm = (n: number, one: string, few: string, many: string) => {
 
 import neu from './neu/pl';
 import rd from './rd/pl';
+import licht from './licht/pl';
 
 const pl = {
   ...neu,
   rd,
+  licht,
   name: 'Polski',
   locale: 'pl-PL',
 

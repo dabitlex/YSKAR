@@ -89,6 +89,8 @@ export default function AppShell({ platform }: { platform: string }) {
   };
   const [tab, setTab] = useState<Tab>('mine');
   const [ansicht, setAnsicht] = useState<Ansicht>(null);
+  // "Erweitert" (Last, Worker, Modus): gehoert zum Teil "Mining", wird aber auch vom Minen-Reiter geoeffnet.
+  const [erweitert, setErweitert] = useState(false);
   // Gebuehr erhoehen: welche eigene Zahlung ersetzt wird (Send beginnt dann beim Pruefen).
   const [ersetzen, setErsetzen] = useState<EigeneZahlung | null>(null);
   const [gesperrt, setGesperrt] = useState(false);
@@ -230,7 +232,8 @@ export default function AppShell({ platform }: { platform: string }) {
                             ?? inhalte(sprache, locale).ARTIKEL[0]}
                    onZurueck={() => setAnsicht(null)} />
         ) : tab === 'mine' ? (<>
-          <MineTab m={m} dec={dec} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
+          <MineTab m={m} dec={dec} sym={sym} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
+                   worker={worker} onErweitert={() => setErweitert(true)}
                    hinweis={aktion.hinweis ? (
                      <AktionHinweis gewinnUsd={aktion.gewinn?.betrag_usd ?? null} onSchliessen={aktion.schliessen}
                                     onOeffnen={() => setAnsicht(aktion.gewinn ? 'aktionErgebnis' : 'aktion')} />
@@ -241,7 +244,8 @@ export default function AppShell({ platform }: { platform: string }) {
                    onPoolWaehlen={() => pool.setBlatt(true)} />
           <MiningTab m={m} dec={dec} sym={sym} wach={wach} pool={pool}
                      worker={worker} setWorker={setWorker} kerne={kerne} workerStufen={workerStufen}
-                     bench={bench} onStarten={starten} onBenchmark={() => setAnsicht('benchmark')} />
+                     bench={bench} onStarten={starten} onBenchmark={() => setAnsicht('benchmark')}
+                     erweitert={erweitert} setErweitert={setErweitert} />
         </>        ) : tab === 'wallet' ? (
           <WalletTab account={m.account as never} decimals={dec} symbol={sym}
                      address={wallet.address}

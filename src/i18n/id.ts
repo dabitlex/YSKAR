@@ -6,10 +6,12 @@ import type { Woerterbuch } from './de';
  */
 import neu from './neu/id';
 import rd from './rd/id';
+import licht from './licht/id';
 
 const id = {
   ...neu,
   rd,
+  licht,
   name: 'Bahasa Indonesia',
   locale: 'id-ID',
 

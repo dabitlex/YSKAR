@@ -6,10 +6,12 @@ import type { Woerterbuch } from './de';
  */
 import neu from './neu/es';
 import rd from './rd/es';
+import licht from './licht/es';
 
 const es = {
   ...neu,
   rd,
+  licht,
   name: 'Español',
   locale: 'es-ES',
 
