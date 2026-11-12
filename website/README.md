@@ -105,7 +105,13 @@ the same purpose.
 
 `/explorer#block-<height>`, `/explorer#tx-<64 hex digits>` and `/explorer#adr-<ysr1…>` open a
 block, a transaction or an address. The wallet, the app, the miners and Node Core build exactly
-these links, so the three forms must keep working.
+these links, so the three forms must keep working. `/explorer#neu` opens the block that is being
+mined right now, with the queue of pending transactions.
+
+Every block the explorer shows is re-verified in the browser, as four separate statements: the
+header rebuilt from its fields matches the stored header, the recomputed hash is the reported
+one, the hash is below the target, and the link to the previous block holds. The list of the
+latest blocks also compares the server's mirror with the full node (`tipHash` in `/summary`).
 
 ## Texts and languages
 

@@ -1,10 +1,10 @@
 /*
  * Explorer: Blöcke, Transaktionen und Adressen nachschlagen.
- * Er liest die öffentliche API (nur GET). Der Proof of Work jedes angezeigten Blocks wird im Browser nachgerechnet,
- * die Prüfsumme jeder eingegebenen Adresse ebenfalls.
+ * Er liest die öffentliche API (nur GET). Jeder angezeigte Block wird im Browser nachgerechnet: Kopf aus den Einzelfeldern
+ * neu zusammengesetzt, Hash, Proof of Work, Verkettung mit dem Vorgänger. Die Prüfsumme jeder eingegebenen Adresse ebenfalls.
  *
  * Adressen im Explorer, wie Wallet, App und Miner sie seit jeher verlinken:
- *   /explorer#block-<Höhe>    /explorer#tx-<64 Hexzeichen>    /explorer#adr-<ysr1…>
+ *   /explorer#block-<Höhe>    /explorer#tx-<64 Hexzeichen>    /explorer#adr-<ysr1…>    /explorer#neu (der Block im Bau)
  *
  * Antwortet die API einmal nicht, zeigt er, was die Seite schon geladen hat (die neuesten Blöcke samt Kopf),
  * sagt es dazu und versucht es mit dem nächsten Stand der Kette von selbst noch einmal.
@@ -17,6 +17,9 @@ var Explorer = (function () {
   var known = {}, lowest = Infinity, listMode = null, lastTop = -1, busyOlder = false, seenTop = -1, seenLive = false;
   var cache = { block: {}, tx: {}, acc: {} }, cur = { kind: 'home' }, shown = null;
   var more = {}, busyMore = false, viewTip = -1;      // nachgeladene ältere Bewegungen je Adresse: { list, next, top }
+  var checks = {}, side = {}, sideBusy = {}, mirrorSince = null;   // Prüfergebnisse je Höhe; Vorgänger, die nicht in der Liste stehen
+  var atTip = null;                                                // der Verweis "nächster Block" des Blocks an der Spitze
+  var MAX_TX = 2000, MAX_TX_V6 = 5000, DIFF_V4 = 6000;            // wie src/lib/core/params.ts
 
   /* ---------- kleine Bausteine ---------- */
   function live() { return Live.S.mode === 'live'; }
@@ -80,6 +83,89 @@ var Explorer = (function () {
     return null;
   }
 
+  /* ---------- Prüfen im Browser ---------- */
+  /** Plätze für Transaktionen in Block h (ab Konsensfassung 6 mehr). */
+  function slotsAt(h) {
+    var v6 = Number(Live.S.fees && Live.S.fees.aktivierung) || U.V6;
+    return v6 > 0 && h >= v6 ? MAX_TX_V6 : MAX_TX;
+  }
+  function percent(p) { return U.num(p, p > 0 && p < 10 ? 2 : 0); }
+  function span(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return (m ? U.num(m) + ' min ' : '') + s + ' s';
+  }
+  /** Setzt die 136 Byte des Kopfes aus den einzeln gemeldeten Feldern neu zusammen (wie src/lib/core/block.ts). */
+  function serialize(b) {
+    var out = new Uint8Array(136), dv = new DataView(out.buffer), one = BigInt(1), e, m, field;
+    var v = BigInt(b.difficultyWert !== undefined && b.difficultyWert !== null ? b.difficultyWert : b.difficulty);
+    if (b.height < DIFF_V4 || v < (one << BigInt(31))) field = Number(v);       // ab Fassung 4 über 2^31 als Gleitkomma
+    else { e = BigInt(v.toString(2).length) - BigInt(24); m = v >> e; field = Number((one << BigInt(31)) | (e << BigInt(23)) | (m - (one << BigInt(23)))); }
+    dv.setUint32(0, b.version === undefined || b.version === null ? 1 : b.version, true);
+    dv.setUint32(4, b.height, true);
+    out.set(U.hexToBytes(b.prevHash), 8); out.set(U.hexToBytes(b.merkleRoot), 40); out.set(U.hexToBytes(b.stateRoot), 72);
+    dv.setBigUint64(104, BigInt(b.timestamp), true);
+    dv.setUint32(112, field, true);
+    dv.setUint32(116, b.txCount, true);
+    dv.setBigUint64(120, BigInt(b.extranonce), true);
+    dv.setBigUint64(128, BigInt(b.nonce), true);
+    return out;
+  }
+  /**
+   * Vier getrennte Aussagen zu einem Block, jede 'ok' | 'bad' | 'open':
+   *   ser   aus den Einzelfeldern ergibt sich genau der gespeicherte Kopf
+   *   hash  der hier errechnete Hash ist der gemeldete
+   *   pow   der Hash liegt unter dem Ziel der eingetragenen Difficulty
+   *   link  das Feld "Vorgänger" ist der hier errechnete Hash des Blocks eine Höhe darunter
+   */
+  function check(b) {
+    var c = checks[b.height], bytes, mine, target, prev, hv;
+    if (!c || c.of !== b.hash) {
+      c = { of: b.hash, ser: 'open', hash: 'open', pow: 'open', link: 'open', mine: null, achieved: null };
+      try {
+        bytes = U.hexToBytes(b.header);
+        mine = U.bytesToHex(Sha.digest(Sha.digest(bytes)));
+        target = U.targetHex(U.parseHeader(b.header).difficulty);
+        c.mine = mine;
+        c.hash = mine === b.hash ? 'ok' : 'bad';
+        c.pow = mine <= target ? 'ok' : 'bad';
+        hv = BigInt('0x' + mine);
+        c.achieved = hv === BigInt(0) ? null : (BigInt(1) << BigInt(240)) / hv;
+        if (b.prevHash && b.merkleRoot && b.stateRoot && b.nonce !== undefined) c.ser = U.bytesToHex(serialize(b)) === b.header ? 'ok' : 'bad';
+      } catch (e) { c.hash = c.pow = 'bad'; }
+      checks[b.height] = c;
+    }
+    if (c.link === 'open' && b.height > 0 && c.mine) {
+      prev = headerOf(b.height - 1) || side[b.height - 1] || cache.block[b.height - 1];
+      if (prev && prev.header) {
+        try { c.link = U.parseHeader(b.header).prev === U.bytesToHex(Sha.digest(Sha.digest(U.hexToBytes(prev.header)))) ? 'ok' : 'bad'; }
+        catch (e2) { c.link = 'bad'; }
+      }
+    }
+    return c;
+  }
+  /** 'ok' = hier nachgerechnet, 'bad' = eine Prüfung schlug fehl, 'open' = noch nicht geprüft. */
+  function verdictOf(c) {
+    if (!c) return 'open';
+    if (c.ser === 'bad' || c.hash === 'bad' || c.pow === 'bad' || c.link === 'bad') return 'bad';
+    return c.hash === 'ok' && c.pow === 'ok' ? 'ok' : 'open';
+  }
+  function dot(state, title) {
+    var d = node('i', 'dot ' + state);
+    if (title) { d.title = title; d.setAttribute('role', 'img'); d.setAttribute('aria-label', title); } else d.setAttribute('aria-hidden', 'true');
+    return d;
+  }
+  /** Holt den Block eine Höhe unter h, wenn die Seite ihn noch nicht hat; erst mit ihm lässt sich die Verkettung prüfen. */
+  function needPrev(h, done) {
+    if (h <= 0 || headerOf(h - 1) || side[h - 1] || cache.block[h - 1] || sideBusy[h] || !live()) return;
+    sideBusy[h] = true;
+    api('/blocks?limit=1&before=' + h).then(function (r) {
+      delete sideBusy[h];
+      var b = r.ok && r.j && r.j.blocks && r.j.blocks[0];
+      if (b && b.height === h - 1 && b.header) { side[h - 1] = b; done(); }
+    }, function () { delete sideBusy[h]; });
+  }
+
   /* ---------- Blockliste ---------- */
   function sync() {
     var b = Live.S.blocks, hi = b[0].height, lo = b[b.length - 1].height;
@@ -114,19 +200,46 @@ var Explorer = (function () {
     e.appendChild(document.createTextNode(sh.slice(z.length)));
     return e;
   }
+  function txCountText(n) { return n === 0 ? t('ex.row.tx0') : n === 1 ? t('ex.row.tx1') : t('ex.row.tx', { n: U.num(n) }); }
+  /**
+   * Spiegel und Full Node vergleichen: Die Blockliste kommt aus dem Spiegel (Datenbank), /summary vom Full Node.
+   * Zeigt der Spiegel auf derselben Höhe einen anderen Block oder liegt er zurück, steht ein Hinweis da, sobald das
+   * länger als eine Minute so bleibt. Ein Block Rückstand für ein paar Sekunden ist normal.
+   */
+  function mirrorNote() {
+    var s = Live.S.summary, head = Live.S.blocks[0], text = '', behind;
+    if (live() && s && head && s.height === Number(s.height)) {
+      if (s.height === head.height && typeof s.tipHash === 'string' && s.tipHash.toLowerCase() !== String(head.hash).toLowerCase()) text = t('ex.mirror.fork', { h: U.num(head.height) });
+      else if (s.height > head.height) { behind = s.height - head.height; text = t(behind === 1 ? 'ex.mirror.behind.1' : 'ex.mirror.behind', { n: U.num(behind) }); }
+    }
+    if (!text) { mirrorSince = null; return null; }
+    if (mirrorSince === null) mirrorSince = Date.now();
+    return Date.now() - mirrorSince < 60000 ? null : text;
+  }
   function drawHome() {
     sync();
-    var tip = Live.S.blocks[0].height, rows = [], h, now = Live.now();
+    var tip = Live.S.blocks[0].height, rows = [], h, now = Live.now(), good = 0, bad = 0;
     for (h = tip; h >= lowest && h >= 0; h--) if (known[h]) rows.push(known[h]);
     var list = U.el('ol', { 'class': 'xbl' });
+    if (live()) {                                           // der Block, an dem gerade gesucht wird
+      var waiting = Number(Live.S.summary.mempool) || 0;
+      list.appendChild(U.el('li', { 'class': 'is-next' }, [U.el('a', { 'class': 'xb', href: Router.href('#explorer-neu') }, [
+        U.el('span', { 'class': 'xb__h mono' }, [document.createTextNode(U.num(tip + 1)), node('i', 'ring')]),
+        node('span', 'xb__age', t('ex.next.tag')),
+        node('span', 'xb__by', '–'),
+        node('span', 'xb__tx' + (waiting ? '' : ' quiet'), txCountText(waiting)),
+        node('span', 'xb__size', ''), node('span', 'xb__hash mono', '')])]));
+    }
     rows.forEach(function (b) {
       var n = Math.max(0, (b.txCount || 1) - 1), age = node('span', 'xb__age', Live.ago(Number(b.timestamp), now));
       age.title = U.date(Number(b.timestamp), true);
       var fresh = seenLive && live() && seenTop >= 0 && b.height > seenTop && tip - seenTop < 4;
+      var v = b.header ? verdictOf(check(b)) : 'open', num = U.el('span', { 'class': 'xb__h mono' }, [document.createTextNode(U.num(b.height))]);
+      if (v === 'ok') { good++; num.appendChild(dot('ok', t('ex.verified'))); } else if (v === 'bad') { bad++; num.appendChild(dot('bad', t('ex.check.bad'))); }
       list.appendChild(U.el('li', fresh ? { 'class': 'is-new' } : {}, [U.el('a', { 'class': 'xb', href: Router.href('#explorer-block-' + b.height) }, [
-        node('span', 'xb__h mono', U.num(b.height)), age,
+        num, age,
         node('span', 'xb__by', b.finder || t('ex.solo')),
-        node('span', 'xb__tx' + (n ? '' : ' quiet'), n === 0 ? t('ex.row.tx0') : n === 1 ? t('ex.row.tx1') : t('ex.row.tx', { n: U.num(n) })),
+        node('span', 'xb__tx' + (n ? '' : ' quiet'), txCountText(n)),
         node('span', 'xb__size', t('ex.bytes', { n: U.num(b.sizeBytes || 0) })),
         hashNode(b.hash)])]));
     });
@@ -142,10 +255,17 @@ var Explorer = (function () {
       more.addEventListener('click', older);
       foot.appendChild(more);
     }
-    var box = U.el('div', { 'class': 'display' }, [
-      U.el('div', { 'class': 'display-head' }, [node('h2', 'display-title', t('ex.latest.h')), node('span', 'state', Live.values().modeShort)]),
-      U.el('div', {}, [heads, list]), foot]);
-    paint([Pulse.set({ mode: 'tip' }), box], false);
+    var kids = [U.el('div', { 'class': 'display-head' }, [node('h2', 'display-title', t('ex.latest.h')), node('span', 'state', Live.values().modeShort)])];
+    var note = mirrorNote();
+    if (note) kids.push(U.el('div', { 'class': 'limit' }, [node('p', null, note)]));
+    kids.push(U.el('div', {}, [heads, list]));
+    if (good || bad) {
+      var said = U.el('p', { 'class': 'ex-said ' + (bad ? 'bad' : 'ok') }, [dot(bad ? 'bad' : 'ok'),
+        node('span', null, bad ? t('ex.verdict.bad') : t(good === 1 ? 'ex.verdict.ok.1' : 'ex.verdict.ok', { n: U.num(good) }))]);
+      kids.push(U.el('div', { 'class': 'ex-checked' }, [said, node('p', 'fig-cap', t('ex.check.p'))]));
+    }
+    kids.push(foot);
+    paint([Pulse.set({ mode: 'tip' }), U.el('div', { 'class': 'display' }, kids)], false);
     document.title = t('title.explorer') + ' – YSKAR';
   }
   function older() {
@@ -174,11 +294,19 @@ var Explorer = (function () {
     }
     return n;
   }
+  /** Eine Zeile "Bezeichnung: Wert"; `sub` ist eine Unterzeile oder eine Liste davon (Text oder Knoten). */
   function fact(label, value, sub) {
     var dd = U.el('dd');
     if (typeof value === 'string') dd.appendChild(node('span', 'mono wrapany', value)); else dd.appendChild(value);
-    if (sub) dd.appendChild(node('span', 'sub', sub));
+    (Array.isArray(sub) ? sub : [sub]).forEach(function (x) {
+      if (x) dd.appendChild(typeof x === 'string' ? node('span', 'sub', x) : x);
+    });
     return U.el('div', {}, [node('dt', null, label), dd]);
+  }
+  function meter(p) {
+    var m = U.el('span', { 'class': 'meter', 'aria-hidden': 'true' }, [U.el('i')]);
+    m.firstChild.style.width = Math.max(0, Math.min(100, p)).toFixed(2) + '%';
+    return m;
   }
   function wait() { paint([node('p', 'ex-wait', t('ex.loading'))], cur.kind !== 'home'); }
   function none(text) {
@@ -271,7 +399,9 @@ var Explorer = (function () {
         : isPool ? t('ex.block.sumPoolNoName', { date: d, ago: ago }) : t('ex.block.sumSolo', { date: d, ago: ago });
     var navs = U.el('div', { 'class': 'row ex-nav' });
     if (h > 0) navs.appendChild(link('#explorer-block-' + (h - 1), t('ex.prev'), 'btn small ghost'));
+    atTip = null;
     if (h < tip) navs.appendChild(link('#explorer-block-' + (h + 1), t('ex.next'), 'btn small ghost'));
+    else if (live()) { atTip = { h: h, a: link('#explorer-neu', t('ex.next'), 'btn small ghost') }; navs.appendChild(atTip.a); }   // an der Spitze: der Block im Bau
     var head = U.el('div', { 'class': 'ex-head' }, [
       U.el('div', {}, [node('h1', 'ex-title', t('ex.block.h', { h: U.num(h) })), node('p', 'lead ex-sum', sum)]), navs]);
     var kids = [crumbs([{ text: t('ex.block.h', { h: U.num(h) }) }]), head];
@@ -282,19 +412,46 @@ var Explorer = (function () {
     kids.push(U.el('div', { 'class': 'ex-proof' }, [
       U.el('div', { 'class': 'split-head' }, [node('h2', null, t('ex.proof.h')), node('p', 'muted', t('ex.proof.p'))]), pr]));
 
+    // Vier Aussagen, getrennt: eine Gesamtnote würde verstecken, was geprüft wurde
+    var c = check(b), linkLi = null, timeRow, factsEl;
+    function before() { return h > 0 ? (headerOf(h - 1) || side[h - 1] || cache.block[h - 1]) : null; }
+    function state(label, v, toPrev) {
+      var nm = U.el('span', { 'class': 'nm' }, [dot(v), node('span', null, label)]);
+      if (toPrev) { nm.appendChild(node('span', 'sep', '·')); nm.appendChild(link('#explorer-block-' + (h - 1), t('ex.block.h', { h: U.num(h - 1) }))); }
+      return U.el('li', { 'class': v }, [nm, node('span', 'st', t('ex.check.' + v))]);
+    }
+    function timeFact() {
+      var p = before();
+      return p && p.timestamp ? fact(t('ex.f.time'), node('span', null, span(ts - Number(p.timestamp))), t('ex.f.time.s')) : null;
+    }
+    var list4 = U.el('ul', { 'class': 'checks' }, [state(t('ex.check.ser'), c.ser), state(t('ex.check.hash'), c.hash), state(t('ex.check.pow'), c.pow)]);
+    if (h > 0) { linkLi = state(t('ex.check.link'), c.link, true); list4.appendChild(linkLi); }
+    kids.push(U.el('div', { 'class': 'split ex-split' }, [
+      U.el('div', { 'class': 'split-head' }, [node('h2', null, t('ex.check.h')), node('p', 'muted', t('ex.check.note'))]), list4]));
+
     var hd = U.parseHeader(b.header), diff = Number(hd.difficulty);
     var prev = h > 0 ? link('#explorer-block-' + (h - 1), b.prevHash || hd.prev, 'mono wrapany') : node('span', null, t('ex.f.prev.none'));
-    var n = b.txCount || (txs ? txs.length : 1);
-    var facts = U.el('dl', { 'class': 'facts ex-facts' }, [
-      fact(t('ex.f.hash'), b.hash),
-      fact(t('ex.f.prev'), prev),
+    var n = b.txCount || (txs ? txs.length : 1), fill = Math.min(100, n / slotsAt(h) * 100);
+    var rows = [fact(t('ex.f.hash'), b.hash), fact(t('ex.f.prev'), prev)];
+    timeRow = timeFact();
+    if (timeRow) rows.push(timeRow);
+    rows.push(
       fact(t('ex.f.merkle'), b.merkleRoot || hd.merkle, t('ex.f.merkle.s')),
       fact(t('ex.f.state'), b.stateRoot || hd.state, t('ex.f.state.s')),
-      fact(t('ex.f.diff'), U.num(diff), t('ex.f.diff.s', { n: U.compact(diff * 65536, 0) })),
+      fact(t('ex.f.diff'), U.num(diff), [t('ex.f.diff.s', { n: U.compact(diff * 65536, 0) }), c.achieved ? t('ex.f.achieved') + ' ' + U.num(Number(c.achieved)) : null]),
       fact(t('ex.f.nonce'), hd.nonce.toLocaleString(U.loc()) + ' / ' + hd.extra.toLocaleString(U.loc()), t('ex.f.nonce.s')),
-      fact(t('ex.f.size'), n === 1 ? t('ex.f.size.v1', { n: U.num(b.sizeBytes || 0) }) : t('ex.f.size.v', { n: U.num(b.sizeBytes || 0), tx: U.num(n) }))]);
+      fact(t('ex.f.size'), n === 1 ? t('ex.f.size.v1', { n: U.num(b.sizeBytes || 0) }) : t('ex.f.size.v', { n: U.num(b.sizeBytes || 0), tx: U.num(n) }),
+        [t('ex.fill', { p: percent(fill) }) + ' · ' + t('ex.fill.of', { n: U.num(n), max: U.num(slotsAt(h)) }), meter(fill)]));
+    factsEl = U.el('dl', { 'class': 'facts ex-facts' }, rows);
     kids.push(U.el('div', { 'class': 'split ex-split' }, [
-      U.el('div', { 'class': 'split-head' }, [node('h2', null, t('ex.block.values')), node('p', 'muted', t('ex.block.values.p'))]), facts]));
+      U.el('div', { 'class': 'split-head' }, [node('h2', null, t('ex.block.values')), node('p', 'muted', t('ex.block.values.p'))]), factsEl]));
+    // Der Vorgänger fehlt noch: holen, dann Verkettung und Blockzeit an Ort und Stelle nachtragen
+    if (h > 0 && !before()) needPrev(h, function () {
+      if (!view.contains(factsEl)) return;
+      var li = state(t('ex.check.link'), check(b).link, true), row = timeFact();
+      linkLi.parentNode.replaceChild(li, linkLi); linkLi = li;
+      if (row && !timeRow) { factsEl.insertBefore(row, factsEl.children[2] || null); timeRow = row; }
+    });
 
     if (txs && txs.length) {
       var list = U.el('div', { 'class': 'display ex-txs' });
@@ -314,6 +471,49 @@ var Explorer = (function () {
       spare: function () { return headerOf(h); },           // den Kopf der neuesten Blöcke hat die Seite schon
       draw: drawBlock
     }, quiet);
+  }
+
+  /* ---------- Ansicht: der Block im Bau ---------- */
+  /*
+   * Der Block, an dem gerade gesucht wird. Hier steht nur, was feststeht: Vorgänger, Belohnung, wartende Zahlungen.
+   * Seine Difficulty rechnet das Netz erst mit dem Block aus; sie steht deshalb nicht da.
+   */
+  function drawNext() {
+    var s = Live.S.summary, tip = s.height, next = tip + 1, waiting = Number(s.mempool) || 0, f = Live.S.fees || {};
+    var fill = Math.min(100, (waiting + 1) / slotsAt(next) * 100);
+    var title = U.el('h1', { 'class': 'ex-title' }, [document.createTextNode(t('ex.block.h', { h: U.num(next) }) + ' '), node('span', 'tag', t('ex.next.tag'))]);
+    var head = U.el('div', { 'class': 'ex-head' }, [
+      U.el('div', {}, [title, node('p', 'lead ex-sum', (waiting ? t('ex.next.some') : t('ex.next.empty')) + ' ' + t('ex.next.who'))]),
+      U.el('div', { 'class': 'row ex-nav' }, [link('#explorer-block-' + tip, t('ex.prev'), 'btn small ghost')])]);
+    var facts = U.el('dl', { 'class': 'facts ex-facts' }, [
+      fact(t('ex.f.prev'), link('#explorer-block-' + tip, t('ex.block.h', { h: U.num(tip) }))),
+      fact(t('ex.next.reward'), node('span', null, U.ysr(s.nextReward))),
+      fact(t('ex.next.pending'), node('span', null, U.num(waiting)), [t('ex.fill', { p: percent(fill) }), meter(fill)])]);
+    var rows = (Array.isArray(f.bloecke) ? f.bloecke : []).slice(0, 12).filter(function (b) { return Number(b.hoehe) > 0; });
+    var base = Number(f.basisBytes) || 168, pace = Number(f.blockzeit) || 600, queue;
+    if (!rows.length) queue = node('p', 'ex-queue-none', t('ex.queue.none'));
+    else {
+      queue = U.el('ul', { 'class': 'ex-queue' }, rows.map(function (b) {
+        var fee = U.ysr(Math.ceil(Number(b.minJeByte) * base)), min = Math.max(1, Math.round(Number(b.block) * pace / 60));
+        return U.el('li', {}, [node('span', 'mono', t('ex.addr.blockN', { h: U.num(Number(b.hoehe)) })),
+          node('span', 'q', t('ex.queue.row', { n: U.num(Number(b.anzahl) || 0), fee: fee, min: U.num(min) }))]);
+      }));
+    }
+    var notes = [];
+    if (rows.length && Number(f.bloeckeGesamt) > rows.length) notes.push(t('ex.queue.more', { n: U.num(Number(f.inVorschau) || 0), b: U.num(Number(f.bloeckeGesamt)) }));
+    if (rows.length) notes.push(t('ex.queue.note'));
+    var qBox = U.el('div', { 'class': 'display' }, [queue]);
+    if (notes.length) qBox.appendChild(node('p', 'fig-cap', notes.join(' ')));
+    paint([crumbs([{ text: t('ex.block.h', { h: U.num(next) }) }]), head, Pulse.set({ mode: 'tip' }),
+      U.el('div', { 'class': 'split ex-split' }, [U.el('div', { 'class': 'split-head' }, [node('h2', null, t('ex.next.h'))]), facts]),
+      U.el('div', { 'class': 'split ex-split' }, [U.el('div', { 'class': 'split-head' }, [node('h2', null, t('ex.queue.h'))]), qBox])], true);
+    document.title = t('ex.block.h', { h: U.num(next) }) + ' · ' + t('ex.next.tag') + ' – ' + t('title.explorer') + ' – YSKAR';
+  }
+  function showNext() {
+    token++;
+    cur.source = live() ? 'live' : 'snapshot';
+    cur.pending = !live();                                  // antwortet die Kette nicht, mit dem nächsten Stand noch einmal
+    if (live()) drawNext(); else unreachable();
   }
 
   /* ---------- Ansicht: Transaktion ---------- */
@@ -488,11 +688,12 @@ var Explorer = (function () {
     if ((m = /^block-(\d{1,9})$/.exec(rest))) return { kind: 'block', h: +m[1] };
     if ((m = /^(?:adr|address)-(ysr1[a-z0-9]{20,80})$/.exec(rest))) return { kind: 'address', a: m[1] };
     if ((m = /^tx-([0-9a-f]{64})$/.exec(rest))) return { kind: 'tx', id: m[1] };
-    if (rest === 'neu') return { kind: 'home' };          // früher: der Block, der gerade entsteht
+    if (rest === 'neu') return { kind: 'next' };          // der Block, der gerade entsteht
     return { kind: 'home', unknown: true };
   }
   function render(quiet) {
     if (cur.kind === 'block') showBlock(cur.h, quiet);
+    else if (cur.kind === 'next') showNext();
     else if (cur.kind === 'tx') showTx(cur.id, quiet);
     else if (cur.kind === 'address') {
       if (checkAddress(cur.a) !== 'ok') { cur.source = 'live'; none(t(checkAddress(cur.a) === 'sum' ? 'ex.msg.badAddr' : 'ex.msg.addrShape')); }
@@ -515,10 +716,24 @@ var Explorer = (function () {
     document.getElementById('ex-form').addEventListener('submit', function (e) { e.preventDefault(); search(input.value); });
     U.on('route', onRoute);
     U.on('lang', function () { render(false); });
+    // Pfeiltasten blättern von Block zu Block; rechts vom neuesten liegt der Block im Bau
+    document.addEventListener('keydown', function (e) {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      var el = document.activeElement, tag = el && el.tagName, tip = Live.S.summary.height, left = e.key === 'ArrowLeft';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable) || (el && el.closest && el.closest('.proof, [role="slider"], canvas, #menu'))) return;
+      if (cur.kind === 'block') {
+        if (left && cur.h > 0) go('block-' + (cur.h - 1));
+        else if (!left && cur.h < tip) go('block-' + (cur.h + 1));
+        else if (!left && live()) go('neu');
+      } else if (cur.kind === 'next' && left) go('block-' + tip);
+    });
     U.on('data', function () {
       var tip = Live.S.blocks[0].height, grown = tip !== viewTip;
       viewTip = tip;
       if (cur.kind === 'home') return void drawHome();
+      if (cur.kind === 'next') return void showNext();
+      // ein geöffneter Block bleibt offen; nur sein "nächster Block" zeigt jetzt auf einen gefundenen statt auf den im Bau
+      if (cur.kind === 'block' && atTip && atTip.h === cur.h && tip > cur.h) { atTip.a.setAttribute('href', Router.href('#explorer-block-' + (cur.h + 1))); atTip = null; }
       // neu lesen, was sich noch ändern kann: wartende Zahlungen, ein Konto nach jedem neuen Block, alles nach einem Ausfall
       if (cur.kind === 'address' && grown && live()) delete cache.acc[cur.a];
       if (cur.pending || cur.open || (cur.source === 'snapshot' && live()) || (cur.kind === 'address' && grown && live())) render(cur.source !== 'snapshot' || !live());
