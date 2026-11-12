@@ -872,8 +872,8 @@ wal.s5.h
   en: Names for addresses.
   tr: Adresler için isimler.
 wal.s5.p
-  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
-  tr: Bir adresi bir kez bir isimle kaydet. Bundan sonra cüzdan o ismi gösterir: ödemelerinde, gönderirken ve kontrol ederken. Kişiler cihazında kalır.
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  tr: Bir adrese bir kez isim ver: cüzdan bu ismi ödemelerinde ve gönderirken gösterir. Kişiler cihazında kalır.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   tr: Pek çok küçük ışık titreşiyor, bir bloğa dönüşen parlak bir noktada toplanıyor ve bloktan, ödeme yaptığı her adrese ışınlar uzanıyor.
@@ -2553,7 +2553,7 @@ wallet.f2.h
   tr: Bilerek gönder
 wallet.f2.p
   en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
-  tr: Bir adres gir, bir kişi seç ya da bir QR kodu tara. Göndermeden önce alıcıyı, tutarı ve ağ ücretini bir kez daha görürsün, sonra PIN’inle ya da parmak izinle onaylarsın. Bir transfer geri alınamaz.
+  tr: Bir adres gir, bir kişi seç ya da bir QR kodu tara. Göndermeden önce alıcıyı, tutarı ve ağ ücretini bir kez daha görürsün, sonra PIN ya da parmak iziyle onaylarsın. Bir transfer geri alınamaz.
 wallet.f3.h
   en: Receive
   tr: Ödeme al

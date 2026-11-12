@@ -872,8 +872,8 @@ wal.s5.h
   en: Names for addresses.
   ru: Имена для адресов.
 wal.s5.p
-  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
-  ru: Один раз сохрани адрес под именем. После этого кошелёк показывает это имя: в твоих платежах, при отправке и при проверке. Контакты остаются на твоём устройстве.
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  ru: Один раз дай адресу имя: кошелёк показывает его в твоих платежах и при отправке. Контакты остаются на твоём устройстве.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   ru: Множество маленьких огоньков мерцает, собирается в одну яркую точку, которая становится блоком, а от блока лучи расходятся к каждому адресу, которому он платит.
@@ -2613,7 +2613,7 @@ wallet.f2.h
   ru: Отправлять осознанно
 wallet.f2.p
   en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
-  ru: Введи адрес, выбери контакт или отсканируй QR-код. Перед отправкой ты ещё раз видишь получателя, сумму и сетевую комиссию, а затем подтверждаешь PIN-кодом или отпечатком пальца. Перевод нельзя отменить.
+  ru: Введи адрес, выбери контакт или отсканируй QR-код. Перед отправкой ты ещё раз видишь получателя, сумму и сетевую комиссию, а затем подтверждаешь PIN-кодом или отпечатком. Перевод нельзя отменить.
 wallet.f3.h
   en: Receive
   ru: Получать

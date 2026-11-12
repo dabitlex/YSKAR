@@ -872,8 +872,8 @@ wal.s5.h
   en: Names for addresses.
   pl: Nazwy dla adresów.
 wal.s5.p
-  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
-  pl: Zapisz adres pod nazwą tylko raz. Od tej pory portfel pokazuje tę nazwę: w Twoich płatnościach, przy wysyłaniu i przy sprawdzaniu. Kontakty zostają na Twoim urządzeniu.
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  pl: Nadaj adresowi nazwę tylko raz: portfel pokazuje ją w Twoich płatnościach i przy wysyłaniu. Kontakty zostają na Twoim urządzeniu.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   pl: Wiele małych świateł migocze, zbiera się w jeden jasny punkt, który staje się blokiem, a z bloku biegną promienie do każdego adresu, któremu płaci.

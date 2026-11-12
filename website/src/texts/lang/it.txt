@@ -872,8 +872,8 @@ wal.s5.h
   en: Names for addresses.
   it: Nomi per gli indirizzi.
 wal.s5.p
-  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
-  it: Salva un indirizzo con un nome una volta sola. Da quel momento il wallet mostra quel nome: nei tuoi pagamenti, quando invii e quando controlli. I contatti restano sul tuo dispositivo.
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  it: Dai un nome a un indirizzo una volta sola: il wallet lo mostra nei tuoi pagamenti e quando invii. I contatti restano sul tuo dispositivo.
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   it: Tante piccole luci tremolano, si raccolgono in un punto luminoso che diventa un blocco, e dal blocco partono raggi verso ogni indirizzo che paga.
@@ -2553,7 +2553,7 @@ wallet.f2.h
   it: Inviare con consapevolezza
 wallet.f2.p
   en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
-  it: Inserisci un indirizzo, scegli un contatto o scansiona un codice QR. Prima dell’invio rivedi destinatario, importo e commissione di rete, poi confermi con il PIN o l’impronta digitale. Un trasferimento non si può annullare.
+  it: Inserisci un indirizzo, scegli un contatto o scansiona un codice QR. Prima dell’invio rivedi destinatario, importo e commissione di rete, poi confermi con PIN o impronta. Un trasferimento non si può annullare.
 wallet.f3.h
   en: Receive
   it: Ricevere

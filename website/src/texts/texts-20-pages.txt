@@ -414,8 +414,8 @@ wal.s5.h
   en: Names for addresses.
   de: Namen für Adressen.
 wal.s5.p
-  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
-  de: Speichere eine Adresse einmal unter einem Namen. Danach zeigt die Wallet diesen Namen: in deinen Zahlungen, beim Senden und beim Prüfen. Kontakte liegen nur auf deinem Gerät.
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  de: Gib einer Adresse einmal einen Namen: Die Wallet zeigt ihn dann in deinen Zahlungen und beim Senden. Kontakte liegen nur auf deinem Gerät.
 
 # Mining: Szene „Der Block zahlt aus“, Rechner, Pools
 pay.alt

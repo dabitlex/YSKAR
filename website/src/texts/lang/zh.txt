@@ -872,8 +872,8 @@ wal.s5.h
   en: Names for addresses.
   zh: 给地址起个名字。
 wal.s5.p
-  en: Save an address under a name once. From then on the wallet shows that name: in your payments, when you send and when you review. Contacts stay on your device.
-  zh: 把地址用一个名字保存一次。此后钱包就会显示这个名字：在你的付款记录里、发送时和核对时。联系人只保存在你的设备上。
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  zh: 给地址起一次名字：钱包会在你的付款记录里和发送时显示它。联系人只保存在你的设备上。
 pay.alt
   en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
   zh: 许多小光点闪烁着，汇聚成一个明亮的点并变成一个区块，随后光线从区块射向它付款的每一个地址。
@@ -2553,7 +2553,7 @@ wallet.f2.h
   zh: 发送要有意为之
 wallet.f2.p
   en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
-  zh: 输入地址、选择联系人或扫描二维码。发送前你会再次看到收款方、金额和网络手续费，然后用 PIN 码或指纹确认。转账无法撤回。
+  zh: 输入地址、选择联系人或扫描二维码。发送前会再次显示收款方、金额和网络手续费，然后用 PIN 码或指纹确认。转账无法撤回。
 wallet.f3.h
   en: Receive
   zh: 收款
