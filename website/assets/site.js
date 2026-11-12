@@ -3012,7 +3012,10 @@ var Scenes = (function () {
     var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
     tl.from('.hero__title .ln > span', { yPercent: 112, duration: 1.35, stagger: 0.13 }, 0.1)
       .from('.hero__lead', { opacity: 0, y: 20, duration: 1.1 }, 0.75)
-      .from('.hero__cta > *', { opacity: 0, y: 16, duration: 0.9, stagger: 0.09 }, 0.95)
+      // Start und Ziel stehen fest da, und der eigene Übergang des Knopfs (transform, für den Druck) ruht solange: Sonst liest
+      // GSAP mitten in diesem Übergang den Zielwert ab, und der Knopf bleibt 16 px zu tief stehen. Danach wird aufgeräumt.
+      .set('.hero__cta > *', { transition: 'none' }, 0)
+      .fromTo('.hero__cta > *', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.09, clearProps: 'transform,opacity,transition' }, 0.95)
       .to(Sky.state, { power: 1, duration: 3.4, ease: 'power2.out' }, 0.15)
       .to(Sky.state, { reveal: 1, duration: 4.2, ease: 'power1.inOut' }, 0.15)
       .add(function () { Sky.lightUp(true); }, 1.1)
