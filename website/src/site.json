@@ -1,9 +1,18 @@
 {
   "origin": "https://www.yskar.app",
   "languages": [
-    "en",
-    "de"
+    { "id": "en", "name": "English", "locale": "en-US" },
+    { "id": "de", "name": "Deutsch", "locale": "de-DE" },
+    { "id": "es", "name": "Español", "locale": "es-ES" },
+    { "id": "pt", "name": "Português", "locale": "pt-BR" },
+    { "id": "fr", "name": "Français", "locale": "fr-FR" },
+    { "id": "it", "name": "Italiano", "locale": "it-IT" },
+    { "id": "pl", "name": "Polski", "locale": "pl-PL" },
+    { "id": "ru", "name": "Русский", "locale": "ru-RU" },
+    { "id": "tr", "name": "Türkçe", "locale": "tr-TR" },
+    { "id": "zh", "name": "中文", "locale": "zh-CN" }
   ],
+  "written": ["en", "de"],
   "shareImage": "/assets/img/og-yskar.jpg",
   "shareImageAlt": "YSKAR – proof, not promise.",
   "versions": {

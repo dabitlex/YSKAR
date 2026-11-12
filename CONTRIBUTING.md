@@ -79,9 +79,11 @@ what was changed and are not edited afterwards. See "The database" in
 ## Texts and languages
 
 - The app's texts are in `src/i18n/`, one file per language, all with the same keys.
-- The website's texts are in `website/src/texts/`. After a change to them, or to anything else under
-  `website/src/`, run `node website/tools/build.mjs` and commit the generated files as well. See
-  [website/README.md](website/README.md).
+- The website's texts are in `website/src/texts/`: English and German in `*.txt`, the other eight
+  languages in `lang/<code>.txt`. After a change to them, or to anything else under `website/src/`,
+  run `node website/tools/build.mjs` and commit the generated files as well. When an English text
+  changes, the build lists the translations that are now outdated; they keep working until someone
+  updates them. See [website/README.md](website/README.md).
 - Documentation is written in English.
 
 ## Releases

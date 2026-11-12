@@ -200,7 +200,7 @@ var Explorer = (function () {
     e.appendChild(document.createTextNode(sh.slice(z.length)));
     return e;
   }
-  function txCountText(n) { return n === 0 ? t('ex.row.tx0') : n === 1 ? t('ex.row.tx1') : t('ex.row.tx', { n: U.num(n) }); }
+  function txCountText(n) { return n === 0 ? t('ex.row.tx0') : tn('ex.row.tx', n, { n: U.num(n) }); }
   /**
    * Spiegel und Full Node vergleichen: Die Blockliste kommt aus dem Spiegel (Datenbank), /summary vom Full Node.
    * Zeigt der Spiegel auf derselben Höhe einen anderen Block oder liegt er zurück, steht ein Hinweis da, sobald das
@@ -210,7 +210,7 @@ var Explorer = (function () {
     var s = Live.S.summary, head = Live.S.blocks[0], text = '', behind;
     if (live() && s && head && s.height === Number(s.height)) {
       if (s.height === head.height && typeof s.tipHash === 'string' && s.tipHash.toLowerCase() !== String(head.hash).toLowerCase()) text = t('ex.mirror.fork', { h: U.num(head.height) });
-      else if (s.height > head.height) { behind = s.height - head.height; text = t(behind === 1 ? 'ex.mirror.behind.1' : 'ex.mirror.behind', { n: U.num(behind) }); }
+      else if (s.height > head.height) { behind = s.height - head.height; text = tn('ex.mirror.behind', behind, { n: U.num(behind) }); }
     }
     if (!text) { mirrorSince = null; return null; }
     if (mirrorSince === null) mirrorSince = Date.now();
@@ -261,7 +261,7 @@ var Explorer = (function () {
     kids.push(U.el('div', {}, [heads, list]));
     if (good || bad) {
       var said = U.el('p', { 'class': 'ex-said ' + (bad ? 'bad' : 'ok') }, [dot(bad ? 'bad' : 'ok'),
-        node('span', null, bad ? t('ex.verdict.bad') : t(good === 1 ? 'ex.verdict.ok.1' : 'ex.verdict.ok', { n: U.num(good) }))]);
+        node('span', null, bad ? t('ex.verdict.bad') : tn('ex.verdict.ok', good, { n: U.num(good) }))]);
       kids.push(U.el('div', { 'class': 'ex-checked' }, [said, node('p', 'fig-cap', t('ex.check.p'))]));
     }
     kids.push(foot);
@@ -440,7 +440,7 @@ var Explorer = (function () {
       fact(t('ex.f.state'), b.stateRoot || hd.state, t('ex.f.state.s')),
       fact(t('ex.f.diff'), U.num(diff), [t('ex.f.diff.s', { n: U.compact(diff * 65536, 0) }), c.achieved ? t('ex.f.achieved') + ' ' + U.num(Number(c.achieved)) : null]),
       fact(t('ex.f.nonce'), hd.nonce.toLocaleString(U.loc()) + ' / ' + hd.extra.toLocaleString(U.loc()), t('ex.f.nonce.s')),
-      fact(t('ex.f.size'), n === 1 ? t('ex.f.size.v1', { n: U.num(b.sizeBytes || 0) }) : t('ex.f.size.v', { n: U.num(b.sizeBytes || 0), tx: U.num(n) }),
+      fact(t('ex.f.size'), tn('ex.f.size.v', n, { n: U.num(b.sizeBytes || 0), tx: U.num(n) }),
         [t('ex.fill', { p: percent(fill) }) + ' · ' + t('ex.fill.of', { n: U.num(n), max: U.num(slotsAt(h)) }), meter(fill)]));
     factsEl = U.el('dl', { 'class': 'facts ex-facts' }, rows);
     kids.push(U.el('div', { 'class': 'split ex-split' }, [

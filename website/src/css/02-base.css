@@ -50,6 +50,8 @@ a:hover{text-decoration-color:currentColor}
 .stack{display:flex;flex-direction:column;gap:var(--gap,20px)}
 .stack > *{max-width:100%}
 .row{display:flex;flex-wrap:wrap;gap:var(--gap,14px);align-items:center}
+/* Ein Knopf, dessen Beschriftung in einer Sprache breiter ist als die Zeile, bricht um, statt über den Rand zu ragen */
+.row>.btn{max-width:100%;white-space:normal;text-align:center}
 
 /* ---------- Knöpfe ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:52px;padding:14px 26px;border-radius:99px;
@@ -72,12 +74,31 @@ a:hover{text-decoration-color:currentColor}
 html[data-mode="live"] .tick__dot{background:var(--ribbon-1);box-shadow:0 0 0 0 rgba(99,216,255,.6);animation:pulse 2.6s var(--ease) infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(99,216,255,.55)}70%{box-shadow:0 0 0 9px rgba(99,216,255,0)}100%{box-shadow:0 0 0 0 rgba(99,216,255,0)}}
 
-.lang{display:inline-flex;gap:2px;padding:3px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line)}
-.lang button{padding:7px 14px;border-radius:99px;font-size:.875rem;font-weight:500;color:var(--ice-2);min-height:36px}
-.lang button[aria-pressed="true"]{background:rgba(238,244,255,.14);color:var(--ice)}
-.lang--ink{box-shadow:inset 0 0 0 1px var(--ink-line)}
-.lang--ink button{color:var(--ink-2)}
-.lang--ink button[aria-pressed="true"]{background:rgba(10,21,48,.1);color:var(--ink)}
+/* Schriften je Sprache: Russisch ganz in Geist (Hanken Grotesk hat kein Kyrillisch), Chinesisch mit den Schriften des Systems */
+html[lang="ru"]{--font:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+html[lang="zh"]{--font:'Hanken Grotesk','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC',system-ui,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,'PingFang SC','Microsoft YaHei','Noto Sans CJK SC',monospace}
+
+/* Chinesisch: Schriftzeichen füllen ihr Geviert. Überschriften stehen darum ohne enge Laufweite und mit mehr Zeilenabstand.
+   Die größte Stufe (.t-mega) bleibt, wie sie ist: Dort stehen in jeder Sprache lateinische Buchstaben ("Proof, not promise.", "YSKAR") */
+html[lang="zh"] :is(h1:not(.t-mega),h2,h3,.t-xl,.t-l,.t-m,.t-s,.menu__a span,.foot__claim,.shore__say,.calcx__say,.pool__name,.chan b,.labpath b,.lv-db-titel){letter-spacing:0}
+html[lang="zh"] :is(h1:not(.t-mega),h2,.t-xl,.t-l,.menu__a span,.foot__claim,.shore__say){line-height:1.2}
+html[lang="zh"] :is(h3,.t-m,.pool__name,.chan b,.lv-db-titel){line-height:1.32}
+html[lang="zh"] :is(.t-s,.labpath b){line-height:1.42}
+
+/* Sprachwahl: der Name der Sprache in ihrer eigenen Schrift, dahinter die Auswahl des Systems */
+.lang{position:relative;display:inline-flex;align-items:center;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line);color:var(--ice);transition:background-color .2s,box-shadow .2s}
+.lang:hover{background:rgba(238,244,255,.07);box-shadow:inset 0 0 0 1px rgba(238,244,255,.42)}
+.lang:focus-within{box-shadow:inset 0 0 0 1px rgba(238,244,255,.42),0 0 0 3px rgba(99,216,255,.45)}
+.lang select{appearance:none;-webkit-appearance:none;background:none;border:0;outline:0;margin:0;color:inherit;font:inherit;font-size:.875rem;font-weight:500;
+  line-height:1.2;min-height:44px;padding:10px 38px 10px 42px;border-radius:99px;cursor:pointer;max-width:100%}
+.lang select option{color:#0A1530;background:#fff}
+.lang__g,.lang__v{position:absolute;top:50%;pointer-events:none}
+.lang__g{left:15px;width:18px;height:18px;margin-top:-9px;opacity:.82}
+.lang__v{right:15px;width:12px;height:12px;margin-top:-6px;opacity:.7}
+.lang--ink{box-shadow:inset 0 0 0 1px var(--ink-line);color:var(--ink)}
+.lang--ink:hover{background:rgba(10,21,48,.05);box-shadow:inset 0 0 0 1px rgba(10,21,48,.4)}
+.lang--ink:focus-within{box-shadow:inset 0 0 0 1px rgba(10,21,48,.4),0 0 0 3px rgba(47,123,255,.4)}
 
 .tip{position:fixed;z-index:120;pointer-events:none;background:rgba(4,10,26,.94);color:var(--ice);border-radius:10px;padding:9px 12px;
   font-size:.8125rem;line-height:1.4;box-shadow:0 0 0 1px var(--line),0 14px 40px -10px #000;max-width:260px}

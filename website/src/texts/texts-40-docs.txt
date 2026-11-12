@@ -939,3 +939,6 @@ lv.wpseite.untertitel
 lv.zahlen.blockzeit
   en: Block time
   de: Blockzeit
+lv.wpseite.nurDeEn
+  en: The whitepaper is currently available in English and German.
+  de: Das Whitepaper gibt es derzeit auf Deutsch und Englisch.

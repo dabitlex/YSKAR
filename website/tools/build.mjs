@@ -4,13 +4,17 @@
  *
  *   node website/tools/build.mjs            schreibt die Seiten und die gemeinsamen Dateien
  *   node website/tools/build.mjs --check    schreibt nichts; meldet, wenn der Ordner nicht zum Stand der Quellen passt
+ *   node website/tools/build.mjs --strict   wie oben, bricht aber ab, wenn einer Sprache Texte fehlen oder Übersetzungen veraltet sind
  *
  * Quellen
- *   src/site.json        die Seiten (Kennung, Dateiname, Adresse, Beschreibung, alte Anker) und die Versionen der Downloads
+ *   src/site.json        die Seiten (Kennung, Dateiname, Adresse, Beschreibung, alte Anker), die Sprachen und die Versionen der Downloads
  *   src/shell.html       Gerüst jeder Seite (Kopf, Kopfleiste, Menü, Fuß)
  *   src/head.js          kleines Skript im Kopf jeder Seite (Sprache, alte Anker, erste Abfrage der Kette)
  *   src/pages/*.html     der Inhalt je Seite; <!--@include name--> holt src/parts/name.html
- *   src/texts/*.txt      Texte: Schlüssel, darunter "  en: ..." und "  de: ..."
+ *   src/texts/*.txt      Texte: Schlüssel, darunter "  en: ..." und "  de: ..." (in diesen beiden Sprachen wird die Seite geschrieben)
+ *   src/texts/lang/*.txt die übrigen Sprachen, eine Datei je Sprache: Schlüssel, darunter der englische Text, aus dem die
+ *                        Übersetzung entstand ("  en: ..."), und die Übersetzung ("  es: ..."). Fehlt ein Text, zeigt die Seite
+ *                        dort den englischen; hat sich der englische seither geändert, meldet der Bau die Übersetzung als veraltet.
  *   src/css/*.css        Stile, in der Reihenfolge der Dateinamen zusammengefügt
  *   src/vendor/*.js      GSAP und ScrollTrigger, unverändert
  *   src/js/*.js          das Programm, in der Reihenfolge der Dateinamen zusammengefügt
@@ -40,6 +44,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 const SRC = join(ROOT, 'src');
 const CHECK = process.argv.includes('--check');
+const STRICT = process.argv.includes('--strict');
 const VENDOR = ['gsap.min.js', 'ScrollTrigger.min.js'];
 const SKIP_ID = 'main';                                    // "Zum Inhalt springen" zeigt auf <main>, nicht auf eine Seite
 
@@ -57,33 +62,80 @@ function stop(msg) { console.error('Fehler: ' + msg); process.exit(1); }
 const SITE = JSON.parse(raw('site.json')), VERSIONS = SITE.versions;
 const PAGES = SITE.pages;
 const PATHS = Object.fromEntries(PAGES.filter(p => p.path).map(p => [p.id, p.path]));
-const LANGS = SITE.languages;
+const LANGS = SITE.languages.map(l => l.id);
+const WRITTEN = SITE.written;                               // in diesen Sprachen stehen die Texte in src/texts/*.txt
+const OTHER = LANGS.filter(l => !WRITTEN.includes(l));      // die übrigen: src/texts/lang/<sprache>.txt
+if (LANGS[0] !== 'en' || !WRITTEN.includes('en')) stop('site.json: Englisch muss die erste Sprache sein und zu "written" gehören.');
 
 /* ---------- Texte ---------- */
-function parseTexts() {
-  const T = Object.fromEntries(LANGS.map(l => [l, {}]));
+const KEY = /^[A-Za-z0-9_.\-]+$/;
+/** Liest Dateien im Format "Schlüssel / eingerückt sprache: text" und ruft für jeden Schlüssel `open`, für jede Zeile `line`. */
+function textFile(dir, f, open, line) {
   let key = null;
+  read(dir, f).split('\n').forEach((raw, i) => {
+    if (!raw.trim() || raw.trimStart().startsWith('#')) return;
+    const m = /^\s+([a-z]{2}):\s?(.*)$/.exec(raw), at = `${dir}/${f}:${i + 1}`;
+    if (m) {
+      if (key === null) stop(`${at}: Text ohne Schlüssel`);
+      line(key, m[1], m[2].trim(), at);
+    } else if (KEY.test(raw.trim()) && !raw.startsWith(' ')) { key = raw.trim(); open(key, at); }
+    else stop(`${at}: nicht lesbar: ${raw}`);
+  });
+}
+/**
+ * Zählformen neben "schluessel": "schluessel.1" (Einzahl), "schluessel.few" und "schluessel.frac" (Russisch, Polnisch).
+ * Eine Sprache darf eine Zählform führen, die es englisch nicht gibt: Russisch braucht "21 год", wo englisch "21 years"
+ * steht. Ihr englischer Text ist dann der der Grundform.
+ */
+const FORM = /\.(1|few|frac)$/;
+function parseTexts() {
+  const T = Object.fromEntries(LANGS.map(l => [l, {}])), en = T.en;
+  const baseOf = key => (key in en ? key : key.replace(FORM, ''));
   for (const f of list('texts', '.txt')) {
-    read('texts', f).split('\n').forEach((raw, i) => {
-      if (!raw.trim() || raw.trimStart().startsWith('#')) return;
-      const m = /^\s+([a-z]{2}):\s?(.*)$/.exec(raw);
-      if (m) {
-        if (key === null) stop(`${f}:${i + 1}: Text ohne Schlüssel`);
-        if (!T[m[1]]) stop(`${f}:${i + 1}: unbekannte Sprache ${m[1]}`);
-        T[m[1]][key] = m[2].trim();
-      } else if (/^[A-Za-z0-9_.\-]+$/.test(raw.trim()) && !raw.startsWith(' ')) {
-        key = raw.trim();
-        if (key in T[LANGS[0]]) stop(`${f}:${i + 1}: Schlüssel doppelt: ${key}`);
-        T[LANGS[0]][key] = undefined;
-      } else stop(`${f}:${i + 1}: nicht lesbar: ${raw}`);
+    textFile('texts', f, (key, at) => {
+      if (key in en) stop(`${at}: Schlüssel doppelt: ${key}`);
+      en[key] = undefined;
+    }, (key, lang, text, at) => {
+      if (!WRITTEN.includes(lang)) stop(`${at}: ${lang} gehört nicht hierher (Sprachen dieser Datei: ${WRITTEN.join(', ')}; die übrigen stehen in texts/lang/)`);
+      T[lang][key] = text;
     });
   }
-  const keys = Object.keys(T[LANGS[0]]);
-  for (const l of LANGS) {
+  const keys = Object.keys(en);
+  for (const l of WRITTEN) {
     const miss = keys.filter(k => T[l][k] === undefined);
     if (miss.length) stop(`Texte: ${l} fehlt bei: ${miss.slice(0, 20).join(', ')}`);
   }
-  return T;
+  // Die übrigen Sprachen: je Schlüssel der englische Text, aus dem übersetzt wurde, und die Übersetzung
+  const state = {};
+  for (const l of OTHER) {
+    const from = {}, to = {}, f = l + '.txt';
+    state[l] = { missing: [], stale: [] };
+    if (existsSync(join(SRC, 'texts', 'lang', f))) {
+      textFile(join('texts', 'lang'), f, (key, at) => {
+        if (key in to) stop(`${at}: Schlüssel doppelt: ${key}`);
+        if (!(baseOf(key) in en)) stop(`${at}: Schlüssel ${key} gibt es in src/texts nicht (mehr). Eintrag entfernen.`);
+        to[key] = undefined;
+      }, (key, lang, text, at) => {
+        if (lang === 'en') from[key] = text;
+        else if (lang === l) to[key] = text;
+        else stop(`${at}: in dieser Datei stehen nur en und ${l}`);
+      });
+    }
+    for (const k of Object.keys(to)) {
+      if (to[k] === undefined || to[k] === '') stop(`texts/lang/${f}: ${k} hat keine Übersetzung`);
+      if (from[k] === undefined) stop(`texts/lang/${f}: ${k} nennt den englischen Text nicht, aus dem übersetzt wurde`);
+      // Platzhalter: Was der englische Text nennt, muss auch die Übersetzung nennen. Eine Zählform (x.1, x.few, x.frac) darf
+      // zusätzlich nennen, was die Grundform x nennt: "1 transfer" wird zu "{n} перевод", weil dort auch 21 die Einzahl trägt.
+      const marks = s => new Set((s || '').match(/\{[a-zA-Z0-9_]+\}/g) || []);
+      const need = marks(en[baseOf(k)]), may = new Set([...need, ...marks(en[k.replace(FORM, '')])]), got = marks(to[k]);
+      const lost = [...need].filter(x => !got.has(x)), extra = [...got].filter(x => !may.has(x));
+      if (lost.length || extra.length) stop(`texts/lang/${f}: ${k}: Platzhalter stimmen nicht` + (lost.length ? `, es fehlt ${lost.join(' ')}` : '') + (extra.length ? `, unbekannt ${extra.join(' ')}` : ''));
+      if (from[k] !== en[baseOf(k)]) state[l].stale.push(k);
+      T[l][k] = to[k];
+    }
+    for (const k of keys) if (T[l][k] === undefined) { T[l][k] = en[k]; state[l].missing.push(k); }
+  }
+  return { T, state };
 }
 
 /* ---------- Verweise ---------- */
@@ -143,7 +195,7 @@ function compact(js) {
 
 /* ---------- Bau ---------- */
 function build() {
-  const T = parseTexts(), en = T[LANGS[0]], used = new Set(), out = {};
+  const { T, state } = parseTexts(), en = T.en, used = new Set(), out = {};
 
   // Texte tragen Verweise in derselben Schreibweise wie die Seiten
   for (const l of LANGS) for (const k of Object.keys(T[l])) if (T[l][k].includes('href=')) T[l][k] = links(T[l][k], `Text ${k} (${l})`, null);
@@ -183,9 +235,11 @@ function build() {
   for (const m of program.matchAll(/\bt\(\s*['"]([A-Za-z0-9_.\-]+)['"]/g)) used.add(m[1]);
   for (const m of program.matchAll(/['"]((?:[a-z0-9]+\.)+[A-Za-z0-9_\-]+)['"]/g)) if (m[1] in en) used.add(m[1]);
   // zusammengesetzte Schlüssel: t('field.' + id) benutzt alles, was mit "field." beginnt; data-say="x" auch "x.snap"
-  for (const m of program.matchAll(/\bt\(\s*['"]([A-Za-z0-9_\-]+\.(?:[A-Za-z0-9_\-]+\.)*)['"]\s*\+/g)) for (const k of Object.keys(en)) if (k.startsWith(m[1])) used.add(k);
+  for (const m of program.matchAll(/\btn?\(\s*['"]([A-Za-z0-9_\-]+\.(?:[A-Za-z0-9_\-]+\.)*)['"]\s*\+/g)) for (const k of Object.keys(en)) if (k.startsWith(m[1])) used.add(k);
+  // tn('x', n) wählt nach der Anzahl zwischen x und x.1
+  for (const k of [...used]) if (k + '.1' in en && new RegExp(`\\btn\\(\\s*['"]${k.replace(/[.\-]/g, '\\$&')}['"]`).test(program)) used.add(k + '.1');
   for (const m of sources.matchAll(/data-say="([^"]+)"/g)) { used.add(m[1]); if (m[1] + '.snap' in en) used.add(m[1] + '.snap'); }
-  const site = { pages: PATHS, langs: LANGS, texts: textV, img: images };
+  const site = { pages: PATHS, langs: LANGS, locales: Object.fromEntries(SITE.languages.map(l => [l.id, l.locale])), texts: textV, img: images };
   out['assets/site.js'] = VENDOR.map(f => read('vendor', f)).join('\n') + '\nwindow.YSKAR_SITE=' + JSON.stringify(site) + ';\n' + program + '\n';
 
   const dataFile = join(ROOT, 'assets', 'data', 'kette.js');
@@ -221,6 +275,7 @@ function build() {
       URLS: url ? `<link rel="canonical" href="${url}">\n<meta property="og:url" content="${url}">\n` : '',
       SHARE_IMAGE: share, SHARE_ALT: escAttr(SITE.shareImageAlt), PRELOAD: preload.join('\n') + '\n',
       HEAD_JS: head, CSS: ref.css, DATA: ref.data, JS: ref.js,
+      LANG_OPTIONS: SITE.languages.map(l => `<option value="${l.id}" lang="${l.id}"${l.id === 'en' ? ' selected' : ''}>${l.name}</option>`).join(''),
     };
     page = page.replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => (k in vars ? vars[k] : stop(`shell.html: unbekannter Platzhalter ${m}`)));
     out[p.file] = page;
@@ -236,10 +291,10 @@ function build() {
   }
 
   const unused = Object.keys(en).filter(k => !used.has(k));
-  return { out, unused, texts: Object.keys(en).length, scripts: jsFiles.length };
+  return { out, unused, texts: Object.keys(en).length, scripts: jsFiles.length, state };
 }
 
-const { out, unused, texts, scripts } = build();
+const { out, unused, texts, scripts, state } = build();
 let changed = 0;
 for (const [file, content] of Object.entries(out)) {
   const p = join(ROOT, file), old = existsSync(p) ? clean(readFileSync(p, 'utf8')) : null;
@@ -249,6 +304,18 @@ for (const [file, content] of Object.entries(out)) {
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, content);
 }
+// Stand der Übersetzungen: fehlende Texte erscheinen englisch, veraltete in der alten Fassung
+let open = 0;
+for (const [l, st] of Object.entries(state)) {
+  if (!st.missing.length && !st.stale.length) continue;
+  open += st.missing.length + st.stale.length;
+  const parts = [];
+  if (st.missing.length) parts.push(`${st.missing.length} fehlen (dort steht der englische Text): ${st.missing.slice(0, 6).join(', ')}${st.missing.length > 6 ? ', …' : ''}`);
+  if (st.stale.length) parts.push(`${st.stale.length} veraltet (der englische Text hat sich geändert): ${st.stale.slice(0, 6).join(', ')}${st.stale.length > 6 ? ', …' : ''}`);
+  const msg = `Übersetzung ${l}: ${parts.join('; ')}`;
+  console.log(process.env.GITHUB_ACTIONS ? `::warning title=Übersetzung ${l}::${msg}` : '  ' + msg);
+}
+if (STRICT && open) stop('Übersetzungen sind nicht vollständig (siehe oben).');
 if (CHECK) {
   if (changed) stop(`${changed} Datei(en) passen nicht zu den Quellen. "node website/tools/build.mjs" ausführen und das Ergebnis mit einchecken.`);
   console.log(`ok: ${Object.keys(out).length} Dateien entsprechen den Quellen.`);

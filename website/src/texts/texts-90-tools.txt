@@ -48,6 +48,9 @@ mode.snapshotShort
 dur.years
   en: {n} years
   de: {n} Jahre
+dur.years.big
+  en: {n} years
+  de: {n} Jahre
 dur.days
   en: {n} days
   de: {n} Tage
@@ -60,6 +63,9 @@ dur.min
 dur.sec
   en: {n} seconds
   de: {n} Sekunden
+dur.sec.1
+  en: 1 second
+  de: 1 Sekunde
 rm.run.p
   en: Released and in use. Each entry leads to the place where you can check it.
   de: Veröffentlicht und in Gebrauch. Jeder Eintrag führt dorthin, wo du ihn prüfen kannst.
@@ -699,9 +705,15 @@ calc.note
 calc.halving
   en: The halving at block {b} is in about {d} days. The 7-day and 30-day figures already count half the reward after it.
   de: Die Halbierung bei Block {b} kommt in etwa {d} Tagen. Die Werte für 7 und 30 Tage rechnen danach schon mit der halben Belohnung.
+calc.halving.1
+  en: The halving at block {b} is about a day away. The 7-day and 30-day figures already count half the reward after it.
+  de: Die Halbierung bei Block {b} kommt in etwa einem Tag. Die Werte für 7 und 30 Tage rechnen danach schon mit der halben Belohnung.
 calc.every.min
   en: {n} minutes
   de: {n} Minuten
+calc.every.min.1
+  en: 1 minute
+  de: 1 Minute
 calc.every.hours
   en: {n} hours
   de: {n} Stunden
@@ -885,7 +897,7 @@ net.b.solo
 net.b.addr
   en: {n} addresses
   de: {n} Adressen
-net.b.addr1
+net.b.addr.1
   en: 1 address
   de: 1 Adresse
 net.src.h
@@ -1092,7 +1104,7 @@ ex.f.size
 ex.f.size.v
   en: {n} bytes with {tx} transactions
   de: {n} Byte mit {tx} Transaktionen
-ex.f.size.v1
+ex.f.size.v.1
   en: {n} bytes with 1 transaction
   de: {n} Byte mit 1 Transaktion
 ex.txs.h

@@ -33,7 +33,7 @@ pulse.alt
 ex.row.tx
   en: {n} transfers
   de: {n} Überweisungen
-ex.row.tx1
+ex.row.tx.1
   en: 1 transfer
   de: 1 Überweisung
 ex.row.tx0
@@ -48,7 +48,7 @@ ex.proof.p
 proof.pick
   en: Select a field to see what it holds.
   de: Wähle ein Feld, um zu sehen, was darin steht.
-pulse.around.1
+pulse.around.n.1
   en: The only block in these {k} hours
   de: Der einzige Block in diesen {k} Stunden
 ex.tx.batch

@@ -43,7 +43,7 @@ var Log = (function () {
     for (i = 0; i < c.n; i++) { r = Math.min(rows - 1, Math.max(0, Math.floor(c.T[i] / rowSpan))); byRow[r].push(i); }
   }
   function caption() {
-    if (elCap) elCap.textContent = perRow === 1 ? t('log.cap') : t('log.cap.n', { d: U.num(perRow) });
+    if (elCap) elCap.textContent = perRow === 1 ? t('log.cap') : tn('log.cap.n', perRow, { d: U.num(perRow) });
   }
 
   function marks(c, from, to, w, hgt, warm) {

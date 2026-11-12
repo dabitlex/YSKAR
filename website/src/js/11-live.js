@@ -103,7 +103,7 @@ var Live = (function () {
     else if (d < 5400) { n = Math.round(d / 60); k = 'min'; }
     else if (d < 172800) { n = Math.round(d / 3600); k = 'hours'; }
     else { n = Math.round(d / 86400); k = 'days'; }
-    return t('agol.' + k + (n === 1 ? '.1' : ''), { n: U.num(n) });
+    return tn('agol.' + k, n, { n: U.num(n) });
   }
   /** Bezugszeit für "vor … Minuten": live die Uhr, im Schnappschuss der Zeitpunkt der Aufnahme. */
   function now() { return S.mode === 'live' ? Math.floor(Date.now() / 1000) : S.at; }

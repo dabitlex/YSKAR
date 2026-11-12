@@ -146,7 +146,7 @@ var Pulse = (function () {
       } else nowEl.textContent = v.mode;
     } else {
       hEl.textContent = t('pulse.around.h', { h: U.num(center) });
-      nowEl.textContent = t(pts.length === 1 ? 'pulse.around.1' : 'pulse.around.n', { n: U.num(pts.length), k: U.num(hrs) });
+      nowEl.textContent = tn('pulse.around.n', pts.length, { n: U.num(pts.length), k: U.num(hrs) });
     }
     next.hidden = !(mode === 'tip' && Live.S.mode === 'live');
     next.style.top = (Math.round(H * 0.44) - 6) + 'px';

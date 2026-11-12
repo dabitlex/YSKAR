@@ -15,6 +15,7 @@ src/                 the sources (not deployed)
   pages/*.html       content of each page; <!--@include name--> pulls in src/parts/name.html
   parts/*.html       sections shared between pages or kept apart for size
   texts/*.txt        all texts, English and German
+  texts/lang/*.txt   the translations into the other eight languages
   css/*.css          styles, joined in file name order
   js/*.js            the program, joined in file name order
   vendor/*.js        GSAP and ScrollTrigger, unchanged
@@ -49,8 +50,9 @@ node website/tools/build.mjs --check   # write nothing; fail if the folder does 
 ```
 
 Never edit the generated files by hand; the next build overwrites them. The build stops with a
-message when a text is missing in one language, a link points to a page or anchor that does not
-exist, or an image is missing. `--unused` lists texts that nothing refers to.
+message when a text is missing in English or German, a link points to a page or anchor that does
+not exist, or an image is missing. Missing or outdated translations are reported and do not stop
+the build; `--strict` makes them an error. `--unused` lists texts that nothing refers to.
 
 Node.js 18 or newer is all the scripts need.
 
@@ -115,20 +117,41 @@ latest blocks also compares the server's mirror with the full node (`tipHash` in
 
 ## Texts and languages
 
-The site exists in English and German. English is the default; the generated pages contain the
-English text, so they are complete without scripts. `src/head.js` picks the language in this
-order: the `?lang=` parameter in the address, the choice the visitor made earlier, the language
-of the browser, otherwise English. The visitor switches in the menu or in the footer; the choice
-is remembered in the browser (`localStorage`, key `yskar.sprache`). Nothing else is stored in
-the browser.
+The site exists in ten languages: English, German, Spanish, Portuguese (Brazil), French, Italian,
+Polish, Russian, Turkish and Chinese (simplified). English is the default; the generated pages
+contain the English text, so they are complete without scripts. `src/head.js` picks the language
+in this order: the `?lang=` parameter in the address, the choice the visitor made earlier, the
+language of the browser, otherwise English. The visitor switches with the language list in the
+menu or in the footer; the choice is remembered in the browser (`localStorage`, key
+`yskar.sprache`). Nothing else is stored in the browser.
 
-A text has a key and one line per language:
+English and German are written in `src/texts/*.txt`. A text has a key and one line per language:
 
 ```text
 start.h1
   en: Pick your way in.
   de: Such dir deinen Weg hinein.
 ```
+
+The other eight languages are translations of the English text. Each has one file,
+`src/texts/lang/<code>.txt`, and every entry names the English text it was translated from:
+
+```text
+start.h1
+  en: Pick your way in.
+  es: Elige tu camino de entrada.
+```
+
+The build compares that `en:` line with the English text in `src/texts/`:
+
+- A key without an entry is missing. The site shows the English text in its place.
+- An entry whose `en:` line differs from today's English text is outdated. The site keeps showing
+  the translation until someone updates it.
+
+Both are listed at the end of the build, and as warnings in GitHub Actions.
+`node website/tools/build.mjs --strict` fails while anything is missing or outdated. To bring a
+translation up to date, change both lines of its entry: the `en:` line to the current English text
+and the translation below it.
 
 | Attribute | Effect |
 |---|---|
@@ -137,14 +160,43 @@ start.h1
 | `data-live="name"` | Shows a value read from the chain; the names are the fields of `values()` in `src/js/11-live.js` |
 | `data-say="key"` | A sentence with values from the chain inserted. If `key.snap` exists, it is used while the API is not answering. |
 
-Scripts read texts with `t('key', { n: 3 })`; `{n}` in the text is replaced.
+Scripts read texts with `t('key', { n: 3 })`; `{n}` in the text is replaced. A translation has to
+contain the placeholders and the HTML of the English text.
 
-A further language needs its code in `languages` in `src/site.json`, one more line per key in
-`src/texts/`, a button in `src/shell.html` and, for scripts other than Latin, a font that covers
-it. The build refuses to run while a key lacks a language.
+### Texts with a number
 
-The whitepaper exists in English and German. The legal notice and the privacy policy are in
-German.
+`tn('key', n, { n: 3 })` picks the form that fits the number `n`, by the plural rules of the
+language (`Intl.PluralRules`):
+
+| Key | Form | Example |
+|---|---|---|
+| `key` | the general form | `{n} blocks`, `{n} блоков` |
+| `key.1` | one | `1 block`, `{n} блок` |
+| `key.few` | Russian and Polish: 2 to 4, 22 to 24 and so on | `{n} блока` |
+| `key.frac` | Russian and Polish: numbers with decimals | `{n} года` |
+
+A language file may hold a form that English does not have; its `en:` line is then the English text
+of the general form. In French, Portuguese and Russian the form `key.1` stands for more than the
+number 1 (0 in French and Portuguese; 21, 31 and so on in Russian), so the text uses `{n}` and not a
+written 1.
+
+Large numbers are written out in words (`U.compact`: "3.4 trillion"). Spanish, Portuguese, French
+and Italian then need "de" before a noun ("3,4 billones de intentos") but not below a million, so
+their texts put the number where no noun follows it.
+
+### Formats and fonts
+
+Numbers, dates and plural rules follow the locale named for each language in `languages` in
+`src/site.json`. Hanken Grotesk covers Latin script; the letters Polish and Turkish add are in a
+second file that browsers load only when a page needs them. It has no Cyrillic, so Russian is set
+in Geist. Chinese uses the fonts of the visitor's system.
+
+A further language needs an entry in `languages` in `src/site.json` (code, name, locale), a file
+`src/texts/lang/<code>.txt` and, for a script the fonts do not cover, a font. The language list in
+the menu and in the footer is built from `site.json`.
+
+The whitepaper exists in English and German; in the other languages the page shows the English
+version and offers both. The legal notice and the privacy policy are in German.
 
 ## Chain data
 

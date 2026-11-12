@@ -113,7 +113,7 @@ var Forge = (function () {
         ctx.beginPath(); ctx.arc(x, y, on >= 0.5 ? 2.5 : 1.9, 0, 6.2832); ctx.fill();
       }
       ctx.font = mono(px * 0.86, 400); ctx.fillStyle = 'rgba(212,226,255,.5)'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.fillText(t(n === 1 ? 'forge.nodes.1' : 'forge.nodes', { n: U.num(n) }), lx, ry + (rows - 1) * 13 + px * 2);
+      ctx.fillText(tn('forge.nodes', n, { n: U.num(n) }), lx, ry + (rows - 1) * 13 + px * 2);
       ctx.globalAlpha = 1;
     }
 
@@ -152,7 +152,7 @@ var Forge = (function () {
         if (la > 0) {
           ctx.textAlign = 'center';
           ctx.font = mono(Math.max(11, px * 0.95), 500); ctx.fillStyle = 'rgba(255,196,122,' + la.toFixed(3) + ')';
-          ctx.fillText(t(B.paid === 1 ? 'forge.paid.1' : 'forge.paid', { r: U.ysr(B.reward), n: U.num(B.paid) }), cx, cy + R + 34);
+          ctx.fillText(tn('forge.paid', B.paid, { r: U.ysr(B.reward), n: U.num(B.paid) }), cx, cy + R + 34);
           if (prev.length) {
             ctx.font = mono(Math.max(9.5, px * 0.8), 400); ctx.fillStyle = 'rgba(212,226,255,' + (0.5 * la).toFixed(3) + ')';
             ctx.fillText(t('forge.before', { n: U.num(prev.length), m: U.num(Math.round(span / 60)) }), cx, cy + R + 56);

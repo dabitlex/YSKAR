@@ -17,12 +17,15 @@ var TryMine = (function () {
   }
   function duration(sec) {
     if (!isFinite(sec)) return '–';
-    if (sec < 120) return t('dur.sec', { n: U.num(Math.max(1, sec), 0) });
-    if (sec < 7200) return t('dur.min', { n: U.num(sec / 60, 0) });
-    if (sec < 172800) return t('dur.hours', { n: U.num(sec / 3600, 0) });
-    if (sec < 730 * 86400) return t('dur.days', { n: U.num(sec / 86400, 0) });
+    var n;
+    if (sec < 120) { n = Math.max(1, Math.round(sec)); return tn('dur.sec', n, { n: U.num(n) }); }
+    if (sec < 7200) { n = Math.round(sec / 60); return tn('dur.min', n, { n: U.num(n) }); }
+    if (sec < 172800) { n = Math.round(sec / 3600); return tn('dur.hours', n, { n: U.num(n) }); }
+    if (sec < 730 * 86400) { n = Math.round(sec / 86400); return tn('dur.days', n, { n: U.num(n) }); }
     var y = sec / (365.25 * 86400);
-    return t('dur.years', { n: y >= 1e6 ? U.compact(y, 1) : U.num(y, y < 10 ? 1 : 0) });
+    if (y >= 1e6) return t('dur.years.big', { n: U.compact(y, 1) });
+    n = y < 10 ? Math.round(y * 10) / 10 : Math.round(y);
+    return tn('dur.years', n, { n: U.num(n, 1) });
   }
   function hashWithNonce(header, n) {
     var b = new Uint8Array(header), lo = n >>> 0, hi = Math.floor(n / 4294967296) >>> 0;

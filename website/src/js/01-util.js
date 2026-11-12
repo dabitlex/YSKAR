@@ -94,7 +94,17 @@ var U = (function () {
   }
 
   /* ---- Formate ---- */
-  function loc() { return (document.documentElement.lang || 'en') === 'de' ? 'de-DE' : 'en-US'; }
+  /** Schreibweise von Zahlen und Daten in der gewählten Sprache (site.json nennt sie je Sprache). */
+  function loc() {
+    var map = (window.YSKAR_SITE && window.YSKAR_SITE.locales) || {};
+    return map[document.documentElement.lang || 'en'] || 'en-US';
+  }
+  var seps = {};
+  function decimalSep() {
+    var l = loc();
+    if (!seps[l]) { try { seps[l] = (1.5).toLocaleString(l).replace(/[0-9]/g, '') || '.'; } catch (e) { seps[l] = '.'; } }
+    return seps[l];
+  }
   function num(x, max, min) {
     return Number(x).toLocaleString(loc(), { maximumFractionDigits: max === undefined ? 0 : max, minimumFractionDigits: min || 0 });
   }
@@ -113,7 +123,7 @@ var U = (function () {
     var max = opt.max === undefined ? 8 : opt.max;
     frac = frac.slice(0, max).replace(/0+$/, '');
     while (frac.length < (opt.min || 0)) frac += '0';
-    var sep = loc() === 'de-DE' ? ',' : '.';
+    var sep = decimalSep();
     return (neg ? '−' : '') + Number(whole).toLocaleString(loc()) + (frac ? sep + frac : '') + (opt.bare ? '' : ' YSR');
   }
   function hashrate(h) {

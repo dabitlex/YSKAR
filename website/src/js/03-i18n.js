@@ -10,7 +10,7 @@ var I18n = (function () {
   'use strict';
   var SITE = window.YSKAR_SITE || {}, LANGS = SITE.langs || ['en'], VERSION = SITE.texts || {}, KEEP = 'yskar.sprache';
   var T = window.YSKAR_TEXTE = window.YSKAR_TEXTE || {};
-  var lang = LANGS.indexOf(window.YSKAR_LANG) >= 0 ? window.YSKAR_LANG : 'en', waiting = [], reported = {}, failed = window.YSKAR_AUS || {};
+  var lang = LANGS.indexOf(window.YSKAR_LANG) >= 0 ? window.YSKAR_LANG : 'en', waiting = [], reported = {}, failed = window.YSKAR_AUS || {}, rules = {};
 
   function has(key) { return !!T[lang] && T[lang][key] !== undefined; }
   function t(key, vars) {
@@ -21,6 +21,24 @@ var I18n = (function () {
     }
     if (vars) for (k in vars) s = s.split('{' + k + '}').join(vars[k]);
     return s;
+  }
+  /**
+   * Text zu einer Anzahl. Wählt die Form nach den Regeln der Sprache: "1 block", "2 blocks"; Russisch und Polnisch
+   * kennen eine dritte ("2 блока", "5 блоков") und für Kommazahlen eine vierte ("2,5 года"). Schlüssel: `key`
+   * (Grundform: viele), `key.1` (Einzahl) und, nur wo die Sprache sie braucht, `key.few` und `key.frac`.
+   * Die Zahl selbst kommt wie jeder andere Wert über `vars` in den Text.
+   */
+  function tn(key, n, vars) {
+    var kind = 'other', table = T[lang] || {};
+    try { kind = plural().select(Number(n)); } catch (e) { kind = Number(n) === 1 ? 'one' : 'other'; }
+    if (kind === 'one' && table[key + '.1'] !== undefined) return t(key + '.1', vars);
+    if (kind === 'few' && table[key + '.few'] !== undefined) return t(key + '.few', vars);
+    if (kind === 'other' && table[key + '.frac'] !== undefined) return t(key + '.frac', vars);
+    return t(key, vars);
+  }
+  function plural() {
+    if (!rules[lang]) rules[lang] = new Intl.PluralRules((SITE.locales && SITE.locales[lang]) || lang);
+    return rules[lang];
   }
   function apply(root) {
     U.$$('[data-t]', root).forEach(function (e) { e.innerHTML = t(e.getAttribute('data-t')); });
@@ -56,14 +74,17 @@ var I18n = (function () {
     lang = l;
     document.documentElement.lang = lang;
     apply(document);
-    U.$$('[data-lang]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false'); });
+    U.$$('[data-lang-select]').forEach(function (s) { s.value = lang; });
     document.documentElement.classList.remove('lang-wait');
     if (!quiet) U.emit('lang', lang);
   }
-  /** Sprache wechseln (Knöpfe im Menü und im Fuß); die Wahl wird gemerkt. */
+  /** Sprache wechseln (Auswahl im Menü und im Fuß); die Wahl wird gemerkt. */
   function set(l) {
     if (LANGS.indexOf(l) < 0 || l === lang) return;
-    load(l, function (ok) { if (!ok) return; U.store(KEEP, l); show(l, false); });
+    load(l, function (ok) {
+      if (!ok) return void U.$$('[data-lang-select]').forEach(function (s) { s.value = lang; });      // Texte kamen nicht: Auswahl zurückstellen
+      U.store(KEEP, l); show(l, false);
+    });
   }
   /**
    * Beim Start: wartet auf die Texte der gewählten Sprache und ruft dann `done`. Kommen sie nicht, bleibt es bei Englisch.
@@ -80,11 +101,11 @@ var I18n = (function () {
   }
   function init() {
     show(lang, true);
-    document.addEventListener('click', function (e) {
-      var b = e.target.closest && e.target.closest('[data-lang]');
-      if (b) set(b.getAttribute('data-lang'));
+    document.addEventListener('change', function (e) {
+      var s = e.target;
+      if (s && s.matches && s.matches('[data-lang-select]')) set(s.value);
     });
   }
-  return { t: t, has: has, set: set, init: init, ready: ready, apply: apply, lang: function () { return lang; } };
+  return { t: t, tn: tn, has: has, set: set, init: init, ready: ready, apply: apply, lang: function () { return lang; } };
 })();
-var t = I18n.t;
+var t = I18n.t, tn = I18n.tn;

@@ -19,7 +19,7 @@
 .xp-intro{display:grid;gap:clamp(14px,2vw,22px);justify-items:start;margin-bottom:clamp(36px,5.4vw,72px)}
 .xp-top.compact .xp-intro,.xp-top.compact .ex-try{display:none}
 .xp .ex-find{display:grid;gap:12px}
-.xp .ex-search{position:relative;display:flex;align-items:center;gap:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.xp .ex-search{position:relative;display:flex;align-items:center;gap:14px;min-width:0;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .xp .ex-search::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;
   background:linear-gradient(90deg,var(--ribbon-1),var(--ribbon-2) 55%,var(--ribbon-3));transform:scaleX(0);transform-origin:0 50%;transition:transform .55s var(--ease)}
 .xp .ex-search:focus-within::after{transform:scaleX(1)}

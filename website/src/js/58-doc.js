@@ -6,6 +6,7 @@
 var Doc = (function () {
   'use strict';
   var DOCS = ['guides', 'protocol', 'paper', 'imprint', 'privacy'], prog, wide, io = null, heads = [];
+  var paperPick = null;                                 // vom Besucher gewählte Fassung des Whitepapers ('en' | 'de'), sonst folgt sie der Sprache der Seite
 
   function visible(e) { return !!(e.offsetWidth || e.offsetHeight || e.getClientRects().length); }
   /** Zahlen wie auf der heutigen Seite: data-n = Wert, data-nd = höchste Zahl der Nachkommastellen. */
@@ -62,8 +63,21 @@ var Doc = (function () {
     prog.style.setProperty('--p', max > 0 ? Math.min(1, window.scrollY / max).toFixed(4) : 0);
   }
   function open() { U.$$('.doc__toc details').forEach(function (d) { if (wide.matches) d.open = true; else d.open = false; }); }
+  /**
+   * Das Whitepaper gibt es auf Englisch und Deutsch. Es folgt der Sprache der Seite (Deutsch, sonst Englisch);
+   * die beiden Knöpfe wählen die andere Fassung, ohne die Sprache der Seite zu ändern.
+   */
+  function paper() {
+    var box = U.$('[data-doc="paper"] .doc__text'); if (!box) return;
+    var site = I18n.lang(), shown = paperPick || (site === 'de' ? 'de' : 'en');
+    box.setAttribute('data-show-lang', shown);
+    U.$$('[data-paper]').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-paper') === shown ? 'true' : 'false'); });
+    U.$$('[data-paper-pick]').forEach(function (e) { e.hidden = false; });
+    U.$$('[data-paper-note]').forEach(function (e) { e.hidden = site === 'de' || site === 'en'; });
+  }
   function show(page) {
     if (DOCS.indexOf(page) < 0) { progress(); return; }
+    if (page === 'paper') paper();
     numbers(); toc(page); open(); progress();
   }
   function init() {
@@ -75,6 +89,10 @@ var Doc = (function () {
     document.addEventListener('click', function (e) {
       var a = e.target.closest && e.target.closest('.doc__links a');
       if (a && !wide.matches) { var d = a.closest('details'); if (d) d.open = false; }
+    });
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-paper]');
+      if (b) { paperPick = b.getAttribute('data-paper'); show('paper'); }
     });
     // Drucken gibt es nur, wenn die Seite nicht in einem Rahmen läuft
     var framed = true;

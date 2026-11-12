@@ -14,11 +14,13 @@ var Mining = (function () {
   }
   function every(days) {
     if (!isFinite(days)) return '—';
-    var sec = days * 86400;
-    if (sec < 7200) return t('calc.every.min', { n: U.num(Math.max(1, sec / 60), 0) });
-    if (sec < 172800) return t('calc.every.hours', { n: U.num(sec / 3600, 1) });
-    if (days < 730) return t('calc.every.days', { n: U.num(days, days < 10 ? 1 : 0) });
-    return t('calc.every.years', { n: U.num(days / 365.25, days / 365.25 < 10 ? 1 : 0) });
+    var sec = days * 86400, y = days / 365.25, n;
+    function shown(x, digits) { var f = Math.pow(10, digits); return Math.round(x * f) / f; }
+    if (sec < 7200) { n = Math.max(1, Math.round(sec / 60)); return tn('calc.every.min', n, { n: U.num(n) }); }
+    if (sec < 172800) { n = shown(sec / 3600, 1); return tn('calc.every.hours', n, { n: U.num(n, 1) }); }
+    if (days < 730) { n = shown(days, days < 10 ? 1 : 0); return tn('calc.every.days', n, { n: U.num(n, 1) }); }
+    n = shown(y, y < 10 ? 1 : 0);
+    return tn('calc.every.years', n, { n: U.num(n, 1) });
   }
   function amount(x) {
     var max = x >= 100 ? 0 : x >= 1 ? 2 : x >= 0.01 ? 4 : 8;
@@ -72,7 +74,10 @@ var Mining = (function () {
     }
     row(t('calc.d.net', { n: U.num(B.n) }), U.hashrate(B.net));
     var note = t('calc.note');
-    if (daysToHalving < 30) note = t('calc.halving', { b: U.num((era + 1) * U.EPOCH), d: U.num(daysToHalving, 0) }) + ' ' + note;
+    if (daysToHalving < 30) {
+      var dh = Math.max(1, Math.round(daysToHalving));
+      note = tn('calc.halving', dh, { b: U.num((era + 1) * U.EPOCH), d: U.num(dh) }) + ' ' + note;
+    }
     set('calc-note', note);
   }
   function poolsTable() {

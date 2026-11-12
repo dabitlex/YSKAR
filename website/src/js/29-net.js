@@ -98,7 +98,7 @@ var Net = (function () {
         U.el('td', {}, [U.el('a', { class: 'mono', href: Router.href('#explorer-block-' + b.height), text: U.num(b.height) })]),
         U.el('td', { text: Live.ago(Number(b.timestamp), Live.now()) }),
         U.el('td', { text: b.finder || t('net.b.solo') }),
-        U.el('td', { class: 'n hide-s', text: n === 1 ? t('net.b.addr1') : t('net.b.addr', { n: U.num(n) }) }),
+        U.el('td', { class: 'n hide-s', text: tn('net.b.addr', n, { n: U.num(n) }) }),
         U.el('td', { class: 'n hide-s', text: U.num(Number(b.difficultyWert)) })]));
     });
   }

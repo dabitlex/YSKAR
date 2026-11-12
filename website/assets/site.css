@@ -9,7 +9,15 @@
  * Geist Mono nur für Kettendaten (Blocknummern, Hashes, Adressen).
  */
 @font-face{font-family:'Hanken Grotesk';font-style:normal;font-display:swap;font-weight:100 900;
-  src:url(/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f) format('woff2')}
+  src:url(/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+/* Polnisch und Türkisch: wird nur geladen, wo ein Zeichen daraus vorkommt */
+@font-face{font-family:'Hanken Grotesk';font-style:normal;font-display:swap;font-weight:100 900;
+  src:url(/assets/fonts/hanken-grotesk-latin-ext.woff2?v=2cba32d0) format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+/* Hanken Grotesk hat keine kyrillischen Buchstaben. Russische Seiten stehen deshalb ganz in Geist, der Schwester von Geist Mono. */
+@font-face{font-family:'Geist';font-style:normal;font-display:swap;font-weight:100 900;
+  src:url(/assets/fonts/geist-variable.woff2?v=772998a8) format('woff2')}
 @font-face{font-family:'Geist Mono';font-style:normal;font-display:swap;font-weight:100 900;
   src:url(/assets/fonts/geist-mono-variable.woff2?v=11e9a061) format('woff2')}
 
@@ -130,6 +138,8 @@ a:hover{text-decoration-color:currentColor}
 .stack{display:flex;flex-direction:column;gap:var(--gap,20px)}
 .stack > *{max-width:100%}
 .row{display:flex;flex-wrap:wrap;gap:var(--gap,14px);align-items:center}
+/* Ein Knopf, dessen Beschriftung in einer Sprache breiter ist als die Zeile, bricht um, statt über den Rand zu ragen */
+.row>.btn{max-width:100%;white-space:normal;text-align:center}
 
 /* ---------- Knöpfe ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:52px;padding:14px 26px;border-radius:99px;
@@ -152,12 +162,31 @@ a:hover{text-decoration-color:currentColor}
 html[data-mode="live"] .tick__dot{background:var(--ribbon-1);box-shadow:0 0 0 0 rgba(99,216,255,.6);animation:pulse 2.6s var(--ease) infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(99,216,255,.55)}70%{box-shadow:0 0 0 9px rgba(99,216,255,0)}100%{box-shadow:0 0 0 0 rgba(99,216,255,0)}}
 
-.lang{display:inline-flex;gap:2px;padding:3px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line)}
-.lang button{padding:7px 14px;border-radius:99px;font-size:.875rem;font-weight:500;color:var(--ice-2);min-height:36px}
-.lang button[aria-pressed="true"]{background:rgba(238,244,255,.14);color:var(--ice)}
-.lang--ink{box-shadow:inset 0 0 0 1px var(--ink-line)}
-.lang--ink button{color:var(--ink-2)}
-.lang--ink button[aria-pressed="true"]{background:rgba(10,21,48,.1);color:var(--ink)}
+/* Schriften je Sprache: Russisch ganz in Geist (Hanken Grotesk hat kein Kyrillisch), Chinesisch mit den Schriften des Systems */
+html[lang="ru"]{--font:'Geist',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif}
+html[lang="zh"]{--font:'Hanken Grotesk','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC','Noto Sans SC','Source Han Sans SC',system-ui,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,'PingFang SC','Microsoft YaHei','Noto Sans CJK SC',monospace}
+
+/* Chinesisch: Schriftzeichen füllen ihr Geviert. Überschriften stehen darum ohne enge Laufweite und mit mehr Zeilenabstand.
+   Die größte Stufe (.t-mega) bleibt, wie sie ist: Dort stehen in jeder Sprache lateinische Buchstaben ("Proof, not promise.", "YSKAR") */
+html[lang="zh"] :is(h1:not(.t-mega),h2,h3,.t-xl,.t-l,.t-m,.t-s,.menu__a span,.foot__claim,.shore__say,.calcx__say,.pool__name,.chan b,.labpath b,.lv-db-titel){letter-spacing:0}
+html[lang="zh"] :is(h1:not(.t-mega),h2,.t-xl,.t-l,.menu__a span,.foot__claim,.shore__say){line-height:1.2}
+html[lang="zh"] :is(h3,.t-m,.pool__name,.chan b,.lv-db-titel){line-height:1.32}
+html[lang="zh"] :is(.t-s,.labpath b){line-height:1.42}
+
+/* Sprachwahl: der Name der Sprache in ihrer eigenen Schrift, dahinter die Auswahl des Systems */
+.lang{position:relative;display:inline-flex;align-items:center;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line);color:var(--ice);transition:background-color .2s,box-shadow .2s}
+.lang:hover{background:rgba(238,244,255,.07);box-shadow:inset 0 0 0 1px rgba(238,244,255,.42)}
+.lang:focus-within{box-shadow:inset 0 0 0 1px rgba(238,244,255,.42),0 0 0 3px rgba(99,216,255,.45)}
+.lang select{appearance:none;-webkit-appearance:none;background:none;border:0;outline:0;margin:0;color:inherit;font:inherit;font-size:.875rem;font-weight:500;
+  line-height:1.2;min-height:44px;padding:10px 38px 10px 42px;border-radius:99px;cursor:pointer;max-width:100%}
+.lang select option{color:#0A1530;background:#fff}
+.lang__g,.lang__v{position:absolute;top:50%;pointer-events:none}
+.lang__g{left:15px;width:18px;height:18px;margin-top:-9px;opacity:.82}
+.lang__v{right:15px;width:12px;height:12px;margin-top:-6px;opacity:.7}
+.lang--ink{box-shadow:inset 0 0 0 1px var(--ink-line);color:var(--ink)}
+.lang--ink:hover{background:rgba(10,21,48,.05);box-shadow:inset 0 0 0 1px rgba(10,21,48,.4)}
+.lang--ink:focus-within{box-shadow:inset 0 0 0 1px rgba(10,21,48,.4),0 0 0 3px rgba(47,123,255,.4)}
 
 .tip{position:fixed;z-index:120;pointer-events:none;background:rgba(4,10,26,.94);color:var(--ice);border-radius:10px;padding:9px 12px;
   font-size:.8125rem;line-height:1.4;box-shadow:0 0 0 1px var(--line),0 14px 40px -10px #000;max-width:260px}
@@ -1642,7 +1671,7 @@ html[data-mode="live"] .t1 .state::before{background:var(--live)}
 .xp-intro{display:grid;gap:clamp(14px,2vw,22px);justify-items:start;margin-bottom:clamp(36px,5.4vw,72px)}
 .xp-top.compact .xp-intro,.xp-top.compact .ex-try{display:none}
 .xp .ex-find{display:grid;gap:12px}
-.xp .ex-search{position:relative;display:flex;align-items:center;gap:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.xp .ex-search{position:relative;display:flex;align-items:center;gap:14px;min-width:0;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .xp .ex-search::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;
   background:linear-gradient(90deg,var(--ribbon-1),var(--ribbon-2) 55%,var(--ribbon-3));transform:scaleX(0);transform-origin:0 50%;transition:transform .55s var(--ease)}
 .xp .ex-search:focus-within::after{transform:scaleX(1)}
@@ -1949,8 +1978,17 @@ html.no-anim .xp .ring::after{animation:none}
 .doc__text .btn:hover{color:var(--lamp-ink)}
 .doc__text .btn--ghost:hover{color:var(--ice)}
 .doc__text [data-img]{display:block;width:100%;border-radius:var(--r-media);margin-top:24px}
+/* Whitepaper: zwei Fassungen im Dokument, eine sichtbar. Ohne Skript die englische. */
 [data-lang-only]{display:none}
-html[lang="en"] [data-lang-only="en"],html[lang="de"] [data-lang-only="de"]{display:block}
+[data-lang-only="en"]{display:block}
+[data-show-lang="de"] [data-lang-only="en"]{display:none}
+[data-show-lang="de"] [data-lang-only="de"]{display:block}
+.paper-tools{--gap:10px 14px;align-items:center}
+.paper-note{color:var(--ice-2);font-size:var(--t-small);max-width:40em}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:99px;box-shadow:inset 0 0 0 1px rgba(238,244,255,.3)}
+.seg button{padding:7px 15px;border-radius:99px;font-size:.875rem;font-weight:500;color:var(--ice-2);min-height:36px}
+.seg button[aria-pressed="true"]{background:rgba(238,244,255,.16);color:var(--ice)}
+@media print{.paper-tools,.paper-note{display:none}}
 
 .lv-wp-meta,.lv-klein-meta{font-family:var(--mono);font-size:var(--t-small) !important;color:var(--ice-3) !important;margin-top:0 !important;margin-bottom:clamp(30px,4vw,52px)}
 .lv-klein-meta{margin-bottom:0;margin-top:14px !important}

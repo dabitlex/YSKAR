@@ -54,8 +54,17 @@
 .doc__text .btn:hover{color:var(--lamp-ink)}
 .doc__text .btn--ghost:hover{color:var(--ice)}
 .doc__text [data-img]{display:block;width:100%;border-radius:var(--r-media);margin-top:24px}
+/* Whitepaper: zwei Fassungen im Dokument, eine sichtbar. Ohne Skript die englische. */
 [data-lang-only]{display:none}
-html[lang="en"] [data-lang-only="en"],html[lang="de"] [data-lang-only="de"]{display:block}
+[data-lang-only="en"]{display:block}
+[data-show-lang="de"] [data-lang-only="en"]{display:none}
+[data-show-lang="de"] [data-lang-only="de"]{display:block}
+.paper-tools{--gap:10px 14px;align-items:center}
+.paper-note{color:var(--ice-2);font-size:var(--t-small);max-width:40em}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:99px;box-shadow:inset 0 0 0 1px rgba(238,244,255,.3)}
+.seg button{padding:7px 15px;border-radius:99px;font-size:.875rem;font-weight:500;color:var(--ice-2);min-height:36px}
+.seg button[aria-pressed="true"]{background:rgba(238,244,255,.16);color:var(--ice)}
+@media print{.paper-tools,.paper-note{display:none}}
 
 .lv-wp-meta,.lv-klein-meta{font-family:var(--mono);font-size:var(--t-small) !important;color:var(--ice-3) !important;margin-top:0 !important;margin-bottom:clamp(30px,4vw,52px)}
 .lv-klein-meta{margin-bottom:0;margin-top:14px !important}
