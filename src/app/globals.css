@@ -3,15 +3,16 @@
 @tailwind utilities;
 
 /*
-  YSKAR — Gestaltungssystem „Warp / Crystal Blue" (Oktober 2026).
+  YSKAR — Gestaltungssystem "Erstes Licht" (November 2026).
 
-  Dieselbe Sprache wie yskar.app und die YSKAR Wallet: nur dunkel, Nachtblau
-  als Grund, Karten eine Stufe heller, feine blaue Linien. Blau fuer alles,
-  was aktiv ist, Cyan als Lichtkante, Gruen heisst „von der Kette
-  bestaetigt", Rot heisst „unwiderruflich", Bernstein heisst „bitte tun".
+  Dieselbe Sprache wie die neue Website: Nacht ueber einem Fjord. Kaltes
+  Blau steht fuer die Kette (Bloecke, Hashes, Pool-Anteile), warmes
+  Lampenlicht fuer die Menschen (das eigene Licht, Ueberweisungen, die
+  Hauptaktion). Gruen heisst "von der Kette bestaetigt", Rot heisst
+  "unwiderruflich".
 
   Die Namen der Farben sind geblieben (ink, surface, work, proof ...), nur
-  ihre Werte nicht. Ein helles Thema gibt es nicht mehr.
+  ihre Werte nicht. Ein helles Thema gibt es nicht.
 
   Farben als RGB-Kanaele: Nur so kann Tailwind Deckkraft anwenden.
 */
@@ -19,28 +20,32 @@
 :root[data-thema="dunkel"],
 :root[data-thema="hell"],
 .thema-dunkel {
-  --ink:     3 6 15;        /* #03060F  Grund */
-  --sunk:    6 11 24;       /* #060B18  Eingabefelder, Blaetter */
-  --surface: 10 17 34;      /* #0A1122  Karten */
-  --raised:  14 23 48;      /* #0E1730  Chips, ruhige Flaechen */
-  --line:    26 35 61;      /* feine Linie: rgba(140,170,255,.12) auf Karte */
+  --ink:     4 10 26;       /* #040A1A  Nacht 900, Grund */
+  --sunk:    7 18 41;       /* #071229  Nacht 800, Eingabefelder, Blaetter */
+  --surface: 7 18 41;       /* #071229  Flaechen in noch nicht umgebauten Bereichen */
+  --raised:  11 28 64;      /* #0B1C40  Nacht 700, Chips, ruhige Flaechen */
+  --line:    32 42 66;      /* Haarlinie: rgba(170,198,255,.17) auf Nacht */
   --edge:    0 0 0;
-  --text:    242 246 255;   /* #F2F6FF */
-  --dim:     142 154 180;   /* #8E9AB4 */
-  --faint:   107 119 148;   /* #6B7794 */
-  --lese:    195 204 223;   /* #C3CCDF  Fliesstext */
+  --text:    238 244 255;   /* #EEF4FF  Eis */
+  --dim:     150 162 188;   /* leise Texte */
+  --faint:   122 133 158;   /* Beschriftungen */
+  --lese:    184 195 218;   /* Fliesstext */
 
-  --work:  47 123 255;      /* #2F7BFF  aktiv, bedienbar */
-  --cyan:  99 216 255;      /* #63D8FF  Lichtkante */
-  --proof: 59 229 154;      /* #3BE59A  von der Kette angenommen */
-  --risk:  255 107 107;     /* #FF6B6B  unwiderruflich */
-  --amber: 255 180 84;      /* #FFB454  bitte tun */
+  --work:  47 123 255;      /* #2F7BFF  Band, aktiv */
+  --cyan:  99 216 255;      /* #63D8FF  Band, Lichtkante */
+  --proof: 91 227 171;      /* #5BE3AB  von der Kette angenommen */
+  --risk:  255 142 142;     /* #FF8E8E  unwiderruflich */
+  --amber: 255 196 122;     /* #FFC47A  bitte tun (dieselbe Lampe) */
+  --lamp:  255 196 122;     /* #FFC47A  Lampe: Hauptaktion, das eigene Licht */
+  --lamp-ink: 27 18 5;      /* #1B1205  Schrift auf der Lampe */
 
   --r-sm: 16px;
   --r-md: 22px;
   --r-lg: 28px;
   color-scheme: dark;
 }
+/* Sprachen ohne Hanken Grotesk stehen ganz in Geist, wie auf der Website. */
+:root:lang(ru), :root:lang(uk), :root:lang(vi) { --font-sans: var(--font-geist); --font-sans-ext: var(--font-geist); }
 :root[data-thema="dunkel"], .thema-dunkel { color-scheme: dark; }
 /* Einstieg: immer dunkel, egal welches Thema -- die Marke steht auf Nacht. */
 .thema-dunkel { background: rgb(var(--ink)); color: rgb(var(--text)); }
@@ -66,8 +71,13 @@
 .rand-oben  { padding-top:    calc(20px + var(--oben)); }
 .rand-unten { padding-bottom: var(--unten); }
 
+/*
+  Der Grund liegt nur auf html. Laege er auch auf body, wuerde er das Ufer
+  (z-index -1, Minen-Reiter) ueberdecken: Der Hintergrund eines Blocks wird
+  nach den Ebenen mit negativem z-index gezeichnet.
+*/
+html { background: rgb(var(--ink)); }
 html, body {
-  background: rgb(var(--ink));
   color: rgb(var(--text));
   margin: 0;
 }
@@ -115,8 +125,8 @@ body {
 .schein { background: radial-gradient(80% 30% at 50% 0%, rgb(var(--work) / .20) 0%, transparent 70%); }
 
 /* Schwebende Navigationsleiste. */
-.tabs { background: rgb(var(--surface) / .92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgb(140 170 255 / .22); box-shadow: 0 18px 40px -18px rgb(0 0 0 / .8); }
+.tabs { background: rgb(var(--ink) / .86); backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow: 0 0 0 1px rgb(170 198 255 / .17), 0 18px 50px -12px rgb(0 0 0 / .8); }
 
 /* Grosse Zahl: Ganzzahl kraeftig, Nachkommastellen gedimmt. */
 .zahl-gross { font-weight: 300; letter-spacing: -.055em; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -319,3 +329,37 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .aktion-tage i.an { background: rgb(var(--cyan)); }
 .aktion-schritte > div { display: grid; grid-template-columns: 24px 1fr; gap: 12px; padding-bottom: 16px; position: relative; }
 .aktion-schritte > div:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 26px; bottom: 2px; width: 1px; background: rgb(140 170 255 / .22); }
+
+/* ------------------------------------------------ Erstes Licht: das Ufer */
+/*
+  Die Buehne des Minen-Reiters: der Fjord der Website, am fernen Ufer ein
+  Licht je aktivem Miner. --ufer-y ist die Hoehe der Uferlinie unter der
+  Oberkante; das Foto wird so geschoben, dass sein Horizont (55,45 % der
+  Bildhoehe, Bild 9:16) genau dort liegt.
+*/
+:root { --ufer-b: min(100vw, 28rem); --ufer-y: calc(var(--oben) + 182px); }
+.ufer { position: absolute; inset: 0 0 auto 0; height: calc(var(--ufer-y) + 250px); overflow: hidden; pointer-events: none; z-index: -1;
+  background: rgb(var(--sunk)); }
+.ufer img { position: absolute; left: 0; width: 100%; height: auto; aspect-ratio: 9 / 16; max-width: none;
+  top: calc(var(--ufer-y) - var(--ufer-b) * .9858); }
+.ufer::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgb(2 5 15 / .58) 0%, rgb(2 5 15 / 0) 24%, rgb(2 5 15 / 0) 46%, rgb(3 8 22 / .62) 76%, rgb(var(--ink)) 100%); }
+.ufer-licht { position: absolute; border-radius: 50%; background: #FFE7C2; translate: -50% -50%;
+  width: var(--g); height: var(--g); top: calc(var(--ufer-y) + var(--dy));
+  box-shadow: 0 0 calc(var(--g) * 1.4) calc(var(--g) * .55) rgb(255 190 112 / .78), 0 0 calc(var(--g) * 7) calc(var(--g) * 2.4) rgb(255 160 72 / .26); }
+.ufer-licht::after { content: ''; position: absolute; left: 50%; top: 120%; translate: -50% 0; width: max(1.5px, calc(var(--g) * .62)); height: calc(var(--g) * 7);
+  background: linear-gradient(180deg, rgb(255 190 112 / .5), rgb(255 170 84 / .14) 55%, rgb(255 170 84 / 0)); border-radius: 2px; filter: blur(.8px); }
+.ufer-licht.mein { animation: ufer-an 1.1s ease-out both; }
+.ufer-platz { position: absolute; width: 11px; height: 11px; border-radius: 50%; translate: -50% -50%;
+  top: calc(var(--ufer-y) + var(--dy)); box-shadow: 0 0 0 1.5px rgb(255 214 160 / .9); }
+.ufer-ring { position: absolute; width: 14px; height: 14px; border-radius: 50%; translate: -50% -50%;
+  top: calc(var(--ufer-y) + var(--dy)); box-shadow: 0 0 0 1.5px rgb(255 214 160 / .85); animation: ufer-ring 2.4s ease-out both; }
+.ufer-schild { position: absolute; top: calc(var(--ufer-y) + var(--dy) - 68px); z-index: 1; padding-left: 8px; font-size: 12.5px; font-weight: 500;
+  color: rgb(var(--lamp)); white-space: nowrap; pointer-events: none; }
+.ufer-schild::before { content: ''; position: absolute; left: 0; top: 6px; width: 1px; height: 50px;
+  background: linear-gradient(180deg, rgb(255 214 160 / .85), rgb(255 214 160 / 0)); }
+@keyframes ufer-an { 0% { scale: .2; opacity: 0 } 55% { scale: 1.7; opacity: 1 } 100% { scale: 1; opacity: 1 } }
+@keyframes ufer-ring { 0% { scale: .6; opacity: .9 } 70% { opacity: 0 } 100% { scale: 5.5; opacity: 0 } }
+
+/* Aussagen: gross und leicht, wie die Ueberschriften der Website. */
+.aussage { font-weight: 300; letter-spacing: -.042em; line-height: 1; }

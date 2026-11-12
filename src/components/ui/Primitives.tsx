@@ -97,16 +97,16 @@ export function Button({
   variant?: 'primary' | 'quiet' | 'risk' | 'work'; disabled?: boolean;
   type?: 'button' | 'submit'; className?: string;
 }) {
-  // Wie auf yskar.app und in der Wallet: Hauptknopf weiss als Pille,
-  // zweiter Knopf als Umriss, Blau fuer aktive Aktionen.
+  // Wie auf der Website: Hauptknopf als Pille in Lampenlicht (warm steht
+  // fuers Mitmachen), zweiter Knopf als Umriss.
   const base = 'flex w-full min-h-[56px] items-center justify-center gap-2 rounded-full px-6 ' +
     'text-[15.5px] font-semibold transition-[transform,opacity,background-color] ' +
     'active:scale-[.985] disabled:cursor-not-allowed disabled:opacity-35 ' +
     'disabled:active:scale-100';
   const look = {
-    primary: 'bg-text text-ink',
+    primary: 'bg-lamp text-lamp-ink',
     work: 'bg-work text-white',
-    quiet: 'border border-[rgb(140_170_255/.22)] bg-transparent text-text',
+    quiet: 'bg-transparent text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)]',
     risk: 'bg-risk/10 text-risk',
   }[variant];
   return (

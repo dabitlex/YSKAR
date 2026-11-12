@@ -10,15 +10,17 @@ import { useT } from '@/i18n';
 export type Tab = 'mine' | 'wallet' | 'entdecken' | 'community';
 
 const PUNKTE: { key: Tab; pfad: React.ReactNode }[] = [
-  { key: 'mine', pfad: <path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z" /> },
+  // Minen: ein Licht am Ufer -- das Bild, das der Reiter selbst zeigt.
+  { key: 'mine', pfad: <><circle cx="12" cy="8.6" r="3.5" /><path d="M3.5 15.4h17M12 18.2v2.6" /></> },
   { key: 'wallet', pfad: <><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M16 14.5h2" /></> },
-  { key: 'entdecken', pfad: <path d="M3 12h4l3-7 4 14 3-7h4" /> },
+  { key: 'entdecken', pfad: <><circle cx="6" cy="7" r="2.3" /><circle cx="18" cy="9" r="2.3" /><circle cx="11" cy="18" r="2.3" /><path d="M8.2 7.5 15.8 8.6M7 9.1l3 6.8M16.6 10.8l-4.2 5.6" /></> },
   { key: 'community', pfad: <><circle cx="9" cy="8.5" r="3" /><path d="M3.5 19c.8-3.2 2.9-5 5.5-5s4.7 1.8 5.5 5" /><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.5 14.4c1.6.6 2.7 2.2 3 4.6" /></> },
 ];
 
 /**
- * Navigationsleiste wie in der YSKAR Wallet: eine schwebende Pille, der
- * aktive Bereich als blaue Pille mit Wort, die anderen nur als Symbol.
+ * Navigationsleiste, gebaut wie die Mitmachen-Leiste der Website: eine
+ * schwebende Glas-Pille. Alle vier Bereiche zeigen Symbol und Wort; der
+ * aktive ist hell hinterlegt.
  */
 export function BottomNav({ aktiv, onWechsel }: {
   aktiv: Tab; onWechsel: (t: Tab) => void;
@@ -27,8 +29,8 @@ export function BottomNav({ aktiv, onWechsel }: {
   const name: Record<Tab, string> = { mine: t.rd.nav.mine, wallet: t.nav.wallet, entdecken: t.nav.netz, community: t.nav.community };
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 rand-unten">
-      <div className="mx-auto max-w-md px-[18px] pb-[22px]">
-      <div className="tabs pointer-events-auto flex h-16 items-center justify-between rounded-[32px] px-[7px]">
+      <div className="mx-auto max-w-md px-[14px] pb-5">
+      <div className="tabs pointer-events-auto grid h-[66px] grid-cols-4 items-center gap-0.5 rounded-full px-[7px]">
         {PUNKTE.map(p => {
           const an = aktiv === p.key;
           return (
@@ -36,16 +38,15 @@ export function BottomNav({ aktiv, onWechsel }: {
               key={p.key}
               onClick={() => onWechsel(p.key)}
               aria-current={an ? 'page' : undefined}
-              aria-label={name[p.key]}
-              className={`flex h-[50px] min-w-[56px] items-center justify-center gap-2 rounded-[25px] text-[14.5px] font-semibold
-                          transition-colors ${an ? 'bg-work px-5 text-white' : 'text-dim active:bg-raised'}`}
+              className={`flex h-[52px] min-w-0 flex-col items-center justify-center gap-[3px] rounded-full text-[11.5px] leading-none tracking-[.01em]
+                          transition-colors ${an ? 'bg-text/[.12] font-semibold text-text' : 'font-medium text-lese active:bg-text/[.06]'}`}
             >
-              <svg viewBox="0 0 24 24" width={an ? 20 : 22} height={an ? 20 : 22} fill="none"
-                   stroke="currentColor" strokeWidth={an ? 1.8 : 1.6}
+              <svg viewBox="0 0 24 24" width="21" height="21" fill="none"
+                   stroke="currentColor" strokeWidth={an ? 1.7 : 1.5}
                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {p.pfad}
               </svg>
-              {an && <span>{name[p.key]}</span>}
+              <span className="max-w-full truncate px-1">{name[p.key]}</span>
             </button>
           );
         })}
@@ -83,28 +84,23 @@ export function useSplash(mindestensMs = 1100) {
 }
 
 /**
- * Startbild wie in der YSKAR Wallet: nur das grosse Zeichen, es blendet weich
- * ein und waechst dabei leicht. Unten das Motto und ein Ladebalken.
+ * Startbild: das Zeichen frei auf Nacht, ohne Kreis und ohne Schein, darunter
+ * der Satz der Website. Unten eine Haarlinie, auf der das Band laeuft.
  */
 export function Splash() {
   const { t } = useT();
   return (
     <main className="relative min-h-dvh overflow-hidden bg-ink">
-      <div className="licht-auf pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-           style={{ background: '#2F7BFF', opacity: .18, filter: 'blur(90px)' }} aria-hidden="true" />
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-x-7 top-[38%] flex -translate-y-1/2 flex-col gap-7">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/marke/zeichen.svg" alt="YSKAR" width={240} height={240} className="atmen"
-             style={{ width: 240, height: 240, filter: 'drop-shadow(0 0 28px rgba(47,123,255,.45))' }} />
+        <img src="/marke/zeichen.svg" alt="YSKAR" width={72} height={72} className="atmen" style={{ width: 72, height: 72 }} />
+        <p className="aussage licht-auf text-[46px]">Proof,<br />not promise.</p>
       </div>
-      <p className="licht-auf absolute inset-x-0 bottom-[calc(150px+var(--unten))] text-center font-mono text-[11px] uppercase tracking-[.22em] text-dim">
-        proof, not promise
-      </p>
-      <div className="absolute inset-x-0 bottom-[calc(72px+var(--unten))] flex flex-col items-center gap-3.5">
-        <span className="text-[14px] font-semibold text-dim">{t.splash.laedt}</span>
-        <div className="relative h-1 w-[208px] overflow-hidden rounded-full bg-raised">
-          <div className="lade absolute left-0 top-0 h-1 w-16 rounded-full" style={{ background: 'linear-gradient(90deg,#1B4FD1,#63D8FF)' }} />
+      <div className="absolute inset-x-7 bottom-[calc(44px+var(--unten))] flex flex-col gap-3">
+        <div className="relative h-px overflow-hidden bg-line">
+          <div className="lade absolute left-0 top-0 h-px w-1/3" style={{ background: 'linear-gradient(90deg,#1B4FD1,#63D8FF)' }} />
         </div>
+        <span className="text-[13.5px] text-lese">{t.splash.laedt}</span>
       </div>
     </main>
   );
