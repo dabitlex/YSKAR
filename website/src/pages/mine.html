@@ -1,0 +1,183 @@
+<div class="page" data-page="mine">
+  <section class="ph">
+    <div class="ph__media"><img data-img="laptop" data-ta="alt:way.mine.alt" alt=""></div>
+    <div class="ph__txt wrap">
+      <p class="ph__k" data-t="nav.mine"></p>
+      <h1 class="t-xl" data-t="mine.h1"></h1>
+      <p class="lead" data-t="mine.lead"></p>
+      <div class="row ph__cta">
+        <a class="btn" href="#mine-setup" data-t="mine.cta"></a>
+        <a class="more" href="#mine-try" data-t="mine.cta2"></a>
+      </div>
+      <p class="ph__meta" data-t="ui.sample"></p>
+    </div>
+  </section>
+
+  <section class="story story--pay" id="pay">
+    <div class="story__sticky">
+      <div class="story__stage"><canvas role="img" data-ta="aria-label:pay.alt"></canvas></div>
+      <div class="story__caps wrap">
+        <div class="story__cap"><h2 class="t-l" data-t="pay.0.h"></h2><p class="lead" data-t="pay.0.p"></p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="pay.1.h"></h2><p class="lead" data-t="pay.1.p"></p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="pay.2.h"></h2><p class="lead" data-t="pay.2.p"></p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="pay.3.h"></h2><p class="lead" data-t="pools.p2"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="try">
+    <div class="wrap duo duo--mid">
+      <div class="duo__a">
+        <h2 class="t-xl" data-rise data-t="mine.try.h"></h2>
+        <p class="lead" data-rise data-delay="80" data-t="mine.try.p"></p>
+      </div>
+      <div class="try" id="trymine" data-rise data-delay="140">
+        <div class="try__stage">
+          <canvas id="try-canvas" role="img" data-ta="aria-label:mine.try.canvas"></canvas>
+          <p class="try__num"><span><span data-t="mine.try.tries"></span> <b id="try-n">0</b></span><span><span data-t="mine.try.speed"></span> <b id="try-rate">–</b></span></p>
+        </div>
+        <p class="try__hash" id="try-hash" aria-hidden="true"></p>
+        <p class="try__say" id="try-say" role="status"></p>
+        <button type="button" class="btn" id="try-go" data-t="mine.try.go"></button>
+        <p class="try__real" id="try-real"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="setup">
+    <div class="wrap" data-tabs>
+      <div class="band__head"><h2 class="t-xl" data-rise data-t="mine.setup.h"></h2><p class="lead" data-rise data-delay="80" data-t="mining.ways.p"></p></div>
+      <div class="setup__tabs" role="tablist" data-ta="aria-label:mine.setup.h">
+        <button type="button" role="tab" data-tab="pc" aria-selected="true" data-t="mining.tab.pc"></button>
+        <button type="button" role="tab" data-tab="phone" data-t="mining.tab.phone"></button>
+        <button type="button" role="tab" data-tab="cli" data-t="mining.tab.cli"></button>
+        <button type="button" role="tab" data-tab="rig" data-t="mining.tab.rig"></button>
+      </div>
+
+      <div class="setup__panel" data-panel="pc" role="tabpanel">
+        <div class="setup__txt">
+          <h3 data-t="mining.pc.h"></h3>
+          <p data-t="mining.pc.p"></p>
+          <ol class="nlist"><li data-t="mining.pc.s1"></li><li data-t="mining.pc.s2"></li><li data-t="mining.pc.s3"></li></ol>
+          <div class="row">
+            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-Setup-{{NODE_CORE}}.exe" target="_blank" rel="noopener"><span data-t="mining.pc.win"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+            <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-{{NODE_CORE}}-amd64.deb" target="_blank" rel="noopener"><span data-t="mining.pc.deb"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+          </div>
+          <p class="small dim" data-t="mining.pc.more"></p>
+          <p class="heed" data-t="mining.pc.note"></p>
+        </div>
+        <figure class="shot">
+          <div class="media"><img data-img="laptop" data-lazy data-ta="alt:way.mine.alt" alt=""></div>
+          <figcaption class="cap" data-t="mining.pc.imgcap"></figcaption>
+        </figure>
+      </div>
+
+      <div class="setup__panel" data-panel="phone" role="tabpanel" hidden>
+        <div class="setup__txt">
+          <h3 data-t="mining.phone.h"></h3>
+          <p data-t="mining.phone.p"></p>
+          <ol class="nlist"><li data-t="mining.phone.s1"></li><li data-t="mining.phone.s2"></li><li data-t="mining.phone.s3"></li></ol>
+          <div class="row">
+            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/tag/app-v{{APP}}" target="_blank" rel="noopener"><span data-t="mining.phone.apk"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+            <a class="btn btn--ghost" href="https://t.me/YSKAR_bot" target="_blank" rel="noopener"><span data-t="mining.phone.tg"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+          </div>
+        </div>
+        <dl class="kv2">
+          <div><dt data-t="mining.phone.f1"></dt><dd data-t="mining.phone.f1.v"></dd></div>
+          <div><dt data-t="mining.phone.f2"></dt><dd data-t="mining.phone.f2.v"></dd></div>
+          <div><dt data-t="mining.phone.f3"></dt><dd data-t="mining.phone.f3.v"></dd></div>
+        </dl>
+      </div>
+
+      <div class="setup__panel" data-panel="cli" role="tabpanel" hidden>
+        <div class="setup__txt">
+          <h3 data-t="mining.cli.h"></h3>
+          <p data-t="mining.cli.p"></p>
+          <dl class="kv2">
+            <div><dt data-t="mining.cli.f1"></dt><dd data-t="mining.cli.f1.v"></dd></div>
+            <div><dt data-t="mining.cli.f2"></dt><dd data-t="mining.cli.f2.v"></dd></div>
+            <div><dt data-t="mining.cli.f3"></dt><dd data-t="mining.cli.f3.v"></dd></div>
+          </dl>
+          <a class="more" href="https://github.com/dabitlex/YSKAR/blob/main/miner/README.md" target="_blank" rel="noopener"><span data-t="mining.cli.link"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        </div>
+        <div class="stack" style="--gap:14px">
+          <div class="term term--pad"><pre id="code-cli-pool"><span class="c"># <span data-t="mining.cli.c1"></span></span>
+git clone https://github.com/dabitlex/YSKAR.git
+cd YSKAR/miner
+node src/selbsttest.mjs
+
+<span class="c"># <span data-t="mining.cli.c2"></span></span>
+node src/cli.mjs --address ysr1... --api https://pool.yskar.app --mode pool
+
+<span class="c"># <span data-t="mining.cli.c3"></span></span>
+node src/cli.mjs --address ysr1... --api http://127.0.0.1:8645</pre>
+            <button type="button" class="term__copy" data-copy="#code-cli-pool" data-t="ui.copy"></button></div>
+          <p class="small dim" data-t="mining.cli.addr"></p>
+        </div>
+      </div>
+
+      <div class="setup__panel" data-panel="rig" role="tabpanel" hidden>
+        <div class="setup__txt">
+          <h3 data-t="mining.rig.h"></h3>
+          <p data-t="mining.rig.p"></p>
+          <div class="row">
+            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/yskar-hiveos-{{NODE_CORE}}.tar.gz" target="_blank" rel="noopener"><span data-t="mining.rig.dl"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+            <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md" target="_blank" rel="noopener"><span data-t="mining.rig.doc"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+          </div>
+        </div>
+        <dl class="kv2">
+          <div><dt data-t="mining.rig.f1"></dt><dd data-t="mining.rig.f1.v"></dd></div>
+          <div><dt data-t="mining.rig.f2"></dt><dd data-t="mining.rig.f2.v"></dd></div>
+          <div><dt data-t="mining.rig.f3"></dt><dd data-t="mining.rig.f3.v"></dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="calculator">
+    <div class="wrap">
+      <div class="band__head"><h2 class="t-xl" data-rise data-t="mine.calc.h"></h2><p class="lead" data-rise data-delay="80" data-t="calc.p"></p></div>
+      <div class="calcx" data-rise>
+        <form class="calcx__say" id="calc" novalidate>
+          <label for="calc-rate" data-t="calcx.a"></label>
+          <input id="calc-rate" type="text" inputmode="decimal" value="1" autocomplete="off">
+          <label class="sr-only" for="calc-unit" data-t="calc.unit"></label>
+          <select id="calc-unit"><option>H/s</option><option>kH/s</option><option>MH/s</option><option selected>GH/s</option><option>TH/s</option></select>
+          <span data-t="calcx.b"></span>
+          <span class="calcx__seg" role="group" data-ta="aria-label:calc.mode">
+            <button type="button" data-mode="pool" aria-pressed="true" data-t="calc.pool"></button>
+            <button type="button" data-mode="solo" aria-pressed="false" data-t="calc.solo"></button>
+          </span>
+          <span id="calc-pool-field"><label class="sr-only" for="calc-pool" data-t="calc.which"></label><select id="calc-pool"></select></span>
+        </form>
+        <div class="calcx__out" aria-live="polite">
+          <p class="calcx__k" data-t="calc.day"></p>
+          <p class="calcx__big" id="calc-day">–</p>
+          <div class="calcx__row">
+            <div><span class="calcx__k" data-t="calc.week"></span><b id="calc-week">–</b></div>
+            <div><span class="calcx__k" data-t="calc.month"></span><b id="calc-month">–</b></div>
+            <div><span class="calcx__k" data-t="calc.share"></span><b id="calc-share">–</b></div>
+          </div>
+          <dl id="calc-detail"></dl>
+          <p class="micro faint" id="calc-note"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="pools">
+    <div class="wrap">
+      <div class="band__head"><h2 class="t-xl" data-rise data-t="mine.pools.h"></h2><p class="lead" data-rise data-delay="80" data-t="pools.p1"></p></div>
+      <div class="pools" id="pools-live"></div>
+      <p class="cap" id="pools-live-cap"></p>
+      <dl class="kv2" style="margin-top:clamp(36px,5vw,64px)">
+        <div><dt data-t="pools.f1"></dt><dd data-t="pools.f1.v"></dd></div>
+        <div><dt data-t="pools.f2"></dt><dd data-t="pools.f2.v"></dd></div>
+        <div><dt data-t="pools.f3"></dt><dd data-t="pools.f3.v"></dd></div>
+        <div><dt data-t="pools.f4"></dt><dd data-t="pools.f4.v"></dd></div>
+      </dl>
+      <p class="heed" style="margin-top:36px" data-t="mining.return"></p>
+    </div>
+  </section>
+  <!--@include dawn-->
+</div>

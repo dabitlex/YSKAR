@@ -1,421 +1,528 @@
 <!doctype html>
-<html lang="en" class="i18n-wartet">
+<html lang="en" data-page="guides" data-mode="snapshot">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Guides – YSKAR</title>
-<meta name="description" content="Step by step: mining with the Telegram Mini App, the Android app or the PC miner, creating a wallet and running a full node.">
-<meta name="theme-color" content="#03060F">
+<meta name="description" content="Step by step: mining on the phone and on the PC, your wallet, your own node and your own pool.">
+<meta name="theme-color" content="#030816">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="YSKAR">
 <meta property="og:title" content="Guides – YSKAR">
-<meta property="og:description" content="Step by step: wallet, mining on phone and PC, Node Core, your own full node and your own pool.">
+<meta property="og:description" content="Step by step: mining on the phone and on the PC, your wallet, your own node and your own pool.">
+<link rel="canonical" href="https://www.yskar.app/anleitungen">
 <meta property="og:url" content="https://www.yskar.app/anleitungen">
-<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.png?v=7">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="YSKAR – Fair from block 0.">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@yskar_official">
 <link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
 <link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
-<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=41">
-<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=41"></script>
-<script src="/assets/site.js?v=41" defer></script>
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=7bb7be14">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de"], TEXTS = {"en":"4a73edcc","de":"903e05d4"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=8608fdc9" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
 </head>
-<body data-seite="anleitungen">
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
 
-<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
 
-<header class="kopf" id="kopf">
-<div class="wrap">
-<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
-<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
-<a href="/#was" data-t="nav.was">About YSKAR</a>
-<a href="/#ablauf" data-t="nav.ablauf">How it works</a>
-<a href="/#menge" data-t="nav.menge">Supply</a>
-<a href="/#v6" class="v6-link">V6</a>
-<a href="/mining" data-t="nav.mining">Mining</a>
-<a href="/anleitungen" aria-current="page" data-t="nav.anleitungen">Guides</a>
-<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
-<a href="/explorer" data-t="nav.explorer">Explorer</a>
-</nav>
-<div class="kopf-rechts">
-<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
-<a class="knopf hell klein kopf-cta" href="/#nutzen" data-t="nav.los">Use YSR</a>
-<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
-</button>
-</div>
-</div>
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
 </header>
 
-<main id="inhalt">
-<section class="seitenkopf">
-<div class="wrap">
-<p class="etikett" style="color:var(--blau-d)" data-t="an.etikett">Guides</p>
-<h1 data-t="an.titel">Step by step</h1>
-<p data-t="an.text">Everything explained step by step: mining on the phone and on the PC, your wallet, your own node and your own pool.</p>
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen" aria-current="page"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <div class="lang" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+      </div>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
 </div>
-</section>
 
-<div class="inhalt">
-<div class="wrap inhalt-raster">
-<nav class="toc" aria-label="On this page" data-ta="aria-label:an.tocLabel">
-<a href="#ueberblick" data-t="an.ue.titel">Which way suits you?</a>
-<a href="#grundlagen" data-t="an.gr.titel">How mining works</a>
-<a href="#telegram" data-t="an.mini.titel">Telegram Mini App</a>
-<a href="#android" data-t="an.apk.titel">Android app with mining</a>
-<a href="#nodecore" data-t="an.nc.titel">Node Core for Windows and Linux</a>
-<a href="#pc" data-t="an.pc.titel">PC miner</a>
-<a href="#wallet" data-t="an.wallet.titel">Your wallet</a>
-<a href="#fullnode" data-t="an.node.titel">Running a full node</a>
-<a href="#pool" data-t="an.pool.titel">Running a pool</a>
-<a href="#explorer" data-t="an.ex.titel">The explorer</a>
-<a href="#sicherheit" data-t="an.si.titel">Security</a>
-<a href="#hilfe" data-t="an.hi.titel">If something does not work</a>
-</nav>
-
-<div class="text">
-
-<h2 id="ueberblick" data-t="an.ue.titel">Which way suits you?</h2>
-<p data-t="an.ue.text">There are five ways to take part. All of them use the same wallet: with your 12 words you reach the same balance everywhere.</p>
-<div class="tabelle-rahmen"><table class="tabelle"><thead><tr><th data-t="an.ue.k1">Way</th><th data-t="an.ue.k2">Good for</th><th data-t="an.ue.k3">You need</th></tr></thead><tbody>
-<tr><td><strong><a href="#telegram" data-t="an.ue.r1a">Telegram Mini App</a></strong></td><td><span data-t="an.ue.r1b">Trying it out, right away</span></td><td><span data-t="an.ue.r1c">Telegram</span></td></tr>
-<tr><td><strong><a href="#android" data-t="an.ue.r2a">Android app</a></strong></td><td><span data-t="an.ue.r2b">Mining in the background on your phone</span></td><td><span data-t="an.ue.r2c">An Android phone</span></td></tr>
-<tr><td><strong><a href="#nodecore" data-t="an.ue.r3a">Node Core</a></strong></td><td><span data-t="an.ue.r3b">Your own node with wallet and mining on a PC, graphics card included</span></td><td><span data-t="an.ue.r3c">Windows 10/11 or Linux (64-bit)</span></td></tr>
-<tr><td><strong><a href="#pc" data-t="an.ue.r4a">PC miner</a></strong></td><td><span data-t="an.ue.r4b">Mining from the command line</span></td><td><span data-t="an.ue.r4c">Windows, macOS or Linux with Node.js</span></td></tr>
-<tr><td><strong><a href="#fullnode" data-t="an.ue.r5a">Full node</a></strong></td><td><span data-t="an.ue.r5b">A node or a pool on a Raspberry Pi or a server</span></td><td><span data-t="an.ue.r5c">Linux, Windows or macOS with Node.js 22.13 or newer</span></td></tr>
+<main id="main" tabindex="-1">
+<div class="page" data-page="guides">
+  <section class="pp pp--doc">
+    <div class="wrap pp__in">
+      <p class="ph__k" data-t="lv.an.etikett">Guides</p>
+      <h1 class="t-xl" data-t="lv.an.titel">Step by step</h1>
+      <p class="lead" data-t="lv.an.text">Everything explained step by step: mining on the phone and on the PC, your wallet, your own node and your own pool.</p>
+    </div>
+  </section>
+  <div class="wrap doc" data-doc="guides">
+    <nav class="doc__toc" data-ta="aria-label:lv.an.tocLabel" aria-label="On this page"><details><summary data-t="doc.toc">On this page</summary><div class="doc__links"></div></details></nav>
+    <article class="doc__text lv">
+      <h2 id="ueberblick" data-t="lv.an.ue.titel">Which way suits you?</h2>
+<p data-t="lv.an.ue.text">There are five ways to take part. All of them use the same wallet: with your 12 words you reach the same balance everywhere.</p>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle"><thead><tr><th data-t="lv.an.ue.k1">Way</th><th data-t="lv.an.ue.k2">Good for</th><th data-t="lv.an.ue.k3">You need</th></tr></thead><tbody>
+<tr><td><strong><a href="#telegram" data-t="lv.an.ue.r1a">Telegram Mini App</a></strong></td><td><span data-t="lv.an.ue.r1b">Trying it out, right away</span></td><td><span data-t="lv.an.ue.r1c">Telegram</span></td></tr>
+<tr><td><strong><a href="#android" data-t="lv.an.ue.r2a">Android app</a></strong></td><td><span data-t="lv.an.ue.r2b">Mining in the background on your phone</span></td><td><span data-t="lv.an.ue.r2c">An Android phone</span></td></tr>
+<tr><td><strong><a href="#nodecore" data-t="lv.an.ue.r3a">Node Core</a></strong></td><td><span data-t="lv.an.ue.r3b">Your own node with wallet and mining on a PC, graphics card included</span></td><td><span data-t="lv.an.ue.r3c">Windows 10/11 or Linux (64-bit)</span></td></tr>
+<tr><td><strong><a href="#pc" data-t="lv.an.ue.r4a">PC miner</a></strong></td><td><span data-t="lv.an.ue.r4b">Mining from the command line</span></td><td><span data-t="lv.an.ue.r4c">Windows, macOS or Linux with Node.js</span></td></tr>
+<tr><td><strong><a href="#fullnode" data-t="lv.an.ue.r5a">Full node</a></strong></td><td><span data-t="lv.an.ue.r5b">A node or a pool on a Raspberry Pi or a server</span></td><td><span data-t="lv.an.ue.r5c">Linux, Windows or macOS with Node.js 22.13 or newer</span></td></tr>
 </tbody></table></div>
-<h2 id="grundlagen" data-t="an.gr.titel">How mining works</h2>
-<p data-t="an.gr.p1">YSKAR is a blockchain of its own. A new block is found about every 10 minutes. Whoever finds it receives the reward – currently 875 YSR – directly on their address.</p>
-<p data-t="an.gr.p2">To find a block, your device tries out numbers (double SHA-256). The more computing power you have, the better your chances. The difficulty adjusts to the power of the whole network.</p>
-<h3 data-t="an.gr.sp">Solo or pool</h3>
+<h2 id="grundlagen" data-t="lv.an.gr.titel">How mining works</h2>
+<p data-t="lv.an.gr.p1">YSKAR is a blockchain of its own. A new block is found about every 10 minutes. Whoever finds it receives the reward – currently 875 YSR – directly on their address.</p>
+<p data-t="lv.an.gr.p2">To find a block, your device tries out numbers (double SHA-256). The more computing power you have, the better your chances. The difficulty adjusts to the power of the whole network.</p>
+<h3 data-t="lv.an.gr.sp">Solo or pool</h3>
 <ul>
-<li data-th="an.gr.solo"><strong>Solo:</strong> you search on your own. If you find a block, the whole reward is yours. That can take a long time.</li>
-<li data-th="an.gr.pool"><strong>Pool:</strong> many search together. When the pool finds a block, the reward is split by the work contributed. Smaller amounts, but more regularly.</li>
+<li data-t="lv.an.gr.solo"><strong>Solo:</strong> you search on your own. If you find a block, the whole reward is yours. That can take a long time.</li>
+<li data-t="lv.an.gr.pool"><strong>Pool:</strong> many search together. When the pool finds a block, the reward is split by the work contributed. Smaller amounts, but more regularly.</li>
 </ul>
-<h3 data-t="an.gr.aus">How a pool pays out</h3>
-<p data-t="an.gr.aus1">The block itself pays everyone directly. The pool operator never holds your money, and there is no payout threshold.</p>
-<p data-t="an.gr.aus2">What counts is the work of the recent past, measured in shares. If you have only just started, your part of the first block is correspondingly small.</p>
+<h3 data-t="lv.an.gr.aus">How a pool pays out</h3>
+<p data-t="lv.an.gr.aus1">The block itself pays everyone directly. The pool operator never holds your money, and there is no payout threshold.</p>
+<p data-t="lv.an.gr.aus2">What counts is the work of the recent past, measured in shares. If you have only just started, your part of the first block is correspondingly small.</p>
 <ul>
-<li data-t="an.gr.plaetze">A block can pay out at most 64 addresses, so a pool has at most 64 places (63 when it takes a fee). A place counts only while you mine: a new device holds it on trial for 2 minutes and keeps it by delivering shares regularly. Places of miners who stop become free again.</li>
-<li data-t="an.gr.gebuehr">The operator may take a fee between 0 and 5 %. It is shown in the pool list.</li>
+<li data-t="lv.an.gr.plaetze">A block can pay out at most 64 addresses, so a pool has at most 64 places (63 when it takes a fee). A place counts only while you mine: a new device holds it on trial for 2 minutes and keeps it by delivering shares regularly. Places of miners who stop become free again.</li>
+<li data-t="lv.an.gr.gebuehr">The operator may take a fee between 0 and 5 %. It is shown in the pool list.</li>
 </ul>
-<div class="hinweisband"><p data-t="an.gr.hinweis">Nobody can promise you a return. How often you receive something depends on your computing power, on the power of the network and on chance.</p></div>
-
-<h2 id="telegram" data-t="an.mini.titel">Telegram Mini App</h2>
-<p data-t="an.mini.text">The fastest way in. The Mini App runs inside Telegram; there is nothing to install.</p>
+<div class="lv-hinweisband"><p data-t="lv.an.gr.hinweis">Nobody can promise you a return. How often you receive something depends on your computing power, on the power of the network and on chance.</p></div>
+<h2 id="telegram" data-t="lv.an.mini.titel">Telegram Mini App</h2>
+<p data-t="lv.an.mini.text">The fastest way in. The Mini App runs inside Telegram; there is nothing to install.</p>
 <ol>
-<li data-th="an.mini.s1">Open <a href="https://t.me/YSKAR_bot">@YSKAR_bot</a> in Telegram and start the app.</li>
-<li data-t="an.mini.s2">Tap “Create wallet”. The app shows you 12 words: write them down on paper, in order.</li>
-<li data-t="an.mini.s3">Confirm a few of the words and choose a PIN.</li>
-<li data-t="an.mini.s4">Open the Mining tab and tap “Start mining”. Keep the app open while it computes.</li>
+<li data-t="lv.an.mini.s1">Open <a href="https://t.me/YSKAR_bot">@YSKAR_bot</a> in Telegram and start the app.</li>
+<li data-t="lv.an.mini.s2">Tap “Create wallet”. The app shows you 12 words: write them down on paper, in order.</li>
+<li data-t="lv.an.mini.s3">Confirm a few of the words and choose a PIN.</li>
+<li data-t="lv.an.mini.s4">Open the Mining tab and tap “Start mining”. Keep the app open while it computes.</li>
 </ol>
-<div class="hinweisband"><p data-t="an.mini.hinweis">Tip: in the Mining tab you can choose between solo and pool. In the pool you receive smaller amounts more often; solo means rarer but whole blocks.</p></div>
-
-<h2 id="android" data-t="an.apk.titel">Android app with mining</h2>
-<p data-t="an.apk.text">The Android app keeps mining in the background, even with the screen locked, and shows your mining in a widget on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.</p>
-<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/tag/app-v1.1.1" data-t="an.apk.knopf">Download the latest version</a></p>
-<p data-t="an.apk.name">On your phone this app is called “YSKAR Wallet”. It is a different app from the new YSKAR Wallet without mining, and both can be installed side by side; your 12 words work in both.</p>
-<h3 data-t="an.apk.inst">Installing</h3>
+<div class="lv-hinweisband"><p data-t="lv.an.mini.hinweis">Tip: in the Mining tab you can choose between solo and pool. In the pool you receive smaller amounts more often; solo means rarer but whole blocks.</p></div>
+<h2 id="android" data-t="lv.an.apk.titel">Android app with mining</h2>
+<p data-t="lv.an.apk.text">The Android app keeps mining in the background, even with the screen locked, and shows your mining in a widget on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.</p>
+<p><a class="btn" href="https://github.com/dabitlex/YSKAR/releases/tag/app-v1.1.1" data-t="lv.an.apk.knopf" target="_blank" rel="noopener">Download the latest version</a></p>
+<p data-t="lv.an.apk.name">On your phone this app is called “YSKAR Wallet”. It is a different app from the new YSKAR Wallet without mining, and both can be installed side by side; your 12 words work in both.</p>
+<h3 data-t="lv.an.apk.inst">Installing</h3>
 <ol>
-<li data-th="an.apk.s1">On your phone, open the download page and tap the file <code>yskar-wallet-….apk</code>.</li>
-<li data-t="an.apk.s2">Android asks whether apps from this source (for example your browser) may be installed. Tap “Settings” and allow it for this source.</li>
-<li data-t="an.apk.s3">Go back and tap “Install”. Google Play Protect may show a warning; this is normal for apps from outside the Play Store.</li>
-<li data-t="an.apk.s4">Open the app, create a wallet or restore your existing one with your 12 words.</li>
+<li data-t="lv.an.apk.s1">On your phone, open the download page and tap the file <code>yskar-wallet-….apk</code>.</li>
+<li data-t="lv.an.apk.s2">Android asks whether apps from this source (for example your browser) may be installed. Tap “Settings” and allow it for this source.</li>
+<li data-t="lv.an.apk.s3">Go back and tap “Install”. Google Play Protect may show a warning; this is normal for apps from outside the Play Store.</li>
+<li data-t="lv.an.apk.s4">Open the app, create a wallet or restore your existing one with your 12 words.</li>
 </ol>
-<h3 data-t="an.apk.start">Starting mining</h3>
+<h3 data-t="lv.an.apk.start">Starting mining</h3>
 <ol>
-<li data-t="an.apk.m1">Open the Mining tab and scroll to “Controls”.</li>
-<li data-th="an.apk.m2">Choose the mode: Solo or Pool. In pool mode the app suggests an open pool; tap “Change” to see all pools with their miners, hash power, blocks found and fee. A full pool cannot be selected.</li>
-<li data-t="an.apk.m3">Set “Workers” and “Duty cycle”. Workers are the processor cores that compute; the duty cycle sets how hard they work (25 to 100 %).</li>
-<li data-t="an.apk.m4">Tap “Start mining”. If Android asks about notifications, allow them: that is how you see that mining is running, and you can stop it from there.</li>
+<li data-t="lv.an.apk.m1">Open the Mining tab and scroll to “Controls”.</li>
+<li data-t="lv.an.apk.m2">Choose the mode: Solo or Pool. In pool mode the app suggests an open pool; tap “Change” to see all pools with their miners, hash power, blocks found and fee. A full pool cannot be selected.</li>
+<li data-t="lv.an.apk.m3">Set “Workers” and “Duty cycle”. Workers are the processor cores that compute; the duty cycle sets how hard they work (25 to 100 %).</li>
+<li data-t="lv.an.apk.m4">Tap “Start mining”. If Android asks about notifications, allow them: that is how you see that mining is running, and you can stop it from there.</li>
 </ol>
-<div class="hinweisband"><p data-t="an.apk.tipp">Our recommendation: all workers, duty cycle 25 %, in the pool. That is easy on battery and temperature, and in the pool smaller amounts arrive more regularly. “Calibrate device” finds the best number of workers for your phone.</p></div>
-<h3 data-t="an.apk.hintergrund">Mining in the background</h3>
-<p data-t="an.apk.dienst">Since version 1.0.9 a dedicated service inside the app does the computing. Mining continues when you leave the app or lock the screen. While it runs, Android shows a notification with your hashrate; “Stop mining” ends it right there.</p>
-<p data-t="an.apk.akku">Some devices still close background apps to save battery. If mining stops on its own, set the app’s battery usage to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
-<h3 data-t="an.apk.widget">Widget on the home screen</h3>
-<p data-t="an.apk.w1">Press and hold an empty spot on the home screen, choose “Widgets” and drag “YSKAR Wallet” onto the screen.</p>
-<p data-t="an.apk.w2">While mining runs, the widget shows what you have earned in this session, plus hashrate, runtime and accepted shares. “Stop” ends mining straight from the home screen. When mining is stopped, you see the current block, the network hashrate and the block reward.</p>
-<p data-t="an.apk.w3">“Earned this session” counts the block rewards and pool payouts credited to your address since you started; the value changes when a new block is found. Choose light or dark in the app under Settings → App → Widget. The widget in this form is available from version 1.1.0.</p>
-<h3 data-t="an.apk.update">Updating the app</h3>
-<p data-t="an.apk.updateText">When a new version is available, the app shows a notice when you open it. Tap “Download”: the app fetches the update, then Android asks whether to install it. Your wallet is kept. To check by hand, go to Settings → App → Updates in the app.</p>
-<h3 data-t="an.apk.pruefen">Checking the download (optional)</h3>
-<p data-th="an.apk.pruefenText">Every release also contains a file ending in <code>.sha256</code>. It holds the checksum of the APK. If the checksum of your download matches, the file is exactly the one we published.</p>
-
-<h2 id="nodecore" data-t="an.nc.titel">Node Core for Windows and Linux</h2>
-<p data-t="an.nc.text">Node Core is the YSKAR program for Windows and Linux: your own node with wallet and mining in one window. It downloads the blockchain to your PC and checks every block itself.</p>
-<p><a class="knopf primaer" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-Setup-1.1.0.exe" data-t="nc.knopfWin">Download for Windows</a> <a class="knopf tinte" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-amd64.deb" data-t="nc.knopfLinux">Download for Linux (.deb)</a></p>
-<p class="klein-meta">v1.1.0 · <span data-t="nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-x86_64.AppImage" data-t="nc.appimage">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.1.0" data-t="nc.mehr">Checksum and release notes</a></p>
-<figure class="nc-bild"><img src="/assets/img/node-core-en.webp?v=2" width="1600" height="1125" alt="Overview of YSKAR Node Core: block height, peers, network hashrate, the last 24 hours and latest blocks" data-ta="src:nc.bild;alt:nc.bildAlt" loading="lazy"><figcaption data-t="nc.bildNotiz">Example view – the numbers are examples.</figcaption></figure>
-<h3 data-t="an.nc.vor">What you need</h3>
+<div class="lv-hinweisband"><p data-t="lv.an.apk.tipp">Our recommendation: all workers, duty cycle 25 %, in the pool. That is easy on battery and temperature, and in the pool smaller amounts arrive more regularly. “Calibrate device” finds the best number of workers for your phone.</p></div>
+<h3 data-t="lv.an.apk.hintergrund">Mining in the background</h3>
+<p data-t="lv.an.apk.dienst">Since version 1.0.9 a dedicated service inside the app does the computing. Mining continues when you leave the app or lock the screen. While it runs, Android shows a notification with your hashrate; “Stop mining” ends it right there.</p>
+<p data-t="lv.an.apk.akku">Some devices still close background apps to save battery. If mining stops on its own, set the app’s battery usage to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
+<h3 data-t="lv.an.apk.widget">Widget on the home screen</h3>
+<p data-t="lv.an.apk.w1">Press and hold an empty spot on the home screen, choose “Widgets” and drag “YSKAR Wallet” onto the screen.</p>
+<p data-t="lv.an.apk.w2">While mining runs, the widget shows what you have earned in this session, plus hashrate, runtime and accepted shares. “Stop” ends mining straight from the home screen. When mining is stopped, you see the current block, the network hashrate and the block reward.</p>
+<p data-t="lv.an.apk.w3">“Earned this session” counts the block rewards and pool payouts credited to your address since you started; the value changes when a new block is found. Choose light or dark in the app under Settings → App → Widget. The widget in this form is available from version 1.1.0.</p>
+<h3 data-t="lv.an.apk.update">Updating the app</h3>
+<p data-t="lv.an.apk.updateText">When a new version is available, the app shows a notice when you open it. Tap “Download”: the app fetches the update, then Android asks whether to install it. Your wallet is kept. To check by hand, go to Settings → App → Updates in the app.</p>
+<h3 data-t="lv.an.apk.pruefen">Checking the download (optional)</h3>
+<p data-t="lv.an.apk.pruefenText">Every release also contains a file ending in <code>.sha256</code>. It holds the checksum of the APK. If the checksum of your download matches, the file is exactly the one we published.</p>
+<h2 id="nodecore" data-t="lv.an.nc.titel">Node Core for Windows and Linux</h2>
+<p data-t="lv.an.nc.text">Node Core is the YSKAR program for Windows and Linux: your own node with wallet and mining in one window. It downloads the blockchain to your PC and checks every block itself.</p>
+<p><a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-Setup-1.1.0.exe" data-t="lv.nc.knopfWin" target="_blank" rel="noopener">Download for Windows</a> <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-amd64.deb" data-t="lv.nc.knopfLinux" target="_blank" rel="noopener">Download for Linux (.deb)</a></p>
+<p class="lv-klein-meta">v1.1.0 · <span data-t="lv.nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="lv.nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-x86_64.AppImage" data-t="lv.nc.appimage" target="_blank" rel="noopener">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.1.0" data-t="lv.nc.mehr" target="_blank" rel="noopener">Checksum and release notes</a></p>
+<figure class="lv-nc-bild"><img data-img="laptop" data-lazy="" alt="A laptop on a wooden desk at night, running YSKAR Node Core; behind it a window onto a dark fjord." data-ta="alt:way.mine.alt"><figcaption data-t="lv.nc.bildNotiz">Example view – the numbers are examples.</figcaption></figure>
+<h3 data-t="lv.an.nc.vor">What you need</h3>
 <ul>
-<li data-t="an.nc.v1">Windows 10 or 11 (64-bit) or Linux (64-bit, x86-64) and an internet connection</li>
-<li data-t="an.nc.v2">Disk space for the blockchain. It is still small and grows with every block.</li>
-<li data-t="an.nc.v3">For mining with a graphics card: an NVIDIA card with a current driver. Without one, the processor does the work.</li>
+<li data-t="lv.an.nc.v1">Windows 10 or 11 (64-bit) or Linux (64-bit, x86-64) and an internet connection</li>
+<li data-t="lv.an.nc.v2">Disk space for the blockchain. It is still small and grows with every block.</li>
+<li data-t="lv.an.nc.v3">For mining with a graphics card: an NVIDIA, AMD or Intel card with a current driver. Without one, the processor does the work.</li>
 </ul>
-<h3 data-t="an.nc.inst">Installing on Windows</h3>
+<h3 data-t="lv.an.nc.inst">Installing on Windows</h3>
 <ol>
-<li data-t="an.nc.i1">Download the installer and run it.</li>
-<li data-t="an.nc.i2">Windows shows “Windows protected your PC” because the installer is not signed. Choose “More info”, then “Run anyway”.</li>
-<li data-t="an.nc.i3">Follow the installer. Node Core starts afterwards.</li>
+<li data-t="lv.an.nc.i1">Download the installer and run it.</li>
+<li data-t="lv.an.nc.i2">Windows shows “Windows protected your PC” because the installer is not signed. Choose “More info”, then “Run anyway”.</li>
+<li data-t="lv.an.nc.i3">Follow the installer. Node Core starts afterwards.</li>
 </ol>
-<p data-th="an.nc.pruefen">To be sure the file is the one we published, compare its checksum with the <code>.sha256</code> file of the release. In PowerShell:</p>
-<pre><code>Get-FileHash .\YSKAR-Node-Core-Setup-1.1.0.exe -Algorithm SHA256</code></pre>
-<h3 data-t="an.nc.linux">Installing on Linux</h3>
-<p data-th="an.nc.l1"><strong>Ubuntu, Debian, Linux Mint:</strong> download the <code>.deb</code> file and install it in a terminal. Then start “YSKAR Node Core” from the application menu.</p>
-<pre><code>sudo apt install ./YSKAR-Node-Core-1.1.0-amd64.deb</code></pre>
-<p data-th="an.nc.l2"><strong>Other distributions:</strong> download the AppImage, make it executable and start it. AppImages need FUSE 2 (on Ubuntu the package <code>libfuse2</code>).</p>
-<pre><code>chmod +x YSKAR-Node-Core-1.1.0-x86_64.AppImage
-./YSKAR-Node-Core-1.1.0-x86_64.AppImage</code></pre>
-<p data-t="an.nc.l3">Node Core for Linux runs on 64-bit PCs (x86-64) with a desktop. ARM computers such as the Raspberry Pi are not supported.</p>
-<p data-t="an.nc.pruefenLinux">On Linux:</p>
-<pre><code>sha256sum -c YSKAR-Node-Core-1.1.0-amd64.deb.sha256</code></pre>
-<h3 data-t="an.nc.erst">First start</h3>
+<p data-t="lv.an.nc.pruefen">To be sure the file is the one we published, compare its checksum with the <code>.sha256</code> file of the release. In PowerShell:</p>
+<div class="term term--pad"><pre id="lv-code-guides-1"><span class="ln">Get-FileHash .\YSKAR-Node-Core-Setup-1.1.0.exe -Algorithm SHA256</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-1" data-t="ui.copy">Copy</button></div>
+<h3 data-t="lv.an.nc.linux">Installing on Linux</h3>
+<p data-t="lv.an.nc.l1"><strong>Ubuntu, Debian, Linux Mint:</strong> download the <code>.deb</code> file and install it in a terminal. Then start “YSKAR Node Core” from the application menu.</p>
+<div class="term term--pad"><pre id="lv-code-guides-2"><span class="ln">sudo apt install ./YSKAR-Node-Core-1.1.0-amd64.deb</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-2" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.nc.l2"><strong>Other distributions:</strong> download the AppImage, make it executable and start it. AppImages need FUSE 2 (on Ubuntu the package <code>libfuse2</code>).</p>
+<div class="term term--pad"><pre id="lv-code-guides-3"><span class="ln">chmod +x YSKAR-Node-Core-1.1.0-x86_64.AppImage
+</span><span class="ln">./YSKAR-Node-Core-1.1.0-x86_64.AppImage</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-3" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.nc.l3">Node Core for Linux runs on 64-bit PCs (x86-64) with a desktop. ARM computers such as the Raspberry Pi are not supported.</p>
+<p data-t="lv.an.nc.pruefenLinux">On Linux:</p>
+<div class="term term--pad"><pre id="lv-code-guides-4"><span class="ln">sha256sum -c YSKAR-Node-Core-1.1.0-amd64.deb.sha256</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-4" data-t="ui.copy">Copy</button></div>
+<h3 data-t="lv.an.nc.erst">First start</h3>
 <ol>
-<li data-th="an.nc.e1"><strong>Node:</strong> data folder, ports and seed are filled in. The defaults suit most people – just click “Continue”.</li>
-<li data-th="an.nc.e2"><strong>Wallet:</strong> create a new wallet and write down the 12 words, or bring your existing wallet over with your 12 words. Choose a password of at least 8 characters; it encrypts the words on this PC. You can also set up the wallet later.</li>
-<li data-th="an.nc.e3"><strong>Start:</strong> click “Start node”.</li>
+<li data-t="lv.an.nc.e1"><strong>Node:</strong> data folder, ports and seed are filled in. The defaults suit most people – just click “Continue”.</li>
+<li data-t="lv.an.nc.e2"><strong>Wallet:</strong> create a new wallet and write down the 12 words, or bring your existing wallet over with your 12 words. Choose a password of at least 8 characters; it encrypts the words on this PC. You can also set up the wallet later.</li>
+<li data-t="lv.an.nc.e3"><strong>Start:</strong> click “Start node”.</li>
 </ol>
-<p data-t="an.nc.firewall">On the first start Windows asks whether Node Core may access the network. Allow it, otherwise the node cannot find other nodes.</p>
-<p data-t="an.nc.firewallLinux">On Linux there is no such prompt. If a firewall is active (such as ufw), allow port 8646 – otherwise other nodes cannot reach yours. Your own connections work either way.</p>
-<h3 data-t="an.nc.sync">The first synchronisation</h3>
-<p data-t="an.nc.syncText">On the first start Node Core downloads the whole blockchain and checks every block. That can take a while; the overview shows the progress. Mining only starts once the node has caught up with the network.</p>
-<h3 data-t="an.nc.wallet">Wallet</h3>
+<p data-t="lv.an.nc.firewall">On the first start Windows asks whether Node Core may access the network. Allow it, otherwise the node cannot find other nodes.</p>
+<p data-t="lv.an.nc.firewallLinux">On Linux there is no such prompt. If a firewall is active (such as ufw), allow port 8646 – otherwise other nodes cannot reach yours. Your own connections work either way.</p>
+<h3 data-t="lv.an.nc.sync">The first synchronisation</h3>
+<p data-t="lv.an.nc.syncText">On the first start Node Core downloads the whole blockchain and checks every block. That can take a while; the overview shows the progress. Mining only starts once the node has caught up with the network.</p>
+<h3 data-t="lv.an.nc.wallet">Wallet</h3>
 <ul>
-<li data-th="an.nc.w1"><strong>Send:</strong> enter recipient and amount, review, confirm with your password. The password is asked before every transfer.</li>
-<li data-th="an.nc.w2"><strong>Receive:</strong> show your address or its QR code.</li>
-<li data-th="an.nc.w3"><strong>Contacts:</strong> names instead of addresses, stored only on this PC.</li>
-<li data-th="an.nc.w4"><strong>Lock:</strong> the wallet locks itself after 10 minutes without activity and whenever Windows is locked. You can change the time in the settings.</li>
+<li data-t="lv.an.nc.w1"><strong>Send:</strong> enter recipient and amount, review, confirm with your password. The password is asked before every transfer.</li>
+<li data-t="lv.an.nc.w2"><strong>Receive:</strong> show your address or its QR code.</li>
+<li data-t="lv.an.nc.w3"><strong>Contacts:</strong> names instead of addresses, stored only on this PC.</li>
+<li data-t="lv.an.nc.w4"><strong>Lock:</strong> the wallet locks itself after 10 minutes without activity and whenever Windows is locked. You can change the time in the settings.</li>
 </ul>
-<h3 data-t="an.nc.mining">Mining</h3>
+<h3 data-t="lv.an.nc.mining">Mining</h3>
 <ol>
-<li data-t="an.nc.m1">Choose the target: Solo or Pool. In pool mode pick a pool from the list, or enter an address under “Your own pool address” and check it.</li>
-<li data-t="an.nc.m2">“Reward goes to”: your own wallet or another address.</li>
-<li data-t="an.nc.m3">Choose the device: processor, graphics card or both. Set the number of cores and the load per core.</li>
-<li data-t="an.nc.m4">Solo only: if you like, enter a name that appears in the blocks you find. It is public and permanent.</li>
-<li data-t="an.nc.m5">Click “Start mining”.</li>
+<li data-t="lv.an.nc.m1">Choose the target: Solo or Pool. In pool mode pick a pool from the list, or enter an address under “Your own pool address” and check it.</li>
+<li data-t="lv.an.nc.m2">“Reward goes to”: your own wallet or another address.</li>
+<li data-t="lv.an.nc.m3">Choose the device: processor, graphics card or both. Set the number of cores and the load per core.</li>
+<li data-t="lv.an.nc.m4">Solo only: if you like, enter a name that appears in the blocks you find. It is public and permanent.</li>
+<li data-t="lv.an.nc.m5">Click “Start mining”.</li>
 </ol>
-<div class="hinweisband"><p data-t="an.nc.poolHinweis">If a pool no longer accepts you, mining stops and tells you why. It never silently continues solo.</p></div>
-<h3 data-t="an.nc.einst">Settings</h3>
+<div class="lv-hinweisband"><p data-t="lv.an.nc.poolHinweis">If a pool no longer accepts you, mining stops and tells you why. It never silently continues solo.</p></div>
+<h3 data-t="lv.an.nc.einst">Settings</h3>
 <ul>
-<li data-th="an.nc.s1"><strong>Start with Windows</strong> (on Linux: “Start when you log in”): Node Core starts without a window when you sign in.</li>
-<li data-th="an.nc.s2"><strong>Keep running when closed:</strong> the window disappears into the notification area next to the clock, the node keeps working.</li>
-<li data-th="an.nc.s3"><strong>Resume mining after start:</strong> mining continues with the last settings as soon as the node is in sync.</li>
-<li data-th="an.nc.s4"><strong>Updates:</strong> Node Core tells you when a new version is available. Nothing is installed by itself.</li>
+<li data-t="lv.an.nc.s1"><strong>Start with Windows</strong> (on Linux: “Start when you log in”): Node Core starts without a window when you sign in.</li>
+<li data-t="lv.an.nc.s2"><strong>Keep running when closed:</strong> the window disappears into the notification area next to the clock, the node keeps working.</li>
+<li data-t="lv.an.nc.s3"><strong>Resume mining after start:</strong> mining continues with the last settings as soon as the node is in sync.</li>
+<li data-t="lv.an.nc.s4"><strong>Updates:</strong> Node Core tells you when a new version is available. Nothing is installed by itself.</li>
 </ul>
-<h3 data-t="an.nc.sig">Signing and YSKAR Lab</h3>
-<p data-th="an.nc.sigText">Since version 1.1.0, “Sign” in the wallet signs a text with your address, for example to prove that an address is yours; “Verify” checks a signed message from someone else. On <a href="https://lab.yskar.app">lab.yskar.app</a>, “Sign in with wallet” opens Node Core: it shows the website, your address and how long the request is valid, and signs only after you confirm with your password. A signature cannot move YSR.</p>
-<h3 data-t="an.nc.update">Updating</h3>
-<p data-t="an.nc.updateText">Download the new installer, quit Node Core – also in the notification area – and run the installer. Your wallet and the blockchain are kept.</p>
-<h3 data-t="an.nc.port">Do I have to open a port?</h3>
-<p data-t="an.nc.portText">No. Without it your node connects to other nodes by itself. If you forward port 8646 in your router, other nodes can reach yours as well. That helps the network but is optional.</p>
-
-<h2 id="pc" data-t="an.pc.titel">PC miner</h2>
-<p data-t="an.pc.text">The miner runs on Windows, macOS and Linux. It only needs an address – no private key, no wallet, no sign-up. You can safely run it on any computer.</p>
-<h3 data-t="an.pc.s1">1. Install Node.js</h3>
-<p data-th="an.pc.s1Text">The miner needs Node.js 20 or newer. Download the LTS version from <a href="https://nodejs.org">nodejs.org</a> and install it. On Windows, open a new command window afterwards.</p>
-<h3 data-t="an.pc.s2">2. Get the miner</h3>
-<pre><code>git clone https://github.com/dabitlex/YSKAR.git
-cd YSKAR/miner
-node src/selbsttest.mjs</code></pre>
-<p data-t="an.pc.s2Text">There is nothing else to install. The self-test checks that your computer computes hashes correctly.</p>
-<h3 data-t="an.pc.s3">3. Start mining</h3>
-<p data-t="an.pc.s3Text">Replace the address with your own YSKAR address (it starts with ysr1). With the pool:</p>
-<pre><code>node src/cli.mjs --address ysr1… --api https://pool.yskar.app --mode pool</code></pre>
-<p data-t="an.pc.solo">Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.</p>
-<h3 data-t="an.pc.s4">4. Graphics card (optional)</h3>
-<p data-th="an.pc.s4Text">With an NVIDIA card, add <code>--gpu</code>. This needs the GPU program <code>yskar-cuda</code>. For Linux it is attached to every Node Core release as <code>yskar-cuda-…-linux-x86_64</code>; on Windows, build it as described in the repository under <code>node-core/gpu</code>.</p>
-<h3 data-t="an.pc.s5">5. Mining rigs with HiveOS</h3>
-<p data-th="an.pc.s5Text">For mining rigs with HiveOS there is a ready package: this miner with the GPU program, one miner per NVIDIA card, no fee. It is attached to every Node Core release as <code>yskar-hiveos-….tar.gz</code>. How to set up the flight sheet is described in <a href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md">hiveos/README.md</a>.</p>
-
-<h2 id="wallet" data-t="an.wallet.titel">Your wallet</h2>
-<p data-t="an.wallet.text">Your wallet is created on your device from 12 words. These words are your key: whoever has them can access the funds – on any device, in any YSKAR app.</p>
+<h3 data-t="lv.an.nc.sig">Signing and YSKAR Lab</h3>
+<p data-t="lv.an.nc.sigText">Since version 1.1.0, “Sign” in the wallet signs a text with your address, for example to prove that an address is yours; “Verify” checks a signed message from someone else. On <a href="https://lab.yskar.app">lab.yskar.app</a>, “Sign in with wallet” opens Node Core: it shows the website, your address and how long the request is valid, and signs only after you confirm with your password. A signature cannot move YSR.</p>
+<h3 data-t="lv.an.nc.update">Updating</h3>
+<p data-t="lv.an.nc.updateText">Download the new installer, quit Node Core – also in the notification area – and run the installer. Your wallet and the blockchain are kept.</p>
+<h3 data-t="lv.an.nc.port">Do I have to open a port?</h3>
+<p data-t="lv.an.nc.portText">No. Without it your node connects to other nodes by itself. If you forward port 8646 in your router, other nodes can reach yours as well. That helps the network but is optional.</p>
+<h2 id="pc" data-t="lv.an.pc.titel">PC miner</h2>
+<p data-t="lv.an.pc.text">The miner runs on Windows, macOS and Linux. It only needs an address – no private key, no wallet, no sign-up. You can safely run it on any computer.</p>
+<h3 data-t="lv.an.pc.s1">1. Install Node.js</h3>
+<p data-t="lv.an.pc.s1Text">The miner needs Node.js 20 or newer. Download the LTS version from <a href="https://nodejs.org">nodejs.org</a> and install it. On Windows, open a new command window afterwards.</p>
+<h3 data-t="lv.an.pc.s2">2. Get the miner</h3>
+<div class="term term--pad"><pre id="lv-code-guides-5"><span class="ln">git clone https://github.com/dabitlex/YSKAR.git
+</span><span class="ln">cd YSKAR/miner
+</span><span class="ln">node src/selbsttest.mjs</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-5" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.pc.s2Text">There is nothing else to install. The self-test checks that your computer computes hashes correctly.</p>
+<h3 data-t="lv.an.pc.s3">3. Start mining</h3>
+<p data-t="lv.an.pc.s3Text">Replace the address with your own YSKAR address (it starts with ysr1). With the pool:</p>
+<div class="term term--pad"><pre id="lv-code-guides-6"><span class="ln">node src/cli.mjs --address ysr1… --api https://pool.yskar.app --mode pool</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-6" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.pc.solo">Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.</p>
+<h3 data-t="lv.an.pc.s4">4. Graphics card (optional)</h3>
+<p data-t="lv.an.pc.s4Text">With a graphics card, add <code>--gpu</code>. This needs a GPU program: <code>yskar-cuda</code> for NVIDIA cards, <code>yskar-opencl</code> for AMD and Intel cards. The miner takes the first one that finds a card; <code>--gpu-api opencl</code> uses the AMD and Intel program even if an NVIDIA card is present. For Linux both are attached to every Node Core release (<code>yskar-cuda-…-linux-x86_64</code>, <code>yskar-opencl-…-linux-x86_64</code>); on Windows, build them as described in the repository under <code>node-core/gpu</code>.</p>
+<h3 data-t="lv.an.pc.s5">5. Mining rigs with HiveOS</h3>
+<p data-t="lv.an.pc.s5Text">For mining rigs with HiveOS there is a ready package: this miner with the GPU program, one miner per graphics card from NVIDIA, AMD or Intel, no fee. It is attached to every Node Core release as <code>yskar-hiveos-….tar.gz</code>. How to set up the flight sheet is described in <a href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md">hiveos/README.md</a>.</p>
+<h2 id="wallet" data-t="lv.an.wallet.titel">Your wallet</h2>
+<p data-t="lv.an.wallet.text">Your wallet is created on your device from 12 words. These words are your key: whoever has them can access the funds – on any device, in any YSKAR app.</p>
 <ul>
-<li data-t="an.wallet.p1">Write the words down on paper, in the right order. No screenshot, no cloud.</li>
-<li data-t="an.wallet.p2">Keep the paper safe. If you lose your phone, the words restore everything.</li>
-<li data-t="an.wallet.p3">The PIN only protects the app on this device. It cannot replace the words.</li>
-<li data-t="an.wallet.p4">To move to a new device, choose “I already have twelve words” and enter them.</li>
+<li data-t="lv.an.wallet.p1">Write the words down on paper, in the right order. No screenshot, no cloud.</li>
+<li data-t="lv.an.wallet.p2">Keep the paper safe. If you lose your phone, the words restore everything.</li>
+<li data-t="lv.an.wallet.p3">The PIN only protects the app on this device. It cannot replace the words.</li>
+<li data-t="lv.an.wallet.p4">To move to a new device, choose “I already have twelve words” and enter them.</li>
 </ul>
-<div class="warnung">
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A4A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-<p data-th="wallet.warnung"><strong>Whoever has the 12 words has the funds.</strong> Never share them. Nobody from YSKAR will ever ask you for them.</p>
+<div class="lv-warnung">
+<svg width="22" height="22" viewbox="0 0 24 24" fill="none" stroke="#8A4A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+<p data-t="lv.wallet.warnung"><strong>Whoever has the 12 words has the funds.</strong> Never share them. Nobody from YSKAR will ever ask you for them.</p>
 </div>
-
-<h3 data-t="an.w.senden">Sending</h3>
+<h3 data-t="lv.an.w.senden">Sending</h3>
 <ol>
-<li data-t="an.w.s1">Recipient: paste the address, scan the QR code or choose a contact. A YSKAR address starts with ysr1.</li>
-<li data-t="an.w.s2">Amount, and a note of up to 32 bytes if you like – that is 32 plain Latin letters, fewer with accents or other scripts. The note is stored publicly in the blockchain.</li>
-<li data-t="an.w.s3">Fee: the app suggests it. When the network is not busy, the minimum fee is enough for the next block.</li>
-<li data-t="an.w.s4">Review: the app shows the full address and tells you whether you have sent there before. Confirm with your PIN or fingerprint.</li>
+<li data-t="lv.an.w.s1">Recipient: paste the address, scan the QR code or choose a contact. A YSKAR address starts with ysr1.</li>
+<li data-t="lv.an.w.s2">Amount, and a note of up to 32 bytes if you like – that is 32 plain Latin letters, fewer with accents or other scripts. The note is stored publicly in the blockchain.</li>
+<li data-t="lv.an.w.s3">Fee: the app suggests it. When the network is not busy, the minimum fee is enough for the next block.</li>
+<li data-t="lv.an.w.s4">Review: the app shows the full address and tells you whether you have sent there before. Confirm with your PIN or fingerprint.</li>
 </ol>
-<div class="hinweisband"><p data-t="an.w.warn">A payment that has been sent cannot be taken back. Check the whole address before you confirm.</p></div>
-<h3 data-t="an.w.empfangen">Receiving</h3>
-<p data-t="an.w.empfangenText">Show your address or its QR code. You can add an amount and a note to the code; the sender then only has to confirm. You may share your address with anyone – your 12 words with nobody.</p>
-<h3 data-t="an.w.kontakte">Contacts and history</h3>
-<p data-t="an.w.kontakteText">Contacts give addresses a name; they are stored only on your device. The history shows every payment; mining income of one day is bundled into one line and can be opened down to the single block.</p>
-
-<h2 id="fullnode" data-t="an.node.titel">Running a full node</h2>
-<p data-t="an.node.text">A full node downloads the chain and checks every block itself – proof of work, signatures, balances. It needs Node.js 22.13 or newer and runs well on a Raspberry Pi.</p>
-<h3 data-t="an.node.s1">1. Build</h3>
-<pre><code>git clone https://github.com/dabitlex/YSKAR.git
-cd YSKAR/node
-npm install
-npm run build</code></pre>
-<p data-t="an.node.win">On Windows, use npm.cmd instead of npm.</p>
-<h3 data-t="an.node.s2">2. Start and connect to the network</h3>
-<pre><code>node dist/yskar-node.cjs mine --data ./knoten \
-  --seed pool.yskar.app:8646 \
-  --seed yskar-seed2.dynv6.net:8646 --no-upstream</code></pre>
-<p data-t="an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.</p>
-<h3 data-t="an.node.s3">3. Mine against your own node</h3>
-<pre><code>cd ../miner
-node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</code></pre>
-<h3 data-t="an.node.s4">4. Run a pool (optional)</h3>
-<p data-t="an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
-<pre><code>node dist/yskar-node.cjs mine --data ./knoten \
-  --seed pool.yskar.app:8646 \
-  --seed yskar-seed2.dynv6.net:8646 --no-upstream \
-  --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</code></pre>
-<p data-t="an.node.s4Fuss">--pool-fee is in basis points: 100 = 1.00 %, at most 500.</p>
-<p data-th="an.node.s4Mehr">What a pool needs so that the app and other miners can reach it is described under <a href="#pool">Running a pool</a>.</p>
-<h3 data-t="an.node.s5">5. As a service on a Raspberry Pi</h3>
-<p data-th="an.node.s5Text">So the node starts on its own after a restart, set it up as a systemd service. The ready-made files and a guide are in the repository under <a href="https://github.com/dabitlex/YSKAR/tree/main/deploy"><code>deploy/</code></a>.</p>
-
-<h2 id="pool" data-t="an.pool.titel">Running a pool</h2>
-<p data-t="an.pool.text">A YSKAR pool is not a service with accounts. It is a node that splits the reward of its blocks. Anyone can run one, without registration. What you need depends on who is supposed to mine with you.</p>
-<div class="tabelle-rahmen"><table class="tabelle"><thead><tr><th data-t="an.pool.k1">Who mines with you</th><th data-t="an.pool.k2">What you need</th></tr></thead><tbody>
-<tr><td><strong><span data-t="an.pool.r1a">You and devices in your home network</span></strong></td><td><span data-t="an.pool.r1b">Node Core with “Run a pool” switched on</span></td></tr>
-<tr><td><strong><span data-t="an.pool.r2a">PC miners from the internet</span></strong></td><td><span data-t="an.pool.r2b">A node that runs all the time and can be reached from outside</span></td></tr>
-<tr><td><strong><span data-t="an.pool.r3a">The app and the Mini App</span></strong></td><td><span data-t="an.pool.r3b">In addition HTTPS: a name (domain or DynDNS) and a certificate</span></td></tr>
+<div class="lv-hinweisband"><p data-t="lv.an.w.warn">A payment that has been sent cannot be taken back. Check the whole address before you confirm.</p></div>
+<h3 data-t="lv.an.w.empfangen">Receiving</h3>
+<p data-t="lv.an.w.empfangenText">Show your address or its QR code. You can add an amount and a note to the code; the sender then only has to confirm. You may share your address with anyone – your 12 words with nobody.</p>
+<h3 data-t="lv.an.w.kontakte">Contacts and history</h3>
+<p data-t="lv.an.w.kontakteText">Contacts give addresses a name; they are stored only on your device. The history shows every payment; mining income of one day is bundled into one line and can be opened down to the single block.</p>
+<h2 id="fullnode" data-t="lv.an.node.titel">Running a full node</h2>
+<p data-t="lv.an.node.text">A full node downloads the chain and checks every block itself – proof of work, signatures, balances. It needs Node.js 22.13 or newer and runs well on a Raspberry Pi.</p>
+<h3 data-t="lv.an.node.s1">1. Build</h3>
+<div class="term term--pad"><pre id="lv-code-guides-7"><span class="ln">git clone https://github.com/dabitlex/YSKAR.git
+</span><span class="ln">cd YSKAR/node
+</span><span class="ln">npm install
+</span><span class="ln">npm run build</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-7" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.node.win">On Windows, use npm.cmd instead of npm.</p>
+<h3 data-t="lv.an.node.s2">2. Start and connect to the network</h3>
+<div class="term term--pad"><pre id="lv-code-guides-8"><span class="ln">node dist/yskar-node.cjs mine --data ./knoten \
+</span><span class="ln">  --seed pool.yskar.app:8646 \
+</span><span class="ln">  --seed yskar-seed2.dynv6.net:8646 --no-upstream</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-8" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.node.s2Text">The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.</p>
+<h3 data-t="lv.an.node.s3">3. Mine against your own node</h3>
+<div class="term term--pad"><pre id="lv-code-guides-9"><span class="ln">cd ../miner
+</span><span class="ln">node src/cli.mjs --address ysr1… --api http://127.0.0.1:8645</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-9" data-t="ui.copy">Copy</button></div>
+<h3 data-t="lv.an.node.s4">4. Run a pool (optional)</h3>
+<p data-t="lv.an.node.s4Text">Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.</p>
+<div class="term term--pad"><pre id="lv-code-guides-10"><span class="ln">node dist/yskar-node.cjs mine --data ./knoten \
+</span><span class="ln">  --seed pool.yskar.app:8646 \
+</span><span class="ln">  --seed yskar-seed2.dynv6.net:8646 --no-upstream \
+</span><span class="ln">  --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-10" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.node.s4Fuss">--pool-fee is in basis points: 100 = 1.00 %, at most 500.</p>
+<p data-t="lv.an.node.s4Mehr">What a pool needs so that the app and other miners can reach it is described under <a href="/anleitungen#pool">Running a pool</a>.</p>
+<h3 data-t="lv.an.node.s5">5. As a service on a Raspberry Pi</h3>
+<p data-t="lv.an.node.s5Text">So the node starts on its own after a restart, set it up as a systemd service. The ready-made files and a guide are in the repository under <a href="https://github.com/dabitlex/YSKAR/tree/main/deploy"><code>deploy/</code></a>.</p>
+<h2 id="pool" data-t="lv.an.pool.titel">Running a pool</h2>
+<p data-t="lv.an.pool.text">A YSKAR pool is not a service with accounts. It is a node that splits the reward of its blocks. Anyone can run one, without registration. What you need depends on who is supposed to mine with you.</p>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle"><thead><tr><th data-t="lv.an.pool.k1">Who mines with you</th><th data-t="lv.an.pool.k2">What you need</th></tr></thead><tbody>
+<tr><td><strong><span data-t="lv.an.pool.r1a">You and devices in your home network</span></strong></td><td><span data-t="lv.an.pool.r1b">Node Core with “Run a pool” switched on</span></td></tr>
+<tr><td><strong><span data-t="lv.an.pool.r2a">PC miners from the internet</span></strong></td><td><span data-t="lv.an.pool.r2b">A node that runs all the time and can be reached from outside</span></td></tr>
+<tr><td><strong><span data-t="lv.an.pool.r3a">The app and the Mini App</span></strong></td><td><span data-t="lv.an.pool.r3b">In addition HTTPS: a name (domain or DynDNS) and a certificate</span></td></tr>
 </tbody></table></div>
-<h3 data-t="an.pool.heim">In your home network with Node Core</h3>
+<h3 data-t="lv.an.pool.heim">In your home network with Node Core</h3>
 <ol>
-<li data-t="an.pool.h1">Open “Run a pool”, set name, fee and number of places, and switch it on.</li>
-<li data-t="an.pool.h2">Under Mining choose “Pool”. Your own pool is listed first.</li>
-<li data-th="an.pool.h3">For more PCs switch on “Devices in your home network”. They connect with <code>http://&lt;address of this PC&gt;:8645</code>.</li>
+<li data-t="lv.an.pool.h1">Open “Run a pool”, set name, fee and number of places, and switch it on.</li>
+<li data-t="lv.an.pool.h2">Under Mining choose “Pool”. Your own pool is listed first.</li>
+<li data-t="lv.an.pool.h3">For more PCs switch on “Devices in your home network”. They connect with <code>http://&lt;address of this PC&gt;:8645</code>.</li>
 </ol>
-<p data-t="an.pool.heimText">The pool in Node Core answers only your own PC and your own network. It cannot be reached from the internet this way.</p>
-<h3 data-t="an.pool.netz">For the app, the Mini App and miners from the internet</h3>
-<p data-t="an.pool.netzText">This is what you need:</p>
+<p data-t="lv.an.pool.heimText">The pool in Node Core answers only your own PC and your own network. It cannot be reached from the internet this way.</p>
+<h3 data-t="lv.an.pool.netz">For the app, the Mini App and miners from the internet</h3>
+<p data-t="lv.an.pool.netzText">This is what you need:</p>
 <ul>
-<li data-th="an.pool.n1"><strong>A node that runs all the time.</strong> Best is the command-line node on a Raspberry Pi or a server – see <a href="#fullnode">Running a full node</a>.</li>
-<li data-th="an.pool.n2"><strong>A name</strong> under which it can be reached: a domain of your own or a free DynDNS name.</li>
-<li data-th="an.pool.n3"><strong>HTTPS with a valid certificate.</strong> Telegram and browsers do not load anything unencrypted. Without HTTPS no phone reaches your pool.</li>
-<li data-th="an.pool.n4"><strong>A web server in front</strong> that fetches the certificate and passes requests on to the node, for example Caddy.</li>
-<li data-th="an.pool.n5"><strong>Port 443 open.</strong> For a node at home that means a port forwarding in your router.</li>
+<li data-t="lv.an.pool.n1"><strong>A node that runs all the time.</strong> Best is the command-line node on a Raspberry Pi or a server – see <a href="/anleitungen#fullnode">Running a full node</a>.</li>
+<li data-t="lv.an.pool.n2"><strong>A name</strong> under which it can be reached: a domain of your own or a free DynDNS name.</li>
+<li data-t="lv.an.pool.n3"><strong>HTTPS with a valid certificate.</strong> Telegram and browsers do not load anything unencrypted. Without HTTPS no phone reaches your pool.</li>
+<li data-t="lv.an.pool.n4"><strong>A web server in front</strong> that fetches the certificate and passes requests on to the node, for example Caddy.</li>
+<li data-t="lv.an.pool.n5"><strong>Port 443 open.</strong> For a node at home that means a port forwarding in your router.</li>
 </ul>
-<p data-t="an.pool.start">Start the node as a pool. It listens only on the machine itself; the web server stands in front of it.</p>
-<pre><code>node dist/yskar-node.cjs mine --data ./knoten \
-  --seed pool.yskar.app:8646 \
-  --seed yskar-seed2.dynv6.net:8646 --no-upstream \
-  --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</code></pre>
-<p data-t="an.pool.caddy">The configuration for Caddy. Replace the name with yours; it must point to your machine first.</p>
-<pre><code>pool.example.org {
-    reverse_proxy 127.0.0.1:8645
+<p data-t="lv.an.pool.start">Start the node as a pool. It listens only on the machine itself; the web server stands in front of it.</p>
+<div class="term term--pad"><pre id="lv-code-guides-11"><span class="ln">node dist/yskar-node.cjs mine --data ./knoten \
+</span><span class="ln">  --seed pool.yskar.app:8646 \
+</span><span class="ln">  --seed yskar-seed2.dynv6.net:8646 --no-upstream \
+</span><span class="ln">  --pool my-pool-name --pool-fee 100 --pool-payout ysr1…</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-11" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.pool.caddy">The configuration for Caddy. Replace the name with yours; it must point to your machine first.</p>
+<div class="term term--pad"><pre id="lv-code-guides-12"><span class="ln">pool.example.org {
+</span><span class="ln">    reverse_proxy 127.0.0.1:8645
+</span><span class="ln">    header Access-Control-Allow-Origin "*"
+</span><span class="ln">    header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+</span><span class="ln">    header Access-Control-Allow-Headers "content-type"
+</span><span class="ln">    @options method OPTIONS
+</span><span class="ln">    respond @options 204
+</span><span class="ln">}</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-12" data-t="ui.copy">Copy</button></div>
+<p data-t="lv.an.pool.test">Check from outside. If the answer contains your pool name and the number of places, the pool is reachable.</p>
+<div class="term term--pad"><pre id="lv-code-guides-13"><span class="ln">curl https://pool.example.org/api/v2/pool</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-13" data-t="ui.copy">Copy</button></div>
+<h3 data-t="lv.an.pool.ort">At home or on a rented server?</h3>
+<ul>
+<li data-t="lv.an.pool.o1"><strong>At home:</strong> no extra cost. But your IP address becomes publicly known, you need a port forwarding, and your connection carries the load.</li>
+<li data-t="lv.an.pool.o2"><strong>Rented server:</strong> your home IP address stays out of it, and no keys are stored on the server – only the address for the fee. Read the provider’s terms first: many forbid mining or anything related to it. Get the permission in writing.</li>
+</ul>
+<h3 data-t="lv.an.pool.regeln">Rules for every pool</h3>
+<ul>
+<li data-t="lv.an.pool.g1"><strong>Name:</strong> 3 to 32 simple characters. It is written into every block of your pool and stays there for good.</li>
+<li data-t="lv.an.pool.g2"><strong>Fee:</strong> 0 to 5 %. In the command <code>--pool-fee</code> is given in basis points: 100 = 1 %. With a fee you must name the address it goes to.</li>
+<li data-t="lv.an.pool.g3"><strong>Places:</strong> at most 64 addresses, with a fee 63 – one recipient is you.</li>
+<li data-t="lv.an.pool.g4"><strong>No foreign money:</strong> the block pays everyone directly. You never hold funds of your miners.</li>
+</ul>
+<h3 data-t="lv.an.pool.beitritt">How miners join</h3>
+<p data-t="lv.an.pool.beitrittText">In the app choose “Pool” and enter the address of your pool under “Custom address”; in Node Core under “Your own pool address”. With the PC miner:</p>
+<div class="term term--pad"><pre id="lv-code-guides-14"><span class="ln">node src/cli.mjs --address ysr1… --api https://pool.example.org --mode pool</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-14" data-t="ui.copy">Copy</button></div>
+<h3 data-t="lv.an.pool.liste">Getting into the pool list</h3>
+<p data-t="lv.an.pool.listeText">The app and Node Core show a maintained list of pools. For an entry your pool must be reachable over HTTPS and answer <code>/api/v2/pool</code>. Ask for it on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. The list is neither a check nor a recommendation: a pool reports its miners, power and fee itself.</p>
+<h2 id="explorer" data-t="lv.an.ex.titel">The explorer</h2>
+<p data-t="lv.an.ex.text">The <a href="/explorer">explorer</a> shows every block, every transfer and every address. It reassembles each block header in your browser, hashes it and checks the proof of work and the chain. Transfers, signatures and balances are checked by full nodes – run one, and you do not have to believe anyone.</p>
+<ul>
+<li data-t="lv.an.ex.p1">Search by block height, hash or address.</li>
+<li data-t="lv.an.ex.p2">For every block you see who found it: a name, a pool or a solo address.</li>
+<li data-t="lv.an.ex.p3">Enter your own address to check your payouts.</li>
+</ul>
+<h2 id="sicherheit" data-t="lv.an.si.titel">Security</h2>
+<ul>
+<li data-t="lv.an.si.p1"><strong>Your 12 words are your wallet.</strong> Never type them into a website, never send them to anyone. Nobody from YSKAR will ask for them.</li>
+<li data-t="lv.an.si.p2"><strong>Download only from yskar.app and the YSKAR project on GitHub.</strong> If you want to be sure, compare the checksum.</li>
+<li data-t="lv.an.si.p3"><strong>Keep your software up to date.</strong> At an announced rule change, an outdated node either stops at that block or keeps running without checking the new rule – both are reasons to update in time.</li>
+<li data-t="lv.an.si.p4"><strong>Running a node:</strong> other nodes see your IP address, as in every peer-to-peer network. You do not need a port forwarding. If you do not want your address to be visible, use a VPN.</li>
+<li data-t="lv.an.si.p5"><strong>Node Core:</strong> wallet and interface can only be reached from your own PC.</li>
+</ul>
+<h2 id="hilfe" data-t="lv.an.hi.titel">If something does not work</h2>
+<h3 data-t="lv.an.hi.f1">Mining on the phone stops by itself</h3>
+<p data-t="lv.an.hi.a1">Android is closing the app to save battery. Set the battery usage of YSKAR Wallet to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
+<h3 data-t="lv.an.hi.f2">“Pool full”</h3>
+<p data-t="lv.an.hi.a2">A pool has at most 64 places. A place is freed at once when a miner stops, and up to 20 minutes after a miner goes silent, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
+<h3 data-t="lv.an.hi.f3">Node Core: “No peer connected yet”</h3>
+<p data-t="lv.an.hi.a3">The node has not found another node yet. Check your internet connection and whether you allowed Node Core in the Windows firewall prompt. Then wait a moment.</p>
+<h3 data-t="lv.an.hi.f4">Node Core: mining does not start</h3>
+<p data-t="lv.an.hi.a4">The node is still synchronising. Mining starts once the overview shows “In sync”.</p>
+<h3 data-t="lv.an.hi.f5">The graphics card is not found</h3>
+<p data-t="lv.an.hi.a5">Graphics card mining needs an NVIDIA, AMD or Intel card with a current driver. Install the current driver from the card maker and restart Node Core. Before a card mines, it runs a self-test; a card that fails is not used.</p>
+<h3 data-t="lv.an.hi.f6">My balance is missing on a new device</h3>
+<p data-t="lv.an.hi.a6">Restore the wallet with the same 12 words, in the same order. A different set of words is a different wallet.</p>
+<h3 data-t="lv.an.hi.f7">Something else</h3>
+<p data-t="lv.an.hi.a7">Ask questions in the <a href="https://t.me/+GxAmtTMeG1w1M2Yy">community chat on Telegram</a>. Report bugs on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. Never share your 12 words: admins never message you first.</p>
 
-    header Access-Control-Allow-Origin "*"
-    header Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    header Access-Control-Allow-Headers "content-type"
-
-    @options method OPTIONS
-    respond @options 204
-}</code></pre>
-<p data-t="an.pool.test">Check from outside. If the answer contains your pool name and the number of places, the pool is reachable.</p>
-<pre><code>curl https://pool.example.org/api/v2/pool</code></pre>
-<h3 data-t="an.pool.ort">At home or on a rented server?</h3>
-<ul>
-<li data-th="an.pool.o1"><strong>At home:</strong> no extra cost. But your IP address becomes publicly known, you need a port forwarding, and your connection carries the load.</li>
-<li data-th="an.pool.o2"><strong>Rented server:</strong> your home IP address stays out of it, and no keys are stored on the server – only the address for the fee. Read the provider’s terms first: many forbid mining or anything related to it. Get the permission in writing.</li>
-</ul>
-<h3 data-t="an.pool.regeln">Rules for every pool</h3>
-<ul>
-<li data-th="an.pool.g1"><strong>Name:</strong> 3 to 32 simple characters. It is written into every block of your pool and stays there for good.</li>
-<li data-th="an.pool.g2"><strong>Fee:</strong> 0 to 5 %. In the command <code>--pool-fee</code> is given in basis points: 100 = 1 %. With a fee you must name the address it goes to.</li>
-<li data-th="an.pool.g3"><strong>Places:</strong> at most 64 addresses, with a fee 63 – one recipient is you.</li>
-<li data-th="an.pool.g4"><strong>No foreign money:</strong> the block pays everyone directly. You never hold funds of your miners.</li>
-</ul>
-<h3 data-t="an.pool.beitritt">How miners join</h3>
-<p data-t="an.pool.beitrittText">In the app choose “Pool” and enter the address of your pool under “Custom address”; in Node Core under “Your own pool address”. With the PC miner:</p>
-<pre><code>node src/cli.mjs --address ysr1… --api https://pool.example.org --mode pool</code></pre>
-<h3 data-t="an.pool.liste">Getting into the pool list</h3>
-<p data-th="an.pool.listeText">The app and Node Core show a maintained list of pools. For an entry your pool must be reachable over HTTPS and answer <code>/api/v2/pool</code>. Ask for it on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. The list is neither a check nor a recommendation: a pool reports its miners, power and fee itself.</p>
-<h2 id="explorer" data-t="an.ex.titel">The explorer</h2>
-<p data-th="an.ex.text">The <a href="/explorer">explorer</a> shows every block, every transfer and every address. It reassembles each block header in your browser, hashes it and checks the proof of work and the chain. Transfers, signatures and balances are checked by full nodes – run one, and you do not have to believe anyone.</p>
-<ul>
-<li data-t="an.ex.p1">Search by block height, hash or address.</li>
-<li data-t="an.ex.p2">For every block you see who found it: a name, a pool or a solo address.</li>
-<li data-t="an.ex.p3">Enter your own address to check your payouts.</li>
-</ul>
-<h2 id="sicherheit" data-t="an.si.titel">Security</h2>
-<ul>
-<li data-th="an.si.p1"><strong>Your 12 words are your wallet.</strong> Never type them into a website, never send them to anyone. Nobody from YSKAR will ask for them.</li>
-<li data-th="an.si.p2"><strong>Download only from yskar.app and the YSKAR project on GitHub.</strong> If you want to be sure, compare the checksum.</li>
-<li data-th="an.si.p3"><strong>Keep your software up to date.</strong> At an announced rule change, an outdated node either stops at that block or keeps running without checking the new rule – both are reasons to update in time.</li>
-<li data-th="an.si.p4"><strong>Running a node:</strong> other nodes see your IP address, as in every peer-to-peer network. You do not need a port forwarding. If you do not want your address to be visible, use a VPN.</li>
-<li data-th="an.si.p5"><strong>Node Core:</strong> wallet and interface can only be reached from your own PC.</li>
-</ul>
-<h2 id="hilfe" data-t="an.hi.titel">If something does not work</h2>
-<h3 data-t="an.hi.f1">Mining on the phone stops by itself</h3>
-<p data-t="an.hi.a1">Android is closing the app to save battery. Set the battery usage of YSKAR Wallet to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).</p>
-<h3 data-t="an.hi.f2">“Pool full”</h3>
-<p data-t="an.hi.a2">A pool has at most 64 places. A place is freed at once when a miner stops, and up to 20 minutes after a miner goes silent, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.</p>
-<h3 data-t="an.hi.f3">Node Core: “No peer connected yet”</h3>
-<p data-t="an.hi.a3">The node has not found another node yet. Check your internet connection and whether you allowed Node Core in the Windows firewall prompt. Then wait a moment.</p>
-<h3 data-t="an.hi.f4">Node Core: mining does not start</h3>
-<p data-t="an.hi.a4">The node is still synchronising. Mining starts once the overview shows “In sync”.</p>
-<h3 data-t="an.hi.f5">The graphics card is not found</h3>
-<p data-t="an.hi.a5">Graphics card mining needs an NVIDIA card. Install the current NVIDIA driver and restart Node Core.</p>
-<h3 data-t="an.hi.f6">My balance is missing on a new device</h3>
-<p data-t="an.hi.a6">Restore the wallet with the same 12 words, in the same order. A different set of words is a different wallet.</p>
-<h3 data-t="an.hi.f7">Something else</h3>
-<p data-th="an.hi.a7">Ask questions in the <a href="https://t.me/+GxAmtTMeG1w1M2Yy">community chat on Telegram</a>. Report bugs on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. Never share your 12 words: admins never message you first.</p>
+    </article>
+  </div>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
 </div>
-</div>
-</div>
+
 </main>
 
-<footer class="fusszeile">
-<div class="wrap">
-<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
-<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
-<p class="motto">proof, not promise</p>
-<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
-</div>
-<div class="spalten">
-<div>
-<span class="kennung" data-t="fuss.netz">Network</span>
-<a href="/explorer" data-t="nav.explorer">Explorer</a>
-<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
-<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
-<a href="/#v6">V6</a>
-<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
-</div>
-<div>
-<span class="kennung" data-t="fuss.mitmachen">Take part</span>
-<a href="/mining" data-t="nav.mining">Mining</a>
-<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
-<a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
-<a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
-<a href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="fuss.wallet">YSKAR Wallet</a>
-<a href="https://lab.yskar.app" data-t="fuss.lab">YSKAR Lab</a>
-<a href="https://x.com/yskar_official">X</a>
-<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
-<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
-</div>
-<div>
-<span class="kennung" data-t="fuss.rechtliches">Legal</span>
-<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
-<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
-</div>
-</div>
-</div>
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" aria-current="page" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <div class="lang lang--ink" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+        </div>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
 </footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
 </body>
 </html>

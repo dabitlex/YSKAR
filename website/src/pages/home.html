@@ -1,0 +1,207 @@
+<div class="page" data-page="home">
+
+  <section class="opening" id="opening">
+    <div class="stage" id="stage">
+      <div class="stage__inner">
+        <img class="stage__photo" data-img="fjord-night" data-orient data-ta="alt:home.hero.alt" alt="" fetchpriority="high">
+        <canvas class="stage__sky" id="sky" aria-hidden="true"></canvas>
+        <div class="stage__lights" id="lights" aria-hidden="true"></div>
+      </div>
+      <div class="stage__shade" aria-hidden="true"></div>
+      <div class="stage__scrim" aria-hidden="true"></div>
+    </div>
+
+    <div class="hero">
+      <div class="wrap hero__in">
+        <h1 class="hero__title t-mega" data-t="home.hero.h1"></h1>
+        <div class="hero__side">
+          <p class="hero__lead lead" data-t="home.hero.lead"></p>
+          <div class="row hero__cta">
+            <a class="btn" href="#start" data-t="cta.join"></a>
+            <a class="more" href="#home-chain" data-t="home.hero.cta2"></a>
+          </div>
+        </div>
+      </div>
+      <p class="hero__note wrap"><span class="hero__note-in"><span class="tick__dot" aria-hidden="true"></span><span data-live="heroLine"></span></span></p>
+    </div>
+
+    <div class="manifesto wrap">
+      <p class="manifesto__p t-l lit" data-lit data-t="home.m1"></p>
+      <p class="manifesto__p t-l lit" data-lit data-t="home.m2"></p>
+      <p class="manifesto__p t-l lit" data-lit data-t="home.m3"></p>
+    </div>
+  </section>
+
+  <section class="chainwalk" id="chain">
+    <div class="chainwalk__sticky">
+      <canvas id="walk" data-ta="aria-label:walk.canvas" role="img"></canvas>
+      <div class="chainwalk__hud wrap" aria-hidden="true">
+        <p class="chainwalk__h mono" id="walk-h"></p>
+        <p class="chainwalk__d" id="walk-d"></p>
+        <p class="chainwalk__legend">
+          <span><i class="dot dot--cool"></i><span data-t="walk.legend.block"></span></span>
+          <span><i class="dot dot--warm"></i><span data-t="walk.legend.tx"></span></span>
+        </p>
+      </div>
+      <div class="walk-caps wrap">
+        <div class="walk-cap walk-cap--start" data-at="start">
+          <h2 class="t-xl" data-t="walk.start.h"></h2>
+          <p class="lead" data-t="walk.start.p"></p>
+        </div>
+        <div class="walk-cap" data-at="0">
+          <p class="walk-cap__k mono" data-k="block"></p>
+          <h3 class="t-l" data-t="walk.c0.h"></h3>
+          <p class="lead" data-t="walk.c0.p"></p>
+          <a class="more" data-open href="#explorer-block-0" data-t="walk.open"></a>
+        </div>
+        <div class="walk-cap" data-at="46">
+          <p class="walk-cap__k mono" data-k="block"></p>
+          <h3 class="t-l" data-t="walk.c1.h"></h3>
+          <p class="lead" data-t="walk.c1.p"></p>
+        </div>
+        <div class="walk-cap" data-at="3974">
+          <p class="walk-cap__k mono" data-k="block"></p>
+          <h3 class="t-l" data-t="walk.c3.h"></h3>
+          <p class="lead" data-t="walk.c3.p"></p>
+          <a class="more" data-open href="#explorer-block-3974" data-t="walk.open"></a>
+        </div>
+        <div class="walk-cap" data-at="date:2026-10-25T12:00:00Z">
+          <p class="walk-cap__k mono" data-k="date"></p>
+          <h3 class="t-l" data-t="walk.c4.h"></h3>
+          <p class="lead" data-t="walk.c4.p"></p>
+        </div>
+        <div class="walk-cap walk-cap--now" data-at="now">
+          <p class="walk-cap__k mono" data-k="now"></p>
+          <h3 class="t-l" data-t="walk.c5.h"></h3>
+          <p class="lead" data-t="walk.c5.p"></p>
+          <a class="btn" href="#start" data-t="cta.join"></a>
+        </div>
+        <div class="walk-cap" data-at="10000">
+          <p class="walk-cap__k mono" data-k="future" data-when="future"></p>
+          <p class="walk-cap__k mono" data-k="block" data-when="past" hidden></p>
+          <h3 class="t-l" data-when="future" data-t="walk.c6.h"></h3>
+          <p class="lead" data-when="future" data-t="walk.c6.p"></p>
+          <h3 class="t-l" data-when="past" data-t="walk.c6.h.past" hidden></h3>
+          <p class="lead" data-when="past" data-t="walk.c6.p.past" hidden></p>
+        </div>
+        <div class="walk-cap" data-at="12000">
+          <p class="walk-cap__k mono" data-k="future" data-when="future"></p>
+          <p class="walk-cap__k mono" data-k="block" data-when="past" hidden></p>
+          <h3 class="t-l" data-when="future" data-t="walk.c7.h"></h3>
+          <p class="lead" data-when="future" data-t="walk.c7.p"></p>
+          <h3 class="t-l" data-when="past" data-t="walk.c7.h.past" hidden></h3>
+          <p class="lead" data-when="past" data-t="walk.c7.p.past" hidden></p>
+        </div>
+      </div>
+      <div class="walk-tip" id="walk-tip" hidden>
+        <p class="walk-tip__h mono" data-f="h"></p>
+        <p data-f="t"></p>
+        <p class="faint" data-f="who"></p>
+        <a href="#explorer" data-t="walk.open"></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec verify" id="proof">
+    <div class="wrap verify__in">
+      <div class="verify__say">
+        <h2 class="t-xl" data-rise data-t="home.proof.h"></h2>
+        <p class="lead" data-rise data-delay="90" data-t="home.proof.p"></p>
+      </div>
+      <div class="prover" id="prover" data-rise data-delay="160">
+        <p class="prover__label" data-t="prove.label"></p>
+        <p class="prover__hash mono" id="prover-hash" aria-live="off"></p>
+        <p class="prover__verdict" id="prover-verdict" role="status"></p>
+        <div class="row prover__go">
+          <button type="button" class="btn" data-prove="genesis" data-t="prove.btn.genesis"></button>
+          <button type="button" class="btn btn--ghost" data-prove="tip" data-t="prove.btn.tip"></button>
+        </div>
+        <a class="more prover__link" id="prover-link" href="#explorer-block-0" hidden><span></span></a>
+        <p class="prover__note micro faint" data-t="prove.note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ways" id="ways">
+    <div class="ways__head wrap">
+      <div class="ways__say">
+        <h2 class="t-xl" data-rise data-t="home.ways.h"></h2>
+        <p class="lead" data-rise data-delay="90" data-t="home.ways.p"></p>
+      </div>
+      <svg class="ymark3" viewBox="187.5 184 879 879" aria-hidden="true" focusable="false" data-rise>
+        <defs><linearGradient id="yg3" gradientUnits="userSpaceOnUse" x1="318.6" y1="186.5" x2="819.8" y2="1061"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient></defs>
+        <path class="r1" fill="url(#yg3)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z"/>
+        <path class="r2" fill="url(#yg3)" d="M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z"/>
+        <path class="r3" fill="url(#yg3)" d="M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+      </svg>
+    </div>
+    <article class="door">
+      <div class="door__in">
+        <div class="door__media"><img data-img="laptop" data-lazy data-ta="alt:way.mine.alt" alt=""></div>
+        <div class="door__txt">
+          <p class="door__n" data-t="nav.mine"></p>
+          <h3 class="t-l" data-t="way.mine.h"></h3>
+          <p class="lead" data-t="way.mine.p"></p>
+          <div class="row"><a class="btn" href="#mine" data-t="way.mine.cta"></a></div>
+        </div>
+      </div>
+    </article>
+    <article class="door">
+      <div class="door__in">
+        <div class="door__media"><img data-img="wallet-desk" data-lazy data-ta="alt:way.wallet.alt" alt=""></div>
+        <div class="door__txt">
+          <p class="door__n" data-t="nav.wallet"></p>
+          <h3 class="t-l" data-t="way.wallet.h"></h3>
+          <p class="lead" data-t="way.wallet.p"></p>
+          <div class="row"><a class="btn" href="#wallet" data-t="way.wallet.cta"></a></div>
+        </div>
+      </div>
+    </article>
+    <article class="door">
+      <div class="door__in">
+        <div class="door__media"><img data-img="node-sill" data-lazy data-ta="alt:way.node.alt" alt=""></div>
+        <div class="door__txt">
+          <p class="door__n" data-t="nav.node"></p>
+          <h3 class="t-l" data-t="way.node.h"></h3>
+          <p class="lead" data-t="way.node.p"></p>
+          <div class="row"><a class="btn" href="#node" data-t="way.node.cta"></a></div>
+        </div>
+      </div>
+    </article>
+    <div class="ways__more wrap">
+      <p class="t-m" data-rise data-t="home.ways.more"></p>
+      <a class="more" href="#build" data-rise data-delay="90" data-t="home.ways.more.cta"></a>
+    </div>
+  </section>
+
+  <section class="sec early" id="early">
+    <div class="wrap">
+      <p class="early__say t-xl lit" data-lit data-say="home.early.say"></p>
+      <p class="early__note micro faint" data-t="home.early.note"></p>
+      <div class="early__cols">
+        <p class="lead" data-rise data-t="home.early.p"></p>
+        <div class="era" data-rise data-delay="90">
+          <p class="t-s" data-t="home.era.h"></p>
+          <div class="era__bar" aria-hidden="true"><i data-era-fill></i></div>
+          <p class="era__ends micro"><span data-t="home.era.now"></span><span data-t="home.era.left"></span></p>
+          <p class="dim" data-t="home.era.p"></p>
+          <a class="more" href="#ysr-halvings" data-t="home.era.cta"></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="people" id="people">
+    <div class="people__media"><img data-img="lanterns-off" data-orient data-lazy alt=""><img class="people__on" data-img="lanterns" data-orient data-lazy data-ta="alt:home.people.alt" alt=""></div>
+    <div class="people__txt wrap">
+      <h2 class="t-xl" data-rise data-t="home.people.h"></h2>
+      <p class="lead" data-rise data-delay="90" data-t="home.people.p"></p>
+      <div class="row" data-rise data-delay="160">
+        <a class="btn btn--ghost" href="#community" data-t="home.people.cta"></a>
+        <a class="more" href="https://lab.yskar.app" target="_blank" rel="noopener"><span data-t="home.people.cta2"></span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <!--@include dawn-scrub-->
+</div>

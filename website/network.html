@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en" data-page="network" data-mode="snapshot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network, live – YSKAR</title>
+<meta name="description" content="What the YSKAR chain is doing right now, read from the public API: block height, hashrate, nodes, block times and who found the latest blocks.">
+<meta name="theme-color" content="#030816">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="Network, live – YSKAR">
+<meta property="og:description" content="What the YSKAR chain is doing right now, read from the public API: block height, hashrate, nodes, block times and who found the latest blocks.">
+<link rel="canonical" href="https://www.yskar.app/network">
+<meta property="og:url" content="https://www.yskar.app/network">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=7bb7be14">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de"], TEXTS = {"en":"4a73edcc","de":"903e05d4"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=8608fdc9" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
+
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" aria-current="page" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network" aria-current="page"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <div class="lang" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+      </div>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<div class="page" data-page="network">
+  <section class="pp netx">
+    <div class="wrap netx__in">
+      <p class="ph__k" data-say="netp.k"></p>
+      <h1 class="netx__say t-xl" data-say="netp.say"></h1>
+      <p class="lead" data-say="netp.lead"></p>
+      <div id="net-pulse" class="netx__pulse"></div>
+    </div>
+  </section>
+  <div class="t1">
+    <section class="sec tight" aria-labelledby="net-now-h">
+    <div class="wrap">
+      <div class="display">
+        <div class="display-head">
+          <h2 class="display-title" id="net-now-h" data-t="net.now">Right now</h2>
+          <span class="state" data-live="mode"></span>
+        </div>
+        <div class="readouts four">
+          <div class="readout"><span class="k" data-t="net.height">Block height</span><span class="v" data-live="height"></span><span class="s" data-live="tipAge"></span></div>
+          <div class="readout"><span class="k" data-t="net.hashrate">Network hashrate</span><span class="v" data-live="hashrate"></span><span class="s" data-t="net.fromChain">work of the last 24 blocks, divided by their time</span></div>
+          <div class="readout"><span class="k" data-t="net.difficulty">Difficulty</span><span class="v" data-live="difficulty"></span><span class="s" data-t="net.everyBlock">recomputed for every block</span></div>
+          <div class="readout"><span class="k" data-t="net.blocktime">Block time, last 50 blocks</span><span class="v" data-live="avgTime"></span><span class="s" data-t="net.target600">target: 600 s</span></div>
+          <div class="readout"><span class="k" data-t="net.mempool">Transfers waiting</span><span class="v" data-live="mempool"></span><span class="s" data-t="net.fromNode">at the main node</span></div>
+          <div class="readout"><span class="k" data-t="net.miners">Active miners</span><span class="v" data-live="miners"></span><span class="s" data-t="net.reported">reported, not verifiable</span></div>
+          <div class="readout"><span class="k" data-t="net.sessions">Mining sessions</span><span class="v" data-live="sessions"></span><span class="s" data-t="net.reported">reported, not verifiable</span></div>
+          <div class="readout"><span class="k" data-t="net.nodes">Nodes reporting</span><span class="v" data-live="nodes"></span><span class="s" data-t="net.reported">reported, not verifiable</span></div>
+        </div>
+        <hr>
+        <div class="readouts next">
+          <div class="readout"><span class="k" data-t="net.next.v6">Revision 6 at block 10,000</span><span class="v" data-live="v6State"></span><span class="s" data-live="v6Eta"></span></div>
+          <div class="readout"><span class="k" data-t="net.next.halving">First halving at block 12,000</span><span class="v"><span data-live="halvingLeft"></span><small data-t="ysr.now.blocks">blocks</small></span><span class="s" data-live="halvingEta"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="history" aria-labelledby="net-hist-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="net-hist-h" data-t="net.hist.h">History, read from the blocks</h2>
+        <p class="muted" data-t="net.hist.p">Every block of the chain, summed by day in UTC. The history is complete up to block <span data-live='snapTip'></span>; the figures above are read live.</p>
+      </div>
+      <div class="filter-row">
+        <span class="micro quiet" id="net-range-l" data-t="net.range">Period</span>
+        <div class="tabs" role="group" aria-labelledby="net-range-l" id="net-range">
+          <button type="button" data-range="all" aria-pressed="true" data-t="net.range.all">Since block 0</button>
+          <button type="button" data-range="30" aria-pressed="false" data-t="net.range.30">30 days</button>
+          <button type="button" data-range="7" aria-pressed="false" data-t="net.range.7">7 days</button>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.hash">Hashrate per day</h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="chart" id="chart-hash"></div>
+          <p class="fig-cap" id="cap-hash"></p>
+          <details class="chart-table"><summary data-t="chart.asTable">Show the values as a table</summary><div id="table-hash"></div></details>
+        </div>
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.blocks">Blocks per day</h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="chart" id="chart-blocks"></div>
+          <p class="fig-cap" data-t="net.c.blocks.cap">Complete days only. At the target block time a day has 144 blocks.</p>
+          <details class="chart-table"><summary data-t="chart.asTable">Show the values as a table</summary><div id="table-blocks"></div></details>
+        </div>
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.finders">Blocks per day, by finder</h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="legend-row" id="legend-finders"></div>
+          <div class="chart" id="chart-finders"></div>
+          <p class="fig-cap" data-t="net.c.finders.cap">Complete days only. Pool blocks carry the pool's name in the chain; a block that pays a single address counts as solo.</p>
+          <details class="chart-table"><summary data-t="chart.asTable">Show the values as a table</summary><div id="table-finders"></div></details>
+        </div>
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.time">Average block time per day</h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="chart" id="chart-time"></div>
+          <p class="fig-cap" data-t="net.c.time.cap">Seconds between blocks, averaged over the day.</p>
+          <details class="chart-table"><summary data-t="chart.asTable">Show the values as a table</summary><div id="table-time"></div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="finders" aria-labelledby="net-find-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="net-find-h" data-t="net.find.h">Who finds the blocks</h2>
+        <p class="muted" data-t="net.find.p1">In the first weeks every block was found solo. Today nearly all blocks come from two pools, and most of them from one.</p>
+        <p class="muted" data-t="net.find.p2">This matters. A pool's operator chooses the transactions and the parent of every block the pool works on, and whoever directs most of the hash power can build the chain with the most work. More pools and more solo miners make the chain harder to steer.</p>
+        <a href="/mining#pools" data-t="net.find.link">The pools, and how to run your own</a>
+      </div>
+      <div class="display">
+        <div class="display-head"><span class="display-title" data-t="net.find.title">Share of blocks found</span><span class="state" data-live="modeShort"></span></div>
+        <div class="legend-row" id="legend-share"></div>
+        <div class="sharebars" id="sharebars"></div>
+        <p class="fig-cap" data-t="net.find.cap">Counted from the chain. The first bar follows the live chain, the other two end where the embedded history ends.</p>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="blocks" aria-labelledby="net-blocks-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="net-blocks-h" data-t="net.blocks.h">The latest blocks</h2>
+        <p class="muted" data-t="net.blocks.p">Select a block to see its header, recompute its proof of work and read its transactions.</p>
+        <a href="/explorer" data-t="net.blocks.link">Open the explorer</a>
+      </div>
+      <div class="display">
+        <div class="display-head"><span class="display-title" data-t="net.blocks.title">Newest first</span><span class="state" data-live="modeShort"></span></div>
+        <div class="tbl-scroll">
+          <table class="tbl" id="net-blocks">
+            <thead><tr><th data-t="net.b.height">Height</th><th data-t="net.b.age">Found</th><th data-t="net.b.by">By</th><th class="n hide-s" data-t="net.b.paid">Paid to</th><th class="n hide-s" data-t="net.b.diff">Difficulty</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="sources" aria-labelledby="net-src-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="net-src-h" data-t="net.src.h">Where the numbers come from</h2>
+        <p class="muted" data-t="net.src.p">Not every figure on this page has the same weight.</p>
+      </div>
+      <dl class="plain-list">
+        <div><dt data-t="net.src.1.h">From the chain</dt><dd data-t="net.src.1.p">Height, difficulty, supply and every chart on this page. The hashrate is the work in the latest blocks divided by the time they took. Anyone who runs a full node can recompute all of it.</dd></div>
+        <div><dt data-t="net.src.2.h">Reported</dt><dd data-t="net.src.2.p">Active miners, sessions, nodes and the hashrate a pool states about itself. These are self-reports. They show a direction, and nobody can check them.</dd></div>
+        <div><dt data-t="net.src.3.h">The mirror</dt><dd data-t="net.src.3.p">This page and the explorer read a database copy of the chain, so that they load quickly. The mirror checks every block it stores, but it is a convenience. The chain is what the full nodes agree on.</dd></div>
+        <div><dt data-t="net.src.4.h">Seed nodes</dt><dd data-t="net.src.4.p">A new node first contacts <code>pool.yskar.app:8646</code> or <code>yskar-seed2.dynv6.net:8646</code>. Both are run by the same operator. After that, nodes exchange the addresses of other nodes among themselves.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  </div>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</main>
+
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" aria-current="page" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <div class="lang lang--ink" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+        </div>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network" aria-current="page"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+</body>
+</html>

@@ -1,0 +1,259 @@
+# Startseite
+
+home.hero.h1
+  en: <span class="ln"><span>Proof,</span></span> <span class="ln"><span>not promise.</span></span>
+  de: <span class="ln"><span>Proof,</span></span> <span class="ln"><span>not promise.</span></span>
+home.hero.lead
+  en: YSKAR is a currency with a blockchain of its own. Nothing was handed out in advance: every YSR is mined, and anyone can check every block. Fair from block 0.
+  de: YSKAR ist eine Währung mit eigener Blockchain. Nichts wurde vorab verteilt: Jeder YSR wird geschürft, und jeden Block kann jeder nachprüfen. Fair von Block 0 an.
+home.hero.cta2
+  en: See the chain so far
+  de: Die Kette bis heute ansehen
+home.hero.live
+  en: Day {d} · block {h} · {n} lights on the shore, one for each node that has reported in
+  de: Tag {d} · Block {h} · {n} Lichter am Ufer, eines für jeden Knoten, der sich gemeldet hat
+home.hero.alt
+  en: A dark fjord between snow-covered mountains under a starry sky. Ribbons of blue light move above it, and small warm lights glow on the far shore.
+  de: Ein dunkler Fjord zwischen verschneiten Bergen unter einem Sternenhimmel. Darüber ziehen Bänder aus blauem Licht, am fernen Ufer leuchten kleine warme Lichter.
+
+home.m1
+  en: It did not start with a promise. It started with a block.
+  de: Am Anfang stand kein Versprechen. Am Anfang stand ein Block.
+home.m2
+  en: Nothing was mined in advance. Nothing was handed out. About 1.07 million YSR from the early days were burned to offset the head start.
+  de: Nichts wurde vorab erzeugt, nichts verteilt. Rund 1,07 Millionen YSR aus der Anfangszeit wurden verbrannt, um den Vorsprung auszugleichen.
+home.m3
+  en: Since then a new YSR comes into the world in one way only: a machine does the work, and anyone can check it.
+  de: Seitdem entsteht ein neuer YSR nur auf einem Weg: Eine Maschine leistet die Arbeit, und jeder kann sie nachprüfen.
+
+# Die Kette entlang
+walk.start.h
+  en: <span data-live='day'></span> days, block by block.
+  de: <span data-live='day'></span> Tage, Block für Block.
+walk.start.p
+  en: Every light is a real block, and the gap between two lights is the time between them. Scroll to travel along the chain. Tap a light to open its block.
+  de: Jedes Licht ist ein echter Block, der Abstand zwischen zwei Lichtern ist die Zeit dazwischen. Scroll die Kette entlang. Tipp ein Licht an, um seinen Block zu öffnen.
+walk.c0.h
+  en: It begins with one block.
+  de: Es beginnt mit einem Block.
+walk.c0.p
+  en: Its only message is “proof, not promise”. Its reward of 875 YSR went to an address nobody can spend from.
+  de: Seine einzige Nachricht: „proof, not promise“. Seine Belohnung von 875 YSR ging an eine Adresse, von der niemand etwas ausgeben kann.
+walk.c1.h
+  en: Day one: 46 blocks.
+  de: Tag eins: 46 Blöcke.
+walk.c1.p
+  en: The first block after block 0 arrived at 18:03 UTC. By midnight there were 46 of them: the chain had found its rhythm.
+  de: Der erste Block nach Block 0 kam um 18:03 Uhr UTC. Bis Mitternacht waren es 46: Die Kette hatte ihren Takt gefunden.
+walk.c3.h
+  en: The head start is burned.
+  de: Der Vorsprung wird verbrannt.
+walk.c3.p
+  en: 1,066,101 YSR from the early days are sent to the address nobody can spend from, to offset the head start. It is all in this block.
+  de: 1.066.101 YSR aus der Anfangszeit gehen an die Adresse, von der niemand etwas ausgeben kann, um den Vorsprung auszugleichen. Alles steht in diesem Block.
+walk.c4.h
+  en: The community votes.
+  de: Die Community stimmt ab.
+walk.c4.p
+  en: Revision 6 is decided in the open: shared accounts, time locks, payments to a thousand recipients at once. Three rule upgrades were already live by then.
+  de: Über Fassung 6 wird offen entschieden: gemeinsame Konten, Zeitsperren, Zahlungen an tausend Empfänger auf einmal. Drei Regelfassungen waren da schon aktiv.
+walk.c5.h
+  en: You are here.
+  de: Hier stehst du.
+walk.c5.p
+  en: The next block is about ten minutes away.
+  de: Der nächste Block ist ungefähr zehn Minuten entfernt.
+walk.c6.h
+  en: Next: revision 6 switches on.
+  de: Als Nächstes: Fassung 6 wird aktiv.
+walk.c6.p
+  en: In <span data-live='v6Left'></span> blocks. Every node knows the height in advance, so nothing changes by surprise.
+  de: In <span data-live='v6Left'></span> Blöcken. Jeder Knoten kennt die Höhe im Voraus, nichts ändert sich überraschend.
+walk.c6.h.past
+  en: Revision 6 is live.
+  de: Fassung 6 ist aktiv.
+walk.c6.p.past
+  en: Since block 10,000 the chain knows shared accounts, time locks and batch payments.
+  de: Seit Block 10.000 kennt die Kette gemeinsame Konten, Zeitsperren und Sammelzahlungen.
+walk.c7.h
+  en: Then the first era ends.
+  de: Dann endet die erste Epoche.
+walk.c7.p
+  en: Until block 12,000 every block creates 875 YSR, after that 437.5. Half of all YSR that will ever exist come from this first era.
+  de: Bis Block 12.000 erzeugt jeder Block 875 YSR, danach 437,5. Die Hälfte aller YSR, die es je geben wird, entsteht in dieser ersten Epoche.
+walk.c7.h.past
+  en: The first era is over.
+  de: Die erste Epoche ist vorbei.
+walk.c7.p.past
+  en: Since block 12,000 every block creates 437.5 YSR. The reward halves again every 12,000 blocks.
+  de: Seit Block 12.000 erzeugt jeder Block 437,5 YSR. Die Belohnung halbiert sich alle 12.000 Blöcke wieder.
+walk.open
+  en: Open this block
+  de: Diesen Block öffnen
+walk.k.block
+  en: Block {h} · {d}
+  de: Block {h} · {d}
+walk.k.future
+  en: Block {h} · still to come
+  de: Block {h} · kommt noch
+home.walk.now
+  en: Block {h} · day {d}
+  de: Block {h} · Tag {d}
+walk.hud.block
+  en: Block {h}
+  de: Block {h}
+walk.hud.ahead
+  en: Block {h}
+  de: Block {h}
+walk.hud.planned
+  en: still to come · fixed in the code
+  de: kommt noch · im Code festgelegt
+walk.hud.day
+  en: day {n}
+  de: Tag {n}
+walk.tip.block
+  en: Block {h}
+  de: Block {h}
+walk.tip.approx
+  en: Details load in the explorer
+  de: Einzelheiten zeigt der Explorer
+walk.tip.solo
+  en: Found by a single miner
+  de: Von einem einzelnen Miner gefunden
+walk.tip.pool
+  en: Found by a pool
+  de: Von einem Pool gefunden
+walk.tip.tx
+  en: carried transfers
+  de: mit Überweisungen
+walk.legend.block
+  en: a block
+  de: ein Block
+walk.legend.tx
+  en: a block that carried transfers
+  de: ein Block mit Überweisungen
+walk.canvas
+  en: The chain drawn as a ribbon of lights, one light for each block since block 0.
+  de: Die Kette als Band aus Lichtern, ein Licht für jeden Block seit Block 0.
+
+# Prüf es selbst
+home.proof.h
+  en: Don't take our word for it.
+  de: Glaub uns kein Wort.
+home.proof.p
+  en: Every block carries its own proof. Your device can check it right now: no server, no account, only arithmetic.
+  de: Jeder Block trägt seinen Beweis in sich. Dein Gerät kann ihn jetzt nachrechnen: ohne Server, ohne Konto, nur mit Rechnen.
+prove.btn.genesis
+  en: Check block 0 on this device
+  de: Block 0 auf diesem Gerät prüfen
+prove.btn.tip
+  en: Check the newest block
+  de: Den neuesten Block prüfen
+prove.label
+  en: Hash of the block header
+  de: Hash des Blockkopfs
+prove.ok
+  en: Valid. Block {h} was checked on this device in {ms} ms.
+  de: Gültig. Block {h} wurde auf diesem Gerät geprüft, in {ms} ms.
+prove.bad
+  en: Not valid: block {h} misses its target.
+  de: Ungültig: Block {h} verfehlt sein Ziel.
+prove.open
+  en: Open block {h} in the explorer
+  de: Block {h} im Explorer öffnen
+prove.note
+  en: What your device just did: it ran the 136 bytes of the block header through SHA-256 twice. The result has to be smaller than the target the network set for that block. The zeros at the start show how small it is.
+  de: Was dein Gerät gerade getan hat: Es hat die 136 Byte des Blockkopfs zweimal mit SHA-256 gerechnet. Das Ergebnis muss kleiner sein als das Ziel, das das Netz für diesen Block vorgibt. Die Nullen am Anfang zeigen, wie klein es ist.
+
+# Drei Wege
+home.ways.h
+  en: Three ways in.
+  de: Drei Wege hinein.
+home.ways.p
+  en: The YSKAR mark is three ribbons that meet. So is the network: people who mine, people who hold and send, and people who keep a node running.
+  de: Das Zeichen von YSKAR sind drei Bänder, die sich treffen. Das Netz ist es auch: Menschen, die schürfen, Menschen, die halten und senden, und Menschen, die einen Knoten laufen lassen.
+way.mine.h
+  en: Lend it your machine.
+  de: Leih ihm deine Maschine.
+way.mine.p
+  en: A phone, a PC or a graphics card can find blocks. Alone, or in a pool that pays you inside the block itself and never holds your coins.
+  de: Ein Handy, ein PC oder eine Grafikkarte können Blöcke finden. Allein oder in einem Pool, der dich direkt im Block bezahlt und deine Coins nie verwahrt.
+way.mine.cta
+  en: How mining works
+  de: So funktioniert Mining
+way.mine.alt
+  en: A laptop on a wooden desk at night, running YSKAR Node Core; behind it a window onto a dark fjord.
+  de: Ein Laptop auf einem Holztisch bei Nacht, darauf läuft YSKAR Node Core; dahinter ein Fenster zum dunklen Fjord.
+way.wallet.h
+  en: Twelve words. Yours alone.
+  de: Zwölf Wörter. Nur deine.
+way.wallet.p
+  en: Your wallet lives on your own device. Nobody else holds your keys, including the people who build YSKAR.
+  de: Deine Wallet liegt auf deinem eigenen Gerät. Niemand sonst hat deine Schlüssel, auch nicht die Menschen, die YSKAR bauen.
+way.wallet.cta
+  en: Get the wallet
+  de: Zur Wallet
+way.wallet.alt
+  en: A phone with the YSKAR Wallet open, lying on a dark wooden desk next to a notebook with twelve handwritten lines, a pen and a cup of tea.
+  de: Ein Handy mit geöffneter YSKAR Wallet auf einem dunklen Holztisch, daneben ein Notizbuch mit zwölf handgeschriebenen Zeilen, ein Stift und eine Tasse Tee.
+way.node.h
+  en: Keep a light on.
+  de: Lass ein Licht an.
+way.node.p
+  en: A node checks every block itself, from block 0. Each one makes the network harder to bend. A small computer on a windowsill is enough.
+  de: Ein Knoten prüft jeden Block selbst, ab Block 0. Jeder einzelne macht das Netz schwerer zu verbiegen. Ein kleiner Rechner auf der Fensterbank genügt.
+way.node.cta
+  en: Run a node
+  de: Knoten betreiben
+way.node.alt
+  en: A small computer with one cyan status light on a wooden windowsill; outside, a fjord at night with a few lights on the far shore.
+  de: Ein kleiner Rechner mit einem türkisen Statuslicht auf einer hölzernen Fensterbank; draußen ein Fjord bei Nacht mit ein paar Lichtern am anderen Ufer.
+home.ways.more
+  en: Or build on it. The code is open, the API is public, and proposals are discussed where everyone can read them.
+  de: Oder bau darauf. Der Code ist offen, die API öffentlich, und Vorschläge werden dort besprochen, wo jeder mitlesen kann.
+home.ways.more.cta
+  en: For developers
+  de: Für Entwickler
+
+# Früh
+home.early.say
+  en: Day {d}. {n} nodes. {m} miners. {p} pools. {x} transfers. No listing. No price. This is what early looks like.
+  de: Tag {d}. {n} Knoten. {m} Miner. {p} Pools. {x} Überweisungen. Kein Listing. Kein Preis. So sieht früh aus.
+home.early.note
+  en: Nodes and miners as they report themselves. All figures come from the public API.
+  de: Knoten und Miner nach eigener Meldung. Alle Zahlen stammen aus der öffentlichen API.
+home.early.p
+  en: A small network, <span data-live='day'></span> days old. YSR is not listed anywhere and has no price; listings are in preparation, with no date and no names. What exists today is a chain that works, software you can run, and room for the people who show up now.
+  de: Ein kleines Netz, <span data-live='day'></span> Tage alt. YSR ist nirgends gelistet und hat keinen Preis; Listings sind in Vorbereitung, ohne Datum und ohne Namen. Was es heute gibt: eine Kette, die läuft, Software, die du starten kannst, und Platz für alle, die jetzt dazukommen.
+home.era.h
+  en: Era <span data-live='era'></span>
+  de: Epoche <span data-live='era'></span>
+home.era.p
+  en: In this era every block creates <span data-live='rewardNow'></span> YSR. At block <span data-live='halvingHeight'></span> the reward halves, and again every 12,000 blocks after that. Half of all YSR that will ever exist come from the first 12,000 blocks. The schedule is written in the code; nobody can move it.
+  de: In dieser Epoche erzeugt jeder Block <span data-live='rewardNow'></span> YSR. Bei Block <span data-live='halvingHeight'></span> halbiert sich die Belohnung, danach alle 12.000 Blöcke wieder. Die Hälfte aller YSR, die es je geben wird, entsteht in den ersten 12.000 Blöcken. Der Plan steht im Code; niemand kann ihn verschieben.
+home.era.now
+  en: Block <span data-live='height'></span>
+  de: Block <span data-live='height'></span>
+home.era.left
+  en: <span data-live='halvingLeft'></span> blocks to go
+  de: noch <span data-live='halvingLeft'></span> Blöcke
+home.era.cta
+  en: The whole schedule
+  de: Der ganze Plan
+
+# Menschen
+home.people.h
+  en: No company. Just people.
+  de: Kein Unternehmen. Nur Menschen.
+home.people.p
+  en: YSKAR is a community project and belongs to the people who use it. They mine, run nodes, test releases and decide on changes in the open: revision 6 was put to a community vote.
+  de: YSKAR ist ein Community-Projekt und gehört den Menschen, die es nutzen. Sie schürfen, betreiben Knoten, testen Versionen und entscheiden offen über Änderungen: Über Fassung 6 hat die Community abgestimmt.
+home.people.cta
+  en: Meet the community
+  de: Zur Community
+home.people.cta2
+  en: Open YSKAR Lab
+  de: YSKAR Lab öffnen
+home.people.alt
+  en: About fifteen people seen from behind on a snowy shore at blue hour, each holding a small lantern, looking out over a fjord.
+  de: Etwa fünfzehn Menschen von hinten an einem verschneiten Ufer zur blauen Stunde, jeder mit einer kleinen Laterne, den Blick über den Fjord.

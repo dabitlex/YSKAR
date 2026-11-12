@@ -1,0 +1,100 @@
+<div class="page" data-page="ysr">
+  <section class="pp">
+    <div class="wrap duo duo--mid">
+      <div class="pp__in">
+        <h1 class="t-xl" data-t="coin.h1"></h1>
+        <p class="lead" data-t="coin.lead"></p>
+      </div>
+      <div class="coinx" id="coin">
+        <div class="coinx__stage" id="coin-stage">
+          <canvas class="coinx__gl" id="coin-gl" role="img" data-ta="aria-label:coin.alt"></canvas>
+          <div class="coinx__body" id="coin-body">
+            <div class="coinx__edge" aria-hidden="true"></div>
+            <div class="coinx__face coinx__face--front">
+              <svg viewBox="0 0 400 400" role="img" data-ta="aria-label:coin.alt.flat">
+                <defs>
+                  <radialGradient id="cf-disc" cx="34%" cy="24%" r="92%"><stop offset="0" stop-color="#1B2F60"/><stop offset=".42" stop-color="#0B1738"/><stop offset="1" stop-color="#040919"/></radialGradient>
+                  <radialGradient id="cf-vig" cx="50%" cy="50%" r="50%"><stop offset=".7" stop-color="#01030A" stop-opacity="0"/><stop offset="1" stop-color="#01030A" stop-opacity=".5"/></radialGradient>
+                  <linearGradient id="cf-ring" x1=".14" y1=".06" x2=".86" y2=".94"><stop offset="0" stop-color="#A6EEFF"/><stop offset=".28" stop-color="#63D8FF"/><stop offset=".62" stop-color="#2F7BFF"/><stop offset="1" stop-color="#173DAE"/></linearGradient>
+                  <linearGradient id="cf-hi" x1=".1" y1=".1" x2=".6" y2=".6"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+                  <linearGradient id="cf-warm" x1=".9" y1=".9" x2=".55" y2=".55"><stop offset="0" stop-color="#FFC47A" stop-opacity=".85"/><stop offset="1" stop-color="#FFC47A" stop-opacity="0"/></linearGradient>
+                  <linearGradient id="cf-sheen" x1=".08" y1=".02" x2=".6" y2=".7"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".24"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+                </defs>
+                <circle cx="200" cy="200" r="198" fill="url(#cf-disc)"/>
+                <circle cx="200" cy="200" r="198" fill="url(#cf-vig)"/>
+                <circle cx="200" cy="200" r="195" fill="none" stroke="url(#cf-ring)" stroke-width="4.5"/>
+                <circle cx="200" cy="200" r="196.2" fill="none" stroke="url(#cf-hi)" stroke-width="1.4"/>
+                <circle cx="200" cy="200" r="196.2" fill="none" stroke="url(#cf-warm)" stroke-width="1.4"/>
+                <svg x="83" y="88.5" width="240" height="240" viewBox="187.5 184 879 879" opacity=".55"><use href="#y-shape" x="187.5" y="184" width="879" height="879" fill="#01040C"/></svg>
+                <svg x="80" y="84" width="240" height="240" viewBox="187.5 184 879 879"><use href="#y-mark" x="187.5" y="184" width="879" height="879"/></svg>
+                <svg x="80" y="84" width="240" height="240" viewBox="187.5 184 879 879"><use href="#y-shape" x="187.5" y="184" width="879" height="879" fill="url(#cf-sheen)"/></svg>
+              </svg>
+            </div>
+            <div class="coinx__sheen" aria-hidden="true"></div>
+            <div class="coinx__face coinx__face--back" aria-hidden="true">
+              <svg viewBox="0 0 400 400">
+                <circle cx="200" cy="200" r="198" fill="url(#cf-disc)"/>
+                <circle cx="200" cy="200" r="198" fill="url(#cf-vig)"/>
+                <circle cx="200" cy="200" r="195" fill="none" stroke="url(#cf-ring)" stroke-width="4.5"/>
+                <circle cx="200" cy="200" r="196.2" fill="none" stroke="url(#cf-hi)" stroke-width="1.4"/>
+                <text class="coinx__k" x="200" y="160" text-anchor="middle" data-t="coin.back.k"></text>
+                <text class="coinx__q" x="200" y="209" text-anchor="middle">proof, not promise</text>
+                <text class="coinx__k" x="200" y="252" text-anchor="middle" data-t="coin.back.d"></text>
+              </svg>
+            </div>
+          </div>
+          <i class="coinx__shadow" aria-hidden="true"></i>
+        </div>
+        <button type="button" class="more coinx__turn" id="coin-turn" aria-pressed="false"></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="story story--field" id="field">
+    <div class="story__sticky">
+      <div class="story__stage"><canvas role="img" data-ta="aria-label:coin.field.alt"></canvas></div>
+      <p class="field__legend" aria-hidden="true">
+        <span><i style="background:#6FB6FF"></i><span data-t="coin.bar.mined"></span></span>
+        <span><i style="background:#FF9B5C"></i><span data-t="coin.field.burned"></span></span>
+        <span><i style="background:rgba(143,180,255,.3)"></i><span data-t="coin.bar.open"></span></span>
+      </p>
+      <div class="story__caps wrap">
+        <div class="story__cap"><h2 class="t-l" data-t="coin.f0.h"></h2><p class="lead" data-t="coin.f0.p"></p></div>
+        <div class="story__cap"><h2 class="t-l"><span data-live="minted"></span></h2><p class="lead" data-t="coin.f1.p"></p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="coin.burn.h"></h2><p class="lead" data-t="coin.f2.p"></p><a class="more" href="#explorer-block-3974" data-t="coin.burn.cta"></a></div>
+        <div class="story__cap"><h2 class="t-l" data-t="coin.f3.h"></h2><p class="lead" data-t="coin.f3.p"></p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="coin.f4.h"></h2><p class="lead" data-t="coin.f4.p"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="halvings">
+    <div class="wrap duo">
+      <div class="duo__a">
+        <h2 class="t-l" data-rise data-t="coin.eras.h"></h2>
+        <p class="lead" data-rise data-delay="80" data-t="coin.eras.p"></p>
+      </div>
+      <div class="eras" id="eras" data-rise data-delay="140"></div>
+    </div>
+  </section>
+
+  <section class="band" id="now">
+    <div class="wrap">
+      <p class="say say--wide t-xl lit" data-lit data-t="coin.noprice.say"></p>
+      <div class="supply" id="supply" style="margin-top:clamp(48px,7vw,96px)">
+        <div class="supply__bar" aria-hidden="true"><i id="supply-mined"></i><u id="supply-burned"></u></div>
+        <p class="supply__legend">
+          <span><i style="background:#2F7BFF"></i><b data-live="minted"></b> <span data-t="coin.bar.mined"></span> (<span data-live="mintedPct"></span>)</span>
+          <span><i style="background:#FF9B5C"></i><b data-live="burned"></b> <span data-t="coin.bar.burned"></span></span>
+          <span><i style="background:rgba(170,198,255,.3)"></i><b id="supply-open"></b> <span data-t="coin.bar.open"></span></span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="t1">
+    <!--@include ysr-fees-->
+    <!--@include ysr-noprice-->
+  </div>
+  <!--@include dawn-->
+</div>

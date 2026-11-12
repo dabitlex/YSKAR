@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en" data-page="ysr" data-mode="snapshot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YSR, the coin – YSKAR</title>
+<meta name="description" content="YSR is the coin of the YSKAR chain. There will never be more than 21,000,000, and nothing was pre-mined or allocated: every YSR comes from a found block.">
+<meta name="theme-color" content="#030816">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="YSR, the coin – YSKAR">
+<meta property="og:description" content="YSR is the coin of the YSKAR chain. There will never be more than 21,000,000, and nothing was pre-mined or allocated: every YSR comes from a found block.">
+<link rel="canonical" href="https://www.yskar.app/ysr">
+<meta property="og:url" content="https://www.yskar.app/ysr">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=7bb7be14">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de"], TEXTS = {"en":"4a73edcc","de":"903e05d4"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=8608fdc9" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
+
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" aria-current="page" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr" aria-current="page"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <div class="lang" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+      </div>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<div class="page" data-page="ysr">
+  <section class="pp">
+    <div class="wrap duo duo--mid">
+      <div class="pp__in">
+        <h1 class="t-xl" data-t="coin.h1">21 million. Every one of them mined.</h1>
+        <p class="lead" data-t="coin.lead">YSR is the coin of the YSKAR chain. There will never be more than 21,000,000. Nothing was pre-mined or allocated: a new YSR exists for one reason only, a block was found.</p>
+      </div>
+      <div class="coinx" id="coin">
+        <div class="coinx__stage" id="coin-stage">
+          <canvas class="coinx__gl" id="coin-gl" role="img" data-ta="aria-label:coin.alt" aria-label="The YSR coin: a thick disc of blue glass with a raised rim and the YSKAR mark in relief."></canvas>
+          <div class="coinx__body" id="coin-body">
+            <div class="coinx__edge" aria-hidden="true"></div>
+            <div class="coinx__face coinx__face--front">
+              <svg viewBox="0 0 400 400" role="img" data-ta="aria-label:coin.alt.flat" aria-label="The YSR coin: a dark disc with a blue ring and the YSKAR mark.">
+                <defs>
+                  <radialGradient id="cf-disc" cx="34%" cy="24%" r="92%"><stop offset="0" stop-color="#1B2F60"/><stop offset=".42" stop-color="#0B1738"/><stop offset="1" stop-color="#040919"/></radialGradient>
+                  <radialGradient id="cf-vig" cx="50%" cy="50%" r="50%"><stop offset=".7" stop-color="#01030A" stop-opacity="0"/><stop offset="1" stop-color="#01030A" stop-opacity=".5"/></radialGradient>
+                  <linearGradient id="cf-ring" x1=".14" y1=".06" x2=".86" y2=".94"><stop offset="0" stop-color="#A6EEFF"/><stop offset=".28" stop-color="#63D8FF"/><stop offset=".62" stop-color="#2F7BFF"/><stop offset="1" stop-color="#173DAE"/></linearGradient>
+                  <linearGradient id="cf-hi" x1=".1" y1=".1" x2=".6" y2=".6"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+                  <linearGradient id="cf-warm" x1=".9" y1=".9" x2=".55" y2=".55"><stop offset="0" stop-color="#FFC47A" stop-opacity=".85"/><stop offset="1" stop-color="#FFC47A" stop-opacity="0"/></linearGradient>
+                  <linearGradient id="cf-sheen" x1=".08" y1=".02" x2=".6" y2=".7"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".24"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+                </defs>
+                <circle cx="200" cy="200" r="198" fill="url(#cf-disc)"/>
+                <circle cx="200" cy="200" r="198" fill="url(#cf-vig)"/>
+                <circle cx="200" cy="200" r="195" fill="none" stroke="url(#cf-ring)" stroke-width="4.5"/>
+                <circle cx="200" cy="200" r="196.2" fill="none" stroke="url(#cf-hi)" stroke-width="1.4"/>
+                <circle cx="200" cy="200" r="196.2" fill="none" stroke="url(#cf-warm)" stroke-width="1.4"/>
+                <svg x="83" y="88.5" width="240" height="240" viewBox="187.5 184 879 879" opacity=".55"><use href="#y-shape" x="187.5" y="184" width="879" height="879" fill="#01040C"/></svg>
+                <svg x="80" y="84" width="240" height="240" viewBox="187.5 184 879 879"><use href="#y-mark" x="187.5" y="184" width="879" height="879"/></svg>
+                <svg x="80" y="84" width="240" height="240" viewBox="187.5 184 879 879"><use href="#y-shape" x="187.5" y="184" width="879" height="879" fill="url(#cf-sheen)"/></svg>
+              </svg>
+            </div>
+            <div class="coinx__sheen" aria-hidden="true"></div>
+            <div class="coinx__face coinx__face--back" aria-hidden="true">
+              <svg viewBox="0 0 400 400">
+                <circle cx="200" cy="200" r="198" fill="url(#cf-disc)"/>
+                <circle cx="200" cy="200" r="198" fill="url(#cf-vig)"/>
+                <circle cx="200" cy="200" r="195" fill="none" stroke="url(#cf-ring)" stroke-width="4.5"/>
+                <circle cx="200" cy="200" r="196.2" fill="none" stroke="url(#cf-hi)" stroke-width="1.4"/>
+                <text class="coinx__k" x="200" y="160" text-anchor="middle" data-t="coin.back.k">Block 0</text>
+                <text class="coinx__q" x="200" y="209" text-anchor="middle">proof, not promise</text>
+                <text class="coinx__k" x="200" y="252" text-anchor="middle" data-t="coin.back.d">9 September 2026</text>
+              </svg>
+            </div>
+          </div>
+          <i class="coinx__shadow" aria-hidden="true"></i>
+        </div>
+        <button type="button" class="more coinx__turn" id="coin-turn" aria-pressed="false"></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="story story--field" id="field">
+    <div class="story__sticky">
+      <div class="story__stage"><canvas role="img" data-ta="aria-label:coin.field.alt" aria-label="A field of lights for all 21 million YSR: the ones mined so far are lit, the burned ones glow like embers, the rest is dark."></canvas></div>
+      <p class="field__legend" aria-hidden="true">
+        <span><i style="background:#6FB6FF"></i><span data-t="coin.bar.mined">mined so far</span></span>
+        <span><i style="background:#FF9B5C"></i><span data-t="coin.field.burned">burned</span></span>
+        <span><i style="background:rgba(143,180,255,.3)"></i><span data-t="coin.bar.open">still to be mined</span></span>
+      </p>
+      <div class="story__caps wrap">
+        <div class="story__cap"><h2 class="t-l" data-t="coin.f0.h">21,000,000. Never more.</h2><p class="lead" data-t="coin.f0.p">Each light stands for <span data-field-unit></span> YSR, in the order they come into being. This is everything there will ever be.</p></div>
+        <div class="story__cap"><h2 class="t-l"><span data-live="minted"></span></h2><p class="lead" data-t="coin.f1.p">That many exist today, <span data-live='mintedPct'></span> of the total. Every one of them came out of a block that somebody found.</p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="coin.burn.h">The head start was burned.</h2><p class="lead" data-t="coin.f2.p">About 1.07 million YSR from the early days were burned to offset the head start. They went to an address nobody can spend from and are gone for good.</p><a class="more" href="/explorer#block-3974" data-t="coin.burn.cta">See it in block 3,974</a></div>
+        <div class="story__cap"><h2 class="t-l" data-t="coin.f3.h">Half of everything comes first.</h2><p class="lead" data-t="coin.f3.p">The first 12,000 blocks create 10.5 million YSR: half of all there will ever be. The chain is at block <span data-live='height'></span>.</p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="coin.f4.h">Then it halves, again and again.</h2><p class="lead" data-t="coin.f4.p">Every 12,000 blocks the reward is cut in half. The last new YSR appears in block 443,999. After that, miners earn fees only.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="halvings">
+    <div class="wrap duo">
+      <div class="duo__a">
+        <h2 class="t-l" data-rise data-t="coin.eras.h">The reward halves every 12,000 blocks.</h2>
+        <p class="lead" data-rise data-delay="80" data-t="coin.eras.p">Each bar is one era and shows how many YSR it creates. The first era alone creates half of everything. The last new YSR appears in block 443,999; after that miners earn fees only.</p>
+      </div>
+      <div class="eras" id="eras" data-rise data-delay="140"></div>
+    </div>
+  </section>
+
+  <section class="band" id="now">
+    <div class="wrap">
+      <p class="say say--wide t-xl lit" data-lit data-t="coin.noprice.say">YSR has no price today. It is not listed anywhere. What it has is a chain that anyone can check.</p>
+      <div class="supply" id="supply" style="margin-top:clamp(48px,7vw,96px)">
+        <div class="supply__bar" aria-hidden="true"><i id="supply-mined"></i><u id="supply-burned"></u></div>
+        <p class="supply__legend">
+          <span><i style="background:#2F7BFF"></i><b data-live="minted"></b> <span data-t="coin.bar.mined">mined so far</span> (<span data-live="mintedPct"></span>)</span>
+          <span><i style="background:#FF9B5C"></i><b data-live="burned"></b> <span data-t="coin.bar.burned">of these burned or unspendable</span></span>
+          <span><i style="background:rgba(170,198,255,.3)"></i><b id="supply-open"></b> <span data-t="coin.bar.open">still to be mined</span></span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="t1">
+    <section class="sec ruled" id="fees" aria-labelledby="fees-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="fees-h" data-t="ysr.fees.h">Fees</h2>
+        <p class="muted" data-t="ysr.fees.p">A transfer pays a fee to the miners of the block that includes it. The rules set only a floor. Above it, the price follows the demand for space in a block.</p>
+      </div>
+      <dl class="facts">
+        <div><dt data-t="ysr.fees.f1">Floor by consensus</dt><dd data-t="ysr.fees.f1.v">1 unit per byte</dd></div>
+        <div><dt data-t="ysr.fees.f2">Floor to be relayed</dt><dd data-t="ysr.fees.f2.v">10 units per byte. This is a setting of the nodes, not a consensus rule.</dd></div>
+        <div><dt data-t="ysr.fees.f3">A plain transfer of 168 bytes</dt><dd><span class="mono" data-live="feeStd"></span> <span class="muted" data-t="ysr.fees.f3.v">at least, right now</span></dd></div>
+        <div><dt data-t="ysr.fees.f4">Slow, normal, fast</dt><dd data-t="ysr.fees.f4.v">The three tiers only differ when blocks are full. Otherwise the minimum fee is enough for the next block.</dd></div>
+        <div><dt data-t="ysr.fees.f5">Smallest amount</dt><dd data-t="ysr.fees.f5.v">100 units, which is 0.000001 YSR</dd></div>
+        <div><dt data-t="ysr.fees.f6">Transfers waiting for a block</dt><dd><span class="mono" data-live="mempool"></span></dd></div>
+      </dl>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="noprice" aria-labelledby="noprice-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="noprice-h" data-t="ysr.noprice.h">No price, no promise</h2>
+      </div>
+      <div class="stack" style="--gap:18px">
+        <p class="lead" style="color:var(--ink)" data-t="ysr.noprice.p1">YSR has no price and no market, and it is not listed on any exchange. Nothing on this site promises that this will change, and nobody should mine in that expectation.</p>
+        <p class="muted" data-t="ysr.noprice.p2">What YSR has is a set of rules that anyone can check: a fixed maximum, a public issuance schedule, and coins that only their owner's key can move.</p>
+      </div>
+    </div>
+  </section>
+
+  </div>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</main>
+
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" aria-current="page" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <div class="lang lang--ink" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+        </div>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+</body>
+</html>

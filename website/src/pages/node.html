@@ -1,0 +1,121 @@
+<div class="page" data-page="node">
+  <section class="ph">
+    <div class="ph__media"><img data-img="node-sill" data-ta="alt:way.node.alt" alt=""></div>
+    <div class="ph__txt wrap">
+      <p class="ph__k" data-t="nav.node"></p>
+      <h1 class="t-xl" data-t="node.h1"></h1>
+      <p class="lead" data-t="node.lead"></p>
+      <div class="row ph__cta">
+        <a class="btn" href="#node-core" data-t="node.cta"></a>
+        <a class="more" href="#node-cli" data-t="node.cta2"></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="shore" id="shoreline">
+    <div class="shore__stage" id="shore">
+      <div class="shore__inner">
+        <img class="shore__photo" data-img="fjord-night" data-orient data-lazy data-ta="alt:start.alt.fjord" alt="">
+        <div class="shore__lights" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="shore__top wrap">
+      <p class="shore__say lit" data-lit data-say="node.say"></p>
+    </div>
+    <div class="shore__bottom wrap">
+      <div class="row">
+        <button type="button" class="btn" id="shore-go" aria-pressed="false"></button>
+        <a class="more" href="#node-core" data-t="node.cta"></a>
+      </div>
+      <p class="micro shore__note" id="shore-note" role="status"></p>
+    </div>
+  </section>
+
+  <section class="band" id="check">
+    <div class="wrap duo">
+      <div class="duo__a">
+        <h2 class="t-l" data-rise data-t="node.check.h"></h2>
+        <p class="lead" data-rise data-delay="80" data-t="node.w1.p"></p>
+      </div>
+      <div class="log" id="logbook" data-rise data-delay="140">
+        <div class="log__head">
+          <p class="log__n"><small data-t="log.k"></small><span id="log-n">0</span></p>
+          <p class="log__d mono" id="log-d"></p>
+        </div>
+        <div class="log__field">
+          <canvas id="log" role="img" data-ta="aria-label:log.alt"></canvas>
+          <div class="walk-tip" id="log-tip" hidden>
+            <p class="walk-tip__h mono" data-f="h"></p>
+            <p data-f="t"></p>
+            <p class="faint" data-f="who"></p>
+            <a href="#explorer" data-t="walk.open"></a>
+          </div>
+        </div>
+        <p class="micro faint" id="log-cap"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="core">
+    <div class="wrap duo">
+      <figure class="shot" data-rise>
+        <div class="media" data-unveil><img data-img="laptop" data-lazy data-ta="alt:way.mine.alt" alt=""></div>
+        <figcaption class="cap" data-t="mining.pc.imgcap"></figcaption>
+      </figure>
+      <div class="duo__a">
+        <h2 class="t-l" data-rise data-t="node.core.h"></h2>
+        <p class="lead" data-rise data-delay="80" data-t="node.core.p"></p>
+        <div class="dl" style="width:100%" data-rise data-delay="140">
+          <a class="dl__a" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-Setup-{{NODE_CORE}}.exe" target="_blank" rel="noopener"><b data-t="node.dl.win"></b><small>YSKAR-Node-Core-Setup-{{NODE_CORE}}.exe</small><span data-t="node.dl.get"></span></a>
+          <a class="dl__a" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-{{NODE_CORE}}-amd64.deb" target="_blank" rel="noopener"><b data-t="node.dl.deb"></b><small>YSKAR-Node-Core-{{NODE_CORE}}-amd64.deb</small><span data-t="node.dl.get"></span></a>
+          <a class="dl__a" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-{{NODE_CORE}}-x86_64.AppImage" target="_blank" rel="noopener"><b data-t="node.dl.app"></b><small>YSKAR-Node-Core-{{NODE_CORE}}-x86_64.AppImage</small><span data-t="node.dl.get"></span></a>
+          <a class="dl__a" href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v{{NODE_CORE}}" target="_blank" rel="noopener"><b data-t="node.dl.all"></b><small data-t="node.dl.rel"></small><span>GitHub</span></a>
+        </div>
+        <p class="heed" data-rise data-t="mining.pc.note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <div class="band__head"><h2 class="t-l" data-rise data-t="node.why.h"></h2></div>
+      <div class="pts">
+        <div class="pt" data-rise><h3 data-t="node.w2.h"></h3><p data-t="node.w2.p"></p></div>
+        <div class="pt" data-rise data-delay="80"><h3 data-t="node.w3.h"></h3><p data-t="node.w3.p"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="build-node-x">
+    <div class="wrap duo">
+      <div class="duo__a" id="cli">
+        <h2 class="t-l" data-rise data-t="dev.node.h"></h2>
+        <p class="lead" data-rise data-delay="80" data-t="dev.node.p"></p>
+        <a class="more" href="#chain-nodes" data-t="dev.node.link"></a>
+      </div>
+      <div class="stack" style="--gap:26px" data-rise>
+        <div class="term term--pad"><pre id="code-node-x"><span class="c"># <span data-t="dev.node.c1"></span></span>
+git clone https://github.com/dabitlex/YSKAR.git
+cd YSKAR/node
+npm install
+npm run build
+
+<span class="c"># <span data-t="dev.node.c2"></span></span>
+node dist/yskar-node.cjs mine \
+  --data ./knoten \
+  --seed pool.yskar.app:8646 \
+  --seed yskar-seed2.dynv6.net:8646 \
+  --no-upstream</pre>
+          <button type="button" class="term__copy" data-copy="#code-node-x" data-t="ui.copy"></button></div>
+        <dl class="kv2">
+          <div><dt data-t="dev.node.f1.k"></dt><dd data-t="dev.node.f1.v"></dd></div>
+          <div><dt data-t="dev.node.f2.k"></dt><dd data-t="dev.node.f2.v"></dd></div>
+          <div><dt data-t="dev.node.f3.k"></dt><dd data-t="dev.node.f3.v"></dd></div>
+          <div><dt data-t="dev.node.f4.k"></dt><dd data-t="dev.node.f4.v"></dd></div>
+          <div><dt data-t="dev.node.f5.k"></dt><dd data-t="dev.node.f5.v"></dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+  <!--@include dawn-->
+</div>

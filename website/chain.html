@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en" data-page="chain" data-mode="snapshot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The chain – YSKAR</title>
+<meta name="description" content="YSKAR runs on a chain of its own: its own blocks, its own peer-to-peer network and its own rules, proven with work that anyone can check.">
+<meta name="theme-color" content="#030816">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="The chain – YSKAR">
+<meta property="og:description" content="YSKAR runs on a chain of its own: its own blocks, its own peer-to-peer network and its own rules, proven with work that anyone can check.">
+<link rel="canonical" href="https://www.yskar.app/chain">
+<meta property="og:url" content="https://www.yskar.app/chain">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=7bb7be14">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de"], TEXTS = {"en":"4a73edcc","de":"903e05d4"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=8608fdc9" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
+
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain" aria-current="page"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <div class="lang" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+      </div>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<div class="page" data-page="chain">
+  <section class="pp">
+    <div class="wrap pp__in">
+      <h1 class="t-xl" data-t="chain.h1">A chain of its own.</h1>
+      <p class="lead" data-t="chain.lead">YSKAR does not run on top of another network. It has its own blocks, its own peer-to-peer network and its own rules, and it proves every block with work that anyone can check.</p>
+    </div>
+  </section>
+
+  <section class="story story--forge" id="forge">
+    <div class="story__sticky">
+      <div class="story__stage"><canvas role="img" data-ta="aria-label:forge.alt" aria-label="The 136 bytes of the newest block header. The nonce changes until the hash falls below the target, then the nodes check it, and the block takes its place at the end of the chain and pays its reward."></canvas></div>
+      <div class="story__caps wrap">
+        <div class="story__cap"><p class="story__k" data-t="chain.how.h">One block, three steps.</p><h2 class="t-l" data-t="home.how.1.h">Miners search</h2><p class="lead" data-t="home.how.1.p">Phones, PCs and graphics cards hash a block header over and over, each time with a different nonce. A hash below the target makes the block valid.</p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="home.how.2.h">Nodes check</h2><p class="lead" data-t="home.how.2.p">Every full node recomputes the work, the signatures and all balances, starting at block 0. A block that breaks a rule is rejected, whoever sent it.</p></div>
+        <div class="story__cap"><h2 class="t-l" data-t="home.how.3.h">The block pays</h2><p class="lead" data-t="home.how.3.p">The block itself pays the reward: to the finder alone, or split among the miners of a pool, straight to their addresses. A pool never holds anyone else's coins.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <div class="band__head"><h2 class="t-l" data-rise data-t="chain.why.h">Why an own chain matters</h2></div>
+      <div class="pts pts--3">
+        <div class="pt" data-rise><h3 data-t="chain.y1.h">Its rules are its own</h3><p data-t="chain.y1.p">Fees, block times and upgrades are decided here, by the people who run YSKAR, and by nobody else's network.</p></div>
+        <div class="pt" data-rise data-delay="80"><h3 data-t="chain.y2.h">Nothing to take on trust</h3><p data-t="chain.y2.p">Every block back to block 0 can be recomputed by anyone, with open software, on an ordinary computer.</p></div>
+        <div class="pt" data-rise data-delay="160"><h3 data-t="chain.y3.h">Changes arrive in the open</h3><p data-t="chain.y3.p">A rule change is written into the code together with the block at which it starts. Every node knows it in advance. Revision 6 was put to a community vote.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap toolhead">
+    <h2 class="t-l" data-t="chain.deep.h">For the curious: how it works in detail</h2>
+    <p class="lead" data-t="chain.deep.p">From here on the page gets technical. Everything below comes from the consensus code and from the chain itself.</p>
+  </div>
+  <div class="t1">
+    <section class="sec ruled" id="header" aria-labelledby="tech-header-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-header-h" data-t="tech.header.h">A block starts with 136 bytes</h2>
+        <p class="muted" data-t="tech.header.p1">The header names the block before it, commits to every transaction and to every balance after the block, and carries the nonce the miner found. The block hash is SHA-256, applied twice, over exactly these bytes.</p>
+        <p class="muted" data-t="tech.header.p2">The length is chosen on purpose. SHA-256 works in blocks of 64 bytes, and everything except the nonce lies in the first 128. A miner computes that part once per job; every further attempt costs two compression steps.</p>
+      </div>
+      <div class="display" data-proof="tip" data-trace="full" data-legend="table"></div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="pow" aria-labelledby="tech-pow-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-pow-h" data-t="tech.pow.h">Work that anyone can check</h2>
+        <p class="muted" data-t="tech.pow.p1">A block is valid only if its hash, read as a number, is not larger than a target. The target follows from the difficulty. There is no shortcut: the only way to find such a hash is to try nonces, and checking the result takes two hash computations.</p>
+        <div class="code formula" aria-label="target = floor(2^240 / difficulty)">target = floor(2<sup>240</sup> / difficulty)
+valid:  sha256(sha256(header)) ≤ target</div>
+        <p class="muted" data-t="tech.pow.p2">One unit of difficulty stands for 65,536 expected attempts. At the current difficulty of <span class='mono' data-live='difficulty'></span>, the network needs about <span data-live='attempts'></span> attempts for one block.</p>
+      </div>
+      <div class="display miner" id="miner">
+        <div class="display-head">
+          <span class="display-title" data-t="miner.title">Search for a nonce yourself</span>
+          <span class="state fixed" data-t="miner.state">Runs in your browser</span>
+        </div>
+        <p data-t="miner.intro">Your browser takes the header of the latest block and tries nonces against an easier target. The real target is far beyond what a browser can reach.</p>
+        <div class="miner-ctl">
+          <div class="field">
+            <label for="miner-bits" data-t="miner.bits">Zero bits the hash must start with</label>
+            <input type="range" id="miner-bits" min="8" max="24" step="1" value="16">
+            <output class="mono" id="miner-odds" for="miner-bits"></output>
+          </div>
+          <button type="button" class="btn" id="miner-go" data-t="miner.start">Start the search</button>
+        </div>
+        <hr>
+        <div class="readouts">
+          <div class="readout"><span class="k" data-t="miner.attempts">Attempts</span><span class="v" id="miner-n">0</span></div>
+          <div class="readout"><span class="k" data-t="miner.speed">Speed</span><span class="v" id="miner-rate">—</span></div>
+          <div class="readout"><span class="k" data-t="miner.time">Time</span><span class="v" id="miner-time">—</span></div>
+          <div class="readout"><span class="k" data-t="miner.nonce">Nonce found</span><span class="v" id="miner-nonce">—</span></div>
+        </div>
+        <hr>
+        <div class="trace">
+          <div class="tline"><span class="k" id="miner-hash-k" data-t="miner.hash">Last hash tried</span><code class="hexline" id="miner-hash">—</code></div>
+          <div class="tline"><span class="k" data-t="miner.target">Target of this demo</span><code class="hexline" id="miner-target"></code></div>
+        </div>
+        <p class="verdict" id="miner-verdict" role="status"></p>
+        <p class="fig-cap" id="miner-real"></p>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="difficulty" aria-labelledby="tech-diff-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-diff-h" data-t="tech.diff.h">The difficulty follows the network</h2>
+        <p class="muted" data-t="tech.diff.p1">The difficulty is recomputed for every block from the last 45 blocks. Recent blocks count more than older ones, so the chain reacts quickly when hash power arrives or leaves.</p>
+        <p class="muted" data-t="tech.diff.p2">Every node computes the same range from the same blocks and rejects a block that states a difficulty outside it. Only whole numbers are used, so two nodes can never round differently.</p>
+      </div>
+      <div class="stack" style="--gap:28px">
+        <div class="display">
+          <div class="display-head">
+            <span class="display-title" data-t="tech.diff.chart">Difficulty since block 1</span>
+            <span class="state fixed" data-live="histState"></span>
+          </div>
+          <div class="chart" id="chart-difficulty"></div>
+          <p class="fig-cap" data-t="tech.diff.cap">Mean of every 24 blocks up to block <span data-live='snapTip'></span>. The scale is logarithmic: each line is ten times the one below.</p>
+          <details class="chart-table"><summary data-t="chart.asTable">Show the values as a table</summary><div id="table-difficulty"></div></details>
+        </div>
+        <dl class="facts">
+          <div><dt data-t="tech.diff.f1">Window</dt><dd data-t="tech.diff.f1.v">the last 45 blocks, the newest weighted highest</dd></div>
+          <div><dt data-t="tech.diff.f2">Largest step</dt><dd data-t="tech.diff.f2.v">a factor of 4 up or down per block</dd></div>
+          <div><dt data-t="tech.diff.f3">Solve time counted</dt><dd data-t="tech.diff.f3.v">1 to 3,600 seconds per block</dd></div>
+          <div><dt data-t="tech.diff.f4">Emergency rule</dt><dd data-t="tech.diff.f4.v">after 1,800 seconds without a block, the requirement falls in proportion to the waiting time</dd></div>
+          <div><dt data-t="tech.diff.f5">Timestamps</dt><dd data-t="tech.diff.f5.v">later than the median of the last 11 blocks, at most 120 seconds ahead of the node's clock</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="accounts" aria-labelledby="tech-acc-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-acc-h" data-t="tech.acc.h">Accounts and transfers</h2>
+        <p class="muted" data-t="tech.acc.p1">YSKAR keeps one balance and one nonce per address. A transfer names sender, recipient, amount and fee, and is signed with the sender's key. Without that key nobody can move the coins.</p>
+        <p class="muted" data-t="tech.acc.p2">The state root in every header commits to all balances. A node that replays the chain from block 0 arrives at the same balances as every other node, or it rejects the block.</p>
+      </div>
+      <div class="stack" style="--gap:32px">
+        <div class="plate">
+          <p class="plate-title" data-t="tech.tx.title">A transfer, 168 bytes</p>
+          <p class="small" style="margin:8px 0 18px" data-t="tech.tx.p">Plus an optional note of up to 32 bytes. Sizes in bytes.</p>
+          <div class="segbar" role="img" data-ta="aria-label:tech.tx.aria" aria-label="The fields of a transfer and their sizes in bytes">
+            <span style="flex:3" class="s1"><i>3</i></span>
+            <span style="flex:20" class="s2"><i>20</i></span>
+            <span style="flex:20" class="s3"><i>20</i></span>
+            <span style="flex:8" class="s4"><i>8</i></span>
+            <span style="flex:8" class="s5"><i>8</i></span>
+            <span style="flex:8" class="s6"><i>8</i></span>
+            <span style="flex:5" class="s7"><i>5</i></span>
+            <span style="flex:32" class="s8"><i>32</i></span>
+            <span style="flex:64" class="s9"><i>64</i></span>
+          </div>
+          <ol class="seglegend">
+            <li><span class="k s1"></span><span data-t="tech.tx.f1">Version and type</span><span class="mono">3</span></li>
+            <li><span class="k s2"></span><span data-t="tech.tx.f2">Sender address</span><span class="mono">20</span></li>
+            <li><span class="k s3"></span><span data-t="tech.tx.f3">Recipient address</span><span class="mono">20</span></li>
+            <li><span class="k s4"></span><span data-t="tech.tx.f4">Amount</span><span class="mono">8</span></li>
+            <li><span class="k s5"></span><span data-t="tech.tx.f5">Fee</span><span class="mono">8</span></li>
+            <li><span class="k s6"></span><span data-t="tech.tx.f6">Sender's nonce</span><span class="mono">8</span></li>
+            <li><span class="k s7"></span><span data-t="tech.tx.f7">Expiry height and note length</span><span class="mono">5</span></li>
+            <li><span class="k s8"></span><span data-t="tech.tx.f8">Public key</span><span class="mono">32</span></li>
+            <li><span class="k s9"></span><span data-t="tech.tx.f9">Signature</span><span class="mono">64</span></li>
+          </ol>
+        </div>
+        <dl class="facts">
+          <div><dt data-t="tech.acc.f1">Valid once</dt><dd data-t="tech.acc.f1.v">The nonce must equal the number of transfers the sender has made so far, so the same transfer can never be applied twice.</dd></div>
+          <div><dt data-t="tech.acc.f2">Tied to this network</dt><dd data-t="tech.acc.f2.v">The signature covers the chain ID. A transfer signed for YSKAR is invalid anywhere else.</dd></div>
+          <div><dt data-t="tech.acc.f3">Expiry</dt><dd data-t="tech.acc.f3.v">A sender can name a last block height. After it, the transfer can never be included.</dd></div>
+          <div><dt data-t="tech.acc.f4">Note</dt><dd data-t="tech.acc.f4.v">Up to 32 bytes, stored publicly in the chain.</dd></div>
+          <div><dt data-t="tech.acc.f5">Minimum fee</dt><dd data-t="tech.acc.f5.v">1 unit per byte by consensus. Nodes relay from 10 units per byte. Fees go to the miners of the block.</dd></div>
+          <div><dt data-t="tech.acc.f6">A plain transfer costs</dt><dd><span data-t="tech.acc.f6.v">right now at least</span> <span class="mono" data-live="feeStd"></span></dd></div>
+        </dl>
+        <div class="keypath" role="img" data-ta="aria-label:tech.key.aria" aria-label="From 12 words to an address">
+          <div><span class="kp-k" data-t="tech.key.1">Seed words</span><span class="kp-v mono">12 × word</span></div>
+          <div><span class="kp-k" data-t="tech.key.2">Derivation path</span><span class="kp-v mono">m/44'/9077'/0'/0'/0'</span></div>
+          <div><span class="kp-k" data-t="tech.key.3">Key pair</span><span class="kp-v mono">Ed25519</span></div>
+          <div><span class="kp-k" data-t="tech.key.4">Address</span><span class="kp-v mono">ysr1…</span></div>
+        </div>
+        <p class="muted small" data-t="tech.key.p">A wallet is 12 or 24 words (BIP39). The key is derived from them on the device (SLIP-0010), and the address is the first 20 bytes of the SHA-256 hash of the public key, written in bech32m. The words never leave the device that created them.</p>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="nodes" aria-labelledby="tech-nodes-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-nodes-h" data-t="tech.nodes.h">Every node checks every block</h2>
+        <p class="muted" data-t="tech.nodes.p1">A full node stores the whole chain and accepts a block only after it has checked it completely, whether the block comes from another node or from its own miner. The checks run in this order.</p>
+        <a href="/build#node" data-t="tech.nodes.link">Run a full node</a>
+      </div>
+      <div class="stack" style="--gap:32px">
+        <ol class="checks">
+          <li><h3 data-t="check.1">Structure</h3><p class="muted" data-t="tech.check.1">Version, at most 2,000 transactions, exactly one reward transaction in first place, and the transaction root.</p></li>
+          <li><h3 data-t="check.2">Proof of work</h3><p class="muted" data-t="tech.check.2">The hash of the header, applied twice, is not larger than the target of the stated difficulty.</p></li>
+          <li><h3 data-t="check.3">Place in the chain</h3><p class="muted" data-t="tech.check.3">The height is the parent's height plus one, and the previous hash is the hash of the parent.</p></li>
+          <li><h3 data-t="check.4">Timestamp</h3><p class="muted" data-t="tech.check.4">Later than the median of the last 11 blocks, not before the parent, and at most 120 seconds ahead of the node's clock.</p></li>
+          <li><h3 data-t="check.5">Difficulty</h3><p class="muted" data-t="tech.check.5">The stated difficulty lies in the range that follows from the previous blocks.</p></li>
+          <li><h3 data-t="check.6">Every transaction</h3><p class="muted" data-t="tech.check.6">Signature, sender, nonce, balance, fee and expiry of every transfer. The reward transaction pays exactly the block reward plus the fees.</p></li>
+          <li><h3 data-t="check.7">State root</h3><p class="muted" data-t="tech.check.7">The root over all accounts after the block equals the state root in the header.</p></li>
+        </ol>
+        <div class="cols-2">
+          <div class="stack" style="--gap:8px"><h3 data-t="tech.nodes.chain.h">Which chain counts</h3><p class="muted" data-t="tech.nodes.chain.p">The valid chain with the most accumulated work, where the work of a block is its difficulty. A node keeps competing blocks and switches when another branch has more work.</p></div>
+          <div class="stack" style="--gap:8px"><h3 data-t="tech.nodes.pool.h">Pools without custody</h3><p class="muted" data-t="tech.nodes.pool.p">The reward transaction of a block may pay up to 64 addresses. A pool's accounting becomes that transaction, so the chain pays every miner directly and the operator never holds anyone else's coins. <a href='/mining#pools'>How pools work</a></p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="revisions" aria-labelledby="tech-rev-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-rev-h" data-t="tech.rev.h">Rules change at a block height</h2>
+        <p class="muted" data-t="tech.rev.p">A rule change is written into the code together with the height at which it starts. Every node switches at the same block, and every block below that height keeps its rules, byte for byte.</p>
+      </div>
+      <div class="plate">
+        <div class="tbl-scroll">
+          <table class="tbl revs stack-s">
+            <thead><tr><th data-t="tech.rev.c1">Revision</th><th class="n" data-t="tech.rev.c2">From block</th><th data-t="tech.rev.c3">Change</th><th data-t="tech.rev.c4">Status</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">2</td><td class="n" data-t="n.2000">2,000</td><td class="wide" data-t="tech.rev.2">The reward transaction may pay several addresses. Pools are built on this.</td><td data-rev="2000"></td></tr>
+              <tr><td class="mono">3</td><td class="n" data-t="n.4000">4,000</td><td class="wide" data-t="tech.rev.3">A minimum fee per byte replaces the fixed fee, and a smallest amount applies.</td><td data-rev="4000"></td></tr>
+              <tr><td class="mono">4</td><td class="n" data-t="n.6000">6,000</td><td class="wide" data-t="tech.rev.4">The difficulty field can hold values of any size.</td><td data-rev="6000"></td></tr>
+              <tr><td class="mono">5</td><td class="n" data-t="n.7000">7,000</td><td class="wide" data-t="tech.rev.5">Stricter rules for timestamps, block encoding and the reward transaction.</td><td data-rev="7000"></td></tr>
+              <tr><td class="mono">6</td><td class="n" data-t="n.10000">10,000</td><td class="wide" data-t="tech.rev.6">Shared accounts, time and hash locks, batch payments, a new state tree and higher limits.</td><td data-rev="10000"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small" style="margin-top:16px" data-t="tech.rev.note">Revisions 2 to 5 corrected and tightened rules. Revision 6 is the first that adds capabilities, and the first that older nodes cannot follow.</p>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="v6" aria-labelledby="tech-v6-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-v6-h" data-t="tech.v6.h">Revision 6</h2>
+        <p class="muted" data-t="tech.v6.p">The next rule change starts at block 10,000. The community chose that height in a vote on 25 October 2026. It changes the account record, the address format and the transaction format, so that accounts can do more than hold a balance.</p>
+        <div class="display v6-count">
+          <div class="readout"><span class="k" data-t="tech.v6.count">Block 10,000</span><span class="v" data-live="v6State"></span><span class="s" data-live="v6Eta"></span></div>
+        </div>
+        <a class="ext" href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md" target="_blank" rel="noopener" data-t="tech.v6.spec">Read the specification of revision 6</a>
+      </div>
+      <div class="stack" style="--gap:40px">
+        <div class="cols-2 points">
+          <div><h3 data-t="tech.v6.1.h">Shared accounts</h3><p class="muted" data-t="tech.v6.1.p">Accounts that need several signatures to spend, for example 2 of 3, with up to 16 keys. For shared funds and safer savings.</p></div>
+          <div><h3 data-t="tech.v6.2.h">Time locks</h3><p class="muted" data-t="tech.v6.2.p">YSR that can only be spent from a chosen block height on.</p></div>
+          <div><h3 data-t="tech.v6.3.h">Hash locks</h3><p class="muted" data-t="tech.v6.3.p">A payment is released only against a secret, and returns to the sender after a set height. Two parties can trade without trusting each other.</p></div>
+          <div><h3 data-t="tech.v6.4.h">Batch payments</h3><p class="muted" data-t="tech.v6.4.p">One transaction pays up to 1,000 recipients at once.</p></div>
+          <div><h3 data-t="tech.v6.5.h">More room per block</h3><p class="muted" data-t="tech.v6.5.p">Up to 5,000 transactions per block instead of 2,000, and a pool's block can pay up to 255 addresses instead of 64.</p></div>
+          <div><h3 data-t="tech.v6.6.h">A foundation for later</h3><p class="muted" data-t="tech.v6.6.p">A state tree built for many thousands of accounts, addresses with a version, and a fork identifier in every signature.</p></div>
+        </div>
+        <div class="cols-2">
+          <div class="stack" style="--gap:12px">
+            <h3 data-t="tech.v6.same.h">What stays the same</h3>
+            <ul class="ticks"><li data-t="tech.v6.same.1">21 million YSR and the halving schedule</li><li data-t="tech.v6.same.2">10-minute blocks, SHA-256 and the difficulty rules</li><li data-t="tech.v6.same.3">Every address, every key and every balance</li></ul>
+          </div>
+          <div class="stack" style="--gap:12px">
+            <h3 data-t="tech.v6.do.h">What you need to do</h3>
+            <ul class="ticks"><li data-t="tech.v6.do.1">Update your wallet and your node before block 10,000</li><li data-t="tech.v6.do.2">Miners, the GPU miners and the HiveOS package need no update</li><li data-t="tech.v6.do.3">An outdated wallet still receives YSR. It cannot send until it is updated</li></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="limits" aria-labelledby="tech-lim-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-lim-h" data-t="tech.lim.h">Known limits</h2>
+        <p class="muted" data-t="tech.lim.p">What the system does not protect against today. The list comes from the project's own security document.</p>
+        <a class="ext" href="https://github.com/dabitlex/YSKAR/blob/main/docs/SECURITY.md" target="_blank" rel="noopener" data-t="tech.lim.link">The full security model</a>
+      </div>
+      <dl class="plain-list">
+        <div><dt data-t="tech.lim.1.h">A small network</dt><dd data-t="tech.lim.1.p">The network has two seed nodes, both run by the same operator. Proof of work protects a chain only as long as no single party controls most of the hash power, and hash power that mines through one pool is directed by that pool's operator.</dd></div>
+        <div><dt data-t="tech.lim.2.h">No checkpoints</dt><dd data-t="tech.lim.2.p">A node switches to any valid chain with more work, however far back it forks. Treat a transfer as more final the more blocks are built on top of it.</dd></div>
+        <div><dt data-t="tech.lim.3.h">The explorer's data source</dt><dd data-t="tech.lim.3.p">Explorer and apps read from a mirror, a database copy of the chain kept for speed. It is a convenience, not the authority: the chain is what the full nodes agree on.</dd></div>
+        <div><dt data-t="tech.lim.4.h">Pool seats</dt><dd data-t="tech.lim.4.p">A pool has at most 64 seats, 63 if it charges a fee; from revision 6 it is 255 and 254. Opening a session needs only a valid address, so seats can be occupied cheaply.</dd></div>
+        <div><dt data-t="tech.lim.5.h">Open interfaces</dt><dd data-t="tech.lim.5.p">A node's HTTP interface does not limit requests per client. On a public node, a reverse proxy has to do that.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  </div>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</main>
+
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" aria-current="page" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <div class="lang lang--ink" role="group" data-ta="aria-label:nav.lang" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" data-lang="de" aria-pressed="false">Deutsch</button>
+        </div>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+</body>
+</html>

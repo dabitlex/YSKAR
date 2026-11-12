@@ -1,0 +1,60 @@
+/*
+ * Werkzeugbereiche (.t1): Explorer, Netzdiagramme, Rechner, API-Konsole, technische Abschnitte.
+ * Die Bausteine stehen in 80-tools.css; hier bekommen sie Farben, Schrift und Formen des Auftritts.
+ */
+.t1{
+  --housing:var(--night-950);--housing-2:#0A1731;--recess:rgba(2,5,15,.62);--rule:var(--line);--rule-soft:var(--line-2);
+  --display:#060D20;--display-rule:rgba(170,198,255,.13);--display-ink:var(--ice);--display-ink-2:rgba(212,226,255,.62);
+  --plate:#0B1836;--plate-2:#102147;--plate-rule:rgba(170,198,255,.2);--plate-ink:var(--ice);--plate-ink-2:rgba(212,226,255,.7);
+  --ink:var(--ice);--ink-2:rgba(226,236,255,.78);--ink-3:rgba(212,226,255,.56);
+  --signal:#2F7BFF;--signal-deep:#8DB8FF;--signal-ink:#8DB8FF;--live:#63D8FF;--warn:#FFC47A;
+  --f-version:#7C89A6;--f-height:#EEF4FF;--f-prev:#5C9BFF;--f-merkle:#63D8FF;--f-state:#B3A4FF;--f-time:#5BE3AB;--f-diff:#C7D2E6;--f-count:#7C89A6;--f-extra:#D7A257;--f-nonce:#FFC47A;
+  --series-main:#3987E5;--series-gozero:#D95926;--series-solo:#199E70;
+  --font-display:var(--font);--font-text:var(--font);--font-mono:var(--mono);
+  --t-h1:clamp(2.3rem,5.4vw,4.3rem);--t-h2:clamp(1.7rem,3.2vw,2.5rem);--t-h3:1.22rem;
+  --wrap:1360px;--section:clamp(56px,7.5vw,104px);--r-s:10px;--r-m:20px;--stretch:100%;
+  color:var(--ink);font-size:var(--t-body);line-height:1.6;background:var(--night-950);position:relative}
+.t1--top{padding-top:var(--bar-h)}
+.t1 h1,.t1 h2,.t1 .h-display{font-weight:300;letter-spacing:-.035em;font-stretch:100%}
+.t1 h3{font-weight:500}
+.t1 p{max-width:66ch}
+.t1 a{text-decoration-color:rgba(141,184,255,.75);text-decoration-thickness:1px}
+.t1 a:hover{color:#B9D4FF}
+.t1 code{background:rgba(170,198,255,.1);border-radius:6px}
+.t1 .sec.ruled{border-top-color:var(--line)}
+
+.t1 .btn{border-radius:99px;background:var(--lamp);border-color:var(--lamp);color:var(--lamp-ink);font-weight:600;min-height:48px;padding:0 22px;box-shadow:none}
+.t1 .btn:hover{background:#FFD49C;border-color:#FFD49C;color:var(--lamp-ink);box-shadow:none}
+.t1 .btn.small{min-height:38px;padding:0 15px}
+.t1 .btn.ghost,.t1 .display .btn.ghost{background:transparent;color:var(--ice);border-color:rgba(238,244,255,.38)}
+.t1 .btn.ghost:hover,.t1 .display .btn.ghost:hover{border-color:var(--ice);background:rgba(238,244,255,.08);color:var(--ice)}
+.t1 .display .btn,.t1 .plate .btn{background:var(--lamp);border-color:var(--lamp);color:var(--lamp-ink)}
+
+/* keine Kästen: Anzeigen und Tafeln stehen direkt auf der Nacht, getrennt durch eine Haarlinie */
+.t1 .display,.t1 .plate{background:none;box-shadow:none;border-radius:0;padding:clamp(18px,2.2vw,26px) 0 0;border-top:1px solid var(--line);color:var(--ice)}
+.t1 .display .display,.t1 .plate .display,.t1 .display .plate{border-top:0;padding-top:0}
+.t1 .plate.holes{background-image:none}
+.t1 .plate code{background:rgba(170,198,255,.12)}
+.t1 .plate a:hover{color:#B9D4FF}
+.t1 .plate-title{font-stretch:100%;font-weight:500;letter-spacing:-.01em;text-transform:none;font-size:1.125rem}
+.t1 .spec dt{font-stretch:100%;font-weight:500;font-size:.8125rem;letter-spacing:0;text-transform:none}
+.t1 .input,.t1 select,.t1 input[type="text"],.t1 input[type="number"]{border-radius:12px}
+.t1 .page-head{padding-top:clamp(36px,6vw,80px)}
+
+/* Begriffe mit Erklärung und Listen von Verweisen: Zeilen mit Haarlinie */
+.t1 .plain-list:not(.api-notes){display:grid;margin:0;border-top:1px solid var(--line)}
+.t1 .plain-list:not(.api-notes) > div{display:grid;gap:6px;padding:18px 0;border-bottom:1px solid var(--line)}
+.t1 .plain-list dt{font-weight:500;color:var(--ice);font-size:1.0625rem;letter-spacing:-.01em}
+.t1 .plain-list dd{margin:0;color:var(--ice-2);max-width:64ch}
+.t1 .paths{list-style:none;margin:0;padding:0;display:grid;border-top:1px solid var(--line)}
+.t1 .paths li{border-bottom:1px solid var(--line)}
+.t1 .paths a{display:grid;grid-template-columns:minmax(0,1fr) 22px;gap:4px 20px;align-items:center;padding:16px 0;color:var(--ice)}
+.t1 .paths.compact a{padding:16px 0}
+.t1 .paths h3{margin:0;grid-column:1}
+.t1 .paths p{margin:0;grid-column:1;color:var(--ice-2);font-size:.9375rem}
+.t1 .paths .go{grid-column:2;grid-row:1 / span 2;position:relative;width:22px;height:22px}
+.t1 .paths .go.ext-go::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border:0;border-top:1.5px solid var(--ice-2);border-right:1.5px solid var(--ice-2);transform:translate(-3px,-5px)}
+.t1 .paths .go.ext-go::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:1.5px;background:var(--ice-2);transform:translate(-50%,-50%) rotate(-45deg)}
+.t1 .paths a:hover h3{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.t1 .paths a:hover .go.ext-go::before{border-color:var(--ice)}
+.t1 .paths a:hover .go.ext-go::after{background:var(--ice)}

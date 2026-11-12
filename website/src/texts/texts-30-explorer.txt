@@ -1,0 +1,80 @@
+# Explorer: Kopf, Zeitachse, Blockliste, Proof of Work
+
+ex.h1
+  en: Every block is public.
+  de: Jeder Block ist öffentlich.
+ex.lead
+  en: Look up a block, a transfer or an address. Your browser recomputes the proof of work of every block it shows.
+  de: Schlag einen Block, eine Überweisung oder eine Adresse nach. Dein Browser rechnet den Proof of Work jedes angezeigten Blocks selbst nach.
+ex.q.ph
+  en: Block, hash or address
+  de: Block, Hash oder Adresse
+pulse.tip.h
+  en: The last {n} hours
+  de: Die letzten {n} Stunden
+pulse.next
+  en: Block {h} is being mined. {t} since the last block.
+  de: Block {h} wird gerade geschürft. {t} seit dem letzten Block.
+pulse.around.h
+  en: Around block {h}
+  de: Rund um Block {h}
+pulse.around.n
+  en: {n} blocks in these {k} hours
+  de: {n} Blöcke in diesen {k} Stunden
+pulse.now
+  en: now
+  de: jetzt
+pulse.by
+  en: Found by {who}
+  de: Gefunden von {who}
+pulse.alt
+  en: Blocks on a time line. Each light is one block; the distance between two lights is the time between them.
+  de: Blöcke auf einer Zeitachse. Jedes Licht ist ein Block; der Abstand zweier Lichter ist die Zeit zwischen ihnen.
+ex.row.tx
+  en: {n} transfers
+  de: {n} Überweisungen
+ex.row.tx1
+  en: 1 transfer
+  de: 1 Überweisung
+ex.row.tx0
+  en: no transfers
+  de: keine Überweisungen
+ex.proof.h
+  en: The proof of work
+  de: Der Proof of Work
+ex.proof.p
+  en: A miner turns two counters in the header, the nonce and the extranonce, until the hash of all 136 bytes falls below the target. Your browser has just repeated that calculation.
+  de: Ein Miner dreht im Blockkopf zwei Zähler, Nonce und Extranonce, bis der Hash aller 136 Byte unter dem Ziel liegt. Dein Browser hat diese Rechnung gerade wiederholt.
+proof.pick
+  en: Select a field to see what it holds.
+  de: Wähle ein Feld, um zu sehen, was darin steht.
+pulse.around.1
+  en: The only block in these {k} hours
+  de: Der einzige Block in diesen {k} Stunden
+ex.tx.batch
+  en: Batch payment
+  de: Sammelzahlung
+ex.tx.script
+  en: Script account spend
+  de: Ausgabe aus Skript-Konto
+ex.txv.status
+  en: Status
+  de: Status
+ex.txv.waiting
+  en: Waiting for a block
+  de: Wartet auf einen Block
+ex.txv.sumPending
+  en: Sent, but not in a block yet.
+  de: Gesendet, aber noch in keinem Block.
+ex.txv.expected
+  en: Expected in block {h}, in about {min} min, provided nothing with a higher fee arrives.
+  de: Voraussichtlich in Block {h}, in etwa {min} Min., sofern nichts mit höherer Gebühr dazukommt.
+ex.txv.unknownWhen
+  en: Further back in the queue than the forecast reaches.
+  de: Weiter hinten in der Warteschlange, als die Vorausschau reicht.
+ex.addr.waiting
+  en: Waiting
+  de: Wartet
+ex.addr.older
+  en: Load older activity
+  de: Ältere Bewegungen laden

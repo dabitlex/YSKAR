@@ -1,0 +1,245 @@
+# Gerüst: Navigation, Fuß, Seitentitel. Schlüssel, darunter "  en:" und "  de:".
+
+nav.skip
+  en: Skip to content
+  de: Zum Inhalt springen
+nav.main
+  en: Main navigation
+  de: Hauptnavigation
+nav.menu
+  en: Menu
+  de: Menü
+nav.close
+  en: Close
+  de: Schließen
+nav.lang
+  en: Language
+  de: Sprache
+nav.tick
+  en: Block
+  de: Block
+nav.tick.title
+  en: The newest block. Open the live network page.
+  de: Der neueste Block. Zur Live-Seite des Netzes.
+cta.join
+  en: Take part
+  de: Mitmachen
+
+nav.g.part
+  en: Take part
+  de: Mitmachen
+nav.g.know
+  en: Understand
+  de: Verstehen
+nav.g.join
+  en: Join in
+  de: Dabei sein
+
+nav.start
+  en: Where to begin
+  de: Womit anfangen
+nav.start.d
+  en: Five ways in, each with its first step
+  de: Fünf Wege hinein, jeder mit seinem ersten Schritt
+nav.mine
+  en: Mine
+  de: Mining
+nav.mine.d
+  en: Find blocks with a phone, a PC or a graphics card
+  de: Blöcke finden mit Handy, PC oder Grafikkarte
+nav.wallet
+  en: Wallet
+  de: Wallet
+nav.wallet.d
+  en: Twelve words that only you hold
+  de: Zwölf Wörter, die nur du hast
+nav.node
+  en: Run a node
+  de: Knoten betreiben
+nav.node.d
+  en: Check every block yourself
+  de: Jeden Block selbst prüfen
+nav.ysr
+  en: YSR
+  de: YSR
+nav.ysr.d
+  en: 21 million, every one of them mined
+  de: 21 Millionen, jeder einzelne geschürft
+nav.chain
+  en: The chain
+  de: Die Kette
+nav.chain.d
+  en: A blockchain of its own, and how it proves itself
+  de: Eine eigene Blockchain und wie sie sich beweist
+nav.network
+  en: Network, live
+  de: Netz, live
+nav.network.d
+  en: What the chain is doing right now
+  de: Was die Kette gerade tut
+nav.explorer
+  en: Explorer
+  de: Explorer
+nav.explorer.d
+  en: Every block, every transfer, every address
+  de: Jeder Block, jede Überweisung, jede Adresse
+nav.community
+  en: Community
+  de: Community
+nav.community.d
+  en: Where the project talks and decides
+  de: Wo das Projekt redet und entscheidet
+nav.build
+  en: Build
+  de: Entwickeln
+nav.build.d
+  en: Open code, a public API, proposals
+  de: Offener Code, öffentliche API, Vorschläge
+nav.story
+  en: Story and next steps
+  de: Geschichte und nächste Schritte
+nav.story.d
+  en: From block 0 to today, and what comes after
+  de: Von Block 0 bis heute, und was danach kommt
+
+foot.claim
+  en: Fair from block 0.
+  de: Fair von Block 0 an.
+foot.sub
+  en: YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.
+  de: YSKAR ist ein Community-Projekt. Dahinter steht kein Unternehmen, und niemandem muss man glauben: Jeder Block lässt sich nachprüfen.
+foot.nav
+  en: All pages
+  de: Alle Seiten
+foot.whitepaper
+  en: White paper
+  de: Whitepaper
+foot.find
+  en: Find YSKAR
+  de: YSKAR finden
+foot.imprint
+  en: Legal notice
+  de: Impressum
+foot.privacy
+  en: Privacy
+  de: Datenschutz
+foot.license
+  en: Open source under the MIT License
+  de: Open Source unter der MIT-Lizenz
+
+title.home
+  en: Fair from block 0
+  de: Fair von Block 0 an
+title.start
+  en: Where to begin
+  de: Womit anfangen
+title.mine
+  en: Mining
+  de: Mining
+title.wallet
+  en: YSKAR Wallet
+  de: YSKAR Wallet
+title.node
+  en: Run a node
+  de: Knoten betreiben
+title.ysr
+  en: YSR, the coin
+  de: YSR, die Münze
+title.chain
+  en: The chain
+  de: Die Kette
+title.network
+  en: Network, live
+  de: Netz, live
+title.explorer
+  en: Explorer
+  de: Explorer
+title.build
+  en: Build on YSKAR
+  de: Auf YSKAR entwickeln
+title.community
+  en: Community
+  de: Community
+title.story
+  en: Story and next steps
+  de: Geschichte und nächste Schritte
+
+ui.copied
+  en: Copied
+  de: Kopiert
+ui.copy
+  en: Copy
+  de: Kopieren
+ui.sample
+  en: The screen shows sample data.
+  de: Der Bildschirm zeigt Beispieldaten.
+
+# Abschluss jeder Seite: Morgengrauen
+dawn.h
+  en: It's still early here.
+  de: Hier ist es noch früh.
+dawn.p
+  en: Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.
+  de: Tag <span data-live='day'></span>. Über diesem Netz wird es gerade erst hell. Wer es prägt, entscheidet sich jetzt: mit denen, die da sind.
+dawn.cta2
+  en: Read the story so far
+  de: Die Geschichte bis heute
+dawn.alt
+  en: The same fjord at first light: a pale sky over snow-covered mountains and still water.
+  de: Derselbe Fjord im ersten Licht: heller Himmel über verschneiten Bergen und stillem Wasser.
+
+# Dokumentseiten
+nav.guides
+  en: Guides
+  de: Anleitungen
+nav.guides.d
+  en: Every way to take part, step by step
+  de: Jeder Weg zum Mitmachen, Schritt für Schritt
+nav.protocol
+  en: Protocol
+  de: Protokoll
+nav.protocol.d
+  en: Coin, chain and wallets, byte by byte
+  de: Münze, Kette und Wallets, Byte für Byte
+nav.paper.d
+  en: The system as it is implemented
+  de: Das System, wie es umgesetzt ist
+title.guides
+  en: Guides
+  de: Anleitungen
+title.protocol
+  en: Protocol
+  de: Protokoll
+title.paper
+  en: White paper
+  de: Whitepaper
+title.imprint
+  en: Legal notice
+  de: Impressum
+title.privacy
+  en: Privacy
+  de: Datenschutz
+doc.toc
+  en: On this page
+  de: Auf dieser Seite
+foot.live
+  en: The figures on these pages are read live from the public YSKAR API.
+  de: Die Zahlen auf diesen Seiten kommen live aus der öffentlichen YSKAR-API.
+foot.stale
+  en: The public YSKAR API is not answering right now. These pages show the chain as it stood on {date} (block {h}) and catch up on their own.
+  de: Die öffentliche YSKAR-API antwortet gerade nicht. Diese Seiten zeigen die Kette, wie sie am {date} stand (Block {h}), und holen den neuen Stand von selbst nach.
+title.notfound
+  en: Page not found
+  de: Seite nicht gefunden
+nf.h
+  en: This page does not exist.
+  de: Diese Seite gibt es nicht.
+nf.p
+  en: The link may be mistyped, or the page has moved. The chain itself is right where it was.
+  de: Vielleicht ist der Link vertippt, oder die Seite ist umgezogen. Die Kette selbst ist, wo sie war.
+nf.home
+  en: To the start page
+  de: Zur Startseite
+nf.explorer
+  en: Look something up in the explorer
+  de: Im Explorer nachschlagen

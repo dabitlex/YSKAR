@@ -1,0 +1,79 @@
+/*
+ * YSKAR Website – Gestaltung „Erstes Licht“
+ *
+ * Leitidee: Ein Netz ist ein Ort. Nacht über einem Fjord, am Ufer brennt für jeden Knoten ein Licht,
+ * am Himmel liegt die Kette als Band aus Licht. Kaltes Blau steht für die Kette (Beweis),
+ * warmes Lampenlicht für die Menschen (Mitmachen). Die Seite endet im Morgengrauen: Es ist früh.
+ *
+ * Schrift: Hanken Grotesk in einer Familie – groß und leicht für Aussagen, klein und kräftig für Bedienung.
+ * Geist Mono nur für Kettendaten (Blocknummern, Hashes, Adressen).
+ */
+@font-face{font-family:'Hanken Grotesk';font-style:normal;font-display:swap;font-weight:100 900;
+  src:url({{ASSET:hanken-grotesk-latin.woff2}}) format('woff2')}
+@font-face{font-family:'Geist Mono';font-style:normal;font-display:swap;font-weight:100 900;
+  src:url({{ASSET:geist-mono-variable.woff2}}) format('woff2')}
+
+:root{
+  color-scheme:dark;
+
+  /* Nacht */
+  --night-950:#02050F;
+  --night-900:#040A1A;
+  --night-800:#071229;
+  --night-700:#0B1C40;
+  --night-600:#10295E;
+
+  /* Schrift auf der Nacht */
+  --ice:#EEF4FF;
+  --ice-2:rgba(226,236,255,.76);
+  --ice-3:rgba(212,226,255,.54);
+  --line:rgba(170,198,255,.17);
+  --line-2:rgba(170,198,255,.09);
+
+  /* Band (Markenverlauf des Y-Zeichens) */
+  --ribbon-1:#63D8FF;
+  --ribbon-2:#2F7BFF;
+  --ribbon-3:#1B4FD1;
+
+  /* Lampenlicht */
+  --lamp:#FFC47A;
+  --lamp-2:#FFAE52;
+  --lamp-ink:#1B1205;
+
+  /* Tag (Fuß der Seite, helle Flächen) */
+  --day:#EDF1F7;
+  --day-2:#DCE4F0;
+  --ink:#0A1530;
+  --ink-2:#3B4967;
+  --ink-line:rgba(10,21,48,.14);
+
+  --ok:#5BE3AB;
+  --bad:#FF8E8E;
+
+  --font:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+
+  /* Schriftgrade */
+  --t-mega:clamp(3.5rem,13.4vw,11.5rem);
+  --t-xl:clamp(2.75rem,8.4vw,6.9rem);
+  --t-l:clamp(2.05rem,5.4vw,4.3rem);
+  --t-m:clamp(1.6rem,3.2vw,2.5rem);
+  --t-s:clamp(1.22rem,1.9vw,1.5rem);
+  --t-lead:clamp(1.1rem,1.5vw,1.32rem);
+  --t-body:1.0625rem;
+  --t-small:.9375rem;
+  --t-micro:.8125rem;
+
+  /* Maße */
+  --gutter:clamp(20px,4.6vw,64px);
+  --wrap:1360px;
+  --section:clamp(92px,13vw,196px);
+  --bar-h:68px;
+  --r-media:22px;
+
+  --ease:cubic-bezier(.2,.7,.1,1);
+  --ease-io:cubic-bezier(.6,0,.2,1);
+}
+@media (max-width:720px){
+  :root{--bar-h:60px;--r-media:16px}
+}

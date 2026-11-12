@@ -1,0 +1,167 @@
+/* ---------- Scroll-Szenen der Unterseiten: Bühne bleibt stehen, Aussagen wechseln ---------- */
+.story{position:relative;background:var(--night-950)}
+.story__sticky{position:sticky;top:0;height:100lvh;overflow:hidden;background:radial-gradient(90% 60% at 64% 46%,rgba(16,41,94,.5),transparent 70%),var(--night-950)}
+.story__stage{position:absolute;inset:0}
+.story__stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.story__sticky::after{content:"";position:absolute;inset:auto 0 0 0;height:52%;pointer-events:none;z-index:2;
+  background:linear-gradient(180deg,rgba(2,5,15,0),rgba(2,5,15,.88) 60%,var(--night-950))}
+.story__caps{position:absolute;z-index:3;inset:0;pointer-events:none}
+.story__cap{position:absolute;left:var(--gutter);right:var(--gutter);bottom:calc(100lvh - 100svh + clamp(92px,13vh,140px));max-width:31rem;display:grid;gap:14px;justify-items:start;
+  opacity:0;visibility:hidden;will-change:transform,opacity}
+.story__cap.is-on{pointer-events:auto}
+.story__cap .lead{color:var(--ice-2)}
+.story__k{font-family:var(--mono);font-size:var(--t-small);color:var(--lamp)}
+@media (min-width:900px){
+  .story__sticky::after{inset:0 auto 0 0;width:54%;height:auto;background:linear-gradient(90deg,var(--night-950) 0%,rgba(2,5,15,.8) 58%,rgba(2,5,15,0))}
+  .story__cap{bottom:auto;top:30vh;right:auto;width:min(33rem,38vw);max-width:none}
+}
+.story.is-calm{height:auto !important}
+.story.is-calm .story__sticky{position:relative;height:auto;overflow:visible}
+.story.is-calm .story__sticky::after{display:none}
+.story.is-calm .story__stage{position:relative;height:62vh}
+.story.is-calm .story__caps{position:static;display:grid;gap:44px;padding-block:44px}
+.story.is-calm .story__cap{position:static;opacity:1;visibility:visible;pointer-events:auto;transform:none;width:auto}
+@media (min-width:900px){
+  /* ruhige Fassung auf breiten Schirmen: Aussagen links untereinander, die Bühne steht daneben über die ganze Höhe */
+  .story.is-calm .story__sticky{display:grid;align-content:center;min-height:min(100vh,880px);padding-block:clamp(72px,11vh,130px)}
+  .story.is-calm .story__sticky::after{display:block}
+  .story.is-calm .story__stage{position:absolute;inset:0;height:auto}
+  .story.is-calm .story__caps{position:relative;padding-block:0}
+  .story.is-calm .story__cap{max-width:min(33rem,38vw)}
+}
+
+/* YSR: 21 Millionen als Lichtfeld */
+.story--field{height:560lvh}
+.field__legend{position:absolute;z-index:3;left:var(--gutter);top:calc(var(--bar-h) + 14px);display:flex;flex-wrap:wrap;gap:4px 18px;font-size:var(--t-micro);color:var(--ice-3);pointer-events:none}
+.field__legend span{display:inline-flex;align-items:center;gap:8px}
+.field__legend i{width:7px;height:7px;border-radius:2px;display:inline-block}
+
+/* Wallet: Handy mit echten Bildschirmen */
+.story--phone{height:620lvh}
+.story--phone .story__sticky{background:radial-gradient(70% 55% at 72% 26%,rgba(255,170,80,.15),transparent 70%),radial-gradient(90% 60% at 20% 90%,rgba(16,41,94,.5),transparent 70%),var(--night-950)}
+.phone{position:absolute;left:50%;top:calc(var(--bar-h) + 2.5vh);height:min(52svh,500px);aspect-ratio:1 / 2.06;transform:translateX(-50%);border-radius:11% / 5.4%;background:#04060B;
+  box-shadow:0 0 0 1.5px #232B3D,0 0 0 6px #080B12,0 0 0 7px #1A2030,0 50px 120px -24px rgba(0,0,0,.95),0 0 110px -30px rgba(255,180,90,.3)}
+.phone::before{content:"";position:absolute;left:50%;top:2.1%;width:3.2%;aspect-ratio:1;border-radius:50%;background:#0C1018;transform:translateX(-50%);z-index:2}
+.phone img{position:absolute;left:3.2%;right:3.2%;top:3.4%;width:93.6%;height:auto;border-radius:8% / 4%;opacity:0;transform:scale(1.03);transition:opacity .55s var(--ease),transform .9s var(--ease)}
+.phone img.is-on{opacity:1;transform:none}
+@media (min-width:900px){
+  .phone{left:auto;right:calc(var(--gutter) + 8vw);top:50%;height:min(76vh,740px);transform:translateY(-50%)}
+}
+.story.is-calm .phone{position:relative;left:auto;right:auto;top:auto;transform:none;margin:24px auto}
+@media (min-width:900px){
+  .story.is-calm .phone{position:sticky;left:auto;right:auto;top:calc(var(--bar-h) + 5vh);transform:none;margin:clamp(72px,11vh,130px) calc(var(--gutter) + 8vw) clamp(72px,11vh,130px) auto}
+  .story.is-calm .field__legend{left:auto;right:var(--gutter);top:clamp(28px,5vh,56px)}
+}
+
+/* Zwölf Wörter */
+.words{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 34px;width:100%;max-width:520px}
+.words li{display:grid;grid-template-columns:1.6em minmax(0,1fr);align-items:end;gap:8px;border-bottom:1px solid rgba(255,196,122,.2);padding-bottom:6px}
+.words li span{font-family:var(--mono);font-size:var(--t-micro);color:rgba(255,196,122,.6)}
+.words svg{width:100%;height:26px;overflow:visible}
+.words path{fill:none;stroke:var(--lamp);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0}
+html.anim .words path{stroke-dashoffset:1;transition:stroke-dashoffset 1.1s var(--ease-io)}
+html.anim .words.in path{stroke-dashoffset:0}
+
+/* Befehle und Prüfwerte */
+.term{position:relative;width:100%;border-radius:18px;background:rgba(6,13,32,.9);box-shadow:inset 0 0 0 1px var(--line);padding:20px 20px 18px;min-width:0}
+.term pre,.term code{margin:0;font-family:var(--mono);font-size:.875rem;line-height:1.65;color:var(--ice);white-space:pre-wrap;overflow-wrap:anywhere;background:none;padding:0}
+.term pre{font-size:clamp(.65rem,3.25vw,.875rem)}
+.term .ln{display:block;padding-left:2ch;text-indent:-2ch}
+.term .c{color:var(--ice-3)}
+.term__copy{position:absolute;right:12px;top:12px;font-size:.8125rem;font-weight:500;padding:7px 13px;border-radius:99px;color:var(--ice);background:rgba(4,10,26,.9);box-shadow:inset 0 0 0 1px rgba(238,244,255,.3);transition:background-color .2s}
+.term__copy:hover{background:rgba(238,244,255,.12)}
+.term--fp code{font-size:clamp(.8rem,2.6vw,1rem);letter-spacing:.02em;color:var(--lamp)}
+.term--pad{padding-top:52px}
+
+/* Mining: Der Block zahlt aus */
+.story--pay{height:450lvh}
+/* Die Kette: ein Block, drei Schritte */
+.story--forge{height:400lvh}
+
+/* Setup wählen */
+.setup__tabs{display:flex;flex-wrap:wrap;gap:8px}
+.setup__tabs button{min-height:46px;padding:10px 20px;border-radius:99px;font-weight:500;color:var(--ice-2);box-shadow:inset 0 0 0 1px var(--line);transition:background-color .2s,color .2s}
+.setup__tabs button:hover{color:var(--ice);background:rgba(238,244,255,.07)}
+.setup__tabs button[aria-selected="true"]{background:var(--ice);color:var(--night-900);box-shadow:none}
+.setup__panel{display:grid;gap:clamp(28px,4vw,72px);padding-top:clamp(30px,4vw,52px);align-items:start}
+.setup__txt{display:grid;gap:18px;justify-items:start}
+.setup__txt h3{font-size:var(--t-m);font-weight:350;letter-spacing:-.028em;line-height:1.08}
+.setup__txt > p{color:var(--ice-2);max-width:40em}
+@media (min-width:940px){.setup__panel{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.nlist{display:grid;gap:10px;counter-reset:nl;width:100%}
+.nlist li{counter-increment:nl;display:grid;grid-template-columns:1.6em minmax(0,1fr);gap:8px;color:var(--ice-2)}
+.nlist li::before{content:counter(nl);font-family:var(--mono);color:var(--lamp)}
+.kv2{display:grid;border-top:1px solid var(--line);width:100%}
+.kv2 > div{display:grid;gap:4px;padding-block:14px;border-bottom:1px solid var(--line)}
+.kv2 dt{font-size:var(--t-small);color:var(--ice-3)}
+.kv2 dd{color:var(--ice-2)}
+.kv2 code,.setup__txt code,.steps code{font-family:var(--mono);font-size:.9em;background:rgba(170,198,255,.1);padding:.1em .38em;border-radius:6px}
+@media (min-width:700px){.kv2 > div{grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:20px}}
+
+/* Rechner als Satz */
+.calcx{display:grid;gap:clamp(30px,4vw,56px)}
+.calcx__say{font-size:var(--t-m);font-weight:300;letter-spacing:-.02em;line-height:1.7;display:flex;flex-wrap:wrap;align-items:baseline;gap:.2em .45em}
+.calcx__say input,.calcx__say select{font:inherit;font-weight:400;color:var(--lamp);background:transparent;border:0;border-bottom:2px solid rgba(255,196,122,.55);border-radius:0;padding:0 .1em;min-height:44px;outline-offset:4px}
+.calcx__say input{width:4.2em;text-align:center}
+.calcx__say select{appearance:none;-webkit-appearance:none;padding-right:.9em;background:linear-gradient(45deg,transparent 50%,var(--lamp) 50%) right .28em center / .32em .32em no-repeat,linear-gradient(-45deg,transparent 50%,var(--lamp) 50%) right 0 center / .32em .32em no-repeat;cursor:pointer;max-width:100%}
+.calcx__say select option{color:#111;background:#fff}
+.calcx__seg{display:inline-flex;gap:4px;padding:4px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--line);vertical-align:middle}
+.calcx__seg button{font-size:1rem;font-weight:500;padding:8px 16px;border-radius:99px;color:var(--ice-2);min-height:40px;letter-spacing:0}
+.calcx__seg button[aria-pressed="true"]{background:var(--ice);color:var(--night-900)}
+.calcx__out{display:grid;gap:18px}
+.calcx__k{font-size:var(--t-small);color:var(--ice-3)}
+.calcx__big{font-size:var(--t-xl);font-weight:300;letter-spacing:-.045em;line-height:1;color:var(--ice)}
+.calcx__row{display:flex;flex-wrap:wrap;gap:14px 44px;padding-top:6px}
+.calcx__row > div{display:grid;gap:2px}
+.calcx__row b{font-family:var(--mono);font-weight:400;font-size:1.25rem}
+.calcx dl{display:grid;border-top:1px solid var(--line)}
+.calcx dl > div{display:flex;justify-content:space-between;gap:20px;padding-block:11px;border-bottom:1px solid var(--line);font-size:var(--t-small)}
+.calcx dl dt{color:var(--ice-3)}
+.calcx dl dd{font-family:var(--mono);text-align:right}
+@media (min-width:940px){.calcx{grid-template-columns:minmax(0,6fr) minmax(0,5fr);align-items:start}}
+
+/* Pools, live */
+.pools{display:grid;border-top:1px solid var(--line)}
+.pool{display:grid;gap:12px;padding-block:clamp(20px,2.6vw,30px);border-bottom:1px solid var(--line)}
+.pool__top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px}
+.pool__name{font-size:var(--t-m);font-weight:350;letter-spacing:-.028em;line-height:1.1}
+.pool__host{font-family:var(--mono);font-size:var(--t-small);color:var(--ice-3)}
+.pool__bar{height:4px;border-radius:4px;background:var(--line);position:relative}
+.pool__bar i{position:absolute;inset:0 auto 0 0;border-radius:4px;background:linear-gradient(90deg,var(--ribbon-3),var(--ribbon-1));transition:width 1.4s var(--ease)}
+.pool__meta{display:flex;flex-wrap:wrap;gap:6px 30px;font-size:var(--t-small);color:var(--ice-2)}
+.pool__meta b{font-family:var(--mono);font-weight:400;color:var(--ice)}
+
+/* Laternen gehen an: zwei deckungsgleiche Fotos, das helle blendet ein */
+.lanterns__on{opacity:0}
+.is-lit > .lanterns__on{opacity:1;transition:opacity 3.4s ease .5s}
+html.no-anim .lanterns__on{opacity:1}
+
+/* Knoten: das Ufer mit den Lichtern, eine ganze Bildhöhe. Oben der Satz im Himmel, in der Mitte die Lichter, unten der Knopf. */
+.shore{position:relative;min-height:max(100svh,680px);background:var(--night-950);overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.shore__stage{position:absolute;inset:0;overflow:hidden;background:var(--night-800)}
+.shore__inner{position:absolute;inset:0;transform-origin:50% 60%}
+.shore__photo{position:absolute;left:0;top:0;max-width:none}
+.shore__lights{position:absolute;inset:0;pointer-events:none}
+.shore__stage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,var(--night-950) 0%,rgba(2,5,15,.74) 13%,rgba(2,5,15,.3) 36%,rgba(2,5,15,0) 50%,rgba(2,5,15,0) 68%,rgba(2,5,15,.62) 88%,var(--night-950) 100%)}
+.shore__top{position:relative;padding-top:clamp(92px,13vh,150px)}
+.shore__say{font-size:clamp(2.2rem,5.4vw,4.6rem);font-weight:300;letter-spacing:-.04em;line-height:.98;max-width:15.5em;text-wrap:balance}
+.shore__bottom{position:relative;display:grid;gap:14px;justify-items:start;padding-bottom:clamp(104px,14vh,132px)}
+.shore__bottom .row{--gap:22px}
+.shore__note{min-height:2.9em;max-width:34em;color:var(--ice-2)}
+@media (min-width:900px){.shore__bottom{padding-bottom:clamp(52px,8vh,92px)}}
+.light.is-mine{background:#FFF3DC;animation:mine 2.2s var(--ease) 1,flicker var(--d,3s) ease-in-out 2.2s infinite alternate}
+.light.is-mine::before{content:"";position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,214,160,.85);animation:ring 2.2s var(--ease) 2 both}
+.light__tag{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);font:500 .6875rem/1 var(--mono);font-style:normal;color:var(--lamp);white-space:nowrap;letter-spacing:.02em}
+@keyframes mine{0%{opacity:0;transform:scale(.2)}35%{opacity:1;transform:scale(2.8)}100%{opacity:var(--o,1);transform:scale(1)}}
+@keyframes ring{0%{transform:scale(.4);opacity:1}100%{transform:scale(6);opacity:0}}
+html.no-anim .light.is-mine,html.no-anim .light.is-mine::before{animation:none}
+
+/* Knoten: das Logbuch der Kette. Jede Zeile ein Tag, jeder Strich ein Block. */
+.log{display:grid;gap:14px;width:100%;min-width:0}
+.log__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.log__n{display:grid;gap:6px;font-size:var(--t-xl);font-weight:300;letter-spacing:-.045em;line-height:.9;font-variant-numeric:tabular-nums}
+.log__n small{font-size:var(--t-micro);font-weight:400;letter-spacing:0;line-height:1.3;color:var(--ice-3)}
+.log__d{font-size:var(--t-small);color:var(--ice-2);text-align:right;padding-bottom:.35em;white-space:nowrap}
+.log__field{position:relative;width:100%;min-width:0}
+.log__field canvas{display:block;width:100%;touch-action:pan-y}
