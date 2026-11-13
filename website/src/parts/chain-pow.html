@@ -1,0 +1,40 @@
+<section class="sec ruled" id="pow" aria-labelledby="tech-pow-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="tech-pow-h" data-t="tech.pow.h"></h2>
+        <p class="muted" data-t="tech.pow.p1"></p>
+        <div class="code formula" aria-label="target = floor(2^240 / difficulty)">target = floor(2<sup>240</sup> / difficulty)
+valid:  sha256(sha256(header)) ≤ target</div>
+        <p class="muted" data-t="tech.pow.p2"></p>
+      </div>
+      <div class="display miner" id="miner">
+        <div class="display-head">
+          <span class="display-title" data-t="miner.title"></span>
+          <span class="state fixed" data-t="miner.state"></span>
+        </div>
+        <p data-t="miner.intro"></p>
+        <div class="miner-ctl">
+          <div class="field">
+            <label for="miner-bits" data-t="miner.bits"></label>
+            <input type="range" id="miner-bits" min="8" max="24" step="1" value="16">
+            <output class="mono" id="miner-odds" for="miner-bits"></output>
+          </div>
+          <button type="button" class="btn" id="miner-go" data-t="miner.start"></button>
+        </div>
+        <hr>
+        <div class="readouts">
+          <div class="readout"><span class="k" data-t="miner.attempts"></span><span class="v" id="miner-n">0</span></div>
+          <div class="readout"><span class="k" data-t="miner.speed"></span><span class="v" id="miner-rate">—</span></div>
+          <div class="readout"><span class="k" data-t="miner.time"></span><span class="v" id="miner-time">—</span></div>
+          <div class="readout"><span class="k" data-t="miner.nonce"></span><span class="v" id="miner-nonce">—</span></div>
+        </div>
+        <hr>
+        <div class="trace">
+          <div class="tline"><span class="k" id="miner-hash-k" data-t="miner.hash"></span><code class="hexline" id="miner-hash">—</code></div>
+          <div class="tline"><span class="k" data-t="miner.target"></span><code class="hexline" id="miner-target"></code></div>
+        </div>
+        <p class="verdict" id="miner-verdict" role="status"></p>
+        <p class="fig-cap" id="miner-real"></p>
+      </div>
+    </div>
+  </section>

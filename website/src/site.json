@@ -1,0 +1,116 @@
+{
+  "origin": "https://www.yskar.app",
+  "languages": [
+    { "id": "en", "name": "English", "locale": "en-US" },
+    { "id": "de", "name": "Deutsch", "locale": "de-DE" },
+    { "id": "es", "name": "Español", "locale": "es-ES" },
+    { "id": "pt", "name": "Português", "locale": "pt-BR" },
+    { "id": "fr", "name": "Français", "locale": "fr-FR" },
+    { "id": "it", "name": "Italiano", "locale": "it-IT" },
+    { "id": "pl", "name": "Polski", "locale": "pl-PL" },
+    { "id": "ru", "name": "Русский", "locale": "ru-RU" },
+    { "id": "tr", "name": "Türkçe", "locale": "tr-TR" },
+    { "id": "zh", "name": "中文", "locale": "zh-CN" }
+  ],
+  "written": ["en", "de"],
+  "shareImage": "/assets/img/og-yskar.jpg",
+  "shareImageAlt": "YSKAR – proof, not promise.",
+  "versions": {
+    "NODE_CORE": "1.1.0",
+    "APP": "1.1.1",
+    "WALLET": "2.0.0"
+  },
+  "pages": [
+    {
+      "id": "home", "file": "index.html", "path": "/",
+      "desc": "YSKAR is a proof-of-work currency with a blockchain of its own. Nothing was handed out in advance: every YSR is mined, and anyone can check every block.",
+      "legacy": {
+        "ablauf": "/chain",
+        "kette-live": "/network",
+        "pruefen": "/#proof",
+        "menge": "/ysr#supply",
+        "v6": "/chain#v6",
+        "fahrplan": "/story#milestones",
+        "nutzen": "/start",
+        "wallet": "/wallet",
+        "adresse": "/explorer",
+        "fullnode": "/node",
+        "fragen": "/start"
+      }
+    },
+    {
+      "id": "start", "file": "start.html", "path": "/start",
+      "desc": "Taking part in YSKAR costs nothing: create a wallet, mine with a phone or a PC, run a node or simply watch the chain. Pick the way in that suits you."
+    },
+    {
+      "id": "mine", "file": "mining.html", "path": "/mining",
+      "desc": "New YSR come from mining and from nowhere else. Mine with a phone, a PC or a graphics card, alone or in a pool. With a calculator based on live chain data.",
+      "legacy": {
+        "wege": "/mining#setup",
+        "nodecore": "/mining#setup",
+        "rechner-block": "/mining#calculator",
+        "rechner": "/mining#calculator"
+      }
+    },
+    {
+      "id": "wallet", "file": "wallet.html", "path": "/wallet",
+      "desc": "YSKAR Wallet is the Android app for YSR: send, receive, sign. Your key is created on your phone and stays there. No ads, no tracking, no account."
+    },
+    {
+      "id": "node", "file": "node.html", "path": "/node",
+      "desc": "A full node checks every block itself, from block 0, and passes it on. Run YSKAR Node Core on Windows or Linux and help keep the network hard to bend."
+    },
+    {
+      "id": "ysr", "file": "ysr.html", "path": "/ysr",
+      "desc": "YSR is the coin of the YSKAR chain. There will never be more than 21,000,000, and nothing was pre-mined or allocated: every YSR comes from a found block."
+    },
+    {
+      "id": "chain", "file": "chain.html", "path": "/chain",
+      "desc": "YSKAR runs on a chain of its own: its own blocks, its own peer-to-peer network and its own rules, proven with work that anyone can check."
+    },
+    {
+      "id": "network", "file": "network.html", "path": "/network",
+      "desc": "What the YSKAR chain is doing right now, read from the public API: block height, hashrate, nodes, block times and who found the latest blocks."
+    },
+    {
+      "id": "explorer", "file": "explorer.html", "path": "/explorer",
+      "desc": "Look up a YSKAR block, a transfer or an address. Your browser recomputes the proof of work of every block it shows."
+    },
+    {
+      "id": "build", "file": "build.html", "path": "/build",
+      "desc": "All of YSKAR is open source under the MIT License: node, wallets, miners, explorer and website. A public API answers without a key."
+    },
+    {
+      "id": "community", "file": "community.html", "path": "/community",
+      "desc": "YSKAR is a community project and belongs to the people who use it. This is where they talk, test and decide."
+    },
+    {
+      "id": "story", "file": "story.html", "path": "/story",
+      "desc": "Where YSKAR comes from, what runs today and what comes next. Changes take effect at a block, not on a calendar day."
+    },
+    {
+      "id": "guides", "file": "anleitungen.html", "path": "/anleitungen",
+      "desc": "Step by step: mining on the phone and on the PC, your wallet, your own node and your own pool."
+    },
+    {
+      "id": "protocol", "file": "protokoll.html", "path": "/protokoll",
+      "desc": "The YSKAR protocol in detail: coin, chain and wallets in one datasheet, the 136-byte block header, the transfer format and block 0."
+    },
+    {
+      "id": "paper", "file": "whitepaper.html", "path": "/whitepaper",
+      "desc": "The YSKAR whitepaper: blocks, transactions, proof of work, difficulty, issuance, wallets, pool mining and the network."
+    },
+    {
+      "id": "imprint", "file": "impressum.html", "path": "/impressum",
+      "desc": "Legal notice (Impressum) of yskar.app."
+    },
+    {
+      "id": "privacy", "file": "datenschutz.html", "path": "/datenschutz",
+      "desc": "Privacy policy of yskar.app."
+    },
+    {
+      "id": "notfound", "file": "404.html", "path": null,
+      "desc": "This page does not exist."
+    }
+  ]
+}

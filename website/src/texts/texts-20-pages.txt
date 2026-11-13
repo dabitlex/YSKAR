@@ -1,0 +1,651 @@
+# Unterseiten. Schlüssel, darunter "  en:" und "  de:".
+
+# ---------- Womit anfangen ----------
+start.h1
+  en: Pick your way in.
+  de: Such dir deinen Weg hinein.
+start.lead
+  en: Taking part costs nothing. Start with whatever suits you; the same twelve words open every door later.
+  de: Mitmachen kostet nichts. Fang mit dem an, was zu dir passt; dieselben zwölf Wörter öffnen später jede weitere Tür.
+start.1.h
+  en: I want to hold and send YSR
+  de: Ich will YSR halten und senden
+start.1.p
+  en: Install the Android wallet, write twelve words on paper, show your address. That is all it takes to receive.
+  de: Installier die Android-Wallet, schreib zwölf Wörter auf Papier, zeig deine Adresse. Mehr braucht es nicht, um zu empfangen.
+start.1.do
+  en: To the wallet
+  de: Zur Wallet
+start.2.h
+  en: I want to mine
+  de: Ich will schürfen
+start.2.p
+  en: Begin with the device you already have: Node Core on a PC, the Android app on a phone, the command line on a rig.
+  de: Fang mit dem Gerät an, das du schon hast: Node Core auf dem PC, die Android-App auf dem Handy, die Kommandozeile auf dem Rig.
+start.2.do
+  en: To mining
+  de: Zum Mining
+start.3.h
+  en: I want to check the chain myself
+  de: Ich will die Kette selbst prüfen
+start.3.p
+  en: Run a node. It verifies every block from block 0 and becomes one more light on the shore.
+  de: Betreib einen Knoten. Er prüft jeden Block ab Block 0 und wird ein weiteres Licht am Ufer.
+start.3.do
+  en: Run a node
+  de: Knoten betreiben
+start.4.h
+  en: I want to build or help
+  de: Ich will entwickeln oder helfen
+start.4.p
+  en: Read the code, ask the public API, test a release, bring a proposal to YSKAR Lab.
+  de: Lies den Code, frag die öffentliche API, teste eine Version, bring einen Vorschlag ins YSKAR Lab.
+start.4.do
+  en: For developers
+  de: Für Entwickler
+start.5.h
+  en: I just want to watch for now
+  de: Ich will erst einmal zuschauen
+start.5.p
+  en: Follow the chain live, open any block in the explorer, read along in the channel.
+  de: Verfolg die Kette live, öffne jeden Block im Explorer, lies im Kanal mit.
+start.5.do
+  en: The network, live
+  de: Das Netz, live
+start.safe.h
+  en: Three things to know first
+  de: Drei Dinge vorab
+start.alt.fjord
+  en: A dark fjord under a starry sky.
+  de: Ein dunkler Fjord unter Sternenhimmel.
+
+# ---------- Mining ----------
+mine.h1
+  en: Lend it your machine.
+  de: Leih ihm deine Maschine.
+mine.lead
+  en: New YSR come from mining and from nowhere else. A phone, a PC or a graphics card can take part, alone or in a pool.
+  de: Neue YSR entstehen durch Mining und nirgends sonst. Ein Handy, ein PC oder eine Grafikkarte können mitmachen, allein oder in einem Pool.
+mine.cta
+  en: Choose your setup
+  de: Such dir dein Setup aus
+mine.cta2
+  en: Try it right here
+  de: Gleich hier ausprobieren
+mine.try.h
+  en: Mining is guessing, very fast.
+  de: Mining ist Raten, sehr schnell.
+mine.try.p
+  en: Press start and this device joins in for a moment. It takes the newest block and searches for a number that makes its hash begin with enough zeros: the same search every miner runs, at practice difficulty.
+  de: Drück auf Start, und dieses Gerät macht einen Moment lang mit. Es nimmt den neuesten Block und sucht eine Zahl, mit der sein Hash mit genug Nullen beginnt: dieselbe Suche wie bei jedem Miner, nur mit Übungsschwierigkeit.
+mine.try.go
+  en: Start guessing
+  de: Raten starten
+mine.try.stop
+  en: Stop
+  de: Stopp
+mine.try.again
+  en: Once more
+  de: Noch einmal
+mine.try.tries
+  en: Guesses
+  de: Versuche
+mine.try.speed
+  en: Speed
+  de: Tempo
+mine.try.idle
+  en: Nothing found yet. Every spark is a batch of guesses.
+  de: Noch nichts gefunden. Jeder Funke ist ein Schwung Versuche.
+mine.try.found
+  en: Found one after {n} guesses.
+  de: Gefunden, nach {n} Versuchen.
+mine.try.none
+  en: No luck in {n} guesses. That is mining too. Try again.
+  de: Kein Glück in {n} Versuchen. Auch das ist Mining. Versuch es noch einmal.
+mine.try.real
+  en: That was practice. The real network is {x} times harder: at {r}, this device alone would need about {t} for one real block. That is why miners join pools.
+  de: Das war Übung. Das echte Netz ist {x}-mal schwerer: Mit {r} bräuchte dieses Gerät allein etwa {t} für einen echten Block. Darum schließen sich Miner zu Pools zusammen.
+mine.try.canvas
+  en: Sparks for each batch of guesses; a bright flash when a valid number is found.
+  de: Funken für jeden Schwung Versuche; ein heller Blitz, wenn eine gültige Zahl gefunden ist.
+mine.setup.h
+  en: Choose your setup
+  de: Such dir dein Setup aus
+mine.calc.h
+  en: What could your machine find?
+  de: Was könnte deine Maschine finden?
+mine.pools.h
+  en: The pools, live
+  de: Die Pools, live
+
+# ---------- Wallet ----------
+wal.h1
+  en: Twelve words. Yours alone.
+  de: Zwölf Wörter. Nur deine.
+wal.lead
+  en: YSKAR Wallet is the Android app for YSR: send, receive, sign. Your key is created on your phone and stays there.
+  de: YSKAR Wallet ist die Android-App für YSR: senden, empfangen, signieren. Dein Schlüssel entsteht auf deinem Handy und bleibt dort.
+wal.cta2
+  en: Install in four steps
+  de: In vier Schritten installieren
+wal.say
+  en: Whoever has the twelve words has the funds. Write them on paper. Nobody from YSKAR will ever ask you for them.
+  de: Wer die zwölf Wörter hat, hat das Guthaben. Schreib sie auf Papier. Niemand von YSKAR wird dich je danach fragen.
+
+# ---------- Knoten ----------
+node.h1
+  en: Keep a light on.
+  de: Lass ein Licht an.
+node.lead
+  en: A full node checks every block itself, from block 0, and passes it on. It asks nobody what is true. Every node that does this makes the network harder to bend.
+  de: Ein voller Knoten prüft jeden Block selbst, ab Block 0, und gibt ihn weiter. Er fragt niemanden, was stimmt. Jeder Knoten, der das tut, macht das Netz schwerer zu verbiegen.
+node.cta
+  en: Get Node Core
+  de: Node Core holen
+node.cta2
+  en: From the command line
+  de: Über die Kommandozeile
+node.say
+  en: Every light on this shore is a node that has reported in. Right now there are {n}. Yours would be number {k}.
+  de: Jedes Licht an diesem Ufer ist ein Knoten, der sich gemeldet hat. Gerade sind es {n}. Deiner wäre Nummer {k}.
+node.core.h
+  en: Node Core: node, wallet and miner in one window.
+  de: Node Core: Knoten, Wallet und Miner in einem Fenster.
+node.core.p
+  en: Install it, and your computer verifies the chain on its own. Node Core also holds your wallet, mines with your processor or graphics card, can run a pool and signs messages. Version {{NODE_CORE}} for Windows 10 and 11 and for 64-bit Linux.
+  de: Installieren, und dein Rechner prüft die Kette selbstständig. Node Core hält außerdem deine Wallet, schürft mit Prozessor oder Grafikkarte, kann einen Pool betreiben und signiert Nachrichten. Version {{NODE_CORE}} für Windows 10 und 11 und für 64-Bit-Linux.
+node.dl.win
+  en: Windows installer
+  de: Installer für Windows
+node.dl.deb
+  en: Linux package (.deb)
+  de: Linux-Paket (.deb)
+node.dl.app
+  en: Linux AppImage
+  de: Linux-AppImage
+node.dl.get
+  en: Download
+  de: Laden
+node.dl.all
+  en: All files and checksums
+  de: Alle Dateien und Prüfsummen
+node.dl.rel
+  en: The release on GitHub
+  de: Die Veröffentlichung auf GitHub
+node.why.h
+  en: What one more node changes
+  de: Was ein Knoten mehr verändert
+node.w1.p
+  en: Your node recomputes the work, the signatures and every balance, starting at block 0. A block that breaks a rule is rejected, whoever sent it.
+  de: Dein Knoten rechnet die Arbeit, die Signaturen und jedes Guthaben nach, ab Block 0. Ein Block, der eine Regel bricht, wird abgelehnt, egal von wem er kommt.
+node.w2.h
+  en: It carries the network
+  de: Er trägt das Netz
+node.w2.p
+  en: Every node passes blocks and transfers on to others. The more of them there are, in more places, the less the network depends on any single machine.
+  de: Jeder Knoten gibt Blöcke und Überweisungen an andere weiter. Je mehr es sind, an je mehr Orten, desto weniger hängt das Netz an einer einzelnen Maschine.
+node.w3.h
+  en: It needs little
+  de: Er braucht wenig
+node.w3.p
+  en: From the command line a node runs on Linux, Windows and macOS, even on a Raspberry Pi. Node Core, the desktop app, runs on Windows and 64-bit Linux.
+  de: Über die Kommandozeile läuft ein Knoten unter Linux, Windows und macOS, sogar auf einem Raspberry Pi. Node Core, die Desktop-App, läuft unter Windows und 64-Bit-Linux.
+
+# ---------- YSR ----------
+coin.h1
+  en: 21 million. Every one of them mined.
+  de: 21 Millionen. Jeder einzelne geschürft.
+coin.lead
+  en: YSR is the coin of the YSKAR chain. There will never be more than 21,000,000. Nothing was pre-mined or allocated: a new YSR exists for one reason only, a block was found.
+  de: YSR ist die Münze der YSKAR-Kette. Mehr als 21.000.000 wird es nie geben. Nichts wurde vorab erzeugt oder verteilt: Ein neuer YSR entsteht aus genau einem Grund, ein Block wurde gefunden.
+coin.alt
+  en: The YSR coin: a thick disc of blue glass with a raised rim and the YSKAR mark in relief.
+  de: Die YSR-Münze: eine dicke Scheibe aus blauem Glas mit erhabenem Rand und dem YSKAR-Zeichen als Relief.
+coin.alt.flat
+  en: The YSR coin: a dark disc with a blue ring and the YSKAR mark.
+  de: Die YSR-Münze: eine dunkle Scheibe mit blauem Ring und dem YSKAR-Zeichen.
+coin.bar.mined
+  en: mined so far
+  de: bisher geschürft
+coin.bar.burned
+  en: of these burned or unspendable
+  de: davon verbrannt oder unausgebbar
+coin.bar.open
+  en: still to be mined
+  de: noch zu schürfen
+coin.eras.h
+  en: The reward halves every 12,000 blocks.
+  de: Die Belohnung halbiert sich alle 12.000 Blöcke.
+coin.eras.p
+  en: Each bar is one era and shows how many YSR it creates. The first era alone creates half of everything. The last new YSR appears in block 443,999; after that miners earn fees only.
+  de: Jeder Balken ist eine Epoche und zeigt, wie viele YSR sie erzeugt. Allein die erste Epoche erzeugt die Hälfte von allem. Der letzte neue YSR entsteht in Block 443.999; danach verdienen Miner nur noch Gebühren.
+coin.eras.era
+  en: Era {n}
+  de: Epoche {n}
+coin.eras.now
+  en: now
+  de: jetzt
+coin.eras.rest
+  en: Figures in YSR. 9+ stands for all later eras together.
+  de: Angaben in YSR. 9+ steht für alle späteren Epochen zusammen.
+coin.burn.h
+  en: The head start was burned.
+  de: Der Vorsprung wurde verbrannt.
+coin.burn.cta
+  en: See it in block 3,974
+  de: In Block 3.974 nachsehen
+
+# ---------- Die Kette ----------
+chain.h1
+  en: A chain of its own.
+  de: Eine eigene Kette.
+chain.lead
+  en: YSKAR does not run on top of another network. It has its own blocks, its own peer-to-peer network and its own rules, and it proves every block with work that anyone can check.
+  de: YSKAR läuft nicht auf einem anderen Netz. Es hat eigene Blöcke, ein eigenes Peer-to-Peer-Netz und eigene Regeln, und es beweist jeden Block mit Arbeit, die jeder nachprüfen kann.
+chain.how.h
+  en: One block, three steps.
+  de: Ein Block, drei Schritte.
+chain.why.h
+  en: Why an own chain matters
+  de: Warum eine eigene Kette zählt
+chain.y1.h
+  en: Its rules are its own
+  de: Ihre Regeln gehören ihr
+chain.y1.p
+  en: Fees, block times and upgrades are decided here, by the people who run YSKAR, and by nobody else's network.
+  de: Über Gebühren, Blockzeiten und Erweiterungen wird hier entschieden, von den Menschen, die YSKAR betreiben, und von keinem fremden Netz.
+chain.y2.h
+  en: Nothing to take on trust
+  de: Nichts, was man glauben muss
+chain.y2.p
+  en: Every block back to block 0 can be recomputed by anyone, with open software, on an ordinary computer.
+  de: Jeder Block bis zurück zu Block 0 lässt sich von jedem nachrechnen, mit offener Software, auf einem gewöhnlichen Rechner.
+chain.y3.h
+  en: Changes arrive in the open
+  de: Änderungen kommen offen
+chain.y3.p
+  en: A rule change is written into the code together with the block at which it starts. Every node knows it in advance. Revision 6 was put to a community vote.
+  de: Eine Regeländerung steht im Code, zusammen mit dem Block, ab dem sie gilt. Jeder Knoten kennt ihn im Voraus. Über Fassung 6 hat die Community abgestimmt.
+chain.deep.h
+  en: For the curious: how it works in detail
+  de: Für Neugierige: wie es im Einzelnen funktioniert
+chain.deep.p
+  en: From here on the page gets technical. Everything below comes from the consensus code and from the chain itself.
+  de: Ab hier wird die Seite technisch. Alles Folgende stammt aus dem Konsens-Code und aus der Kette selbst.
+
+# ---------- Netz ----------
+netp.lead
+  en: What the chain is doing right now, read from the public API. Nothing here is estimated by hand.
+  de: Was die Kette gerade tut, gelesen aus der öffentlichen API. Nichts hier ist von Hand geschätzt.
+
+# ---------- Entwickeln ----------
+bld.h1
+  en: Build on it.
+  de: Bau darauf.
+bld.lead
+  en: All of YSKAR is open: node, wallets, miners, explorer and this website, under the MIT License. A public API answers without a key.
+  de: Alles an YSKAR ist offen: Knoten, Wallets, Miner, Explorer und diese Website, unter der MIT-Lizenz. Eine öffentliche API antwortet ohne Schlüssel.
+bld.cta
+  en: Try the API
+  de: Die API ausprobieren
+bld.cta2
+  en: The code on GitHub
+  de: Der Code auf GitHub
+bld.1.h
+  en: Read everything
+  de: Alles lesen
+bld.1.p
+  en: The protocol is specified, the consensus code is short enough to read, and every figure on this site comes from that code or from the chain.
+  de: Das Protokoll ist beschrieben, der Konsens-Code kurz genug zum Lesen, und jede Zahl auf dieser Website stammt aus diesem Code oder aus der Kette.
+bld.2.h
+  en: Ask the chain
+  de: Die Kette fragen
+bld.2.p
+  en: Blocks, transfers, addresses, fees, pools and supply over plain HTTP. No key, no sign-up, open to any website.
+  de: Blöcke, Überweisungen, Adressen, Gebühren, Pools und Menge über schlichtes HTTP. Kein Schlüssel, keine Anmeldung, offen für jede Website.
+bld.3.h
+  en: Change it
+  de: Es verändern
+bld.3.p
+  en: Proposals go through YSKAR Lab, in public, from the first idea to the release. You sign in with your wallet.
+  de: Vorschläge laufen über das YSKAR Lab, öffentlich, von der ersten Idee bis zur Veröffentlichung. Angemeldet wird mit der eigenen Wallet.
+
+# ---------- Community ----------
+comm.h1
+  en: No company. Just people.
+  de: Kein Unternehmen. Nur Menschen.
+comm.lead
+  en: YSKAR is a community project and belongs to the people who use it. This is where they talk, test and decide.
+  de: YSKAR ist ein Community-Projekt und gehört den Menschen, die es nutzen. Hier reden, testen und entscheiden sie.
+comm.ch.h
+  en: Where to find everyone
+  de: Wo man alle findet
+comm.do.h
+  en: What you can do. None of it needs permission.
+  de: Was du tun kannst. Nichts davon braucht eine Erlaubnis.
+comm.lab.h
+  en: How a proposal becomes a release
+  de: Wie aus einem Vorschlag eine Veröffentlichung wird
+comm.safe.h
+  en: Stay safe
+  de: Bleib sicher
+comm.ann
+  en: Bitcointalk
+  de: Bitcointalk
+
+# ---------- Geschichte und nächste Schritte ----------
+story.h1
+  en: Steps, not dates.
+  de: Schritte, keine Termine.
+story.lead
+  en: Where YSKAR comes from, what runs today and what comes next. Nobody here promises a delivery date: changes take effect at a block, not on a calendar day.
+  de: Woher YSKAR kommt, was heute läuft und was als Nächstes kommt. Niemand verspricht hier einen Liefertermin: Änderungen gelten ab einem Block, nicht ab einem Kalendertag.
+story.why.h
+  en: Why YSKAR exists
+  de: Warum es YSKAR gibt
+story.why.say
+  en: The goal is a currency people can use in everyday life. A solid foundation comes first. A short burst of hype is not the plan.
+  de: Das Ziel ist eine Währung, die Menschen im Alltag nutzen können. Zuerst kommt ein solides Fundament. Ein kurzer Hype ist nicht der Plan.
+story.why.p
+  en: YSKAR belongs to the people who use it. Your YSR sit at an address that only your twelve words open. Nobody has to be trusted: every block back to block 0 can be checked by anyone. New YSR come from mining, never from a promise.
+  de: YSKAR gehört den Menschen, die es nutzen. Deine YSR liegen auf einer Adresse, die nur deine zwölf Wörter öffnen. Niemandem muss man vertrauen: Jeden Block bis zurück zu Block 0 kann jeder nachprüfen. Neue YSR entstehen durch Mining, nie durch ein Versprechen.
+story.run.h
+  en: Running today
+  de: Läuft heute
+story.fix.h
+  en: Fixed by block height
+  de: Per Blockhöhe festgelegt
+story.plan.h
+  en: Planned, without a date
+  de: Geplant, ohne Termin
+story.walk
+  en: Walk along the chain from block 0
+  de: Die Kette ab Block 0 entlanggehen
+
+# YSR: Lichtfeld
+coin.field.alt
+  en: A field of lights for all 21 million YSR: the ones mined so far are lit, the burned ones glow like embers, the rest is dark.
+  de: Ein Feld aus Lichtern für alle 21 Millionen YSR: Die bisher geschürften leuchten, die verbrannten glimmen, der Rest ist dunkel.
+coin.field.burned
+  en: burned
+  de: verbrannt
+coin.f0.h
+  en: 21,000,000. Never more.
+  de: 21.000.000. Mehr werden es nie.
+coin.f0.p
+  en: Each light stands for <span data-field-unit></span> YSR, in the order they come into being. This is everything there will ever be.
+  de: Jedes Licht steht für <span data-field-unit></span> YSR, in der Reihenfolge ihrer Entstehung. Das ist alles, was es je geben wird.
+coin.f1.p
+  en: That many exist today, <span data-live='mintedPct'></span> of the total. Every one of them came out of a block that somebody found.
+  de: So viele gibt es heute, <span data-live='mintedPct'></span> der Gesamtmenge. Jeder einzelne stammt aus einem Block, den jemand gefunden hat.
+coin.f2.p
+  en: About 1.07 million YSR from the early days were burned to offset the head start. They went to an address nobody can spend from and are gone for good.
+  de: Rund 1,07 Millionen YSR aus der Anfangszeit wurden verbrannt, um den Vorsprung auszugleichen. Sie gingen an eine Adresse, von der niemand etwas ausgeben kann, und sind für immer weg.
+coin.f3.h
+  en: Half of everything comes first.
+  de: Die Hälfte kommt zuerst.
+coin.f3.p
+  en: The first 12,000 blocks create 10.5 million YSR: half of all there will ever be. The chain is at block <span data-live='height'></span>.
+  de: Die ersten 12.000 Blöcke erzeugen 10,5 Millionen YSR: die Hälfte von allem, was es je geben wird. Die Kette steht bei Block <span data-live='height'></span>.
+coin.f4.h
+  en: Then it halves, again and again.
+  de: Dann halbiert es sich, wieder und wieder.
+coin.f4.p
+  en: Every 12,000 blocks the reward is cut in half. The last new YSR appears in block 443,999. After that, miners earn fees only.
+  de: Alle 12.000 Blöcke halbiert sich die Belohnung. Der letzte neue YSR entsteht in Block 443.999. Danach verdienen Miner nur noch Gebühren.
+coin.noprice.say
+  en: YSR has no price today. It is not listed anywhere. What it has is a chain that anyone can check.
+  de: YSR hat heute keinen Preis. Es ist nirgends gelistet. Was es hat, ist eine Kette, die jeder nachprüfen kann.
+
+# Wallet: Handy-Szene
+wal.phone.alt
+  en: A phone showing real screens of the YSKAR Wallet, one after another.
+  de: Ein Handy mit echten Bildschirmen der YSKAR Wallet, einer nach dem anderen.
+wal.s1.h
+  en: Your balance, and nothing in the way.
+  de: Dein Guthaben, und nichts davor.
+wal.s3.h
+  en: One history for everything.
+  de: Ein Verlauf für alles.
+wal.s3.p
+  en: Payments, block rewards and pool shares appear in one place. Amounts are exact to the 8th decimal place.
+  de: Zahlungen, Blockbelohnungen und Pool-Anteile stehen an einem Ort. Beträge stimmen bis zur 8. Nachkommastelle.
+wal.s5.h
+  en: Names for addresses.
+  de: Namen für Adressen.
+wal.s5.p
+  en: Give an address a name once: the wallet then shows it in your payments and when you send. Contacts stay on your device.
+  de: Gib einer Adresse einmal einen Namen: Die Wallet zeigt ihn dann in deinen Zahlungen und beim Senden. Kontakte liegen nur auf deinem Gerät.
+
+# Mining: Szene „Der Block zahlt aus“, Rechner, Pools
+pay.alt
+  en: Many small lights flicker, gather into one bright point that becomes a block, and rays run from the block to every address it pays.
+  de: Viele kleine Lichter funkeln, sammeln sich zu einem hellen Punkt, der zum Block wird, und vom Block laufen Strahlen zu jeder Adresse, die er bezahlt.
+pay.0.h
+  en: Everyone guesses at once.
+  de: Alle raten gleichzeitig.
+pay.0.p
+  en: Right now the whole network works at about <span data-live='hashrate'></span>: billions of numbers every second, all hunting for the same block.
+  de: Gerade arbeitet das ganze Netz mit rund <span data-live='hashrate'></span>: Milliarden Zahlen pro Sekunde, alle auf der Jagd nach demselben Block.
+pay.1.h
+  en: One number fits.
+  de: Eine Zahl passt.
+pay.1.p
+  en: About every ten minutes one machine finds a number that works. That is a new block, and the search starts again.
+  de: Etwa alle zehn Minuten findet eine Maschine eine Zahl, die passt. Das ist ein neuer Block, und die Suche beginnt von vorn.
+pay.2.h
+  en: The block pays everyone who helped.
+  de: Der Block bezahlt alle, die geholfen haben.
+pay.2.p
+  en: In a pool the reward is split by the work each miner delivered and paid inside the block itself. The newest pool block paid <span id='pay-n'></span> addresses at once.
+  de: Im Pool wird die Belohnung nach geleisteter Arbeit geteilt und direkt im Block ausgezahlt. Der neueste Pool-Block hat <span id='pay-n'></span> Adressen auf einmal bezahlt.
+pay.3.h
+  en: No account. No payout threshold. No custody.
+  de: Kein Konto. Keine Auszahlungsschwelle. Keine Verwahrung.
+calcx.a
+  en: My machine does
+  de: Meine Maschine schafft
+calcx.b
+  en: and I mine
+  de: und ich schürfe
+poolsx.last
+  en: of the latest blocks
+  de: der neuesten Blöcke
+poolsx.fee
+  en: fee
+  de: Gebühr
+poolsx.seats
+  en: seats taken
+  de: Plätze belegt
+poolsx.rate
+  en: reported
+  de: gemeldet
+
+# Knoten: Ufer, Prüfen
+shore.on
+  en: Switch one more on
+  de: Eines mehr anschalten
+shore.off
+  en: Switch it off again
+  de: Wieder ausschalten
+shore.note.on
+  en: Number {k} is only lit on your screen. It counts once your node is running.
+  de: Nummer {k} leuchtet nur auf deinem Bildschirm. Es zählt erst, wenn dein Knoten läuft.
+node.check.h
+  en: From block 0 to today, without asking anyone.
+  de: Von Block 0 bis heute, ohne jemanden zu fragen.
+# Community: Abstimmung
+comm.vote.say
+  en: On 25 October 2026 the community voted on when revision 6 begins. It chose block 10,000.
+  de: Am 25. Oktober 2026 hat die Community abgestimmt, wann Fassung 6 beginnt. Sie hat Block 10.000 gewählt.
+comm.vote.cta
+  en: What revision 6 brings
+  de: Was Fassung 6 bringt
+log.k
+  en: Every block up to
+  de: Jeder Block bis
+log.cap
+  en: Every row is one day since 9 September 2026 (UTC), every mark one block at its time of day. Warm marks carried transfers. Tap a mark to open the block.
+  de: Jede Zeile ist ein Tag seit dem 9. September 2026 (UTC), jeder Strich ein Block zu seiner Uhrzeit. Warme Striche trugen Überweisungen. Tippe einen Strich an, um den Block zu öffnen.
+log.cap.n
+  en: Every row covers {d} days since 9 September 2026 (UTC), every mark is one block. Warm marks carried transfers. Tap a mark to open the block.
+  de: Jede Zeile umfasst {d} Tage seit dem 9. September 2026 (UTC), jeder Strich ist ein Block. Warme Striche trugen Überweisungen. Tippe einen Strich an, um den Block zu öffnen.
+log.alt
+  en: The logbook of the chain: every block since block 0 as a mark, one row per day.
+  de: Das Logbuch der Kette: jeder Block seit Block 0 als Strich, eine Zeile je Tag.
+comm.say
+  en: Day {d}. {n} nodes keep the chain, {m} miners extend it, {p} pools share the work. Nobody was appointed. They showed up.
+  de: Tag {d}. {n} Knoten halten die Kette, {m} Miner verlängern sie, {p} Pools teilen die Arbeit. Niemand wurde ernannt. Sie sind einfach gekommen.
+road.start.k
+  en: 25 Oct 2026
+  de: 25. Okt. 2026
+road.start
+  en: The vote
+  de: Die Abstimmung
+road.end.k
+  en: Block 10,000
+  de: Block 10.000
+road.end
+  en: Revision 6 begins
+  de: Fassung 6 beginnt
+road.now
+  en: Block {h} · now
+  de: Block {h} · jetzt
+road.left
+  en: {n} blocks to go. At the current pace that is {eta}.
+  de: Noch {n} Blöcke. Beim jetzigen Tempo ist das {eta}.
+road.done
+  en: Revision 6 has been active since block 10,000.
+  de: Fassung 6 ist seit Block 10.000 aktiv.
+road.need
+  en: Nodes need a current release before that block.
+  de: Knoten brauchen vor diesem Block eine aktuelle Version.
+road.need.done
+  en: Nodes on an older release no longer follow the chain.
+  de: Knoten mit einer älteren Version folgen der Kette nicht mehr.
+
+# Münze
+coin.turn
+  en: Turn it over
+  de: Umdrehen
+coin.turn.back
+  en: Turn it back
+  de: Zurückdrehen
+coin.back.k
+  en: Block 0
+  de: Block 0
+coin.back.d
+  en: 9 September 2026
+  de: 9. September 2026
+
+# Netz, live
+netp.say
+  en: Block {h}, found {a}. {r} at work on the next one. {n} nodes are watching.
+  de: Block {h}, {a} gefunden. {r} arbeiten am nächsten. {n} Knoten sehen zu.
+
+# Womit anfangen
+start.jump
+  en: The five ways
+  de: Die fünf Wege
+start.guides
+  en: Every way explained step by step
+  de: Jeder Weg Schritt für Schritt erklärt
+
+# Geschichte: Wegmarken
+story.road.h
+  en: The chain so far, and what is already set
+  de: Die Kette bis heute, und was schon feststeht
+story.road.p
+  en: Seven marks along the chain. Those behind us carry their date. Those ahead carry only a block number, because that is all the code knows.
+  de: Sieben Marken entlang der Kette. Die hinter uns tragen ihr Datum. Die vor uns tragen nur eine Blocknummer, denn mehr kennt der Code nicht.
+story.road.live
+  en: See the latest blocks
+  de: Die neuesten Blöcke ansehen
+miles.left
+  en: in {n} blocks
+  de: in {n} Blöcken
+
+# Die Kette: Szene
+forge.hash
+  en: SHA-256, applied twice
+  de: SHA-256, zweimal angewendet
+forge.target
+  en: must not exceed the target
+  de: darf das Ziel nicht überschreiten
+forge.ok
+  en: Valid: recomputed on this device.
+  de: Gültig: auf diesem Gerät nachgerechnet.
+forge.nodes
+  en: {n} reporting nodes
+  de: {n} gemeldete Knoten
+forge.nodes.1
+  en: 1 reporting node
+  de: 1 gemeldeter Knoten
+forge.paid
+  en: {r} to {n} addresses
+  de: {r} an {n} Adressen
+forge.paid.1
+  en: {r} to one address
+  de: {r} an eine Adresse
+forge.before
+  en: {n} blocks before it, spaced as they were found: {m} min
+  de: {n} Blöcke davor, im Abstand ihres Fundes: {m} Min.
+forge.alt
+  en: The 136 bytes of the newest block header. The nonce changes until the hash falls below the target, then the nodes check it, and the block takes its place at the end of the chain and pays its reward.
+  de: Die 136 Byte des neuesten Blockkopfs. Die Nonce wechselt, bis der Hash unter dem Ziel liegt, dann prüfen ihn die Knoten, und der Block nimmt seinen Platz am Ende der Kette ein und zahlt seine Belohnung.
+# Entwickeln: die Antwort der Kette
+term.note.live
+  en: Answered by the public API on {d}.
+  de: Von der öffentlichen API beantwortet am {d}.
+term.note.snap
+  en: The answer of {d}. The API is not answering right now; the page asks again on its own.
+  de: Die Antwort vom {d}. Die API antwortet gerade nicht; die Seite fragt von selbst wieder.
+term.more
+  en: Show all {n} lines
+  de: Alle {n} Zeilen zeigen
+term.less
+  en: Show fewer lines
+  de: Weniger Zeilen zeigen
+term.alt
+  en: A request to the public API and its answer
+  de: Eine Anfrage an die öffentliche API und ihre Antwort
+
+# Zeitangaben ausgeschrieben (für Sätze in Überschriftgröße)
+agol.sec
+  en: {n} seconds ago
+  de: vor {n} Sekunden
+agol.sec.1
+  en: a second ago
+  de: vor einer Sekunde
+agol.min
+  en: {n} minutes ago
+  de: vor {n} Minuten
+agol.min.1
+  en: a minute ago
+  de: vor einer Minute
+agol.hours
+  en: {n} hours ago
+  de: vor {n} Stunden
+agol.hours.1
+  en: an hour ago
+  de: vor einer Stunde
+agol.days
+  en: {n} days ago
+  de: vor {n} Tagen
+agol.days.1
+  en: a day ago
+  de: vor einem Tag
+
+# Netz-Seite: Kopf je nach Stand (live gelesen oder mitgeführt)
+netp.k
+  en: Network, live
+  de: Netz, live
+netp.k.snap
+  en: Network on {date}
+  de: Netz am {date}
+netp.say.snap
+  en: Block {h} was the newest. {r} were at work on the next one. {n} nodes were watching.
+  de: Block {h} war der neueste. {r} arbeiteten am nächsten. {n} Knoten sahen zu.
+netp.lead.snap
+  en: The last state this page received. The public API is not answering right now; the page asks again on its own.
+  de: Der letzte Stand, den diese Seite erhalten hat. Die öffentliche API antwortet gerade nicht; die Seite fragt von selbst wieder.

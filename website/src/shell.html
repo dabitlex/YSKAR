@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" data-page="{{PAGE}}" data-mode="snapshot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESC}}">
+<meta name="theme-color" content="#030816">
+{{ROBOTS}}<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="{{SHARE_TITLE}}">
+<meta property="og:description" content="{{DESC}}">
+{{URLS}}<meta property="og:image" content="{{SHARE_IMAGE}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{SHARE_ALT}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="{{CSS}}">
+{{PRELOAD}}<script>{{HEAD_JS}}</script>
+<script src="{{DATA}}" defer></script>
+<script src="{{JS}}" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="7.6"/><path d="M2.4 10h15.2M10 2.4c2.3 2.2 3.4 4.7 3.4 7.6s-1.1 5.4-3.4 7.6c-2.3-2.2-3.4-4.7-3.4-7.6S7.7 4.6 10 2.4Z"/></g></symbol>
+    <symbol id="i-down" viewBox="0 0 12 12"><path d="m2.4 4.4 3.6 3.6 3.6-3.6" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main" data-t="nav.skip"></a>
+
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="#home" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main">
+      <a href="#mine" data-t="nav.mine"></a>
+      <a href="#wallet" data-t="nav.wallet"></a>
+      <a href="#node" data-t="nav.node"></a>
+      <a href="#ysr" data-t="nav.ysr"></a>
+      <a href="#community" data-t="nav.community"></a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="#network" data-ta="title:nav.tick.title">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick"></span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="#start" data-t="cta.join"></a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part"></p>
+        <a class="menu__a" href="#start"><span data-t="nav.start"></span><small data-t="nav.start.d"></small></a>
+        <a class="menu__a" href="#mine"><span data-t="nav.mine"></span><small data-t="nav.mine.d"></small></a>
+        <a class="menu__a" href="#wallet"><span data-t="nav.wallet"></span><small data-t="nav.wallet.d"></small></a>
+        <a class="menu__a" href="#node"><span data-t="nav.node"></span><small data-t="nav.node.d"></small></a>
+        <a class="menu__a" href="#guides"><span data-t="nav.guides"></span><small data-t="nav.guides.d"></small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know"></p>
+        <a class="menu__a" href="#ysr"><span data-t="nav.ysr"></span><small data-t="nav.ysr.d"></small></a>
+        <a class="menu__a" href="#chain"><span data-t="nav.chain"></span><small data-t="nav.chain.d"></small></a>
+        <a class="menu__a" href="#network"><span data-t="nav.network"></span><small data-t="nav.network.d"></small></a>
+        <a class="menu__a" href="#explorer"><span data-t="nav.explorer"></span><small data-t="nav.explorer.d"></small></a>
+        <a class="menu__a" href="#protocol"><span data-t="nav.protocol"></span><small data-t="nav.protocol.d"></small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join"></p>
+        <a class="menu__a" href="#community"><span data-t="nav.community"></span><small data-t="nav.community.d"></small></a>
+        <a class="menu__a" href="#build"><span data-t="nav.build"></span><small data-t="nav.build.d"></small></a>
+        <a class="menu__a" href="#story"><span data-t="nav.story"></span><small data-t="nav.story.d"></small></a>
+        <a class="menu__a" href="#paper"><span data-t="foot.whitepaper"></span><small data-t="nav.paper.d"></small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <label class="lang">
+        <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+        <span class="sr-only" data-t="nav.lang"></span>
+        <select data-lang-select autocomplete="off">{{LANG_OPTIONS}}</select>
+        <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+      </label>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<!--{{PAGES}}-->
+</main>
+
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="#home" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim"></p>
+      <p class="foot__sub" data-t="foot.sub"></p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav">
+      <div>
+        <p class="foot__h" data-t="nav.g.part"></p>
+        <a href="#start" data-t="nav.start"></a>
+        <a href="#mine" data-t="nav.mine"></a>
+        <a href="#wallet" data-t="nav.wallet"></a>
+        <a href="#node" data-t="nav.node"></a>
+        <a href="#guides" data-t="nav.guides"></a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know"></p>
+        <a href="#ysr" data-t="nav.ysr"></a>
+        <a href="#chain" data-t="nav.chain"></a>
+        <a href="#network" data-t="nav.network"></a>
+        <a href="#explorer" data-t="nav.explorer"></a>
+        <a href="#protocol" data-t="nav.protocol"></a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join"></p>
+        <a href="#community" data-t="nav.community"></a>
+        <a href="#build" data-t="nav.build"></a>
+        <a href="#story" data-t="nav.story"></a>
+        <a href="#paper" data-t="foot.whitepaper"></a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find"></p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <label class="lang lang--ink">
+          <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+          <span class="sr-only" data-t="nav.lang"></span>
+          <select data-lang-select autocomplete="off">{{LANG_OPTIONS}}</select>
+          <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+        </label>
+        <a href="#imprint" data-t="foot.imprint"></a>
+        <a href="#privacy" data-t="foot.privacy"></a>
+        <span data-t="foot.license"></span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="#start" data-t="cta.join"></a>
+  <a class="dock__live" href="#network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick"></span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+</body>
+</html>

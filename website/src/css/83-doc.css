@@ -1,0 +1,133 @@
+/*
+ * Dokumentseiten: Anleitungen, Protokoll, Whitepaper, Impressum, Datenschutz.
+ * Die Inhalte tragen Klassen mit der Vorsilbe lv-; hier bekommen sie ihre Gestalt: große leichte Überschriften,
+ * ruhige Lesespalte, Haarlinien statt Kästen, Befehle wie auf den übrigen Seiten.
+ */
+.pp--doc{padding-bottom:clamp(30px,4.4vw,64px)}
+.pp--paper .t-mega{letter-spacing:-.06em}
+.doc{display:grid;gap:clamp(26px,4vw,56px);padding-bottom:clamp(84px,11vw,160px);align-items:start;grid-template-columns:minmax(0,1fr)}
+.doc--plain{padding-top:clamp(8px,2vw,24px)}
+.doc__prog{position:fixed;left:0;right:0;top:0;height:2px;z-index:60;transform:scaleX(var(--p,0));transform-origin:0 50%;background:linear-gradient(90deg,var(--ribbon-1),var(--ribbon-2) 55%,var(--ribbon-3));pointer-events:none}
+
+/* Inhaltsverzeichnis */
+.doc__toc{font-size:var(--t-small);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.doc__toc summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;min-height:52px;font-weight:500;color:var(--ice)}
+.doc__toc summary::-webkit-details-marker{display:none}
+.doc__toc summary::after{content:"";width:9px;height:9px;border-right:1.5px solid var(--ice-2);border-bottom:1.5px solid var(--ice-2);transform:rotate(45deg) translate(-2px,-2px);transition:transform .25s var(--ease)}
+.doc__toc details[open] summary::after{transform:rotate(225deg) translate(-2px,-2px)}
+.doc__links{display:grid;padding-bottom:10px}
+.doc__links a{display:flex;gap:.7em;padding:9px 0;color:var(--ice-2);text-decoration:none;line-height:1.35;transition:color .2s}
+.doc__links a:hover{color:var(--ice)}
+.doc__links a.is-here{color:var(--lamp)}
+.doc__links i{font-style:normal;font-family:var(--mono);color:var(--ice-3);min-width:1.7em}
+@media (min-width:1000px){
+  .doc{grid-template-columns:minmax(0,3fr) minmax(0,9fr);column-gap:clamp(40px,5vw,84px)}
+  .doc--plain{grid-template-columns:minmax(0,1fr)}
+  .doc__toc{position:sticky;top:calc(var(--bar-h) + 22px);max-height:calc(100vh - var(--bar-h) - 44px);overflow:auto;border-bottom:0;padding-top:14px}
+  .doc__toc summary{display:none}
+  .doc__links{padding-bottom:0}
+}
+
+/* Lesespalte */
+.doc__text{min-width:0;max-width:47rem}
+.doc__text h2{font-size:var(--t-l);font-weight:300;letter-spacing:-.038em;line-height:1.02;margin-top:clamp(56px,7.5vw,108px);padding-top:clamp(24px,3vw,38px);border-top:1px solid var(--line);margin-bottom:6px;scroll-margin-top:calc(var(--bar-h) + 14px);text-wrap:balance}
+.doc__text h2:first-child,.doc__text .lv-wp-meta + h2,.doc__text > div > h2:first-child{margin-top:0}
+.doc__text h2 .doc__num{display:block;font-family:var(--mono);font-size:var(--t-small);letter-spacing:0;color:var(--lamp);margin-bottom:14px}
+.doc__text h3{font-size:var(--t-s);font-weight:500;letter-spacing:-.015em;line-height:1.25;margin-top:38px;scroll-margin-top:calc(var(--bar-h) + 14px)}
+.doc__text h4{font-weight:500;margin-top:26px;color:var(--ice)}
+.doc__text p,.doc__text li,.doc__text td{font-size:1.0625rem;line-height:1.62;color:var(--ice-2)}
+.doc__text p{margin-top:16px;text-wrap:pretty}
+.doc__text ul,.doc__text ol{margin-top:16px;padding-left:1.35em;display:grid;gap:9px}
+.doc__text ul{list-style:disc}
+.doc__text ol{list-style:decimal}
+.doc__text li::marker{color:var(--ice-3)}
+.doc__text li > ul,.doc__text li > ol{margin-top:9px}
+.doc__text strong{color:var(--ice);font-weight:500}
+.doc__text em{font-style:normal;color:var(--lamp)}
+.doc__text a{color:var(--ice);text-decoration-color:rgba(238,244,255,.45)}
+.doc__text a:hover{color:var(--lamp)}
+.doc__text code,.lv code{font-family:var(--mono);font-size:.9em;background:rgba(170,198,255,.1);border-radius:6px;padding:.1em .38em;overflow-wrap:anywhere}
+.doc__text .term{margin-top:20px}
+.doc__text .term code,.doc__text pre code{background:none;padding:0}
+.doc__text .btn{margin-top:20px;margin-right:10px;color:var(--lamp-ink)}
+.doc__text .btn--ghost{color:var(--ice)}
+.doc__text .btn:hover{color:var(--lamp-ink)}
+.doc__text .btn--ghost:hover{color:var(--ice)}
+.doc__text [data-img]{display:block;width:100%;border-radius:var(--r-media);margin-top:24px}
+/* Whitepaper: zwei Fassungen im Dokument, eine sichtbar. Ohne Skript die englische. */
+[data-lang-only]{display:none}
+[data-lang-only="en"]{display:block}
+[data-show-lang="de"] [data-lang-only="en"]{display:none}
+[data-show-lang="de"] [data-lang-only="de"]{display:block}
+.paper-tools{--gap:10px 14px;align-items:center}
+.paper-note{color:var(--ice-2);font-size:var(--t-small);max-width:40em}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:99px;box-shadow:inset 0 0 0 1px rgba(238,244,255,.3)}
+.seg button{padding:7px 15px;border-radius:99px;font-size:.875rem;font-weight:500;color:var(--ice-2);min-height:36px}
+.seg button[aria-pressed="true"]{background:rgba(238,244,255,.16);color:var(--ice)}
+@media print{.paper-tools,.paper-note{display:none}}
+
+.lv-wp-meta,.lv-klein-meta{font-family:var(--mono);font-size:var(--t-small) !important;color:var(--ice-3) !important;margin-top:0 !important;margin-bottom:clamp(30px,4vw,52px)}
+.lv-klein-meta{margin-bottom:0;margin-top:14px !important}
+.lv-formel{font-family:var(--mono);font-size:.9375rem !important;line-height:1.7 !important;color:var(--ice) !important;background:rgba(6,13,32,.9);box-shadow:inset 0 0 0 1px var(--line);border-radius:18px;padding:18px 20px;overflow-x:auto;margin-top:20px !important}
+.lv-hinweisband,.lv-warnung{display:flex;gap:14px;align-items:flex-start;border-left:2px solid var(--lamp);padding:4px 0 4px clamp(16px,2vw,24px);margin-top:26px}
+.lv-hinweisband > :first-child,.lv-warnung > :first-child{margin-top:0}
+.lv-hinweisband p,.lv-warnung p{margin-top:0}
+.lv-hinweisband svg,.lv-warnung svg{flex:none;stroke:var(--lamp);margin-top:3px}
+.lv-warnung{border-left-color:var(--bad)}
+.lv-warnung svg{stroke:var(--bad)}
+
+/* Tabellen als Zeilen */
+.lv-tabelle-rahmen{overflow-x:auto;margin-top:24px;min-width:0}
+.lv-tabelle{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.lv-tabelle th{font-size:var(--t-micro);font-weight:400;color:var(--ice-3);text-align:left;padding:0 20px 10px 0;vertical-align:bottom}
+.lv-tabelle td{padding:14px 20px 14px 0;border-top:1px solid var(--line);vertical-align:top;font-size:1rem;line-height:1.5;color:var(--ice-2)}
+.lv-tabelle tr > :last-child{padding-right:0}
+.lv-tabelle td.mono,.lv-tabelle .mono{font-size:.9375rem;white-space:nowrap}
+.lv-tabelle tr.is-now td{color:var(--ice)}
+.lv-tabelle tr.is-now td:first-child{color:var(--lamp)}
+.lv-tabelle tr:has(td:empty) td{padding:6px 0;border-top:1px dashed var(--line)}
+
+/* ---------- Protokoll ---------- */
+.lv--protocol{display:grid;gap:clamp(64px,9vw,132px);padding-bottom:clamp(84px,11vw,160px);grid-template-columns:minmax(0,1fr)}
+.lv-datenblatt{display:grid;gap:clamp(40px,5vw,64px)}
+.lv-db-titel{font-size:var(--t-m);font-weight:350;letter-spacing:-.028em;line-height:1.08;margin-bottom:18px}
+.lv-datenblatt dl{display:grid;border-top:1px solid var(--line)}
+.lv-datenblatt dl > div{display:grid;gap:4px;padding-block:14px;border-bottom:1px solid var(--line)}
+.lv-datenblatt dt,.lv-gen-daten dt{font-size:var(--t-small);color:var(--ice-3)}
+.lv-datenblatt dd,.lv-gen-daten dd{color:var(--ice);min-width:0;overflow-wrap:anywhere}
+.lv-datenblatt .mono,.lv-gen-daten .mono{font-size:.9375rem}
+@media (min-width:1000px){.lv-datenblatt{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lv-anat-kopf{display:grid;gap:14px;max-width:44rem}
+.lv-anat-kopf h3{font-size:var(--t-l);font-weight:300;letter-spacing:-.038em;line-height:1.02}
+.lv-klein .lv-anat-kopf h3{font-size:var(--t-m);font-weight:350;letter-spacing:-.028em;line-height:1.08}
+.lv-anat-kopf p{color:var(--ice-2);font-size:var(--t-lead);line-height:1.5}
+.lv-klein .lv-anat-kopf p{font-size:1.0625rem}
+/* Byte-Balken: Breite = Zahl der Bytes. Kalt, was die Kette festhält; warm, was jemand dazugetan hat (Nonce, Signatur). */
+.lv-bytes{display:flex;gap:3px;margin-top:clamp(26px,3vw,40px);min-height:74px}
+.lv-bytes span{flex-basis:0;min-width:0;border-radius:6px;padding:10px 9px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;overflow:hidden;background:rgba(170,198,255,.1)}
+.lv-bytes b{font-family:var(--mono);font-size:.75rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ice)}
+.lv-bytes i{font-style:normal;font-family:var(--mono);font-size:.6875rem;color:var(--ice-3)}
+.lv-bytes .lv-b-b{background:rgba(47,123,255,.36)}
+.lv-bytes .lv-b-c{background:rgba(99,216,255,.26)}
+.lv-bytes .lv-b-d{background:rgba(255,196,122,.26)}
+.lv-bytes .lv-b-e{background:linear-gradient(135deg,#FFD9A6,var(--lamp-2))}
+.lv-bytes .lv-b-e b{color:var(--lamp-ink)}
+.lv-bytes .lv-b-e i{color:rgba(27,18,5,.7)}
+@media (max-width:759px){.lv-bytes{flex-wrap:wrap}.lv-bytes span{flex-basis:calc(25% - 3px) !important;flex-grow:1 !important;min-height:60px}}
+.lv-feldliste{display:grid;gap:0 clamp(32px,4vw,64px);margin-top:clamp(22px,3vw,34px);border-top:1px solid var(--line)}
+.lv-feldliste > div{display:grid;gap:5px;padding-block:14px;border-bottom:1px solid var(--line)}
+.lv-feldliste b{font-size:.875rem;font-weight:500;color:var(--lamp)}
+.lv-feldliste span{color:var(--ice-2)}
+@media (min-width:860px){.lv-feldliste{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lv-zwei-karten{display:grid;gap:clamp(56px,8vw,96px)}
+@media (min-width:1000px){.lv-zwei-karten{grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(40px,5vw,84px)}}
+.lv-punkte{display:grid;margin-top:clamp(22px,3vw,34px);border-top:1px solid var(--line)}
+.lv-punkte li{padding-block:14px;border-bottom:1px solid var(--line);color:var(--ice-2)}
+/* die Inschrift aus Block 0 */
+.lv-gen-zitat{font-family:var(--mono);font-size:clamp(1.6rem,4.4vw,3.1rem);font-weight:400;letter-spacing:-.04em;line-height:1.1;color:var(--lamp);margin-top:clamp(26px,3vw,40px)}
+.lv-gen-daten{display:grid;margin-top:clamp(22px,3vw,34px);border-top:1px solid var(--line)}
+.lv-gen-daten > div{display:grid;grid-template-columns:minmax(6rem,auto) minmax(0,1fr);gap:16px;padding-block:12px;border-bottom:1px solid var(--line)}
+.lv-gen-daten dd{text-align:right}
+.lv-aeren .lv-tabelle-rahmen{margin-top:clamp(26px,3vw,40px)}
+.lv-leise{font-size:var(--t-small);color:var(--ice-3);margin-top:18px;max-width:46em}
+.lv-weiter{display:inline-flex;align-items:center;min-height:44px;font-weight:500;font-size:var(--t-lead);color:var(--ice);text-decoration-color:rgba(238,244,255,.5)}

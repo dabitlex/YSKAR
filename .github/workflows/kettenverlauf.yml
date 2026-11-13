@@ -1,0 +1,85 @@
+name: Kettenverlauf auffrischen
+
+# Die Website startet mit dem Stand aus website/assets/data/kette.js: der
+# Stand der Kette für den ersten Augenblick und der Verlauf aller Blöcke seit
+# Block 0, aus dem Logbuch, Zeitachsen und Tageswerte entstehen. Was seither
+# an Blöcken dazukam, liest jede Seite selbst nach -- höchstens rund vier
+# Tage. Ist die Datei älter, bleibt der Verlauf unvollständig.
+#
+# Dieser Workflow schreibt die Datei einmal am Tag neu und checkt sie auf
+# main ein. Er ändert genau diese eine Datei:
+#   - website/tools/kette.mjs ergänzt die Blöcke, die seit dem letzten Stand
+#     dazukamen (nur GET auf die öffentliche API, keine Secrets).
+#   - Die Seiten selbst bleiben, wie sie sind: Sie verweisen ohne Prüfsumme
+#     auf die Datei. Der Schritt "Seiten unverändert" stellt das sicher.
+#   - Steht danach irgendetwas anderes als kette.js als geändert da, bricht
+#     der Lauf ab, statt es einzuchecken.
+#
+# Der Commit auf main stößt bei Vercel eine neue Auslieferung der Website an
+# (statische Dateien, kein Bau). Das Projekt der App überspringt ihn: Sein
+# ignoreCommand nimmt website/ aus.
+#
+# Antwortet die API nicht, schlägt der Lauf fehl und der nächste Tag holt es
+# nach. Von Hand: "Run workflow" auf dem Zweig main.
+
+on:
+  schedule:
+    - cron: '23 3 * * *'   # täglich 03:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kettenverlauf
+  cancel-in-progress: false
+
+jobs:
+  auffrischen:
+    name: kette.js neu schreiben
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verlauf ergänzen
+        run: node website/tools/kette.mjs
+
+      - name: Seiten unverändert
+        run: node website/tools/build.mjs --check
+
+      - name: Einchecken
+        run: |
+          set -euo pipefail
+          datei=website/assets/data/kette.js
+          if git diff --quiet -- "$datei"; then
+            echo "::notice title=Kettenverlauf::Kein neuer Block seit dem letzten Stand -- nichts einzuchecken."
+            exit 0
+          fi
+          anderes=$(git status --porcelain | grep -v " $datei\$" || true)
+          if [ -n "$anderes" ]; then
+            echo "::error title=Kettenverlauf::Außer $datei hat sich etwas geändert. Es wird nichts eingecheckt."
+            echo "$anderes"
+            exit 1
+          fi
+          spitze=$(node -e '
+            const w = {}; new Function("window", require("fs").readFileSync(process.argv[1], "utf8"))(w);
+            console.log(w.YSKAR_SNAPSHOT.summary.height);' "$datei")
+          git config user.name "dabitlex"
+          git config user.email "287329668+dabitlex@users.noreply.github.com"
+          git add "$datei"
+          git commit -m "Website: Kettenverlauf aufgefrischt (Block $spitze)"
+          # main kann sich inzwischen bewegt haben: auf den neuen Stand setzen und noch einmal versuchen
+          for versuch in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git pull --rebase origin main
+          done
+          echo "::error title=Kettenverlauf::Push auf main dreimal abgelehnt."
+          exit 1

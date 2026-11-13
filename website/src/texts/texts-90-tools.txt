@@ -1,0 +1,2183 @@
+# Werkzeuge und Einheiten: Explorer, Rechner, Diagramme, API-Konsole, Protokolltabellen.
+
+unit.min
+  en: {n} min
+  de: {n} Min.
+unit.hours
+  en: {n} hours
+  de: {n} Stunden
+unit.days
+  en: {n} days
+  de: {n} Tagen
+ago.sec
+  en: {n} s ago
+  de: vor {n} s
+ago.min
+  en: {n} min ago
+  de: vor {n} Min.
+ago.hours
+  en: {n} h ago
+  de: vor {n} Std.
+ago.days
+  en: {n} days ago
+  de: vor {n} Tagen
+eta.around
+  en: in about {d}, around {date}
+  de: in etwa {d}, um den {date}
+v6.active
+  en: Active since block 10,000
+  de: Aktiv seit Block 10.000
+v6.pending
+  en: {n} blocks to go
+  de: noch {n} Blöcke
+mode.live
+  en: Live from the chain
+  de: Live aus der Kette
+mode.snapshot
+  en: State of {date}
+  de: Stand vom {date}
+mode.history
+  en: History up to block {h}
+  de: Verlauf bis Block {h}
+mode.liveShort
+  en: Live
+  de: Live
+mode.snapshotShort
+  en: Last known state
+  de: Letzter Stand
+dur.years
+  en: {n} years
+  de: {n} Jahre
+dur.years.big
+  en: {n} years
+  de: {n} Jahre
+dur.days
+  en: {n} days
+  de: {n} Tage
+dur.hours
+  en: {n} hours
+  de: {n} Stunden
+dur.min
+  en: {n} minutes
+  de: {n} Minuten
+dur.sec
+  en: {n} seconds
+  de: {n} Sekunden
+dur.sec.1
+  en: 1 second
+  de: 1 Sekunde
+rm.run.p
+  en: Released and in use. Each entry leads to the place where you can check it.
+  de: Veröffentlicht und in Gebrauch. Jeder Eintrag führt dorthin, wo du ihn prüfen kannst.
+rm.run.1.h
+  en: Main network
+  de: Hauptnetz
+rm.run.1.p
+  en: Blocks since 9 Sep 2026. The chain is at block
+  de: Blöcke seit dem 9. Sep. 2026. Die Kette steht bei Block
+rm.run.1.l
+  en: The network, live
+  de: Das Netz, live
+rm.run.2.h
+  en: Consensus revisions 2 to 5
+  de: Konsensfassungen 2 bis 5
+rm.run.2.p
+  en: Active since blocks 2,000, 4,000, 6,000 and 7,000.
+  de: Aktiv seit den Blöcken 2.000, 4.000, 6.000 und 7.000.
+rm.run.2.l
+  en: What each one changed
+  de: Was jede geändert hat
+rm.run.3.p
+  en: Full node, wallet, CPU and GPU mining and pool operation for Windows and Linux.
+  de: Full Node, Wallet, CPU- und GPU-Mining und Poolbetrieb für Windows und Linux.
+rm.run.3.l
+  en: Download
+  de: Herunterladen
+rm.run.4.p
+  en: The Android wallet: send, receive, sign. Ready for revision 6.
+  de: Die Android-Wallet: senden, empfangen, signieren. Bereit für Fassung 6.
+rm.run.4.l
+  en: About the wallet
+  de: Zur Wallet
+rm.run.5.h
+  en: Three public pools
+  de: Drei öffentliche Pools
+rm.run.5.p
+  en: YSKAR MAIN, Gozero and ODW.Serv. The pool software is open; anyone can run one.
+  de: YSKAR MAIN, Gozero und ODW.Serv. Die Pool-Software ist offen; jeder kann einen betreiben.
+rm.run.5.l
+  en: The pools, live
+  de: Die Pools, live
+rm.run.6.h
+  en: Explorer and public API
+  de: Explorer und öffentliche API
+rm.run.6.p
+  en: Every block, transfer and address, in the browser and over HTTP.
+  de: Jeder Block, jede Überweisung und jede Adresse, im Browser und über HTTP.
+rm.run.6.l
+  en: Open the explorer
+  de: Explorer öffnen
+rm.run.7.p
+  en: Proposals, discussion and status in the open. You sign in with your wallet.
+  de: Vorschläge, Diskussion und Status, alles offen. Du meldest dich mit deiner Wallet an.
+rm.fix.p
+  en: These changes are written into the consensus code. They take effect at a block and not on a date: when that block comes depends on how fast blocks are found.
+  de: Diese Änderungen stehen im Konsens-Code. Sie gelten ab einem Block und nicht ab einem Datum: Wann dieser Block kommt, hängt davon ab, wie schnell Blöcke gefunden werden.
+rm.fix.blocks
+  en: blocks
+  de: Blöcke
+rm.fix.1.at
+  en: Block 10,000
+  de: Block 10.000
+rm.fix.1.h
+  en: Revision 6
+  de: Fassung 6
+rm.fix.1.p
+  en: Shared accounts with up to 16 keys, time locks and hash locks, batch transfers to up to 1,000 recipients and room for 5,000 transactions per block. A hard fork, set after a community vote on 25 Oct 2026. Nodes must run a current release before that block.
+  de: Gemeinsame Konten mit bis zu 16 Schlüsseln, Zeitsperren und Hash-Sperren, Sammelüberweisungen an bis zu 1.000 Empfänger und Platz für 5.000 Transaktionen je Block. Ein Hard Fork, festgelegt nach einer Community-Abstimmung am 25. Okt. 2026. Knoten müssen vor diesem Block eine aktuelle Version betreiben.
+rm.fix.1.l
+  en: What changes at block 10,000
+  de: Was sich bei Block 10.000 ändert
+rm.fix.2.at
+  en: Block 12,000
+  de: Block 12.000
+rm.fix.2.h
+  en: First halving
+  de: Erste Halbierung
+rm.fix.2.p
+  en: The block reward falls from 875 to 437.5 YSR. It halves again every 12,000 blocks.
+  de: Die Blockbelohnung fällt von 875 auf 437,5 YSR. Sie halbiert sich danach alle 12.000 Blöcke erneut.
+rm.fix.2.l
+  en: The whole schedule
+  de: Der ganze Plan
+rm.fix.after
+  en: The last new YSR is created in block 443,999. After that, miners earn fees only.
+  de: Die letzten neuen YSR entstehen in Block 443.999. Danach verdienen Miner nur noch Gebühren.
+rm.plan.p
+  en: Intended, not promised. Nothing here has a date, and the order can change.
+  de: Beabsichtigt, nicht versprochen. Nichts hiervon hat einen Termin, und die Reihenfolge kann sich ändern.
+rm.plan.1.h
+  en: Swaps and instant payments
+  de: Swaps und Echtzeit-Zahlungen
+rm.plan.1.p
+  en: Revision 6 brings the building blocks to the chain: hash locks and time locks. Wallet functions that use them for swaps and for payments in real time come after it.
+  de: Fassung 6 bringt die Bausteine in die Kette: Hash-Sperren und Zeitsperren. Wallet-Funktionen, die sie für Swaps und für Zahlungen in Echtzeit nutzen, kommen danach.
+rm.plan.2.h
+  en: Stratum for mining rigs
+  de: Stratum für Mining-Rigs
+rm.plan.2.p
+  en: Today miners and pools speak YSKAR's own HTTP protocol. Stratum is planned for when the network has grown.
+  de: Heute sprechen Miner und Pools YSKARs eigenes HTTP-Protokoll. Stratum ist geplant, sobald das Netz gewachsen ist.
+rm.plan.3.h
+  en: Mining to shared accounts
+  de: Mining auf gemeinsame Konten
+rm.plan.3.p
+  en: Revision 6 cannot pay a block reward to a shared account. The specification leaves that to revision 7.
+  de: Fassung 6 kann eine Blockbelohnung nicht an ein gemeinsames Konto auszahlen. Die Spezifikation überlässt das Fassung 7.
+rm.plan.4.h
+  en: The wallet with your own node
+  de: Die Wallet am eigenen Knoten
+rm.plan.4.p
+  en: Today YSKAR Wallet reads balances from the public server. Planned: point it at a full node you run yourself.
+  de: Heute liest YSKAR Wallet Guthaben vom öffentlichen Server. Geplant: sie auf einen Full Node richten, den du selbst betreibst.
+rm.plan.5.h
+  en: YSKAR Wallet in the Play Store
+  de: YSKAR Wallet im Play Store
+rm.plan.5.p
+  en: Today the wallet is an APK from GitHub Releases.
+  de: Heute ist die Wallet eine APK aus den GitHub-Releases.
+rm.plan.6.h
+  en: Public test network and community decisions
+  de: Öffentliches Testnetz und Mitbestimmung
+rm.plan.6.p
+  en: The next stages of YSKAR Lab: try changes before they reach the main network, and decide on them together.
+  de: Die nächsten Stufen von YSKAR Lab: Änderungen ausprobieren, bevor sie das Hauptnetz erreichen, und gemeinsam darüber entscheiden.
+rm.plan.7.h
+  en: Exchange listings
+  de: Börsenlistings
+rm.plan.7.p
+  en: In preparation, with no date and no names. Today YSR has no price and no market, and nobody should mine in the expectation that this will change.
+  de: In Vorbereitung, ohne Datum und ohne Namen. Heute hat YSR keinen Preis und keinen Markt, und niemand sollte in der Erwartung minen, dass sich das ändert.
+rm.how.p
+  en: Proposals are written, discussed and tracked in public at YSKAR Lab. A change to the consensus rules needs a specification, and it reaches the main network only at a block height that every node knows in advance.
+  de: Vorschläge werden im YSKAR Lab öffentlich geschrieben, besprochen und verfolgt. Eine Änderung der Konsensregeln braucht eine Spezifikation, und sie erreicht das Hauptnetz nur zu einer Blockhöhe, die jeder Knoten im Voraus kennt.
+com.ch.p
+  en: Announcements appear in the Telegram channel first. Everything else is for questions and discussion.
+  de: Ankündigungen erscheinen zuerst im Telegram-Kanal. Alles andere ist für Fragen und Diskussion da.
+com.ch.1
+  en: Releases and news.
+  de: Releases und Neuigkeiten.
+com.ch.2
+  en: Questions and discussion with other miners and users.
+  de: Fragen und Diskussion mit anderen Minern und Nutzern.
+com.ch.3
+  en: Short updates from @yskar_official.
+  de: Kurze Meldungen von @yskar_official.
+com.ch.4
+  en: The announcement thread.
+  de: Der Ankündigungs-Thread.
+com.ch.5
+  en: Source code, releases and issues.
+  de: Quelltext, Releases und Issues.
+com.ch.6
+  en: Proposals, from the first idea to the release.
+  de: Vorschläge, von der ersten Idee bis zum Release.
+com.do.1.h
+  en: Run a full node
+  de: Einen Full Node betreiben
+com.do.1.p
+  en: Every node that checks the blocks itself makes the network depend less on any single server.
+  de: Jeder Knoten, der die Blöcke selbst prüft, macht das Netz unabhängiger von jedem einzelnen Server.
+com.do.2.h
+  en: Mine, alone or in a pool
+  de: Minen, allein oder im Pool
+com.do.2.p
+  en: Hash power that is spread over many miners and several pools makes the chain harder to steer.
+  de: Rechenleistung, die sich auf viele Miner und mehrere Pools verteilt, macht die Kette schwerer zu lenken.
+com.do.3.h
+  en: Run a pool
+  de: Einen Pool betreiben
+com.do.3.p
+  en: The pool software is part of the repository and pays miners in the block itself. Another independent pool spreads the hash power further.
+  de: Die Pool-Software ist Teil des Repositorys und zahlt Miner im Block selbst aus. Ein weiterer unabhängiger Pool verteilt die Rechenleistung weiter.
+com.do.4.h
+  en: Test and report
+  de: Testen und melden
+com.do.4.p
+  en: Try a release and open an issue for what breaks. Say what you saw and how to reproduce it.
+  de: Probiere ein Release aus und eröffne ein Issue für das, was nicht funktioniert. Schreib, was du gesehen hast und wie es sich nachstellen lässt.
+com.do.5.h
+  en: Propose and discuss
+  de: Vorschlagen und diskutieren
+com.do.5.p
+  en: Bring an idea to YSKAR Lab, or improve someone else's in the comments.
+  de: Bring eine Idee ins YSKAR Lab oder verbessere die eines anderen in den Kommentaren.
+com.lab.p
+  en: Every proposal moves through the same six stages, and everyone can see where it stands.
+  de: Jeder Vorschlag durchläuft dieselben sechs Stufen, und jeder sieht, wo er steht.
+com.lab.s1
+  en: Idea
+  de: Idee
+com.lab.s1.d
+  en: Share what you have in mind.
+  de: Teile, was dir vorschwebt.
+com.lab.s2
+  en: Discussion
+  de: Diskussion
+com.lab.s2.d
+  en: Improve it together in the comments.
+  de: Gemeinsam in den Kommentaren verbessern.
+com.lab.s3
+  en: Draft
+  de: Entwurf
+com.lab.s3.d
+  en: Text, design, specification or code.
+  de: Text, Design, Spezifikation oder Code.
+com.lab.s4
+  en: Planned
+  de: Geplant
+com.lab.s4.d
+  en: Set for a coming release, with a reason.
+  de: Für ein kommendes Release vorgesehen, mit Begründung.
+com.lab.s5
+  en: On testnet
+  de: Im Testnetz
+com.lab.s5.d
+  en: Try it before it reaches the main network.
+  de: Ausprobieren, bevor es das Hauptnetz erreicht.
+com.lab.s6
+  en: Shipped
+  de: Veröffentlicht
+com.lab.s6.d
+  en: Released, with a link to it.
+  de: Erschienen, mit Link dorthin.
+com.lab.k1
+  en: The author moves a proposal through the first three stages.
+  de: Durch die ersten drei Stufen bewegt der Autor seinen Vorschlag selbst.
+com.lab.k2
+  en: From Planned on, the team sets the stage, always with a reason.
+  de: Ab Geplant setzt das Team die Stufe, immer mit Begründung.
+com.lab.open
+  en: Open YSKAR Lab
+  de: YSKAR Lab öffnen
+com.safe.1.h
+  en: Your 12 words stay with you
+  de: Deine 12 Wörter bleiben bei dir
+com.safe.1.p
+  en: Nobody from YSKAR will ever ask for your 12 words, your PIN or a wallet file. Whoever asks is trying to take your coins.
+  de: Niemand von YSKAR wird je nach deinen 12 Wörtern, deiner PIN oder einer Wallet-Datei fragen. Wer danach fragt, will an deine Coins.
+com.safe.2.h
+  en: Download from the source
+  de: Lade von der Quelle
+com.safe.2.p
+  en: Get the software from the GitHub releases that this site links to, and compare the wallet's certificate fingerprint before you install it.
+  de: Hol dir die Software aus den GitHub-Releases, auf die diese Seite verweist, und vergleiche vor der Installation den Zertifikats-Fingerabdruck der Wallet.
+com.safe.3.h
+  en: No promises
+  de: Keine Versprechen
+com.safe.3.p
+  en: YSR has no price and no market today, and it is not listed on any exchange. Nothing here promises that this will change.
+  de: YSR hat heute keinen Preis und keinen Markt und ist an keiner Börse gelistet. Nichts hier verspricht, dass sich das ändert.
+com.channel
+  en: Telegram channel
+  de: Telegram-Kanal
+com.chat
+  en: Community chat
+  de: Community-Chat
+wallet.dl
+  en: Download the APK
+  de: APK herunterladen
+wallet.meta
+  en: Version {{WALLET}}, for Android 7 or newer. Open source under the MIT License. English and German.
+  de: Version {{WALLET}}, für Android 7 oder neuer. Open Source unter der MIT-Lizenz. Englisch und Deutsch.
+wallet.feat.p
+  en: No ads, no tracking and no account with anyone. The app talks to the YSKAR network and to nothing else.
+  de: Keine Werbung, kein Tracking und kein Konto bei irgendwem. Die App spricht mit dem YSKAR-Netz und mit sonst nichts.
+wallet.f1.h
+  en: Your key stays with you
+  de: Dein Schlüssel bleibt bei dir
+wallet.f1.p
+  en: The wallet is created on your phone. 12 recovery words restore it on any device. They are stored encrypted with your PIN in Android's protected storage and never go into cloud backups.
+  de: Die Wallet entsteht auf deinem Handy. 12 Wörter stellen sie auf jedem Gerät wieder her. Sie liegen mit deiner PIN verschlüsselt im geschützten Speicher von Android und landen nie in Cloud-Backups.
+wallet.f2.h
+  en: Send on purpose
+  de: Senden mit Absicht
+wallet.f2.p
+  en: Enter an address, pick a contact or scan a QR code. Before sending you see recipient, amount and network fee once more, then you confirm with your PIN or fingerprint. A transfer cannot be taken back.
+  de: Adresse eingeben, Kontakt wählen oder QR-Code scannen. Vor dem Senden siehst du Empfänger, Betrag und Netzgebühr noch einmal, dann bestätigst du mit PIN oder Fingerabdruck. Eine Überweisung lässt sich nicht zurückholen.
+wallet.f3.h
+  en: Receive
+  de: Empfangen
+wallet.f3.p
+  en: Show your QR code, or copy and share your address. Anyone may see it: knowing it is not enough to withdraw anything.
+  de: Zeig deinen QR-Code, oder kopiere und teile deine Adresse. Jeder darf sie sehen: Sie zu kennen genügt nicht, um etwas abzuheben.
+wallet.f5.h
+  en: Sign and sign in
+  de: Signieren und anmelden
+wallet.f5.p
+  en: Prove with a signed message that an address is yours, and check other people's signatures. Sign in to YSKAR Lab with a QR code. A signature cannot move YSR.
+  de: Mit einer signierten Nachricht belegen, dass eine Adresse dir gehört, und die Signaturen anderer prüfen. Per QR-Code im YSKAR Lab anmelden. Eine Signatur kann keine YSR bewegen.
+wallet.f6.h
+  en: Locked down
+  de: Abgesichert
+wallet.f6.p
+  en: PIN and fingerprint, automatic lock after a time you choose, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
+  de: PIN und Fingerabdruck, automatische Sperre nach einer Zeit deiner Wahl, keine Screenshots, solange die 12 Wörter zu sehen sind, und eine eigene Tastatur, damit keine Eingabe durch die Tastatur-App deines Handys läuft.
+wallet.inst.h
+  en: Install in four steps
+  de: In vier Schritten installieren
+wallet.inst.p
+  en: The wallet is distributed as an APK through its GitHub releases. Updates install over the previous version and your wallet stays on the device.
+  de: Die Wallet wird als APK über ihre GitHub-Releases verteilt. Updates installieren sich über die vorige Version, deine Wallet bleibt auf dem Gerät.
+wallet.inst.1
+  en: Open the <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>latest release</a> on your Android phone and download the file <code>yskar-wallet-…apk</code>.
+  de: Öffne das <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>neueste Release</a> auf deinem Android-Handy und lade die Datei <code>yskar-wallet-…apk</code>.
+wallet.inst.2
+  en: Open the file. Allow installing from this source when Android asks.
+  de: Öffne die Datei. Erlaube die Installation aus dieser Quelle, wenn Android fragt.
+wallet.inst.3
+  en: Tap “Create wallet” and write the 12 words down on paper, in order.
+  de: Tippe auf „Wallet erstellen“ und schreibe die 12 Wörter auf Papier, in der richtigen Reihenfolge.
+wallet.inst.4
+  en: Choose a PIN. To move an existing wallet over, enter its 12 words instead.
+  de: Wähle eine PIN. Um eine bestehende Wallet herüberzuholen, gib stattdessen ihre 12 Wörter ein.
+wallet.verify.h
+  en: Check that the file is genuine
+  de: Prüfen, ob die Datei echt ist
+wallet.verify.p
+  en: Every release is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
+  de: Jedes Release ist mit demselben Schlüssel signiert. Das ist der SHA-256-Fingerabdruck seines Zertifikats. Weicht der Fingerabdruck deines Downloads ab, installiere die Datei nicht.
+wallet.oth.h
+  en: Other places for your YSR
+  de: Andere Orte für deine YSR
+wallet.oth.p
+  en: Every YSKAR app uses the same 12 words. With them you reach the same balance everywhere.
+  de: Jede YSKAR-App nutzt dieselben 12 Wörter. Damit erreichst du überall dasselbe Guthaben.
+wallet.oth.1.h
+  en: YSKAR Wallet
+  de: YSKAR Wallet
+wallet.oth.1.p
+  en: Android. Send, receive, sign. It does not mine.
+  de: Android. Senden, empfangen, signieren. Sie mint nicht.
+wallet.oth.2.h
+  en: Node Core
+  de: Node Core
+wallet.oth.2.p
+  en: Windows and Linux. A wallet inside your own full node, with mining and message signing. <a href='#mine-setup'>Get Node Core</a>
+  de: Windows und Linux. Eine Wallet im eigenen Full Node, mit Mining und Nachrichten-Signatur. <a href='#mine-setup'>Node Core holen</a>
+wallet.oth.3.h
+  en: Android app with mining
+  de: Android-App mit Mining
+wallet.oth.3.p
+  en: Wallet and mining on the phone, with a home-screen widget and notifications.
+  de: Wallet und Mining auf dem Handy, mit Widget und Benachrichtigungen.
+wallet.oth.4.h
+  en: Telegram Mini App
+  de: Telegram Mini App
+wallet.oth.4.p
+  en: The easy way in, with nothing to install. Ownership depends on your 12 words, not on your Telegram account.
+  de: Der einfache Einstieg, ohne Installation. Der Besitz hängt an deinen 12 Wörtern, nicht an deinem Telegram-Konto.
+wallet.st.h
+  en: Where the wallet stands
+  de: Wo die Wallet steht
+wallet.st.1.h
+  en: Android only
+  de: Nur Android
+wallet.st.1.p
+  en: The wallet is an APK from GitHub. It is not in an app store, and there is no iOS app.
+  de: Die Wallet ist eine APK von GitHub. Sie ist in keinem App-Store, und eine iOS-App gibt es nicht.
+wallet.st.2.h
+  en: Ready for revision 6
+  de: Bereit für Fassung 6
+wallet.st.2.p
+  en: Version 2.0.0 knows the new transfer format and switches to it at block 10,000. An older version still receives YSR but cannot send after that block.
+  de: Version 2.0.0 kennt das neue Überweisungsformat und schaltet bei Block 10.000 darauf um. Eine ältere Version empfängt weiter YSR, kann nach diesem Block aber nicht mehr senden.
+wallet.st.3.h
+  en: Planned: an app store
+  de: Geplant: ein App-Store
+wallet.st.3.p
+  en: A release through Google Play is planned. There is no date.
+  de: Eine Veröffentlichung über Google Play ist geplant. Einen Termin gibt es nicht.
+wallet.st.4.h
+  en: Planned: your own node
+  de: Geplant: der eigene Knoten
+wallet.st.4.p
+  en: Today the wallet reads from the project's main node. Connecting it to a node you run yourself is planned, so that nobody has to take the project's word for a balance.
+  de: Heute liest die Wallet vom Hauptknoten des Projekts. Geplant ist, sie mit einem selbst betriebenen Knoten zu verbinden, damit niemand dem Projekt ein Guthaben glauben muss.
+mining.ways.p
+  en: Every way is free and uses the same wallet: with your 12 words you reach the same YSR everywhere.
+  de: Jeder Weg ist kostenlos und nutzt dieselbe Wallet: Mit deinen 12 Wörtern erreichst du überall dieselben YSR.
+mining.tab.pc
+  en: PC
+  de: PC
+mining.tab.phone
+  en: Phone
+  de: Handy
+mining.tab.cli
+  en: Command line
+  de: Kommandozeile
+mining.tab.rig
+  en: Rig
+  de: Rig
+mining.pc.h
+  en: Node Core for Windows and Linux
+  de: Node Core für Windows und Linux
+mining.pc.p
+  en: A full node, a wallet and a miner in one program. Node Core checks every block itself and mines with your processor and with graphics cards from NVIDIA, AMD and Intel. Version {{NODE_CORE}}, for Windows 10 and 11 and for 64-bit Linux.
+  de: Full Node, Wallet und Miner in einem Programm. Node Core prüft jeden Block selbst und mint mit deinem Prozessor und mit Grafikkarten von NVIDIA, AMD und Intel. Version {{NODE_CORE}}, für Windows 10 und 11 sowie 64-Bit-Linux.
+mining.pc.s1
+  en: Download the installer and run it.
+  de: Installer herunterladen und ausführen.
+mining.pc.s2
+  en: Create a wallet and write down the 12 words, or bring your wallet over with them.
+  de: Wallet erstellen und die 12 Wörter notieren, oder deine Wallet damit herüberholen.
+mining.pc.s3
+  en: Under Mining, choose solo or a pool, pick processor or graphics card, and start.
+  de: Unter Mining solo oder einen Pool wählen, Prozessor oder Grafikkarte auswählen und starten.
+mining.pc.win
+  en: Download for Windows
+  de: Für Windows herunterladen
+mining.pc.deb
+  en: Download for Linux (.deb)
+  de: Für Linux herunterladen (.deb)
+mining.pc.more
+  en: Also available: an <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-{{NODE_CORE}}-x86_64.AppImage' target='_blank' rel='noopener'>AppImage</a> for other Linux distributions, and the <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/tag/node-core-v{{NODE_CORE}}' target='_blank' rel='noopener'>release notes with checksums</a>.
+  de: Außerdem: ein <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/download/node-core-v{{NODE_CORE}}/YSKAR-Node-Core-{{NODE_CORE}}-x86_64.AppImage' target='_blank' rel='noopener'>AppImage</a> für andere Linux-Distributionen und die <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/tag/node-core-v{{NODE_CORE}}' target='_blank' rel='noopener'>Release-Notizen mit Prüfsummen</a>.
+mining.pc.note
+  en: <strong>The Windows installer is not signed.</strong> Windows therefore asks once: choose “More info”, then “Run anyway”. Compare the checksum with the release notes if you want to be sure the file is the published one.
+  de: <strong>Der Windows-Installer ist nicht signiert.</strong> Windows fragt deshalb einmal nach: „Weitere Informationen“ wählen, dann „Trotzdem ausführen“. Wer sichergehen will, vergleicht die Prüfsumme mit den Release-Notizen.
+mining.pc.imgcap
+  en: Node Core, overview. The figures in the picture are examples.
+  de: Node Core, Übersicht. Die Zahlen im Bild sind Beispiele.
+mining.phone.h
+  en: On your phone
+  de: Auf dem Handy
+mining.phone.p
+  en: The easiest way to get to know YSKAR. A phone contributes little hash power and finds blocks only in a pool. Serious mining runs on PCs and rigs.
+  de: Der einfachste Weg, YSKAR kennenzulernen. Ein Handy bringt wenig Rechenleistung mit und findet Blöcke nur im Pool. Ernsthaftes Mining läuft auf PCs und Rigs.
+mining.phone.s1
+  en: Install the Android app from GitHub, or open the Mini App in Telegram.
+  de: Android-App von GitHub installieren oder die Mini App in Telegram öffnen.
+mining.phone.s2
+  en: Create a wallet and write down the 12 words on paper.
+  de: Wallet erstellen und die 12 Wörter auf Papier notieren.
+mining.phone.s3
+  en: Choose a pool and start mining.
+  de: Einen Pool wählen und das Mining starten.
+mining.phone.apk
+  en: Android app with mining
+  de: Android-App mit Mining
+mining.phone.tg
+  en: Mini App in Telegram
+  de: Mini App in Telegram
+mining.phone.f1
+  en: Android app
+  de: Android-App
+mining.phone.f1.v
+  en: Keeps mining in the background, also with the screen locked, and shows the status in a home-screen widget. Distributed as an APK, because app stores do not allow on-device mining.
+  de: Mint im Hintergrund weiter, auch bei gesperrtem Bildschirm, und zeigt den Stand in einem Widget. Wird als APK verteilt, weil App-Stores Mining auf dem Gerät nicht zulassen.
+mining.phone.f2
+  en: Mini App
+  de: Mini App
+mining.phone.f2.v
+  en: Nothing to install. Runs inside Telegram while it is open. Your coins depend on your 12 words, not on your Telegram account.
+  de: Nichts zu installieren. Läuft in Telegram, solange es geöffnet ist. Deine Coins hängen an deinen 12 Wörtern, nicht an deinem Telegram-Konto.
+mining.phone.f3
+  en: YSKAR Wallet
+  de: YSKAR Wallet
+mining.phone.f3.v
+  en: The wallet app does not mine. It is made for sending, receiving and signing.
+  de: Die Wallet-App mint nicht. Sie ist zum Senden, Empfangen und Signieren da.
+mining.cli.h
+  en: The command-line miner
+  de: Der Kommandozeilen-Miner
+mining.cli.p
+  en: For Windows, macOS and Linux. The miner needs only an address: no key, no wallet and no sign-up. You can run it on a computer you do not control.
+  de: Für Windows, macOS und Linux. Der Miner braucht nur eine Adresse: keinen Schlüssel, keine Wallet und keine Anmeldung. Er lässt sich auch auf einem Rechner betreiben, den du nicht kontrollierst.
+mining.cli.f1
+  en: Needs
+  de: Voraussetzung
+mining.cli.f1.v
+  en: Node.js 20 or newer, nothing else to install
+  de: Node.js 20 oder neuer, sonst nichts zu installieren
+mining.cli.f2
+  en: Graphics cards
+  de: Grafikkarten
+mining.cli.f2.v
+  en: add <code>--gpu</code>. It uses <code>yskar-cuda</code> for NVIDIA and <code>yskar-opencl</code> for AMD and Intel
+  de: <code>--gpu</code> anhängen. Genutzt wird <code>yskar-cuda</code> für NVIDIA und <code>yskar-opencl</code> für AMD und Intel
+mining.cli.f3
+  en: Solo
+  de: Solo
+mining.cli.f3.v
+  en: mine against your own full node and leave out <code>--mode pool</code>
+  de: gegen den eigenen Full Node minen und <code>--mode pool</code> weglassen
+mining.cli.link
+  en: The full guide to the miner
+  de: Die vollständige Anleitung zum Miner
+mining.cli.c1
+  en: get the miner and test this computer
+  de: Miner holen und diesen Rechner testen
+mining.cli.c2
+  en: mine in the public pool
+  de: im öffentlichen Pool minen
+mining.cli.c3
+  en: or solo, against your own node
+  de: oder solo, gegen den eigenen Knoten
+mining.cli.addr
+  en: Replace <code>ysr1...</code> with your own address. Rewards go straight to it.
+  de: Ersetze <code>ysr1...</code> durch deine eigene Adresse. Belohnungen gehen direkt dorthin.
+mining.rig.h
+  en: Mining rigs with HiveOS
+  de: Mining-Rigs mit HiveOS
+mining.rig.p
+  en: A ready package for HiveOS: the command-line miner with the GPU programs, one miner per graphics card.
+  de: Ein fertiges Paket für HiveOS: der Kommandozeilen-Miner mit den GPU-Programmen, ein Miner je Grafikkarte.
+mining.rig.dl
+  en: Download the package {{NODE_CORE}}
+  de: Paket {{NODE_CORE}} herunterladen
+mining.rig.doc
+  en: Flight sheet and setup
+  de: Flight Sheet und Einrichtung
+mining.rig.f1
+  en: Cards
+  de: Karten
+mining.rig.f1.v
+  en: NVIDIA (CUDA), AMD and Intel (OpenCL)
+  de: NVIDIA (CUDA), AMD und Intel (OpenCL)
+mining.rig.f2
+  en: Fee
+  de: Gebühr
+mining.rig.f2.v
+  en: none in the miner. A pool keeps its own fee
+  de: keine im Miner. Ein Pool behält seine eigene Gebühr
+mining.rig.f3
+  en: Setup
+  de: Einrichtung
+mining.rig.f3.v
+  en: your address and the pool go into the flight sheet. The guide shows every field
+  de: deine Adresse und der Pool stehen im Flight Sheet. Die Anleitung zeigt jedes Feld
+mining.return
+  en: <strong>Nobody can promise you a return.</strong> How often you receive something depends on your hash power, on the power of the whole network and on chance. YSR has no market price.
+  de: <strong>Niemand kann dir einen Ertrag versprechen.</strong> Wie oft du etwas erhältst, hängt von deiner Rechenleistung ab, von der des ganzen Netzes und vom Zufall. YSR hat keinen Marktpreis.
+pools.p1
+  en: Solo, you search alone and keep the whole reward of a block you find. In a pool, many search together and the reward is split by the work each one delivered.
+  de: Solo suchst du allein und behältst die ganze Belohnung eines Blocks, den du findest. Im Pool suchen viele gemeinsam, und die Belohnung wird nach der Arbeit aufgeteilt, die jeder geliefert hat.
+pools.p2
+  en: A YSKAR pool is not a service with accounts. It is a node whose blocks pay every miner directly, in the block itself. The operator never holds anyone else's coins, and there is no payout threshold.
+  de: Ein YSKAR-Pool ist kein Dienst mit Konten. Er ist ein Knoten, dessen Blöcke jeden Miner direkt auszahlen, im Block selbst. Der Betreiber hält nie fremde Coins, und es gibt keine Auszahlungsschwelle.
+pools.reported
+  en: {r} reported
+  de: {r} gemeldet
+pools.c5
+  en: Of the last {n}
+  de: Von den letzten {n}
+pools.full
+  en: full
+  de: voll
+pools.cap
+  en: Miners, seats and hashrate are what each pool reports about itself. The share of the last {n} blocks is counted from the chain.
+  de: Miner, Plätze und Hashrate meldet jeder Pool selbst. Der Anteil an den letzten {n} Blöcken ist aus der Kette gezählt.
+pools.f1
+  en: Accounting
+  de: Abrechnung
+pools.f1.v
+  en: By the shares of the recent past (PPLNS). If you have only just started, your part of the first block is small.
+  de: Nach den Shares der jüngsten Vergangenheit (PPLNS). Wer gerade erst angefangen hat, bekommt vom ersten Block einen kleinen Teil.
+pools.f2
+  en: Seats
+  de: Plätze
+pools.f2.v
+  en: A block can pay at most 64 addresses, so a pool has 63 seats plus the operator's fee. From revision 6 it is 254.
+  de: Ein Block kann höchstens 64 Adressen auszahlen, ein Pool hat also 63 Plätze plus die Gebühr des Betreibers. Ab Fassung 6 sind es 254.
+pools.f3
+  en: Fee
+  de: Gebühr
+pools.f3.v
+  en: Set by the operator, between 0 and 5 %.
+  de: Legt der Betreiber fest, zwischen 0 und 5 %.
+pools.f4
+  en: Your own pool
+  de: Ein eigener Pool
+pools.f4.v
+  en: Any node can be a pool, without registration. <a class='ext' href='https://github.com/dabitlex/YSKAR/blob/main/docs/POOL.md' target='_blank' rel='noopener'>How to run one</a>
+  de: Jeder Knoten kann ein Pool sein, ohne Anmeldung. <a class='ext' href='https://github.com/dabitlex/YSKAR/blob/main/docs/POOL.md' target='_blank' rel='noopener'>So betreibst du einen</a>
+calc.p
+  en: Enter your hashrate. The estimate uses the work in the latest blocks of the chain, not the figures pools report about themselves. Node Core and the miner show your hashrate while they run.
+  de: Gib deine Hashrate ein. Die Schätzung nutzt die Arbeit in den neuesten Blöcken der Kette, nicht die Werte, die Pools über sich selbst melden. Node Core und der Miner zeigen deine Hashrate im Betrieb an.
+calc.unit
+  en: Unit
+  de: Einheit
+calc.mode
+  en: How you mine
+  de: Wie du minst
+calc.pool
+  en: In a pool
+  de: Im Pool
+calc.solo
+  en: Solo
+  de: Solo
+calc.which
+  en: Pool
+  de: Pool
+calc.day
+  en: Per day, on average
+  de: Pro Tag, im Mittel
+calc.week
+  en: Per 7 days
+  de: In 7 Tagen
+calc.month
+  en: Per 30 days
+  de: In 30 Tagen
+calc.share
+  en: Your share of the network
+  de: Dein Anteil am Netz
+calc.d.every
+  en: One block on average every
+  de: Ein Block im Mittel alle
+calc.d.chance
+  en: Chance of at least one block in 24 hours
+  de: Chance auf mindestens einen Block in 24 Stunden
+calc.d.block
+  en: Per block you find
+  de: Je gefundenem Block
+calc.d.poolEvery
+  en: The pool finds a block about every
+  de: Der Pool findet einen Block etwa alle
+calc.d.part
+  en: Your part of each pool block
+  de: Dein Teil jedes Pool-Blocks
+calc.d.fee
+  en: Pool fee, already deducted
+  de: Pool-Gebühr, schon abgezogen
+calc.d.poolShare
+  en: Pool's share of the last {n} blocks
+  de: Anteil des Pools an den letzten {n} Blöcken
+calc.d.net
+  en: Network hashrate from the last {n} blocks
+  de: Netz-Hashrate aus den letzten {n} Blöcken
+calc.enter
+  en: Enter a hashrate above 0.
+  de: Gib eine Hashrate über 0 ein.
+calc.note
+  en: An estimate, not a promise. Blocks are found by chance, and the difficulty follows the whole network. Fees are not included.
+  de: Eine Schätzung, kein Versprechen. Blöcke werden zufällig gefunden, und die Difficulty folgt dem ganzen Netz. Gebühren sind nicht eingerechnet.
+calc.halving
+  en: The halving at block {b} is in about {d} days. The 7-day and 30-day figures already count half the reward after it.
+  de: Die Halbierung bei Block {b} kommt in etwa {d} Tagen. Die Werte für 7 und 30 Tage rechnen danach schon mit der halben Belohnung.
+calc.halving.1
+  en: The halving at block {b} is about a day away. The 7-day and 30-day figures already count half the reward after it.
+  de: Die Halbierung bei Block {b} kommt in etwa einem Tag. Die Werte für 7 und 30 Tage rechnen danach schon mit der halben Belohnung.
+calc.every.min
+  en: {n} minutes
+  de: {n} Minuten
+calc.every.min.1
+  en: 1 minute
+  de: 1 Minute
+calc.every.hours
+  en: {n} hours
+  de: {n} Stunden
+calc.every.days
+  en: {n} days
+  de: {n} Tage
+calc.every.years
+  en: {n} years
+  de: {n} Jahre
+net.hashrate
+  en: Network hashrate
+  de: Netz-Hashrate
+net.difficulty
+  en: Difficulty
+  de: Difficulty
+net.now
+  en: Right now
+  de: Im Moment
+net.height
+  en: Block height
+  de: Blockhöhe
+net.fromChain
+  en: work of the last 24 blocks, divided by their time
+  de: Arbeit der letzten 24 Blöcke, geteilt durch ihre Zeit
+net.everyBlock
+  en: recomputed for every block
+  de: für jeden Block neu berechnet
+net.blocktime
+  en: Block time, last 50 blocks
+  de: Blockzeit, letzte 50 Blöcke
+net.target600
+  en: target: 600 s
+  de: Ziel: 600 s
+net.mempool
+  en: Transfers waiting
+  de: Wartende Überweisungen
+net.fromNode
+  en: at the main node
+  de: beim Hauptknoten
+net.miners
+  en: Active miners
+  de: Aktive Miner
+net.sessions
+  en: Mining sessions
+  de: Mining-Sitzungen
+net.nodes
+  en: Nodes reporting
+  de: Meldende Knoten
+net.reported
+  en: reported, not verifiable
+  de: gemeldet, nicht prüfbar
+net.next.v6
+  en: Revision 6 at block 10,000
+  de: Fassung 6 bei Block 10.000
+net.next.halving
+  en: First halving at block 12,000
+  de: Erste Halbierung bei Block 12.000
+net.hist.h
+  en: History, read from the blocks
+  de: Verlauf, aus den Blöcken gelesen
+net.hist.p
+  en: Every block of the chain, summed by day in UTC. The history is complete up to block <span data-live='snapTip'></span>; the figures above are read live.
+  de: Jeder Block der Kette, je Tag in UTC zusammengefasst. Der Verlauf ist vollständig bis Block <span data-live='snapTip'></span>; die Werte oben werden live gelesen.
+net.range
+  en: Period
+  de: Zeitraum
+net.range.all
+  en: Since block 0
+  de: Seit Block 0
+net.range.30
+  en: 30 days
+  de: 30 Tage
+net.range.7
+  en: 7 days
+  de: 7 Tage
+net.c.hash
+  en: Hashrate per day
+  de: Hashrate je Tag
+net.c.hash.capLog
+  en: Work of the day's blocks divided by their time. Logarithmic scale: each line is ten times the one below.
+  de: Arbeit der Blöcke eines Tages, geteilt durch ihre Zeit. Logarithmische Skala: Jede Linie ist das Zehnfache der darunter.
+net.c.hash.capLin
+  en: Work of the day's blocks divided by their time.
+  de: Arbeit der Blöcke eines Tages, geteilt durch ihre Zeit.
+net.c.blocks
+  en: Blocks per day
+  de: Blöcke je Tag
+net.c.blocks.cap
+  en: Complete days only. At the target block time a day has 144 blocks.
+  de: Nur vollständige Tage. Bei der Zielblockzeit hat ein Tag 144 Blöcke.
+net.c.blocks.ref
+  en: Target: 144 blocks per day
+  de: Ziel: 144 Blöcke je Tag
+net.c.blocks.name
+  en: blocks
+  de: Blöcke
+net.c.finders
+  en: Blocks per day, by finder
+  de: Blöcke je Tag, nach Finder
+net.c.finders.cap
+  en: Complete days only. Pool blocks carry the pool's name in the chain; a block that pays a single address counts as solo.
+  de: Nur vollständige Tage. Pool-Blöcke tragen den Namen des Pools in der Kette; ein Block, der eine einzige Adresse auszahlt, zählt als solo.
+net.c.time
+  en: Average block time per day
+  de: Mittlere Blockzeit je Tag
+net.c.time.cap
+  en: Seconds between blocks, averaged over the day.
+  de: Sekunden zwischen den Blöcken, über den Tag gemittelt.
+net.c.time.ref
+  en: Target: 600 seconds
+  de: Ziel: 600 Sekunden
+net.c.day
+  en: Day (UTC)
+  de: Tag (UTC)
+net.s.main
+  en: YSKAR MAIN
+  de: YSKAR MAIN
+net.s.gozero
+  en: Gozero
+  de: Gozero
+net.s.solo
+  en: Solo
+  de: Solo
+net.find.h
+  en: Who finds the blocks
+  de: Wer die Blöcke findet
+net.find.p1
+  en: In the first weeks every block was found solo. Today nearly all blocks come from two pools, and most of them from one.
+  de: In den ersten Wochen wurde jeder Block solo gefunden. Heute kommen fast alle Blöcke aus zwei Pools, und die meisten aus einem.
+net.find.p2
+  en: This matters. A pool's operator chooses the transactions and the parent of every block the pool works on, and whoever directs most of the hash power can build the chain with the most work. More pools and more solo miners make the chain harder to steer.
+  de: Das ist wichtig. Der Betreiber eines Pools wählt die Transaktionen und den Vorgänger jedes Blocks, an dem der Pool arbeitet, und wer den Großteil der Rechenleistung lenkt, kann die Kette mit der meisten Arbeit bauen. Mehr Pools und mehr Solo-Miner machen die Kette schwerer zu lenken.
+net.find.link
+  en: The pools, and how to run your own
+  de: Die Pools, und wie du einen eigenen betreibst
+net.find.title
+  en: Share of blocks found
+  de: Anteil der gefundenen Blöcke
+net.find.last
+  en: Last {n} blocks
+  de: Letzte {n} Blöcke
+net.find.last1000
+  en: The 1,000 blocks up to block {h}
+  de: Die 1.000 Blöcke bis Block {h}
+net.find.allb
+  en: All blocks up to block {h}
+  de: Alle Blöcke bis Block {h}
+net.find.cap
+  en: Counted from the chain. The first bar follows the live chain, the other two end where the embedded history ends.
+  de: Aus der Kette gezählt. Der erste Balken folgt der Live-Kette, die beiden anderen enden dort, wo der eingebettete Verlauf endet.
+net.blocks.h
+  en: The latest blocks
+  de: Die neuesten Blöcke
+net.blocks.p
+  en: Select a block to see its header, recompute its proof of work and read its transactions.
+  de: Wähle einen Block, um seinen Kopf zu sehen, seinen Proof of Work nachzurechnen und seine Transaktionen zu lesen.
+net.blocks.link
+  en: Open the explorer
+  de: Explorer öffnen
+net.blocks.title
+  en: Newest first
+  de: Neueste zuerst
+net.b.height
+  en: Height
+  de: Höhe
+net.b.age
+  en: Found
+  de: Gefunden
+net.b.by
+  en: By
+  de: Von
+net.b.paid
+  en: Paid to
+  de: Ausgezahlt an
+net.b.diff
+  en: Difficulty
+  de: Difficulty
+net.b.solo
+  en: solo
+  de: solo
+net.b.addr
+  en: {n} addresses
+  de: {n} Adressen
+net.b.addr.1
+  en: 1 address
+  de: 1 Adresse
+net.src.h
+  en: Where the numbers come from
+  de: Woher die Zahlen kommen
+net.src.p
+  en: Not every figure on this page has the same weight.
+  de: Nicht jede Zahl auf dieser Seite hat dasselbe Gewicht.
+net.src.1.h
+  en: From the chain
+  de: Aus der Kette
+net.src.1.p
+  en: Height, difficulty, supply and every chart on this page. The hashrate is the work in the latest blocks divided by the time they took. Anyone who runs a full node can recompute all of it.
+  de: Höhe, Difficulty, Menge und jedes Diagramm auf dieser Seite. Die Hashrate ist die Arbeit der neuesten Blöcke, geteilt durch die Zeit, die sie gebraucht haben. Wer einen Full Node betreibt, kann alles davon nachrechnen.
+net.src.2.h
+  en: Reported
+  de: Gemeldet
+net.src.2.p
+  en: Active miners, sessions, nodes and the hashrate a pool states about itself. These are self-reports. They show a direction, and nobody can check them.
+  de: Aktive Miner, Sitzungen, Knoten und die Hashrate, die ein Pool über sich angibt. Das sind Selbstauskünfte. Sie zeigen eine Richtung, und niemand kann sie prüfen.
+net.src.3.h
+  en: The mirror
+  de: Der Spiegel
+net.src.3.p
+  en: This page and the explorer read a database copy of the chain, so that they load quickly. The mirror checks every block it stores, but it is a convenience. The chain is what the full nodes agree on.
+  de: Diese Seite und der Explorer lesen eine Datenbankkopie der Kette, damit sie schnell laden. Der Spiegel prüft jeden Block, den er speichert, bleibt aber ein Komfort. Die Kette ist das, worauf sich die Full Nodes einigen.
+net.src.4.h
+  en: Seed nodes
+  de: Seed-Knoten
+net.src.4.p
+  en: A new node first contacts <code>pool.yskar.app:8646</code> or <code>yskar-seed2.dynv6.net:8646</code>. Both are run by the same operator. After that, nodes exchange the addresses of other nodes among themselves.
+  de: Ein neuer Knoten kontaktiert zuerst <code>pool.yskar.app:8646</code> oder <code>yskar-seed2.dynv6.net:8646</code>. Beide betreibt derselbe Betreiber. Danach tauschen die Knoten die Adressen anderer Knoten untereinander aus.
+ex.q.label
+  en: Search the chain
+  de: Die Kette durchsuchen
+ex.q.go
+  en: Search
+  de: Suchen
+ex.try
+  en: Places to start:
+  de: Zum Einstieg:
+ex.try.0
+  en: block 0
+  de: Block 0
+ex.try.burn
+  en: the burn in block 3,974
+  de: die Vernichtung in Block 3.974
+ex.try.or
+  en: or
+  de: oder
+ex.try.zero
+  en: the address nobody can spend from
+  de: die Adresse, von der niemand ausgeben kann
+ex.crumb
+  en: Explorer
+  de: Explorer
+ex.msg.empty
+  en: Enter a block height, a block hash, a transaction ID or an address.
+  de: Gib eine Blockhöhe, einen Blockhash, eine Transaktions-ID oder eine Adresse ein.
+ex.msg.badAddr
+  en: This address has a typo: its checksum does not match. Check it character by character.
+  de: Diese Adresse enthält einen Tippfehler: Ihre Prüfsumme stimmt nicht. Prüfe sie Zeichen für Zeichen.
+ex.msg.addrShape
+  en: This is not a YSKAR address. Addresses start with ysr1 and have 42 characters.
+  de: Das ist keine YSKAR-Adresse. Adressen beginnen mit ysr1 und haben 42 Zeichen.
+ex.msg.tooHigh
+  en: Block {h} does not exist yet. The chain is at block {tip}.
+  de: Block {h} gibt es noch nicht. Die Kette steht bei Block {tip}.
+ex.msg.notFound
+  en: Nothing on the chain matches this.
+  de: Dazu gibt es nichts in der Kette.
+ex.msg.offlineHash
+  en: The chain is not answering right now, so this hash cannot be looked up. Try again in a moment.
+  de: Die Kette antwortet gerade nicht, deshalb lässt sich dieser Hash nicht nachschlagen. Versuch es gleich noch einmal.
+ex.msg.searching
+  en: Searching the chain.
+  de: Die Kette wird durchsucht.
+ex.msg.badLink
+  en: This link does not point to a block, a transaction or an address.
+  de: Dieser Link führt zu keinem Block, keiner Transaktion und keiner Adresse.
+ex.loading
+  en: Reading from the chain.
+  de: Wird aus der Kette gelesen.
+ex.missing.h
+  en: The chain is not answering right now
+  de: Die Kette antwortet gerade nicht
+ex.missing.p
+  en: The explorer reads every block, transfer and address from the public YSKAR API, and that request just failed. It tries again on its own as soon as the chain answers.
+  de: Der Explorer liest jeden Block, jede Überweisung und jede Adresse aus der öffentlichen YSKAR-API, und diese Anfrage ist gerade fehlgeschlagen. Er versucht es von selbst wieder, sobald die Kette antwortet.
+ex.missing.link
+  en: Try again now
+  de: Jetzt erneut versuchen
+ex.none.block
+  en: The chain has no block {h}. It is at block {tip}.
+  de: Die Kette hat keinen Block {h}. Sie steht bei Block {tip}.
+ex.none.tx
+  en: No transaction with this ID is known: it is in no block and not waiting for one. If you sent it a moment ago, this page looks again on its own.
+  de: Zu dieser ID ist keine Transaktion bekannt: Sie steht in keinem Block und wartet auch auf keinen. Hast du sie eben erst gesendet, sieht diese Seite von selbst wieder nach.
+ex.back
+  en: Back to the latest blocks
+  de: Zurück zu den neuesten Blöcken
+ex.latest.h
+  en: Latest blocks
+  de: Neueste Blöcke
+ex.latest.snap
+  en: The chain is not answering right now. These are the latest {n} blocks as of the last answer.
+  de: Die Kette antwortet gerade nicht. Das sind die neuesten {n} Blöcke zum Zeitpunkt der letzten Antwort.
+ex.latest.live
+  en: Read from the public API and refreshed every 45 seconds.
+  de: Aus der öffentlichen API gelesen und alle 45 Sekunden erneuert.
+ex.older
+  en: Show older blocks
+  de: Ältere Blöcke zeigen
+ex.older.busy
+  en: Reading
+  de: Wird gelesen
+ex.c.height
+  en: Height
+  de: Höhe
+ex.c.found
+  en: Found
+  de: Gefunden
+ex.c.by
+  en: By
+  de: Von
+ex.c.transfers
+  en: Transfers
+  de: Überweisungen
+ex.c.size
+  en: Size
+  de: Größe
+ex.c.hash
+  en: Block hash
+  de: Blockhash
+ex.solo
+  en: Solo miner
+  de: Solo-Miner
+ex.bytes
+  en: {n} bytes
+  de: {n} Byte
+ex.block.h
+  en: Block {h}
+  de: Block {h}
+ex.prev
+  en: Previous block
+  de: Vorheriger Block
+ex.next
+  en: Next block
+  de: Nächster Block
+ex.block.sumPool
+  en: Found on {date}, {ago}, by the pool {who}.
+  de: Gefunden am {date}, {ago}, vom Pool {who}.
+ex.block.sumSolo
+  en: Found on {date}, {ago}, by a solo miner.
+  de: Gefunden am {date}, {ago}, von einem Solo-Miner.
+ex.block.sumGenesis
+  en: The first block of the chain, dated {date}. Its reward went to an address nobody can spend from.
+  de: Der erste Block der Kette, datiert auf den {date}. Seine Belohnung ging an eine Adresse, von der niemand ausgeben kann.
+ex.block.partial
+  en: The chain is not answering right now. This is the header of the block as the page already had it, so you can still check its proof of work. Its transactions follow as soon as the chain answers.
+  de: Die Kette antwortet gerade nicht. Das ist der Kopf des Blocks, wie die Seite ihn schon hatte; seinen Proof of Work kannst du also trotzdem prüfen. Seine Transaktionen folgen, sobald die Kette antwortet.
+ex.block.values
+  en: What the header says
+  de: Was im Kopf steht
+ex.block.values.p
+  en: These values are packed into the 136 bytes above. Change one of them and the hash no longer fits.
+  de: Diese Werte stecken in den 136 Byte oben. Ändert sich einer davon, passt der Hash nicht mehr.
+ex.f.hash
+  en: Block hash
+  de: Blockhash
+ex.f.prev
+  en: Previous block
+  de: Vorheriger Block
+ex.f.prev.none
+  en: None. This is the first block.
+  de: Keiner. Das ist der erste Block.
+ex.f.merkle
+  en: Merkle root
+  de: Merkle-Wurzel
+ex.f.merkle.s
+  en: Fingerprint of the transactions in this block
+  de: Fingerabdruck der Transaktionen in diesem Block
+ex.f.state
+  en: State root
+  de: Zustandswurzel
+ex.f.state.s
+  en: Fingerprint of every balance after this block
+  de: Fingerabdruck aller Guthaben nach diesem Block
+ex.f.diff
+  en: Difficulty
+  de: Difficulty
+ex.f.diff.s
+  en: About {n} attempts were needed on average
+  de: Im Mittel waren etwa {n} Versuche nötig
+ex.f.nonce
+  en: Nonce and extranonce
+  de: Nonce und Extranonce
+ex.f.nonce.s
+  en: The two counters the miner turned until the hash fit
+  de: Die beiden Zähler, die der Miner gedreht hat, bis der Hash passte
+ex.f.size
+  en: Size
+  de: Größe
+ex.f.size.v
+  en: {n} bytes with {tx} transactions
+  de: {n} Byte mit {tx} Transaktionen
+ex.f.size.v.1
+  en: {n} bytes with 1 transaction
+  de: {n} Byte mit 1 Transaktion
+ex.txs.h
+  en: Transactions in this block
+  de: Transaktionen in diesem Block
+ex.txs.p
+  en: The first one creates the block reward. Every other one is a transfer signed by its sender.
+  de: Die erste erzeugt die Blockbelohnung. Jede weitere ist eine Überweisung, die ihr Absender unterschrieben hat.
+ex.tx.coinbase
+  en: Block reward
+  de: Blockbelohnung
+ex.tx.transfer
+  en: Transfer
+  de: Überweisung
+ex.tx.other
+  en: Transaction of type {type}
+  de: Transaktion vom Typ {type}
+ex.tx.new
+  en: {a} newly created
+  de: {a} neu erzeugt
+ex.tx.newFees
+  en: {a} newly created and {f} in fees
+  de: {a} neu erzeugt und {f} aus Gebühren
+ex.tx.from
+  en: From
+  de: Von
+ex.tx.to
+  en: To
+  de: An
+ex.tx.amount
+  en: Amount
+  de: Betrag
+ex.tx.fee
+  en: Fee
+  de: Gebühr
+ex.tx.memo
+  en: Note
+  de: Notiz
+ex.tx.memoHex
+  en: Note (bytes)
+  de: Notiz (Bytes)
+ex.tx.nonce
+  en: Sender's counter
+  de: Zähler des Absenders
+ex.tx.nonce.s
+  en: Each transfer of an address carries the next number, so none can be replayed
+  de: Jede Überweisung einer Adresse trägt die nächste Nummer, so lässt sich keine wiederholen
+ex.tx.id
+  en: Transaction ID
+  de: Transaktions-ID
+ex.tx.paid
+  en: Paid in the block itself to {n} addresses. The pool never held these coins.
+  de: Im Block selbst an {n} Adressen ausgezahlt. Der Pool hat diese Coins nie gehalten.
+ex.tx.c.addr
+  en: Address
+  de: Adresse
+ex.tx.c.amount
+  en: Amount in YSR
+  de: Betrag in YSR
+ex.tx.c.share
+  en: Share
+  de: Anteil
+ex.unspendable
+  en: unspendable
+  de: nicht ausgebbar
+ex.txv.sum
+  en: Confirmed in block {h} on {date}.
+  de: Bestätigt in Block {h} am {date}.
+ex.txv.block
+  en: Block
+  de: Block
+ex.txv.until
+  en: Valid until
+  de: Gültig bis
+ex.txv.until.none
+  en: No expiry set
+  de: Kein Ablauf gesetzt
+ex.txv.until.h
+  en: Block {h}
+  de: Block {h}
+ex.txv.size
+  en: Size
+  de: Größe
+ex.txv.raw
+  en: The bytes as they stand in the block
+  de: Die Bytes, wie sie im Block stehen
+ex.txv.raw.p
+  en: A node checks exactly these bytes: the signature, the sender's balance and the counter.
+  de: Ein Knoten prüft genau diese Bytes: die Unterschrift, das Guthaben des Absenders und den Zähler.
+ex.txv.how
+  en: How a transfer is built
+  de: Wie eine Überweisung aufgebaut ist
+ex.addr.h
+  en: Address
+  de: Adresse
+ex.addr.zero
+  en: Nobody holds a key for this address. Whatever arrives here can never be spent again.
+  de: Für diese Adresse hält niemand einen Schlüssel. Was hier ankommt, kann nie wieder ausgegeben werden.
+ex.addr.balance
+  en: Balance
+  de: Guthaben
+ex.addr.sent
+  en: Transfers sent
+  de: Gesendete Überweisungen
+ex.addr.first
+  en: First seen
+  de: Zuerst gesehen
+ex.addr.last
+  en: Last active
+  de: Zuletzt aktiv
+ex.addr.blockN
+  en: Block {h}
+  de: Block {h}
+ex.addr.solo
+  en: Block rewards received
+  de: Erhaltene Blockbelohnungen
+ex.addr.pool
+  en: Pool payouts received
+  de: Erhaltene Pool-Auszahlungen
+ex.addr.hist
+  en: Latest activity
+  de: Letzte Aktivität
+ex.addr.more
+  en: The latest {n} entries.
+  de: Die neuesten {n} Einträge.
+ex.addr.none
+  en: The chain has no entry for this address yet. An address is valid as soon as its key exists; the chain learns about it with the first payment.
+  de: Die Kette hat zu dieser Adresse noch keinen Eintrag. Eine Adresse ist gültig, sobald ihr Schlüssel existiert; die Kette erfährt von ihr mit der ersten Zahlung.
+ex.h.block
+  en: Block
+  de: Block
+ex.h.when
+  en: When
+  de: Wann
+ex.h.what
+  en: What
+  de: Was
+ex.h.with
+  en: With
+  de: Mit
+ex.h.amount
+  en: Amount
+  de: Betrag
+ex.h.fee
+  en: Fee
+  de: Gebühr
+ex.k.in
+  en: Received
+  de: Empfangen
+ex.k.out
+  en: Sent
+  de: Gesendet
+ex.k.reward
+  en: Block reward
+  de: Blockbelohnung
+ex.k.pool
+  en: Pool payout
+  de: Pool-Auszahlung
+ex.copy.addr
+  en: Copy address
+  de: Adresse kopieren
+ex.copy.id
+  en: Copy ID
+  de: ID kopieren
+ex.block.sumPoolNoName
+  en: Found on {date}, {ago}, by a pool.
+  de: Gefunden am {date}, {ago}, von einem Pool.
+dev.node.h
+  en: Run a full node
+  de: Einen Full Node betreiben
+dev.node.p
+  en: A full node keeps its own copy of the chain and checks every block itself. It takes nothing on trust, not from other nodes and not from this website.
+  de: Ein Full Node führt seine eigene Kopie der Kette und prüft jeden Block selbst. Er glaubt nichts ungeprüft, weder anderen Knoten noch dieser Website.
+dev.node.link
+  en: What a node checks in every block
+  de: Was ein Knoten in jedem Block prüft
+dev.node.c1
+  en: Get the source and build the node
+  de: Quelltext holen und den Knoten bauen
+dev.node.c2
+  en: Start it: connect to the seed nodes, download the chain, check every block
+  de: Starten: mit den Seed-Knoten verbinden, Kette laden, jeden Block prüfen
+dev.node.c3
+  en: Mine against your own node, in a second terminal
+  de: Gegen den eigenen Knoten minen, in einem zweiten Terminal
+dev.node.f1.k
+  en: You need
+  de: Du brauchst
+dev.node.f1.v
+  en: Node.js 22.13 or newer and Git. The node stores the chain with the SQLite module built into Node.js.
+  de: Node.js 22.13 oder neuer und Git. Der Knoten speichert die Kette mit dem SQLite-Modul, das in Node.js eingebaut ist.
+dev.node.f2.k
+  en: Ports
+  de: Ports
+dev.node.f2.v
+  en: TCP 8646 for other nodes, 8645 for the HTTP interface that miners and wallets use.
+  de: TCP 8646 für andere Knoten, 8645 für die HTTP-Schnittstelle, die Miner und Wallets nutzen.
+dev.node.f3.k
+  en: Clock
+  de: Uhr
+dev.node.f3.v
+  en: Keep the system clock correct. A block dated more than 120 seconds ahead of your node's clock is rejected.
+  de: Halte die Systemuhr richtig. Ein Block, der mehr als 120 Sekunden vor der Uhr deines Knotens liegt, wird abgelehnt.
+dev.node.f4.k
+  en: Seed nodes
+  de: Seed-Knoten
+dev.node.f4.v
+  en: The command-line node has no seed built in. Name both seed nodes, as in the command above.
+  de: Der Kommandozeilen-Knoten hat keinen Seed eingebaut. Nenne beide Seed-Knoten, wie im Befehl oben.
+dev.node.f5.k
+  en: <code>--no-upstream</code>
+  de: <code>--no-upstream</code>
+dev.node.f5.v
+  en: Belongs in the command. Without it the node would also exchange blocks with the project's database mirror, which only accepts blocks from the main node.
+  de: Gehört in den Befehl. Ohne die Option würde der Knoten auch Blöcke mit dem Datenbankspiegel des Projekts austauschen, der nur Blöcke vom Hauptknoten annimmt.
+dev.node.core
+  en: On Windows, type <code>npm.cmd</code> in place of <code>npm</code> in PowerShell. If you prefer a window to a terminal, <a href="#node-core">Node Core</a> runs the same full node on Windows and Linux.
+  de: Unter Windows tippst du in der PowerShell <code>npm.cmd</code> statt <code>npm</code>. Wer ein Fenster dem Terminal vorzieht: <a href="#node-core">Node Core</a> betreibt denselben Full Node unter Windows und Linux.
+dev.api.h
+  en: Read the chain over HTTP
+  de: Die Kette über HTTP lesen
+dev.api.p
+  en: The public API answers plain GET requests with JSON. Pick a request and read the answer.
+  de: Die öffentliche API beantwortet einfache GET-Anfragen mit JSON. Wähle eine Anfrage und lies die Antwort.
+dev.api.title
+  en: API console
+  de: API-Konsole
+dev.api.pick
+  en: Requests
+  de: Anfragen
+dev.api.out
+  en: Answer
+  de: Antwort
+dev.api.run
+  en: Send again
+  de: Erneut senden
+dev.api.curl
+  en: Copy as curl
+  de: Als curl kopieren
+dev.api.busy
+  en: Waiting for the answer.
+  de: Warte auf die Antwort.
+dev.api.ok
+  en: {status} in {ms} ms, answered live by www.yskar.app.
+  de: {status} nach {ms} ms, live beantwortet von www.yskar.app.
+dev.api.fail
+  en: The request failed ({why}). Showing the last answer this page received, from {date}.
+  de: Die Anfrage ist fehlgeschlagen ({why}). Gezeigt wird die letzte Antwort, die diese Seite erhalten hat, vom {date}.
+dev.api.e.summary
+  en: Height, difficulty, hashrate, supply
+  de: Höhe, Difficulty, Hashrate, Menge
+dev.api.e.blocks
+  en: The latest blocks, newest first
+  de: Die neuesten Blöcke, neueste zuerst
+dev.api.e.block
+  en: One block with all its transactions
+  de: Ein Block mit allen Transaktionen
+dev.api.e.tx
+  en: One transaction by its ID
+  de: Eine Transaktion über ihre ID
+dev.api.e.account
+  en: Balance and history of an address
+  de: Guthaben und Verlauf einer Adresse
+dev.api.e.search
+  en: What kind of thing is this text?
+  de: Was für ein Ding ist dieser Text?
+dev.api.e.fees
+  en: The fee a transfer needs right now
+  de: Die Gebühr, die eine Überweisung gerade braucht
+dev.api.e.pools
+  en: The pools and their reported figures
+  de: Die Pools und ihre gemeldeten Zahlen
+dev.api.e.supply
+  en: Minted, unspendable and circulating
+  de: Geschürft, nicht ausgebbar und im Umlauf
+dev.api.e.circ
+  en: The circulating supply as a plain number
+  de: Die umlaufende Menge als reine Zahl
+dev.api.n1.h
+  en: Read-only and open
+  de: Nur lesend und offen
+dev.api.n1.p
+  en: No key and no account. Cross-origin requests are allowed, so a web page can call the API directly.
+  de: Kein Schlüssel und kein Konto. Anfragen von anderen Websites sind erlaubt, eine Webseite kann die API also direkt aufrufen.
+dev.api.n2.h
+  en: Your own node answers too
+  de: Dein eigener Knoten antwortet auch
+dev.api.n2.p
+  en: Every full node serves the same read routes on port 8645. Point your code at <code>http://127.0.0.1:8645</code> and you depend on nobody's server.
+  de: Jeder Full Node bedient dieselben Leserouten auf Port 8645. Richte deinen Code auf <code>http://127.0.0.1:8645</code>, dann hängst du an niemandes Server.
+dev.api.n3.h
+  en: Amounts are whole numbers
+  de: Beträge sind ganze Zahlen
+dev.api.n3.p
+  en: Amounts come in units: 1 YSR is 100,000,000 units. Read them as integers or strings and never as floating-point numbers.
+  de: Beträge kommen in Einheiten: 1 YSR sind 100.000.000 Einheiten. Lies sie als Ganzzahlen oder Zeichenketten, nie als Gleitkommazahlen.
+dev.docs.h
+  en: The documents
+  de: Die Dokumente
+dev.docs.p
+  en: Written for people who want to check the claims. Each one links to the code it describes.
+  de: Geschrieben für Menschen, die die Aussagen prüfen wollen. Jedes verweist auf den Code, den es beschreibt.
+dev.docs.v6
+  en: The binding specification of revision 6, active from block 10,000.
+  de: Die verbindliche Spezifikation der Fassung 6, aktiv ab Block 10.000.
+dev.docs.fullnode
+  en: The command-line full node: commands, options, HTTP interface, storage and reorganizations.
+  de: Der Kommandozeilen-Full-Node: Befehle, Optionen, HTTP-Schnittstelle, Speicher und Reorganisationen.
+dev.docs.p2p
+  en: The protocol nodes speak with each other.
+  de: Das Protokoll, das Knoten miteinander sprechen.
+dev.docs.fees
+  en: The fee rules and how the fee estimate is made.
+  de: Die Gebührenregeln und wie die Gebührenschätzung entsteht.
+dev.docs.pool
+  en: Pools: joining one, running one, how the accounting works.
+  de: Pools: einem beitreten, einen betreiben, wie die Abrechnung funktioniert.
+dev.docs.ops
+  en: The public infrastructure: main node, HTTPS, mirror and its settings.
+  de: Die öffentliche Infrastruktur: Hauptknoten, HTTPS, Spiegel und seine Einstellungen.
+dev.repo.h
+  en: What is where
+  de: Was wo liegt
+dev.repo.p
+  en: One repository holds the consensus code, the node, the miner and the tests that guard them.
+  de: Ein Repository enthält den Konsens-Code, den Knoten, den Miner und die Tests, die sie absichern.
+dev.repo.core
+  en: Consensus: header, difficulty, transactions, state, wallet derivation
+  de: Konsens: Kopf, Difficulty, Transaktionen, Zustand, Wallet-Ableitung
+dev.repo.fullnode
+  en: Full node: chain, mempool, mining interface, read API, command line
+  de: Full Node: Kette, Mempool, Mining-Schnittstelle, Lese-API, Kommandozeile
+dev.repo.p2p
+  en: The node-to-node protocol
+  de: Das Protokoll zwischen den Knoten
+dev.repo.pool
+  en: PPLNS accounting and the split of the block reward
+  de: PPLNS-Abrechnung und die Aufteilung der Blockbelohnung
+dev.repo.node
+  en: Build of the command-line full node
+  de: Bau des Kommandozeilen-Full-Node
+dev.repo.nodecore
+  en: Node Core for Windows and Linux, with the GPU miners
+  de: Node Core für Windows und Linux, mit den GPU-Minern
+dev.repo.miner
+  en: The command-line miner, without dependencies
+  de: Der Kommandozeilen-Miner, ohne Abhängigkeiten
+dev.repo.observer
+  en: The observer: a small read-only tool that downloads the chain and recomputes every block
+  de: Der Beobachter: ein kleines, nur lesendes Werkzeug, das die Kette lädt und jeden Block nachrechnet
+dev.repo.tests
+  en: Tests of consensus, node, P2P, pool and wallet
+  de: Tests für Konsens, Knoten, P2P, Pool und Wallet
+dev.repo.docs
+  en: The documentation listed above
+  de: Die oben genannte Dokumentation
+dev.repo.c1
+  en: From the repository root: install, run the tests, check the types
+  de: Im Wurzelordner des Repositorys: installieren, Tests ausführen, Typen prüfen
+dev.sign.h
+  en: Signed messages
+  de: Signierte Nachrichten
+dev.sign.p
+  en: A wallet can prove that it controls an address without moving a coin. All YSKAR software signs and checks the same text format.
+  de: Eine Wallet kann beweisen, dass sie eine Adresse kontrolliert, ohne einen Coin zu bewegen. Alle YSKAR-Programme signieren und prüfen dasselbe Textformat.
+dev.sign.1
+  en: The signature is Ed25519 over the raw UTF-8 bytes of the whole message, checked by the same rule as on the chain.
+  de: Die Unterschrift ist Ed25519 über die rohen UTF-8-Bytes der ganzen Nachricht, geprüft nach derselben Regel wie in der Kette.
+dev.sign.2
+  en: The first line makes it safe: a transaction is binary and never starts with these words, so a signed message can never count as a transfer.
+  de: Die erste Zeile macht es sicher: Eine Transaktion ist binär und beginnt nie mit diesen Wörtern, eine signierte Nachricht kann also nie als Überweisung gelten.
+dev.sign.3
+  en: YSKAR Wallet and Node Core sign such messages. YSKAR Lab uses them to sign you in without a password.
+  de: YSKAR Wallet und Node Core signieren solche Nachrichten. YSKAR Lab meldet dich damit ohne Passwort an.
+dev.con.h
+  en: Contribute and report
+  de: Mitarbeiten und melden
+dev.con.1.h
+  en: Changes to the code
+  de: Änderungen am Code
+dev.con.1.p
+  en: <a class="ext" href="https://github.com/dabitlex/YSKAR/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a> says which checks must pass before a push: the type checks and the full test suite.
+  de: <a class="ext" href="https://github.com/dabitlex/YSKAR/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a> nennt die Prüfungen, die vor einem Push bestehen müssen: die Typprüfungen und die ganze Testreihe.
+dev.con.2.h
+  en: Ideas and proposals
+  de: Ideen und Vorschläge
+dev.con.2.p
+  en: Proposals for the protocol and the software are discussed in the open at <a class="ext" href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>. You sign in with your wallet.
+  de: Vorschläge für Protokoll und Software werden offen im <a class="ext" href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a> besprochen. Du meldest dich mit deiner Wallet an.
+dev.con.3.h
+  en: Security problems
+  de: Sicherheitsprobleme
+dev.con.3.p
+  en: Report them as an issue at <a class="ext" href="https://github.com/dabitlex/YSKAR/issues" target="_blank" rel="noopener">github.com/dabitlex/YSKAR/issues</a>. Issues are public: describe what you saw and how to reproduce it, and never post your 12 words, a PIN, a wallet file or a key.
+  de: Melde sie als Issue unter <a class="ext" href="https://github.com/dabitlex/YSKAR/issues" target="_blank" rel="noopener">github.com/dabitlex/YSKAR/issues</a>. Issues sind öffentlich: Beschreibe, was du gesehen hast und wie es sich nachstellen lässt, und poste nie deine 12 Wörter, eine PIN, eine Wallet-Datei oder einen Schlüssel.
+ysr.now.blocks
+  en: blocks
+  de: Blöcke
+ysr.bar.circ
+  en: In circulation
+  de: Im Umlauf
+ysr.bar.burned
+  en: Burned
+  de: Verbrannt
+ysr.bar.open
+  en: Not yet issued
+  de: Noch nicht ausgegeben
+ysr.bar.cap
+  en: Shares of the 21,000,000 YSR that can ever exist.
+  de: Anteile an den 21.000.000 YSR, die es je geben kann.
+ysr.sched.title
+  en: Issuance by block height
+  de: Ausgabe nach Blockhöhe
+ysr.sched.series
+  en: issued
+  de: ausgegeben
+ysr.sched.when.past
+  en: already mined
+  de: bereits gefunden
+ysr.sched.when.future
+  en: around {date}, at 600 s per block
+  de: um den {date}, bei 600 s je Block
+ysr.t.all
+  en: Show all 37 eras
+  de: Alle 37 Ären zeigen
+ysr.t.less
+  en: Show the first 8 eras
+  de: Die ersten 8 Ären zeigen
+ysr.t.now
+  en: now
+  de: jetzt
+ysr.fees.h
+  en: Fees
+  de: Gebühren
+ysr.fees.p
+  en: A transfer pays a fee to the miners of the block that includes it. The rules set only a floor. Above it, the price follows the demand for space in a block.
+  de: Eine Überweisung zahlt eine Gebühr an die Miner des Blocks, der sie aufnimmt. Die Regeln setzen nur eine Untergrenze. Darüber richtet sich der Preis nach der Nachfrage nach Platz im Block.
+ysr.fees.f1
+  en: Floor by consensus
+  de: Untergrenze laut Konsens
+ysr.fees.f1.v
+  en: 1 unit per byte
+  de: 1 Einheit je Byte
+ysr.fees.f2
+  en: Floor to be relayed
+  de: Untergrenze für die Weiterleitung
+ysr.fees.f2.v
+  en: 10 units per byte. This is a setting of the nodes, not a consensus rule.
+  de: 10 Einheiten je Byte. Das ist eine Einstellung der Knoten, keine Konsensregel.
+ysr.fees.f3
+  en: A plain transfer of 168 bytes
+  de: Eine einfache Überweisung mit 168 Byte
+ysr.fees.f3.v
+  en: at least, right now
+  de: mindestens, im Moment
+ysr.fees.f4
+  en: Slow, normal, fast
+  de: Langsam, normal, schnell
+ysr.fees.f4.v
+  en: The three tiers only differ when blocks are full. Otherwise the minimum fee is enough for the next block.
+  de: Die drei Stufen unterscheiden sich nur, wenn Blöcke voll sind. Sonst genügt die Mindestgebühr für den nächsten Block.
+ysr.fees.f5
+  en: Smallest amount
+  de: Kleinster Betrag
+ysr.fees.f5.v
+  en: 100 units, which is 0.000001 YSR
+  de: 100 Einheiten, also 0,000001 YSR
+ysr.fees.f6
+  en: Transfers waiting for a block
+  de: Überweisungen, die auf einen Block warten
+ysr.noprice.h
+  en: No price, no promise
+  de: Kein Preis, kein Versprechen
+ysr.noprice.p1
+  en: YSR has no price and no market, and it is not listed on any exchange. Nothing on this site promises that this will change, and nobody should mine in that expectation.
+  de: YSR hat keinen Preis und keinen Markt und ist an keiner Börse gelistet. Nichts auf dieser Seite verspricht, dass sich das ändert, und niemand sollte in dieser Erwartung minen.
+ysr.noprice.p2
+  en: What YSR has is a set of rules that anyone can check: a fixed maximum, a public issuance schedule, and coins that only their owner's key can move.
+  de: Was YSR hat, ist ein Regelwerk, das jeder nachprüfen kann: eine feste Höchstmenge, ein öffentlicher Ausgabeplan und Coins, die nur der Schlüssel ihres Besitzers bewegen kann.
+tech.header.h
+  en: A block starts with 136 bytes
+  de: Ein Block beginnt mit 136 Byte
+tech.header.p1
+  en: The header names the block before it, commits to every transaction and to every balance after the block, and carries the nonce the miner found. The block hash is SHA-256, applied twice, over exactly these bytes.
+  de: Der Kopf nennt den Block davor, legt jede Transaktion und jedes Guthaben nach dem Block fest und trägt die Nonce, die der Miner gefunden hat. Der Blockhash ist zweimal SHA-256 über genau diese Bytes.
+tech.header.p2
+  en: The length is chosen on purpose. SHA-256 works in blocks of 64 bytes, and everything except the nonce lies in the first 128. A miner computes that part once per job; every further attempt costs two compression steps.
+  de: Die Länge ist Absicht. SHA-256 arbeitet in Blöcken zu 64 Byte, und alles außer der Nonce liegt in den ersten 128. Ein Miner rechnet diesen Teil einmal je Auftrag; jeder weitere Versuch kostet zwei Kompressionsschritte.
+tech.pow.h
+  en: Work that anyone can check
+  de: Arbeit, die jeder nachprüfen kann
+tech.pow.p1
+  en: A block is valid only if its hash, read as a number, is not larger than a target. The target follows from the difficulty. There is no shortcut: the only way to find such a hash is to try nonces, and checking the result takes two hash computations.
+  de: Ein Block ist nur gültig, wenn sein Hash, als Zahl gelesen, nicht größer ist als ein Ziel. Das Ziel folgt aus der Difficulty. Eine Abkürzung gibt es nicht: Einen solchen Hash findet nur, wer Nonces durchprobiert, und das Ergebnis zu prüfen kostet zwei Hash-Berechnungen.
+tech.pow.p2
+  en: One unit of difficulty stands for 65,536 expected attempts. At the current difficulty of <span class='mono' data-live='difficulty'></span>, the network needs about <span data-live='attempts'></span> attempts for one block.
+  de: Eine Einheit Difficulty steht für 65.536 erwartete Versuche. Bei der aktuellen Difficulty von <span class='mono' data-live='difficulty'></span> braucht das Netz etwa <span data-live='attempts'></span> Versuche für einen Block.
+tech.diff.h
+  en: The difficulty follows the network
+  de: Die Difficulty folgt dem Netz
+tech.diff.p1
+  en: The difficulty is recomputed for every block from the last 45 blocks. Recent blocks count more than older ones, so the chain reacts quickly when hash power arrives or leaves.
+  de: Die Difficulty wird für jeden Block aus den letzten 45 Blöcken neu berechnet. Jüngere Blöcke zählen mehr als ältere, deshalb reagiert die Kette schnell, wenn Rechenleistung dazukommt oder wegfällt.
+tech.diff.p2
+  en: Every node computes the same range from the same blocks and rejects a block that states a difficulty outside it. Only whole numbers are used, so two nodes can never round differently.
+  de: Jeder Knoten berechnet aus denselben Blöcken denselben Bereich und lehnt einen Block ab, der eine Difficulty außerhalb davon angibt. Gerechnet wird nur mit ganzen Zahlen, damit zwei Knoten nie unterschiedlich runden.
+tech.diff.chart
+  en: Difficulty since block 1
+  de: Difficulty seit Block 1
+tech.diff.cap
+  en: Mean of every 24 blocks up to block <span data-live='snapTip'></span>. The scale is logarithmic: each line is ten times the one below.
+  de: Mittel über je 24 Blöcke bis Block <span data-live='snapTip'></span>. Die Skala ist logarithmisch: Jede Linie ist das Zehnfache der darunter.
+tech.diff.f1
+  en: Window
+  de: Fenster
+tech.diff.f1.v
+  en: the last 45 blocks, the newest weighted highest
+  de: die letzten 45 Blöcke, die neuesten am stärksten gewichtet
+tech.diff.f2
+  en: Largest step
+  de: Größter Schritt
+tech.diff.f2.v
+  en: a factor of 4 up or down per block
+  de: Faktor 4 nach oben oder unten je Block
+tech.diff.f3
+  en: Solve time counted
+  de: Gezählte Lösungszeit
+tech.diff.f3.v
+  en: 1 to 3,600 seconds per block
+  de: 1 bis 3.600 Sekunden je Block
+tech.diff.f4
+  en: Emergency rule
+  de: Notfallregel
+tech.diff.f4.v
+  en: after 1,800 seconds without a block, the requirement falls in proportion to the waiting time
+  de: nach 1.800 Sekunden ohne Block sinkt die Anforderung im Verhältnis zur Wartezeit
+tech.diff.f5
+  en: Timestamps
+  de: Zeitstempel
+tech.diff.f5.v
+  en: later than the median of the last 11 blocks, at most 120 seconds ahead of the node's clock
+  de: später als der Median der letzten 11 Blöcke, höchstens 120 Sekunden vor der Uhr des Knotens
+tech.acc.h
+  en: Accounts and transfers
+  de: Konten und Überweisungen
+tech.acc.p1
+  en: YSKAR keeps one balance and one nonce per address. A transfer names sender, recipient, amount and fee, and is signed with the sender's key. Without that key nobody can move the coins.
+  de: YSKAR führt je Adresse ein Guthaben und eine Nonce. Eine Überweisung nennt Absender, Empfänger, Betrag und Gebühr und ist mit dem Schlüssel des Absenders signiert. Ohne diesen Schlüssel kann niemand die Coins bewegen.
+tech.acc.p2
+  en: The state root in every header commits to all balances. A node that replays the chain from block 0 arrives at the same balances as every other node, or it rejects the block.
+  de: Die Zustandswurzel in jedem Kopf legt alle Guthaben fest. Ein Knoten, der die Kette ab Block 0 nachspielt, kommt auf dieselben Guthaben wie jeder andere, oder er lehnt den Block ab.
+tech.tx.title
+  en: A transfer, 168 bytes
+  de: Eine Überweisung, 168 Byte
+tech.tx.p
+  en: Plus an optional note of up to 32 bytes. Sizes in bytes.
+  de: Dazu auf Wunsch eine Notiz von bis zu 32 Byte. Größen in Byte.
+tech.tx.aria
+  en: The fields of a transfer and their sizes in bytes
+  de: Die Felder einer Überweisung und ihre Größen in Byte
+tech.tx.f1
+  en: Version and type
+  de: Version und Typ
+tech.tx.f2
+  en: Sender address
+  de: Adresse des Absenders
+tech.tx.f3
+  en: Recipient address
+  de: Adresse des Empfängers
+tech.tx.f4
+  en: Amount
+  de: Betrag
+tech.tx.f5
+  en: Fee
+  de: Gebühr
+tech.tx.f6
+  en: Sender's nonce
+  de: Nonce des Absenders
+tech.tx.f7
+  en: Expiry height and note length
+  de: Ablaufhöhe und Länge der Notiz
+tech.tx.f8
+  en: Public key
+  de: Öffentlicher Schlüssel
+tech.tx.f9
+  en: Signature
+  de: Signatur
+tech.acc.f1
+  en: Valid once
+  de: Nur einmal gültig
+tech.acc.f1.v
+  en: The nonce must equal the number of transfers the sender has made so far, so the same transfer can never be applied twice.
+  de: Die Nonce muss genau der Zahl der bisherigen Überweisungen des Absenders entsprechen. Dieselbe Überweisung lässt sich deshalb nie zweimal anwenden.
+tech.acc.f2
+  en: Tied to this network
+  de: An dieses Netz gebunden
+tech.acc.f2.v
+  en: The signature covers the chain ID. A transfer signed for YSKAR is invalid anywhere else.
+  de: Die Signatur umfasst die Chain-ID. Eine für YSKAR signierte Überweisung ist nirgendwo sonst gültig.
+tech.acc.f3
+  en: Expiry
+  de: Ablauf
+tech.acc.f3.v
+  en: A sender can name a last block height. After it, the transfer can never be included.
+  de: Der Absender kann eine letzte Blockhöhe nennen. Danach kann die Überweisung nie mehr aufgenommen werden.
+tech.acc.f4
+  en: Note
+  de: Notiz
+tech.acc.f4.v
+  en: Up to 32 bytes, stored publicly in the chain.
+  de: Bis zu 32 Byte, öffentlich in der Kette gespeichert.
+tech.acc.f5
+  en: Minimum fee
+  de: Mindestgebühr
+tech.acc.f5.v
+  en: 1 unit per byte by consensus. Nodes relay from 10 units per byte. Fees go to the miners of the block.
+  de: 1 Einheit je Byte laut Konsens. Knoten leiten ab 10 Einheiten je Byte weiter. Gebühren gehen an die Miner des Blocks.
+tech.acc.f6
+  en: A plain transfer costs
+  de: Eine einfache Überweisung kostet
+tech.acc.f6.v
+  en: right now at least
+  de: im Moment mindestens
+tech.key.aria
+  en: From 12 words to an address
+  de: Von 12 Wörtern zur Adresse
+tech.key.1
+  en: Seed words
+  de: Wörter
+tech.key.2
+  en: Derivation path
+  de: Ableitungspfad
+tech.key.3
+  en: Key pair
+  de: Schlüsselpaar
+tech.key.4
+  en: Address
+  de: Adresse
+tech.key.p
+  en: A wallet is 12 or 24 words (BIP39). The key is derived from them on the device (SLIP-0010), and the address is the first 20 bytes of the SHA-256 hash of the public key, written in bech32m. The words never leave the device that created them.
+  de: Eine Wallet sind 12 oder 24 Wörter (BIP39). Daraus wird auf dem Gerät der Schlüssel abgeleitet (SLIP-0010), und die Adresse sind die ersten 20 Byte des SHA-256-Hashes des öffentlichen Schlüssels, geschrieben in bech32m. Die Wörter verlassen das Gerät nie, auf dem sie entstanden sind.
+tech.nodes.h
+  en: Every node checks every block
+  de: Jeder Knoten prüft jeden Block
+tech.nodes.p1
+  en: A full node stores the whole chain and accepts a block only after it has checked it completely, whether the block comes from another node or from its own miner. The checks run in this order.
+  de: Ein Full Node speichert die ganze Kette und nimmt einen Block erst an, wenn er ihn vollständig geprüft hat, egal ob der Block von einem anderen Knoten kommt oder vom eigenen Miner. Die Prüfungen laufen in dieser Reihenfolge.
+tech.nodes.link
+  en: Run a full node
+  de: Einen Full Node betreiben
+tech.check.1
+  en: Version, at most 2,000 transactions, exactly one reward transaction in first place, and the transaction root.
+  de: Version, höchstens 2.000 Transaktionen, genau eine Belohnungstransaktion an erster Stelle und die Transaktionswurzel.
+tech.check.2
+  en: The hash of the header, applied twice, is not larger than the target of the stated difficulty.
+  de: Der zweifache Hash des Kopfs ist nicht größer als das Ziel der angegebenen Difficulty.
+tech.check.3
+  en: The height is the parent's height plus one, and the previous hash is the hash of the parent.
+  de: Die Höhe ist die des Vorgängers plus eins, und der Hash des Vorgängers stimmt.
+tech.check.4
+  en: Later than the median of the last 11 blocks, not before the parent, and at most 120 seconds ahead of the node's clock.
+  de: Später als der Median der letzten 11 Blöcke, nicht vor dem Vorgänger und höchstens 120 Sekunden vor der Uhr des Knotens.
+tech.check.5
+  en: The stated difficulty lies in the range that follows from the previous blocks.
+  de: Die angegebene Difficulty liegt in dem Bereich, der aus den vorigen Blöcken folgt.
+tech.check.6
+  en: Signature, sender, nonce, balance, fee and expiry of every transfer. The reward transaction pays exactly the block reward plus the fees.
+  de: Signatur, Absender, Nonce, Guthaben, Gebühr und Ablauf jeder Überweisung. Die Belohnungstransaktion zahlt genau die Blockbelohnung plus die Gebühren aus.
+tech.check.7
+  en: The root over all accounts after the block equals the state root in the header.
+  de: Die Wurzel über alle Konten nach dem Block stimmt mit der Zustandswurzel im Kopf überein.
+tech.nodes.chain.h
+  en: Which chain counts
+  de: Welche Kette zählt
+tech.nodes.chain.p
+  en: The valid chain with the most accumulated work, where the work of a block is its difficulty. A node keeps competing blocks and switches when another branch has more work.
+  de: Die gültige Kette mit der meisten angesammelten Arbeit, wobei die Arbeit eines Blocks seine Difficulty ist. Ein Knoten bewahrt konkurrierende Blöcke auf und wechselt, wenn ein anderer Zweig mehr Arbeit hat.
+tech.nodes.pool.h
+  en: Pools without custody
+  de: Pools ohne Verwahrung
+tech.nodes.pool.p
+  en: The reward transaction of a block may pay up to 64 addresses. A pool's accounting becomes that transaction, so the chain pays every miner directly and the operator never holds anyone else's coins. <a href='#mine-pools'>How pools work</a>
+  de: Die Belohnungstransaktion eines Blocks darf bis zu 64 Adressen auszahlen. Die Abrechnung eines Pools wird zu dieser Transaktion: Die Kette zahlt jeden Miner direkt aus, und der Betreiber hält nie fremde Coins. <a href='#mine-pools'>So funktionieren Pools</a>
+tech.rev.h
+  en: Rules change at a block height
+  de: Regeln ändern sich an einer Blockhöhe
+tech.rev.p
+  en: A rule change is written into the code together with the height at which it starts. Every node switches at the same block, and every block below that height keeps its rules, byte for byte.
+  de: Eine Regeländerung steht zusammen mit der Höhe im Code, ab der sie gilt. Jeder Knoten schaltet am selben Block um, und jeder Block unterhalb dieser Höhe behält seine Regeln, Byte für Byte.
+tech.rev.c1
+  en: Revision
+  de: Fassung
+tech.rev.c2
+  en: From block
+  de: Ab Block
+tech.rev.c3
+  en: Change
+  de: Änderung
+tech.rev.c4
+  en: Status
+  de: Stand
+tech.rev.2
+  en: The reward transaction may pay several addresses. Pools are built on this.
+  de: Die Belohnungstransaktion darf mehrere Adressen auszahlen. Darauf bauen die Pools auf.
+tech.rev.3
+  en: A minimum fee per byte replaces the fixed fee, and a smallest amount applies.
+  de: Eine Mindestgebühr je Byte ersetzt die feste Gebühr, und es gilt ein kleinster Betrag.
+tech.rev.4
+  en: The difficulty field can hold values of any size.
+  de: Das Difficulty-Feld kann beliebig große Werte aufnehmen.
+tech.rev.5
+  en: Stricter rules for timestamps, block encoding and the reward transaction.
+  de: Strengere Regeln für Zeitstempel, Block-Kodierung und Belohnungstransaktion.
+tech.rev.6
+  en: Shared accounts, time and hash locks, batch payments, a new state tree and higher limits.
+  de: Gemeinsame Konten, Zeit- und Hash-Sperren, Sammelzahlungen, ein neuer Zustandsbaum und höhere Grenzen.
+tech.rev.note
+  en: Revisions 2 to 5 corrected and tightened rules. Revision 6 is the first that adds capabilities, and the first that older nodes cannot follow.
+  de: Die Fassungen 2 bis 5 haben Regeln korrigiert und verschärft. Fassung 6 ist die erste, die Fähigkeiten hinzufügt, und die erste, der ältere Knoten nicht folgen können.
+tech.v6.h
+  en: Revision 6
+  de: Fassung 6
+tech.v6.p
+  en: The next rule change starts at block 10,000. The community chose that height in a vote on 25 October 2026. It changes the account record, the address format and the transaction format, so that accounts can do more than hold a balance.
+  de: Die nächste Regeländerung beginnt mit Block 10.000. Die Community hat diese Höhe am 25. Oktober 2026 in einer Abstimmung gewählt. Sie ändert den Kontoeintrag, das Adressformat und das Transaktionsformat, damit Konten mehr können, als ein Guthaben zu halten.
+tech.v6.count
+  en: Block 10,000
+  de: Block 10.000
+tech.v6.spec
+  en: Read the specification of revision 6
+  de: Die Spezifikation der Fassung 6 lesen
+tech.v6.1.h
+  en: Shared accounts
+  de: Gemeinsame Konten
+tech.v6.1.p
+  en: Accounts that need several signatures to spend, for example 2 of 3, with up to 16 keys. For shared funds and safer savings.
+  de: Konten, die mehrere Signaturen zum Ausgeben brauchen, zum Beispiel 2 von 3, mit bis zu 16 Schlüsseln. Für gemeinsames Geld und sichereres Sparen.
+tech.v6.2.h
+  en: Time locks
+  de: Zeitsperren
+tech.v6.2.p
+  en: YSR that can only be spent from a chosen block height on.
+  de: YSR, die erst ab einer gewählten Blockhöhe ausgegeben werden können.
+tech.v6.3.h
+  en: Hash locks
+  de: Hash-Sperren
+tech.v6.3.p
+  en: A payment is released only against a secret, and returns to the sender after a set height. Two parties can trade without trusting each other.
+  de: Eine Zahlung wird nur gegen ein Geheimnis freigegeben und geht nach einer festen Höhe an den Absender zurück. Zwei Parteien können tauschen, ohne einander zu vertrauen.
+tech.v6.4.h
+  en: Batch payments
+  de: Sammelzahlungen
+tech.v6.4.p
+  en: One transaction pays up to 1,000 recipients at once.
+  de: Eine Transaktion zahlt bis zu 1.000 Empfänger auf einmal aus.
+tech.v6.5.h
+  en: More room per block
+  de: Mehr Platz je Block
+tech.v6.5.p
+  en: Up to 5,000 transactions per block instead of 2,000, and a pool's block can pay up to 255 addresses instead of 64.
+  de: Bis zu 5.000 Transaktionen je Block statt 2.000, und der Block eines Pools kann bis zu 255 Adressen auszahlen statt 64.
+tech.v6.6.h
+  en: A foundation for later
+  de: Ein Fundament für später
+tech.v6.6.p
+  en: A state tree built for many thousands of accounts, addresses with a version, and a fork identifier in every signature.
+  de: Ein Zustandsbaum, der für viele tausend Konten ausgelegt ist, Adressen mit Version und eine Fork-Kennung in jeder Signatur.
+tech.v6.same.h
+  en: What stays the same
+  de: Was gleich bleibt
+tech.v6.same.1
+  en: 21 million YSR and the halving schedule
+  de: 21 Millionen YSR und der Halbierungsplan
+tech.v6.same.2
+  en: 10-minute blocks, SHA-256 and the difficulty rules
+  de: 10-Minuten-Blöcke, SHA-256 und die Difficulty-Regeln
+tech.v6.same.3
+  en: Every address, every key and every balance
+  de: Jede Adresse, jeder Schlüssel und jedes Guthaben
+tech.v6.do.h
+  en: What you need to do
+  de: Was du tun musst
+tech.v6.do.1
+  en: Update your wallet and your node before block 10,000
+  de: Wallet und Knoten vor Block 10.000 aktualisieren
+tech.v6.do.2
+  en: Miners, the GPU miners and the HiveOS package need no update
+  de: Miner, GPU-Miner und das HiveOS-Paket brauchen kein Update
+tech.v6.do.3
+  en: An outdated wallet still receives YSR. It cannot send until it is updated
+  de: Eine veraltete Wallet empfängt weiter YSR. Senden kann sie erst wieder nach dem Update
+tech.lim.h
+  en: Known limits
+  de: Bekannte Grenzen
+tech.lim.p
+  en: What the system does not protect against today. The list comes from the project's own security document.
+  de: Wogegen das System heute nicht schützt. Die Liste stammt aus dem Sicherheitsdokument des Projekts.
+tech.lim.link
+  en: The full security model
+  de: Das vollständige Sicherheitsmodell
+tech.lim.1.h
+  en: A small network
+  de: Ein kleines Netz
+tech.lim.1.p
+  en: The network has two seed nodes, both run by the same operator. Proof of work protects a chain only as long as no single party controls most of the hash power, and hash power that mines through one pool is directed by that pool's operator.
+  de: Das Netz hat zwei Seed-Knoten, beide vom selben Betreiber. Proof of Work schützt eine Kette nur, solange niemand allein den Großteil der Rechenleistung kontrolliert, und Rechenleistung, die über einen Pool mint, wird vom Betreiber dieses Pools gelenkt.
+tech.lim.2.h
+  en: No checkpoints
+  de: Keine Checkpoints
+tech.lim.2.p
+  en: A node switches to any valid chain with more work, however far back it forks. Treat a transfer as more final the more blocks are built on top of it.
+  de: Ein Knoten wechselt zu jeder gültigen Kette mit mehr Arbeit, egal wie weit zurück sie abzweigt. Eine Überweisung gilt als umso endgültiger, je mehr Blöcke auf ihr aufbauen.
+tech.lim.3.h
+  en: The explorer's data source
+  de: Die Datenquelle des Explorers
+tech.lim.3.p
+  en: Explorer and apps read from a mirror, a database copy of the chain kept for speed. It is a convenience, not the authority: the chain is what the full nodes agree on.
+  de: Explorer und Apps lesen aus einem Spiegel, einer Datenbankkopie der Kette für schnelles Laden. Er ist ein Komfort, nicht die Autorität: Die Kette ist das, worauf sich die Full Nodes einigen.
+tech.lim.4.h
+  en: Pool seats
+  de: Pool-Plätze
+tech.lim.4.p
+  en: A pool has at most 64 seats, 63 if it charges a fee; from revision 6 it is 255 and 254. Opening a session needs only a valid address, so seats can be occupied cheaply.
+  de: Ein Pool hat höchstens 64 Plätze, mit Gebühr 63; ab Fassung 6 sind es 255 und 254. Eine Sitzung zu öffnen braucht nur eine gültige Adresse, Plätze lassen sich also billig belegen.
+tech.lim.5.h
+  en: Open interfaces
+  de: Offene Schnittstellen
+tech.lim.5.p
+  en: A node's HTTP interface does not limit requests per client. On a public node, a reverse proxy has to do that.
+  de: Die HTTP-Schnittstelle eines Knotens begrenzt Anfragen je Client nicht. Bei einem öffentlichen Knoten muss das ein Reverse Proxy übernehmen.
+tech.docs.1
+  en: The protocol specification: formats, hashing, difficulty, validity rules and test vectors.
+  de: Die Protokoll-Spezifikation: Formate, Hashing, Difficulty, Gültigkeitsregeln und Testvektoren.
+tech.docs.3
+  en: What cryptography and consensus enforce, what you have to trust, and the known limits.
+  de: Was Kryptografie und Konsens durchsetzen, wem man vertrauen muss, und die bekannten Grenzen.
+miner.title
+  en: Search for a nonce yourself
+  de: Selbst nach einer Nonce suchen
+miner.state
+  en: Runs in your browser
+  de: Läuft in deinem Browser
+miner.intro
+  en: Your browser takes the header of the latest block and tries nonces against an easier target. The real target is far beyond what a browser can reach.
+  de: Dein Browser nimmt den Kopf des neuesten Blocks und probiert Nonces gegen ein leichteres Ziel. Das echte Ziel liegt weit jenseits dessen, was ein Browser schafft.
+miner.bits
+  en: Zero bits the hash must start with
+  de: Null-Bits, mit denen der Hash beginnen muss
+miner.odds
+  en: {b} bits: about 1 hash in {n}
+  de: {b} Bits: etwa 1 Hash von {n}
+miner.start
+  en: Start the search
+  de: Suche starten
+miner.stop
+  en: Stop
+  de: Stoppen
+miner.attempts
+  en: Attempts
+  de: Versuche
+miner.speed
+  en: Speed
+  de: Tempo
+miner.time
+  en: Time
+  de: Zeit
+miner.nonce
+  en: Nonce found
+  de: Gefundene Nonce
+miner.hash
+  en: Last hash tried
+  de: Zuletzt probierter Hash
+miner.hashFound
+  en: Hash found
+  de: Gefundener Hash
+miner.target
+  en: Target of this demo
+  de: Ziel dieser Demo
+miner.found
+  en: Found after {n} attempts.
+  de: Gefunden nach {n} Versuchen.
+miner.none
+  en: No hash below the target in {n} attempts. Start again, or ask for fewer zero bits.
+  de: Kein Hash unter dem Ziel in {n} Versuchen. Starte erneut oder verlange weniger Null-Bits.
+miner.stopped
+  en: Stopped after {n} attempts.
+  de: Gestoppt nach {n} Versuchen.
+miner.real
+  en: At {r}, this browser would need about {t} on average to find a real block at today's difficulty.
+  de: Mit {r} bräuchte dieser Browser im Mittel etwa {t}, um bei der heutigen Difficulty einen echten Block zu finden.
+field.version
+  en: Version
+  de: Version
+field.version.d
+  en: The version of the header. It is 1 today and becomes 6 with consensus revision 6.
+  de: Die Version des Kopfs. Heute 1, mit Konsensfassung 6 wird sie 6.
+field.height
+  en: Height
+  de: Höhe
+field.height.d
+  en: The number of this block, counted from block 0.
+  de: Die Nummer dieses Blocks, gezählt ab Block 0.
+field.prev
+  en: Previous hash
+  de: Hash des Vorgängers
+field.prev.d
+  en: The hash of the block before. It chains the blocks: changing an old block would change every hash after it.
+  de: Der Hash des Blocks davor. Er verkettet die Blöcke: Wer einen alten Block ändert, ändert jeden Hash danach.
+field.merkle
+  en: Transaction root
+  de: Transaktionswurzel
+field.merkle.d
+  en: One hash over all transactions in the block. A single changed byte in any of them changes it.
+  de: Ein Hash über alle Transaktionen im Block. Ein einziges geändertes Byte in einer davon ändert ihn.
+field.state
+  en: State root
+  de: Zustandswurzel
+field.state.d
+  en: One hash over every balance and nonce after this block. Each node computes it itself and compares.
+  de: Ein Hash über alle Guthaben und Nonces nach diesem Block. Jeder Knoten berechnet ihn selbst und vergleicht.
+field.time
+  en: Timestamp
+  de: Zeitstempel
+field.time.d
+  en: When the miner built the block. It must be later than the median of the last 11 blocks.
+  de: Wann der Miner den Block gebaut hat. Er muss später liegen als der Median der letzten 11 Blöcke.
+field.diff
+  en: Difficulty
+  de: Difficulty
+field.diff.d
+  en: How hard this block had to be. The target follows from it: 2^240 divided by the difficulty.
+  de: Wie schwer dieser Block sein musste. Daraus folgt das Ziel: 2^240 geteilt durch die Difficulty.
+field.count
+  en: Transaction count
+  de: Anzahl Transaktionen
+field.count.d
+  en: How many transactions the block holds, including the one that pays the reward.
+  de: Wie viele Transaktionen der Block enthält, einschließlich der, die die Belohnung auszahlt.
+field.extra
+  en: Extranonce
+  de: Extranonce
+field.extra.d
+  en: A value the node gives each miner, so that two miners never search the same headers.
+  de: Ein Wert, den der Knoten jedem Miner gibt, damit zwei Miner nie dieselben Köpfe durchsuchen.
+field.nonce
+  en: Nonce
+  de: Nonce
+field.nonce.d
+  en: The number the miner varied until the hash fell below the target. Nothing else changes between two attempts.
+  de: Die Zahl, die der Miner verändert hat, bis der Hash unter dem Ziel lag. Zwischen zwei Versuchen ändert sich sonst nichts.
+proof.fixedBlock
+  en: Fixed in the chain
+  de: Steht in der Kette fest
+proof.block
+  en: Block {h}
+  de: Block {h}
+proof.found
+  en: found {ago}
+  de: gefunden {ago}
+proof.fixed
+  en: Unchanged since 9 Sep 2026
+  de: Unverändert seit 9. Sep. 2026
+proof.cap
+  en: The block header: 136 bytes in ten fields.
+  de: Der Blockkopf: 136 Byte in zehn Feldern.
+proof.bytesLabel
+  en: The 136 bytes of the header of block {h}, in hexadecimal
+  de: Die 136 Byte des Kopfs von Block {h}, hexadezimal
+proof.range
+  en: bytes {a} to {b}
+  de: Byte {a} bis {b}
+proof.first
+  en: SHA-256 of the 136 bytes
+  de: SHA-256 der 136 Byte
+proof.hash
+  en: SHA-256, applied twice: the block hash
+  de: Zweimal SHA-256: der Blockhash
+proof.target
+  en: Target at difficulty {d}
+  de: Ziel bei Difficulty {d}
+proof.valid
+  en: Valid. The hash is below the target.
+  de: Gültig. Der Hash liegt unter dem Ziel.
+proof.invalid
+  en: Not valid. The hash is above the target.
+  de: Nicht gültig. Der Hash liegt über dem Ziel.
+proof.time
+  en: Computed in your browser in {ms} ms.
+  de: In deinem Browser berechnet in {ms} ms.
+proof.again
+  en: Check again
+  de: Erneut prüfen
+proof.genesis
+  en: Check block 0
+  de: Block 0 prüfen
+proof.latest
+  en: Check the latest block
+  de: Neuesten Block prüfen
+proof.open
+  en: Open this block in the explorer
+  de: Diesen Block im Explorer öffnen
+check.1
+  en: Structure
+  de: Aufbau
+check.2
+  en: Proof of work
+  de: Proof of Work
+check.3
+  en: Place in the chain
+  de: Platz in der Kette
+check.4
+  en: Timestamp
+  de: Zeitstempel
+check.5
+  en: Difficulty
+  de: Difficulty
+check.6
+  en: Every transaction
+  de: Jede Transaktion
+check.7
+  en: State root
+  de: Zustandswurzel
+chart.asTable
+  en: Show the values as a table
+  de: Werte als Tabelle zeigen
+chart.total
+  en: total
+  de: gesamt
+chart.height
+  en: Up to block
+  de: Bis Block
+n.2000
+  en: 2,000
+  de: 2.000
+n.4000
+  en: 4,000
+  de: 4.000
+n.6000
+  en: 6,000
+  de: 6.000
+n.7000
+  en: 7,000
+  de: 7.000
+n.10000
+  en: 10,000
+  de: 10.000
+rev.active
+  en: active since {date}
+  de: aktiv seit {date}
+rev.set
+  en: set, {n} blocks to go
+  de: festgelegt, noch {n} Blöcke
+ms.done
+  en: active
+  de: aktiv
+home.how.1.h
+  en: Miners search
+  de: Miner suchen
+home.how.1.p
+  en: Phones, PCs and graphics cards hash a block header over and over, each time with a different nonce. A hash below the target makes the block valid.
+  de: Handys, PCs und Grafikkarten hashen einen Blockkopf immer wieder, jedes Mal mit einer anderen Nonce. Liegt ein Hash unter dem Ziel, ist der Block gültig.
+home.how.2.h
+  en: Nodes check
+  de: Knoten prüfen
+home.how.2.p
+  en: Every full node recomputes the work, the signatures and all balances, starting at block 0. A block that breaks a rule is rejected, whoever sent it.
+  de: Jeder Full Node rechnet die Arbeit, die Signaturen und alle Guthaben nach, beginnend bei Block 0. Ein Block, der eine Regel bricht, wird abgelehnt, egal von wem er kommt.
+home.how.3.h
+  en: The block pays
+  de: Der Block zahlt aus
+home.how.3.p
+  en: The block itself pays the reward: to the finder alone, or split among the miners of a pool, straight to their addresses. A pool never holds anyone else's coins.
+  de: Der Block selbst zahlt die Belohnung aus: an den Finder allein oder aufgeteilt auf die Miner eines Pools, direkt an ihre Adressen. Ein Pool hält nie fremde Coins.
+dev.api.down
+  en: The request failed ({why}). The API is not answering from here right now.
+  de: Die Anfrage ist fehlgeschlagen ({why}). Die API antwortet von hier aus gerade nicht.

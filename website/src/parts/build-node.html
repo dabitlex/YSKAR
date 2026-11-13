@@ -1,0 +1,34 @@
+<section class="sec ruled" id="node" aria-labelledby="dev-node-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="dev-node-h" data-t="dev.node.h"></h2>
+        <p class="muted" data-t="dev.node.p"></p>
+        <a href="#chain-nodes" data-t="dev.node.link"></a>
+      </div>
+      <div class="stack" style="--gap:28px">
+        <div class="code-wrap"><div class="code" id="code-node"><span class="c"># <span data-t="dev.node.c1"></span></span>
+git clone https://github.com/dabitlex/YSKAR.git
+cd YSKAR/node
+npm install
+npm run build
+
+<span class="c"># <span data-t="dev.node.c2"></span></span>
+node dist/yskar-node.cjs mine --data ./knoten \
+  --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 \
+  --no-upstream</div>
+          <button type="button" class="copy" data-copy="#code-node" data-t="ui.copy"></button></div>
+        <dl class="facts">
+          <div><dt data-t="dev.node.f1.k"></dt><dd data-t="dev.node.f1.v"></dd></div>
+          <div><dt data-t="dev.node.f2.k"></dt><dd data-t="dev.node.f2.v"></dd></div>
+          <div><dt data-t="dev.node.f3.k"></dt><dd data-t="dev.node.f3.v"></dd></div>
+          <div><dt data-t="dev.node.f4.k"></dt><dd data-t="dev.node.f4.v"></dd></div>
+          <div><dt data-t="dev.node.f5.k"></dt><dd data-t="dev.node.f5.v"></dd></div>
+        </dl>
+        <div class="code-wrap"><div class="code" id="code-ownminer"><span class="c"># <span data-t="dev.node.c3"></span></span>
+cd YSKAR/miner
+node src/cli.mjs --address ysr1... --api http://127.0.0.1:8645</div>
+          <button type="button" class="copy" data-copy="#code-ownminer" data-t="ui.copy"></button></div>
+        <p class="small muted" data-t="dev.node.core"></p>
+      </div>
+    </div>
+  </section>

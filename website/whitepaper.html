@@ -1,88 +1,175 @@
 <!doctype html>
-<html lang="en" class="i18n-wartet">
+<html lang="en" data-page="paper" data-mode="snapshot">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Whitepaper – YSKAR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>White paper – YSKAR</title>
 <meta name="description" content="The YSKAR whitepaper: blocks, transactions, proof of work, difficulty, issuance, wallets, pool mining and the network.">
-<meta name="theme-color" content="#03060F">
+<meta name="theme-color" content="#030816">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="YSKAR">
-<meta property="og:title" content="Whitepaper – YSKAR">
-<meta property="og:description" content="How YSKAR works: blocks, transactions, proof of work, difficulty, issuance, wallets and pool mining.">
+<meta property="og:title" content="White paper – YSKAR">
+<meta property="og:description" content="The YSKAR whitepaper: blocks, transactions, proof of work, difficulty, issuance, wallets, pool mining and the network.">
+<link rel="canonical" href="https://www.yskar.app/whitepaper">
 <meta property="og:url" content="https://www.yskar.app/whitepaper">
-<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.png?v=7">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="YSKAR – Fair from block 0.">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@yskar_official">
 <link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
 <link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
-<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=41">
-<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=41"></script>
-<script src="/assets/site.js?v=41" defer></script>
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=d7df03c0">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"d5aaf4d6","de":"24f4f520","es":"75f468d7","pt":"5a1ff8b6","fr":"b0c28fe7","it":"ef8db93a","pl":"ec2042b0","ru":"93224617","tr":"75702b84","zh":"bf23a098"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=b8656ac5" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
 </head>
-<body data-seite="whitepaper">
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="7.6"/><path d="M2.4 10h15.2M10 2.4c2.3 2.2 3.4 4.7 3.4 7.6s-1.1 5.4-3.4 7.6c-2.3-2.2-3.4-4.7-3.4-7.6S7.7 4.6 10 2.4Z"/></g></symbol>
+    <symbol id="i-down" viewBox="0 0 12 12"><path d="m2.4 4.4 3.6 3.6 3.6-3.6" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
 
-<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
 
-<header class="kopf" id="kopf">
-<div class="wrap">
-<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
-<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
-<a href="/#was" data-t="nav.was">About YSKAR</a>
-<a href="/#ablauf" data-t="nav.ablauf">How it works</a>
-<a href="/#menge" data-t="nav.menge">Supply</a>
-<a href="/#v6" class="v6-link">V6</a>
-<a href="/mining" data-t="nav.mining">Mining</a>
-<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
-<a href="/whitepaper" aria-current="page" data-t="nav.whitepaper">Whitepaper</a>
-<a href="/explorer" data-t="nav.explorer">Explorer</a>
-</nav>
-<div class="kopf-rechts">
-<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
-<a class="knopf hell klein kopf-cta" href="/#nutzen" data-t="nav.los">Use YSR</a>
-<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
-</button>
-</div>
-</div>
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
 </header>
 
-<main id="inhalt">
-<section class="seitenkopf">
-<div class="wrap">
-<p class="etikett" style="color:var(--blau-d)">Whitepaper</p>
-<h1>YSKAR</h1>
-<p data-t="wpseite.untertitel">A proof-of-work blockchain that anyone can mine and anyone can verify.</p>
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper" aria-current="page"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <label class="lang">
+        <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+        <span class="sr-only" data-t="nav.lang">Language</span>
+        <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+        <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+      </label>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
 </div>
-</section>
 
-<div class="inhalt">
-<div class="wrap inhalt-raster">
-<nav class="toc" id="wp-toc" aria-label="Contents" data-ta="aria-label:wpseite.toc"></nav>
-
-<div class="text">
-<div class="sprachhinweis">
-<span id="wp-hinweis" hidden data-t="wpseite.nurDeEn">The whitepaper is currently available in English and German.</span>
-<button type="button" data-wp="en" aria-pressed="true">English</button>
-<button type="button" data-wp="de" aria-pressed="false">Deutsch</button>
-<button type="button" onclick="window.print()" data-t="wpseite.drucken">Print / save as PDF</button>
-</div>
-
-<!-- ================================================================ EN -->
-<article id="wp-en" lang="en">
-<p class="wp-meta">Version 1.1 · October 2026 · Network yskar-main-1</p>
-
+<main id="main" tabindex="-1">
+<div class="page" data-page="paper">
+  <section class="pp pp--doc pp--paper">
+    <div class="wrap pp__in">
+      <p class="ph__k" data-t="foot.whitepaper">White paper</p>
+      <h1 class="t-mega">YSKAR</h1>
+      <p class="lead" data-t="lv.wpseite.untertitel">A proof-of-work blockchain that anyone can mine and anyone can verify.</p>
+      <p class="paper-note" data-paper-note hidden data-t="lv.wpseite.nurDeEn">The whitepaper is currently available in English and German.</p>
+      <div class="row paper-tools">
+        <div class="seg" role="group" data-ta="aria-label:nav.lang" data-paper-pick hidden aria-label="Language">
+          <button type="button" data-paper="en" aria-pressed="true" lang="en">English</button>
+          <button type="button" data-paper="de" aria-pressed="false" lang="de">Deutsch</button>
+        </div>
+        <span data-print hidden><button type="button" class="btn btn--ghost btn--s" data-t="lv.wpseite.drucken">Print / save as PDF</button></span>
+      </div>
+    </div>
+  </section>
+  <div class="wrap doc" data-doc="paper">
+    <nav class="doc__toc" data-ta="aria-label:lv.wpseite.toc" aria-label="Contents"><details><summary data-t="doc.toc">On this page</summary><div class="doc__links"></div></details></nav>
+    <div class="doc__text lv lv--paper">
+      <article class="lv-lang lv-lang--en" lang="en" data-lang-only="en">
+<p class="lv-wp-meta">Version 1.1 · October 2026 · Network yskar-main-1</p>
 <h2 id="k1">1. Summary</h2>
 <p>YSKAR is an independent blockchain secured by proof of work. Its coin is called YSR. At most 21 million YSR will ever exist; they are created exclusively as block rewards for miners, halving every 12,000 blocks. A new block is targeted every 10 minutes.</p>
 <p>YSKAR was designed around two promises. First, <strong>mining for everyone</strong>: a phone in a Telegram Mini App, an Android app or a home PC can take part, alone or in a pool that never holds anyone’s money. Second, <strong>verifiable by anyone</strong>: every rule is fixed in open-source code, the proof of work of every block can be checked in an ordinary browser, and anyone can run a full node that verifies the chain from its first block. The genesis block carries the inscription that sums this up: <em>proof, not promise</em>.</p>
 <p>This document describes the system as it is implemented, including its current limits.</p>
-
 <h2 id="k2">2. Architecture</h2>
 <ul>
 <li><strong>Full nodes</strong> store the chain, validate every block and transaction completely and exchange blocks over a peer-to-peer network. A node can also offer a mining interface and run a pool.</li>
@@ -91,10 +178,9 @@
 <li><strong>The explorer</strong> displays the chain and re-checks each block header in the browser: hash, proof of work and the link to the previous block. Full verification needs a full node or the observer.</li>
 <li><strong>A database mirror</strong> of the chain serves the explorer and website for fast reads. It is a convenience only; the nodes are authoritative.</li>
 </ul>
-
 <h2 id="k3">3. Blocks</h2>
 <p>A block consists of a 136-byte header and a list of transactions, the first of which is always the coinbase. All integers are little-endian.</p>
-<table>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle">
 <thead><tr><th>Offset</th><th>Field</th><th>Size</th><th>Meaning</th></tr></thead>
 <tbody>
 <tr><td>0</td><td>version</td><td>4</td><td>Block version</td></tr>
@@ -108,12 +194,11 @@
 <tr><td>120</td><td>extranonce</td><td>8</td><td>Separates the search spaces of miners</td></tr>
 <tr><td>128</td><td>nonce</td><td>8</td><td>Varied by the miner</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>The size is deliberate: with SHA-256 padding, 136 bytes fill exactly three 64-byte blocks, and every field except the nonce lies in the first 128 bytes. A miner computes the state after the first two compressions once per job (the midstate) and then needs only two compressions per attempt.</p>
 <p><strong>Merkle tree.</strong> Leaves are <code>sha256d(0x00 ‖ txid)</code>, inner nodes <code>sha256d(0x01 ‖ left ‖ right)</code>. An odd node is passed up unchanged instead of being duplicated. The prefixes prevent an inner node from being presented as a leaf, and the absence of duplication avoids a known ambiguity of duplicated nodes (CVE-2012-2459).</p>
 <p><strong>State root.</strong> Every header commits to the complete account state after the block. Two nodes with the same state root have computed exactly the same balances. A block whose state root does not match the node’s own computation is rejected.</p>
 <p><strong>Limits.</strong> At most 2,000 transactions per block, the coinbase included. From height 7,000 a block is also at most 1,048,576 bytes.</p>
-
 <h2 id="k4">4. Transactions</h2>
 <p>YSKAR uses an <strong>account model</strong>: each address has a balance and a nonce, a counter of the transactions it has sent. There are two transaction types.</p>
 <h3>4.1 Transfer</h3>
@@ -123,11 +208,10 @@
 <p>The first transaction of each block creates new YSR. Its total must be <strong>exactly</strong> the block reward plus the fees of all transactions in the block – not a unit more or less. Up to height 1,999 a coinbase has exactly one recipient. From height 2,000 (consensus version 2) it may have up to 64 recipients; this is what makes pool mining without custody possible (section 10). The coinbase may carry a short self-chosen name of the finder.</p>
 <h3>4.3 Fees</h3>
 <p>Up to height 3,999 every transfer costs a fixed minimum of 0.001 YSR. From height 4,000 (consensus version 3) the minimum is calculated <strong>per byte</strong>: at least 1 unit (0.00000001 YSR) per byte. Nodes additionally require 10 units per byte before relaying a transaction; this is policy, not consensus, and can be adjusted without a fork. Amounts below 100 units (0.000001 YSR) are invalid from height 4,000, which prevents the state from being filled with dust. A waiting transaction can be replaced by one with the same nonce only if its fee is higher by at least its relay minimum (10 units × its size in bytes).</p>
-
 <h2 id="k5">5. Proof of work and difficulty</h2>
 <h3>5.1 The puzzle</h3>
 <p>The block hash is <code>SHA-256(SHA-256(header))</code>. A block is valid if its hash, read as a 256-bit number, does not exceed the target:</p>
-<div class="formel">target = 2^240 / difficulty</div>
+<div class="lv-formel">target = 2^240 / difficulty</div>
 <p>One unit of difficulty therefore corresponds to 65,536 expected hashes on average. The network hashrate can be estimated as <code>difficulty × 65,536 / block time</code>.</p>
 <h3>5.2 Adjustment (LWMA)</h3>
 <p>The difficulty of each block is recalculated from the previous 45 blocks with a linearly weighted moving average: recent solve times count more than older ones. Single solve times are capped at six times the target, and the result may change by at most a factor of four per block. All arithmetic is done in integers; there is no floating point in consensus, so every node arrives at exactly the same value.</p>
@@ -136,17 +220,15 @@
 <p>A timestamp must be later than the median of the previous 11 blocks and may be at most 120 seconds in the future. From height 7,000 (consensus version 5) a timestamp must also not be earlier than that of its parent; an equal one is allowed. Without these rules, the difficulty could be manipulated through false times.</p>
 <h3>5.4 Difficulty without an upper limit</h3>
 <p>The header field for the difficulty is four bytes. Up to height 5,999 it is a plain unsigned integer, which ends at 4,294,967,295 – about 469 GH/s of network hashrate. From height 6,000 (consensus version 4) the same field is read differently:</p>
-<div class="formel">top bit 0:  difficulty = field                    (1 … 2^31 − 1)
+<div class="lv-formel">top bit 0:  difficulty = field                    (1 … 2^31 − 1)
 top bit 1:  e = bits 23–30,  m = bits 0–22
             difficulty = (2^23 + m) · 2^e        (2^31 … ≈ 2^240)</div>
 <p>Below 2^31 the bytes are identical to the old format. Above it, the value is a floating-point number with 24 bits of precision. Every value has exactly one valid encoding; the adjustment rounds down to the nearest representable value. The upper bound lies just below 2^240, where the target reaches 1 – the limit of SHA-256 itself.</p>
-
 <h2 id="k6">6. Choosing the chain</h2>
 <p>If two valid branches compete, nodes follow the one with the most accumulated work, not the longest one. Since the expected number of hashes is proportional to the difficulty, the work of a block is its difficulty, and the work of a chain is the sum. If two branches have exactly the same work, the one whose tip has the smaller hash wins – a rule every node can evaluate independently and identically.</p>
-
 <h2 id="k7">7. Issuance</h2>
 <p>The reward starts at 875 YSR per block and halves every 12,000 blocks. It is computed with a bit shift, without rounding rules that could differ between implementations.</p>
-<table>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle">
 <thead><tr><th>Epoch</th><th>Blocks</th><th>Reward</th><th>Total after the epoch</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>0 – 11,999</td><td>875 YSR</td><td>10,500,000 YSR (50%)</td></tr>
@@ -157,10 +239,9 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
 <tr><td>37</td><td>432,000 – 443,999</td><td>0.00000001 YSR</td><td>20,999,999.99832 YSR</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>From block 444,000 the reward is zero and miners are paid by fees alone. At the target block time an epoch lasts about 83 days; 99% of all YSR exist after about 1.5 years, the last unit after about 8.4 years. Because of rounding, the total stays slightly below 21 million.</p>
 <p><strong>No pre-allocation.</strong> There is no allocation in the code: every YSR comes from a coinbase whose amount the rules check exactly. The reward of the genesis block went to the all-zero address, for which no key is known; finding one is computationally infeasible.</p>
-
 <h2 id="k8">8. Wallets and addresses</h2>
 <ul>
 <li><strong>Recovery words:</strong> 12 words according to BIP39 produce a seed.</li>
@@ -168,12 +249,10 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <li><strong>Address:</strong> the first 20 bytes of <code>SHA-256(public key)</code>, written in bech32m with the prefix <code>ysr</code> – for example <code>ysr1…</code>. The checksum catches typing errors.</li>
 <li><strong>On the device:</strong> the app stores the 12 recovery words locally, encrypted with a user-chosen PIN (PBKDF2-SHA256 with 400,000 rounds, then AES-256-GCM). No server ever receives them. The PIN guards against casual access to an unlocked device, not against someone who has copied the stored file; the 12 words are the actual key and restore the wallet anywhere.</li>
 </ul>
-
 <h2 id="k9">9. Mining</h2>
 <p>A miner opens a session at a node with its payout address and receives jobs: a complete block template with all fields except the nonce. Each session gets its own extranonce, which lies in the header, so two miners can never compute the same candidate.</p>
 <p>The miner does not only report blocks but <strong>shares</strong>: hashes that meet an easier, personal target. The node adjusts this target so that each device finds about one share every 30 seconds. Shares show that the device is working and, in a pool, are the basis of the payout. The node recomputes every submitted hash itself and trusts no claim of the device.</p>
 <p>Ways to mine today: the Telegram Mini App (computing in WebAssembly), the Android app (also in the background), Node Core for Windows and Linux, and the PC miner. Node Core and the PC miner compute on processors and on graphics cards from NVIDIA (CUDA), AMD and Intel (OpenCL).</p>
-
 <h2 id="k10">10. Pool mining without custody</h2>
 <p>A pool is not a separate service but a full node that splits its coinbase. Pool blocks pay the participants directly in the coinbase (consensus version 2). At no point does the operator hold anyone else’s money, and anyone can check the split in the explorer.</p>
 <ul>
@@ -182,23 +261,20 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <li><strong>Limits:</strong> up to 64 addresses per block (63 miners when a fee is taken). If the window holds more, those with the least work receive nothing in that block; their work stays in the window and counts again at the next block, but nothing makes up for the missed block. The reference node software limits the fee to 5%; consensus does not.</li>
 <li><strong>What still requires trust:</strong> the counting of shares. Shares are not in any block. The payout is verifiable; whether it was deserved is not. This applies to every pool.</li>
 </ul>
-
 <h2 id="k11">11. Network</h2>
 <p>Nodes connect over TCP (default port 8646). On connecting they exchange the network name and the accumulated work of their chains, then fetch missing blocks. Every block arriving over the network is validated completely: header, proof of work, signatures, balances and state root. A peer supplies data, nothing more. Nodes that support it also exchange miner statistics, so that apps can show the miners of the whole network; these figures are reported, not proven.</p>
-
 <h2 id="k12">12. Consensus changes</h2>
 <p>Rule changes are activated at a fixed height announced in advance. Blocks below that height remain valid byte for byte.</p>
-<table>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle">
 <thead><tr><th>Version</th><th>Active from</th><th>Change</th></tr></thead>
 <tbody>
 <tr><td>2</td><td>Block 2,000</td><td>Coinbase with up to 64 recipients (pool mining without custody)</td></tr>
 <tr><td>3</td><td>Block 4,000</td><td>Fee per byte, dust limit</td></tr>
 <tr><td>4</td><td>Block 6,000</td><td>Difficulty without an upper limit</td></tr>
 <tr><td>5</td><td>Block 7,000</td><td>Soft fork: timestamp not before the parent’s; canonical block encoding, at most 1,048,576 bytes per block; coinbase version 1 or 2 with at most 32 bytes of name; no version 2 coinbase output below 100 units</td></tr>
-<tr><td>6</td><td>Block 10,000 (set)</td><td>Hard fork: versioned accounts and addresses, shared accounts (multi-signature, up to 16 keys), hash and time locks, batch payments to up to 1,000 recipients, a state tree, up to 5,000 transactions per block and up to 255 coinbase recipients; see <a href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md">CONSENSUS_V6.md</a></td></tr>
+<tr><td>6</td><td>Block 10,000 (set)</td><td>Hard fork: versioned accounts and addresses, shared accounts (multi-signature, up to 16 keys), hash and time locks, batch payments to up to 1,000 recipients, a state tree, up to 5,000 transactions per block and up to 255 coinbase recipients; see <a href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md" target="_blank" rel="noopener">CONSENSUS_V6.md</a></td></tr>
 </tbody>
-</table>
-
+</table></div>
 <h2 id="k13">13. Limits and outlook</h2>
 <p>We would rather name the weaknesses than hide them:</p>
 <ul>
@@ -207,18 +283,14 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <li><strong>Confirmation time.</strong> With 10-minute blocks, a payment is secure only after confirmations. Instant payments via payment channels are being planned; there is no date yet.</li>
 <li><strong>Reported figures.</strong> Active miners and measured hashrate across nodes are reported by the nodes. The network hashrate derived from difficulty and block times is the provable figure.</li>
 </ul>
-<p>Everything described here can be checked in the source code at <a href="https://github.com/dabitlex/YSKAR">github.com/dabitlex/YSKAR</a>.</p>
+<p>Everything described here can be checked in the source code at <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">github.com/dabitlex/YSKAR</a>.</p>
 </article>
-
-<!-- ================================================================ DE -->
-<article id="wp-de" lang="de" hidden>
-<p class="wp-meta">Version 1.1 · Oktober 2026 · Netz yskar-main-1</p>
-
+<article class="lv-lang lv-lang--de" lang="de" data-lang-only="de">
+<p class="lv-wp-meta">Version 1.1 · Oktober 2026 · Netz yskar-main-1</p>
 <h2 id="k1-de">1. Zusammenfassung</h2>
 <p>YSKAR ist eine eigenständige Blockchain, gesichert durch Proof of Work. Ihre Münze heißt YSR. Es wird nie mehr als 21 Millionen YSR geben; sie entstehen ausschließlich als Blockbelohnung für Miner, und die Belohnung halbiert sich alle 12.000 Blöcke. Ziel ist ein neuer Block alle 10 Minuten.</p>
 <p>YSKAR folgt zwei Versprechen. Erstens <strong>Mining für alle</strong>: Ein Telefon in einer Telegram Mini App, eine Android-App oder ein PC zu Hause können mitmachen, allein oder in einem Pool, der nie fremdes Geld verwahrt. Zweitens <strong>nachprüfbar für jeden</strong>: Jede Regel steht in quelloffenem Code, der Proof of Work jedes Blocks lässt sich in einem gewöhnlichen Browser prüfen, und jeder kann einen eigenen Knoten betreiben, der die Kette ab dem ersten Block nachrechnet. Der Genesis-Block trägt die Inschrift, die das zusammenfasst: <em>proof, not promise</em>.</p>
 <p>Dieses Dokument beschreibt das System so, wie es umgesetzt ist, einschließlich seiner heutigen Grenzen.</p>
-
 <h2 id="k2-de">2. Aufbau</h2>
 <ul>
 <li><strong>Fullnodes</strong> speichern die Kette, prüfen jeden Block und jede Transaktion vollständig und tauschen Blöcke über ein Peer-to-Peer-Netz aus. Ein Knoten kann zusätzlich eine Mining-Schnittstelle anbieten und einen Pool betreiben.</li>
@@ -227,10 +299,9 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <li><strong>Der Explorer</strong> zeigt die Kette an und prüft den Kopf jedes Blocks im Browser nach: Hash, Proof of Work und Verkettung. Vollständig prüft ein Fullnode oder der Observer.</li>
 <li><strong>Ein Datenbank-Spiegel</strong> der Kette dient Explorer und Website zum schnellen Lesen. Er ist nur eine Bequemlichkeit; maßgeblich sind die Knoten.</li>
 </ul>
-
 <h2 id="k3-de">3. Blöcke</h2>
 <p>Ein Block besteht aus einem 136 Byte langen Kopf und einer Liste von Transaktionen; die erste ist immer die Coinbase. Alle Ganzzahlen sind Little-Endian.</p>
-<table>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle">
 <thead><tr><th>Stelle</th><th>Feld</th><th>Größe</th><th>Bedeutung</th></tr></thead>
 <tbody>
 <tr><td>0</td><td>version</td><td>4</td><td>Blockfassung</td></tr>
@@ -244,12 +315,11 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <tr><td>120</td><td>extranonce</td><td>8</td><td>Trennt die Suchräume der Miner</td></tr>
 <tr><td>128</td><td>nonce</td><td>8</td><td>Wird vom Miner variiert</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>Die Größe ist gewollt: Mit dem SHA-256-Padding füllen 136 Byte genau drei 64-Byte-Blöcke, und jedes Feld außer der Nonce liegt in den ersten 128 Byte. Ein Miner berechnet den Zustand der ersten beiden Kompressionen einmal je Aufgabe (Midstate) und braucht danach nur zwei Kompressionen je Versuch.</p>
 <p><strong>Merkle-Baum.</strong> Blätter sind <code>sha256d(0x00 ‖ txid)</code>, innere Knoten <code>sha256d(0x01 ‖ links ‖ rechts)</code>. Ein ungerader Knoten wird unverändert hochgereicht statt verdoppelt. Die Präfixe verhindern, dass ein innerer Knoten als Blatt ausgegeben werden kann, und ohne Verdopplung entfällt eine bekannte Mehrdeutigkeit durch verdoppelte Knoten (CVE-2012-2459).</p>
 <p><strong>Zustandswurzel.</strong> Jeder Kopf verpflichtet auf den vollständigen Kontostand nach dem Block. Zwei Knoten mit derselben Wurzel haben exakt dieselben Guthaben berechnet. Ein Block, dessen Wurzel nicht zur eigenen Rechnung passt, wird abgelehnt.</p>
 <p><strong>Grenzen.</strong> Höchstens 2.000 Transaktionen je Block, die Coinbase eingeschlossen. Ab Höhe 7.000 ist ein Block außerdem höchstens 1.048.576 Byte groß.</p>
-
 <h2 id="k4-de">4. Transaktionen</h2>
 <p>YSKAR nutzt ein <strong>Kontenmodell</strong>: Jede Adresse hat ein Guthaben und eine Nonce, einen Zähler ihrer gesendeten Transaktionen. Es gibt zwei Arten von Transaktionen.</p>
 <h3>4.1 Überweisung</h3>
@@ -259,11 +329,10 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <p>Die erste Transaktion jedes Blocks erzeugt neue YSR. Ihre Summe muss <strong>genau</strong> der Blockbelohnung plus den Gebühren aller Transaktionen des Blocks entsprechen, keine Einheit mehr oder weniger. Bis Höhe 1.999 hat eine Coinbase genau einen Empfänger. Ab Höhe 2.000 (Konsensfassung 2) darf sie bis zu 64 Empfänger haben; das ermöglicht Pool-Mining ohne Verwahrung (Abschnitt 10). Die Coinbase kann einen kurzen, selbst gewählten Namen des Finders tragen.</p>
 <h3>4.3 Gebühren</h3>
 <p>Bis Höhe 3.999 kostet jede Überweisung fest mindestens 0,001 YSR. Ab Höhe 4.000 (Konsensfassung 3) wird das Minimum <strong>je Byte</strong> berechnet: mindestens 1 Einheit (0,00000001 YSR) je Byte. Knoten verlangen zusätzlich 10 Einheiten je Byte, bevor sie eine Transaktion weiterleiten; das ist Richtlinie, kein Konsens, und lässt sich ohne Fork anpassen. Beträge unter 100 Einheiten (0,000001 YSR) sind ab Höhe 4.000 ungültig; so lässt sich der Zustand nicht mit Kleinstbeträgen füllen. Eine wartende Transaktion lässt sich durch eine mit derselben Nonce nur ersetzen, wenn deren Gebühr um mindestens deren Weiterleitungsminimum (10 Einheiten × Größe in Byte) höher ist.</p>
-
 <h2 id="k5-de">5. Proof of Work und Schwierigkeit</h2>
 <h3>5.1 Die Aufgabe</h3>
 <p>Der Blockhash ist <code>SHA-256(SHA-256(Kopf))</code>. Ein Block ist gültig, wenn sein Hash, gelesen als 256-Bit-Zahl, das Ziel nicht überschreitet:</p>
-<div class="formel">ziel = 2^240 / difficulty</div>
+<div class="lv-formel">ziel = 2^240 / difficulty</div>
 <p>Eine Einheit Difficulty entspricht damit im Mittel 65.536 erwarteten Hashes. Die Netz-Hashrate lässt sich als <code>difficulty × 65.536 / Blockzeit</code> abschätzen.</p>
 <h3>5.2 Anpassung (LWMA)</h3>
 <p>Die Difficulty jedes Blocks wird aus den vorigen 45 Blöcken mit einem linear gewichteten gleitenden Mittel neu berechnet: Jüngere Lösungszeiten zählen mehr als ältere. Einzelne Lösungszeiten werden beim Sechsfachen des Ziels gedeckelt, und das Ergebnis darf sich je Block höchstens um den Faktor vier ändern. Gerechnet wird ausschließlich mit Ganzzahlen; im Konsens gibt es keine Gleitkommazahl, damit jeder Knoten exakt denselben Wert erhält.</p>
@@ -272,17 +341,15 @@ top bit 1:  e = bits 23–30,  m = bits 0–22
 <p>Ein Zeitstempel muss später als der Median der vorigen 11 Blöcke liegen und darf höchstens 120 Sekunden in der Zukunft liegen. Ab Höhe 7.000 (Konsensfassung 5) darf ein Zeitstempel außerdem nicht vor dem seines Vorgängers liegen; gleich ist erlaubt. Ohne diese Regeln ließe sich die Difficulty über falsche Zeiten verschieben.</p>
 <h3>5.4 Difficulty ohne Obergrenze</h3>
 <p>Das Feld für die Difficulty im Kopf ist vier Byte groß. Bis Höhe 5.999 ist es eine schlichte vorzeichenlose Ganzzahl, die bei 4.294.967.295 endet, also bei rund 469 GH/s Netz-Hashrate. Ab Höhe 6.000 (Konsensfassung 4) wird dasselbe Feld anders gelesen:</p>
-<div class="formel">oberstes Bit 0:  difficulty = Feld                   (1 … 2^31 − 1)
+<div class="lv-formel">oberstes Bit 0:  difficulty = Feld                   (1 … 2^31 − 1)
 oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
                  difficulty = (2^23 + m) · 2^e       (2^31 … ≈ 2^240)</div>
 <p>Unter 2^31 sind die Bytes identisch mit dem alten Format. Darüber ist der Wert eine Gleitkommazahl mit 24 Bit Genauigkeit. Jeder Wert hat genau eine gültige Schreibweise; die Anpassung rundet auf den nächsten darstellbaren Wert ab. Die Obergrenze liegt knapp unter 2^240, wo das Ziel 1 erreicht – die Grenze von SHA-256 selbst.</p>
-
 <h2 id="k6-de">6. Wahl der Kette</h2>
 <p>Konkurrieren zwei gültige Zweige, folgen die Knoten dem mit der meisten angesammelten Arbeit, nicht dem längsten. Da die erwartete Zahl der Hashes proportional zur Difficulty ist, ist die Arbeit eines Blocks seine Difficulty und die Arbeit einer Kette die Summe. Haben zwei Zweige genau gleich viel Arbeit, gewinnt der, dessen Spitze den kleineren Hash hat – eine Regel, die jeder Knoten unabhängig und gleich auswertet.</p>
-
 <h2 id="k7-de">7. Ausgabe</h2>
 <p>Die Belohnung beginnt bei 875 YSR je Block und halbiert sich alle 12.000 Blöcke. Sie wird per Bitverschiebung berechnet, ohne Rundungsregeln, die zwischen Umsetzungen abweichen könnten.</p>
-<table>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle">
 <thead><tr><th>Epoche</th><th>Blöcke</th><th>Belohnung</th><th>Summe nach der Epoche</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>0 – 11.999</td><td>875 YSR</td><td>10.500.000 YSR (50 %)</td></tr>
@@ -293,10 +360,9 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
 <tr><td>37</td><td>432.000 – 443.999</td><td>0,00000001 YSR</td><td>20.999.999,99832 YSR</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>Ab Block 444.000 ist die Belohnung null; Miner werden dann nur noch über Gebühren bezahlt. Bei der Zielblockzeit dauert eine Epoche rund 83 Tage; 99 % aller YSR existieren nach etwa 1,5 Jahren, die letzte Einheit nach etwa 8,4 Jahren. Wegen der Abrundung bleibt die Summe knapp unter 21 Millionen.</p>
 <p><strong>Keine Vorab-Zuteilung.</strong> Im Code gibt es keine Zuteilung: Jede YSR stammt aus einer Coinbase, deren Betrag die Regeln exakt prüfen. Die Belohnung des Genesis-Blocks ging an die Null-Adresse, für die kein Schlüssel bekannt ist und praktisch keiner gefunden werden kann.</p>
-
 <h2 id="k8-de">8. Wallets und Adressen</h2>
 <ul>
 <li><strong>Merkwörter:</strong> 12 Wörter nach BIP39 ergeben einen Seed.</li>
@@ -304,12 +370,10 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <li><strong>Adresse:</strong> die ersten 20 Byte von <code>SHA-256(öffentlicher Schlüssel)</code>, geschrieben in bech32m mit dem Präfix <code>ysr</code>, also etwa <code>ysr1…</code>. Die Prüfsumme fängt Tippfehler ab.</li>
 <li><strong>Auf dem Gerät:</strong> Die App speichert die 12 Wörter lokal, verschlüsselt mit einer selbst gewählten PIN (PBKDF2-SHA256 mit 400.000 Runden, dann AES-256-GCM). Kein Server erhält sie je. Die PIN schützt vor kurzem Zugriff auf ein entsperrtes Gerät, nicht vor jemandem, der die gespeicherte Datei kopiert hat; die 12 Wörter sind der eigentliche Schlüssel und stellen die Wallet überall wieder her.</li>
 </ul>
-
 <h2 id="k9-de">9. Mining</h2>
 <p>Ein Miner eröffnet bei einem Knoten eine Sitzung mit seiner Auszahlungsadresse und bekommt Aufgaben: eine vollständige Blockvorlage mit allen Feldern außer der Nonce. Jede Sitzung erhält ihre eigene Extranonce, die im Kopf steht; zwei Miner können also nie denselben Kandidaten berechnen.</p>
 <p>Der Miner meldet nicht nur Blöcke, sondern <strong>Shares</strong>: Hashes, die ein leichteres, persönliches Ziel erreichen. Der Knoten stellt dieses Ziel so ein, dass jedes Gerät etwa alle 30 Sekunden einen Share findet. Shares zeigen, dass das Gerät arbeitet, und sind im Pool die Grundlage der Auszahlung. Der Knoten rechnet jeden eingereichten Hash selbst nach und glaubt keiner Angabe des Geräts.</p>
 <p>Wege zum Mining heute: die Telegram Mini App (gerechnet in WebAssembly), die Android-App (auch im Hintergrund), Node Core für Windows und Linux sowie der PC-Miner. Node Core und der PC-Miner rechnen mit der CPU und mit Grafikkarten von NVIDIA (CUDA), AMD und Intel (OpenCL).</p>
-
 <h2 id="k10-de">10. Pool-Mining ohne Verwahrung</h2>
 <p>Ein Pool ist kein eigener Dienst, sondern ein Fullnode, der seine Coinbase aufteilt. Pool-Blöcke zahlen die Beteiligten direkt in der Coinbase aus (Konsensfassung 2). Zu keinem Zeitpunkt hält der Betreiber fremdes Geld, und jeder kann die Aufteilung im Explorer nachprüfen.</p>
 <ul>
@@ -318,23 +382,20 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <li><strong>Grenzen:</strong> bis zu 64 Adressen je Block (63 Miner, wenn eine Gebühr anfällt). Hält das Fenster mehr, gehen die mit der wenigsten Arbeit in diesem Block leer aus; ihre Arbeit bleibt im Fenster und zählt beim nächsten Block wieder, einen Ausgleich für den verpassten Block gibt es nicht. Die Referenzsoftware begrenzt die Gebühr auf 5 %; der Konsens nicht.</li>
 <li><strong>Was Vertrauen bleibt:</strong> die Zählung der Shares. Shares stehen in keinem Block. Die Auszahlung ist nachprüfbar, ob sie verdient war, nicht. Das gilt für jeden Pool.</li>
 </ul>
-
 <h2 id="k11-de">11. Netz</h2>
 <p>Knoten verbinden sich über TCP (Standardport 8646). Beim Verbinden tauschen sie den Netznamen und die angesammelte Arbeit ihrer Ketten aus und holen dann fehlende Blöcke. Jeder Block, der über das Netz kommt, wird vollständig geprüft: Kopf, Proof of Work, Signaturen, Guthaben und Zustandswurzel. Ein Peer liefert Daten, sonst nichts. Knoten, die es unterstützen, tauschen zusätzlich Miner-Statistiken aus, damit Apps die Miner des ganzen Netzes anzeigen können; diese Zahlen sind gemeldet, nicht bewiesen.</p>
-
 <h2 id="k12-de">12. Änderungen am Konsens</h2>
 <p>Regeländerungen werden an einer festen, vorher angekündigten Höhe aktiv. Blöcke unterhalb dieser Höhe bleiben Byte für Byte gültig.</p>
-<table>
+<div class="lv-tabelle-rahmen"><table class="lv-tabelle">
 <thead><tr><th>Fassung</th><th>Aktiv ab</th><th>Änderung</th></tr></thead>
 <tbody>
 <tr><td>2</td><td>Block 2.000</td><td>Coinbase mit bis zu 64 Empfängern (Pool-Mining ohne Verwahrung)</td></tr>
 <tr><td>3</td><td>Block 4.000</td><td>Gebühr je Byte, Staubgrenze</td></tr>
 <tr><td>4</td><td>Block 6.000</td><td>Difficulty ohne Obergrenze</td></tr>
 <tr><td>5</td><td>Block 7.000</td><td>Soft Fork: Zeitstempel nicht vor dem des Vorgängers; kanonische Kodierung, höchstens 1.048.576 Byte je Block; Coinbase Fassung 1 oder 2 mit höchstens 32 Byte Name; keine Ausgabe einer Coinbase der Fassung 2 unter 100 Einheiten</td></tr>
-<tr><td>6</td><td>Block 10.000 (festgelegt)</td><td>Hard Fork: versionierte Konten und Adressen, gemeinsame Konten (Mehrfachsignatur, bis zu 16 Schlüssel), Hash- und Zeitsperren, Sammelzahlungen an bis zu 1.000 Empfänger, ein Zustandsbaum, bis zu 5.000 Transaktionen je Block und bis zu 255 Coinbase-Empfänger; siehe <a href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md">CONSENSUS_V6.md</a></td></tr>
+<tr><td>6</td><td>Block 10.000 (festgelegt)</td><td>Hard Fork: versionierte Konten und Adressen, gemeinsame Konten (Mehrfachsignatur, bis zu 16 Schlüssel), Hash- und Zeitsperren, Sammelzahlungen an bis zu 1.000 Empfänger, ein Zustandsbaum, bis zu 5.000 Transaktionen je Block und bis zu 255 Coinbase-Empfänger; siehe <a href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md" target="_blank" rel="noopener">CONSENSUS_V6.md</a></td></tr>
 </tbody>
-</table>
-
+</table></div>
 <h2 id="k13-de">13. Grenzen und Ausblick</h2>
 <p>Wir nennen die Schwächen lieber, als sie zu verstecken:</p>
 <ul>
@@ -343,49 +404,97 @@ oberstes Bit 1:  e = Bits 23–30,  m = Bits 0–22
 <li><strong>Bestätigungszeit.</strong> Bei 10-Minuten-Blöcken ist eine Zahlung erst nach Bestätigungen sicher. Sofortzahlungen über Zahlungskanäle sind in Planung; einen Termin gibt es noch nicht.</li>
 <li><strong>Gemeldete Zahlen.</strong> Aktive Miner und gemessene Hashrate über mehrere Knoten werden von den Knoten gemeldet. Beweisbar ist die Netz-Hashrate aus Difficulty und Blockzeiten.</li>
 </ul>
-<p>Alles hier Beschriebene lässt sich im Quelltext unter <a href="https://github.com/dabitlex/YSKAR">github.com/dabitlex/YSKAR</a> nachprüfen.</p>
+<p>Alles hier Beschriebene lässt sich im Quelltext unter <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">github.com/dabitlex/YSKAR</a> nachprüfen.</p>
 </article>
 
+    </div>
+  </div>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
-</div>
-</div>
+
 </main>
 
-<footer class="fusszeile">
-<div class="wrap">
-<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
-<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
-<p class="motto">proof, not promise</p>
-<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
-</div>
-<div class="spalten">
-<div>
-<span class="kennung" data-t="fuss.netz">Network</span>
-<a href="/explorer" data-t="nav.explorer">Explorer</a>
-<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
-<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
-<a href="/#v6">V6</a>
-<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
-</div>
-<div>
-<span class="kennung" data-t="fuss.mitmachen">Take part</span>
-<a href="/mining" data-t="nav.mining">Mining</a>
-<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
-<a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
-<a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
-<a href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="fuss.wallet">YSKAR Wallet</a>
-<a href="https://lab.yskar.app" data-t="fuss.lab">YSKAR Lab</a>
-<a href="https://x.com/yskar_official">X</a>
-<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
-<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
-</div>
-<div>
-<span class="kennung" data-t="fuss.rechtliches">Legal</span>
-<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
-<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
-</div>
-</div>
-</div>
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" aria-current="page" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <label class="lang lang--ink">
+          <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+          <span class="sr-only" data-t="nav.lang">Language</span>
+          <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+          <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+        </label>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
 </footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
 </body>
 </html>

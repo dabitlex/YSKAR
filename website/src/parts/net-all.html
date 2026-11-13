@@ -1,0 +1,116 @@
+<section class="sec tight" aria-labelledby="net-now-h">
+    <div class="wrap">
+      <div class="display">
+        <div class="display-head">
+          <h2 class="display-title" id="net-now-h" data-t="net.now"></h2>
+          <span class="state" data-live="mode"></span>
+        </div>
+        <div class="readouts four">
+          <div class="readout"><span class="k" data-t="net.height"></span><span class="v" data-live="height"></span><span class="s" data-live="tipAge"></span></div>
+          <div class="readout"><span class="k" data-t="net.hashrate"></span><span class="v" data-live="hashrate"></span><span class="s" data-t="net.fromChain"></span></div>
+          <div class="readout"><span class="k" data-t="net.difficulty"></span><span class="v" data-live="difficulty"></span><span class="s" data-t="net.everyBlock"></span></div>
+          <div class="readout"><span class="k" data-t="net.blocktime"></span><span class="v" data-live="avgTime"></span><span class="s" data-t="net.target600"></span></div>
+          <div class="readout"><span class="k" data-t="net.mempool"></span><span class="v" data-live="mempool"></span><span class="s" data-t="net.fromNode"></span></div>
+          <div class="readout"><span class="k" data-t="net.miners"></span><span class="v" data-live="miners"></span><span class="s" data-t="net.reported"></span></div>
+          <div class="readout"><span class="k" data-t="net.sessions"></span><span class="v" data-live="sessions"></span><span class="s" data-t="net.reported"></span></div>
+          <div class="readout"><span class="k" data-t="net.nodes"></span><span class="v" data-live="nodes"></span><span class="s" data-t="net.reported"></span></div>
+        </div>
+        <hr>
+        <div class="readouts next">
+          <div class="readout"><span class="k" data-t="net.next.v6"></span><span class="v" data-live="v6State"></span><span class="s" data-live="v6Eta"></span></div>
+          <div class="readout"><span class="k" data-t="net.next.halving"></span><span class="v"><span data-live="halvingLeft"></span><small data-t="ysr.now.blocks"></small></span><span class="s" data-live="halvingEta"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="history" aria-labelledby="net-hist-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="net-hist-h" data-t="net.hist.h"></h2>
+        <p class="muted" data-t="net.hist.p"></p>
+      </div>
+      <div class="filter-row">
+        <span class="micro quiet" id="net-range-l" data-t="net.range"></span>
+        <div class="tabs" role="group" aria-labelledby="net-range-l" id="net-range">
+          <button type="button" data-range="all" aria-pressed="true" data-t="net.range.all"></button>
+          <button type="button" data-range="30" aria-pressed="false" data-t="net.range.30"></button>
+          <button type="button" data-range="7" aria-pressed="false" data-t="net.range.7"></button>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.hash"></h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="chart" id="chart-hash"></div>
+          <p class="fig-cap" id="cap-hash"></p>
+          <details class="chart-table"><summary data-t="chart.asTable"></summary><div id="table-hash"></div></details>
+        </div>
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.blocks"></h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="chart" id="chart-blocks"></div>
+          <p class="fig-cap" data-t="net.c.blocks.cap"></p>
+          <details class="chart-table"><summary data-t="chart.asTable"></summary><div id="table-blocks"></div></details>
+        </div>
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.finders"></h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="legend-row" id="legend-finders"></div>
+          <div class="chart" id="chart-finders"></div>
+          <p class="fig-cap" data-t="net.c.finders.cap"></p>
+          <details class="chart-table"><summary data-t="chart.asTable"></summary><div id="table-finders"></div></details>
+        </div>
+        <div class="display">
+          <div class="display-head"><h3 class="display-title" data-t="net.c.time"></h3><span class="state fixed" data-live="histState"></span></div>
+          <div class="chart" id="chart-time"></div>
+          <p class="fig-cap" data-t="net.c.time.cap"></p>
+          <details class="chart-table"><summary data-t="chart.asTable"></summary><div id="table-time"></div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="finders" aria-labelledby="net-find-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="net-find-h" data-t="net.find.h"></h2>
+        <p class="muted" data-t="net.find.p1"></p>
+        <p class="muted" data-t="net.find.p2"></p>
+        <a href="#mine-pools" data-t="net.find.link"></a>
+      </div>
+      <div class="display">
+        <div class="display-head"><span class="display-title" data-t="net.find.title"></span><span class="state" data-live="modeShort"></span></div>
+        <div class="legend-row" id="legend-share"></div>
+        <div class="sharebars" id="sharebars"></div>
+        <p class="fig-cap" data-t="net.find.cap"></p>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="blocks" aria-labelledby="net-blocks-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="net-blocks-h" data-t="net.blocks.h"></h2>
+        <p class="muted" data-t="net.blocks.p"></p>
+        <a href="#explorer" data-t="net.blocks.link"></a>
+      </div>
+      <div class="display">
+        <div class="display-head"><span class="display-title" data-t="net.blocks.title"></span><span class="state" data-live="modeShort"></span></div>
+        <div class="tbl-scroll">
+          <table class="tbl" id="net-blocks">
+            <thead><tr><th data-t="net.b.height"></th><th data-t="net.b.age"></th><th data-t="net.b.by"></th><th class="n hide-s" data-t="net.b.paid"></th><th class="n hide-s" data-t="net.b.diff"></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="sec ruled" id="sources" aria-labelledby="net-src-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="net-src-h" data-t="net.src.h"></h2>
+        <p class="muted" data-t="net.src.p"></p>
+      </div>
+      <dl class="plain-list">
+        <div><dt data-t="net.src.1.h"></dt><dd data-t="net.src.1.p"></dd></div>
+        <div><dt data-t="net.src.2.h"></dt><dd data-t="net.src.2.p"></dd></div>
+        <div><dt data-t="net.src.3.h"></dt><dd data-t="net.src.3.p"></dd></div>
+        <div><dt data-t="net.src.4.h"></dt><dd data-t="net.src.4.p"></dd></div>
+      </dl>
+    </div>
+  </section>

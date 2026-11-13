@@ -63,21 +63,26 @@ none of the duties above. It is run by the same operator as the main node.
 | App | `https://yskar.vercel.app` | The Next.js application from the repository root: the web app (Telegram Mini App, and the user interface inside the Android app), the explorer (`public/explorer.html`) and the API under `/api/v2`. |
 | Website | `https://www.yskar.app` | The static files in `website/`. |
 
-The website has no API and no explorer of its own. `website/vercel.json` passes these paths on to
-the app project:
+The website has no API of its own. `website/vercel.json` passes these paths on to the app
+project:
 
 | Path on `www.yskar.app` | Destination |
 |---|---|
-| `/explorer`, `/explorer.html` | `https://yskar.vercel.app/explorer.html` |
 | `/api/v2/*` | `https://yskar.vercel.app/api/v2/*` |
-| `/marke/*`, `/schrift/*` | logo and fonts of the explorer on `yskar.vercel.app` |
+| `/marke/*`, `/schrift/*` | logo and fonts of the app's explorer on `yskar.vercel.app` |
 
-There is one explorer and one API. The address bar shows `www.yskar.app/explorer`, the content
-comes from the app project.
+There is one API. The explorer at `www.yskar.app/explorer` is a page of the website and reads
+that API through the path above; the app project has an explorer of its own
+(`public/explorer.html`).
 
 Both projects build from the same repository. The `ignoreCommand` in the root `vercel.json` skips
 a build of the app project when a commit changed only files under `website/`; the one in
 `website/vercel.json` skips a build of the website when nothing under `website/` changed.
+
+Once a day the workflow `.github/workflows/kettenverlauf.yml` rewrites
+`website/assets/data/kette.js` (the block history the website starts with) from the public API
+and commits that one file to `main`. Vercel then publishes the website again; the app project
+skips the commit. See "Chain data" in `website/README.md`.
 
 ## What the Vercel server does today
 

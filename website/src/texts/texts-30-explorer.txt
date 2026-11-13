@@ -1,0 +1,184 @@
+# Explorer: Kopf, Zeitachse, Blockliste, Proof of Work
+
+ex.h1
+  en: Every block is public.
+  de: Jeder Block ist öffentlich.
+ex.lead
+  en: Look up a block, a transfer or an address. Your browser recomputes the proof of work of every block it shows.
+  de: Schlag einen Block, eine Überweisung oder eine Adresse nach. Dein Browser rechnet den Proof of Work jedes angezeigten Blocks selbst nach.
+ex.q.ph
+  en: Block, hash or address
+  de: Block, Hash oder Adresse
+pulse.tip.h
+  en: The last {n} hours
+  de: Die letzten {n} Stunden
+pulse.next
+  en: Block {h} is being mined. {t} since the last block.
+  de: Block {h} wird gerade geschürft. {t} seit dem letzten Block.
+pulse.around.h
+  en: Around block {h}
+  de: Rund um Block {h}
+pulse.around.n
+  en: {n} blocks in these {k} hours
+  de: {n} Blöcke in diesen {k} Stunden
+pulse.now
+  en: now
+  de: jetzt
+pulse.by
+  en: Found by {who}
+  de: Gefunden von {who}
+pulse.alt
+  en: Blocks on a time line. Each light is one block; the distance between two lights is the time between them.
+  de: Blöcke auf einer Zeitachse. Jedes Licht ist ein Block; der Abstand zweier Lichter ist die Zeit zwischen ihnen.
+ex.row.tx
+  en: {n} transfers
+  de: {n} Überweisungen
+ex.row.tx.1
+  en: 1 transfer
+  de: 1 Überweisung
+ex.row.tx0
+  en: no transfers
+  de: keine Überweisungen
+ex.proof.h
+  en: The proof of work
+  de: Der Proof of Work
+ex.proof.p
+  en: A miner turns two counters in the header, the nonce and the extranonce, until the hash of all 136 bytes falls below the target. Your browser has just repeated that calculation.
+  de: Ein Miner dreht im Blockkopf zwei Zähler, Nonce und Extranonce, bis der Hash aller 136 Byte unter dem Ziel liegt. Dein Browser hat diese Rechnung gerade wiederholt.
+proof.pick
+  en: Select a field to see what it holds.
+  de: Wähle ein Feld, um zu sehen, was darin steht.
+pulse.around.n.1
+  en: The only block in these {k} hours
+  de: Der einzige Block in diesen {k} Stunden
+ex.tx.batch
+  en: Batch payment
+  de: Sammelzahlung
+ex.tx.script
+  en: Script account spend
+  de: Ausgabe aus Skript-Konto
+ex.txv.status
+  en: Status
+  de: Status
+ex.txv.waiting
+  en: Waiting for a block
+  de: Wartet auf einen Block
+ex.txv.sumPending
+  en: Sent, but not in a block yet.
+  de: Gesendet, aber noch in keinem Block.
+ex.txv.expected
+  en: Expected in block {h}, in about {min} min, provided nothing with a higher fee arrives.
+  de: Voraussichtlich in Block {h}, in etwa {min} Min., sofern nichts mit höherer Gebühr dazukommt.
+ex.txv.unknownWhen
+  en: Further back in the queue than the forecast reaches.
+  de: Weiter hinten in der Warteschlange, als die Vorausschau reicht.
+ex.addr.waiting
+  en: Waiting
+  de: Wartet
+ex.addr.older
+  en: Load older activity
+  de: Ältere Bewegungen laden
+
+# Explorer: Block im Bau, Warteschlange, Prüfung im Browser, Abgleich von Spiegel und Full Node
+ex.next.tag
+  en: in progress
+  de: im Bau
+ex.next.h
+  en: What is certain so far
+  de: Was schon feststeht
+ex.next.reward
+  en: Reward
+  de: Belohnung
+ex.next.pending
+  en: Pending transactions
+  de: Wartende Transaktionen
+ex.next.empty
+  en: The mempool is empty, so this block only contains the coinbase so far.
+  de: Der Mempool ist leer, also enthält dieser Block bisher nur die Coinbase.
+ex.next.some
+  en: The pending payments go into this block as far as they fit.
+  de: Die wartenden Zahlungen kommen in diesen Block, soweit sie hineinpassen.
+ex.next.who
+  en: Who finds it is not yet known.
+  de: Wer ihn findet, steht noch nicht fest.
+ex.fill
+  en: {p}% full
+  de: {p} % voll
+ex.fill.of
+  en: {n} of {max} transactions
+  de: {n} von {max} Transaktionen
+ex.queue.h
+  en: Queue
+  de: Warteschlange
+ex.queue.row
+  en: {n} tx · from {fee} · ~{min} min
+  de: {n} Tx · ab {fee} · ~{min} Min.
+ex.queue.none
+  en: Nothing is waiting — the next block takes everything.
+  de: Nichts wartet — der nächste Block nimmt alles mit.
+ex.queue.more
+  en: {n} transactions in {b} blocks in total.
+  de: {n} Transaktionen in insgesamt {b} Blöcken.
+ex.queue.note
+  en: Expected order by fee per byte, assuming nothing new arrives. The fee is for a transfer without a memo.
+  de: Voraussichtliche Reihenfolge nach Gebühr je Byte, unter der Annahme, dass nichts Neues dazukommt. Die Gebühr gilt für eine Überweisung ohne Notiz.
+ex.check.h
+  en: Checked in your browser
+  de: Prüfung in deinem Browser
+ex.check.note
+  en: These checks run here, not on the server.
+  de: Diese Prüfungen laufen hier, nicht auf dem Server.
+ex.check.ser
+  en: Serialization
+  de: Serialisierung
+ex.check.hash
+  en: Hash recomputed
+  de: Hash nachgerechnet
+ex.check.pow
+  en: Proof of work
+  de: Proof of Work
+ex.check.link
+  en: Chain link
+  de: Verkettung
+ex.check.ok
+  en: valid
+  de: stimmt
+ex.check.bad
+  en: INVALID
+  de: stimmt NICHT
+ex.check.open
+  en: open
+  de: offen
+ex.check.p
+  en: The header is rebuilt from its fields, double-hashed, checked against the recorded difficulty, and the chain link is followed. These checks run here, not on the server. Which blocks are listed comes from the server’s mirror; it is compared with the full node, and a difference is shown here. A green dot on a block means: verified here.
+  de: Header aus den Einzelfeldern neu zusammengesetzt, doppelt gehasht, gegen die eingetragene Difficulty geprüft, Verkettung verfolgt. Diese Prüfungen laufen hier, nicht auf dem Server. Welche Blöcke erscheinen, kommt aus dem Spiegel des Servers; er wird mit dem Full Node verglichen, eine Abweichung steht dann hier. Der grüne Punkt auf einem Block heißt: hier nachgerechnet.
+ex.f.achieved
+  en: Achieved
+  de: Erreicht
+ex.f.time
+  en: Block time
+  de: Blockzeit
+ex.f.time.s
+  en: since the previous block
+  de: Abstand zum Vorgänger
+ex.verdict.ok
+  en: {n} blocks verified here
+  de: {n} Blöcke hier nachgerechnet
+ex.verdict.ok.1
+  en: {n} block verified here
+  de: {n} Block hier nachgerechnet
+ex.verdict.bad
+  en: A check failed
+  de: Eine Prüfung ist fehlgeschlagen
+ex.verified
+  en: verified here
+  de: hier geprüft
+ex.mirror.fork
+  en: The mirror shows a different block at height {h} than the full node. The list below may be on another branch.
+  de: Der Spiegel zeigt auf Höhe {h} einen anderen Block als der Full Node. Die Liste unten liegt womöglich auf einem anderen Zweig.
+ex.mirror.behind
+  en: The mirror is {n} blocks behind the full node. The newest blocks are missing below.
+  de: Der Spiegel liegt {n} Blöcke hinter dem Full Node. Unten fehlen die neuesten.
+ex.mirror.behind.1
+  en: The mirror is {n} block behind the full node. The newest blocks are missing below.
+  de: Der Spiegel liegt {n} Block hinter dem Full Node. Unten fehlen die neuesten.

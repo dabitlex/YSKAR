@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en" data-page="build" data-mode="snapshot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build on YSKAR – YSKAR</title>
+<meta name="description" content="All of YSKAR is open source under the MIT License: node, wallets, miners, explorer and website. A public API answers without a key.">
+<meta name="theme-color" content="#030816">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="Build on YSKAR – YSKAR">
+<meta property="og:description" content="All of YSKAR is open source under the MIT License: node, wallets, miners, explorer and website. A public API answers without a key.">
+<link rel="canonical" href="https://www.yskar.app/build">
+<meta property="og:url" content="https://www.yskar.app/build">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=d7df03c0">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"d5aaf4d6","de":"24f4f520","es":"75f468d7","pt":"5a1ff8b6","fr":"b0c28fe7","it":"ef8db93a","pl":"ec2042b0","ru":"93224617","tr":"75702b84","zh":"bf23a098"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=b8656ac5" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="7.6"/><path d="M2.4 10h15.2M10 2.4c2.3 2.2 3.4 4.7 3.4 7.6s-1.1 5.4-3.4 7.6c-2.3-2.2-3.4-4.7-3.4-7.6S7.7 4.6 10 2.4Z"/></g></symbol>
+    <symbol id="i-down" viewBox="0 0 12 12"><path d="m2.4 4.4 3.6 3.6 3.6-3.6" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
+
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build" aria-current="page"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <label class="lang">
+        <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+        <span class="sr-only" data-t="nav.lang">Language</span>
+        <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+        <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+      </label>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<div class="page" data-page="build">
+  <section class="pp">
+    <div class="wrap duo duo--mid bldx">
+      <div class="pp__in">
+        <h1 class="t-xl" data-t="bld.h1">Build on it.</h1>
+        <p class="lead" data-t="bld.lead">All of YSKAR is open: node, wallets, miners, explorer and this website, under the MIT License. A public API answers without a key.</p>
+        <div class="row ph__cta">
+          <a class="btn" href="#api" data-t="bld.cta">Try the API</a>
+          <a class="more" href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener"><span data-t="bld.cta2">The code on GitHub</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        </div>
+      </div>
+      <div class="bldx__term">
+        <div class="term term--out" id="term-box" role="group" data-ta="aria-label:term.alt" aria-label="A request to the public API and its answer"><pre id="term-out"></pre></div>
+        <div class="bldx__foot">
+          <button type="button" class="more" id="term-more" aria-expanded="false" aria-controls="term-out" hidden></button>
+          <p class="micro faint" id="term-note"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="band band--tight">
+    <div class="wrap">
+      <div class="pts pts--3">
+        <div class="pt" data-rise><h3 data-t="bld.1.h">Read everything</h3><p data-t="bld.1.p">The protocol is specified, the consensus code is short enough to read, and every figure on this site comes from that code or from the chain.</p></div>
+        <div class="pt" data-rise data-delay="80"><h3 data-t="bld.2.h">Ask the chain</h3><p data-t="bld.2.p">Blocks, transfers, addresses, fees, pools and supply over plain HTTP. No key, no sign-up, open to any website.</p></div>
+        <div class="pt" data-rise data-delay="160"><h3 data-t="bld.3.h">Change it</h3><p data-t="bld.3.p">Proposals go through YSKAR Lab, in public, from the first idea to the release. You sign in with your wallet.</p><a class="more" href="https://lab.yskar.app" target="_blank" rel="noopener"><span data-t="home.people.cta2">Open YSKAR Lab</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a></div>
+      </div>
+    </div>
+  </section>
+  <div class="t1">
+    <section class="sec ruled" id="api" aria-labelledby="dev-api-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="dev-api-h" data-t="dev.api.h">Read the chain over HTTP</h2>
+        <p class="muted" data-t="dev.api.p">The public API answers plain GET requests with JSON. Pick a request and read the answer.</p>
+      </div>
+      <div class="display api" id="api-console">
+        <div class="display-head">
+          <span class="display-title" data-t="dev.api.title">API console</span>
+          <span class="state" data-live="mode"></span>
+        </div>
+        <div class="api-body">
+          <div class="api-list" id="api-list" role="group" data-ta="aria-label:dev.api.pick" aria-label="Requests"></div>
+          <div class="api-main">
+            <div class="api-req">
+              <code class="api-url" id="api-url"></code>
+              <div class="row" style="--gap:8px">
+                <button type="button" class="btn small" id="api-run" data-t="dev.api.run">Send again</button>
+                <button type="button" class="btn small ghost" id="api-curl" data-t="dev.api.curl">Copy as curl</button>
+              </div>
+            </div>
+            <p class="api-meta" id="api-meta" role="status" aria-live="polite"></p>
+            <pre class="api-out" id="api-out" tabindex="0" data-ta="aria-label:dev.api.out" aria-label="Answer"></pre>
+          </div>
+        </div>
+      </div>
+      <dl class="plain-list cols-3 api-notes">
+        <div><dt data-t="dev.api.n1.h">Read-only and open</dt><dd data-t="dev.api.n1.p">No key and no account. Cross-origin requests are allowed, so a web page can call the API directly.</dd></div>
+        <div><dt data-t="dev.api.n2.h">Your own node answers too</dt><dd data-t="dev.api.n2.p">Every full node serves the same read routes on port 8645. Point your code at <code>http://127.0.0.1:8645</code> and you depend on nobody's server.</dd></div>
+        <div><dt data-t="dev.api.n3.h">Amounts are whole numbers</dt><dd data-t="dev.api.n3.p">Amounts come in units: 1 YSR is 100,000,000 units. Read them as integers or strings and never as floating-point numbers.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="node" aria-labelledby="dev-node-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="dev-node-h" data-t="dev.node.h">Run a full node</h2>
+        <p class="muted" data-t="dev.node.p">A full node keeps its own copy of the chain and checks every block itself. It takes nothing on trust, not from other nodes and not from this website.</p>
+        <a href="/chain#nodes" data-t="dev.node.link">What a node checks in every block</a>
+      </div>
+      <div class="stack" style="--gap:28px">
+        <div class="code-wrap"><div class="code" id="code-node"><span class="c"># <span data-t="dev.node.c1">Get the source and build the node</span></span>
+git clone https://github.com/dabitlex/YSKAR.git
+cd YSKAR/node
+npm install
+npm run build
+
+<span class="c"># <span data-t="dev.node.c2">Start it: connect to the seed nodes, download the chain, check every block</span></span>
+node dist/yskar-node.cjs mine --data ./knoten \
+  --seed pool.yskar.app:8646 --seed yskar-seed2.dynv6.net:8646 \
+  --no-upstream</div>
+          <button type="button" class="copy" data-copy="#code-node" data-t="ui.copy">Copy</button></div>
+        <dl class="facts">
+          <div><dt data-t="dev.node.f1.k">You need</dt><dd data-t="dev.node.f1.v">Node.js 22.13 or newer and Git. The node stores the chain with the SQLite module built into Node.js.</dd></div>
+          <div><dt data-t="dev.node.f2.k">Ports</dt><dd data-t="dev.node.f2.v">TCP 8646 for other nodes, 8645 for the HTTP interface that miners and wallets use.</dd></div>
+          <div><dt data-t="dev.node.f3.k">Clock</dt><dd data-t="dev.node.f3.v">Keep the system clock correct. A block dated more than 120 seconds ahead of your node's clock is rejected.</dd></div>
+          <div><dt data-t="dev.node.f4.k">Seed nodes</dt><dd data-t="dev.node.f4.v">The command-line node has no seed built in. Name both seed nodes, as in the command above.</dd></div>
+          <div><dt data-t="dev.node.f5.k"><code>--no-upstream</code></dt><dd data-t="dev.node.f5.v">Belongs in the command. Without it the node would also exchange blocks with the project's database mirror, which only accepts blocks from the main node.</dd></div>
+        </dl>
+        <div class="code-wrap"><div class="code" id="code-ownminer"><span class="c"># <span data-t="dev.node.c3">Mine against your own node, in a second terminal</span></span>
+cd YSKAR/miner
+node src/cli.mjs --address ysr1... --api http://127.0.0.1:8645</div>
+          <button type="button" class="copy" data-copy="#code-ownminer" data-t="ui.copy">Copy</button></div>
+        <p class="small muted" data-t="dev.node.core">On Windows, type <code>npm.cmd</code> in place of <code>npm</code> in PowerShell. If you prefer a window to a terminal, <a href="/node#core">Node Core</a> runs the same full node on Windows and Linux.</p>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="docs" aria-labelledby="dev-docs-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="dev-docs-h" data-t="dev.docs.h">The documents</h2>
+        <p class="muted" data-t="dev.docs.p">Written for people who want to check the claims. Each one links to the code it describes.</p>
+      </div>
+      <ul class="paths compact">
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/PROTOCOL.md" target="_blank" rel="noopener"><h3>PROTOCOL.md</h3><p data-t="tech.docs.1">The protocol specification: formats, hashing, difficulty, validity rules and test vectors.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md" target="_blank" rel="noopener"><h3>CONSENSUS_V6.md</h3><p data-t="dev.docs.v6">The binding specification of revision 6, active from block 10,000.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/FULLNODE.md" target="_blank" rel="noopener"><h3>FULLNODE.md</h3><p data-t="dev.docs.fullnode">The command-line full node: commands, options, HTTP interface, storage and reorganizations.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/P2P.md" target="_blank" rel="noopener"><h3>P2P.md</h3><p data-t="dev.docs.p2p">The protocol nodes speak with each other.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/FEES.md" target="_blank" rel="noopener"><h3>FEES.md</h3><p data-t="dev.docs.fees">The fee rules and how the fee estimate is made.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/POOL.md" target="_blank" rel="noopener"><h3>POOL.md</h3><p data-t="dev.docs.pool">Pools: joining one, running one, how the accounting works.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/OPERATIONS.md" target="_blank" rel="noopener"><h3>OPERATIONS.md</h3><p data-t="dev.docs.ops">The public infrastructure: main node, HTTPS, mirror and its settings.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+        <li><a class="plain" href="https://github.com/dabitlex/YSKAR/blob/main/docs/SECURITY.md" target="_blank" rel="noopener"><h3>SECURITY.md</h3><p data-t="tech.docs.3">What cryptography and consensus enforce, what you have to trust, and the known limits.</p><span class="go ext-go" aria-hidden="true"></span></a></li>
+      </ul>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="repo" aria-labelledby="dev-repo-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="dev-repo-h" data-t="dev.repo.h">What is where</h2>
+        <p class="muted" data-t="dev.repo.p">One repository holds the consensus code, the node, the miner and the tests that guard them.</p>
+      </div>
+      <div class="stack" style="--gap:28px">
+        <dl class="tree">
+          <div><dt>src/lib/core/</dt><dd data-t="dev.repo.core">Consensus: header, difficulty, transactions, state, wallet derivation</dd></div>
+          <div><dt>src/lib/node/fullnode/</dt><dd data-t="dev.repo.fullnode">Full node: chain, mempool, mining interface, read API, command line</dd></div>
+          <div><dt>src/lib/node/p2p/</dt><dd data-t="dev.repo.p2p">The node-to-node protocol</dd></div>
+          <div><dt>src/lib/pool/</dt><dd data-t="dev.repo.pool">PPLNS accounting and the split of the block reward</dd></div>
+          <div><dt>node/</dt><dd data-t="dev.repo.node">Build of the command-line full node</dd></div>
+          <div><dt>node-core/</dt><dd data-t="dev.repo.nodecore">Node Core for Windows and Linux, with the GPU miners</dd></div>
+          <div><dt>miner/</dt><dd data-t="dev.repo.miner">The command-line miner, without dependencies</dd></div>
+          <div><dt>observer/</dt><dd data-t="dev.repo.observer">The observer: a small read-only tool that downloads the chain and recomputes every block</dd></div>
+          <div><dt>tests/</dt><dd data-t="dev.repo.tests">Tests of consensus, node, P2P, pool and wallet</dd></div>
+          <div><dt>docs/</dt><dd data-t="dev.repo.docs">The documentation listed above</dd></div>
+        </dl>
+        <div class="code-wrap"><div class="code" id="code-test"><span class="c"># <span data-t="dev.repo.c1">From the repository root: install, run the tests, check the types</span></span>
+npm install
+npm test
+npx tsc --noEmit</div>
+          <button type="button" class="copy" data-copy="#code-test" data-t="ui.copy">Copy</button></div>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="sign" aria-labelledby="dev-sign-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="dev-sign-h" data-t="dev.sign.h">Signed messages</h2>
+        <p class="muted" data-t="dev.sign.p">A wallet can prove that it controls an address without moving a coin. All YSKAR software signs and checks the same text format.</p>
+      </div>
+      <div class="stack" style="--gap:24px">
+        <div class="code" aria-hidden="false">YSKAR Signed Message
+purpose: login
+domain: lab.yskar.app
+address: ysr1…
+nonce: <span class="c">&lt;32 hex&gt;</span>
+issued: <span class="c">&lt;2026-11-11T12:00:00Z&gt;</span>
+expires: <span class="c">&lt;2026-11-11T12:10:00Z&gt;</span></div>
+        <ul class="ticks">
+          <li data-t="dev.sign.1">The signature is Ed25519 over the raw UTF-8 bytes of the whole message, checked by the same rule as on the chain.</li>
+          <li data-t="dev.sign.2">The first line makes it safe: a transaction is binary and never starts with these words, so a signed message can never count as a transfer.</li>
+          <li data-t="dev.sign.3">YSKAR Wallet and Node Core sign such messages. YSKAR Lab uses them to sign you in without a password.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+    <section class="sec ruled" id="contribute" aria-labelledby="dev-con-h">
+    <div class="wrap split">
+      <div class="split-head">
+        <h2 id="dev-con-h" data-t="dev.con.h">Contribute and report</h2>
+      </div>
+      <dl class="plain-list">
+        <div><dt data-t="dev.con.1.h">Changes to the code</dt><dd data-t="dev.con.1.p"><a class="ext" href="https://github.com/dabitlex/YSKAR/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a> says which checks must pass before a push: the type checks and the full test suite.</dd></div>
+        <div><dt data-t="dev.con.2.h">Ideas and proposals</dt><dd data-t="dev.con.2.p">Proposals for the protocol and the software are discussed in the open at <a class="ext" href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>. You sign in with your wallet.</dd></div>
+        <div><dt data-t="dev.con.3.h">Security problems</dt><dd data-t="dev.con.3.p">Report them as an issue at <a class="ext" href="https://github.com/dabitlex/YSKAR/issues" target="_blank" rel="noopener">github.com/dabitlex/YSKAR/issues</a>. Issues are public: describe what you saw and how to reproduce it, and never post your 12 words, a PIN, a wallet file or a key.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  </div>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</main>
+
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" aria-current="page" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <label class="lang lang--ink">
+          <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+          <span class="sr-only" data-t="nav.lang">Language</span>
+          <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+          <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+        </label>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+</body>
+</html>

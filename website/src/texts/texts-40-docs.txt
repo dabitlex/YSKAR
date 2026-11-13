@@ -1,0 +1,944 @@
+# Texte der Dokumentseiten: Anleitungen, Protokoll, Whitepaper-Kopf, Impressum, Datenschutz.
+
+lv.an.apk.akku
+  en: Some devices still close background apps to save battery. If mining stops on its own, set the app’s battery usage to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).
+  de: Manche Geräte beenden Apps im Hintergrund trotzdem, um Akku zu sparen. Bleibt das Mining von selbst stehen, stell die Akkunutzung der App auf „Nicht eingeschränkt“ (Einstellungen → Apps → YSKAR Wallet → Akku).
+lv.an.apk.dienst
+  en: Since version 1.0.9 a dedicated service inside the app does the computing. Mining continues when you leave the app or lock the screen. While it runs, Android shows a notification with your hashrate; “Stop mining” ends it right there.
+  de: Seit Version 1.0.9 rechnet ein eigener Dienst der App. Das Mining läuft weiter, wenn du die App verlässt oder der Bildschirm gesperrt ist. Solange gemint wird, zeigt Android eine Benachrichtigung mit deiner Hashrate; über „Mining stoppen“ beendest du es direkt dort.
+lv.an.apk.hintergrund
+  en: Mining in the background
+  de: Mining im Hintergrund
+lv.an.apk.inst
+  en: Installing
+  de: Installieren
+lv.an.apk.knopf
+  en: Download the latest version
+  de: Neueste Version herunterladen
+lv.an.apk.m1
+  en: Open the Mining tab and scroll to “Controls”.
+  de: Öffne den Bereich „Mining“ und scroll zu „Steuerung“.
+lv.an.apk.m2
+  en: Choose the mode: Solo or Pool. In pool mode the app suggests an open pool; tap “Change” to see all pools with their miners, hash power, blocks found and fee. A full pool cannot be selected.
+  de: Wähle den Modus: Solo oder Pool. Im Pool-Modus schlägt die App einen offenen Pool vor; über „Wechseln“ siehst du alle Pools mit Minern, Leistung, gefundenen Blöcken und Gebühr. Ein voller Pool lässt sich nicht wählen.
+lv.an.apk.m3
+  en: Set “Workers” and “Duty cycle”. Workers are the processor cores that compute; the duty cycle sets how hard they work (25 to 100 %).
+  de: Stell „Worker“ und „Rechenanteil“ ein. Worker sind die CPU-Kerne, die mitrechnen; der Rechenanteil legt fest, wie stark sie ausgelastet werden (25 bis 100 %).
+lv.an.apk.m4
+  en: Tap “Start mining”. If Android asks about notifications, allow them: that is how you see that mining is running, and you can stop it from there.
+  de: Tippe auf „Mining starten“. Fragt Android nach Benachrichtigungen, erlaube sie: So siehst du, dass gemint wird, und kannst es dort auch stoppen.
+lv.an.apk.name
+  en: On your phone this app is called “YSKAR Wallet”. It is a different app from the new YSKAR Wallet without mining, and both can be installed side by side; your 12 words work in both.
+  de: Auf dem Handy heißt diese App „YSKAR Wallet“. Sie ist eine andere App als die neue YSKAR Wallet ohne Mining; beide lassen sich nebeneinander installieren, und deine 12 Wörter funktionieren in beiden.
+lv.an.apk.pruefen
+  en: Checking the download (optional)
+  de: Download prüfen (optional)
+lv.an.apk.pruefenText
+  en: Every release also contains a file ending in <code>.sha256</code>. It holds the checksum of the APK. If the checksum of your download matches, the file is exactly the one we published.
+  de: Zu jeder Version gehört eine Datei mit der Endung <code>.sha256</code>. Sie enthält die Prüfsumme der APK. Stimmt die Prüfsumme deines Downloads damit überein, ist die Datei genau die, die wir veröffentlicht haben.
+lv.an.apk.s1
+  en: On your phone, open the download page and tap the file <code>yskar-wallet-….apk</code>.
+  de: Öffne die Download-Seite auf deinem Telefon und tippe auf die Datei <code>yskar-wallet-….apk</code>.
+lv.an.apk.s2
+  en: Android asks whether apps from this source (for example your browser) may be installed. Tap “Settings” and allow it for this source.
+  de: Android fragt, ob Apps aus dieser Quelle (zum Beispiel deinem Browser) installiert werden dürfen. Tippe auf „Einstellungen“ und erlaube es für diese Quelle.
+lv.an.apk.s3
+  en: Go back and tap “Install”. Google Play Protect may show a warning; this is normal for apps from outside the Play Store.
+  de: Geh zurück und tippe auf „Installieren“. Google Play Protect zeigt eventuell eine Warnung; das ist bei Apps außerhalb des Play Store normal.
+lv.an.apk.s4
+  en: Open the app, create a wallet or restore your existing one with your 12 words.
+  de: Öffne die App, erstelle eine Wallet oder übernimm deine bestehende mit deinen 12 Wörtern.
+lv.an.apk.start
+  en: Starting mining
+  de: Mining starten
+lv.an.apk.text
+  en: The Android app keeps mining in the background, even with the screen locked, and shows your mining in a widget on the home screen. Because Google Play does not allow on-device mining, this version is available directly from us.
+  de: Die Android-App mint im Hintergrund weiter, auch bei gesperrtem Bildschirm, und zeigt dein Mining als Widget auf dem Startbildschirm. Weil Google Play kein Mining auf dem Gerät erlaubt, gibt es diese Fassung direkt bei uns.
+lv.an.apk.tipp
+  en: Our recommendation: all workers, duty cycle 25 %, in the pool. That is easy on battery and temperature, and in the pool smaller amounts arrive more regularly. “Calibrate device” finds the best number of workers for your phone.
+  de: Unsere Empfehlung: alle Worker, Rechenanteil 25 %, im Pool. Das schont Akku und Temperatur, und im Pool kommen kleinere Beträge regelmäßiger. „Gerät kalibrieren“ ermittelt die beste Worker-Zahl für dein Telefon.
+lv.an.apk.titel
+  en: Android app with mining
+  de: Android-App mit Mining
+lv.an.apk.update
+  en: Updating the app
+  de: App aktualisieren
+lv.an.apk.updateText
+  en: When a new version is available, the app shows a notice when you open it. Tap “Download”: the app fetches the update, then Android asks whether to install it. Your wallet is kept. To check by hand, go to Settings → App → Updates in the app.
+  de: Gibt es eine neue Version, zeigt die App beim Öffnen einen Hinweis. Tippe auf „Laden“: Die App lädt das Update, danach fragt Android, ob es installiert werden soll. Deine Wallet bleibt erhalten. Von Hand prüfst du in der App unter Einstellungen → App → Updates.
+lv.an.apk.w1
+  en: Press and hold an empty spot on the home screen, choose “Widgets” and drag “YSKAR Wallet” onto the screen.
+  de: Halte eine freie Stelle auf dem Startbildschirm gedrückt, wähle „Widgets“ und zieh „YSKAR Wallet“ auf den Bildschirm.
+lv.an.apk.w2
+  en: While mining runs, the widget shows what you have earned in this session, plus hashrate, runtime and accepted shares. “Stop” ends mining straight from the home screen. When mining is stopped, you see the current block, the network hashrate and the block reward.
+  de: Läuft das Mining, zeigt das Widget, was du in dieser Sitzung verdient hast, dazu Hashrate, Laufzeit und angenommene Shares. Mit „Stopp“ beendest du das Mining direkt vom Startbildschirm. Ist das Mining gestoppt, siehst du den aktuellen Block, die Netz-Hashrate und die Blockbelohnung.
+lv.an.apk.w3
+  en: “Earned this session” counts the block rewards and pool payouts credited to your address since you started; the value changes when a new block is found. Choose light or dark in the app under Settings → App → Widget. The widget in this form is available from version 1.1.0.
+  de: „Verdient in dieser Sitzung“ zählt die Blockbelohnungen und Pool-Anteile, die deiner Adresse seit dem Start gutgeschrieben wurden; der Wert ändert sich, wenn ein neuer Block gefunden wird. Hell oder dunkel wählst du in der App unter Einstellungen → App → Widget. Das Widget in dieser Form gibt es ab Version 1.1.0.
+lv.an.apk.widget
+  en: Widget on the home screen
+  de: Widget auf dem Startbildschirm
+lv.an.etikett
+  en: Guides
+  de: Anleitungen
+lv.an.ex.p1
+  en: Search by block height, hash or address.
+  de: Suche nach Blockhöhe, Hash oder Adresse.
+lv.an.ex.p2
+  en: For every block you see who found it: a name, a pool or a solo address.
+  de: Bei jedem Block siehst du, wer ihn gefunden hat: ein Name, ein Pool oder eine Solo-Adresse.
+lv.an.ex.p3
+  en: Enter your own address to check your payouts.
+  de: Gib deine eigene Adresse ein, um deine Auszahlungen nachzuprüfen.
+lv.an.ex.text
+  en: The <a href="#explorer">explorer</a> shows every block, every transfer and every address. It reassembles each block header in your browser, hashes it and checks the proof of work and the chain. Transfers, signatures and balances are checked by full nodes – run one, and you do not have to believe anyone.
+  de: Der <a href="#explorer">Explorer</a> zeigt jeden Block, jede Überweisung und jede Adresse. Er setzt jeden Block-Header in deinem Browser neu zusammen, hasht ihn und prüft Proof of Work und Verkettung. Überweisungen, Signaturen und Guthaben prüfen Fullnodes – betreibst du einen, musst du niemandem glauben.
+lv.an.ex.titel
+  en: The explorer
+  de: Der Explorer
+lv.an.gr.aus
+  en: How a pool pays out
+  de: So zahlt ein Pool aus
+lv.an.gr.aus1
+  en: The block itself pays everyone directly. The pool operator never holds your money, and there is no payout threshold.
+  de: Der Block selbst zahlt alle Beteiligten direkt aus. Der Betreiber des Pools hält nie dein Geld, und es gibt keine Auszahlungsschwelle.
+lv.an.gr.aus2
+  en: What counts is the work of the recent past, measured in shares. If you have only just started, your part of the first block is correspondingly small.
+  de: Gezählt wird die Arbeit der letzten Zeit, gemessen in Shares. Wer gerade erst angefangen hat, bekommt beim ersten Block entsprechend wenig.
+lv.an.gr.gebuehr
+  en: The operator may take a fee between 0 and 5 %. It is shown in the pool list.
+  de: Der Betreiber kann eine Gebühr zwischen 0 und 5 % nehmen. Sie steht in der Pool-Liste.
+lv.an.gr.hinweis
+  en: Nobody can promise you a return. How often you receive something depends on your computing power, on the power of the network and on chance.
+  de: Niemand kann dir einen Ertrag zusagen. Wie oft du etwas erhältst, hängt von deiner Rechenleistung, von der Leistung des Netzes und vom Zufall ab.
+lv.an.gr.p1
+  en: YSKAR is a blockchain of its own. A new block is found about every 10 minutes. Whoever finds it receives the reward – currently 875 YSR – directly on their address.
+  de: YSKAR ist eine eigene Blockchain. Etwa alle 10 Minuten wird ein neuer Block gefunden. Wer ihn findet, erhält die Belohnung – derzeit 875 YSR – direkt auf seine Adresse.
+lv.an.gr.p2
+  en: To find a block, your device tries out numbers (double SHA-256). The more computing power you have, the better your chances. The difficulty adjusts to the power of the whole network.
+  de: Um einen Block zu finden, probiert dein Gerät Zahlen durch (doppeltes SHA-256). Je mehr Rechenleistung du hast, desto größer deine Chance. Die Schwierigkeit passt sich an die Leistung des ganzen Netzes an.
+lv.an.gr.plaetze
+  en: A block can pay out at most 64 addresses, so a pool has at most 64 places (63 when it takes a fee). A place counts only while you mine: a new device holds it on trial for 2 minutes and keeps it by delivering shares regularly. Places of miners who stop become free again.
+  de: Ein Block kann höchstens 64 Adressen auszahlen, deshalb hat ein Pool höchstens 64 Plätze (63, wenn er eine Gebühr nimmt). Ein Platz zählt nur, solange du minest: Ein neues Gerät hält ihn 2 Minuten auf Probe und behält ihn, indem es regelmäßig Shares abgibt. Plätze von Minern, die aufhören, werden wieder frei.
+lv.an.gr.pool
+  en: <strong>Pool:</strong> many search together. When the pool finds a block, the reward is split by the work contributed. Smaller amounts, but more regularly.
+  de: <strong>Pool:</strong> Viele suchen gemeinsam. Findet der Pool einen Block, wird die Belohnung nach geleisteter Arbeit aufgeteilt. Kleinere Beträge, dafür regelmäßiger.
+lv.an.gr.solo
+  en: <strong>Solo:</strong> you search on your own. If you find a block, the whole reward is yours. That can take a long time.
+  de: <strong>Solo:</strong> Du suchst allein. Findest du einen Block, gehört dir die ganze Belohnung. Das kann lange dauern.
+lv.an.gr.sp
+  en: Solo or pool
+  de: Solo oder Pool
+lv.an.gr.titel
+  en: How mining works
+  de: So funktioniert das Mining
+lv.an.hi.a1
+  en: Android is closing the app to save battery. Set the battery usage of YSKAR Wallet to “Unrestricted” (Settings → Apps → YSKAR Wallet → Battery).
+  de: Android schließt die App, um Akku zu sparen. Stell die Akkunutzung der YSKAR Wallet auf „Nicht eingeschränkt“ (Einstellungen → Apps → YSKAR Wallet → Akku).
+lv.an.hi.a2
+  en: A pool has at most 64 places. A place is freed at once when a miner stops, and up to 20 minutes after a miner goes silent, so trying again later can work. Otherwise choose another pool or mine solo. If your address already has a place, further devices can still join.
+  de: Ein Pool hat höchstens 64 Plätze. Ein Platz wird sofort frei, wenn ein Miner aufhört, und bis zu 20 Minuten nachdem ein Miner verstummt – ein späterer Versuch kann also klappen. Sonst wähle einen anderen Pool oder mine solo. Hat deine Adresse schon einen Platz, können weitere Geräte trotzdem mitmachen.
+lv.an.hi.a3
+  en: The node has not found another node yet. Check your internet connection and whether you allowed Node Core in the Windows firewall prompt. Then wait a moment.
+  de: Der Knoten hat noch keinen anderen Knoten gefunden. Prüfe deine Internetverbindung und ob du Node Core bei der Nachfrage der Windows-Firewall erlaubt hast. Warte dann einen Moment.
+lv.an.hi.a4
+  en: The node is still synchronising. Mining starts once the overview shows “In sync”.
+  de: Der Knoten synchronisiert noch. Das Mining startet, sobald die Übersicht „Synchron“ zeigt.
+lv.an.hi.a5
+  en: Graphics card mining needs an NVIDIA, AMD or Intel card with a current driver. Install the current driver from the card maker and restart Node Core. Before a card mines, it runs a self-test; a card that fails is not used.
+  de: Mining mit der GPU braucht eine Grafikkarte von NVIDIA, AMD oder Intel mit aktuellem Treiber. Installiere den aktuellen Treiber des Herstellers und starte Node Core neu. Vor dem Mining prüft sich jede Karte selbst; eine Karte, die den Test nicht besteht, wird nicht genutzt.
+lv.an.hi.a6
+  en: Restore the wallet with the same 12 words, in the same order. A different set of words is a different wallet.
+  de: Stell die Wallet mit denselben 12 Wörtern in derselben Reihenfolge wieder her. Andere Wörter sind eine andere Wallet.
+lv.an.hi.a7
+  en: Ask questions in the <a href="https://t.me/+GxAmtTMeG1w1M2Yy">community chat on Telegram</a>. Report bugs on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. Never share your 12 words: admins never message you first.
+  de: Fragen stellst du im <a href="https://t.me/+GxAmtTMeG1w1M2Yy">Community-Chat auf Telegram</a>. Fehler meldest du auf <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. Gib nie deine 12 Wörter weiter: Admins schreiben dich nie zuerst an.
+lv.an.hi.f1
+  en: Mining on the phone stops by itself
+  de: Das Mining auf dem Telefon stoppt von selbst
+lv.an.hi.f2
+  en: “Pool full”
+  de: „Pool voll“
+lv.an.hi.f3
+  en: Node Core: “No peer connected yet”
+  de: Node Core: „Noch kein Peer verbunden“
+lv.an.hi.f4
+  en: Node Core: mining does not start
+  de: Node Core: Das Mining startet nicht
+lv.an.hi.f5
+  en: The graphics card is not found
+  de: Die GPU wird nicht gefunden
+lv.an.hi.f6
+  en: My balance is missing on a new device
+  de: Auf einem neuen Gerät fehlt mein Guthaben
+lv.an.hi.f7
+  en: Something else
+  de: Etwas anderes
+lv.an.hi.titel
+  en: If something does not work
+  de: Wenn etwas nicht klappt
+lv.an.mini.hinweis
+  en: Tip: in the Mining tab you can choose between solo and pool. In the pool you receive smaller amounts more often; solo means rarer but whole blocks.
+  de: Tipp: Im Bereich „Mining“ kannst du zwischen Solo und Pool wählen. Im Pool bekommst du öfter kleinere Beträge, solo seltener, dafür ganze Blöcke.
+lv.an.mini.s1
+  en: Open <a href="https://t.me/YSKAR_bot">@YSKAR_bot</a> in Telegram and start the app.
+  de: Öffne <a href="https://t.me/YSKAR_bot">@YSKAR_bot</a> in Telegram und starte die App.
+lv.an.mini.s2
+  en: Tap “Create wallet”. The app shows you 12 words: write them down on paper, in order.
+  de: Tippe auf „Wallet erstellen“. Die App zeigt dir 12 Wörter: Schreib sie in der richtigen Reihenfolge auf Papier.
+lv.an.mini.s3
+  en: Confirm a few of the words and choose a PIN.
+  de: Bestätige einige der Wörter und lege eine PIN fest.
+lv.an.mini.s4
+  en: Open the Mining tab and tap “Start mining”. Keep the app open while it computes.
+  de: Öffne den Bereich „Mining“ und tippe auf „Mining starten“. Lass die App offen, solange sie rechnet.
+lv.an.mini.text
+  en: The fastest way in. The Mini App runs inside Telegram; there is nothing to install.
+  de: Der schnellste Einstieg. Die Mini App läuft direkt in Telegram; es gibt nichts zu installieren.
+lv.an.mini.titel
+  en: Telegram Mini App
+  de: Telegram Mini App
+lv.an.nc.e1
+  en: <strong>Node:</strong> data folder, ports and seed are filled in. The defaults suit most people – just click “Continue”.
+  de: <strong>Knoten:</strong> Datenordner, Ports und Seed sind vorausgefüllt. Die Standardwerte passen für die meisten – klick einfach auf „Weiter“.
+lv.an.nc.e2
+  en: <strong>Wallet:</strong> create a new wallet and write down the 12 words, or bring your existing wallet over with your 12 words. Choose a password of at least 8 characters; it encrypts the words on this PC. You can also set up the wallet later.
+  de: <strong>Wallet:</strong> Lege eine neue Wallet an und schreib die 12 Wörter auf, oder übernimm deine bestehende Wallet mit deinen 12 Wörtern. Wähle ein Passwort mit mindestens 8 Zeichen; es verschlüsselt die Wörter auf diesem PC. Du kannst die Wallet auch später einrichten.
+lv.an.nc.e3
+  en: <strong>Start:</strong> click “Start node”.
+  de: <strong>Start:</strong> Klick auf „Knoten starten“.
+lv.an.nc.einst
+  en: Settings
+  de: Einstellungen
+lv.an.nc.erst
+  en: First start
+  de: Erster Start
+lv.an.nc.firewall
+  en: On the first start Windows asks whether Node Core may access the network. Allow it, otherwise the node cannot find other nodes.
+  de: Beim ersten Start fragt Windows, ob Node Core ins Netzwerk darf. Erlaube es, sonst findet der Knoten keine anderen Knoten.
+lv.an.nc.firewallLinux
+  en: On Linux there is no such prompt. If a firewall is active (such as ufw), allow port 8646 – otherwise other nodes cannot reach yours. Your own connections work either way.
+  de: Unter Linux gibt es diese Abfrage nicht. Ist eine Firewall aktiv (etwa ufw), gib Port 8646 frei – sonst erreichen andere Knoten deinen nicht. Deine eigenen Verbindungen klappen so oder so.
+lv.an.nc.i1
+  en: Download the installer and run it.
+  de: Lade den Installer herunter und starte ihn.
+lv.an.nc.i2
+  en: Windows shows “Windows protected your PC” because the installer is not signed. Choose “More info”, then “Run anyway”.
+  de: Windows zeigt „Der Computer wurde durch Windows geschützt“, weil der Installer nicht signiert ist. Wähle „Weitere Informationen“, dann „Trotzdem ausführen“.
+lv.an.nc.i3
+  en: Follow the installer. Node Core starts afterwards.
+  de: Folge dem Installer. Danach startet Node Core.
+lv.an.nc.inst
+  en: Installing on Windows
+  de: Installieren unter Windows
+lv.an.nc.l1
+  en: <strong>Ubuntu, Debian, Linux Mint:</strong> download the <code>.deb</code> file and install it in a terminal. Then start “YSKAR Node Core” from the application menu.
+  de: <strong>Ubuntu, Debian, Linux Mint:</strong> Lade die <code>.deb</code>-Datei herunter und installiere sie im Terminal. Danach startest du „YSKAR Node Core“ aus dem Anwendungsmenü.
+lv.an.nc.l2
+  en: <strong>Other distributions:</strong> download the AppImage, make it executable and start it. AppImages need FUSE 2 (on Ubuntu the package <code>libfuse2</code>).
+  de: <strong>Andere Distributionen:</strong> Lade das AppImage herunter, mach es ausführbar und starte es. AppImages brauchen FUSE 2 (unter Ubuntu das Paket <code>libfuse2</code>).
+lv.an.nc.l3
+  en: Node Core for Linux runs on 64-bit PCs (x86-64) with a desktop. ARM computers such as the Raspberry Pi are not supported.
+  de: Node Core für Linux läuft auf 64-Bit-PCs (x86-64) mit Desktop. ARM-Rechner wie der Raspberry Pi werden nicht unterstützt.
+lv.an.nc.linux
+  en: Installing on Linux
+  de: Installieren unter Linux
+lv.an.nc.m1
+  en: Choose the target: Solo or Pool. In pool mode pick a pool from the list, or enter an address under “Your own pool address” and check it.
+  de: Wähle das Ziel: Solo oder Pool. Im Pool nimmst du einen Pool aus der Liste oder trägst unter „Eigene Pool-Adresse“ eine Adresse ein und prüfst sie.
+lv.an.nc.m2
+  en: “Reward goes to”: your own wallet or another address.
+  de: „Belohnung geht an“: deine eigene Wallet oder eine andere Adresse.
+lv.an.nc.m3
+  en: Choose the device: processor, graphics card or both. Set the number of cores and the load per core.
+  de: Wähle das Gerät: CPU, GPU oder beides. Stell die Zahl der CPU-Kerne und die Auslastung je Kern ein.
+lv.an.nc.m4
+  en: Solo only: if you like, enter a name that appears in the blocks you find. It is public and permanent.
+  de: Nur solo: Trag auf Wunsch einen Namen ein, der in deinen gefundenen Blöcken steht. Er ist öffentlich und bleibt dauerhaft.
+lv.an.nc.m5
+  en: Click “Start mining”.
+  de: Klick auf „Mining starten“.
+lv.an.nc.mining
+  en: Mining
+  de: Mining
+lv.an.nc.poolHinweis
+  en: If a pool no longer accepts you, mining stops and tells you why. It never silently continues solo.
+  de: Nimmt dich ein Pool nicht mehr auf, stoppt das Mining und nennt den Grund. Es rechnet nie stillschweigend solo weiter.
+lv.an.nc.port
+  en: Do I have to open a port?
+  de: Muss ich einen Port freigeben?
+lv.an.nc.portText
+  en: No. Without it your node connects to other nodes by itself. If you forward port 8646 in your router, other nodes can reach yours as well. That helps the network but is optional.
+  de: Nein. Ohne Freigabe verbindet sich dein Knoten selbst mit anderen Knoten. Gibst du Port 8646 im Router frei, können andere Knoten auch deinen erreichen. Das hilft dem Netz, ist aber freiwillig.
+lv.an.nc.pruefen
+  en: To be sure the file is the one we published, compare its checksum with the <code>.sha256</code> file of the release. In PowerShell:
+  de: Wenn du sichergehen willst, dass die Datei die veröffentlichte ist, vergleiche ihre Prüfsumme mit der Datei <code>.sha256</code> der Veröffentlichung. In PowerShell:
+lv.an.nc.pruefenLinux
+  en: On Linux:
+  de: Unter Linux:
+lv.an.nc.s1
+  en: <strong>Start with Windows</strong> (on Linux: “Start when you log in”): Node Core starts without a window when you sign in.
+  de: <strong>Mit Windows starten</strong> (unter Linux: „Beim Anmelden starten“): Node Core startet beim Anmelden ohne Fenster.
+lv.an.nc.s2
+  en: <strong>Keep running when closed:</strong> the window disappears into the notification area next to the clock, the node keeps working.
+  de: <strong>Beim Schließen weiterlaufen:</strong> Das Fenster verschwindet in den Infobereich neben der Uhr, der Knoten arbeitet weiter.
+lv.an.nc.s3
+  en: <strong>Resume mining after start:</strong> mining continues with the last settings as soon as the node is in sync.
+  de: <strong>Mining nach dem Start fortsetzen:</strong> Das Mining läuft mit den letzten Einstellungen weiter, sobald der Knoten synchron ist.
+lv.an.nc.s4
+  en: <strong>Updates:</strong> Node Core tells you when a new version is available. Nothing is installed by itself.
+  de: <strong>Updates:</strong> Node Core weist dich auf eine neue Version hin. Installiert wird nichts von selbst.
+lv.an.nc.sig
+  en: Signing and YSKAR Lab
+  de: Signieren und YSKAR Lab
+lv.an.nc.sigText
+  en: Since version 1.1.0, “Sign” in the wallet signs a text with your address, for example to prove that an address is yours; “Verify” checks a signed message from someone else. On <a href="https://lab.yskar.app">lab.yskar.app</a>, “Sign in with wallet” opens Node Core: it shows the website, your address and how long the request is valid, and signs only after you confirm with your password. A signature cannot move YSR.
+  de: Seit Version 1.1.0 signiert „Signieren“ in der Wallet einen Text mit deiner Adresse, zum Beispiel um zu beweisen, dass dir eine Adresse gehört; „Prüfen“ prüft die signierte Nachricht eines anderen. Auf <a href="https://lab.yskar.app">lab.yskar.app</a> öffnet „Mit Wallet anmelden“ Node Core: Es zeigt die Website, deine Adresse und wie lange die Anfrage gilt, und signiert erst, wenn du mit deinem Passwort bestätigst. Eine Signatur kann keine YSR bewegen.
+lv.an.nc.sync
+  en: The first synchronisation
+  de: Die erste Synchronisation
+lv.an.nc.syncText
+  en: On the first start Node Core downloads the whole blockchain and checks every block. That can take a while; the overview shows the progress. Mining only starts once the node has caught up with the network.
+  de: Beim ersten Start lädt Node Core die ganze Blockchain und prüft jeden Block. Das kann eine Weile dauern; den Fortschritt zeigt die Übersicht. Das Mining startet erst, wenn der Knoten auf dem Stand des Netzes ist.
+lv.an.nc.text
+  en: Node Core is the YSKAR program for Windows and Linux: your own node with wallet and mining in one window. It downloads the blockchain to your PC and checks every block itself.
+  de: Node Core ist das YSKAR-Programm für Windows und Linux: dein eigener Knoten mit Wallet und Mining in einem Fenster. Es lädt die Blockchain auf deinen PC und prüft jeden Block selbst.
+lv.an.nc.titel
+  en: Node Core for Windows and Linux
+  de: Node Core für Windows und Linux
+lv.an.nc.update
+  en: Updating
+  de: Aktualisieren
+lv.an.nc.updateText
+  en: Download the new installer, quit Node Core – also in the notification area – and run the installer. Your wallet and the blockchain are kept.
+  de: Lade den neuen Installer herunter, beende Node Core – auch im Infobereich – und starte den Installer. Deine Wallet und die Blockchain bleiben erhalten.
+lv.an.nc.v1
+  en: Windows 10 or 11 (64-bit) or Linux (64-bit, x86-64) and an internet connection
+  de: Windows 10 oder 11 (64 Bit) oder Linux (64 Bit, x86-64) und eine Internetverbindung
+lv.an.nc.v2
+  en: Disk space for the blockchain. It is still small and grows with every block.
+  de: Speicherplatz für die Blockchain. Sie ist noch klein und wächst mit jedem Block.
+lv.an.nc.v3
+  en: For mining with a graphics card: an NVIDIA, AMD or Intel card with a current driver. Without one, the processor does the work.
+  de: Für Mining mit der Grafikkarte (GPU): eine GPU von NVIDIA, AMD oder Intel mit aktuellem Treiber. Ohne sie rechnet der Prozessor (CPU).
+lv.an.nc.vor
+  en: What you need
+  de: Das brauchst du
+lv.an.nc.w1
+  en: <strong>Send:</strong> enter recipient and amount, review, confirm with your password. The password is asked before every transfer.
+  de: <strong>Senden:</strong> Empfänger und Betrag eingeben, prüfen, mit dem Passwort bestätigen. Das Passwort wird vor jeder Überweisung verlangt.
+lv.an.nc.w2
+  en: <strong>Receive:</strong> show your address or its QR code.
+  de: <strong>Empfangen:</strong> Zeig deine Adresse oder ihren QR-Code.
+lv.an.nc.w3
+  en: <strong>Contacts:</strong> names instead of addresses, stored only on this PC.
+  de: <strong>Kontakte:</strong> Namen statt Adressen, gespeichert nur auf diesem PC.
+lv.an.nc.w4
+  en: <strong>Lock:</strong> the wallet locks itself after 10 minutes without activity and whenever Windows is locked. You can change the time in the settings.
+  de: <strong>Sperre:</strong> Die Wallet sperrt sich nach 10 Minuten ohne Eingabe und immer, wenn Windows gesperrt wird. Die Zeit stellst du in den Einstellungen ein.
+lv.an.nc.wallet
+  en: Wallet
+  de: Wallet
+lv.an.node.s1
+  en: 1. Build
+  de: 1. Bauen
+lv.an.node.s2
+  en: 2. Start and connect to the network
+  de: 2. Starten und mit dem Netz verbinden
+lv.an.node.s2Text
+  en: The node connects to another node (the seed), loads the chain and checks it block by block. Other nodes can reach yours on port 8646 if you open it in your router; this is optional. With --no-upstream your node passes blocks on only to other nodes, not to the project’s web server.
+  de: Der Knoten verbindet sich mit einem anderen Knoten (dem Seed), lädt die Kette und prüft sie Block für Block. Andere Knoten erreichen deinen über Port 8646, wenn du ihn im Router freigibst; das ist optional. Mit --no-upstream gibt dein Knoten Blöcke nur an andere Knoten weiter, nicht an den Webserver des Projekts.
+lv.an.node.s3
+  en: 3. Mine against your own node
+  de: 3. Gegen den eigenen Knoten minen
+lv.an.node.s4
+  en: 4. Run a pool (optional)
+  de: 4. Einen Pool betreiben (optional)
+lv.an.node.s4Fuss
+  en: --pool-fee is in basis points: 100 = 1.00 %, at most 500.
+  de: --pool-fee ist in Basispunkten: 100 = 1,00 %, höchstens 500.
+lv.an.node.s4Mehr
+  en: What a pool needs so that the app and other miners can reach it is described under <a href="#guides-pool">Running a pool</a>.
+  de: Was ein Pool braucht, damit App und andere Miner ihn erreichen, steht unter <a href="#guides-pool">Einen Pool betreiben</a>.
+lv.an.node.s4Text
+  en: Any node can be a pool, without registration. The block itself pays all participants; you never hold anyone else’s funds.
+  de: Jeder Knoten kann ein Pool sein, ohne Anmeldung. Der Block selbst zahlt alle Beteiligten aus; du hältst nie fremdes Guthaben.
+lv.an.node.s5
+  en: 5. As a service on a Raspberry Pi
+  de: 5. Als Dienst auf dem Raspberry Pi
+lv.an.node.s5Text
+  en: So the node starts on its own after a restart, set it up as a systemd service. The ready-made files and a guide are in the repository under <a href="https://github.com/dabitlex/YSKAR/tree/main/deploy"><code>deploy/</code></a>.
+  de: Damit der Knoten nach einem Neustart von selbst startet, richte ihn als systemd-Dienst ein. Fertige Dateien und eine Anleitung liegen im Repository unter <a href="https://github.com/dabitlex/YSKAR/tree/main/deploy"><code>deploy/</code></a>.
+lv.an.node.text
+  en: A full node downloads the chain and checks every block itself – proof of work, signatures, balances. It needs Node.js 22.13 or newer and runs well on a Raspberry Pi.
+  de: Ein Fullnode lädt die Kette und prüft jeden Block selbst – Proof of Work, Signaturen, Guthaben. Er braucht Node.js ab Version 22.13 und läuft gut auf einem Raspberry Pi.
+lv.an.node.titel
+  en: Running a full node
+  de: Einen Fullnode betreiben
+lv.an.node.win
+  en: On Windows, use npm.cmd instead of npm.
+  de: Unter Windows npm.cmd statt npm verwenden.
+lv.an.pc.s1
+  en: 1. Install Node.js
+  de: 1. Node.js installieren
+lv.an.pc.s1Text
+  en: The miner needs Node.js 20 or newer. Download the LTS version from <a href="https://nodejs.org">nodejs.org</a> and install it. On Windows, open a new command window afterwards.
+  de: Der Miner braucht Node.js ab Version 20. Lade die LTS-Fassung von <a href="https://nodejs.org">nodejs.org</a> und installiere sie. Unter Windows danach ein neues Eingabefenster öffnen.
+lv.an.pc.s2
+  en: 2. Get the miner
+  de: 2. Miner holen
+lv.an.pc.s2Text
+  en: There is nothing else to install. The self-test checks that your computer computes hashes correctly.
+  de: Mehr ist nicht zu installieren. Der Selbsttest prüft, ob dein Rechner die Hashes richtig berechnet.
+lv.an.pc.s3
+  en: 3. Start mining
+  de: 3. Mining starten
+lv.an.pc.s3Text
+  en: Replace the address with your own YSKAR address (it starts with ysr1). With the pool:
+  de: Ersetze die Adresse durch deine eigene YSKAR-Adresse (sie beginnt mit ysr1). Mit dem Pool:
+lv.an.pc.s4
+  en: 4. Graphics card (optional)
+  de: 4. Grafikkarte (GPU, optional)
+lv.an.pc.s4Text
+  en: With a graphics card, add <code>--gpu</code>. This needs a GPU program: <code>yskar-cuda</code> for NVIDIA cards, <code>yskar-opencl</code> for AMD and Intel cards. The miner takes the first one that finds a card; <code>--gpu-api opencl</code> uses the AMD and Intel program even if an NVIDIA card is present. For Linux both are attached to every Node Core release (<code>yskar-cuda-…-linux-x86_64</code>, <code>yskar-opencl-…-linux-x86_64</code>); on Windows, build them as described in the repository under <code>node-core/gpu</code>.
+  de: Mit einer Grafikkarte ergänzt du <code>--gpu</code>. Dafür braucht es ein GPU-Programm: <code>yskar-cuda</code> für NVIDIA-Karten, <code>yskar-opencl</code> für Karten von AMD und Intel. Der Miner nimmt das erste, das eine Karte findet; mit <code>--gpu-api opencl</code> nutzt er das Programm für AMD und Intel auch dann, wenn eine NVIDIA-Karte steckt. Für Linux hängen beide an jeder Veröffentlichung von Node Core (<code>yskar-cuda-…-linux-x86_64</code>, <code>yskar-opencl-…-linux-x86_64</code>); unter Windows baust du sie wie im Repository unter <code>node-core/gpu</code> beschrieben.
+lv.an.pc.s5
+  en: 5. Mining rigs with HiveOS
+  de: 5. Mining-Rigs mit HiveOS
+lv.an.pc.s5Text
+  en: For mining rigs with HiveOS there is a ready package: this miner with the GPU program, one miner per graphics card from NVIDIA, AMD or Intel, no fee. It is attached to every Node Core release as <code>yskar-hiveos-….tar.gz</code>. How to set up the flight sheet is described in <a href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md">hiveos/README.md</a>.
+  de: Für Mining-Rigs mit HiveOS gibt es ein fertiges Paket: dieser Miner mit dem GPU-Programm, ein Miner je Grafikkarte von NVIDIA, AMD oder Intel, ohne Gebühr. Es hängt an jeder Veröffentlichung von Node Core als <code>yskar-hiveos-….tar.gz</code>. Wie das Flight Sheet eingerichtet wird, steht in <a href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md">hiveos/README.md</a>.
+lv.an.pc.solo
+  en: Solo instead of pool: leave out --mode pool. Whole blocks, but more rarely.
+  de: Solo statt Pool: --mode pool weglassen. Ganze Blöcke, dafür seltener.
+lv.an.pc.text
+  en: The miner runs on Windows, macOS and Linux. It only needs an address – no private key, no wallet, no sign-up. You can safely run it on any computer.
+  de: Der Miner läuft unter Windows, macOS und Linux. Er braucht nur eine Adresse – keinen privaten Schlüssel, keine Wallet, keine Anmeldung. Du kannst ihn bedenkenlos auf jedem Rechner laufen lassen.
+lv.an.pc.titel
+  en: PC miner
+  de: PC-Miner
+lv.an.pool.beitritt
+  en: How miners join
+  de: So treten Miner bei
+lv.an.pool.beitrittText
+  en: In the app choose “Pool” and enter the address of your pool under “Custom address”; in Node Core under “Your own pool address”. With the PC miner:
+  de: In der App wählst du „Pool“ und trägst die Adresse deines Pools unter „Eigene Adresse“ ein, im Node Core unter „Eigene Pool-Adresse“. Mit dem PC-Miner:
+lv.an.pool.caddy
+  en: The configuration for Caddy. Replace the name with yours; it must point to your machine first.
+  de: Die Konfiguration für Caddy. Ersetze den Namen durch deinen; er muss vorher auf deinen Rechner zeigen.
+lv.an.pool.g1
+  en: <strong>Name:</strong> 3 to 32 simple characters. It is written into every block of your pool and stays there for good.
+  de: <strong>Name:</strong> 3 bis 32 einfache Zeichen. Er steht in jedem Block deines Pools und bleibt dort für immer.
+lv.an.pool.g2
+  en: <strong>Fee:</strong> 0 to 5 %. In the command <code>--pool-fee</code> is given in basis points: 100 = 1 %. With a fee you must name the address it goes to.
+  de: <strong>Gebühr:</strong> 0 bis 5 %. Im Befehl steht <code>--pool-fee</code> in Basispunkten: 100 = 1 %. Mit Gebühr musst du die Adresse nennen, an die sie geht.
+lv.an.pool.g3
+  en: <strong>Places:</strong> at most 64 addresses, with a fee 63 – one recipient is you.
+  de: <strong>Plätze:</strong> höchstens 64 Adressen, mit Gebühr 63 – ein Empfänger bist du.
+lv.an.pool.g4
+  en: <strong>No foreign money:</strong> the block pays everyone directly. You never hold funds of your miners.
+  de: <strong>Kein fremdes Geld:</strong> Der Block zahlt alle direkt aus. Du hältst nie Guthaben deiner Miner.
+lv.an.pool.h1
+  en: Open “Run a pool”, set name, fee and number of places, and switch it on.
+  de: Öffne „Pool betreiben“, leg Namen, Gebühr und Zahl der Plätze fest und schalte ein.
+lv.an.pool.h2
+  en: Under Mining choose “Pool”. Your own pool is listed first.
+  de: Wähle im Mining „Pool“. Dein eigener Pool steht dort zuerst.
+lv.an.pool.h3
+  en: For more PCs switch on “Devices in your home network”. They connect with <code>http://&lt;address of this PC&gt;:8645</code>.
+  de: Für weitere PCs schaltest du „Geräte im Heimnetz“ ein. Sie verbinden sich mit <code>http://&lt;Adresse dieses PCs&gt;:8645</code>.
+lv.an.pool.heim
+  en: In your home network with Node Core
+  de: Im Heimnetz mit Node Core
+lv.an.pool.heimText
+  en: The pool in Node Core answers only your own PC and your own network. It cannot be reached from the internet this way.
+  de: Der Pool im Node Core antwortet nur dem eigenen PC und dem eigenen Netz. Aus dem Internet ist er so nicht erreichbar.
+lv.an.pool.k1
+  en: Who mines with you
+  de: Wer mitmint
+lv.an.pool.k2
+  en: What you need
+  de: Was du brauchst
+lv.an.pool.liste
+  en: Getting into the pool list
+  de: In die Pool-Liste kommen
+lv.an.pool.listeText
+  en: The app and Node Core show a maintained list of pools. For an entry your pool must be reachable over HTTPS and answer <code>/api/v2/pool</code>. Ask for it on <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a>. The list is neither a check nor a recommendation: a pool reports its miners, power and fee itself.
+  de: App und Node Core zeigen eine gepflegte Liste von Pools. Für einen Eintrag muss dein Pool über HTTPS erreichbar sein und <code>/api/v2/pool</code> beantworten. Frag dafür auf <a href="https://github.com/dabitlex/YSKAR/issues">GitHub</a> an. Die Liste ist keine Prüfung und keine Empfehlung: Miner, Leistung und Gebühr meldet ein Pool selbst.
+lv.an.pool.n1
+  en: <strong>A node that runs all the time.</strong> Best is the command-line node on a Raspberry Pi or a server – see <a href="#guides-fullnode">Running a full node</a>.
+  de: <strong>Einen Knoten, der dauernd läuft.</strong> Am besten der Kommandozeilen-Knoten auf einem Raspberry Pi oder Server – siehe <a href="#guides-fullnode">Einen Fullnode betreiben</a>.
+lv.an.pool.n2
+  en: <strong>A name</strong> under which it can be reached: a domain of your own or a free DynDNS name.
+  de: <strong>Einen Namen</strong>, unter dem er erreichbar ist: eine eigene Domain oder ein kostenloser DynDNS-Name.
+lv.an.pool.n3
+  en: <strong>HTTPS with a valid certificate.</strong> Telegram and browsers do not load anything unencrypted. Without HTTPS no phone reaches your pool.
+  de: <strong>HTTPS mit gültigem Zertifikat.</strong> Telegram und Browser laden nichts Unverschlüsseltes nach. Ohne HTTPS erreicht kein Telefon deinen Pool.
+lv.an.pool.n4
+  en: <strong>A web server in front</strong> that fetches the certificate and passes requests on to the node, for example Caddy.
+  de: <strong>Einen Webserver davor</strong>, der das Zertifikat holt und Anfragen an den Knoten weiterreicht, zum Beispiel Caddy.
+lv.an.pool.n5
+  en: <strong>Port 443 open.</strong> For a node at home that means a port forwarding in your router.
+  de: <strong>Port 443 offen.</strong> Bei einem Knoten zu Hause heißt das: eine Portfreigabe im Router.
+lv.an.pool.netz
+  en: For the app, the Mini App and miners from the internet
+  de: Für App, Mini App und Miner aus dem Internet
+lv.an.pool.netzText
+  en: This is what you need:
+  de: Das brauchst du:
+lv.an.pool.o1
+  en: <strong>At home:</strong> no extra cost. But your IP address becomes publicly known, you need a port forwarding, and your connection carries the load.
+  de: <strong>Zu Hause:</strong> keine Zusatzkosten. Aber deine IP-Adresse wird öffentlich bekannt, du brauchst eine Portfreigabe, und dein Anschluss trägt die Last.
+lv.an.pool.o2
+  en: <strong>Rented server:</strong> your home IP address stays out of it, and no keys are stored on the server – only the address for the fee. Read the provider’s terms first: many forbid mining or anything related to it. Get the permission in writing.
+  de: <strong>Gemieteter Server:</strong> Deine IP-Adresse zu Hause bleibt außen vor, und auf dem Server liegen keine Schlüssel – nur die Adresse für die Gebühr. Lies vorher die Bedingungen des Anbieters: Viele verbieten Mining oder alles, was damit zu tun hat. Lass dir den Einsatz schriftlich bestätigen.
+lv.an.pool.ort
+  en: At home or on a rented server?
+  de: Zu Hause oder auf einem gemieteten Server?
+lv.an.pool.r1a
+  en: You and devices in your home network
+  de: Du und Geräte in deinem Heimnetz
+lv.an.pool.r1b
+  en: Node Core with “Run a pool” switched on
+  de: Node Core mit eingeschaltetem „Pool betreiben“
+lv.an.pool.r2a
+  en: PC miners from the internet
+  de: PC-Miner aus dem Internet
+lv.an.pool.r2b
+  en: A node that runs all the time and can be reached from outside
+  de: Einen Knoten, der dauernd läuft und von außen erreichbar ist
+lv.an.pool.r3a
+  en: The app and the Mini App
+  de: App und Mini App
+lv.an.pool.r3b
+  en: In addition HTTPS: a name (domain or DynDNS) and a certificate
+  de: Zusätzlich HTTPS: einen Namen (Domain oder DynDNS) und ein Zertifikat
+lv.an.pool.regeln
+  en: Rules for every pool
+  de: Regeln für jeden Pool
+lv.an.pool.start
+  en: Start the node as a pool. It listens only on the machine itself; the web server stands in front of it.
+  de: Starte den Knoten als Pool. Er lauscht nur auf dem Rechner selbst; davor steht der Webserver.
+lv.an.pool.test
+  en: Check from outside. If the answer contains your pool name and the number of places, the pool is reachable.
+  de: Prüfe von außen. Enthält die Antwort deinen Pool-Namen und die Zahl der Plätze, ist der Pool erreichbar.
+lv.an.pool.text
+  en: A YSKAR pool is not a service with accounts. It is a node that splits the reward of its blocks. Anyone can run one, without registration. What you need depends on who is supposed to mine with you.
+  de: Ein Pool ist bei YSKAR kein Dienst mit Konten. Er ist ein Knoten, der die Belohnung seiner Blöcke aufteilt. Jeder kann einen betreiben, ohne Anmeldung. Was du brauchst, hängt davon ab, wer bei dir mitminen soll.
+lv.an.pool.titel
+  en: Running a pool
+  de: Einen Pool betreiben
+lv.an.si.p1
+  en: <strong>Your 12 words are your wallet.</strong> Never type them into a website, never send them to anyone. Nobody from YSKAR will ask for them.
+  de: <strong>Deine 12 Wörter sind deine Wallet.</strong> Gib sie nie auf einer Webseite ein und schick sie niemandem. Niemand von YSKAR wird danach fragen.
+lv.an.si.p2
+  en: <strong>Download only from yskar.app and the YSKAR project on GitHub.</strong> If you want to be sure, compare the checksum.
+  de: <strong>Lade nur von yskar.app und vom YSKAR-Projekt auf GitHub.</strong> Wenn du sichergehen willst, vergleiche die Prüfsumme.
+lv.an.si.p3
+  en: <strong>Keep your software up to date.</strong> At an announced rule change, an outdated node either stops at that block or keeps running without checking the new rule – both are reasons to update in time.
+  de: <strong>Halte deine Programme aktuell.</strong> Bei einer angekündigten Regeländerung bleibt ein veralteter Knoten entweder an diesem Block stehen oder läuft weiter, ohne die neue Regel zu prüfen – beides ist ein Grund, rechtzeitig zu aktualisieren.
+lv.an.si.p4
+  en: <strong>Running a node:</strong> other nodes see your IP address, as in every peer-to-peer network. You do not need a port forwarding. If you do not want your address to be visible, use a VPN.
+  de: <strong>Wenn du einen Knoten betreibst:</strong> Andere Knoten sehen deine IP-Adresse, wie in jedem Peer-to-Peer-Netz. Eine Portfreigabe brauchst du nicht. Wer seine Adresse nicht zeigen will, nutzt ein VPN.
+lv.an.si.p5
+  en: <strong>Node Core:</strong> wallet and interface can only be reached from your own PC.
+  de: <strong>Node Core:</strong> Wallet und Oberfläche sind nur von deinem eigenen PC aus erreichbar.
+lv.an.si.titel
+  en: Security
+  de: Sicherheit
+lv.an.text
+  en: Everything explained step by step: mining on the phone and on the PC, your wallet, your own node and your own pool.
+  de: Alles Schritt für Schritt erklärt: Mining auf dem Telefon und am PC, deine Wallet, dein eigener Knoten und dein eigener Pool.
+lv.an.titel
+  en: Step by step
+  de: Schritt für Schritt
+lv.an.tocLabel
+  en: On this page
+  de: Auf dieser Seite
+lv.an.ue.k1
+  en: Way
+  de: Weg
+lv.an.ue.k2
+  en: Good for
+  de: Geeignet für
+lv.an.ue.k3
+  en: You need
+  de: Du brauchst
+lv.an.ue.r1a
+  en: Telegram Mini App
+  de: Telegram Mini App
+lv.an.ue.r1b
+  en: Trying it out, right away
+  de: Ausprobieren, sofort
+lv.an.ue.r1c
+  en: Telegram
+  de: Telegram
+lv.an.ue.r2a
+  en: Android app
+  de: Android-App
+lv.an.ue.r2b
+  en: Mining in the background on your phone
+  de: Mining im Hintergrund auf dem Telefon
+lv.an.ue.r2c
+  en: An Android phone
+  de: Ein Android-Telefon
+lv.an.ue.r3a
+  en: Node Core
+  de: Node Core
+lv.an.ue.r3b
+  en: Your own node with wallet and mining on a PC, graphics card included
+  de: Eigener Knoten mit Wallet und Mining am PC, mit CPU und GPU
+lv.an.ue.r3c
+  en: Windows 10/11 or Linux (64-bit)
+  de: Windows 10/11 oder Linux (64 Bit)
+lv.an.ue.r4a
+  en: PC miner
+  de: PC-Miner
+lv.an.ue.r4b
+  en: Mining from the command line
+  de: Mining über die Kommandozeile
+lv.an.ue.r4c
+  en: Windows, macOS or Linux with Node.js
+  de: Windows, macOS oder Linux mit Node.js
+lv.an.ue.r5a
+  en: Full node
+  de: Full Node
+lv.an.ue.r5b
+  en: A node or a pool on a Raspberry Pi or a server
+  de: Knoten oder Pool auf einem Raspberry Pi oder Server
+lv.an.ue.r5c
+  en: Linux, Windows or macOS with Node.js 22.13 or newer
+  de: Linux, Windows oder macOS mit Node.js 22.13 oder neuer
+lv.an.ue.text
+  en: There are five ways to take part. All of them use the same wallet: with your 12 words you reach the same balance everywhere.
+  de: Es gibt fünf Wege mitzumachen. Alle nutzen dieselbe Wallet: Mit deinen 12 Wörtern kommst du überall an dasselbe Guthaben.
+lv.an.ue.titel
+  en: Which way suits you?
+  de: Welcher Weg passt zu dir?
+lv.an.w.empfangen
+  en: Receiving
+  de: Empfangen
+lv.an.w.empfangenText
+  en: Show your address or its QR code. You can add an amount and a note to the code; the sender then only has to confirm. You may share your address with anyone – your 12 words with nobody.
+  de: Zeig deine Adresse oder ihren QR-Code. Du kannst dem Code einen Betrag und eine Notiz mitgeben; der Absender muss dann nur noch bestätigen. Deine Adresse darfst du jedem geben – deine 12 Wörter niemandem.
+lv.an.w.kontakte
+  en: Contacts and history
+  de: Kontakte und Verlauf
+lv.an.w.kontakteText
+  en: Contacts give addresses a name; they are stored only on your device. The history shows every payment; mining income of one day is bundled into one line and can be opened down to the single block.
+  de: Kontakte geben Adressen einen Namen; sie liegen nur auf deinem Gerät. Der Verlauf zeigt jede Zahlung; die Mining-Erträge eines Tages stehen gebündelt in einer Zeile und lassen sich bis zum einzelnen Block aufklappen.
+lv.an.w.s1
+  en: Recipient: paste the address, scan the QR code or choose a contact. A YSKAR address starts with ysr1.
+  de: Empfänger: Adresse einfügen, QR-Code scannen oder einen Kontakt wählen. Eine YSKAR-Adresse beginnt mit ysr1.
+lv.an.w.s2
+  en: Amount, and a note of up to 32 bytes if you like – that is 32 plain Latin letters, fewer with accents or other scripts. The note is stored publicly in the blockchain.
+  de: Betrag und auf Wunsch eine Notiz mit bis zu 32 Byte – das sind 32 einfache lateinische Buchstaben, mit Umlauten oder anderen Schriften weniger. Die Notiz steht öffentlich in der Blockchain.
+lv.an.w.s3
+  en: Fee: the app suggests it. When the network is not busy, the minimum fee is enough for the next block.
+  de: Gebühr: Die App schlägt sie vor. Ohne Andrang genügt die Mindestgebühr für den nächsten Block.
+lv.an.w.s4
+  en: Review: the app shows the full address and tells you whether you have sent there before. Confirm with your PIN or fingerprint.
+  de: Prüfen: Die App zeigt die volle Adresse und sagt dir, ob du schon einmal dorthin gesendet hast. Bestätige mit PIN oder Fingerabdruck.
+lv.an.w.senden
+  en: Sending
+  de: Senden
+lv.an.w.warn
+  en: A payment that has been sent cannot be taken back. Check the whole address before you confirm.
+  de: Eine gesendete Zahlung lässt sich nicht zurückholen. Prüfe die ganze Adresse, bevor du bestätigst.
+lv.an.wallet.p1
+  en: Write the words down on paper, in the right order. No screenshot, no cloud.
+  de: Schreib die Wörter in der richtigen Reihenfolge auf Papier. Kein Screenshot, keine Cloud.
+lv.an.wallet.p2
+  en: Keep the paper safe. If you lose your phone, the words restore everything.
+  de: Bewahre das Papier sicher auf. Wenn dein Telefon verloren geht, stellen die Wörter alles wieder her.
+lv.an.wallet.p3
+  en: The PIN only protects the app on this device. It cannot replace the words.
+  de: Die PIN schützt nur die App auf diesem Gerät. Sie ersetzt die Wörter nicht.
+lv.an.wallet.p4
+  en: To move to a new device, choose “I already have twelve words” and enter them.
+  de: Für ein neues Gerät wählst du „Ich habe schon zwölf Wörter“ und gibst sie ein.
+lv.an.wallet.text
+  en: Your wallet is created on your device from 12 words. These words are your key: whoever has them can access the funds – on any device, in any YSKAR app.
+  de: Deine Wallet entsteht auf deinem Gerät aus 12 Wörtern. Diese Wörter sind dein Schlüssel: Wer sie hat, kommt an das Guthaben – auf jedem Gerät, in jeder YSKAR-App.
+lv.an.wallet.titel
+  en: Your wallet
+  de: Deine Wallet
+lv.fuss.datenschutz
+  en: Privacy
+  de: Datenschutz
+lv.fuss.impressum
+  en: Legal notice
+  de: Impressum
+lv.hood.f2.k
+  en: Difficulty
+  de: Difficulty
+lv.nc.appimage
+  en: AppImage for other Linux distributions
+  de: AppImage für andere Linux-Distributionen
+lv.nc.bildNotiz
+  en: Example view – the numbers are examples.
+  de: Beispielansicht – die Zahlen sind Beispiele.
+lv.nc.knopfLinux
+  en: Download for Linux (.deb)
+  de: Für Linux herunterladen (.deb)
+lv.nc.knopfWin
+  en: Download for Windows
+  de: Für Windows herunterladen
+lv.nc.mehr
+  en: Checksum and release notes
+  de: Prüfsumme und Hinweise zur Version
+lv.nc.system
+  en: Windows 10 or 11 (64-bit)
+  de: Windows 10 oder 11 (64 Bit)
+lv.nc.systemLinux
+  en: Linux 64-bit · Ubuntu, Debian, Mint
+  de: Linux 64 Bit · Ubuntu, Debian, Mint
+lv.pr.block.alt
+  en: The 136-byte block header and its ten fields
+  de: Der 136-Byte-Blockkopf und seine zehn Felder
+lv.pr.block.merkle
+  en: One hash over all transactions in the block. A single changed byte in any transfer changes it.
+  de: Ein Hash über alle Transaktionen des Blocks. Ändert sich ein einziges Byte einer Überweisung, ändert er sich mit.
+lv.pr.block.nonce
+  en: The number miners vary. The first 128 bytes stay the same for a job, so each try needs only two SHA-256 compression steps.
+  de: Die Zahl, die Miner verändern. Die ersten 128 Byte bleiben je Auftrag gleich, daher kostet jeder Versuch nur zwei SHA-256-Kompressionsschritte.
+lv.pr.block.prev
+  en: The hash of the previous block. It links the chain: changing an old block would change every hash after it.
+  de: Der Hash des vorherigen Blocks. Er verkettet die Blöcke: Wer einen alten Block ändert, ändert jeden Hash danach.
+lv.pr.block.state
+  en: One hash over all accounts (balance and nonce) after this block. Every node computes it itself and compares.
+  de: Ein Hash über alle Konten (Guthaben und Nonce) nach diesem Block. Jeder Knoten berechnet ihn selbst und vergleicht.
+lv.pr.block.text
+  en: Every block starts with exactly 136 bytes. Its hash is double SHA-256 over these bytes, and it must not exceed the target that the difficulty sets.
+  de: Jeder Block beginnt mit genau 136 Byte. Sein Hash ist doppeltes SHA-256 über diese Bytes und darf das Ziel, das die Difficulty vorgibt, nicht überschreiten.
+lv.pr.block.titel
+  en: Anatomy of a block header
+  de: Aufbau eines Blockkopfs
+lv.pr.db.ablauf
+  en: Expiry
+  de: Ablauf
+lv.pr.db.ablaufWert
+  en: optional, by block height
+  de: optional, per Blockhöhe
+lv.pr.db.adresse
+  en: Address
+  de: Adresse
+lv.pr.db.adresseWert
+  en: ysr1…, 42 characters; shared accounts from V6: ysr1p…, 63 characters (bech32m)
+  de: ysr1…, 42 Zeichen; gemeinsame Konten ab V6: ysr1p…, 63 Zeichen (bech32m)
+lv.pr.db.blockzeitWert
+  en: 600 seconds (target)
+  de: 600 Sekunden (Ziel)
+lv.pr.db.diffWert
+  en: LWMA over 45 blocks, every block
+  de: LWMA über 45 Blöcke, nach jedem Block
+lv.pr.db.einheit
+  en: Smallest unit
+  de: Kleinste Einheit
+lv.pr.db.gebuehr
+  en: Fees go to
+  de: Gebühren gehen an
+lv.pr.db.gebuehrWert
+  en: the miner of the block
+  de: den Miner des Blocks
+lv.pr.db.kette
+  en: The chain
+  de: Die Kette
+lv.pr.db.knoten
+  en: Full nodes
+  de: Full Nodes
+lv.pr.db.knotenWert
+  en: each keeps and checks the whole chain
+  de: jeder hält und prüft die ganze Kette
+lv.pr.db.konsens
+  en: Consensus
+  de: Konsens
+lv.pr.db.konsensWert
+  en: Proof of work, SHA-256d
+  de: Proof of Work, SHA-256d
+lv.pr.db.memo
+  en: Memo
+  de: Notiz (Memo)
+lv.pr.db.memoWert
+  en: up to 32 bytes
+  de: bis zu 32 Byte
+lv.pr.db.minGeb
+  en: Minimum fee (consensus)
+  de: Mindestgebühr (Konsens)
+lv.pr.db.minGebWert
+  en: 1 unit per byte
+  de: 1 Einheit je Byte
+lv.pr.db.modell
+  en: Model
+  de: Modell
+lv.pr.db.modellWert
+  en: accounts with balance and nonce
+  de: Konten mit Guthaben und Nonce
+lv.pr.db.muenze
+  en: The coin
+  de: Der Coin
+lv.pr.db.name
+  en: Name · ticker
+  de: Name · Kürzel
+lv.pr.db.netz
+  en: Network
+  de: Netz
+lv.pr.db.notfall
+  en: Emergency rule
+  de: Notfallregel
+lv.pr.db.notfallWert
+  en: easier after 30 min without a block
+  de: leichter nach 30 Min. ohne Block
+lv.pr.db.nullkonto
+  en: Burn address
+  de: Verbrennadresse
+lv.pr.db.pfad
+  en: Key derivation
+  de: Schlüsselableitung
+lv.pr.db.pool
+  en: Pools
+  de: Pools
+lv.pr.db.poolWert
+  en: paid from the block, fee 0–5 %
+  de: Auszahlung aus dem Block, Gebühr 0–5 %
+lv.pr.db.relay
+  en: Minimum fee to relay
+  de: Mindestgebühr zum Weiterleiten
+lv.pr.db.relayWert
+  en: 10 units per byte
+  de: 10 Einheiten je Byte
+lv.pr.db.sig
+  en: Signatures
+  de: Signaturen
+lv.pr.db.staub
+  en: Smallest amount to send
+  de: Kleinster sendbarer Betrag
+lv.pr.db.staubWert
+  en: 100 units
+  de: 100 Einheiten
+lv.pr.db.transfer
+  en: Transfer size
+  de: Größe einer Überweisung
+lv.pr.db.transferWert
+  en: 168 to 200 bytes
+  de: 168 bis 200 Byte
+lv.pr.db.tx
+  en: Transactions per block
+  de: Transaktionen je Block
+lv.pr.db.txWert
+  en: up to 2,000
+  de: bis zu 2.000
+lv.pr.db.vorab
+  en: Pre-mine · allocation
+  de: Pre-Mine · Zuteilung
+lv.pr.db.vorabWert
+  en: none
+  de: keine
+lv.pr.db.wahl
+  en: Chain selection
+  de: Kettenwahl
+lv.pr.db.wahlWert
+  en: most accumulated work
+  de: meiste angesammelte Arbeit
+lv.pr.db.wallet
+  en: Wallets and accounts
+  de: Wallets und Konten
+lv.pr.db.worte
+  en: Seed words
+  de: Seed-Wörter
+lv.pr.db.worteWert
+  en: BIP39, 12 or 24 words
+  de: BIP39, 12 oder 24 Wörter
+lv.pr.etikett
+  en: The protocol in detail
+  de: Das Protokoll im Detail
+lv.pr.gen.belohnung
+  en: Reward
+  de: Belohnung
+lv.pr.gen.belohnungWert
+  en: 875 YSR, unspendable
+  de: 875 YSR, nicht ausgebbar
+lv.pr.gen.text
+  en: The first block of the chain. Its coinbase carries a short message, and its reward went to an address nobody can spend from.
+  de: Der erste Block der Kette. Seine Coinbase enthält eine kurze Botschaft, und seine Belohnung ging an eine Adresse, von der niemand etwas ausgeben kann.
+lv.pr.gen.titel
+  en: Block 0
+  de: Block 0
+lv.pr.gen.zeit
+  en: Timestamp
+  de: Zeitstempel
+lv.pr.pruefen
+  en: Check block 0 or the latest block yourself, right in your browser.
+  de: Prüf Block 0 oder den neuesten Block selbst, direkt in deinem Browser.
+lv.pr.text
+  en: Everything below is fixed in the consensus code and the same for every node. Nothing depends on a server, a company or a setting.
+  de: Alles hier ist im Konsenscode festgelegt und für jeden Knoten gleich. Nichts davon hängt an einem Server, einem Unternehmen oder einer Einstellung.
+lv.pr.titel1
+  en: YSKAR and YSR,
+  de: YSKAR und YSR,
+lv.pr.titel2
+  en: byte by byte.
+  de: Byte für Byte.
+lv.pr.tx.alt
+  en: Fields of a transfer
+  de: Felder einer Überweisung
+lv.pr.tx.p1
+  en: The signature also covers the chain ID, so a transfer signed for YSKAR is invalid on any other network.
+  de: Die Signatur umfasst auch die Chain-ID. Eine für YSKAR signierte Überweisung ist in jedem anderen Netz ungültig.
+lv.pr.tx.p2
+  en: The nonce counts the transfers an account has sent. The same transfer can never be applied twice.
+  de: Die Nonce zählt die gesendeten Überweisungen eines Kontos. Dieselbe Überweisung kann nie zweimal ausgeführt werden.
+lv.pr.tx.p3
+  en: An optional expiry height lets a transfer lapse if it has not been included by then.
+  de: Eine optionale Ablaufhöhe lässt eine Überweisung verfallen, wenn sie bis dahin nicht aufgenommen wurde.
+lv.pr.tx.text
+  en: A transfer moves YSR from one account to another. It is 168 bytes plus an optional memo.
+  de: Eine Überweisung bewegt YSR von einem Konto zu einem anderen. Sie ist 168 Byte groß, plus eine optionale Notiz.
+lv.pr.tx.titel
+  en: Anatomy of a transfer
+  de: Aufbau einer Überweisung
+lv.recht.nurDeutsch
+  en: This page is in German, as required by German law.
+  de: Diese Seite ist nach deutschem Recht auf Deutsch.
+lv.supply.aera.fuss
+  en: Rewards are counted in whole base units (0.00000001 YSR), so each halving drops the remainder: in total 20,999,999.99832 YSR will ever be issued, slightly below the maximum.
+  de: Belohnungen zählen in ganzen Basiseinheiten (0,00000001 YSR), bei jeder Halbierung fällt der Rest weg: Insgesamt werden 20.999.999,99832 YSR ausgegeben, knapp unter dem Maximum.
+lv.supply.aera.k1
+  en: Era
+  de: Ära
+lv.supply.aera.k2
+  en: Blocks
+  de: Blöcke
+lv.supply.aera.k3
+  en: Reward per block
+  de: Belohnung je Block
+lv.supply.aera.k4
+  en: Issued in the era
+  de: In der Ära ausgegeben
+lv.supply.aera.k5
+  en: Total after the era
+  de: Gesamt nach der Ära
+lv.supply.aera.text
+  en: An era lasts 12,000 blocks, about 83 days. In each era the reward is half of the one before. From block 444,000 no new YSR are created and miners receive the fees only.
+  de: Eine Ära dauert 12.000 Blöcke, etwa 83 Tage. In jeder Ära ist die Belohnung halb so groß wie in der vorigen. Ab Block 444.000 entstehen keine neuen YSR mehr, Miner erhalten dann nur noch die Gebühren.
+lv.supply.aera.titel
+  en: Issuance by era
+  de: Ausgabe nach Ära
+lv.wallet.warnung
+  en: <strong>Whoever has the 12 words has the funds.</strong> Never share them. Nobody from YSKAR will ever ask you for them.
+  de: <strong>Wer die 12 Wörter hat, hat das Guthaben.</strong> Gib sie niemals weiter. Niemand von YSKAR wird dich jemals danach fragen.
+lv.wpseite.drucken
+  en: Print / save as PDF
+  de: Drucken / als PDF speichern
+lv.wpseite.toc
+  en: Contents
+  de: Inhalt
+lv.wpseite.untertitel
+  en: A proof-of-work blockchain that anyone can mine and anyone can verify.
+  de: Eine Proof-of-Work-Blockchain, die jeder minen und jeder nachprüfen kann.
+lv.zahlen.blockzeit
+  en: Block time
+  de: Blockzeit
+lv.wpseite.nurDeEn
+  en: The whitepaper is currently available in English and German.
+  de: Das Whitepaper gibt es derzeit auf Deutsch und Englisch.

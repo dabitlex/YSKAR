@@ -1,0 +1,33 @@
+<section class="sec ruled" id="api" aria-labelledby="dev-api-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 id="dev-api-h" data-t="dev.api.h"></h2>
+        <p class="muted" data-t="dev.api.p"></p>
+      </div>
+      <div class="display api" id="api-console">
+        <div class="display-head">
+          <span class="display-title" data-t="dev.api.title"></span>
+          <span class="state" data-live="mode"></span>
+        </div>
+        <div class="api-body">
+          <div class="api-list" id="api-list" role="group" data-ta="aria-label:dev.api.pick"></div>
+          <div class="api-main">
+            <div class="api-req">
+              <code class="api-url" id="api-url"></code>
+              <div class="row" style="--gap:8px">
+                <button type="button" class="btn small" id="api-run" data-t="dev.api.run"></button>
+                <button type="button" class="btn small ghost" id="api-curl" data-t="dev.api.curl"></button>
+              </div>
+            </div>
+            <p class="api-meta" id="api-meta" role="status" aria-live="polite"></p>
+            <pre class="api-out" id="api-out" tabindex="0" data-ta="aria-label:dev.api.out"></pre>
+          </div>
+        </div>
+      </div>
+      <dl class="plain-list cols-3 api-notes">
+        <div><dt data-t="dev.api.n1.h"></dt><dd data-t="dev.api.n1.p"></dd></div>
+        <div><dt data-t="dev.api.n2.h"></dt><dd data-t="dev.api.n2.p"></dd></div>
+        <div><dt data-t="dev.api.n3.h"></dt><dd data-t="dev.api.n3.p"></dd></div>
+      </dl>
+    </div>
+  </section>

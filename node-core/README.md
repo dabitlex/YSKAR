@@ -390,9 +390,11 @@ Linux build succeed. Publishing the draft by hand creates the tag
 (`.github/workflows/neueste-veroeffentlichung.yml`).
 
 After publishing a new version, the download links (Windows and Linux,
-separately) and the version number have to be updated in three places: the section "YSKAR Node Core" in
-`website/index.html`, the Node Core guide in `website/anleitungen.html` and
-the block "Download" in the repository's `README.md`. The same workflow warns if they still point to the old version.
+separately) and the version number have to be updated in two places: the website, where one number
+(`NODE_CORE` under `versions` in `website/src/site.json`) sets every link once
+`node website/tools/build.mjs` has run, and the block "Download" in the repository's `README.md`.
+The same workflow warns if the website's Node Core page (`website/node.html`) or the `README.md`
+still point to the old version.
 
 ## Tests
 

@@ -1,549 +1,444 @@
 <!doctype html>
-<html lang="en" class="i18n-wartet">
+<html lang="en" data-page="home" data-mode="snapshot">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>YSKAR – Fair from block 0.</title>
-<meta name="description" content="YSKAR (YSR) is a cryptocurrency with a blockchain of its own. Nothing was handed out in advance, early YSR were burned to offset the head start. Mine with your phone or PC and check every block yourself.">
-<meta name="theme-color" content="#03060F">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YSKAR – Fair from block 0</title>
+<meta name="description" content="YSKAR is a proof-of-work currency with a blockchain of its own. Nothing was handed out in advance: every YSR is mined, and anyone can check every block.">
+<meta name="theme-color" content="#030816">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="YSKAR">
 <meta property="og:title" content="YSKAR">
-<meta property="og:description" content="Fair from block 0. A cryptocurrency with a blockchain of its own: nothing handed out in advance, early YSR burned to offset the head start.">
+<meta property="og:description" content="YSKAR is a proof-of-work currency with a blockchain of its own. Nothing was handed out in advance: every YSR is mined, and anyone can check every block.">
+<link rel="canonical" href="https://www.yskar.app/">
 <meta property="og:url" content="https://www.yskar.app/">
-<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.png?v=7">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="YSKAR – Fair from block 0.">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@yskar_official">
 <link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
 <link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
-<link rel="preload" href="/assets/fonts/geist-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/style.css?v=41">
-<noscript><style>html.i18n-wartet body{visibility:visible}</style></noscript>
-<script src="/assets/i18n/en.js?v=41"></script>
-<script src="/assets/site.js?v=41" defer></script>
-<script src="/assets/motion.js?v=41" defer></script>
-<script src="/assets/pruefen.js?v=41" defer></script>
-<script src="/assets/bloecke.js?v=41" defer></script>
-<script src="/assets/adresse.js?v=41" defer></script>
-<script src="/assets/nutzen.js?v=41" defer></script>
-<script src="/assets/wallet-muenzen.js?v=2" defer></script>
-<script src="/assets/v6.js?v=41" defer></script>
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=d7df03c0">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<link rel="preload" as="image" href="/assets/media/fjord-night-w.webp?v=6a10a1cc" media="(min-aspect-ratio: 4/5)">
+<link rel="preload" as="image" href="/assets/media/fjord-night-p.webp?v=e4a2a63e" media="(max-aspect-ratio: 4/5)">
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"d5aaf4d6","de":"24f4f520","es":"75f468d7","pt":"5a1ff8b6","fr":"b0c28fe7","it":"ef8db93a","pl":"ec2042b0","ru":"93224617","tr":"75702b84","zh":"bf23a098"}, OLD = {"ablauf":"/chain","kette-live":"/network","pruefen":"/#proof","menge":"/ysr#supply","v6":"/chain#v6","fahrplan":"/story#milestones","nutzen":"/start","wallet":"/wallet","adresse":"/explorer","fullnode":"/node","fragen":"/start"}, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=b8656ac5" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
 </head>
-<body data-seite="start">
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="7.6"/><path d="M2.4 10h15.2M10 2.4c2.3 2.2 3.4 4.7 3.4 7.6s-1.1 5.4-3.4 7.6c-2.3-2.2-3.4-4.7-3.4-7.6S7.7 4.6 10 2.4Z"/></g></symbol>
+    <symbol id="i-down" viewBox="0 0 12 12"><path d="m2.4 4.4 3.6 3.6 3.6-3.6" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
 
-<a class="sr" href="#inhalt" data-t="nav.springen">Skip to content</a>
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
 
-<header class="kopf ueber" id="kopf">
-<div class="wrap">
-<a class="marke" href="/" aria-label="YSKAR"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
-<nav id="nav" class="nav" aria-label="Main" data-ta="aria-label:nav.label">
-<a href="/#was" data-t="nav.was">About YSKAR</a>
-<a href="/#ablauf" data-t="nav.ablauf">How it works</a>
-<a href="/#menge" data-t="nav.menge">Supply</a>
-<a href="/#v6" class="v6-link">V6</a>
-<a href="/mining" data-t="nav.mining">Mining</a>
-<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
-<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
-<a href="/explorer" data-t="nav.explorer">Explorer</a>
-</nav>
-<div class="kopf-rechts">
-<label class="sprache"><span class="sr" data-t="nav.sprache">Language</span><select id="sprache"></select></label>
-<a class="knopf hell klein kopf-cta" href="/#nutzen" data-t="nav.los">Use YSR</a>
-<button id="menue-knopf" class="menue-knopf" type="button" aria-controls="nav" aria-expanded="false" aria-label="Menu" data-ta="aria-label:nav.menue">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
-</button>
-</div>
-</div>
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-current="page" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
 </header>
 
-<main id="inhalt">
-
-<!-- Einstieg -->
-<section class="held" id="held">
-<canvas id="warp" aria-hidden="true"></canvas>
-<div class="muenze3d" aria-hidden="true"><div class="m-dreh"><i class="m-rand" style="--z:-8.36px"></i><i class="m-rand" style="--z:-7.07px"></i><i class="m-rand" style="--z:-5.79px"></i><i class="m-rand" style="--z:-4.50px"></i><i class="m-rand" style="--z:-3.21px"></i><i class="m-rand" style="--z:-1.93px"></i><i class="m-rand" style="--z:-0.64px"></i><i class="m-rand" style="--z:0.64px"></i><i class="m-rand" style="--z:1.93px"></i><i class="m-rand" style="--z:3.21px"></i><i class="m-rand" style="--z:4.50px"></i><i class="m-rand" style="--z:5.79px"></i><i class="m-rand" style="--z:7.07px"></i><i class="m-rand" style="--z:8.36px"></i><div class="m-seite vorne"><img src="/assets/img/zeichen.svg?v=1" alt="" width="120" height="120"></div><div class="m-seite hinten"><img src="/assets/img/zeichen.svg?v=1" alt="" width="120" height="120"></div></div></div>
-<div class="schleier" aria-hidden="true"></div>
-<div class="wrap">
-<div class="held-text">
-<div class="chips">
-<span class="chip"><span class="punkt"></span><span data-th="h2.chip">Mainnet live since <b>9 September 2026</b></span></span>
-<a class="chip v6" href="#v6"><span data-th="h2.chipV6"><b>V6</b> from block 10,000 · see what’s next</span> →</a>
-</div>
-<p class="held-motto" lang="en">proof, not promise</p>
-<h1><span data-t="h2.titel1">YSKAR</span><span class="lt grad" data-t="h2.titel2">Fair from block 0.</span></h1>
-<p class="lead" data-t="h2.text">A cryptocurrency with a blockchain of its own. Nothing was handed out in advance, early YSR were even burned to offset the head start. Mine with your phone or PC and check every block yourself.</p>
-<div class="knopfreihe">
-<a class="knopf hell gross" href="#nutzen"><span data-t="h2.los">Start using YSR</span> <span class="pfeil" aria-hidden="true">→</span></a>
-<a class="knopf rand gross" href="#ablauf" data-t="nav.ablauf">How it works</a>
-</div>
-</div>
-</div>
-<div class="scrollhinweis" aria-hidden="true">SCROLL<i></i></div>
-</section>
-
-<!-- Laufband mit Live-Werten -->
-<div class="laufband" aria-hidden="true"><div class="lauf" id="lauf">
-<span><i></i><span data-t="band.miner">Active miners (reported)</span><b data-live="miner">—</b></span>
-<span><i></i><span data-t="band.knoten">Reporting nodes</span><b data-live="knoten">—</b></span>
-<span><i></i><span data-t="band.diff">Difficulty</span><b data-live="diff">—</b></span>
-<span><i></i><span data-t="band.warten">Waiting transfers</span><b data-live="mempool">—</b></span>
-<span><i></i><span data-t="band.tip">Latest block</span><b data-live="tip">—</b></span>
-</div></div>
-
-<!-- Aussage -->
-<section class="abschnitt statement" aria-label="YSKAR in one sentence" data-ta="aria-label:stmt.label">
-<div class="wrap">
-<p data-worte data-t="stmt.text">YSKAR belongs to the people who use it. Your YSR sit at an address that only your *12 *words open. Nobody has to be trusted: every block back to *block *0 can be checked by *anyone. New YSR come from mining, never from a promise.</p>
-</div>
-</section>
-
-<!-- Live-Kennzahlen -->
-<section class="abschnitt oben-dicht" aria-label="Network figures" data-ta="aria-label:figs.label" aria-live="polite">
-<div class="wrap">
-<div class="zahlen-reihe">
-<div class="zahl"><span class="wert" data-live="hoehe">—</span><span class="k" data-t="figs.bloecke">Block height</span></div>
-<div class="zahl"><span class="wert" data-live="rate">—</span><span class="k" data-t="live.rate">Network hashrate</span></div>
-<div class="zahl"><span class="wert"><span data-live="umlaufMio">—</span><small data-t="figs.mio">M YSR</small></span><span class="k" data-t="live.umlauf">In circulation</span></div>
-<div class="zahl"><span class="wert"><span data-live="tage">—</span><small data-t="figs.tage">days</small></span><span class="k" data-t="figs.halbierung">Until the next halving, approx.</span></div>
-</div>
-<p class="zahlen-notiz"><span class="punkt"></span><span id="live-status" data-t="live.laedt">Loading live data from the chain…</span><span aria-hidden="true">·</span><span data-t="live.umlaufHinweis">Not counting burned YSR, which nobody can spend.</span></p>
-</div>
-</section>
-
-<!-- Was ist YSKAR -->
-<section id="was" class="abschnitt oben-dicht">
-<div class="wrap">
-<div class="kopfzeile">
-<div><span class="etikett" data-t="about.etikett">What is YSKAR</span><h2 class="h2"><span data-t="about.titel1">A currency</span><br><span class="lt" data-t="about.titel2">with a chain of its own.</span></h2></div>
-<p class="unter" data-t="about.text">YSR is the coin of the YSKAR blockchain. The network runs on its own blocks, its own nodes and its own consensus rules, and it is a community project: no company stands behind it.</p>
-</div>
-<div class="was-raster">
-<div class="was-feld">
-<div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg1" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
-<g fill="none" stroke-width="1.5" stroke="url(#vg1)"><rect x="8" y="22" width="44" height="36" rx="9" opacity=".45"/><rect x="88" y="22" width="44" height="36" rx="9" opacity=".7"/><path d="M52 40h36M132 40h36" stroke-dasharray="3 4"/></g>
-<rect x="168" y="22" width="44" height="36" rx="9" fill="url(#vg1)" fill-opacity=".18" stroke="url(#vg1)" stroke-width="1.5"/>
-<g fill="none" stroke="#63D8FF" stroke-width="1.5" stroke-linecap="round" opacity=".9"><path d="M180 34h20M180 40h14M180 46h18"/></g>
-<g fill="#63D8FF" opacity=".55"><circle cx="20" cy="40" r="2"/><circle cx="28" cy="40" r="2"/><circle cx="36" cy="40" r="2"/><circle cx="100" cy="40" r="2"/><circle cx="108" cy="40" r="2"/><circle cx="116" cy="40" r="2"/></g></svg></div>
-<h3 data-t="about.f1.titel">Its own blockchain</h3>
-<p data-t="about.f1.text">YSKAR does not run on top of another network. It has its own blocks, its own peer-to-peer network and its own explorer.</p>
-</div>
-<div class="was-feld">
-<div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
-<path d="M8 14H212" stroke="#63D8FF" stroke-opacity=".55" stroke-width="1.2" stroke-dasharray="4 5"/>
-<path d="M8 72C40 40 62 28 100 21S170 16 212 15.2" fill="none" stroke="url(#vg2)" stroke-width="2.2" stroke-linecap="round"/>
-<path d="M8 72C40 40 62 28 100 21S170 16 212 15.2V76H8Z" fill="url(#vg2)" fill-opacity=".10"/>
-<circle cx="60" cy="31" r="4" fill="#63D8FF"/><circle cx="60" cy="31" r="9" fill="#63D8FF" fill-opacity=".18"/></svg></div>
-<h3 data-t="about.f2.titel">A fixed supply</h3>
-<p data-t="about.f2.text">The maximum number of YSR is written into the consensus rules. No one can raise it, and new coins become rarer over time.</p>
-</div>
-<div class="was-feld">
-<div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg3" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
-<path d="M8 70H212" stroke="#63D8FF" stroke-opacity=".35" stroke-width="1"/>
-<g fill="url(#vg3)"><rect x="18" y="38" width="12" height="32" rx="3" fill-opacity="0.35"/><rect x="42" y="38" width="12" height="32" rx="3" fill-opacity="0.42"/><rect x="66" y="38" width="12" height="32" rx="3" fill-opacity="0.49"/><rect x="90" y="38" width="12" height="32" rx="3" fill-opacity="0.56"/><rect x="114" y="38" width="12" height="32" rx="3" fill-opacity="0.63"/><rect x="138" y="38" width="12" height="32" rx="3" fill-opacity="0.70"/><rect x="162" y="38" width="12" height="32" rx="3" fill-opacity="0.77"/><rect x="186" y="38" width="12" height="32" rx="3" fill-opacity="0.84"/></g>
-<path d="M14 70V18" stroke="#63D8FF" stroke-opacity=".5" stroke-width="1" stroke-dasharray="2 4"/><circle cx="14" cy="70" r="3.5" fill="#63D8FF"/></svg></div>
-<h3 data-t="about.f3.titel">A fair launch</h3>
-<p data-t="about.f3.text">Nothing was pre-mined or allocated. New YSR come into existence in one way only: as the reward for a block. About 1.07 million YSR from the early days were burned to offset the head start.</p>
-</div>
-<div class="was-feld">
-<div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg4" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
-<rect x="1" y="16" width="218" height="48" rx="12" fill="url(#vg4)" fill-opacity=".06" stroke="#63D8FF" stroke-opacity=".25"/>
-<text x="16" y="47" font-family="Geist Mono, ui-monospace, monospace" font-size="17" letter-spacing="1"><tspan fill="#63D8FF">00000000</tspan><tspan fill="#8A96B8">0637d914</tspan></text>
-<path d="M16 54h92" stroke="url(#vg4)" stroke-width="2" stroke-linecap="round"/></svg></div>
-<h3 data-t="about.f4.titel">Proof of work</h3>
-<p data-t="about.f4.text">Blocks are secured by real computing work. Phones, PCs and graphics cards can take part in mining.</p>
-</div>
-<div class="was-feld">
-<div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg5" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
-<g><rect x="6" y="8" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="13" y="20" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">01</text><rect x="27" y="15" width="14" height="3" rx="1.5" fill="#3A4568"/><rect x="59" y="8" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="66" y="20" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">02</text><rect x="80" y="15" width="18" height="3" rx="1.5" fill="#3A4568"/><rect x="112" y="8" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="119" y="20" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">03</text><rect x="133" y="15" width="18" height="3" rx="1.5" fill="#3A4568"/><rect x="165" y="8" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="172" y="20" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">04</text><rect x="186" y="15" width="14" height="3" rx="1.5" fill="#3A4568"/><rect x="6" y="31" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.32" stroke="#63D8FF" stroke-opacity="0.8"/><text x="13" y="43" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#63D8FF">05</text><rect x="27" y="38" width="18" height="3" rx="1.5" fill="#E8EEFF"/><rect x="59" y="31" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="66" y="43" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">06</text><rect x="80" y="38" width="18" height="3" rx="1.5" fill="#3A4568"/><rect x="112" y="31" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="119" y="43" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">07</text><rect x="133" y="38" width="14" height="3" rx="1.5" fill="#3A4568"/><rect x="165" y="31" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="172" y="43" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">08</text><rect x="186" y="38" width="18" height="3" rx="1.5" fill="#3A4568"/><rect x="6" y="54" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="13" y="66" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">09</text><rect x="27" y="61" width="18" height="3" rx="1.5" fill="#3A4568"/><rect x="59" y="54" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="66" y="66" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">10</text><rect x="80" y="61" width="14" height="3" rx="1.5" fill="#3A4568"/><rect x="112" y="54" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="119" y="66" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">11</text><rect x="133" y="61" width="18" height="3" rx="1.5" fill="#3A4568"/><rect x="165" y="54" width="48" height="17" rx="8.5" fill="url(#vg5)" fill-opacity="0.1" stroke="#63D8FF" stroke-opacity="0.28"/><text x="172" y="66" font-family="Geist Mono, ui-monospace, monospace" font-size="8.5" fill="#5E6C93">12</text><rect x="186" y="61" width="18" height="3" rx="1.5" fill="#3A4568"/></g></svg></div>
-<h3 data-t="about.f5.titel">Self-custody</h3>
-<p data-t="about.f5.text">Your wallet lives on your own device. Nobody else holds your keys, including the people who build YSKAR.</p>
-</div>
-<div class="was-feld">
-<div class="was-bild"><svg viewBox="0 0 220 80" aria-hidden="true"><defs><linearGradient id="vg6" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="220" y2="80"><stop offset="0" stop-color="#63D8FF"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs>
-<rect x="1" y="4" width="218" height="72" rx="12" fill="#0A1124" stroke="#63D8FF" stroke-opacity=".25"/>
-<g fill="#3A4568"><circle cx="14" cy="16" r="3"/><circle cx="24" cy="16" r="3"/><circle cx="34" cy="16" r="3"/></g>
-<g stroke-linecap="round" stroke-width="4"><path d="M16 34h28" stroke="#63D8FF"/><path d="M52 34h60" stroke="#3A4568"/><path d="M28 46h44" stroke="url(#vg6)"/><path d="M80 46h50" stroke="#3A4568"/><path d="M28 58h22" stroke="#3A4568"/><path d="M58 58h72" stroke="#2F7BFF" stroke-opacity=".7"/></g>
-<path d="M164 30l-10 12 10 12M190 30l10 12-10 12" fill="none" stroke="url(#vg6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-<h3 data-t="about.f6.titel">Open source</h3>
-<p data-t="about.f6.text">Node, apps, miner and this website are public on GitHub. Anyone can read the code, run it and propose changes.</p>
-</div>
-</div>
-</div>
-</section>
-
-<!-- So funktioniert es -->
-<section id="ablauf" class="abschnitt oben-dicht">
-<div class="wrap">
-<div class="kopfzeile">
-<div><span class="etikett" data-t="nav.ablauf">How it works</span><h2 class="h2"><span data-t="how.titel1">From a hash</span><br><span class="lt" data-t="how.titel2">to your hand.</span></h2></div>
-<p class="unter" data-t="how.text">Three things happen for every block on YSKAR: the network finds it, every node checks it, and your YSR are yours. None of it needs a company in the middle.</p>
-</div>
-<div class="schritte">
-<div class="schritt">
-<div class="buehne" aria-hidden="true">
-<div class="geraet" data-geraet><span class="nm" data-t="how.s1.handy">Phone</span><span class="hx">—</span><span class="rt">1.2 MH/s</span></div>
-<div class="geraet" data-geraet><span class="nm">PC</span><span class="hx">—</span><span class="rt">48 MH/s</span></div>
-<div class="geraet" data-geraet><span class="nm">GPU</span><span class="hx">—</span><span class="rt">1.9 GH/s</span></div>
-<span class="beispiel" data-t="how.beispiel">EXAMPLE</span>
-</div>
-<div class="txt">
-<span class="nr" data-t="how.s1.nr">01 · Mine</span>
-<h3 data-t="how.s1.titel">Devices compete for the next block.</h3>
-<p data-t="how.s1.text">Phones, PCs and graphics cards compute double SHA-256 hashes. Whoever finds a hash below the network’s target creates the next block.</p>
-<ul>
-<li data-t="how.s1.p1">The block pays the block reward plus all fees, to the finder alone or shared in a pool</li>
-<li data-t="how.s1.p2">A pool pays every miner directly from the block, by the work contributed</li>
-<li data-t="how.s1.p3">The difficulty follows the computing power of the whole network</li>
-</ul>
-</div>
-</div>
-<div class="schritt">
-<div class="buehne">
-<div class="kettenreihe" aria-label="Latest blocks" data-ta="aria-label:blk.label">
-<div class="kb"><b data-kette="-3">#…</b><span class="ck">✓</span></div><span class="kl"></span>
-<div class="kb"><b data-kette="-2">#…</b><span class="ck">✓</span></div><span class="kl"></span>
-<div class="kb"><b data-kette="-1">#…</b><span class="ck">✓</span></div><span class="kl"></span>
-<div class="kb neu"><b data-kette="0">#…</b><span class="ck">✓</span></div>
-</div>
-<div class="knoten-reihe"><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span><span class="kn"><i></i>node</span></div>
-<span class="beispiel live-marke" id="kette-live" hidden><span class="punkt"></span><span data-t="blk.live">LIVE FROM THE CHAIN</span></span>
-</div>
-<div class="txt">
-<span class="nr" data-t="how.s2.nr">02 · Verify</span>
-<h3 data-t="how.s2.titel">Every node checks every rule.</h3>
-<p data-t="how.s2.text">Each full node recomputes the work, the signatures and the balances, starting at block 0. A block that breaks a rule is rejected, whoever sent it.</p>
-<ul>
-<li data-t="how.s2.p1">Nodes exchange blocks and transfers directly with each other</li>
-<li data-t="how.s2.p2">Runs on Linux, Windows and macOS, even on a Raspberry Pi</li>
-<li data-t="how.s2.p3">The explorer checks the proof of work in your browser</li>
-</ul>
-</div>
-</div>
-<div class="schritt">
-<div class="buehne" aria-hidden="true">
-<div class="telefon in-buehne"><img src="/assets/img/wallet-woerter-en.webp?v=3" width="600" height="1298" alt="" data-ta="src:how.s3.bild" loading="lazy"></div>
-<span class="beispiel">YSKAR WALLET</span>
-</div>
-<div class="txt">
-<span class="nr" data-t="how.s3.nr">03 · Own</span>
-<h3 data-t="how.s3.titel">Your coins, your 12 words.</h3>
-<p data-t="how.s3.text">Your wallet is created from 12 words on your own device. With them you can restore your YSR on any device, at any time.</p>
-<ul>
-<li data-t="how.s3.p1">Send to any ysr1… address, also by QR code</li>
-<li data-t="how.s3.p2">The minimum fee depends on the size in bytes; slow, normal and fast only differ when blocks are full</li>
-<li data-t="how.s3.p3">A transfer is written into the chain with one of the next blocks</li>
-</ul>
-</div>
-</div>
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <label class="lang">
+        <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+        <span class="sr-only" data-t="nav.lang">Language</span>
+        <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+        <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+      </label>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
 </div>
 
-</div>
-</section>
+<main id="main" tabindex="-1">
+<div class="page" data-page="home">
 
-<!-- Pruef es selbst -->
-<section id="pruefen" class="pruef-band" aria-labelledby="pruef-ueber">
-<div class="hashwand" aria-hidden="true">000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66 000000090a14a03f1562d11113d539c1208b8078c6391da6c48f6bcf72c33c66</div>
-<div class="wrap">
-<div class="pruef-kopf">
-<span class="etikett" data-t="chk.etikett">Check it yourself</span>
-<h2 class="h2" id="pruef-ueber"><span data-t="chk.titel1">Don't take our word for it.</span><br><span class="lt grad" data-t="chk.titel2">Do the math.</span></h2>
-<p class="unter" data-t="chk.text">Your browser puts the 136 bytes of a block header together, hashes them twice with SHA-256 and compares the result with the block hash and the target. No server is asked for the result.</p>
-<div class="knopfreihe">
-<button type="button" class="knopf hell" id="pruef-0" data-t="chk.knopf0">Check block 0</button>
-<button type="button" class="knopf rand" id="pruef-neu" data-t="chk.knopfNeu">Check the latest block</button>
-</div>
-</div>
-<div class="pruef-aus" id="pruef-aus" hidden aria-live="polite">
-<p class="pruef-titel" id="pruef-titel"></p>
-<ol class="pruef-liste" id="pruef-liste"></ol>
-<a class="weiter" id="pruef-link" href="/explorer" hidden><span data-t="chk.explorer">Open this block in the explorer</span> →</a>
-</div>
+  <section class="opening" id="opening">
+    <div class="stage" id="stage">
+      <div class="stage__inner">
+        <img class="stage__photo" data-img="fjord-night" data-orient data-ta="alt:home.hero.alt" alt="A dark fjord between snow-covered mountains under a starry sky. Ribbons of blue light move above it, and small warm lights glow on the far shore." fetchpriority="high">
+        <canvas class="stage__sky" id="sky" aria-hidden="true"></canvas>
+        <div class="stage__lights" id="lights" aria-hidden="true"></div>
+      </div>
+      <div class="stage__shade" aria-hidden="true"></div>
+      <div class="stage__scrim" aria-hidden="true"></div>
+    </div>
 
-<a class="weiter pruef-mehr" href="/protokoll"><span data-t="chk.protokoll">The whole protocol, byte by byte</span> →</a>
-</div>
-</section>
+    <div class="hero">
+      <div class="wrap hero__in">
+        <h1 class="hero__title t-mega" data-t="home.hero.h1"><span class="ln"><span>Proof,</span></span> <span class="ln"><span>not promise.</span></span></h1>
+        <div class="hero__side">
+          <p class="hero__lead lead" data-t="home.hero.lead">YSKAR is a currency with a blockchain of its own. Nothing was handed out in advance: every YSR is mined, and anyone can check every block. Fair from block 0.</p>
+          <div class="row hero__cta">
+            <a class="btn" href="/start" data-t="cta.join">Take part</a>
+            <a class="more" href="#chain" data-t="home.hero.cta2">See the chain so far</a>
+          </div>
+        </div>
+      </div>
+      <p class="hero__note wrap"><span class="hero__note-in"><span class="tick__dot" aria-hidden="true"></span><span data-live="heroLine"></span></span></p>
+    </div>
 
-<!-- Menge -->
-<section id="menge" class="abschnitt">
-<div class="wrap menge-raster">
-<div>
-<span class="etikett" data-t="supply.etikett">Supply</span>
-<h2 class="h2" style="margin-top:20px" data-t="supply.titel">Scarce by code.</h2>
-<div class="deckel"><span data-n="21000000">21,000,000</span><small data-t="supply.text">YSR at most. Every node checks this limit after every block.</small></div>
-<div class="eckdaten">
-<div><span class="k" data-t="supply.ek.aera">Current era</span><span class="v" data-live="aera">—</span><span class="klein" data-live="aeraEnde"></span></div>
-<div><span class="k" data-t="supply.ek.belohnung">Reward per block now</span><span class="v" data-live="belohnung">—</span></div>
-<div><span class="k" data-t="supply.ek.ausgegeben">Issued so far</span><span class="v" data-live="anteil">—</span></div>
-<div><span class="k" data-t="supply.ek.letzte">Last new YSR</span><span class="v" data-t="supply.ek.letzteWert">block 443,999</span></div>
-<div class="verbrannt"><span class="k" data-t="supply.ek.verbrannt">Burned for good</span><span class="v" data-live="verbrannt">—</span><span class="klein" data-t="supply.ek.verbranntText">Sent to the zero address, which has no key. This includes 1,066,101 YSR from the early days, burned to offset the head start (block 3,974), and the 875 YSR of block 0.</span><a class="weiter" href="/explorer#adr-ysr1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqregwfw"><span data-t="supply.ek.pruefen">Check the address in the explorer</span> →</a></div>
-</div>
-</div>
-<div class="kurve">
-<div class="ttl"><b data-t="supply.kurve">Total supply over time</b><span data-t="supply.einheit">million YSR · block height</span></div>
-<svg viewBox="0 0 640 340" role="img" aria-label="Supply curve: 10.5 million YSR after block 12,000, 15.75 after 24,000, approaching 21 million" data-ta="aria-label:supply.kurveAlt">
-<defs>
-<linearGradient id="kg" x1="0" x2="1"><stop offset="0" style="stop-color:var(--acc2)"/><stop offset="1" style="stop-color:var(--acc)"/></linearGradient>
-<linearGradient id="kf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:var(--acc);stop-opacity:.35"/><stop offset="1" style="stop-color:var(--acc);stop-opacity:0"/></linearGradient>
-</defs>
-<line x1="40" y1="30" x2="630" y2="30" style="stroke:var(--line2)" stroke-dasharray="4 6"/>
-<text class="lab" x="40" y="20">21M</text>
-<line x1="40" y1="300" x2="630" y2="300" style="stroke:var(--line2)"/>
-<text class="lab" x="40" y="324">0</text><text class="lab" x="187.5" y="324" text-anchor="middle">24k</text><text class="lab" x="335" y="324" text-anchor="middle">48k</text><text class="lab" x="482.5" y="324" text-anchor="middle">72k</text><text class="lab" x="630" y="324" text-anchor="end">96k</text>
-<path d="M40,300 L113.75,165 L187.5,97.5 L261.25,63.8 L335,46.9 L408.75,38.4 L482.5,34.2 L556.25,32.1 L630,31.1 L630,300 Z" fill="url(#kf)"/>
-<path id="kurve-linie" d="M40,300 L113.75,165 L187.5,97.5 L261.25,63.8 L335,46.9 L408.75,38.4 L482.5,34.2 L556.25,32.1 L630,31.1" fill="none" stroke="url(#kg)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
-<g id="kurve-jetzt">
-<circle cx="77.5" cy="231.3" r="14" style="fill:var(--acc2)" opacity=".18"/>
-<circle cx="77.5" cy="231.3" r="6" style="fill:var(--acc2)"/>
-<text class="jetzt" x="96" y="236" data-t="supply.heute">Today</text>
-</g>
-</svg>
-</div>
-</div>
-<div class="wrap">
-<a class="weiter pruef-mehr menge-mehr" href="/protokoll"><span data-t="supply.mehr">Issuance by era, in the protocol</span> →</a>
-</div>
-</section>
+    <div class="manifesto wrap">
+      <p class="manifesto__p t-l lit" data-lit data-t="home.m1">It did not start with a promise. It started with a block.</p>
+      <p class="manifesto__p t-l lit" data-lit data-t="home.m2">Nothing was mined in advance. Nothing was handed out. About 1.07 million YSR from the early days were burned to offset the head start.</p>
+      <p class="manifesto__p t-l lit" data-lit data-t="home.m3">Since then a new YSR comes into the world in one way only: a machine does the work, and anyone can check it.</p>
+    </div>
+  </section>
 
-<!-- V6 -->
-<section id="v6" class="abschnitt v6" aria-labelledby="v6-titel">
-<canvas id="v6-sterne" aria-hidden="true"></canvas>
-<div class="wrap">
-<div class="v6-kopf">
-<div class="v6-zeichen" aria-hidden="true">V<span>6</span></div>
-<div class="v6-text">
-<span class="v6-status"><i></i><span data-t="v6.status">Height set · active from block 10,000</span></span>
-<span class="etikett" data-t="v6.etikett">Consensus revision 6</span>
-<h2 class="h2" id="v6-titel"><span data-t="v6.titel1">The next chapter</span><br><span class="lt" data-t="v6.titel2">of YSKAR.</span></h2>
-<p data-t="v6.text">V6 is a hard fork that changes the account record, the address format and the transaction format. It gives accounts new abilities, raises how many transactions every block can hold and lays the foundation for features that later revisions can build on. It activates at block 10,000.</p>
-<div class="v6-countdown" id="v6-countdown" aria-live="polite">
-<span class="cd-label" data-t="v6.cd.label">Until V6</span>
-<b class="cd-zahl" id="cd-bloecke">—</b>
-<span class="cd-etwa" id="cd-etwa"></span>
-<span class="cd-basis" data-t="v6.cd.basis">Estimate from the average block time of the last 50 blocks. The real time depends on the mining power in the network.</span>
-</div>
-</div>
-</div>
+  <section class="chainwalk" id="chain">
+    <div class="chainwalk__sticky">
+      <canvas id="walk" data-ta="aria-label:walk.canvas" role="img" aria-label="The chain drawn as a ribbon of lights, one light for each block since block 0."></canvas>
+      <div class="chainwalk__hud wrap" aria-hidden="true">
+        <p class="chainwalk__h mono" id="walk-h"></p>
+        <p class="chainwalk__d" id="walk-d"></p>
+        <p class="chainwalk__legend">
+          <span><i class="dot dot--cool"></i><span data-t="walk.legend.block">a block</span></span>
+          <span><i class="dot dot--warm"></i><span data-t="walk.legend.tx">a block that carried transfers</span></span>
+        </p>
+      </div>
+      <div class="walk-caps wrap">
+        <div class="walk-cap walk-cap--start" data-at="start">
+          <h2 class="t-xl" data-t="walk.start.h"><span data-live='day'></span> days, block by block.</h2>
+          <p class="lead" data-t="walk.start.p">Every light is a real block, and the gap between two lights is the time between them. Scroll to travel along the chain. Tap a light to open its block.</p>
+        </div>
+        <div class="walk-cap" data-at="0">
+          <p class="walk-cap__k mono" data-k="block"></p>
+          <h3 class="t-l" data-t="walk.c0.h">It begins with one block.</h3>
+          <p class="lead" data-t="walk.c0.p">Its only message is “proof, not promise”. Its reward of 875 YSR went to an address nobody can spend from.</p>
+          <a class="more" data-open href="/explorer#block-0" data-t="walk.open">Open this block</a>
+        </div>
+        <div class="walk-cap" data-at="46">
+          <p class="walk-cap__k mono" data-k="block"></p>
+          <h3 class="t-l" data-t="walk.c1.h">Day one: 46 blocks.</h3>
+          <p class="lead" data-t="walk.c1.p">The first block after block 0 arrived at 18:03 UTC. By midnight there were 46 of them: the chain had found its rhythm.</p>
+        </div>
+        <div class="walk-cap" data-at="3974">
+          <p class="walk-cap__k mono" data-k="block"></p>
+          <h3 class="t-l" data-t="walk.c3.h">The head start is burned.</h3>
+          <p class="lead" data-t="walk.c3.p">1,066,101 YSR from the early days are sent to the address nobody can spend from, to offset the head start. It is all in this block.</p>
+          <a class="more" data-open href="/explorer#block-3974" data-t="walk.open">Open this block</a>
+        </div>
+        <div class="walk-cap" data-at="date:2026-10-25T12:00:00Z">
+          <p class="walk-cap__k mono" data-k="date"></p>
+          <h3 class="t-l" data-t="walk.c4.h">The community votes.</h3>
+          <p class="lead" data-t="walk.c4.p">Revision 6 is decided in the open: shared accounts, time locks, payments to a thousand recipients at once. Three rule upgrades were already live by then.</p>
+        </div>
+        <div class="walk-cap walk-cap--now" data-at="now">
+          <p class="walk-cap__k mono" data-k="now"></p>
+          <h3 class="t-l" data-t="walk.c5.h">You are here.</h3>
+          <p class="lead" data-t="walk.c5.p">The next block is about ten minutes away.</p>
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+        </div>
+        <div class="walk-cap" data-at="10000">
+          <p class="walk-cap__k mono" data-k="future" data-when="future"></p>
+          <p class="walk-cap__k mono" data-k="block" data-when="past" hidden></p>
+          <h3 class="t-l" data-when="future" data-t="walk.c6.h">Next: revision 6 switches on.</h3>
+          <p class="lead" data-when="future" data-t="walk.c6.p">In <span data-live='v6Left'></span> blocks. Every node knows the height in advance, so nothing changes by surprise.</p>
+          <h3 class="t-l" data-when="past" data-t="walk.c6.h.past" hidden>Revision 6 is live.</h3>
+          <p class="lead" data-when="past" data-t="walk.c6.p.past" hidden>Since block 10,000 the chain knows shared accounts, time locks and batch payments.</p>
+        </div>
+        <div class="walk-cap" data-at="12000">
+          <p class="walk-cap__k mono" data-k="future" data-when="future"></p>
+          <p class="walk-cap__k mono" data-k="block" data-when="past" hidden></p>
+          <h3 class="t-l" data-when="future" data-t="walk.c7.h">Then the first era ends.</h3>
+          <p class="lead" data-when="future" data-t="walk.c7.p">Until block 12,000 every block creates 875 YSR, after that 437.5. Half of all YSR that will ever exist come from this first era.</p>
+          <h3 class="t-l" data-when="past" data-t="walk.c7.h.past" hidden>The first era is over.</h3>
+          <p class="lead" data-when="past" data-t="walk.c7.p.past" hidden>Since block 12,000 every block creates 437.5 YSR. The reward halves again every 12,000 blocks.</p>
+        </div>
+      </div>
+      <div class="walk-tip" id="walk-tip" hidden>
+        <p class="walk-tip__h mono" data-f="h"></p>
+        <p data-f="t"></p>
+        <p class="faint" data-f="who"></p>
+        <a href="/explorer" data-t="walk.open">Open this block</a>
+      </div>
+    </div>
+  </section>
 
-<div class="v6-raster">
-<article class="v6-feld">
-<span class="gross">2 <small data-t="v6.f1.klein">of 3</small></span>
-<h3 data-t="v6.f1.titel">Multi-signature accounts</h3>
-<p data-t="v6.f1.text">Accounts that need several signatures to spend, with up to 16 keys. For shared funds, teams and safer savings.</p>
-<code>THRESH(2, [A, B, C])</code>
-</article>
-<article class="v6-feld">
-<span class="gross" data-t="v6.f2.gross">Locked</span>
-<h3 data-t="v6.f2.titel">Time-locked savings</h3>
-<p data-t="v6.f2.text">YSR that can only be spent from a chosen block height on. Set aside today, spendable later.</p>
-<code>THRESH(2, [A, AFTER T])</code>
-</article>
-<article class="v6-feld">
-<span class="gross" data-t="v6.f3.gross">Swap</span>
-<h3 data-t="v6.f3.titel">Hash-locked swaps</h3>
-<p data-t="v6.f3.text">A payment is released only against a secret, with a refund to the sender after a set height. Two parties can trade without trusting each other.</p>
-<code>HASH h · AFTER T</code>
-</article>
-<article class="v6-feld">
-<span class="gross">1,000 <small data-t="v6.f4.klein">recipients</small></span>
-<h3 data-t="v6.f4.titel">Batch payments</h3>
-<p data-t="v6.f4.text">One transaction pays up to 1,000 recipients at once. Useful for payouts, salaries and anyone who pays many people.</p>
-</article>
-<article class="v6-feld">
-<span class="gross">5,000 <small data-t="v6.f5.klein">per block</small></span>
-<h3 data-t="v6.f5.titel">2.5× more transactions</h3>
-<p data-t="v6.f5.text">Each block can hold up to 5,000 transactions instead of 2,000 today.</p>
-</article>
-<article class="v6-feld">
-<span class="gross">255 <small data-t="v6.f6.klein">recipients</small></span>
-<h3 data-t="v6.f6.titel">Bigger pools</h3>
-<p data-t="v6.f6.text">A pool’s block can pay up to 255 recipients directly (254 miners plus the operator’s fee), up from 64 today. Still without the pool holding anyone’s coins.</p>
-</article>
-</div>
+  <section class="sec verify" id="proof">
+    <div class="wrap verify__in">
+      <div class="verify__say">
+        <h2 class="t-xl" data-rise data-t="home.proof.h">Don't take our word for it.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="home.proof.p">Every block carries its own proof. Your device can check it right now: no server, no account, only arithmetic.</p>
+      </div>
+      <div class="prover" id="prover" data-rise data-delay="160">
+        <p class="prover__label" data-t="prove.label">Hash of the block header</p>
+        <p class="prover__hash mono" id="prover-hash" aria-live="off"></p>
+        <p class="prover__verdict" id="prover-verdict" role="status"></p>
+        <div class="row prover__go">
+          <button type="button" class="btn" data-prove="genesis" data-t="prove.btn.genesis">Check block 0 on this device</button>
+          <button type="button" class="btn btn--ghost" data-prove="tip" data-t="prove.btn.tip">Check the newest block</button>
+        </div>
+        <a class="more prover__link" id="prover-link" href="/explorer#block-0" hidden><span></span></a>
+        <p class="prover__note micro faint" data-t="prove.note">What your device just did: it ran the 136 bytes of the block header through SHA-256 twice. The result has to be smaller than the target the network set for that block. The zeros at the start show how small it is.</p>
+      </div>
+    </div>
+  </section>
 
-<div class="v6-fuss">
-<div class="v6-box">
-<h3 data-t="v6.bleibt.titel">What stays the same</h3>
-<ul>
-<li data-t="v6.bleibt.p1">21 million YSR and the halving schedule</li>
-<li data-t="v6.bleibt.p2">10-minute blocks, SHA-256d and the difficulty rules</li>
-<li data-t="v6.bleibt.p3">Every address, key and balance stays valid</li>
-</ul>
-</div>
-<div class="v6-box">
-<h3 data-t="v6.tun.titel">What you will need to do</h3>
-<ul>
-<li data-t="v6.tun.p1">Update your wallet and your node before block 10,000</li>
-<li data-t="v6.tun.p2">Miners, the GPU miner and the HiveOS package need no update</li>
-<li data-t="v6.tun.p3">Receiving YSR and your balance are not affected; an outdated wallet only cannot send</li>
-</ul>
-</div>
-<div class="v6-box">
-<h3 data-t="v6.haube.titel">Under the hood</h3>
-<ul>
-<li data-t="v6.haube.p1">A state tree that scales to many thousands of accounts</li>
-<li data-t="v6.haube.p2">Versioned addresses and a fork ID in every signature</li>
-<li data-t="v6.haube.p3">Room reserved in every account for a later contract revision</li>
-</ul>
-</div>
-</div>
-<div class="knopfreihe" style="margin-top:40px">
-<a class="knopf hell" href="https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.md"><span data-t="v6.spec">Read the V6 specification</span> <span class="pfeil" aria-hidden="true">↗</span></a>
-<a class="knopf rand" href="https://t.me/yskar_official" data-t="v6.folgen">Follow the progress on Telegram</a>
-</div>
-<div id="fahrplan" class="fahrplan">
-<span class="etikett" data-t="road.etikett">Roadmap</span>
-<h2 class="h2" style="margin-top:20px" data-t="road.titel">What comes next.</h2>
-<div class="fahrlinie" aria-hidden="true"><i></i></div>
-<div class="etappen">
-<div class="etappe fertig"><span class="wann" data-t="road.e2.wann">Block 7,000 · live</span><b data-t="road.e2.titel">Revision 5</b><p data-t="road.e2.text">A soft fork with stricter rules for timestamps, the block format and the coinbase.</p></div>
-<div class="etappe fertig"><span class="wann" data-t="road.e4.wann">Live</span><b data-t="road.e4.titel">YSKAR Wallet</b><p data-t="road.e4.text">The Android wallet without mining, on GitHub: send, receive and sign.</p></div>
-<div class="etappe fertig"><span class="wann" data-t="road.e4.wann">Live</span><b data-t="road.lab.titel">YSKAR Lab</b><p data-t="road.lab.text">The open place to shape YSKAR together. Sign in with your wallet.</p></div>
-<div class="etappe gross naechste"><span class="wann" data-t="road.e3.wann">Block 10,000 · set</span><b>V6</b><p data-t="road.e3.text">Multi-signature, swaps, batch payments and 5,000 transactions per block.</p></div>
-<div class="etappe"><span class="wann" data-t="road.e5.wann">Planned</span><b data-t="road.e5.titel">Instant payments</b><p data-t="road.e5.text">Real-time payments. No date set yet.</p></div>
-</div>
-</div>
-</div>
-</section>
+  <section class="ways" id="ways">
+    <div class="ways__head wrap">
+      <div class="ways__say">
+        <h2 class="t-xl" data-rise data-t="home.ways.h">Three ways in.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="home.ways.p">The YSKAR mark is three ribbons that meet. So is the network: people who mine, people who hold and send, and people who keep a node running.</p>
+      </div>
+      <svg class="ymark3" viewBox="187.5 184 879 879" aria-hidden="true" focusable="false" data-rise>
+        <defs><linearGradient id="yg3" gradientUnits="userSpaceOnUse" x1="318.6" y1="186.5" x2="819.8" y2="1061"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient></defs>
+        <path class="r1" fill="url(#yg3)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z"/>
+        <path class="r2" fill="url(#yg3)" d="M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z"/>
+        <path class="r3" fill="url(#yg3)" d="M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+      </svg>
+    </div>
+    <article class="door">
+      <div class="door__in">
+        <div class="door__media"><img data-img="laptop" data-lazy data-ta="alt:way.mine.alt" alt="A laptop on a wooden desk at night, running YSKAR Node Core; behind it a window onto a dark fjord."></div>
+        <div class="door__txt">
+          <p class="door__n" data-t="nav.mine">Mine</p>
+          <h3 class="t-l" data-t="way.mine.h">Lend it your machine.</h3>
+          <p class="lead" data-t="way.mine.p">A phone, a PC or a graphics card can find blocks. Alone, or in a pool that pays you inside the block itself and never holds your coins.</p>
+          <div class="row"><a class="btn" href="/mining" data-t="way.mine.cta">How mining works</a></div>
+        </div>
+      </div>
+    </article>
+    <article class="door">
+      <div class="door__in">
+        <div class="door__media"><img data-img="wallet-desk" data-lazy data-ta="alt:way.wallet.alt" alt="A phone with the YSKAR Wallet open, lying on a dark wooden desk next to a notebook with twelve handwritten lines, a pen and a cup of tea."></div>
+        <div class="door__txt">
+          <p class="door__n" data-t="nav.wallet">Wallet</p>
+          <h3 class="t-l" data-t="way.wallet.h">Twelve words. Yours alone.</h3>
+          <p class="lead" data-t="way.wallet.p">Your wallet lives on your own device. Nobody else holds your keys, including the people who build YSKAR.</p>
+          <div class="row"><a class="btn" href="/wallet" data-t="way.wallet.cta">Get the wallet</a></div>
+        </div>
+      </div>
+    </article>
+    <article class="door">
+      <div class="door__in">
+        <div class="door__media"><img data-img="node-sill" data-lazy data-ta="alt:way.node.alt" alt="A small computer with one cyan status light on a wooden windowsill; outside, a fjord at night with a few lights on the far shore."></div>
+        <div class="door__txt">
+          <p class="door__n" data-t="nav.node">Run a node</p>
+          <h3 class="t-l" data-t="way.node.h">Keep a light on.</h3>
+          <p class="lead" data-t="way.node.p">A node checks every block itself, from block 0. Each one makes the network harder to bend. A small computer on a windowsill is enough.</p>
+          <div class="row"><a class="btn" href="/node" data-t="way.node.cta">Run a node</a></div>
+        </div>
+      </div>
+    </article>
+    <div class="ways__more wrap">
+      <p class="t-m" data-rise data-t="home.ways.more">Or build on it. The code is open, the API is public, and proposals are discussed where everyone can read them.</p>
+      <a class="more" href="/build" data-rise data-delay="90" data-t="home.ways.more.cta">For developers</a>
+    </div>
+  </section>
 
-<!-- YSR nutzen -->
-<section id="nutzen" class="abschnitt oben-dicht">
-<div class="wrap">
-<div class="kopfzeile">
-<div><span class="etikett" data-t="nz.etikett">Use YSR</span><h2 class="h2"><span data-t="nz.titel1">Send it. Keep it.</span><br><span class="lt" data-t="nz.titel2">Check it yourself.</span></h2></div>
-<p class="unter" data-t="nz.text">One wallet for everything: with your 12 words you reach the same YSR in every YSKAR app.</p>
-</div>
-<div class="nz-band">
-<ul class="nz-liste">
-<li><b data-t="nz.f1.t">Send</b><span data-t="nz.f1.d">To an address, a scanned QR code or a saved contact.</span></li>
-<li><b data-t="nz.f2.t">Request</b><span data-t="nz.f2.d">Set an amount and pass on the code or link yourself.</span></li>
-<li><b data-t="nz.f3.t">Add a note</b><span data-t="nz.f3.d">A transfer can carry a short note. It is public in the chain.</span></li>
-<li><b data-t="nz.f4.t">Follow it</b><span data-t="nz.f4.d">Each payment shows the block it is in and opens in the explorer.</span></li>
-<li><b data-t="nz.f5.t">Restore</b><span data-t="nz.f5.d">Your 12 words bring the same YSR back on any device.</span></li>
-</ul>
-<dl class="nz-live">
-<div><dt data-t="nz.gebuehr">Fee for a standard transfer, right now</dt><dd id="nz-gebuehr">—</dd></div>
-<div><dt data-t="nz.blockzeit">Average time between the last 50 blocks</dt><dd id="nz-blockzeit">—</dd></div>
-</dl>
-</div>
-<div class="kacheln">
-<article class="kachel k-wallet" id="wallet">
-<div class="txt">
-<span class="marke-tag" data-t="wallet.titel">Now on GitHub</span>
-<h3>YSKAR Wallet</h3>
-<p data-t="use.wallet.text">Send and receive YSR, scan QR codes, keep contacts and see every payment. Bring an existing wallet over with your 12 words.</p>
-<p class="leise" data-t="use.wallet.hinweis">The YSKAR Wallet does not mine; it is made for sending and receiving. Mining has its own page.</p>
-<p class="leise klein-notiz" data-t="use.wallet.bildNotiz">Example view: amounts and addresses are examples.</p>
-<div class="wallet-links"><a class="knopf hell klein" href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="use.wallet.laden">Download from GitHub</a> <a class="weiter" href="/anleitungen#wallet"><span data-t="use.mehr">Learn more</span> →</a></div>
-</div>
-<div class="telefon"><img src="/assets/img/wallet-start-en.webp?v=4" width="600" height="1298" alt="Home screen of the YSKAR Wallet with balance, send, receive, scan and recent payments" data-ta="alt:use.wallet.bildAlt;src:use.wallet.bild" loading="lazy"></div>
-</article>
-<article class="kachel k-5" id="adresse">
-<h3 data-t="nav.explorer">Explorer</h3>
-<p data-t="use.ex.text">Every block, transfer and address of the chain. The explorer rebuilds each block header in your browser and checks its proof of work.</p>
-<form class="adr-form" id="adr-form" novalidate>
-<label class="sr" for="adr-feld" data-t="adr.label">YSKAR address</label>
-<input id="adr-feld" name="adr-feld" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ysr1…" data-ta="aria-label:adr.label">
-<button type="submit" class="knopf hell klein" data-t="adr.knopf">Look up</button>
-</form>
-<div class="adr-aus" id="adr-aus" hidden aria-live="polite"></div>
-<a class="weiter" href="/explorer"><span data-t="use.ex.knopf">Open the explorer</span> →</a>
-</article>
-<article class="kachel k-4" id="fullnode">
-<h3 data-t="node.titel">Run your own node</h3>
-<p data-t="node.text">A node checks every block itself, starting from block 0. The more nodes there are, the less YSKAR depends on any single computer. A Raspberry Pi is enough.</p>
-<div class="befehl">git clone https://github.com/dabitlex/YSKAR &amp;&amp; cd YSKAR/node &amp;&amp; npm install &amp;&amp; npm run build</div>
-<a class="weiter" href="/anleitungen#fullnode"><span data-t="node.knopf">Full guide</span> →</a>
-</article>
-<article class="kachel k-4">
-<h3 data-t="nav.whitepaper">Whitepaper</h3>
-<p data-t="use.wp.text">Blocks and transactions, difficulty and consensus rules, keys and addresses, pool mining and issuance, explained in detail.</p>
-<a class="weiter" href="/whitepaper"><span data-t="wp.knopf">Read the whitepaper</span> →</a>
-</article>
-<article class="kachel k-4 k-mine">
-<span class="marke-tag" data-t="nav.mining">Mining</span>
-<h3 data-t="nz.mine.titel">Mine YSR</h3>
-<p data-t="nz.mine.text">Phone, PC or graphics card: every way to mine, a calculator for your device and the active pools.</p>
-<a class="weiter" href="/mining"><span data-t="nz.mine.knopf">Go to mining</span> →</a>
-</article>
-</div>
-</div>
-</section>
+  <section class="sec early" id="early">
+    <div class="wrap">
+      <p class="early__say t-xl lit" data-lit data-say="home.early.say"></p>
+      <p class="early__note micro faint" data-t="home.early.note">Nodes and miners as they report themselves. All figures come from the public API.</p>
+      <div class="early__cols">
+        <p class="lead" data-rise data-t="home.early.p">A small network, <span data-live='day'></span> days old. YSR is not listed anywhere and has no price; listings are in preparation, with no date and no names. What exists today is a chain that works, software you can run, and room for the people who show up now.</p>
+        <div class="era" data-rise data-delay="90">
+          <p class="t-s" data-t="home.era.h">Era <span data-live='era'></span></p>
+          <div class="era__bar" aria-hidden="true"><i data-era-fill></i></div>
+          <p class="era__ends micro"><span data-t="home.era.now">Block <span data-live='height'></span></span><span data-t="home.era.left"><span data-live='halvingLeft'></span> blocks to go</span></p>
+          <p class="dim" data-t="home.era.p">In this era every block creates <span data-live='rewardNow'></span> YSR. At block <span data-live='halvingHeight'></span> the reward halves, and again every 12,000 blocks after that. Half of all YSR that will ever exist come from the first 12,000 blocks. The schedule is written in the code; nobody can move it.</p>
+          <a class="more" href="/ysr#halvings" data-t="home.era.cta">The whole schedule</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- Fragen -->
-<section id="fragen" class="abschnitt oben-dicht">
-<div class="wrap fragen">
-<div><span class="etikett" data-t="faq.etikett">FAQ</span><h2 class="h2" style="margin-top:20px" data-t="faq.titel">Frequently asked questions</h2></div>
-<div>
-<details><summary data-t="faq.q1">Does it cost anything to take part?</summary><p data-t="faq.a1">No. The app, Mini App, Node Core and miner are free. You pay for the electricity your device uses; sending YSR costs a small network fee, and a pool keeps its fee (the public pool: 1 %).</p></details>
-<details><summary data-t="faq.q2">What if I lose my phone?</summary><p data-t="faq.a2">With your 12 words you can restore your wallet on any device. Without them, nobody can recover the funds, not even us.</p></details>
-<details><summary data-t="faq.q6">What is V6, and do I have to do anything?</summary><p data-t="faq.a6">V6 is the next revision of the consensus rules, a hard fork. It activates at block 10,000. Your address, keys and balance stay valid. Before that height, update your wallet or app, Node Core and your node; the command-line miner, the GPU miner and the HiveOS package need no update.</p></details>
-<details><summary data-t="faq.q3">Does the YSKAR Wallet mine?</summary><p data-t="faq.a3">No. The YSKAR Wallet is made for sending, receiving and signing. To mine on your phone, use the Telegram Mini App or the Android app with mining from this website; on a PC, use Node Core or the miner.</p></details>
-<details><summary data-t="faq.q4">Is the code open source?</summary><p data-th="faq.a4">Yes. The entire code – node, app, miner and this website – is public on <a href="https://github.com/dabitlex/YSKAR">GitHub</a> and released under the MIT License.</p></details>
-<details><summary data-t="faq.q5">How do I know the numbers are real?</summary><p data-t="faq.a5">The explorer checks the proof of work of every block in your browser and follows the chain. A full node or the observer goes further and verifies every transfer, signature and balance from block 0 – anyone can run one.</p></details>
-</div>
-</div>
-</section>
+  <section class="people" id="people">
+    <div class="people__media"><img data-img="lanterns-off" data-orient data-lazy alt=""><img class="people__on" data-img="lanterns" data-orient data-lazy data-ta="alt:home.people.alt" alt="About fifteen people seen from behind on a snowy shore at blue hour, each holding a small lantern, looking out over a fjord."></div>
+    <div class="people__txt wrap">
+      <h2 class="t-xl" data-rise data-t="home.people.h">No company. Just people.</h2>
+      <p class="lead" data-rise data-delay="90" data-t="home.people.p">YSKAR is a community project and belongs to the people who use it. They mine, run nodes, test releases and decide on changes in the open: revision 6 was put to a community vote.</p>
+      <div class="row" data-rise data-delay="160">
+        <a class="btn btn--ghost" href="/community" data-t="home.people.cta">Meet the community</a>
+        <a class="more" href="https://lab.yskar.app" target="_blank" rel="noopener"><span data-t="home.people.cta2">Open YSKAR Lab</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+      </div>
+    </div>
+  </section>
 
-<!-- Gemeinschaft -->
-<section class="abschnitt oben-dicht gemeinschaft">
-<div class="wrap">
-<div class="box">
-<div class="muenze3d statisch" aria-hidden="true" style="--w:-30deg"><div class="m-dreh"><i class="m-rand" style="--z:-8.36px"></i><i class="m-rand" style="--z:-7.07px"></i><i class="m-rand" style="--z:-5.79px"></i><i class="m-rand" style="--z:-4.50px"></i><i class="m-rand" style="--z:-3.21px"></i><i class="m-rand" style="--z:-1.93px"></i><i class="m-rand" style="--z:-0.64px"></i><i class="m-rand" style="--z:0.64px"></i><i class="m-rand" style="--z:1.93px"></i><i class="m-rand" style="--z:3.21px"></i><i class="m-rand" style="--z:4.50px"></i><i class="m-rand" style="--z:5.79px"></i><i class="m-rand" style="--z:7.07px"></i><i class="m-rand" style="--z:8.36px"></i><div class="m-seite vorne"><img src="/assets/img/zeichen.svg?v=1" alt="" width="120" height="120"></div><div class="m-seite hinten"><img src="/assets/img/zeichen.svg?v=1" alt="" width="120" height="120"></div></div></div>
-<span class="etikett" data-t="comm.etikett">Community</span>
-<h2 class="h2"><span data-t="comm.titel1">Built by its community.</span><br><span class="lt" data-t="comm.titel2">Owned by no one.</span></h2>
-<p class="unter" data-t="comm.text">Talk to the people who mine, build and run YSKAR every day.</p>
-<div class="knopfreihe">
-<a class="knopf hell" href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
-<a class="knopf rand" href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
-<a class="knopf rand" href="https://x.com/yskar_official">X</a>
-<a class="knopf rand" href="https://github.com/dabitlex/YSKAR">GitHub</a>
+    <section class="dawn dawn--scrub" data-dawn>
+    <div class="dawn__sticky">
+      <div class="dawn__stage">
+        <img class="dawn__night" data-img="fjord-night" data-orient data-lazy alt="">
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-mega" data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
-</div>
-</div>
-</section>
 
 </main>
 
-<footer class="fusszeile">
-<div class="wrap">
-<div style="display:flex;flex-direction:column;gap:14px;max-width:360px">
-<a class="marke" href="/"><img src="/assets/img/zeichen.svg?v=1" alt="" width="30" height="30"><span>YSKAR</span></a>
-<p class="motto">proof, not promise</p>
-<p class="motto">© <span id="jahr">2026</span> YSKAR · MIT</p>
-</div>
-<div class="spalten">
-<div>
-<span class="kennung" data-t="fuss.netz">Network</span>
-<a href="/explorer" data-t="nav.explorer">Explorer</a>
-<a href="/protokoll" data-t="nav.protokoll">Protocol</a>
-<a href="/anleitungen#fullnode" data-t="fuss.fullnode">Full node</a>
-<a href="/#v6">V6</a>
-<a href="https://github.com/dabitlex/YSKAR" data-t="fuss.quelltext">Source code</a>
-</div>
-<div>
-<span class="kennung" data-t="fuss.mitmachen">Take part</span>
-<a href="/mining" data-t="nav.mining">Mining</a>
-<a href="https://t.me/YSKAR_bot" data-t="fuss.telegram">Telegram Mini App</a>
-<a href="https://t.me/yskar_official" data-t="fuss.kanal">Telegram channel</a>
-<a href="https://t.me/+GxAmtTMeG1w1M2Yy" data-t="fuss.gruppe">Community chat</a>
-<a href="https://github.com/dabitlex/YSKAR--WALLET/releases/latest" data-t="fuss.wallet">YSKAR Wallet</a>
-<a href="https://lab.yskar.app" data-t="fuss.lab">YSKAR Lab</a>
-<a href="https://x.com/yskar_official">X</a>
-<a href="/anleitungen" data-t="nav.anleitungen">Guides</a>
-<a href="/whitepaper" data-t="nav.whitepaper">Whitepaper</a>
-</div>
-<div>
-<span class="kennung" data-t="fuss.rechtliches">Legal</span>
-<a href="/impressum" data-t="fuss.impressum">Legal notice</a>
-<a href="/datenschutz" data-t="fuss.datenschutz">Privacy</a>
-</div>
-</div>
-</div>
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-current="page" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <label class="lang lang--ink">
+          <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+          <span class="sr-only" data-t="nav.lang">Language</span>
+          <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+          <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+        </label>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
 </footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
 
 </body>
 </html>

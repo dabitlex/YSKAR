@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en" data-page="community" data-mode="snapshot">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community – YSKAR</title>
+<meta name="description" content="YSKAR is a community project and belongs to the people who use it. This is where they talk, test and decide.">
+<meta name="theme-color" content="#030816">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="YSKAR">
+<meta property="og:title" content="Community – YSKAR">
+<meta property="og:description" content="YSKAR is a community project and belongs to the people who use it. This is where they talk, test and decide.">
+<link rel="canonical" href="https://www.yskar.app/community">
+<meta property="og:url" content="https://www.yskar.app/community">
+<meta property="og:image" content="https://www.yskar.app/assets/img/og-yskar.jpg?v=e9afb36b">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="YSKAR – proof, not promise.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yskar_official">
+<link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="/favicon.png?v=4" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=3">
+<style>@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>
+<link rel="stylesheet" href="/assets/site.css?v=d7df03c0">
+<link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
+<script>(function (d, w) {
+var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"d5aaf4d6","de":"24f4f520","es":"75f468d7","pt":"5a1ff8b6","fr":"b0c28fe7","it":"ef8db93a","pl":"ec2042b0","ru":"93224617","tr":"75702b84","zh":"bf23a098"}, OLD = null, lang = null, list, i, s;
+function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
+w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
+var to = OLD && OLD[(location.hash || '').slice(1)];
+if (to) { location.replace(to); return; }
+c.add('js');
+c.add(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'no-anim' : 'anim');
+setTimeout(function () { c.add('ready'); c.remove('lang-wait'); if (!w.__booted) { c.remove('anim'); c.add('no-anim'); } }, 4000);
+function known(x) { x = String(x || '').slice(0, 2).toLowerCase(); return LANGS.indexOf(x) >= 0 ? x : null; }
+try { lang = known(new URLSearchParams(location.search).get('lang')); } catch (e) {  }
+if (!lang) try { lang = known(w.localStorage.getItem('yskar.sprache')); } catch (e) {  }
+if (!lang) {
+list = [].concat(navigator.languages || [], navigator.language || []);
+for (i = 0; i < list.length && !lang; i++) lang = known(list[i]);
+}
+lang = lang || 'en';
+w.YSKAR_LANG = lang;
+d.documentElement.lang = lang;
+if (lang !== 'en') c.add('lang-wait');
+s = d.createElement('script'); s.async = true; s.setAttribute('data-texts', lang); s.src = '/assets/i18n/' + lang + '.js?v=' + TEXTS[lang];
+s.onerror = function () { (w.YSKAR_AUS = w.YSKAR_AUS || {})[lang] = true; if (w.YSKAR_TEXTE_AUS) w.YSKAR_TEXTE_AUS(lang); };
+d.head.appendChild(s);
+if (w.fetch && /^https?:$/.test(location.protocol)) {
+var get = function (p) { return fetch('/api/v2' + p, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(function (r) { return { at: Date.now(), summary: r[0], blocks: r[1] }; }, function () { return null; });
+}
+})(document, window);</script>
+<script src="/assets/data/kette.js" defer></script>
+<script src="/assets/site.js?v=b8656ac5" defer></script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="yg" x1="0.1" y1="0" x2="0.75" y2="1"><stop offset="0" stop-color="#63D8FF"/><stop offset=".55" stop-color="#2F7BFF"/><stop offset="1" stop-color="#1B4FD1"/></linearGradient>
+    <symbol id="y-mark" viewBox="187.5 184 879 879">
+      <path fill="url(#yg)" d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/>
+    </symbol>
+    <symbol id="y-shape" viewBox="187.5 184 879 879"><path d="M688.0 969.2 C688.0 850.6 687.5 845.0 673.8 817.5 C659.4 788.7 647.4 777.8 562.0 716.5 C479.0 656.9 470.2 650.8 468.8 651.6 C467.2 652.6 467.8 790.6 469.5 803.3 C475.2 846.9 493.4 880.1 528.5 910.7 C533.5 915.0 545.6 925.8 555.5 934.6 C565.4 943.4 584.5 960.2 598.0 972.0 C641.5 1010.0 659.5 1027.9 677.2 1050.8 C681.6 1056.4 685.8 1061.0 686.6 1061.0 C687.8 1061.0 688.0 1048.0 688.0 969.2 Z M727.9 847.0 C797.3 765.8 810.3 667.4 760.3 600.9 C746.5 582.5 735.3 573.0 680.5 532.7 C669.5 524.7 644.3 506.1 624.5 491.4 C604.7 476.8 584.7 462.0 580.0 458.6 C482.6 387.3 367.5 300.7 338.0 276.6 C309.8 253.6 277.6 223.1 254.6 197.5 C249.1 191.4 244.2 186.5 243.6 186.5 C242.0 186.5 241.5 301.3 243.0 317.9 C247.5 367.3 262.8 415.1 285.7 451.2 C311.5 491.7 341.0 518.7 416.5 571.0 C447.3 592.3 445.7 591.2 495.5 626.5 C615.1 711.4 644.9 733.8 665.5 754.4 C695.2 784.2 712.4 815.2 716.1 845.5 C717.9 859.9 717.0 859.8 727.9 847.0 Z M816.3 594.8 C829.6 582.7 835.3 577.9 854.0 562.9 C934.5 498.6 960.5 472.6 982.2 435.1 C997.2 409.2 1007.7 377.3 1010.9 347.8 C1012.3 335.3 1012.4 254.3 1011.0 253.5 C1010.5 253.2 1003.6 258.2 995.8 264.6 C966.5 288.7 916.7 324.5 833.0 381.5 C786.7 413.1 688.1 481.9 684.2 485.3 C680.9 488.4 681.3 489.1 690.8 496.0 C772.8 556.1 786.1 568.4 800.6 597.2 C804.9 605.7 804.1 605.8 816.3 594.8 Z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 12 12"><path d="M3.2 1.6h7.2v7.2M10.1 1.9 1.6 10.4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="7.6"/><path d="M2.4 10h15.2M10 2.4c2.3 2.2 3.4 4.7 3.4 7.6s-1.1 5.4-3.4 7.6c-2.3-2.2-3.4-4.7-3.4-7.6S7.7 4.6 10 2.4Z"/></g></symbol>
+    <symbol id="i-down" viewBox="0 0 12 12"><path d="m2.4 4.4 3.6 3.6 3.6-3.6" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#main" data-t="nav.skip">Skip to content</a>
+
+<header class="bar" id="bar">
+  <div class="bar__in">
+    <a class="brand" href="/" aria-label="YSKAR">
+      <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+      <span class="brand__name">YSKAR</span>
+    </a>
+    <nav class="bar__links" data-ta="aria-label:nav.main" aria-label="Main navigation">
+      <a href="/mining" data-t="nav.mine">Mine</a>
+      <a href="/wallet" data-t="nav.wallet">Wallet</a>
+      <a href="/node" data-t="nav.node">Run a node</a>
+      <a href="/ysr" data-t="nav.ysr">YSR</a>
+      <a href="/community" aria-current="page" data-t="nav.community">Community</a>
+    </nav>
+    <div class="bar__end">
+      <a class="tick" href="/network" data-ta="title:nav.tick.title" title="The newest block. Open the live network page.">
+        <span class="tick__dot" aria-hidden="true"></span>
+        <span class="tick__k" data-t="nav.tick">Block</span>
+        <span class="tick__v mono" data-live="height">–</span>
+      </a>
+      <a class="btn btn--s bar__cta" href="/start" data-t="cta.join">Take part</a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu">
+        <span class="menu-btn__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="menu-btn__t" data-t="nav.menu">Menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu" id="menu" hidden>
+  <div class="menu__bg" aria-hidden="true"></div>
+  <div class="menu__in">
+    <div class="menu__cols">
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.part">Take part</p>
+        <a class="menu__a" href="/start"><span data-t="nav.start">Where to begin</span><small data-t="nav.start.d">Five ways in, each with its first step</small></a>
+        <a class="menu__a" href="/mining"><span data-t="nav.mine">Mine</span><small data-t="nav.mine.d">Find blocks with a phone, a PC or a graphics card</small></a>
+        <a class="menu__a" href="/wallet"><span data-t="nav.wallet">Wallet</span><small data-t="nav.wallet.d">Twelve words that only you hold</small></a>
+        <a class="menu__a" href="/node"><span data-t="nav.node">Run a node</span><small data-t="nav.node.d">Check every block yourself</small></a>
+        <a class="menu__a" href="/anleitungen"><span data-t="nav.guides">Guides</span><small data-t="nav.guides.d">Every way to take part, step by step</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.know">Understand</p>
+        <a class="menu__a" href="/ysr"><span data-t="nav.ysr">YSR</span><small data-t="nav.ysr.d">21 million, every one of them mined</small></a>
+        <a class="menu__a" href="/chain"><span data-t="nav.chain">The chain</span><small data-t="nav.chain.d">A blockchain of its own, and how it proves itself</small></a>
+        <a class="menu__a" href="/network"><span data-t="nav.network">Network, live</span><small data-t="nav.network.d">What the chain is doing right now</small></a>
+        <a class="menu__a" href="/explorer"><span data-t="nav.explorer">Explorer</span><small data-t="nav.explorer.d">Every block, every transfer, every address</small></a>
+        <a class="menu__a" href="/protokoll"><span data-t="nav.protocol">Protocol</span><small data-t="nav.protocol.d">Coin, chain and wallets, byte by byte</small></a>
+      </div>
+      <div class="menu__col">
+        <p class="menu__h" data-t="nav.g.join">Join in</p>
+        <a class="menu__a" href="/community" aria-current="page"><span data-t="nav.community">Community</span><small data-t="nav.community.d">Where the project talks and decides</small></a>
+        <a class="menu__a" href="/build"><span data-t="nav.build">Build</span><small data-t="nav.build.d">Open code, a public API, proposals</small></a>
+        <a class="menu__a" href="/story"><span data-t="nav.story">Story and next steps</span><small data-t="nav.story.d">From block 0 to today, and what comes after</small></a>
+        <a class="menu__a" href="/whitepaper"><span data-t="foot.whitepaper">White paper</span><small data-t="nav.paper.d">The system as it is implemented</small></a>
+      </div>
+    </div>
+    <div class="menu__foot">
+      <label class="lang">
+        <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+        <span class="sr-only" data-t="nav.lang">Language</span>
+        <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+        <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+      </label>
+      <div class="menu__ext">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<div class="page" data-page="community">
+  <section class="ph ph--wide">
+    <div class="ph__media" data-lanterns="community"><img data-img="lanterns-off" data-orient alt=""><img class="lanterns__on" data-img="lanterns" data-orient data-ta="alt:home.people.alt" alt="About fifteen people seen from behind on a snowy shore at blue hour, each holding a small lantern, looking out over a fjord." style="position:absolute;inset:0"></div>
+    <div class="ph__txt wrap">
+      <h1 class="t-xl" data-t="comm.h1">No company. Just people.</h1>
+      <p class="lead" data-t="comm.lead">YSKAR is a community project and belongs to the people who use it. This is where they talk, test and decide.</p>
+    </div>
+  </section>
+
+  <section class="band" id="now">
+    <div class="wrap">
+      <p class="say say--wide t-xl lit" data-lit data-say="comm.say"></p>
+      <p class="micro faint" style="margin-top:26px;max-width:44em" data-rise data-t="home.early.note">Nodes and miners as they report themselves. All figures come from the public API.</p>
+    </div>
+  </section>
+
+  <section class="band" id="channels">
+    <div class="wrap duo">
+      <div class="duo__a">
+        <h2 class="t-l" data-rise data-t="comm.ch.h">Where to find everyone</h2>
+        <p class="lead" data-rise data-delay="80" data-t="com.ch.p">Announcements appear in the Telegram channel first. Everything else is for questions and discussion.</p>
+      </div>
+      <div class="chan" data-rise data-delay="120">
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener"><b data-t="com.channel">Telegram channel</b><small data-t="com.ch.1">Releases and news.</small><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        <a href="https://t.me/+GxAmtTMeG1w1M2Yy" target="_blank" rel="noopener"><b data-t="com.chat">Community chat</b><small data-t="com.ch.2">Questions and discussion with other miners and users.</small><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener"><b>X</b><small data-t="com.ch.3">Short updates from @yskar_official.</small><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        <a href="https://bitcointalk.org/index.php?topic=5596113.0" target="_blank" rel="noopener"><b data-t="comm.ann">Bitcointalk</b><small data-t="com.ch.4">The announcement thread.</small><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener"><b>GitHub</b><small data-t="com.ch.5">Source code, releases and issues.</small><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener"><b>YSKAR Lab</b><small data-t="com.ch.6">Proposals, from the first idea to the release.</small><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="vote">
+    <div class="wrap">
+      <p class="say say--wide t-xl lit" data-lit data-t="comm.vote.say">On 25 October 2026 the community voted on when revision 6 begins. It chose block 10,000.</p>
+      <div class="road" id="road" data-rise>
+        <div class="road__bar" aria-hidden="true"><i class="road__fill"></i><b class="road__now"><span class="mono" id="road-now"></span></b><i class="road__end"></i></div>
+        <div class="road__ends">
+          <p><b data-t="road.start.k">25 Oct 2026</b><span data-t="road.start">The vote</span></p>
+          <p><b data-t="road.end.k">Block 10,000</b><span data-t="road.end">Revision 6 begins</span></p>
+        </div>
+        <p class="road__line"><span id="road-line" role="status"></span> <span data-t="road.need">Nodes need a current release before that block.</span></p>
+        <div class="row" style="--gap:22px"><a class="more" href="/chain#v6" data-t="comm.vote.cta">What revision 6 brings</a><a class="more" href="/node#core" data-t="node.cta">Get Node Core</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="do">
+    <div class="wrap">
+      <p class="say say--wide t-xl lit" data-lit data-t="comm.do.h">What you can do. None of it needs permission.</p>
+      <div class="pts" style="margin-top:clamp(48px,7vw,96px)">
+        <div class="pt" data-rise><h3 data-t="com.do.1.h">Run a full node</h3><p data-t="com.do.1.p">Every node that checks the blocks itself makes the network depend less on any single server.</p><a class="more" href="/node" data-t="way.node.cta">Run a node</a></div>
+        <div class="pt" data-rise data-delay="80"><h3 data-t="com.do.2.h">Mine, alone or in a pool</h3><p data-t="com.do.2.p">Hash power that is spread over many miners and several pools makes the chain harder to steer.</p><a class="more" href="/mining" data-t="way.mine.cta">How mining works</a></div>
+        <div class="pt" data-rise><h3 data-t="com.do.3.h">Run a pool</h3><p data-t="com.do.3.p">The pool software is part of the repository and pays miners in the block itself. Another independent pool spreads the hash power further.</p></div>
+        <div class="pt" data-rise data-delay="80"><h3 data-t="com.do.4.h">Test and report</h3><p data-t="com.do.4.p">Try a release and open an issue for what breaks. Say what you saw and how to reproduce it.</p></div>
+        <div class="pt" data-rise><h3 data-t="com.do.5.h">Propose and discuss</h3><p data-t="com.do.5.p">Bring an idea to YSKAR Lab, or improve someone else's in the comments.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="lab">
+    <div class="wrap">
+      <div class="band__head"><h2 class="t-l" data-rise data-t="comm.lab.h">How a proposal becomes a release</h2><p class="lead" data-rise data-delay="80" data-t="com.lab.p">Every proposal moves through the same six stages, and everyone can see where it stands.</p></div>
+      <ol class="labpath" data-path>
+        <li><b data-t="com.lab.s1">Idea</b><span data-t="com.lab.s1.d">Share what you have in mind.</span></li>
+        <li><b data-t="com.lab.s2">Discussion</b><span data-t="com.lab.s2.d">Improve it together in the comments.</span></li>
+        <li><b data-t="com.lab.s3">Draft</b><span data-t="com.lab.s3.d">Text, design, specification or code.</span></li>
+        <li><b data-t="com.lab.s4">Planned</b><span data-t="com.lab.s4.d">Set for a coming release, with a reason.</span></li>
+        <li><b data-t="com.lab.s5">On testnet</b><span data-t="com.lab.s5.d">Try it before it reaches the main network.</span></li>
+        <li><b data-t="com.lab.s6">Shipped</b><span data-t="com.lab.s6.d">Released, with a link to it.</span></li>
+      </ol>
+      <p class="labwho"><span data-t="com.lab.k1">The author moves a proposal through the first three stages.</span><span data-t="com.lab.k2">From Planned on, the team sets the stage, always with a reason.</span></p>
+      <div class="row" style="margin-top:22px"><a class="btn btn--ghost" href="https://lab.yskar.app" target="_blank" rel="noopener"><span data-t="com.lab.open">Open YSKAR Lab</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a></div>
+    </div>
+  </section>
+
+  <section class="band" id="safe">
+    <div class="wrap">
+      <div class="band__head"><h2 class="t-l" data-rise data-t="comm.safe.h">Stay safe</h2></div>
+      <div class="pts pts--3">
+        <div class="pt" data-rise><h3 data-t="com.safe.1.h">Your 12 words stay with you</h3><p data-t="com.safe.1.p">Nobody from YSKAR will ever ask for your 12 words, your PIN or a wallet file. Whoever asks is trying to take your coins.</p></div>
+        <div class="pt" data-rise data-delay="80"><h3 data-t="com.safe.2.h">Download from the source</h3><p data-t="com.safe.2.p">Get the software from the GitHub releases that this site links to, and compare the wallet's certificate fingerprint before you install it.</p></div>
+        <div class="pt" data-rise data-delay="160"><h3 data-t="com.safe.3.h">No promises</h3><p data-t="com.safe.3.p">YSR has no price and no market today, and it is not listed on any exchange. Nothing here promises that this will change.</p></div>
+      </div>
+    </div>
+  </section>
+    <section class="dawn dawn--still">
+    <div class="dawn__sticky">
+      <div class="dawn__stage" data-drift>
+        <img class="dawn__day" data-img="fjord-dawn" data-orient data-lazy data-ta="alt:dawn.alt" alt="The same fjord at first light: a pale sky over snow-covered mountains and still water.">
+      </div>
+      <div class="dawn__shade" aria-hidden="true"></div>
+      <div class="dawn__txt wrap">
+        <h2 class="t-xl" data-rise data-t="dawn.h">It's still early here.</h2>
+        <p class="lead" data-rise data-delay="90" data-t="dawn.p">Day <span data-live='day'></span>. The first light is only just coming up over this network. The people who shape it are the ones who are here now.</p>
+        <div class="row" data-rise data-delay="160">
+          <a class="btn" href="/start" data-t="cta.join">Take part</a>
+          <a class="more" href="/story" data-t="dawn.cta2">Read the story so far</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</main>
+
+<footer class="foot" id="foot">
+  <div class="wrap foot__in">
+    <div class="foot__lead">
+      <a class="brand brand--ink" href="/" aria-label="YSKAR">
+        <svg class="brand__mark" aria-hidden="true"><use href="#y-mark"/></svg>
+        <span class="brand__name">YSKAR</span>
+      </a>
+      <p class="foot__claim" data-t="foot.claim">Fair from block 0.</p>
+      <p class="foot__sub" data-t="foot.sub">YSKAR is a community project. No company stands behind it, and nobody has to be believed: every block can be checked.</p>
+    </div>
+    <nav class="foot__cols" data-ta="aria-label:foot.nav" aria-label="All pages">
+      <div>
+        <p class="foot__h" data-t="nav.g.part">Take part</p>
+        <a href="/start" data-t="nav.start">Where to begin</a>
+        <a href="/mining" data-t="nav.mine">Mine</a>
+        <a href="/wallet" data-t="nav.wallet">Wallet</a>
+        <a href="/node" data-t="nav.node">Run a node</a>
+        <a href="/anleitungen" data-t="nav.guides">Guides</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.know">Understand</p>
+        <a href="/ysr" data-t="nav.ysr">YSR</a>
+        <a href="/chain" data-t="nav.chain">The chain</a>
+        <a href="/network" data-t="nav.network">Network, live</a>
+        <a href="/explorer" data-t="nav.explorer">Explorer</a>
+        <a href="/protokoll" data-t="nav.protocol">Protocol</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="nav.g.join">Join in</p>
+        <a href="/community" aria-current="page" data-t="nav.community">Community</a>
+        <a href="/build" data-t="nav.build">Build</a>
+        <a href="/story" data-t="nav.story">Story and next steps</a>
+        <a href="/whitepaper" data-t="foot.whitepaper">White paper</a>
+      </div>
+      <div>
+        <p class="foot__h" data-t="foot.find">Find YSKAR</p>
+        <a href="https://t.me/yskar_official" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://x.com/yskar_official" target="_blank" rel="noopener">X</a>
+        <a href="https://github.com/dabitlex/YSKAR" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://lab.yskar.app" target="_blank" rel="noopener">YSKAR Lab</a>
+      </div>
+    </nav>
+    <div class="foot__base">
+      <p class="foot__note"><span data-live="sourceNote"></span></p>
+      <div class="foot__legal">
+        <label class="lang lang--ink">
+          <svg class="lang__g" aria-hidden="true"><use href="#i-globe"/></svg>
+          <span class="sr-only" data-t="nav.lang">Language</span>
+          <select data-lang-select autocomplete="off"><option value="en" lang="en" selected>English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option><option value="pt" lang="pt">Português</option><option value="fr" lang="fr">Français</option><option value="it" lang="it">Italiano</option><option value="pl" lang="pl">Polski</option><option value="ru" lang="ru">Русский</option><option value="tr" lang="tr">Türkçe</option><option value="zh" lang="zh">中文</option></select>
+          <svg class="lang__v" aria-hidden="true"><use href="#i-down"/></svg>
+        </label>
+        <a href="/impressum" data-t="foot.imprint">Legal notice</a>
+        <a href="/datenschutz" data-t="foot.privacy">Privacy</a>
+        <span data-t="foot.license">Open source under the MIT License</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="dock" id="dock" hidden>
+  <a class="btn dock__cta" href="/start" data-t="cta.join">Take part</a>
+  <a class="dock__live" href="/network"><span class="tick__dot" aria-hidden="true"></span><span data-t="nav.tick">Block</span> <span class="mono" data-live="height">–</span></a>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+</body>
+</html>
