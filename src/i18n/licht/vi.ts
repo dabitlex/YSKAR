@@ -18,6 +18,9 @@ const vi: typeof licht = {
   ersterEtikett: 'Share đầu tiên đã được chấp nhận',
   ersterTitel: 'Điện thoại của bạn giờ đã tham gia làm việc, và điều đó kiểm chứng được.',
   ersterText: 'Share là bằng chứng công việc của bạn gửi cho pool. Càng nhiều share, phần của bạn càng lớn khi pool tìm được khối.',
+  einstiegTitel: 'Thắp sáng\nngọn đèn của bạn.',
+  einstiegText: 'Điện thoại của bạn tham gia tính toán các khối thật và nhận YSR cho việc đó. Mỗi người tham gia là một ánh đèn sáng bên bờ.',
+  schritt: (n: number, von: number) => `Bước ${n}/${von}`,
 };
 
 export default vi;

@@ -82,25 +82,25 @@ export default function Unlock({ ebene = false }: { ebene?: boolean }) {
   const inhalt = (
     <main className="thema-dunkel rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[calc(28px+var(--unten))]">
       <div className="mt-11 flex justify-center">
-        <YZeichen g={64} className="licht-auf" />
+        <YZeichen g={56} className="licht-auf" />
       </div>
-      <h1 className="mt-[22px] text-center text-[24px] font-semibold tracking-[-0.02em]">{t.unlock.titel}</h1>
+      <h1 className="mt-[22px] text-center text-[24px] font-[350] tracking-[-.026em]">{t.unlock.titel}</h1>
       {ebene && (
         <div className="mt-2.5 flex justify-center">
-          <span className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-[.08em] text-dim">
-            <span className="h-1.5 w-1.5 rounded-full bg-work" />{t.einstellungen.sperreKurz}
+          <span className="flex items-center gap-2 text-[13.5px] text-lese">
+            <span className="h-1.5 w-1.5 rounded-full bg-lamp" />{t.einstellungen.sperreKurz}
           </span>
         </div>
       )}
 
       <div className="mt-[30px]"><PinFeld wert={pin} onChange={setPin} gesperrt={busy} fehler={!!fehler && pin === ''} /></div>
-      <p className="mt-3.5 min-h-[18px] text-center text-[12.5px] font-semibold text-risk">
-        {busy ? <span className="text-faint">{t.unlock.oeffnet}</span> : fehler}
+      <p className="mt-5 min-h-[20px] text-center text-[13.5px] text-risk">
+        {busy ? <span className="text-dim">{t.unlock.oeffnet}</span> : fehler}
       </p>
 
       {bio && (
         <button type="button" onClick={mitBiometrie} disabled={busy}
-                className="mx-auto mt-2 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-[13px] font-extrabold disabled:opacity-50">
+                className="mx-auto mt-2 flex min-h-11 items-center gap-2 rounded-full px-5 text-[14.5px] font-semibold shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)] disabled:opacity-50">
           <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M5 6.5a8 8 0 0 1 12 0M3.5 10a10 10 0 0 1 15 0M7 13a5 5 0 0 1 8 0M11 11v6M8.5 16.5a4 4 0 0 0 5 0" />
@@ -114,7 +114,7 @@ export default function Unlock({ ebene = false }: { ebene?: boolean }) {
 
       {!zeigeNotausgang ? (
         <button onClick={() => setZeigeNotausgang(true)}
-                className="mt-4 w-full text-center text-[13px] font-bold text-dim">
+                className="mt-3 min-h-11 w-full text-center text-[14.5px] font-medium text-lese underline decoration-text/40 underline-offset-4">
           {t.unlock.vergessen}
         </button>
       ) : (

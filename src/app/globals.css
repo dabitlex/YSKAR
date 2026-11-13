@@ -380,3 +380,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 /* Ein Blockfund ist das Morgengrauen der Website: helles Foto, dunkle Schrift. */
 .tag-knopf { background: #0A1530; color: #fff; }
 .tag-unten > :not(.tag-knopf), .tag-unten > :not(.tag-knopf) * { color: #0A1530 !important; opacity: 1 !important; }
+
+/* Willkommen: derselbe Fjord in voller Hoehe. Das Foto ist breiter als der
+   Bildschirm, damit es ihn auch in der Hoehe fuellt. */
+/* Die Uferlinie liegt eine Handbreit ueber dem Textblock, der unten steht --
+   unabhaengig von der Breite des Bildschirms. */
+.buehne-voll { --ufer-y: max(200px, calc(100dvh - 430px));
+  --ufer-w: max(calc(var(--ufer-b) * 1.24), calc(var(--ufer-y) / .9858)); }
+.buehne-voll .ufer { height: 100dvh; z-index: 0; }
+.buehne-voll .ufer img { width: var(--ufer-w); left: 50%; translate: -50% 0; top: calc(var(--ufer-y) - var(--ufer-w) * .9858); }
+.buehne-voll .ufer::after { background: linear-gradient(180deg, rgb(2 5 15 / .58) 0%, rgb(2 5 15 / 0) 24%, rgb(4 10 26 / 0) 48%, rgb(4 10 26 / .82) 66%, rgb(var(--ink)) 84%); }

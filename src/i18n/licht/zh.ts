@@ -18,6 +18,9 @@ const zh: typeof licht = {
   ersterEtikett: '第一个 share 已被接受',
   ersterTitel: '你的手机现在已经在参与工作，而且可以验证。',
   ersterText: 'Share 是你交给矿池的工作证明。Share 越多，矿池找到区块时你的份额就越大。',
+  einstiegTitel: '点亮\n你的灯。',
+  einstiegText: '你的手机参与真实区块的计算，并因此获得 YSR。每有一人参与，岸边就亮起一盏灯。',
+  schritt: (n: number, von: number) => `第 ${n} 步，共 ${von} 步`,
 };
 
 export default zh;

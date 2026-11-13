@@ -53,11 +53,11 @@ export default function PinFeld({ wert, onChange, gesperrt = false, fehler = fal
   return (
     <div className="flex flex-col gap-0">
       <div role="status" aria-label={t.einstieg.eingegeben(wert.length)}
-           className={`flex justify-center gap-4 ${fehler ? 'zittern' : ''}`}>
+           className={`flex justify-center gap-5 ${fehler ? 'zittern' : ''}`}>
         {Array.from({ length: PIN_LAENGE }, (_, i) => (
           <span key={i}
-                className={`h-3.5 w-3.5 rounded-full transition-colors ${
-                  fehler ? 'bg-risk' : i < wert.length ? 'bg-work' : 'border-2 border-line'}`} />
+                className={`h-3 w-3 rounded-full transition-[background-color,box-shadow] ${
+                  fehler ? 'bg-risk' : i < wert.length ? 'bg-[#FFE7C2] shadow-[0_0_14px_4px_rgb(255_190_112/.6)]' : 'shadow-[inset_0_0_0_1.5px_rgb(238_244_255/.4)]'}`} />
         ))}
       </div>
     </div>
@@ -77,14 +77,14 @@ export function PinTasten({ wert, onChange, gesperrt = false }: {
     onChange(wert + k);
   };
   return (
-    <div role="group" aria-label={t.einstieg.ziffern} className="grid grid-cols-3 gap-2.5">
+    <div role="group" aria-label={t.einstieg.ziffern} className="-mx-2 grid grid-cols-3">
       {TASTEN.map((k, i) => k === '' ? <span key={i} /> : (
         <button key={i} type="button" onClick={() => tippen(k)} disabled={gesperrt}
                 aria-label={k === 'loeschen' ? t.einstieg.loeschen : undefined}
-                className={`flex items-center justify-center rounded-[18px] text-[24px] font-bold
-                            transition-transform active:scale-95 disabled:opacity-50 ${
-                  k === 'loeschen' ? 'text-dim' : 'bg-surface text-text active:bg-raised'}`}
-                style={{ height: 'clamp(48px, 7.2dvh, 60px)' }}>
+                className={`flex items-center justify-center rounded-full text-[31px] font-light tracking-[-.02em]
+                            transition-transform active:scale-95 active:bg-text/[.06] disabled:opacity-50 ${
+                  k === 'loeschen' ? 'text-lese' : 'text-text'}`}
+                style={{ height: 'clamp(54px, 9dvh, 76px)' }}>
           {k === 'loeschen' ? Zeichen.Loeschen() : k}
         </button>
       ))}

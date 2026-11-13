@@ -20,6 +20,9 @@ const licht = {
   ersterEtikett: 'Erster Share angenommen',
   ersterTitel: 'Dein Handy rechnet jetzt nachweislich mit.',
   ersterText: 'Ein Share ist dein Beleg an den Pool. Je mehr Shares, desto größer dein Anteil, sobald der Pool einen Block findet.',
+  einstiegTitel: 'Mach dein\nLicht an.',
+  einstiegText: 'Dein Handy rechnet an echten Blöcken mit und verdient dafür YSR. Für jeden, der mitmacht, brennt ein Licht am Ufer.',
+  schritt: (n: number, von: number) => `Schritt ${n} von ${von}`,
 };
 
 export default licht;

@@ -18,6 +18,9 @@ const id: typeof licht = {
   ersterEtikett: 'Share pertama diterima',
   ersterTitel: 'Ponselmu kini terbukti ikut bekerja.',
   ersterText: 'Share adalah buktimu kepada pool. Makin banyak share, makin besar bagianmu saat pool menemukan blok.',
+  einstiegTitel: 'Nyalakan\ncahayamu.',
+  einstiegText: 'Ponselmu ikut mengerjakan blok sungguhan dan mendapat YSR untuk itu. Untuk setiap orang yang ikut, satu cahaya menyala di tepi.',
+  schritt: (n: number, von: number) => `Langkah ${n} dari ${von}`,
 };
 
 export default id;

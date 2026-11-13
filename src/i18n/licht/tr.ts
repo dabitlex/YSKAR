@@ -18,6 +18,9 @@ const tr: typeof licht = {
   ersterEtikett: 'İlk share kabul edildi',
   ersterTitel: 'Telefonun artık kanıtlanabilir şekilde işe katılıyor.',
   ersterText: 'Share, havuza sunduğun iş kanıtıdır. Ne kadar çok share, havuz blok bulduğunda payın o kadar büyük olur.',
+  einstiegTitel: 'Işığını\nyak.',
+  einstiegText: 'Telefonun gerçek bloklar üzerinde çalışır ve karşılığında YSR kazanır. Katılan herkes için kıyıda bir ışık yanar.',
+  schritt: (n: number, von: number) => `Adım ${n} / ${von}`,
 };
 
 export default tr;

@@ -18,6 +18,9 @@ const it: typeof licht = {
   ersterEtikett: 'Primo share accettato',
   ersterTitel: 'Ora il tuo telefono partecipa al lavoro, in modo verificabile.',
   ersterText: 'Uno share è la tua prova per il pool. Più share hai, più grande è la tua parte quando il pool trova un blocco.',
+  einstiegTitel: 'Accendi\nla tua luce.',
+  einstiegText: 'Il tuo telefono lavora su blocchi veri e guadagna YSR per questo. Per ogni persona che partecipa, una luce si accende sulla riva.',
+  schritt: (n: number, von: number) => `Passo ${n} di ${von}`,
 };
 
 export default it;

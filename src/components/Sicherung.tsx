@@ -40,16 +40,20 @@ type Schritt = 'vorbereiten' | 'pin' | 'woerter' | 'pruefen' | 'fertig';
 export default function Sicherung({ onSchliessen, pflicht = false }: { onSchliessen: () => void; pflicht?: boolean }) {
   const wallet = useWallet();
   const { t } = useT();
-  const [schritt, setSchritt] = useState<Schritt>('vorbereiten');
-  const [woerter, setWoerter] = useState<string[] | null>(null);
+  // Pflicht direkt nach dem Erstellen: Die Woerter stehen sofort da. PIN und
+  // Woerter gehoeren im Einstieg zusammen ("Schritt 2 von 3"); die Hinweise
+  // des frueheren Vorbereitungsschritts stehen jetzt bei den Woertern.
+  const sofort = pflicht && !!wallet.freshMnemonic;
+  const [schritt, setSchritt] = useState<Schritt>(sofort ? 'woerter' : 'vorbereiten');
+  const [woerter, setWoerter] = useState<string[] | null>(() => (sofort ? wallet.freshMnemonic!.split(' ') : null));
 
   const zurueck = () => {
     if (schritt === 'pin') setSchritt('vorbereiten');
-    else if (schritt === 'woerter') setSchritt('vorbereiten');
+    else if (schritt === 'woerter') { if (!sofort) setSchritt('vorbereiten'); }
     else if (schritt === 'pruefen') setSchritt('woerter');
     else if (!pflicht) onSchliessen();
   };
-  const kannZurueck = !(pflicht && (schritt === 'vorbereiten' || schritt === 'fertig'));
+  const kannZurueck = !(pflicht && (schritt === 'vorbereiten' || schritt === 'fertig' || (sofort && schritt === 'woerter')));
   useZurueckTaste(kannZurueck, zurueck);
 
   const zeigen = () => {
@@ -64,7 +68,7 @@ export default function Sicherung({ onSchliessen, pflicht = false }: { onSchlies
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-ink">
-      <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-[calc(28px+var(--unten))]">
+      <main className="rand-oben mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-[calc(28px+var(--unten))]">
         {schritt !== 'fertig' && (
           <>
             <div className="flex items-center justify-between">
@@ -74,12 +78,11 @@ export default function Sicherung({ onSchliessen, pflicht = false }: { onSchlies
                 <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"
                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 5l-6 6 6 6" /></svg>
               </button>
-              <span className="font-mono text-[11.5px] uppercase tracking-[.12em] text-dim">{t.sicherung.schritt(nummer)}</span>
-              <span className="w-10" />
+              <span className="text-[13px] text-dim">{t.licht.schritt(nummer, 3)}</span>
             </div>
-            <div className="mt-[18px] grid grid-cols-3 gap-1.5" aria-hidden="true">
+            <div className="mt-3 flex gap-1.5" aria-hidden="true">
               {[1, 2, 3].map(i => (
-                <span key={i} className={`h-[3px] rounded-full ${i <= nummer ? 'bg-cyan' : 'bg-line'}`} />
+                <span key={i} className={`h-0.5 w-[22px] rounded-full ${i <= nummer ? 'bg-text' : 'bg-text/25'}`} />
               ))}
             </div>
           </>
@@ -92,7 +95,11 @@ export default function Sicherung({ onSchliessen, pflicht = false }: { onSchlies
         {schritt === 'woerter' && woerter && <Woerter woerter={woerter} onWeiter={() => setSchritt('pruefen')} />}
         {schritt === 'pruefen' && woerter && (
           <Pruefen woerter={woerter} onNochmal={() => setSchritt('woerter')}
-                   onBestanden={() => { wallet.gesichertMelden(); if (pflicht) pflichtLoesen(); setWoerter(null); haptik('erfolg'); setSchritt('fertig'); }} />
+                   onBestanden={() => {
+                     wallet.gesichertMelden(); if (pflicht) pflichtLoesen(); setWoerter(null); haptik('erfolg');
+                     // Im Einstieg geht es ohne Zwischenbild weiter: Als Naechstes waehlt der Nutzer seinen Pool.
+                     if (sofort) onSchliessen(); else setSchritt('fertig');
+                   }} />
         )}
         {schritt === 'fertig' && <Fertig onSchliessen={onSchliessen} />}
       </main>
@@ -113,7 +120,7 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
           <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M8 11l2 2 4-4" />
         </svg>
       </span>
-      <h1 className="mt-[18px] text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.sicherung.s1Titel}</h1>
+      <h1 className="mt-[18px] aussage text-[33px] leading-[1.05] tracking-[-.036em]">{t.sicherung.s1Titel}</h1>
       <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s1Text}</p>
 
       <ol className="mt-5 flex flex-col gap-2.5">
@@ -138,7 +145,7 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
         <span>{t.sicherung.bereit}</span>
       </label>
       <button type="button" onClick={onWeiter} disabled={!bereit}
-              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em]
                          text-lamp-ink transition-transform active:scale-[.985] disabled:opacity-30">
         {t.sicherung.zeigen}
       </button>
@@ -190,20 +197,26 @@ function Woerter({ woerter, onWeiter }: { woerter: string[]; onWeiter: () => voi
   const reihen = Array.from({ length: 6 }, (_, i) => [i, i + 6]);
   return (
     <>
-      <h1 className="mt-[26px] text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.sicherung.s2Titel}</h1>
-      <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s2Text}</p>
-      <ol className="panel mt-5 grid grid-cols-2 gap-x-[18px] !rounded-[20px] px-[18px] py-1">
-        {reihen.flat().map((i, k) => (
-          <li key={i} className={`flex items-baseline gap-3 py-3 ${k < 10 ? 'border-b border-line' : ''}`}>
-            <span className="tnum w-[18px] shrink-0 text-right text-[12px] text-faint">{i + 1}</span>
-            <span className="font-mono text-[15px]">{woerter[i]}</span>
+      <h1 className="aussage mt-6 text-[33px] leading-[1.05] tracking-[-.036em]">{t.sicherung.s2Titel}</h1>
+      <p className="mt-3 text-[14.5px] leading-[1.45] text-lese">{t.sicherung.s2Text}</p>
+      <ol className="mt-5 grid grid-cols-2 gap-x-[26px] border-t border-line">
+        {reihen.flat().map(i => (
+          <li key={i} className="flex h-[50px] items-center gap-3.5 border-b border-line">
+            <span className="tnum w-5 shrink-0 font-mono text-[12.5px] text-dim">{String(i + 1).padStart(2, '0')}</span>
+            <span className="text-[18px] font-medium tracking-[-.01em]">{woerter[i]}</span>
           </li>
         ))}
       </ol>
-      <div className="mt-3.5"><Notice tone="risk">{t.sicherung.keinFoto}</Notice></div>
+      <ul className="mt-5 flex flex-col gap-2.5">
+        {[t.rd.w.g1S, t.rd.w.g2S, t.rd.w.g4S].map(h => (
+          <li key={h} className="flex items-baseline gap-2.5 text-[14px] leading-[1.45] text-lese">
+            <span className="h-1.5 w-1.5 shrink-0 -translate-y-0.5 rounded-full bg-lamp" aria-hidden="true" />{h}
+          </li>
+        ))}
+      </ul>
       <div className="min-h-6 flex-1" />
       <button type="button" onClick={onWeiter}
-              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em]
                          text-lamp-ink transition-transform active:scale-[.985]">
         {t.sicherung.aufgeschrieben}
       </button>
@@ -255,7 +268,7 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
 
   return (
     <>
-      <h1 className="mt-[26px] text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.sicherung.s3Titel}</h1>
+      <h1 className="mt-[26px] aussage text-[33px] leading-[1.05] tracking-[-.036em]">{t.sicherung.s3Titel}</h1>
       <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s3Text}</p>
 
       <div className="mt-5 flex flex-col gap-2.5">
@@ -264,10 +277,12 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
           const dran = offen?.i === f.i;
           return (
             <section key={f.i}
-                     className={`panel flex flex-col gap-2.5 !rounded-[20px] p-4 ${dran ? 'ring-2 ring-work' : ''} ${
-                       !richtig && !dran ? 'opacity-55' : ''}`}>
+                     className={`flex flex-col gap-2.5 border-b border-line py-3.5 ${!richtig && !dran ? 'opacity-55' : ''}`}>
               <div className="flex items-center justify-between">
-                <span className="text-[14px] font-extrabold">{t.sicherung.wort(f.i + 1)}</span>
+                <span className="flex items-center gap-2.5 text-[16px] font-medium">
+                  {dran && <span className="h-2 w-2 rounded-full bg-[#FFE7C2] shadow-[0_0_12px_3px_rgb(255_190_112/.6)]" aria-hidden="true" />}
+                  {t.sicherung.wort(f.i + 1)}
+                </span>
                 {richtig && (
                   <span className="flex items-center gap-1.5 text-[12px] font-extrabold text-proof">
                     <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2"
@@ -282,9 +297,10 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
                     const ist = richtig && w === woerter[f.i];
                     return (
                       <button key={w} type="button" onClick={() => waehlen(f.i, w)} disabled={richtig}
-                              className={`h-[46px] rounded-[12px] font-mono text-[14px] transition-colors ${
-                                ist ? 'border-2 border-proof bg-proof/10 text-proof'
-                                  : richtig ? 'bg-raised text-faint' : 'bg-raised text-text active:bg-line'}`}>
+                              className={`h-11 rounded-full text-[16px] font-medium transition-colors ${
+                                ist ? 'text-proof shadow-[inset_0_0_0_1.5px_rgb(var(--proof))]'
+                                  : richtig ? 'text-faint shadow-[inset_0_0_0_1px_rgb(238_244_255/.14)]'
+                                  : 'text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)] active:bg-text/[.06]'}`}>
                         {w}
                       </button>
                     );
@@ -298,11 +314,11 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
       </div>
 
       <div className="min-h-6 flex-1" />
-      <button type="button" onClick={onNochmal} className="mb-3 text-center text-[13px] font-bold text-work">
+      <button type="button" onClick={onNochmal} className="mb-2 min-h-11 text-center text-[14.5px] font-medium text-lese underline decoration-text/40 underline-offset-4">
         {t.sicherung.nochmal}
       </button>
       <button type="button" onClick={onBestanden} disabled={!alle}
-              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em]
                          text-lamp-ink transition-transform active:scale-[.985] disabled:opacity-30">
         {t.sicherung.abschliessen}
       </button>
@@ -322,7 +338,7 @@ function Fertig({ onSchliessen }: { onSchliessen: () => void }) {
       <h1 className="mt-6 text-[26px] font-semibold tracking-[-0.025em]">{t.sicherung.erledigtTitel}</h1>
       <p className="mt-2 max-w-[300px] text-[14px] leading-[1.5] text-dim">{t.sicherung.erledigtText}</p>
       <button type="button" onClick={onSchliessen}
-              className="mt-10 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink">
+              className="mt-10 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em] text-lamp-ink">
         {t.allgemein.fertig}
       </button>
     </div>
@@ -352,7 +368,7 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
         <li className="flex gap-2 text-dim"><span className="font-semibold text-amber">○</span>{t.sicherung.offenSenden}</li>
       </ul>
       <button type="button" onClick={onSichern}
-              className="mt-4 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink">
+              className="mt-4 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em] text-lamp-ink">
         {t.sicherung.jetzt}
       </button>
       <button type="button" onClick={onSchliessen}

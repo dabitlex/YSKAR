@@ -18,6 +18,9 @@ const uk: typeof licht = {
   ersterEtikett: 'Перший share прийнято',
   ersterTitel: 'Тепер твій телефон доказово бере участь у роботі.',
   ersterText: 'Share — це твоє підтвердження роботи для пулу. Що більше share, то більша твоя частка, коли пул знайде блок.',
+  einstiegTitel: 'Засвіти свій\nвогник.',
+  einstiegText: 'Твій телефон бере участь у розрахунку справжніх блоків і отримує за це YSR. За кожного учасника на березі горить вогник.',
+  schritt: (n: number, von: number) => `Крок ${n} з ${von}`,
 };
 
 export default uk;
