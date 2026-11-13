@@ -41,6 +41,7 @@ const pl: typeof licht = {
   wachsenTitel: 'Zostaw zapalone światło.',
   communityTitel: 'Żadna firma.\nPo prostu ludzie.',
   detailsText: 'Trudność, czas bloku, ostatnie bloki',
+  leerKaufen: (sym: string) => `${sym} nie da się jeszcze kupić. Na razie nie ma notowań ani ceny.`,
 };
 
 export default pl;

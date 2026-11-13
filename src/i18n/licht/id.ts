@@ -41,6 +41,7 @@ const id: typeof licht = {
   wachsenTitel: 'Biarkan satu lampu menyala.',
   communityTitel: 'Bukan perusahaan.\nHanya manusia.',
   detailsText: 'Kesulitan, waktu blok, blok terakhir',
+  leerKaufen: (sym: string) => `${sym} belum bisa dibeli. Sejauh ini belum ada listing dan belum ada harga.`,
 };
 
 export default id;

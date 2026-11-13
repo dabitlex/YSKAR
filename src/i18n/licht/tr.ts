@@ -41,6 +41,7 @@ const tr: typeof licht = {
   wachsenTitel: 'Bir ışık açık bırak.',
   communityTitel: 'Şirket yok.\nSadece insanlar.',
   detailsText: 'Zorluk, blok süresi, son bloklar',
+  leerKaufen: (sym: string) => `${sym} henüz satın alınamıyor. Şimdilik listeleme ve fiyat yok.`,
 };
 
 export default tr;

@@ -53,8 +53,15 @@ export interface HistoryEintrag {
   /api/v2/account/:adresse/verlauf. Fuer "Eingaenge" und "Ausgaenge" fragt
   die Liste den Server mit Filter -- sonst saehe man unter "Ausgaenge" nur,
   was zufaellig unter den letzten 40 Eintraegen aller Art war.
+
+  Gefiltert wird nach ART: Mining (Blockreward, Pool-Anteil) oder
+  Ueberweisungen. Der Server waehlt aus (lib/api/verlaufArt.ts); eine Seite
+  kann dabei LEER sein und trotzdem einen Cursor tragen -- dann lag in dem
+  gelesenen Stueck nichts Passendes, und die Liste fragt von selbst weiter.
 */
-type Richtung = 'alle' | 'ein' | 'aus';
+type Sicht = 'alle' | 'mining' | 'transfer';
+/** So oft fragt die Liste von selbst weiter, wenn eine Seite leer zurueckkommt. */
+const LEER_WEITER = 6;
 interface Seite { eintraege: HistoryEintrag[]; weiter: string | null }
 const LEER: Seite = { eintraege: [], weiter: null };
 const schluessel = (e: HistoryEintrag) => `${e.txid}:${e.kind}`;
@@ -89,18 +96,20 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   // Ausgewaehlte Transaktion. Als Blatt und nicht als eigene Seite: Man
   // will danach wieder in derselben Liste stehen, an derselben Stelle.
   const [offen, setOffen] = useState<HistoryEintrag | null>(null);
-  const [filter, setFilter] = useState<'alle' | 'in' | 'out'>('alle');
+  const [sicht, setSicht] = useState<Sicht>('alle');
   const [kopiert, setKopiert] = useState(false);
   const [verborgen, verbergen] = useGuthabenVerborgen();
   const { t, betrag, vorZeit, locale, zahl } = useT();
   const { name } = useKontakte();
   const unb = t.allgemein.unbekannt;
 
-  const richtung: Richtung = filter === 'alle' ? 'alle' : filter === 'in' ? 'ein' : 'aus';
-  // Erste Seite je Filter (nur "ein"/"aus"; "alle" kommt mit dem Konto).
-  const [koepfe, setKoepfe] = useState<Record<'ein' | 'aus', Seite | null>>({ ein: null, aus: null });
-  // Nachgeladene aeltere Seiten je Filter. null = noch nichts nachgeladen.
-  const [aeltere, setAeltere] = useState<Record<Richtung, Seite | null>>({ alle: null, ein: null, aus: null });
+  // Zusatz fuer die Abfrage: die gewaehlte Art. "Alle" braucht keinen.
+  const artParameter = sicht === 'alle' ? '' : `&art=${sicht}`;
+  const passt = (e: HistoryEintrag) => sicht === 'alle' || (sicht === 'mining') === istMining(e);
+  // Erste Seite je Art (nur Mining/Ueberweisungen; "alle" kommt mit dem Konto).
+  const [koepfe, setKoepfe] = useState<Record<'mining' | 'transfer', Seite | null>>({ mining: null, transfer: null });
+  // Nachgeladene aeltere Seiten je Art. null = noch nichts nachgeladen.
+  const [aeltere, setAeltere] = useState<Record<Sicht, Seite | null>>({ alle: null, mining: null, transfer: null });
   const [laedt, setLaedt] = useState(false);
   const [ladeFehler, setLadeFehler] = useState(false);
 
@@ -122,7 +131,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   const suche = useMemo(() => sucheAus(q), [q]);
   const [vonZeit, bisZeit] = useMemo(() => grenzen(zeitraum), [zeitraum]);
   const filterAktiv = suche !== null || vonZeit !== null || bisZeit !== null;
-  const filterKey = filterAktiv ? `${richtung}|${q}|${vonZeit ?? ''}|${bisZeit ?? ''}` : '';
+  const filterKey = filterAktiv ? `${sicht}|${q}|${vonZeit ?? ''}|${bisZeit ?? ''}` : '';
   const filterParameter = () => {
     const p = new URLSearchParams();
     if (suche) p.set('q', q);
@@ -151,8 +160,8 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
 
   // Andere Wallet: alles Nachgeladene gehoert nicht mehr hierher.
   useEffect(() => {
-    setKoepfe({ ein: null, aus: null });
-    setAeltere({ alle: null, ein: null, aus: null });
+    setKoepfe({ mining: null, transfer: null });
+    setAeltere({ alle: null, mining: null, transfer: null });
     setTreffer(null); setRest(null);
     setAufgeklappt(new Set()); setGanz(new Set());
     setEingabe(''); setQ(''); setZeitraum(IMMER); setSuchOffen(false);
@@ -163,12 +172,12 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     if (!address || !filterAktiv) return;
     let abgebrochen = false;
     setTrefferFehler(false);
-    fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&limit=40&${filterParameter()}`)
+    fetch(`/api/v2/account/${address}/verlauf?richtung=alle${artParameter}&limit=40&${filterParameter()}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
       .then((seite: Seite) => { if (!abgebrochen) setTreffer({ key: filterKey, seite }); })
       .catch(() => { if (!abgebrochen) setTrefferFehler(true); });
     return () => { abgebrochen = true; };
-    // filterKey fasst richtung, q, von und bis zusammen.
+    // filterKey fasst Art, q, von und bis zusammen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, filterKey]);
   const trefferSeite = filterAktiv && treffer?.key === filterKey ? treffer.seite : null;
@@ -177,26 +186,28 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   // dazukommen (der neueste Eintrag des Kontos aendert sich).
   const neuester = account?.history?.[0] ? schluessel(account.history[0]) : '';
   useEffect(() => {
-    if (!address || richtung === 'alle') return;
+    if (!address || sicht === 'alle') return;
     let abgebrochen = false;
-    fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&limit=40`)
+    fetch(`/api/v2/account/${address}/verlauf?richtung=alle${artParameter}&limit=40`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
-      .then((s: Seite) => { if (!abgebrochen) setKoepfe(k => ({ ...k, [richtung]: s })); })
+      .then((s: Seite) => { if (!abgebrochen) setKoepfe(k => ({ ...k, [sicht]: s })); })
       .catch(() => { /* bleibt bei der gefilterten Kontoliste */ });
     return () => { abgebrochen = true; };
-  }, [address, richtung, neuester]);
+    // artParameter folgt aus sicht.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, sicht, neuester]);
 
-  // Bis der Server antwortet, steht unter "Eingaenge"/"Ausgaenge" das
+  // Bis der Server antwortet, steht unter "Mining"/"Ueberweisungen" das
   // Passende aus der Kontoliste -- vorlaeufig: Es kann mehr geben.
-  const vorlaeufig = !filterAktiv && richtung !== 'alle' && !koepfe[richtung];
-  const kopf: Seite = richtung === 'alle'
+  const vorlaeufig = !filterAktiv && sicht !== 'alle' && !koepfe[sicht];
+  const kopf: Seite = sicht === 'alle'
     ? { eintraege: account?.history ?? [], weiter: account?.historyWeiter ?? null }
-    : koepfe[richtung] ?? {
-        // Ohne "Aeltere laden" -- der Cursor waere einer fuer alle Richtungen.
-        eintraege: (account?.history ?? []).filter(e => richtung === 'aus' ? e.kind === 'out' : e.kind !== 'out'),
+    : koepfe[sicht] ?? {
+        // Ohne "Aeltere laden" -- der Cursor waere einer fuer alle Arten.
+        eintraege: (account?.history ?? []).filter(passt),
         weiter: null,
       };
-  const nachgeladen = aeltere[richtung];
+  const nachgeladen = aeltere[sicht];
   const ungefiltert = useMemo(() => zusammen(kopf.eintraege, (nachgeladen ?? LEER).eintraege),
     [kopf.eintraege, nachgeladen]);
   // Gibt es aeltere Seiten? (Ab der letzten nachgeladenen, sonst ab der ersten.)
@@ -219,8 +230,8 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     laufen nicht streng aufwaerts. Ein Block, der zwischen beiden liegt,
     kaeme sonst nie.
   */
-  const basis = `${address ?? ''}|${richtung}`;
-  const letzter = !filterAktiv && !vorlaeufig && mehrDa && richtung !== 'aus'
+  const basis = `${address ?? ''}|${sicht}`;
+  const letzter = !filterAktiv && !vorlaeufig && mehrDa && sicht !== 'transfer'
     ? ungefiltert[ungefiltert.length - 1] : undefined;
   const vorLetzter = letzter ? ungefiltert[ungefiltert.length - 2] : undefined;
   const letzterTag = letzter ? tagSchluessel(letzter.timestamp) : '';
@@ -232,7 +243,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     let abgebrochen = false;
     const beginn = new Date(Number(letzter.timestamp) * 1000);
     beginn.setHours(0, 0, 0, 0);
-    fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&vor=${letzter.height}:${letzter.idx}` +
+    fetch(`/api/v2/account/${address}/verlauf?richtung=alle${artParameter}&vor=${letzter.height}:${letzter.idx}` +
           `&von=${Math.floor(beginn.getTime() / 1000)}&limit=${REST_LIMIT}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
       .then((s: Seite) => {
@@ -246,7 +257,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
       })
       .catch(() => { /* das Buendel bleibt als unvollstaendig gekennzeichnet */ });
     return () => { abgebrochen = true; };
-    // restKey fasst Adresse, Richtung und den letzten Eintrag zusammen.
+    // restKey fasst Adresse, Art und den letzten Eintrag zusammen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restKey]);
   /*
@@ -280,27 +291,55 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     setLaedt(true); setLadeFehler(false);
     try {
       const filterJetzt = filterAktiv ? filterKey : '';
-      const r = await fetch(`/api/v2/account/${address}/verlauf?richtung=${richtung}&vor=${encodeURIComponent(cursor)}&limit=50${
-        filterAktiv ? '&' + filterParameter() : ''}`);
-      if (!r.ok) throw new Error(String(r.status));
-      const s: Seite = await r.json();
-      if (filterJetzt) {
-        // Treffer anhaengen -- aber nur, wenn der Filter noch derselbe ist.
-        setTreffer(tr => tr && tr.key === filterJetzt
-          ? { key: tr.key, seite: { eintraege: zusammen(tr.seite.eintraege, s.eintraege), weiter: s.weiter } }
-          : tr);
-        return;
+      const sichtJetzt = sicht;
+      let ab = cursor;
+      // Mit einer Art kann eine Seite leer sein und trotzdem weitergehen:
+      // dann gleich die naechste holen, statt einen Knopf zu zeigen, der
+      // scheinbar nichts tut.
+      for (let runde = 0; runde < LEER_WEITER; runde++) {
+        const r = await fetch(`/api/v2/account/${address}/verlauf?richtung=alle${artParameter}&vor=${encodeURIComponent(ab)}&limit=50${
+          filterAktiv ? '&' + filterParameter() : ''}`);
+        if (!r.ok) throw new Error(String(r.status));
+        const s: Seite = await r.json();
+        if (filterJetzt) {
+          // Treffer anhaengen -- aber nur, wenn der Filter noch derselbe ist.
+          setTreffer(tr => tr && tr.key === filterJetzt
+            ? { key: tr.key, seite: { eintraege: zusammen(tr.seite.eintraege, s.eintraege), weiter: s.weiter } }
+            : tr);
+        } else {
+          // Beim ersten Nachladen die erste Seite mit festhalten: Kommt spaeter
+          // ein neuer Eintrag dazu, rutscht der bisher letzte aus der ersten
+          // Seite -- er darf dann nicht zwischen beiden Seiten verloren gehen.
+          setAeltere(a => ({ ...a, [sichtJetzt]: {
+            eintraege: [...(a[sichtJetzt]?.eintraege ?? kopf.eintraege), ...s.eintraege],
+            weiter: s.weiter,
+          } }));
+        }
+        if (s.eintraege.length > 0 || !s.weiter) break;
+        ab = s.weiter;
       }
-      // Beim ersten Nachladen die erste Seite mit festhalten: Kommt spaeter
-      // ein neuer Eintrag dazu, rutscht der bisher letzte aus der ersten
-      // Seite -- er darf dann nicht zwischen beiden Seiten verloren gehen.
-      setAeltere(a => ({ ...a, [richtung]: {
-        eintraege: [...(a[richtung]?.eintraege ?? kopf.eintraege), ...s.eintraege],
-        weiter: s.weiter,
-      } }));
     } catch { setLadeFehler(true); }
     finally { setLaedt(false); }
   };
+
+  /*
+    Die erste Seite einer Art kam leer, aber mit Cursor: weiter hinten kann
+    etwas sein. Dann fragt die Liste von selbst weiter -- begrenzt, damit ein
+    sehr langer Verlauf nicht endlos im Hintergrund gelesen wird; danach
+    bleibt der Knopf "Aeltere laden".
+  */
+  const [vonSelbst, setVonSelbst] = useState<{ key: string; n: number }>({ key: '', n: 0 });
+  const selbstKey = `${address ?? ''}|${sicht}|${filterKey}`;
+  const selbstRunden = vonSelbst.key === selbstKey ? vonSelbst.n : 0;
+  const sucheWeiter = sicht !== 'alle' && !vorlaeufig && verlauf.length === 0 && !!cursor
+    && (!filterAktiv || !!trefferSeite) && !ladeFehler && selbstRunden < LEER_WEITER;
+  useEffect(() => {
+    if (!sucheWeiter || laedt) return;
+    setVonSelbst({ key: selbstKey, n: selbstRunden + 1 });
+    void mehrLaden();
+    // mehrLaden liest den aktuellen Stand; ausgeloest wird nur durch diese Bedingung.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sucheWeiter, laedt, selbstKey, selbstRunden]);
 
   // ------------------------------------------------------------- Zahlen
   const zeigen = (wert: bigint | string | number) => verborgen ? PUNKTE : betragText(wert, locale, decimals);
@@ -453,7 +492,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   let nichtsDa = false;
   try { nichtsDa = BigInt(account?.balance ?? 0) === 0n; } catch { /* dann wie gefuellt */ }
   const leer = !!account && nichtsDa && pending.length === 0 && (account.history?.length ?? 0) === 0
-    && filter === 'alle' && !filterAktiv && !suchOffen;
+    && sicht === 'alle' && !filterAktiv && !suchOffen;
 
   return (
     <>
@@ -538,6 +577,8 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
               </button>
             ))}
           </div>
+          {/* Ehrlich dazu: Einen anderen Weg gibt es noch nicht. */}
+          <p className="mt-4 text-[13px] leading-[1.45] text-dim">{t.licht.leerKaufen(symbol)}</p>
         </section>
       )}
 
@@ -608,17 +649,14 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
         </div>
         <div role="group" aria-label={t.wallet.filter}
              className="-mx-1 mt-1 flex gap-2 overflow-x-auto px-1 [scrollbar-width:none]">
-          {([['alle', t.wallet.alle], ['in', t.wallet.eingaenge], ['out', t.wallet.ausgaenge]] as const).map(([v, text]) => (
-            <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)} className={chip(filter === v)}>
-              {text}
+          {/* Filter und Legende in einem: Die Farbe des Punkts sagt, woher ein Eintrag kommt. */}
+          {([['alle', t.wallet.alle, null], ['mining', t.licht.legendeMining, 'kette'], ['transfer', t.licht.legendeMenschen, 'mensch']] as const).map(([v, text, punkt]) => (
+            <button key={v} type="button" aria-pressed={sicht === v} onClick={() => setSicht(v)}
+                    className={`${chip(sicht === v)} ${punkt ? 'flex items-center gap-1.5 !pl-2.5' : ''}`}>
+              {punkt && <Punkt art={punkt} />}{text}
             </button>
           ))}
         </div>
-        {/* Legende: woher ein Eintrag kommt, sagt die Farbe seines Punkts. */}
-        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-dim">
-          <span className="flex items-center gap-1.5"><Punkt art="kette" className="!ml-0" />{t.licht.legendeMining}</span>
-          <span className="flex items-center gap-1.5"><Punkt art="mensch" className="!ml-0" />{t.licht.legendeMenschen}</span>
-        </p>
 
         {suchOffen ? (
           <SuchLeiste eingabe={eingabe} onEingabe={setEingabe}
@@ -648,7 +686,12 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
             <button onClick={filterWeg} className={`${VERWEIS} mt-2`}>{t.wallet.filterZuruecksetzen}</button>
           </div>
         ) : verlauf.length === 0 ? (
-          <p className="py-7 text-[14.5px] leading-[1.45] text-lese">{t.wallet.leer}</p>
+          // Leer, aber weiter hinten kann noch etwas sein: Dann sagt der Knopf unten, was los ist.
+          cursor && sicht !== 'alle' ? <div className="h-3" /> : (
+            <p className="py-7 text-[14.5px] leading-[1.45] text-lese">
+              {vorlaeufig ? t.wallet.laedtMehr : sicht === 'transfer' ? t.wallet.keineTreffer : t.wallet.leer}
+            </p>
+          )
         ) : (
           <div>
             {tage.map((tag, i) => (

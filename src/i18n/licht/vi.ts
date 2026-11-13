@@ -41,6 +41,7 @@ const vi: typeof licht = {
   wachsenTitel: 'Hãy để một ngọn đèn sáng.',
   communityTitel: 'Không phải công ty.\nChỉ có con người.',
   detailsText: 'Độ khó, thời gian khối, các khối gần nhất',
+  leerKaufen: (sym: string) => `Hiện chưa thể mua ${sym}. Đến nay chưa có niêm yết và chưa có giá.`,
 };
 
 export default vi;

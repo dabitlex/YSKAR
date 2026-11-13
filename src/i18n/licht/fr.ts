@@ -41,6 +41,7 @@ const fr: typeof licht = {
   wachsenTitel: 'Laisse une lumière allumée.',
   communityTitel: 'Pas d’entreprise.\nJuste des gens.',
   detailsText: 'Difficulté, temps de bloc, derniers blocs',
+  leerKaufen: (sym: string) => `${sym} ne s’achète pas encore. Pour l’instant, ni cotation ni prix.`,
 };
 
 export default fr;

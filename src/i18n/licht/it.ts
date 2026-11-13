@@ -41,6 +41,7 @@ const it: typeof licht = {
   wachsenTitel: 'Lascia una luce accesa.',
   communityTitel: 'Nessuna azienda.\nSolo persone.',
   detailsText: 'Difficoltà, tempo di blocco, ultimi blocchi',
+  leerKaufen: (sym: string) => `${sym} non si può ancora comprare. Per ora non c’è né quotazione né prezzo.`,
 };
 
 export default it;

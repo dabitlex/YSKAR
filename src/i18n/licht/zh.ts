@@ -41,6 +41,7 @@ const zh: typeof licht = {
   wachsenTitel: '留一盏灯。',
   communityTitel: '没有公司。\n只有人。',
   detailsText: '难度、出块时间、最近的区块',
+  leerKaufen: (sym: string) => `${sym} 目前还不能购买。暂时没有上线交易所，也没有价格。`,
 };
 
 export default zh;

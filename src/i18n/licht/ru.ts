@@ -41,6 +41,7 @@ const ru: typeof licht = {
   wachsenTitel: 'Оставь свет включённым.',
   communityTitel: 'Не компания.\nПросто люди.',
   detailsText: 'Сложность, время блока, последние блоки',
+  leerKaufen: (sym: string) => `Купить ${sym} пока нельзя. Листинга и цены пока нет.`,
 };
 
 export default ru;

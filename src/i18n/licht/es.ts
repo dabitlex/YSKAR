@@ -41,6 +41,7 @@ const es: typeof licht = {
   wachsenTitel: 'Deja una luz encendida.',
   communityTitel: 'Ninguna empresa.\nSolo personas.',
   detailsText: 'Dificultad, tiempo de bloque, últimos bloques',
+  leerKaufen: (sym: string) => `${sym} todavía no se puede comprar. Por ahora no hay listado ni precio.`,
 };
 
 export default es;

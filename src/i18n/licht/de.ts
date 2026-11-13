@@ -43,6 +43,7 @@ const licht = {
   wachsenTitel: 'Lass ein Licht an.',
   communityTitel: 'Kein Unternehmen.\nNur Menschen.',
   detailsText: 'Schwierigkeit, Blockzeit, letzte Blöcke',
+  leerKaufen: (sym: string) => `Kaufen lässt sich ${sym} noch nicht. Es gibt bisher kein Listing und keinen Preis.`,
 };
 
 export default licht;
