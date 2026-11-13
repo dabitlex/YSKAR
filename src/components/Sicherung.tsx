@@ -138,8 +138,8 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
         <span>{t.sicherung.bereit}</span>
       </label>
       <button type="button" onClick={onWeiter} disabled={!bereit}
-              className="flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold
-                         text-ink transition-transform active:scale-[.985] disabled:opacity-30">
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold
+                         text-lamp-ink transition-transform active:scale-[.985] disabled:opacity-30">
         {t.sicherung.zeigen}
       </button>
     </>
@@ -203,8 +203,8 @@ function Woerter({ woerter, onWeiter }: { woerter: string[]; onWeiter: () => voi
       <div className="mt-3.5"><Notice tone="risk">{t.sicherung.keinFoto}</Notice></div>
       <div className="min-h-6 flex-1" />
       <button type="button" onClick={onWeiter}
-              className="flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold
-                         text-ink transition-transform active:scale-[.985]">
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold
+                         text-lamp-ink transition-transform active:scale-[.985]">
         {t.sicherung.aufgeschrieben}
       </button>
     </>
@@ -302,8 +302,8 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
         {t.sicherung.nochmal}
       </button>
       <button type="button" onClick={onBestanden} disabled={!alle}
-              className="flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold
-                         text-ink transition-transform active:scale-[.985] disabled:opacity-30">
+              className="flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold
+                         text-lamp-ink transition-transform active:scale-[.985] disabled:opacity-30">
         {t.sicherung.abschliessen}
       </button>
     </>
@@ -322,7 +322,7 @@ function Fertig({ onSchliessen }: { onSchliessen: () => void }) {
       <h1 className="mt-6 text-[26px] font-semibold tracking-[-0.025em]">{t.sicherung.erledigtTitel}</h1>
       <p className="mt-2 max-w-[300px] text-[14px] leading-[1.5] text-dim">{t.sicherung.erledigtText}</p>
       <button type="button" onClick={onSchliessen}
-              className="mt-10 flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink">
+              className="mt-10 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink">
         {t.allgemein.fertig}
       </button>
     </div>
@@ -352,7 +352,7 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
         <li className="flex gap-2 text-dim"><span className="font-semibold text-amber">○</span>{t.sicherung.offenSenden}</li>
       </ul>
       <button type="button" onClick={onSichern}
-              className="mt-4 flex h-[56px] w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink">
+              className="mt-4 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink">
         {t.sicherung.jetzt}
       </button>
       <button type="button" onClick={onSchliessen}

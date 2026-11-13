@@ -15,6 +15,9 @@ const en: typeof licht = {
   leistung: 'Hashrate',
   last: (p: number, w: number) => `Load ${p}% · ${w} ${w === 1 ? 'worker' : 'workers'}`,
   anpassen: 'Adjust',
+  ersterEtikett: 'First share accepted',
+  ersterTitel: 'Your phone is now provably part of the work.',
+  ersterText: 'A share is your proof to the pool. The more shares, the larger your part once the pool finds a block.',
 };
 
 export default en;

@@ -53,7 +53,7 @@ export default function NetzStaerken({ onZurueck }: { onZurueck: () => void }) {
 
       <div className="rise rise-2 mt-7 flex flex-col gap-2.5">
         <ExternLink href={COMMUNITY.releases}
-                    className="flex min-h-[56px] items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink active:scale-[.985]">
+                    className="flex min-h-[56px] items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink active:scale-[.985]">
           {n.nodeCore}
         </ExternLink>
         <ExternLink href={COMMUNITY.anleitungen}

@@ -15,6 +15,9 @@ const uk: typeof licht = {
   leistung: 'Потужність',
   last: (p: number, w: number) => `Навантаження ${p} % · Worker: ${w}`,
   anpassen: 'Змінити',
+  ersterEtikett: 'Перший share прийнято',
+  ersterTitel: 'Тепер твій телефон доказово бере участь у роботі.',
+  ersterText: 'Share — це твоє підтвердження роботи для пулу. Що більше share, то більша твоя частка, коли пул знайде блок.',
 };
 
 export default uk;

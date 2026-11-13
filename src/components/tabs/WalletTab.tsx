@@ -439,7 +439,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   };
 
   const chip = (an: boolean) => `h-9 shrink-0 rounded-full px-4 text-[13px] font-medium transition-colors ${
-    an ? 'bg-text text-ink' : 'border border-line text-dim'}`;
+    an ? 'bg-text/[.14] font-semibold text-text' : 'border border-line text-lese'}`;
 
   return (
     <>

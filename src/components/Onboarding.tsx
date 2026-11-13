@@ -108,7 +108,7 @@ function Hauptknopf({ children, onClick, disabled, mitte }: {
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-            className={`flex h-14 w-full items-center rounded-full bg-text text-[15.5px] font-semibold text-ink transition-transform
+            className={`flex h-14 w-full items-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink transition-transform
                         active:scale-[.985] disabled:opacity-40 disabled:active:scale-100 ${mitte ? 'justify-center px-6' : 'justify-between pl-[26px] pr-2'}`}>
       {children}{!mitte && <Pfeil />}
     </button>

@@ -15,6 +15,9 @@ const zh: typeof licht = {
   leistung: '算力',
   last: (p: number, w: number) => `负载 ${p}% · ${w} 个 Worker`,
   anpassen: '调整',
+  ersterEtikett: '第一个 share 已被接受',
+  ersterTitel: '你的手机现在已经在参与工作，而且可以验证。',
+  ersterText: 'Share 是你交给矿池的工作证明。Share 越多，矿池找到区块时你的份额就越大。',
 };
 
 export default zh;

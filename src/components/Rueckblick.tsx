@@ -55,25 +55,25 @@ export default function Rueckblick({ mining, seit, shares, onWeiter }: {
   return (
     <Blatt offen={!!alt} onSchliessen={() => setAlt(null)}>
       <p className="label">{r.etikett}</p>
-      <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.02em]">{r.titel}</h2>
-      <p className="mt-2 text-[14px] leading-[1.5] text-dim">{r.text}</p>
+      <h2 className="aussage mt-3 text-[33px] leading-[1.05] tracking-[-.036em]">{r.titel}</h2>
+      <p className="mt-3 text-[15px] leading-[1.5] text-lese">{r.text}</p>
       <div className="mt-5 grid grid-cols-2 border-y border-line">
-        <div className="flex flex-col items-center gap-1 py-3.5">
-          <span className="tnum font-mono text-[18px]">{dauer}</span>
-          <span className="text-[11.5px] text-dim">{r.dauer}</span>
+        <div className="flex flex-col gap-1.5 py-3.5">
+          <span className="text-[12.5px] text-dim">{r.dauer}</span>
+          <span className="tnum font-mono text-[16.5px]">{dauer}</span>
         </div>
-        <div className="flex flex-col items-center gap-1 border-l border-line py-3.5">
-          <span className="tnum font-mono text-[18px]">{alt ? zahl(alt.shares) : '—'}</span>
-          <span className="text-[11.5px] text-dim">{r.shares}</span>
+        <div className="flex flex-col gap-1.5 border-l border-line py-3.5 pl-3.5">
+          <span className="text-[12.5px] text-dim">{r.shares}</span>
+          <span className="tnum font-mono text-[16.5px]">{alt ? zahl(alt.shares) : '—'}</span>
         </div>
       </div>
-      <p className="mt-4 text-[12.5px] leading-[1.5] text-faint">{r.android}</p>
+      <p className="mt-4 text-[13.5px] leading-[1.5] text-dim">{r.android}</p>
       <div className="mt-5 flex flex-col gap-2">
         <button type="button" onClick={() => { setAlt(null); onWeiter(); }}
-                className="flex min-h-[56px] items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink active:scale-[.985]">
+                className="flex min-h-[56px] items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink active:scale-[.985]">
           {r.weiter}
         </button>
-        <button type="button" onClick={() => setAlt(null)} className="h-11 text-[14px] text-dim">{r.nichtJetzt}</button>
+        <button type="button" onClick={() => setAlt(null)} className="h-11 text-[15.5px] font-medium text-text underline decoration-text/40 underline-offset-4">{r.nichtJetzt}</button>
       </div>
     </Blatt>
   );

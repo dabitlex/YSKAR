@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { hashrateTeile } from '@/lib/format/hashrate';
 import { Panel, GroupTitle, Hash, Notice } from '@/components/ui/Primitives';
-import { Zahl, Etikett, Karte, Pille, Kurve, Ring, Blatt, Segment } from '@/components/ui/Bausteine';
+import { Etikett, Karte, Blatt, Segment } from '@/components/ui/Bausteine';
 import ShareChart from '@/components/ShareChart';
 import { PoolFeld } from '@/components/mining/PoolWahl';
 import type { PoolAuswahl } from '@/hooks/usePoolAuswahl';
@@ -84,29 +84,28 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
         <div className="rise rise-1 mt-6"><PoolFeld pool={pool} onOeffnen={() => pool.setBlatt(true)} /></div>
       )}
       {modus === 'pool' && m.mining && (
-        <Karte className="rise rise-2 mt-6 flex flex-col gap-2.5 p-4">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-[14.5px] font-extrabold">
-              <span className="h-2 w-2 rounded-full bg-proof" />
-              {pool.gewaehlt && !pool.gewaehlt.eigen ? pool.gewaehlt.name : m.poolInfo?.name ?? pool.gewaehlt?.name}
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
+        <section className="rise rise-2 mt-9">
+          <p className="label">{t.rd.mine.pool}</p>
+          <p className="mt-2 flex items-center gap-2.5 text-[24px] font-[350] tracking-[-.026em]">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-proof" aria-hidden="true" />
+            <span className="truncate">{pool.gewaehlt && !pool.gewaehlt.eigen ? pool.gewaehlt.name : m.poolInfo?.name ?? pool.gewaehlt?.name}</span>
+          </p>
+          <div className="mt-3.5 grid grid-cols-3 border-y border-line">
             <Feld name={t.miningNeu.poolLeistung} wert={poolRate ? `${rate(poolRate).wert} ${rate(poolRate).einheit}` : '—'} />
             <Feld name={t.miningNeu.poolMiner}
                   wert={ps && ps.belegt !== null && ps.plaetze !== null ? `${ps.belegt} / ${ps.plaetze}` : String(m.poolInfo?.miner ?? '—')} />
             <Feld name={t.miningNeu.poolGebuehr} wert={feeBps !== null ? `${zahl(feeBps / 100)} %` : '—'} />
           </div>
-          <div className="flex items-baseline justify-between border-t border-line pt-2.5">
-            <span className="text-[13px] font-bold text-dim">{t.miningNeu.anteil}</span>
-            <span className="tnum text-[14px] font-extrabold text-proof">{t.miningNeu.anteilWert(anteilText, sym)}</span>
+          <div className="flex items-baseline justify-between gap-3 pb-1.5 pt-[15px]">
+            <span className="text-[16px] font-medium">{t.miningNeu.anteil}</span>
+            <span className="tnum shrink-0 font-mono text-[16.5px] text-lamp">{t.miningNeu.anteilWert(anteilText, sym)}</span>
           </div>
-          <p className="text-[11.5px] font-semibold leading-[1.45] text-faint">{t.miningNeu.anteilErklaerung}</p>
-        </Karte>
+          <p className="text-[13.5px] leading-[1.45] text-dim">{t.miningNeu.anteilErklaerung}</p>
+        </section>
       )}
 
       {m.mining && (
-        <p className="mt-3 flex gap-2.5 px-1 text-[13px] leading-[1.5] text-dim">
+        <p className="mt-4 flex gap-2.5 text-[13.5px] leading-[1.5] text-dim">
           {m.dienst?.ok
             ? (m.dienst.notifications ? t.mining.hintergrund : t.mining.hintergrundOhne)
             : m.dienst && !m.dienst.ok ? t.mining.dienstFehler(m.dienst.fehler)
@@ -116,9 +115,10 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
       )}
 
       <button type="button" onClick={() => setErweitert(true)}
-              className="panel mt-3 flex h-[52px] w-full items-center justify-between px-4 text-[14px]
-                         text-lese active:scale-[.99]">
-        {t.miningNeu.erweitert}<span className="text-faint" aria-hidden="true">›</span>
+              className="panel mt-4 flex h-[58px] w-full items-center justify-between text-left text-[16px] font-medium
+                         active:opacity-70">
+        {t.miningNeu.erweitert}
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-dim" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" /></svg>
       </button>
 
       {m.stumm && !m.fehler && (
@@ -145,14 +145,14 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
             {t.mining.bloecke(m.account?.blocksFound ?? 0)}
           </span>
         </div>
-        <Ring anteil={zumZiel} oben={`${Math.round(zumZiel * 100)} %`} unten={t.mining.zumZiel} />
+        <span className="tnum shrink-0 font-mono text-[14px] text-lese">{Math.round(zumZiel * 100)} % {t.mining.zumZiel}</span>
       </section>
       <Karte className="mt-3 p-4"><ShareChart shares={m.shares} active={m.mining} /></Karte>
 
       {m.lastShare && (
         <>
           <GroupTitle aside={t.mining.difficulty(zahl(Number(m.lastShare.difficulty)))}>{t.mining.letzterShare}</GroupTitle>
-          <Panel><Hash value={m.lastShare.hash} className="text-[12.5px] leading-[1.75]" /></Panel>
+          <div className="terminal"><Hash value={m.lastShare.hash} className="text-[13.5px] leading-[1.55]" /></div>
         </>
       )}
 
@@ -193,14 +193,14 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
                      disabled={m.mining} />
             {!m.mining && (
               <button type="button" onClick={() => { setErweitert(false); onBenchmark(); }}
-                      className="mt-2 self-start text-[12.5px] font-extrabold text-work">
+                      className="mt-1 min-h-11 self-start text-left text-[13.5px] font-medium text-text underline decoration-text/40 underline-offset-4">
                 {bench ? t.mining.kalibrierung(bench.besteWorker) : t.mining.kalibrieren}
               </button>
             )}
           </Wahl>
-          {m.mining && <p className="text-[12px] font-semibold text-faint">{t.miningNeu.gesperrtBeimMinen}</p>}
+          {m.mining && <p className="text-[13.5px] text-dim">{t.miningNeu.gesperrtBeimMinen}</p>}
           <button type="button" onClick={() => setErweitert(false)}
-                  className="flex h-14 w-full items-center justify-center rounded-full bg-text text-[15.5px] font-semibold text-ink">
+                  className="flex h-14 w-full items-center justify-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink">
             {t.allgemein.fertig}
           </button>
         </div>
@@ -211,9 +211,9 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
 
 function Feld({ name, wert }: { name: string; wert: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 py-1">
-      <span className="truncate text-[11.5px] text-dim">{name}</span>
-      <span className="tnum truncate font-mono text-[13.5px]">{wert}</span>
+    <div className="flex min-w-0 flex-col gap-1.5 py-3.5 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line [&:not(:first-child)]:pl-3.5">
+      <span className="truncate text-[12.5px] text-dim">{name}</span>
+      <span className="tnum truncate font-mono text-[16.5px]">{wert}</span>
     </div>
   );
 }
@@ -223,11 +223,11 @@ function Wahl({ titel, text, zusatz, children }: {
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-extrabold">
-        {titel}{zusatz && <span className="ml-1.5 font-semibold text-faint">{zusatz}</span>}
+      <span className="text-[15px] font-semibold">
+        {titel}{zusatz && <span className="ml-1.5 text-[13.5px] font-normal text-dim">{zusatz}</span>}
       </span>
       {children}
-      {text && <span className="text-[12px] font-semibold leading-[1.45] text-dim">{text}</span>}
+      {text && <span className="text-[13.5px] leading-[1.45] text-dim">{text}</span>}
     </div>
   );
 }

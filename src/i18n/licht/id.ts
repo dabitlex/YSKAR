@@ -15,6 +15,9 @@ const id: typeof licht = {
   leistung: 'Daya',
   last: (p: number, w: number) => `Beban ${p}% · ${w} worker`,
   anpassen: 'Atur',
+  ersterEtikett: 'Share pertama diterima',
+  ersterTitel: 'Ponselmu kini terbukti ikut bekerja.',
+  ersterText: 'Share adalah buktimu kepada pool. Makin banyak share, makin besar bagianmu saat pool menemukan blok.',
 };
 
 export default id;

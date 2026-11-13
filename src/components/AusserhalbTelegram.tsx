@@ -30,7 +30,7 @@ export default function AusserhalbTelegram() {
 
       <div className="relative flex flex-col gap-2.5">
         <a href={COMMUNITY.bot}
-           className="flex h-14 items-center justify-center gap-2 rounded-full bg-text text-[16px] font-semibold text-ink">
+           className="flex h-14 items-center justify-center gap-2 rounded-full bg-lamp text-[16px] font-semibold text-lamp-ink">
           <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9"
                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.5 10 19.5 3.5l-3 15.5-5.5-4.5-3 3.5v-5.5l8.5-6.5" /></svg>
           {t.browserNeu.oeffnen}

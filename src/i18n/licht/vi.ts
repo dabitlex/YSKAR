@@ -15,6 +15,9 @@ const vi: typeof licht = {
   leistung: 'Công suất',
   last: (p: number, w: number) => `Tải ${p}% · ${w} worker`,
   anpassen: 'Điều chỉnh',
+  ersterEtikett: 'Share đầu tiên đã được chấp nhận',
+  ersterTitel: 'Điện thoại của bạn giờ đã tham gia làm việc, và điều đó kiểm chứng được.',
+  ersterText: 'Share là bằng chứng công việc của bạn gửi cho pool. Càng nhiều share, phần của bạn càng lớn khi pool tìm được khối.',
 };
 
 export default vi;

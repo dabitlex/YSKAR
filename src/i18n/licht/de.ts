@@ -17,6 +17,9 @@ const licht = {
   leistung: 'Leistung',
   last: (p: number, w: number) => `Last ${p} % · ${w} Worker`,
   anpassen: 'Anpassen',
+  ersterEtikett: 'Erster Share angenommen',
+  ersterTitel: 'Dein Handy rechnet jetzt nachweislich mit.',
+  ersterText: 'Ein Share ist dein Beleg an den Pool. Je mehr Shares, desto größer dein Anteil, sobald der Pool einen Block findet.',
 };
 
 export default licht;

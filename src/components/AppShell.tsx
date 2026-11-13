@@ -20,6 +20,7 @@ import UpdateBanner from '@/components/UpdateBanner';
 import Sicherung, { SendenGesperrt } from '@/components/Sicherung';
 import PoolAuszahlung from '@/components/PoolAuszahlung';
 import FundBild from '@/components/FundBild';
+import ErsterShare from '@/components/mining/ErsterShare';
 import Verbindung from '@/components/Verbindung';
 import Rueckblick from '@/components/Rueckblick';
 import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
@@ -303,6 +304,8 @@ export default function AppShell({ platform }: { platform: string }) {
         Minuten einmal, und meistens bei jemand anderem. Deshalb bekommt es
         als einziges eine Vollflaeche, ueber der Navigation.
       */}
+      <ErsterShare shares={m.sharesZahl} mining={m.mining}
+                   neu={(m.account as { history?: unknown[] } | null)?.history?.length === 0} />
       {m.fund && (
         <FundBild etikett={t.rd.fund.eigen} betrag={(Number(m.fund.reward) / 10 ** dec).toFixed(0)} symbol={sym} muenzen={5}
                   unter={<span className="font-mono text-text">#{m.fund.height}</span>}

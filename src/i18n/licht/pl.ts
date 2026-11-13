@@ -15,6 +15,9 @@ const pl: typeof licht = {
   leistung: 'Moc',
   last: (p: number, w: number) => `Obciążenie ${p} % · workery: ${w}`,
   anpassen: 'Zmień',
+  ersterEtikett: 'Pierwszy share przyjęty',
+  ersterTitel: 'Twój telefon bierze teraz udział w pracy i da się to sprawdzić.',
+  ersterText: 'Share to Twój dowód pracy dla poola. Im więcej share’ów, tym większa Twoja część, gdy pool znajdzie blok.',
 };
 
 export default pl;

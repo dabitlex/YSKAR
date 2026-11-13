@@ -99,11 +99,11 @@ export function Segment<T extends string | number>({ werte, wert, onChange, labe
   werte: { v: T; text: string }[]; wert: T; onChange: (v: T) => void; label: string; disabled?: boolean;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-full border border-line bg-ink p-1">
+    <div role="group" aria-label={label} className="flex gap-1 rounded-full p-1 shadow-[inset_0_0_0_1px_rgb(170_198_255/.17)]">
       {werte.map(w => (
         <button key={String(w.v)} onClick={() => onChange(w.v)} aria-pressed={wert === w.v} disabled={disabled}
-                className={`min-h-[36px] min-w-[44px] flex-1 rounded-full px-3 text-[13px] font-medium transition-colors disabled:opacity-60 ${
-                  wert === w.v ? 'bg-text text-ink' : 'text-dim'}`}>
+                className={`min-h-[44px] min-w-[44px] flex-1 rounded-full px-3 text-[15px] font-medium transition-colors disabled:opacity-60 ${
+                  wert === w.v ? 'bg-text/[.14] font-semibold text-text' : 'text-lese'}`}>
           {w.text}
         </button>
       ))}
@@ -205,14 +205,14 @@ export function Blatt({ offen, onSchliessen, children, titel, rechts, grund = 's
     <div className={`fixed inset-0 z-40 flex flex-col justify-end transition-opacity duration-200 ${offen ? 'opacity-100' : 'opacity-0'}`}
          style={{ background: 'rgb(3 6 15 / .78)' }}
          onClick={onSchliessen} role="dialog" aria-modal="true">
-      <div className={`mx-auto w-full max-w-md max-h-[calc(100dvh-var(--oben)-12px)] overflow-y-auto overscroll-contain rounded-t-[30px]
-                       border-t border-[rgb(140_170_255/.22)] px-[22px] pt-2.5
+      <div className={`mx-auto w-full max-w-md max-h-[calc(100dvh-var(--oben)-12px)] overflow-y-auto overscroll-contain rounded-t-[28px]
+                       blatt px-[22px] pt-2.5
                        pb-[calc(24px+var(--unten))] ${grund === 'ink' ? 'bg-ink' : 'bg-sunk'}`}
            onClick={e => e.stopPropagation()}>
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[rgb(140_170_255/.22)]" />
         {(titel || rechts) && (
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-[22px] font-semibold tracking-[-0.03em]">{titel}</span>
+            <span className="text-[24px] font-[350] tracking-[-0.026em]">{titel}</span>
             {rechts ?? (
               <button onClick={onSchliessen} aria-label={t.allgemein.schliessen}
                       className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text">

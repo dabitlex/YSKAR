@@ -75,7 +75,7 @@ export default function Einnahmen({ tage, symbol, decimals, verborgen }: {
             <button key={n} type="button" aria-pressed={spanne === n}
                     onClick={() => { setSpanne(n); setWahl(null); }}
                     className={`h-[34px] min-w-[50px] rounded-full px-3 text-[12.5px] font-medium transition-colors ${
-                      spanne === n ? 'bg-text text-ink' : 'text-dim'}`}>
+                      spanne === n ? 'bg-text/[.14] font-semibold text-text' : 'text-lese'}`}>
               {n === 7 ? t.wallet.tage7 : t.wallet.tage30}
             </button>
           ))}

@@ -15,6 +15,9 @@ const fr: typeof licht = {
   leistung: 'Puissance',
   last: (p: number, w: number) => `Charge ${p} % · ${w} workers`,
   anpassen: 'Régler',
+  ersterEtikett: 'Premier share accepté',
+  ersterTitel: 'Ton téléphone participe maintenant au travail, preuve à l’appui.',
+  ersterText: 'Un share est ta preuve auprès du pool. Plus tu as de shares, plus ta part est grande quand le pool trouve un bloc.',
 };
 
 export default fr;

@@ -15,6 +15,9 @@ const tr: typeof licht = {
   leistung: 'Güç',
   last: (p: number, w: number) => `Yük %${p} · ${w} worker`,
   anpassen: 'Ayarla',
+  ersterEtikett: 'İlk share kabul edildi',
+  ersterTitel: 'Telefonun artık kanıtlanabilir şekilde işe katılıyor.',
+  ersterText: 'Share, havuza sunduğun iş kanıtıdır. Ne kadar çok share, havuz blok bulduğunda payın o kadar büyük olur.',
 };
 
 export default tr;

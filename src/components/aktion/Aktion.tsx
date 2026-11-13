@@ -229,7 +229,7 @@ function Uebersicht({ stand, fehler, code, onTeilen, onEmpfehlungen, onRegeln, o
           <span className="shrink-0 text-dim"><Sym d={IC.link} size={16} /></span>
           <span className="min-w-0 flex-1 truncate text-[13.5px] text-lese">t.me/YSKAR_bot · ref_{code}</span>
           <button type="button" onClick={() => { haptik('tipp'); onTeilen(); }}
-                  className="h-10 shrink-0 rounded-full bg-text px-[18px] text-[14px] font-semibold text-ink active:scale-95">
+                  className="h-10 shrink-0 rounded-full bg-lamp px-[18px] text-[14px] font-semibold text-lamp-ink active:scale-95">
             {t.rd.aktion.teilen}
           </button>
         </div>

@@ -15,6 +15,9 @@ const ru: typeof licht = {
   leistung: 'Мощность',
   last: (p: number, w: number) => `Нагрузка ${p} % · Worker: ${w}`,
   anpassen: 'Изменить',
+  ersterEtikett: 'Первая шара принята',
+  ersterTitel: 'Теперь твой телефон доказуемо участвует в работе.',
+  ersterText: 'Шара — это твоё подтверждение работы для пула. Чем больше шар, тем больше твоя доля, когда пул найдёт блок.',
 };
 
 export default ru;
