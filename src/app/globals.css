@@ -150,16 +150,16 @@ body {
 
 /* Fortschrittsbalken. */
 .bar {
-  height: 6px;
-  border-radius: 99px;
-  background: rgb(var(--raised));
+  height: 2px;
+  border-radius: 2px;
+  background: rgb(238 244 255 / .18);
   overflow: hidden;
 }
 .bar > i {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, rgb(var(--work)), rgb(var(--cyan)));
+  background: linear-gradient(90deg, #1B4FD1, #2F7BFF 55%, #63D8FF);
   transition: width .3s ease;
 }
 
@@ -311,12 +311,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .funken { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .funken i { position: absolute; top: -10px; width: 3px; height: 10px; border-radius: 2px; opacity: .85; animation: funken-fallen 3.2s linear infinite; }
 @keyframes funken-fallen { to { transform: translateY(110dvh) rotate(260deg) } }
-.ring-lauf { transform-origin: 150px 150px; animation: ring-lauf 14s linear infinite; }
-@keyframes ring-lauf { to { transform: rotate(360deg) } }
-.hashband { height: 20px; overflow: hidden; }
-.hashband > div { animation: hashband 6s steps(1) infinite; }
-.hashband span { display: block; height: 20px; line-height: 20px; }
-@keyframes hashband { 0% { transform: translateY(0) } 25% { transform: translateY(-20px) } 50% { transform: translateY(-40px) } 75% { transform: translateY(-60px) } }
 @keyframes atmen { from { opacity: 0; transform: scale(.82) } to { opacity: 1; transform: none } }
 .atmen { animation: atmen 1.6s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes licht-auf { from { opacity: 0 } }

@@ -14,8 +14,14 @@ import { useT } from '@/i18n';
  */
 const STILL_MS = 30_000;
 
-export default function Verbindung({ summary }: { summary: unknown }) {
-  const { t } = useT();
+export interface VerbindungsStand { online: boolean; still: boolean; }
+
+/**
+ * Der Stand wird einmal in der App gefuehrt und nur angezeigt, wo die Meldung
+ * gerade steht (oben oder auf "Minen" unter der Buehne). So faengt die
+ * 30-Sekunden-Frist beim Wechsel des Tabs nicht von vorn an.
+ */
+export function useVerbindung(summary: unknown): VerbindungsStand {
   const [online, setOnline] = useState(true);
   const [still, setStill] = useState(false);
   const zuletzt = useRef(Date.now());
@@ -33,15 +39,22 @@ export default function Verbindung({ summary }: { summary: unknown }) {
     return () => clearInterval(id);
   }, []);
 
+  return { online, still };
+}
+
+export default function Verbindung({ stand }: { stand: VerbindungsStand }) {
+  const { t } = useT();
+  const { online, still } = stand;
   if (online && !still) return null;
   const titel = !online ? t.rd.fehler.offlineT : t.rd.fehler.knotenT;
   const text = !online ? t.rd.fehler.offlineS : t.rd.fehler.knotenS;
   return (
-    <div role="status" className={`rise mb-4 flex gap-3 border-y px-3 py-3 ${!online ? 'border-risk/30 bg-risk/[.06]' : 'border-amber/25 bg-amber/[.05]'}`}>
-      <span className={`mt-[5px] h-2 w-2 shrink-0 rounded-full ${!online ? 'bg-risk' : 'bg-amber'}`} />
+    <div role="status" className="glas rise relative z-[1] mb-4 flex gap-3 rounded-[22px] px-4 py-3">
+      {/* Ein leerer Ring: Was hier steht, ist ein Stand, nicht live. */}
+      <span aria-hidden="true" className={`mt-[6px] h-2 w-2 shrink-0 rounded-full ${!online ? 'shadow-[inset_0_0_0_1.5px_rgb(var(--risk))]' : 'shadow-[inset_0_0_0_1.5px_#FFD29A]'}`} />
       <span className="flex flex-col gap-0.5">
-        <span className="text-[13.5px] font-semibold text-text">{titel}</span>
-        <span className="text-[12.5px] leading-[1.45] text-dim">{text}</span>
+        <span className="text-[14.5px] font-medium leading-[1.3] text-text">{titel}</span>
+        <span className="text-[13.5px] leading-[1.4] text-lese">{text}</span>
       </span>
     </div>
   );

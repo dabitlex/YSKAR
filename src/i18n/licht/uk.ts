@@ -42,6 +42,7 @@ const uk: typeof licht = {
   communityTitel: 'Не компанія.\nПросто люди.',
   detailsText: 'Складність, час блоку, останні блоки',
   leerKaufen: (sym: string) => `Купити ${sym} поки не можна. Лістингу й ціни поки немає.`,
+  ersterAnteil: 'Твоя перша частка',
 };
 
 export default uk;

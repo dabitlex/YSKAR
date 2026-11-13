@@ -39,7 +39,7 @@ const es = {
 
   nav: { home: 'Inicio', mining: 'Minería', wallet: 'Wallet', netz: 'Red', entdecken: 'Descubrir', community: 'Comunidad' },
 
-  splash: { laedt: 'CARGANDO LA CADENA' },
+  splash: { laedt: 'Cargando la cadena' },
 
   browser: {
     titel: 'YSKAR funciona en Telegram',
@@ -179,7 +179,7 @@ const es = {
     mining: 'Minería',
     rechnet: 'minando',
     gestoppt: 'detenida',
-    bloecke: (n: number) => `${n} bloques encontrados`,
+    bloecke: (n: number) => n === 1 ? '1 bloque encontrado' : `${n} bloques encontrados`,
     zumMining: 'Ir a minería',
     starten: 'Iniciar minería',
     block: 'Bloque',
@@ -199,7 +199,7 @@ const es = {
     ueberZiel: 'por encima del objetivo',
     neuerJob: 'Nuevo job',
     shares: (n: number) => `${n} shares`,
-    bloecke: (n: number) => `${n} bloques`,
+    bloecke: (n: number) => n === 1 ? '1 bloque' : `${n} bloques`,
     nochKeine: 'Aún sin actividad — en cuanto se acepte un share, aparecerá aquí.',
     titel: 'Minería',
     rechnet: 'minando',
@@ -297,7 +297,7 @@ const es = {
   },
 
   fund: {
-    titel: 'BLOQUE ENCONTRADO',
+    titel: 'Bloque encontrado',
     weiter: 'Continuar',
   },
 

@@ -14,18 +14,29 @@ const STUFEN: [number, string][] = [
   [1e12, 'TH/s'], [1e9, 'GH/s'], [1e6, 'MH/s'], [1e3, 'kH/s'],
 ];
 
-export function hashrateTeile(h: number): { wert: string; einheit: string } {
+/**
+ * `locale` (z. B. "de-DE") schreibt die Zahl in der Sprache der Oberflaeche:
+ * 74,03 statt 74.03. Ohne Angabe bleibt es beim Punkt -- so steht die Zahl
+ * in Benachrichtigungen und Protokollen ueberall gleich.
+ */
+export function hashrateTeile(h: number, locale?: string): { wert: string; einheit: string } {
   if (!Number.isFinite(h) || h <= 0) return { wert: '0', einheit: 'H/s' };
   if (h >= 1e27) return { wert: h.toExponential(2), einheit: 'H/s' };
   for (const [ab, einheit] of STUFEN) {
-    if (h >= ab) return { wert: (h / ab).toFixed(ab === 1e3 ? 1 : 2), einheit };
+    if (h >= ab) {
+      const stellen = ab === 1e3 ? 1 : 2;
+      const wert = locale
+        ? (h / ab).toLocaleString(locale, { minimumFractionDigits: stellen, maximumFractionDigits: stellen, useGrouping: false })
+        : (h / ab).toFixed(stellen);
+      return { wert, einheit };
+    }
   }
   return { wert: String(Math.round(h)), einheit: 'H/s' };
 }
 
-export function hashrateText(h: number | null | undefined): string {
+export function hashrateText(h: number | null | undefined, locale?: string): string {
   if (h == null || !Number.isFinite(h)) return '—';
-  const { wert, einheit } = hashrateTeile(h);
+  const { wert, einheit } = hashrateTeile(h, locale);
   return `${wert} ${einheit}`;
 }
 

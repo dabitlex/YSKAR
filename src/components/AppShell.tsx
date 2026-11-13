@@ -16,12 +16,12 @@ import WalletTab, { type HistoryEintrag } from '@/components/tabs/WalletTab';
 import EntdeckenTab from '@/components/tabs/EntdeckenTab';
 import CommunityTab from '@/components/tabs/CommunityTab';
 import Artikel from '@/components/Artikel';
-import UpdateBanner from '@/components/UpdateBanner';
+import UpdateBanner, { useUpdate } from '@/components/UpdateBanner';
 import Sicherung, { SendenGesperrt } from '@/components/Sicherung';
 import PoolAuszahlung from '@/components/PoolAuszahlung';
 import FundBild from '@/components/FundBild';
 import ErsterShare from '@/components/mining/ErsterShare';
-import Verbindung from '@/components/Verbindung';
+import Verbindung, { useVerbindung } from '@/components/Verbindung';
 import Rueckblick from '@/components/Rueckblick';
 import { pushAuffrischen, pushBeiTipp } from '@/lib/native/push';
 import { inhalte } from '@/content/entdecken';
@@ -201,6 +201,8 @@ export default function AppShell({ platform }: { platform: string }) {
   // Pool-Anteil angekommen? Neuester Eintrag "pool" im Verlauf, den die App
   // noch nicht gemeldet hat.
   const auszahlung = useNeuerPoolAnteil((m.account as { history?: HistoryEintrag[] } | null)?.history);
+  const verbindung = useVerbindung(m.summary);
+  const update = useUpdate();
 
   const dec = m.summary?.token?.decimals ?? 8;
   const sym = m.summary?.token?.token_symbol ?? 'YSR';
@@ -217,8 +219,10 @@ export default function AppShell({ platform }: { platform: string }) {
   return (
     <>
       <main className="rand-oben relative mx-auto min-h-dvh max-w-md px-[22px] pb-36">
-        {!ansicht && <Verbindung summary={m.summary} />}
-        {ansicht === null && <UpdateBanner />}
+        {/* Auf "Minen" stehen die Meldungen unter der Buehne (siehe MineTab):
+            Oben wuerden sie den Kopf in das Bild und auf "Dein Platz" schieben. */}
+        {!ansicht && tab !== 'mine' && <Verbindung stand={verbindung} />}
+        {ansicht === null && tab !== 'mine' && <UpdateBanner stand={update} />}
         {ansicht === 'einstellungen' ? (
           <Settings onZurueck={() => setAnsicht(null)} anteil={m.duty} workers={worker} summary={m.summary}
                     onSichern={wallet.gesichert ? undefined : () => setAnsicht('sichern')} />
@@ -235,6 +239,7 @@ export default function AppShell({ platform }: { platform: string }) {
         ) : tab === 'mine' ? (<>
           <MineTab m={m} dec={dec} sym={sym} pool={pool} gesichert={wallet.gesichert} poolName={poolName}
                    worker={worker} onErweitert={() => setErweitert(true)}
+                   meldungen={<><Verbindung stand={verbindung} /><UpdateBanner stand={update} /></>}
                    hinweis={aktion.hinweis ? (
                      <AktionHinweis gewinnUsd={aktion.gewinn?.betrag_usd ?? null} onSchliessen={aktion.schliessen}
                                     onOeffnen={() => setAnsicht(aktion.gewinn ? 'aktionErgebnis' : 'aktion')} />
@@ -300,6 +305,10 @@ export default function AppShell({ platform }: { platform: string }) {
       {auszahlung.eintrag && !m.fund && (
         <PoolAuszahlung hoehe={auszahlung.eintrag.height} betrag={Number(auszahlung.eintrag.amount) / 10 ** dec}
                         symbol={sym} onWeiter={auszahlung.gesehen}
+                        erster={(() => {
+                          const k = m.account as { history?: HistoryEintrag[]; historyWeiter?: string | null } | null;
+                          return !!k && !k.historyWeiter && (k.history ?? []).filter(e => e.kind === 'pool' || e.kind === 'reward').length === 1;
+                        })()}
                         onWallet={() => { auszahlung.gesehen(); setAnsicht(null); setTab('wallet'); }} />
       )}
 

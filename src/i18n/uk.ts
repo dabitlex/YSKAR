@@ -44,7 +44,7 @@ const uk = {
 
   nav: { home: 'Головна', mining: 'Майнінг', wallet: 'Гаманець', netz: 'Мережа', entdecken: 'Огляд', community: 'Спільнота' },
 
-  splash: { laedt: 'ЗАВАНТАЖЕННЯ ЛАНЦЮЖКА' },
+  splash: { laedt: 'Завантаження ланцюжка' },
 
   browser: {
     titel: 'YSKAR працює в Telegram',
@@ -302,7 +302,7 @@ const uk = {
   },
 
   fund: {
-    titel: 'БЛОК ЗНАЙДЕНО',
+    titel: 'Блок знайдено',
     weiter: 'Далі',
   },
 

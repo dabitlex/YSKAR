@@ -43,7 +43,7 @@ const de = {
 
   nav: { home: 'Home', mining: 'Mining', wallet: 'Wallet', netz: 'Netz', entdecken: 'Entdecken', community: 'Community' },
 
-  splash: { laedt: 'KETTE WIRD GELADEN' },
+  splash: { laedt: 'Kette wird geladen' },
 
   browser: {
     titel: 'YSKAR läuft in Telegram',
@@ -183,7 +183,7 @@ const de = {
     mining: 'Mining',
     rechnet: 'rechnet',
     gestoppt: 'gestoppt',
-    bloecke: (n: number) => `${n} Blöcke gefunden`,
+    bloecke: (n: number) => n === 1 ? '1 Block gefunden' : `${n} Blöcke gefunden`,
     zumMining: 'Zum Mining',
     starten: 'Mining starten',
     block: 'Block',
@@ -203,7 +203,7 @@ const de = {
     ueberZiel: 'über Ziel',
     neuerJob: 'Neuer Job',
     shares: (n: number) => `${n} Shares`,
-    bloecke: (n: number) => `${n} Blöcke`,
+    bloecke: (n: number) => n === 1 ? '1 Block' : `${n} Blöcke`,
     nochKeine: 'Noch keine Aktivität — sobald ein Share angenommen ist, steht er hier.',
     titel: 'Mining',
     rechnet: 'rechnet',
@@ -301,7 +301,7 @@ const de = {
   },
 
   fund: {
-    titel: 'BLOCK GEFUNDEN',
+    titel: 'Block gefunden',
     weiter: 'Weiter',
   },
 

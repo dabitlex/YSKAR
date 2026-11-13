@@ -105,15 +105,14 @@ export default function WortFelder({ woerter, onChange, texte }: {
   };
 
   return (
-    <div className="relative grid grid-cols-2 gap-x-2.5 gap-y-2">
+    <div className="relative grid grid-cols-2 gap-x-[26px] gap-y-1">
       {Array.from({ length: ANZAHL }, (_, i) => {
         const w = woerter[i] ?? '';
         const falsch = w.length > 0 && fokus !== i && !WOERTER.has(w);
         const zeigeVorschlag = fokus === i && vorschlaege.length > 0;
         return (
-          <div key={i} className="relative flex flex-col gap-1">
-            <label htmlFor={`wort${i}`}
-                   className="pl-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-faint">
+          <div key={i} className="relative flex flex-col">
+            <label htmlFor={`wort${i}`} className="pt-2 text-[12.5px] text-dim">
               {texte.wort(i + 1)}
             </label>
             <input
@@ -128,11 +127,11 @@ export default function WortFelder({ woerter, onChange, texte }: {
               autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off"
               inputMode="text" enterKeyHint={i === ANZAHL - 1 ? 'done' : 'next'}
               aria-invalid={falsch || undefined}
-              className={`sunk w-full px-3 py-2.5 font-mono text-[15px] outline-none transition-colors
-                          focus:border-work ${falsch ? '!border-risk' : ''}`}
+              className={`h-11 w-full rounded-none border-b bg-transparent text-[18px] font-medium tracking-[-.01em] text-text outline-none
+                          transition-colors focus-visible:outline-none ${falsch ? 'border-risk' : 'border-line focus:border-text/70'}`}
             />
             {falsch && (
-              <span className="pl-0.5 text-[11px] font-bold text-risk">{texte.nichtInListe}</span>
+              <span className="pt-1 text-[12.5px] leading-[1.3] text-risk">{texte.nichtInListe}</span>
             )}
             {zeigeVorschlag && (
               /*
@@ -140,14 +139,14 @@ export default function WortFelder({ woerter, onChange, texte }: {
                 der Blur des Feldes sonst vor dem Klick kommt und die Liste
                 schliesst, bevor der Tipp ankommt.
               */
-              <div className={`absolute top-full z-20 mt-1.5 flex gap-1 rounded-[12px] bg-text p-1.5
-                               shadow-[0_12px_28px_-12px_rgb(var(--edge)/.5)] ${
+              <div className={`absolute top-full z-20 mt-1.5 flex gap-1 rounded-[16px] bg-[#EDF1F7] p-1.5
+                               shadow-[0_14px_34px_-12px_rgb(0_0_0/.7)] ${
                                i % 2 === 0 ? 'left-0' : 'right-0'}`}>
                 {vorschlaege.map((v, k) => (
                   <button key={v} type="button" tabIndex={-1}
                           onMouseDown={e => { e.preventDefault(); uebernehmen(i, v); }}
-                          className={`rounded-[8px] px-2.5 py-1.5 font-mono text-[13.5px] ${
-                            k === 0 ? 'bg-work text-white' : 'text-work/50'}`}>
+                          className={`h-10 rounded-[11px] px-3 text-[15px] font-medium ${
+                            k === 0 ? 'bg-lamp text-lamp-ink' : 'text-[#0A1530]/70'}`}>
                     {v}
                   </button>
                 ))}
@@ -156,9 +155,9 @@ export default function WortFelder({ woerter, onChange, texte }: {
           </div>
         );
       })}
-      <div className="col-span-2 mt-1 flex justify-end">
+      <div className="col-span-2 mt-2 flex justify-end">
         <button type="button" onClick={ausZwischenablage}
-                className="text-[12.5px] font-bold text-work">{texte.einfuegen}</button>
+                className="inline-flex min-h-11 items-center text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]">{texte.einfuegen}</button>
       </div>
     </div>
   );

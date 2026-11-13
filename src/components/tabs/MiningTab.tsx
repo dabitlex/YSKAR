@@ -26,8 +26,6 @@ import { istTelegram } from '@/lib/native/plattform';
 
 type Mining = ReturnType<typeof useMining>;
 
-const rate = (h: number) => hashrateTeile(h);
-
 export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, kerne, workerStufen,
                                     bench, onStarten, onBenchmark, erweitert, setErweitert }: {
   m: Mining; dec: number; sym: string;
@@ -43,6 +41,7 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
   erweitert: boolean; setErweitert: (v: boolean) => void;
 }) {
   const { t, zahl, locale } = useT();
+  const rate = (h: number) => hashrateTeile(h, locale);
   const { modus } = pool;
   const minuten = m.seit ? Math.max(0, Math.round((Date.now() - m.seit) / 60000)) : 0;
 
@@ -141,7 +140,7 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
       <section className="flex items-center justify-between gap-3 px-0.5">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Etikett>{t.mining.letzte}</Etikett>
-          <span className="text-[13px] font-bold text-dim">
+          <span className="text-[13.5px] text-dim">
             {t.mining.bloecke(m.account?.blocksFound ?? 0)}
           </span>
         </div>
@@ -159,13 +158,13 @@ export default function MiningTab({ m, dec, sym, wach, pool, worker, setWorker, 
       <GroupTitle>{t.mining.aktivitaet}</GroupTitle>
       <Panel className="!py-1">
         {aktiv.length === 0 ? (
-          <p className="py-3 text-[13px] font-semibold text-dim">{t.mining.nochKeine}</p>
+          <p className="py-3 text-[14.5px] text-dim">{t.mining.nochKeine}</p>
         ) : aktiv.map((sh, i) => (
           <div key={sh.at + '-' + i} className="flex items-center gap-3 py-3 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${sh.isBlock ? 'bg-proof' : sh.accepted ? 'bg-work' : 'bg-risk'}`} />
+            <span className={`h-2 w-2 shrink-0 rounded-full ${sh.isBlock ? 'bg-lamp' : sh.accepted ? 'bg-cyan' : 'bg-risk'}`} />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[13.5px] font-bold">{sh.isBlock ? t.fund.titel : t.mining.shareAngenommen}</span>
-              <span className="text-[11.5px] font-semibold text-faint">
+              <span className="text-[15px] font-medium">{sh.isBlock ? t.fund.titel : t.mining.shareAngenommen}</span>
+              <span className="text-[12.5px] text-dim">
                 {t.mining.difficulty(zahl(Math.round(sh.achieved)))}{sh.achieved >= sh.required ? ` · ${t.mining.ueberZiel}` : ''}
               </span>
             </span>

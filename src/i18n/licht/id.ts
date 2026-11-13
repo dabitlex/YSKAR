@@ -42,6 +42,7 @@ const id: typeof licht = {
   communityTitel: 'Bukan perusahaan.\nHanya manusia.',
   detailsText: 'Kesulitan, waktu blok, blok terakhir',
   leerKaufen: (sym: string) => `${sym} belum bisa dibeli. Sejauh ini belum ada listing dan belum ada harga.`,
+  ersterAnteil: 'Bagian pertamamu',
 };
 
 export default id;

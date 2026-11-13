@@ -42,6 +42,7 @@ const zh: typeof licht = {
   communityTitel: '没有公司。\n只有人。',
   detailsText: '难度、出块时间、最近的区块',
   leerKaufen: (sym: string) => `${sym} 目前还不能购买。暂时没有上线交易所，也没有价格。`,
+  ersterAnteil: '你的第一笔份额',
 };
 
 export default zh;

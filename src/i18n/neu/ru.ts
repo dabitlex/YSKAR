@@ -102,7 +102,7 @@ const neu = {
     gruppeText: 'Помощь, майнинг, пулы · на английском',
     lab: 'YSKAR Lab',
     labText: "Делитесь идеями, помогайте развивать YSKAR",
-    neu: 'НОВОЕ',
+    neu: 'Новое',
     x: 'X',
     website: 'Сайт и руководства',
     websiteText: 'yskar.app · whitepaper',
@@ -173,7 +173,7 @@ const neu = {
   },
 
   auszahlung: {
-    titel: 'ТВОЙ ПУЛ НАШЁЛ БЛОК',
+    titel: 'Твой пул нашёл блок',
     betrag: (b: string, sym: string) => `+${b} ${sym} тебе`,
     text: 'Распределено по работе в окне пула. Уже в твоём кошельке, подтверждено цепочкой.',
     weiter: 'Далее',

@@ -42,6 +42,7 @@ const pt: typeof licht = {
   communityTitel: 'Nenhuma empresa.\nSó pessoas.',
   detailsText: 'Dificuldade, tempo de bloco, últimos blocos',
   leerKaufen: (sym: string) => `Ainda não dá para comprar ${sym}. Por enquanto não há listagem nem preço.`,
+  ersterAnteil: 'Sua primeira parte',
 };
 
 export default pt;

@@ -21,8 +21,6 @@ interface Blockzeile {
   reward: string | null; minerAddress: string | null;
 }
 
-const rate = hashrateText;
-
 export default function NetzTab({ summary, meineAdresse, decimals, symbol, ohneKopf = false }: {
   summary: Summary | null; meineAdresse: string | null;
   decimals: number; symbol: string;
@@ -32,6 +30,7 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol, ohneK
   const [blocks, setBlocks] = useState<Blockzeile[]>([]);
   const [meinHex, setMeinHex] = useState<string | null>(null);
   const { t, zahl, vorZeit, locale } = useT();
+  const rate = (h: number | null) => hashrateText(h, locale);
 
   useEffect(() => {
     const hole = () => fetch('/api/v2/blocks?limit=12')

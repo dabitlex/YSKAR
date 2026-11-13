@@ -39,7 +39,7 @@ const id = {
 
   nav: { home: 'Beranda', mining: 'Mining', wallet: 'Wallet', netz: 'Jaringan', entdecken: 'Jelajahi', community: 'Komunitas' },
 
-  splash: { laedt: 'MEMUAT CHAIN' },
+  splash: { laedt: 'Memuat chain' },
 
   browser: {
     titel: 'YSKAR berjalan di Telegram',
@@ -297,7 +297,7 @@ const id = {
   },
 
   fund: {
-    titel: 'BLOK DITEMUKAN',
+    titel: 'Blok ditemukan',
     weiter: 'Lanjut',
   },
 

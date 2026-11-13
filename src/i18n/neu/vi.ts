@@ -97,7 +97,7 @@ const neu = {
     gruppeText: 'Hỗ trợ, đào, pool · bằng tiếng Anh',
     lab: 'YSKAR Lab',
     labText: "Chia sẻ ý tưởng, cùng định hình YSKAR",
-    neu: 'MỚI',
+    neu: 'Mới',
     x: 'X',
     website: 'Website và hướng dẫn',
     websiteText: 'yskar.app · whitepaper',
@@ -168,7 +168,7 @@ const neu = {
   },
 
   auszahlung: {
-    titel: 'POOL CỦA BẠN ĐÃ TÌM THẤY BLOCK',
+    titel: 'Pool của bạn đã tìm thấy block',
     betrag: (b: string, sym: string) => `+${b} ${sym} cho bạn`,
     text: 'Được chia theo công sức trong cửa sổ của pool. Đã vào ví của bạn, được chuỗi xác nhận.',
     weiter: 'Tiếp tục',

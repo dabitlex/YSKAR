@@ -47,7 +47,7 @@ const pl = {
 
   nav: { home: 'Start', mining: 'Mining', wallet: 'Portfel', netz: 'Sieć', entdecken: 'Odkrywaj', community: 'Społeczność' },
 
-  splash: { laedt: 'ŁADOWANIE ŁAŃCUCHA' },
+  splash: { laedt: 'Ładowanie łańcucha' },
 
   browser: {
     titel: 'YSKAR działa w Telegramie',
@@ -305,7 +305,7 @@ const pl = {
   },
 
   fund: {
-    titel: 'BLOK ZNALEZIONY',
+    titel: 'Blok znaleziony',
     weiter: 'Dalej',
   },
 

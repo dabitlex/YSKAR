@@ -42,12 +42,12 @@ export function GroupTitle({ children, aside }: {
 
 export function Title({ children }: { children: React.ReactNode }) {
   return (
-    <h1 className="text-[30px] font-semibold leading-[1.08] tracking-[-0.04em]">{children}</h1>
+    <h1 className="text-[33px] font-light leading-[1.05] tracking-[-.036em] [text-wrap:balance]">{children}</h1>
   );
 }
 
 export function Body({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-[15px] leading-[1.6] text-dim">{children}</p>;
+  return <p className="mt-3 text-[16px] leading-[1.5] text-lese">{children}</p>;
 }
 
 /** Kopfzeile eines Unterbildschirms: Zurueck, Titel, rechts optional. */
@@ -108,7 +108,7 @@ export function Button({
     primary: 'bg-lamp text-lamp-ink',
     work: 'bg-work text-white',
     quiet: 'bg-transparent text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)]',
-    risk: 'bg-risk/10 text-risk',
+    risk: 'bg-transparent text-risk shadow-[inset_0_0_0_1px_rgb(var(--risk)/.6)]',
   }[variant];
   return (
     <button type={type} onClick={onClick} disabled={disabled}

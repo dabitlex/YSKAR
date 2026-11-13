@@ -42,6 +42,7 @@ const ru: typeof licht = {
   communityTitel: 'Не компания.\nПросто люди.',
   detailsText: 'Сложность, время блока, последние блоки',
   leerKaufen: (sym: string) => `Купить ${sym} пока нельзя. Листинга и цены пока нет.`,
+  ersterAnteil: 'Твоя первая доля',
 };
 
 export default ru;

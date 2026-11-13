@@ -39,7 +39,7 @@ const ru = {
 
   nav: { home: 'Главная', mining: 'Майнинг', wallet: 'Кошелёк', netz: 'Сеть', entdecken: 'Обзор', community: 'Сообщество' },
 
-  splash: { laedt: 'ЗАГРУЗКА ЦЕПОЧКИ' },
+  splash: { laedt: 'Загрузка цепочки' },
 
   browser: {
     titel: 'YSKAR работает в Telegram',
@@ -297,7 +297,7 @@ const ru = {
   },
 
   fund: {
-    titel: 'БЛОК НАЙДЕН',
+    titel: 'Блок найден',
     weiter: 'Далее',
   },
 
@@ -608,7 +608,7 @@ const ru = {
     sperreText: 'Блокирует кошелёк, если приложение было в фоне дольше этого времени. Майнинг продолжается.',
     sperreSofort: 'Сразу',
     sperreNie: 'Никогда',
-    sperreMin: (n: number) => `${n} min`,
+    sperreMin: (n: number) => `${n} мин`,
     thema: 'Оформление',
     themaText: '«Система» следует настройке устройства.',
     themaSystem: 'Система',

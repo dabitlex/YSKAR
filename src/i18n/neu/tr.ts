@@ -97,7 +97,7 @@ const neu = {
     gruppeText: 'Yardım, madencilik, havuzlar · İngilizce',
     lab: 'YSKAR Lab',
     labText: "Fikirlerini paylaş, YSKAR'ı birlikte şekillendir",
-    neu: 'YENİ',
+    neu: 'Yeni',
     x: 'X',
     website: 'Web sitesi ve kılavuzlar',
     websiteText: 'yskar.app · whitepaper',
@@ -168,7 +168,7 @@ const neu = {
   },
 
   auszahlung: {
-    titel: 'HAVUZUN BİR BLOK BULDU',
+    titel: 'Havuzun bir blok buldu',
     betrag: (b: string, sym: string) => `Senin için +${b} ${sym}`,
     text: 'Havuz penceresindeki işe göre paylaştırıldı. Zincir tarafından onaylandı, cüzdanında.',
     weiter: 'Devam',

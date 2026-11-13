@@ -79,20 +79,18 @@ export default function Onboarding() {
 
 function Pfeil() {
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink text-text">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-    </span>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
   );
 }
 
-/** Weisse Pille mit Pfeil -- der Hauptknopf auf yskar.app und in der Wallet. */
+/** Warme Pille mit Pfeil -- der Hauptknopf auf yskar.app und in der App. */
 function Hauptknopf({ children, onClick, disabled, mitte }: {
   children: React.ReactNode; onClick: () => void; disabled?: boolean; mitte?: boolean;
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-            className={`flex h-14 w-full items-center rounded-full bg-lamp text-[15.5px] font-semibold text-lamp-ink transition-transform
-                        active:scale-[.985] disabled:opacity-40 disabled:active:scale-100 ${mitte ? 'justify-center px-6' : 'justify-between pl-[26px] pr-2'}`}>
+            className="flex h-14 w-full items-center justify-center gap-[9px] rounded-full bg-lamp px-6 text-[17px] font-semibold tracking-[-.01em] text-lamp-ink
+                       transition-transform active:scale-[.985] disabled:opacity-40 disabled:active:scale-100">
       {children}{!mitte && <Pfeil />}
     </button>
   );
@@ -104,7 +102,7 @@ function ZurueckKnopf({ onClick }: { onClick: () => void }) {
   if (imTelegram()) return null;
   return (
     <button type="button" onClick={onClick} aria-label={t.allgemein.zurueck}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text active:scale-95">
+            className="-ml-3 flex h-11 w-11 items-center justify-center rounded-full text-text active:scale-95">
       <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 5l-6 6 6 6" /></svg>
     </button>
@@ -249,14 +247,17 @@ function Wiederherstellen({ woerter, setWoerter, onZurueck, onWeiter }: {
                     texte={{ wort: t.pruefen.wort, einfuegen: t.wiederherstellen.einfuegen,
                              nichtInListe: t.wiederherstellen.nichtInListe }} />
       </div>
-      <p className="tnum mt-2 text-[13px] font-semibold text-dim">
+      <p className="tnum text-[13.5px] text-dim">
         {anzahl === 12 && !vorschau ? t.wiederherstellen.ungueltig : t.wiederherstellen.anzahl(anzahl)}
       </p>
 
       {vorschau && (
-        <div className="panel mt-4 px-4 py-3">
-          <p className="label">{t.wiederherstellen.vorschau}</p>
-          <p className="mt-1 break-all font-mono text-[12.5px] text-proof">{vorschau}</p>
+        <div className="mt-4">
+          <p className="flex items-center gap-2 text-[13.5px] font-medium text-proof">
+            <svg viewBox="0 0 22 22" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 11.5l4 4 8-9" /></svg>
+            {t.wiederherstellen.vorschau}
+          </p>
+          <p className="terminal mt-2 break-all font-mono text-[13px] leading-[1.55] text-lese">{vorschau}</p>
         </div>
       )}
 

@@ -39,7 +39,7 @@ const vi = {
 
   nav: { home: 'Trang chủ', mining: 'Đào', wallet: 'Ví', netz: 'Mạng', entdecken: 'Khám phá', community: 'Cộng đồng' },
 
-  splash: { laedt: 'ĐANG TẢI CHUỖI' },
+  splash: { laedt: 'Đang tải chuỗi' },
 
   browser: {
     titel: 'YSKAR chạy trong Telegram',
@@ -297,7 +297,7 @@ const vi = {
   },
 
   fund: {
-    titel: 'ĐÃ TÌM THẤY BLOCK',
+    titel: 'Đã tìm thấy block',
     weiter: 'Tiếp tục',
   },
 

@@ -208,7 +208,7 @@ export function ThemenRaster({ onOeffnen }: { onOeffnen: (slug: string) => void 
 function NetzLive({ summary, decimals, symbol, bloecke }: {
   summary: Summary | null; decimals: number; symbol: string; bloecke: KettenBlock[];
 }) {
-  const { t, zahl, vorZeit } = useT();
+  const { t, zahl, vorZeit, locale } = useT();
   const gemint = Number(summary?.totalSupply ?? 0) / 10 ** decimals;
   const max = Number(MAX_SUPPLY) / 10 ** DECIMALS;
   const anteil = max > 0 ? gemint / max * 100 : 0;
@@ -234,7 +234,7 @@ function NetzLive({ summary, decimals, symbol, bloecke }: {
       </p>
       <div className="mt-[22px]"><Kette bloecke={bloecke} /></div>
       <Werte className="mt-[18px]" werte={[
-        { name: t.rd.netz.hashrate, wert: hashrateText(summary?.hashrate ?? null) },
+        { name: t.rd.netz.hashrate, wert: hashrateText(summary?.hashrate ?? null, locale) },
         { name: t.rd.netz.gemint, wert: `${zahl(anteil, { maximumFractionDigits: 1 })} %` },
         { name: t.licht.belohnung, wert: belohnung != null ? `${zahl(belohnung, { maximumFractionDigits: 2 })} ${symbol}` : '—' },
       ]} />

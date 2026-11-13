@@ -36,16 +36,18 @@ function heuteEingang(history: HistoryEintrag[] | undefined, dec: number): numbe
     .reduce((s, e) => s + Number(e.amount), 0) / 10 ** dec;
 }
 
-export default function MineTab({ m, dec, sym, pool, gesichert, poolName, worker, hinweis, onStartStopp, onSichern, onEinstellungen, onPoolWaehlen, onErweitert }: {
+export default function MineTab({ m, dec, sym, pool, gesichert, poolName, worker, hinweis, meldungen, onStartStopp, onSichern, onEinstellungen, onPoolWaehlen, onErweitert }: {
   m: Mining; dec: number; sym: string; pool: PoolAuswahl; gesichert: boolean;
   poolName: string | null; worker: number;
   /** Schmale, schliessbare Zeile unter der Buehne (Aktion). Die Sicherung geht vor. */
   hinweis?: React.ReactNode;
+  /** Verbindung und Update: unter der Buehne, damit der Kopf an seinem Platz bleibt. */
+  meldungen?: React.ReactNode;
   onStartStopp: () => void; onSichern: () => void; onEinstellungen: () => void; onPoolWaehlen: () => void;
   /** Oeffnet "Erweitert" (Last, Worker, Modus). */
   onErweitert: () => void;
 }) {
-  const { t, zahl } = useT();
+  const { t, zahl, locale } = useT();
 
   const account = m.account as ({ address?: string; history?: HistoryEintrag[] } | null);
   const genau = heuteDazu(useEinnahmen(account?.address ?? null,
@@ -54,7 +56,7 @@ export default function MineTab({ m, dec, sym, pool, gesichert, poolName, worker
   const heuteText = heute > 0 ? `+${zahl(heute, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : zahl(0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const minuten = m.seit ? Math.max(0, Math.round((Date.now() - m.seit) / 60000)) : 0;
-  const r = hashrateTeile(m.hashrate);
+  const r = hashrateTeile(m.hashrate, locale);
   const imPool = pool.modus === 'pool';
   // Neuer Nutzer ohne gewaehlten Pool: erst den Pool waehlen, dann starten.
   const mussWaehlen = !m.mining && imPool && !pool.gewaehlt;
@@ -111,6 +113,7 @@ export default function MineTab({ m, dec, sym, pool, gesichert, poolName, worker
       {/* Fenster auf die Buehne: hier steht nur das Ufer. */}
       <div className="h-[172px]" aria-hidden="true" />
 
+      {meldungen}
       {!gesichert && (
         <button type="button" onClick={onSichern}
                 className="relative mb-4 flex min-h-12 w-full items-center gap-3 rounded-full bg-ink/60 px-4 text-left text-[14px] shadow-[inset_0_0_0_1px_rgb(255_196_122/.4)] backdrop-blur">

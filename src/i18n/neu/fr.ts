@@ -97,7 +97,7 @@ const neu = {
     gruppeText: 'Aide, minage, pools · en anglais',
     lab: 'YSKAR Lab',
     labText: "Partagez vos idées, façonnez YSKAR",
-    neu: 'NOUVEAU',
+    neu: 'Nouveau',
     x: 'X',
     website: 'Site web et guides',
     websiteText: 'yskar.app · livre blanc',
@@ -168,7 +168,7 @@ const neu = {
   },
 
   auszahlung: {
-    titel: 'TON POOL A TROUVÉ UN BLOC',
+    titel: 'Ton pool a trouvé un bloc',
     betrag: (b: string, sym: string) => `+${b} ${sym} pour toi`,
     text: 'Réparti selon le travail dans la fenêtre du pool. Déjà dans ton portefeuille, confirmé par la chaîne.',
     weiter: 'Continuer',

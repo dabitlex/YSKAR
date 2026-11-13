@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { hashrateText } from '@/lib/format/hashrate';
-import { Panel, GroupTitle, Button } from '@/components/ui/Primitives';
+import { Button } from '@/components/ui/Primitives';
+import { ListenTitel } from '@/components/ui/Zeilen';
 import {
   useBenchmark, gespeichert, verwerfen, type BenchErgebnis, type Messung,
 } from '@/hooks/useBenchmark';
@@ -16,9 +17,8 @@ import { useT, type Woerterbuch } from '@/i18n';
  * bricht der Benchmark ab, statt eine Zahl zu zeigen.
  */
 
-function rate(h: number): string {
-  if (!h || !Number.isFinite(h)) return '—';
-  return hashrateText(h);
+function rateIn(locale: string) {
+  return (h: number): string => (!h || !Number.isFinite(h) ? '—' : hashrateText(h, locale));
 }
 
 export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
@@ -29,7 +29,8 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
   const { phase, starten, abbrechen } = useBenchmark();
   const [alt] = useState<BenchErgebnis | null>(() => gespeichert());
   const [dauertest, setDauertest] = useState(false);
-  const { t } = useT();
+  const { t, locale } = useT();
+  const rate = rateIn(locale);
 
   const laeuft = phase.t === 'pruefe' || phase.t === 'messe' || phase.t === 'dauertest';
   const ergebnis = phase.t === 'fertig' ? phase.ergebnis : alt;
@@ -40,12 +41,12 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
   return (
     <>
       <button onClick={onZurueck}
-              className="mb-4 text-[13.5px] font-bold text-work">
+              className="mb-2 inline-flex min-h-11 items-center gap-2 text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]">
         ← {t.allgemein.zurueck}
       </button>
 
-      <GroupTitle>{t.bench.geraet}</GroupTitle>
-      <Panel className="mb-5">
+      <ListenTitel className="mt-2">{t.bench.geraet}</ListenTitel>
+      <section className="mb-7 pt-1">
         <dl className="grid gap-0">
           <Zeile label={t.bench.prozessoren} wert={kerne ? String(kerne) : t.bench.nichtErmittelbar} />
           <Zeile label={t.bench.engine} wert="WebAssembly SHA-256" />
@@ -53,44 +54,43 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
                  wert={typeof navigator !== 'undefined' ? kurzePlattform(t.bench.unbekannt) : '—'} />
         </dl>
         {!kerne && (
-          <p className="mt-3 text-[12px] text-faint">{t.bench.keineKerne}</p>
+          <p className="mt-3 text-[13px] leading-[1.45] text-dim">{t.bench.keineKerne}</p>
         )}
-      </Panel>
+      </section>
 
       {/* ---------------------------------------------------------- Lauf */}
       {laeuft && (
-        <Panel className="mb-5">
-          <p className="mb-3 text-[13px] text-dim">
+        <section className="mb-7 border-t border-line pt-4">
+          <p className="mb-3.5 text-[14.5px] leading-[1.45] text-lese">
             {phase.t === 'pruefe' && t.bench.prueft}
             {phase.t === 'messe' && t.bench.messe(phase.workers, phase.duty, phase.schritt, phase.von)}
             {phase.t === 'dauertest' && t.bench.dauertestLauf(phase.sekunde, phase.von)}
           </p>
           <div className="bar"><i style={{ width: fortschritt(phase) }} /></div>
-          <p className="mt-3 text-[12px] text-faint">{t.bench.warm}</p>
+          <p className="mt-3 text-[13px] leading-[1.45] text-dim">{t.bench.warm}</p>
           <button onClick={abbrechen}
-                  className="mt-4 w-full text-center text-[12.5px] text-dim underline
-                             decoration-line underline-offset-4">
+                  className="mt-2 w-full justify-center inline-flex min-h-11 items-center gap-2 text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]">
             {t.allgemein.abbrechen}
           </button>
-        </Panel>
+        </section>
       )}
 
       {/* --------------------------------------------------------- Fehler */}
       {phase.t === 'fehler' && (
-        <Panel className="mb-5">
-          <p className="mb-2 text-[13px] text-risk">{t.bench.abgebrochen}</p>
-          <p className="text-[12.5px] text-dim">{phase.meldung}</p>
-          <p className="mt-3 text-[12px] text-faint">{t.bench.keineZahl}</p>
-        </Panel>
+        <section className="mb-7 border-t border-line pt-4">
+          <p className="mb-2 text-[16px] font-medium text-risk">{t.bench.abgebrochen}</p>
+          <p className="text-[14.5px] leading-[1.45] text-lese">{phase.meldung}</p>
+          <p className="mt-3 text-[13px] leading-[1.45] text-dim">{t.bench.keineZahl}</p>
+        </section>
       )}
 
       {/* -------------------------------------------------------- Ergebnis */}
       {ergebnis && !laeuft && (
         <>
-          <GroupTitle>{t.bench.messung}</GroupTitle>
-          <Panel className="mb-5">
-            <div className="mb-1 grid grid-cols-[auto_1fr_auto] gap-x-3 text-[11px]
-                            text-faint">
+          <ListenTitel className="mt-2">{t.bench.messung}</ListenTitel>
+          <section className="mb-7 pt-1">
+            <div className="mb-1 grid grid-cols-[auto_1fr_auto] gap-x-3 text-[12.5px]
+                            text-dim">
               <span>{t.bench.worker}</span><span>{t.bench.hashrate}</span><span>{t.bench.skalierung}</span>
             </div>
             <div className="mono grid gap-0">
@@ -102,54 +102,54 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
 
             {ergebnis.messungen.some(x => x.duty !== 100) && (
               <>
-                <p className="mb-1 mt-4 text-[11px] text-faint">
+                <p className="mb-1 mt-5 text-[12.5px] text-dim">
                   {t.bench.anteilBei(ergebnis.besteWorker)}
                 </p>
                 <div className="mono grid gap-0">
                   {ergebnis.messungen.filter(x => x.duty !== 100).map(x => (
                     <div key={`d${x.duty}`}
-                         className="flex justify-between border-b border-line/50 py-1.5
-                                    text-[13px] last:border-0">
-                      <span className="text-dim">{x.duty} %</span>
+                         className="flex justify-between border-b border-line py-2.5
+                                    text-[14.5px] last:border-0">
+                      <span className="text-lese">{x.duty} %</span>
                       <span>{rate(x.hashrate)}</span>
                     </div>
                   ))}
                 </div>
               </>
             )}
-          </Panel>
+          </section>
 
-          <GroupTitle>{t.bench.empfehlung}</GroupTitle>
-          <Panel className="mb-5">
+          <ListenTitel className="mt-2">{t.bench.empfehlung}</ListenTitel>
+          <section className="mb-7 pt-1">
             <div className="flex items-baseline justify-between">
-              <span className="text-[26px] font-medium tracking-tight">
+              <span className="text-[33px] font-light leading-[1.05] tracking-[-.036em]">
                 {t.bench.workerN(ergebnis.besteWorker)}
               </span>
-              <span className="mono text-[15px] text-work">{rate(ergebnis.besteRate)}</span>
+              <span className="mono text-[15px] text-cyan">{rate(ergebnis.besteRate)}</span>
             </div>
-            <p className="mt-2 text-[12.5px] text-dim">
+            <p className="mt-3 text-[14.5px] leading-[1.45] text-lese">
               {hinweis(ergebnis, t)}
             </p>
             <Button className="mt-4"
                     onClick={() => { onErgebnis(ergebnis); onUebernehmen(ergebnis.besteWorker); }}>
               {t.bench.uebernehmen}
             </Button>
-          </Panel>
+          </section>
 
           {ergebnis.dauertest && (
             <>
-              <GroupTitle>{t.bench.dauertest}</GroupTitle>
-              <Panel className="mb-5">
+              <ListenTitel className="mt-2">{t.bench.dauertest}</ListenTitel>
+              <section className="mb-7 pt-1">
                 <dl className="grid gap-0">
                   <Zeile label={t.bench.start} wert={rate(ergebnis.dauertest.start)} />
                   <Zeile label={t.bench.ende} wert={rate(ergebnis.dauertest.ende)} />
                   <Zeile label={t.bench.gehalten}
-                         wert={`${(ergebnis.dauertest.anteil * 100).toFixed(1)} %`} />
+                         wert={`${(ergebnis.dauertest.anteil * 100).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`} />
                 </dl>
-                <p className="mt-3 text-[12px] text-faint">
+                <p className="mt-3 text-[13px] leading-[1.45] text-dim">
                   {ergebnis.dauertest.anteil < 0.9 ? t.bench.gesunken : t.bench.stabil}
                 </p>
-              </Panel>
+              </section>
             </>
           )}
         </>
@@ -157,28 +157,27 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
 
       {/* ----------------------------------------------------------- Start */}
       {!laeuft && (
-        <Panel>
-          <label className="mb-4 flex items-center justify-between">
-            <span className="text-[13px] text-dim">{t.bench.dauertestAn}</span>
+        <section className="border-t border-line pt-4">
+          <label className="mb-4 flex min-h-11 items-center justify-between gap-3">
+            <span className="text-[16px] font-medium leading-[1.3]">{t.bench.dauertestAn}</span>
             <input type="checkbox" checked={dauertest}
                    onChange={e => setDauertest(e.target.checked)}
-                   className="h-4 w-4 accent-[rgb(var(--work))]" />
+                   className="h-5 w-5 shrink-0 accent-[rgb(var(--lamp))]" />
           </label>
           <Button onClick={() => starten({ dauertestSek: dauertest ? 60 : 0 })}
                   variant="primary">
             {ergebnis ? t.bench.erneut : t.bench.starten}
           </Button>
-          <p className="mt-3 text-center text-[12px] text-faint">
+          <p className="mt-3 text-center text-[13px] leading-[1.45] text-dim">
             {dauertest ? t.bench.zweiMin : t.bench.sekunden}
           </p>
           {ergebnis && (
             <button onClick={() => { verwerfen(); onErgebnis(null); onZurueck(); }}
-                    className="mt-4 w-full text-center text-[12.5px] text-dim underline
-                               decoration-line underline-offset-4">
+                    className="mt-2 w-full justify-center inline-flex min-h-11 items-center gap-2 text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]">
               {t.bench.verwerfen}
             </button>
           )}
-        </Panel>
+        </section>
       )}
     </>
   );
@@ -186,22 +185,24 @@ export default function Benchmark({ onZurueck, onUebernehmen, onErgebnis }: {
 
 function Zeile({ label, wert }: { label: string; wert: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-line/50
-                    py-2.5 last:border-0">
-      <dt className="text-[13px] text-dim">{label}</dt>
-      <dd className="mono text-[13.5px]">{wert}</dd>
+    <div className="flex items-baseline justify-between gap-4 border-b border-line
+                    py-3 last:border-0">
+      <dt className="text-[14.5px] text-dim">{label}</dt>
+      <dd className="mono text-right text-[14.5px]">{wert}</dd>
     </div>
   );
 }
 
 function MessZeile({ m, best }: { m: Messung; best: boolean }) {
+  const { locale } = useT();
+  const rate = rateIn(locale);
   return (
     <div className={`grid grid-cols-[auto_1fr_auto] items-baseline gap-x-3
-                     border-b border-line/50 py-1.5 text-[13px] last:border-0 ${
-                   best ? 'text-work' : ''}`}>
+                     border-b border-line py-2.5 text-[14.5px] last:border-0 ${
+                   best ? 'font-medium text-lamp' : 'text-lese'}`}>
       <span className="w-10 tabular-nums">{m.workers}</span>
       <span className="tabular-nums">{rate(m.hashrate)}</span>
-      <span className="tabular-nums text-faint">{m.skalierung.toFixed(2)}×</span>
+      <span className="tabular-nums text-dim">{m.skalierung.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×</span>
     </div>
   );
 }

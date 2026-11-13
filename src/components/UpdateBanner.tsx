@@ -22,11 +22,16 @@ const MERKER = 'yskar.update.weg';
 type Lauf = { art: 'ruhe' } | { art: 'laedt'; prozent: number } | { art: 'erlaubnis' }
   | { art: 'fertig' } | { art: 'fehler' };
 
-export default function UpdateBanner() {
+export interface UpdateStand { u: Update | null; lauf: Lauf; laden: () => void; weg: () => void; }
+
+/**
+ * Der Stand wird einmal in der App gefuehrt: Die Meldung steht je nach Tab an
+ * anderer Stelle, ein laufender Download soll dabei nicht von vorn anfangen.
+ */
+export function useUpdate(): UpdateStand {
   const [u, setU] = useState<Update | null>(null);
   const [lauf, setLauf] = useState<Lauf>({ art: 'ruhe' });
   const takt = useRef<number | null>(null);
-  const { t } = useT();
 
   useEffect(() => {
     if (!istNativ()) return;
@@ -57,6 +62,17 @@ export default function UpdateBanner() {
     }, 700);
   };
 
+  const weg = () => {
+    if (!u) return;
+    try { localStorage.setItem(MERKER, u.version); } catch { /* egal */ }
+    setU(null);
+  };
+  return { u, lauf, laden, weg };
+}
+
+export default function UpdateBanner({ stand }: { stand: UpdateStand }) {
+  const { t } = useT();
+  const { u, lauf, laden, weg } = stand;
   if (!u) return null;
   const text = lauf.art === 'laedt' ? t.app.updateLaedt(lauf.prozent)
     : lauf.art === 'erlaubnis' ? t.app.updateErlaubnis
@@ -65,25 +81,25 @@ export default function UpdateBanner() {
     : t.app.updateText(u.aktuell);
 
   return (
-    <div className="rise mb-4 flex items-center gap-3 rounded-[16px] border border-work/30
-                    bg-work/10 px-4 py-3">
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-[13.5px] font-extrabold text-work">{t.app.updateTitel(u.version)}</span>
-        <span className="text-[12px] font-semibold text-dim">{text}</span>
+    <div className="glas rise relative z-[1] mb-4 flex items-center gap-2 rounded-[22px] py-2 pl-4 pr-2">
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[14.5px] font-medium leading-[1.3] text-text">{t.app.updateTitel(u.version)}</span>
+        <span className="text-[13px] leading-[1.4] text-lese">{text}</span>
         {lauf.art === 'laedt' && (
-          <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-work/20">
-            <span className="block h-full rounded-full bg-work transition-[width]" style={{ width: `${lauf.prozent}%` }} />
+          <span className="faden mt-1.5 block w-full" aria-hidden="true">
+            <i className="transition-[width]" style={{ width: `${lauf.prozent}%` }} />
           </span>
         )}
       </span>
-      <span className="flex-1" />
       <button onClick={laden} disabled={lauf.art === 'laedt'}
-              className="shrink-0 rounded-[10px] bg-work px-3 py-2 text-[12.5px] font-bold text-white disabled:opacity-50">
+              className="h-11 shrink-0 rounded-full bg-lamp px-4 text-[14.5px] font-semibold text-lamp-ink active:scale-95 disabled:opacity-40">
         {t.app.updateLaden}
       </button>
       {lauf.art === 'ruhe' && (
-        <button onClick={() => { try { localStorage.setItem(MERKER, u.version); } catch { /* egal */ } setU(null); }}
-                aria-label={t.app.spaeter} className="px-1 text-[18px] text-faint">×</button>
+        <button onClick={weg}
+                aria-label={t.app.spaeter} className="flex h-11 w-9 shrink-0 items-center justify-center text-lese">
+          <svg viewBox="0 0 22 22" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M5 5l12 12M17 5 5 17" /></svg>
+        </button>
       )}
     </div>
   );

@@ -23,9 +23,9 @@ import type { PoolAuswahl } from '@/hooks/usePoolAuswahl';
  * Was hier steht, ist bis auf die Bloecke Selbstauskunft des Pools.
  */
 
-const rate = (h: number | null) => {
+const rateIn = (locale: string) => (h: number | null) => {
   if (h === null) return '—';
-  const r = hashrateTeile(h);
+  const r = hashrateTeile(h, locale);
   return `${r.wert} ${r.einheit}`;
 };
 
@@ -60,7 +60,8 @@ const PFEIL = (
 
 /** Der gewaehlte Pool in der Steuerung. Ein Tipp oeffnet die Liste. */
 export function PoolFeld({ pool, onOeffnen }: { pool: PoolAuswahl; onOeffnen: () => void }) {
-  const { t, zahl } = useT();
+  const { t, zahl, locale } = useT();
+  const rate = rateIn(locale);
   const g = pool.gewaehlt;
   const s = g?.stand ?? null;
   const voll = pool.hinweis === 'voll' || (!!s && s.status === 'voll' && !s.dabei);
@@ -130,6 +131,7 @@ function Karte({ s, gewaehlt, eigen, laedt, onWaehlen }: {
   onWaehlen: () => void;
 }) {
   const { t, zahl, locale } = useT();
+  const rate = rateIn(locale);
   const geht = waehlbar(s);
   // "1 %", "1%", "%1": Wo das Zeichen steht, weiss die Sprache.
   const prozent = (bp: number) => new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 2 }).format(bp / 10_000);

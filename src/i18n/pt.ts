@@ -39,7 +39,7 @@ const pt = {
 
   nav: { home: 'Início', mining: 'Mineração', wallet: 'Carteira', netz: 'Rede', entdecken: 'Descobrir', community: 'Comunidade' },
 
-  splash: { laedt: 'CARREGANDO A CADEIA' },
+  splash: { laedt: 'Carregando a cadeia' },
 
   browser: {
     titel: 'O YSKAR roda no Telegram',
@@ -179,7 +179,7 @@ const pt = {
     mining: 'Mineração',
     rechnet: 'minerando',
     gestoppt: 'parado',
-    bloecke: (n: number) => `${n} blocos encontrados`,
+    bloecke: (n: number) => n === 1 ? '1 bloco encontrado' : `${n} blocos encontrados`,
     zumMining: 'Ir para mineração',
     starten: 'Iniciar mineração',
     block: 'Bloco',
@@ -199,7 +199,7 @@ const pt = {
     ueberZiel: 'acima do alvo',
     neuerJob: 'Novo job',
     shares: (n: number) => `${n} shares`,
-    bloecke: (n: number) => `${n} blocos`,
+    bloecke: (n: number) => n === 1 ? '1 bloco' : `${n} blocos`,
     nochKeine: 'Ainda sem atividade — assim que um share for aceito, ele aparece aqui.',
     titel: 'Mineração',
     rechnet: 'minerando',
@@ -297,7 +297,7 @@ const pt = {
   },
 
   fund: {
-    titel: 'BLOCO ENCONTRADO',
+    titel: 'Bloco encontrado',
     weiter: 'Continuar',
   },
 

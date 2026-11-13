@@ -43,7 +43,7 @@ const fr = {
 
   nav: { home: 'Accueil', mining: 'Minage', wallet: 'Portefeuille', netz: 'Réseau', entdecken: 'Découvrir', community: 'Communauté' },
 
-  splash: { laedt: 'CHARGEMENT DE LA CHAÎNE' },
+  splash: { laedt: 'Chargement de la chaîne' },
 
   browser: {
     titel: 'YSKAR fonctionne dans Telegram',
@@ -301,7 +301,7 @@ const fr = {
   },
 
   fund: {
-    titel: 'BLOC TROUVÉ',
+    titel: 'Bloc trouvé',
     weiter: 'Continuer',
   },
 

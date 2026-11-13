@@ -73,9 +73,9 @@ export default function Sicherung({ onSchliessen, pflicht = false }: { onSchlies
           <>
             <div className="flex items-center justify-between">
               <button type="button" onClick={zurueck} aria-label={t.allgemein.zurueck}
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border border-line text-text active:scale-95 ${
+                      className={`-ml-3 flex h-11 w-11 items-center justify-center rounded-full text-text active:scale-95 ${
                         kannZurueck && !imTelegram() ? '' : 'invisible'}`}>
-                <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"
+                <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"
                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M13 5l-6 6 6 6" /></svg>
               </button>
               <span className="text-[13px] text-dim">{t.licht.schritt(nummer, 3)}</span>
@@ -114,34 +114,26 @@ function Vorbereiten({ onWeiter }: { onWeiter: () => void }) {
   const [bereit, setBereit] = useState(false);
   return (
     <>
-      <span className="mt-8 flex h-14 w-14 items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber">
-        <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8"
-             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M8 11l2 2 4-4" />
-        </svg>
-      </span>
-      <h1 className="mt-[18px] aussage text-[33px] leading-[1.05] tracking-[-.036em]">{t.sicherung.s1Titel}</h1>
-      <p className="mt-2 text-[14px] leading-[1.5] text-dim">{t.sicherung.s1Text}</p>
+      <h1 className="mt-7 aussage text-[33px] leading-[1.05] tracking-[-.036em]">{t.sicherung.s1Titel}</h1>
+      <p className="mt-3 text-[14.5px] leading-[1.45] text-lese">{t.sicherung.s1Text}</p>
 
-      <ol className="mt-5 flex flex-col gap-2.5">
-        <li className="panel flex gap-3 !rounded-[16px] px-4 py-3.5">
-          <span className="text-[15px] font-extrabold text-work">1</span>
-          <span className="text-[13.5px] font-semibold leading-[1.45]">{t.sicherung.p1}</span>
-        </li>
-        <li className="panel flex gap-3 !rounded-[16px] px-4 py-3.5">
-          <span className="text-[15px] font-extrabold text-work">2</span>
-          <span className="text-[13.5px] font-semibold leading-[1.45]">{t.sicherung.p2}</span>
-        </li>
-        <li className="flex gap-3 rounded-[16px] bg-risk/10 px-4 py-3.5">
-          <span className="text-[15px] font-extrabold text-risk">!</span>
-          <span className="text-[13.5px] font-semibold leading-[1.45] text-lese">{t.sicherung.p3}</span>
+      <ol className="mt-5 border-t border-line">
+        {[t.sicherung.p1, t.sicherung.p2].map((punkt, i) => (
+          <li key={i} className="flex items-start gap-3.5 border-b border-line py-3.5">
+            <span className="tnum w-[26px] shrink-0 pt-[3px] font-mono text-[13px] text-cyan">{String(i + 1).padStart(2, '0')}</span>
+            <span className="text-[15.5px] leading-[1.45]">{punkt}</span>
+          </li>
+        ))}
+        <li className="flex items-start gap-3.5 border-b border-line py-3.5">
+          <span aria-hidden="true" className="flex w-[26px] shrink-0 pt-[8px]"><span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-risk" /></span>
+          <span className="text-[15.5px] leading-[1.45] text-[#FFD9D4]">{t.sicherung.p3}</span>
         </li>
       </ol>
 
       <div className="min-h-6 flex-1" />
-      <label className="flex cursor-pointer items-start gap-3 px-0.5 pb-4 text-[14px] font-semibold">
+      <label className="mb-4 flex min-h-[56px] cursor-pointer items-center gap-3.5 border-y border-line py-3 text-[16px] font-medium leading-[1.3]">
         <input type="checkbox" checked={bereit} onChange={e => setBereit(e.target.checked)}
-               className="mt-0.5 h-5 w-5 shrink-0 accent-[rgb(var(--work))]" />
+               className="h-5 w-5 shrink-0 accent-[rgb(var(--lamp))]" />
         <span>{t.sicherung.bereit}</span>
       </label>
       <button type="button" onClick={onWeiter} disabled={!bereit}
@@ -176,12 +168,12 @@ function PinAbfrage({ onOffen }: { onOffen: (woerter: string[]) => void }) {
 
   return (
     <>
-      <h1 className="mt-10 text-center text-[24px] font-extrabold tracking-[-0.02em]">{t.unlock.titel}</h1>
-      <p className="mx-auto mt-2 max-w-[300px] text-center text-[14px] leading-[1.5] text-dim">
+      <h1 className="mt-7 text-[24px] font-[350] leading-[1.14] tracking-[-.026em]">{t.unlock.titel}</h1>
+      <p className="mt-2.5 max-w-[340px] text-[14.5px] leading-[1.45] text-lese">
         {t.sicherung.pinFrage}
       </p>
       <div className="mt-8"><PinFeld wert={pin} onChange={setPin} gesperrt={busy} fehler={!!fehler && pin === ''} /></div>
-      <p className="mt-3.5 min-h-[18px] text-center text-[12.5px] font-semibold text-risk">{fehler}</p>
+      <p className="mt-5 min-h-[20px] text-center text-[13.5px] text-risk">{fehler}</p>
       <div className="flex-1" />
       <PinTasten wert={pin} onChange={v => { setPin(v); setFehler(null); }} gesperrt={busy} />
     </>
@@ -284,7 +276,7 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
                   {t.sicherung.wort(f.i + 1)}
                 </span>
                 {richtig && (
-                  <span className="flex items-center gap-1.5 text-[12px] font-extrabold text-proof">
+                  <span className="flex items-center gap-1.5 text-[13px] font-medium text-proof">
                     <svg viewBox="0 0 22 22" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2"
                          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 11.5l4 4L17 7" /></svg>
                     {t.sicherung.richtig}
@@ -331,14 +323,14 @@ function Pruefen({ woerter, onBestanden, onNochmal }: {
 function Fertig({ onSchliessen }: { onSchliessen: () => void }) {
   const { t } = useT();
   return (
-    <div className="flex flex-1 flex-col items-center justify-center text-center">
-      <span className="zoom flex h-20 w-20 items-center justify-center rounded-[26px] bg-proof/15 text-proof [&>svg]:h-10 [&>svg]:w-10">
-        {Icon.Haken}
-      </span>
-      <h1 className="mt-6 text-[26px] font-semibold tracking-[-0.025em]">{t.sicherung.erledigtTitel}</h1>
-      <p className="mt-2 max-w-[300px] text-[14px] leading-[1.5] text-dim">{t.sicherung.erledigtText}</p>
+    <div className="flex flex-1 flex-col">
+      <div className="min-h-10 flex-1" />
+      <span aria-hidden="true" className="rise text-proof [&>svg]:h-7 [&>svg]:w-7">{Icon.Haken}</span>
+      <h1 className="zoom aussage mt-4 origin-left text-[42px] [text-wrap:balance]">{t.sicherung.erledigtTitel}</h1>
+      <p className="rise rise-1 mt-4 max-w-[340px] text-[16px] leading-[1.5] text-lese">{t.sicherung.erledigtText}</p>
+      <div className="min-h-10 flex-1" />
       <button type="button" onClick={onSchliessen}
-              className="mt-10 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em] text-lamp-ink">
+              className="flex h-14 w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em] text-lamp-ink active:scale-[.985]">
         {t.allgemein.fertig}
       </button>
     </div>

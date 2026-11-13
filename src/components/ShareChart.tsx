@@ -89,7 +89,7 @@ export default function ShareChart({ shares, active }: {
 
   return (
     <section className="mt-1" aria-label={t.chart.aria}>
-      <div className="mb-2 flex items-baseline justify-between text-xs text-dim">
+      <div className="mb-2.5 flex items-baseline justify-between text-[13px] text-dim">
         <span>{t.chart.titel}</span>
         <span className="tnum">
           {leer ? '—' : t.chart.stand(sichtbar.length, zahl(ziel))}
@@ -98,7 +98,7 @@ export default function ShareChart({ shares, active }: {
 
       <div className="relative" style={{ height: HOEHE }} aria-hidden="true">
         {leer ? (
-          <p className="absolute inset-0 flex items-center text-xs text-dim">
+          <p className="absolute inset-0 flex items-center text-[13.5px] text-dim">
             {active ? t.chart.warte : t.chart.keine}
           </p>
         ) : (
@@ -123,7 +123,7 @@ export default function ShareChart({ shares, active }: {
                 const hoehe = Math.max(2, roh);
                 const gekappt = s.achieved > obergrenze;
 
-                const farbe = s.isBlock ? 'bg-work'
+                const farbe = s.isBlock ? 'bg-lamp'
                   : s.accepted ? 'bg-dim/75' : 'bg-dim/25';
 
                 return (
@@ -131,12 +131,12 @@ export default function ShareChart({ shares, active }: {
                        style={{ height: HOEHE }}>
                     {s.isBlock && (
                       <>
-                        <span className="absolute left-1/2 -translate-x-1/2 text-work"
+                        <span className="absolute left-1/2 -translate-x-1/2 text-lamp"
                               style={{ bottom: Math.min(hoehe + 15, NUTZ + 12) }}>
                           <Rakete titel={t.chart.gefunden} />
                         </span>
                         <span className="tnum absolute left-1/2 -translate-x-1/2
-                                         whitespace-nowrap text-[10px] font-medium text-work"
+                                         whitespace-nowrap text-[10px] font-medium text-lamp"
                               style={{ bottom: Math.min(hoehe + 2, NUTZ) }}>
                           {prozent}%
                         </span>
@@ -178,12 +178,12 @@ export default function ShareChart({ shares, active }: {
         sie dort, ueberdeckt sie genau die Prozentwerte der Bloecke -- und die
         stehen immer in ihrer Naehe.
       */}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-dim">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[12.5px] text-dim">
         <Legende farbe="bg-dim/75">{t.chart.angenommen}</Legende>
         <Legende farbe="bg-dim/25">{t.chart.ungueltig}</Legende>
-        <Legende farbe="bg-work">{t.chart.block}</Legende>
+        <Legende farbe="bg-lamp">{t.chart.block}</Legende>
         <span className="flex items-center gap-1.5">
-          <span className="text-work"><Rakete titel={t.chart.gefunden} /></span>
+          <span className="text-lamp"><Rakete titel={t.chart.gefunden} /></span>
           {t.chart.reward}
         </span>
         <span className="flex items-center gap-1.5">

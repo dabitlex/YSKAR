@@ -39,7 +39,7 @@ const tr = {
 
   nav: { home: 'Ana sayfa', mining: 'Madencilik', wallet: 'Cüzdan', netz: 'Ağ', entdecken: 'Keşfet', community: 'Topluluk' },
 
-  splash: { laedt: 'ZİNCİR YÜKLENİYOR' },
+  splash: { laedt: 'Zincir yükleniyor' },
 
   browser: {
     titel: 'YSKAR Telegram içinde çalışır',
@@ -297,7 +297,7 @@ const tr = {
   },
 
   fund: {
-    titel: 'BLOK BULUNDU',
+    titel: 'Blok bulundu',
     weiter: 'Devam',
   },
 
@@ -608,7 +608,7 @@ const tr = {
     sperreText: 'Uygulama bu kadar süre arka planda kalınca cüzdanı kilitler. Madencilik devam eder.',
     sperreSofort: 'Hemen',
     sperreNie: 'Asla',
-    sperreMin: (n: number) => `${n} min`,
+    sperreMin: (n: number) => `${n} dk`,
     thema: 'Görünüm',
     themaText: '“Sistem”, cihazınızın ayarını izler.',
     themaSystem: 'Sistem',

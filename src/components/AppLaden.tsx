@@ -75,37 +75,33 @@ export function AppLaden({ onSchliessen, auto = false }: { onSchliessen: () => v
   const nie = () => { merken('nie'); onSchliessen(); };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-3 sm:items-center"
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-[rgb(3_6_15/.78)] sm:items-center"
          role="dialog" aria-modal="true" aria-labelledby="apk-titel"
          onClick={auto ? spaeter : onSchliessen}>
-      <div className="rise max-h-[92vh] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-[24px] border border-line bg-sunk p-5 shadow-[0_18px_50px_rgba(0,0,0,.5)]"
+      <div className="blatt rise max-h-[calc(100dvh-var(--oben)-12px)] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[28px] px-[22px] pb-[calc(24px+var(--unten))] pt-6 sm:rounded-[28px]"
            onClick={e => e.stopPropagation()}>
-        <div className="flex items-start gap-3">
-          <Zeichen g={44} />
-          <div className="min-w-0">
-            <h2 id="apk-titel" className="text-[19px] font-semibold leading-tight tracking-tight">{t.apk.titel}</h2>
-            <p className="mt-1 text-[13px] font-medium leading-relaxed text-dim">{t.apk.text}</p>
-          </div>
-        </div>
+        <Zeichen g={34} />
+        <h2 id="apk-titel" className="mt-4 text-[24px] font-[350] leading-[1.14] tracking-[-.026em]">{t.apk.titel}</h2>
+        <p className="mt-2.5 text-[14.5px] leading-[1.45] text-lese">{t.apk.text}</p>
 
-        <p className="mt-3 text-[12px] font-semibold text-faint">
+        <p className="mt-3 font-mono text-[12.5px] text-dim">
           {apk === undefined ? t.apk.versionSucht : apk ? t.apk.version(apk.version, apk.mb) : ''}
         </p>
 
-        <p className="label mt-4 mb-2">{t.apk.anleitung}</p>
-        <ol className="space-y-2.5">
+        <p className="mt-5 border-b border-line pb-2.5 text-[13.5px] font-medium text-dim">{t.apk.anleitung}</p>
+        <ol>
           {[t.apk.schritt1, t.apk.schritt2(quelle), t.apk.schritt3].map((s, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-work/10 text-[12px] font-extrabold text-work">{i + 1}</span>
-              <span className="text-[13.5px] font-medium leading-relaxed">{s}</span>
+            <li key={i} className="flex items-start gap-3.5 border-b border-line py-3">
+              <span className="tnum w-[26px] shrink-0 pt-[3px] font-mono text-[13px] text-cyan">{String(i + 1).padStart(2, '0')}</span>
+              <span className="text-[15.5px] leading-[1.45]">{s}</span>
             </li>
           ))}
         </ol>
-        <p className="mt-3 rounded-[14px] bg-raised px-3.5 py-3 text-[12px] font-medium leading-relaxed text-dim">
+        <p className="mt-3 text-[13px] leading-[1.45] text-dim">
           {t.apk.warum}
         </p>
 
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-5 flex flex-col gap-2.5">
           <Button onClick={() => oeffnen(url)}>{apk ? t.apk.laden : t.apk.seite}</Button>
           <div className="flex gap-2">
             <Button variant="quiet" className="flex-1" onClick={auto ? spaeter : onSchliessen}>{t.apk.spaeter}</Button>

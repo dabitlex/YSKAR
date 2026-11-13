@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useWallet } from '@/lib/wallet/useWallet';
-import { Title, Body, Button, Notice } from '@/components/ui/Primitives';
+import { Body, Button, Notice } from '@/components/ui/Primitives';
+import { ListenTitel } from '@/components/ui/Zeilen';
 import { istNativ, fehlerMerken } from '@/lib/native/plattform';
 import { biometrieStand, biometrieAktivieren, biometrieDeaktivieren, type BiometrieStand }
   from '@/lib/native/biometrie';
@@ -22,7 +23,14 @@ import { useT } from '@/i18n';
  *   AppSettings   die Gruppen "Benachrichtigungen" und "App"
  */
 
-const ZEILE = 'flex items-center justify-between gap-3 py-3';
+const ZEILE = 'flex min-h-[52px] items-center justify-between gap-3 py-[11px]';
+const TITEL = 'text-[16px] font-medium leading-[1.3]';
+const UNTER = 'text-[13.5px] leading-[1.4] text-dim';
+const WERT = 'tnum shrink-0 font-mono text-[13.5px] text-lese';
+/** Schalter in einer Zeile: unterstrichenes Wort, 44 px hoch. */
+const TUN = 'shrink-0 inline-flex min-h-11 items-center text-[14.5px] font-medium underline underline-offset-[.24em]';
+const AN = `${TUN} text-text decoration-text/45`;
+const AUS = `${TUN} text-risk decoration-risk/50`;
 
 /** Fingerabdruck -- als Zeile (<li>) in der Gruppe "Sicherheit". */
 export function AppBiometrie() {
@@ -62,11 +70,11 @@ export function AppBiometrie() {
   };
 
   return (
-    <li className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-line">
+    <li className="border-b border-line">
       <div className={ZEILE}>
-        <span className="flex min-w-0 flex-col">
-          <span className="text-[13.5px] font-bold">{t.app.biometrie}</span>
-          <span className="text-[12px] font-semibold text-faint">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className={TITEL}>{t.app.biometrie}</span>
+          <span className={UNTER}>
             {bio === null ? '…'
               : !bio.verfuegbar
                 ? (bio.grund === 'kein_sensor' ? `${t.app.keinSensor}${bio.detail ? ` (${bio.detail})` : ''}`
@@ -78,12 +86,12 @@ export function AppBiometrie() {
         {bio === null && (
           <button onClick={() => biometrieStand().then(setBio)
                      .catch(e => setBio({ verfuegbar: false, grund: 'fehler', detail: String(e) }))}
-                  className="shrink-0 text-[13px] font-bold text-work">{t.app.neuPruefen}</button>
+                  className={AN}>{t.app.neuPruefen}</button>
         )}
         {bio?.verfuegbar && (
           bio.aktiv
-            ? <button onClick={ausschalten} className="shrink-0 text-[13px] font-bold text-risk">{t.allgemein.ausschalten}</button>
-            : <button onClick={() => setPinFrage(true)} className="shrink-0 text-[13px] font-bold text-work">{t.allgemein.einschalten}</button>
+            ? <button onClick={ausschalten} className={AUS}>{t.allgemein.ausschalten}</button>
+            : <button onClick={() => setPinFrage(true)} className={AN}>{t.allgemein.einschalten}</button>
         )}
       </div>
 
@@ -92,8 +100,8 @@ export function AppBiometrie() {
           <Body>{t.app.bioPinText}</Body>
           <input inputMode="numeric" maxLength={6} value={pin} autoFocus
                  onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setFehler(null); }}
-                 className="tnum sunk mt-4 w-full px-4 py-4 text-center font-mono text-xl
-                            tracking-[0.45em] outline-none transition-colors focus:border-work" />
+                 className="tnum feld mt-4 h-14 w-full bg-transparent px-4 text-center font-mono text-[22px]
+                            tracking-[0.45em] text-text outline-none" />
           {fehler && <div className="mt-3"><Notice tone="risk">{fehler}</Notice></div>}
           <div className="mt-4 space-y-2">
             <Button onClick={einschalten} disabled={pin.length !== 6 || busy}>
@@ -143,12 +151,12 @@ export default function AppSettings() {
 
   return (
     <>
-      <p className="label mb-2 mt-7 px-0.5">{t.app.benachrichtigungen}</p>
-      <ul className="panel mt-2 !py-0.5 px-4">
-        <li className={ZEILE}>
-          <span className="flex min-w-0 flex-col">
-            <span className="text-[13.5px] font-bold">{t.app.pushTitel}</span>
-            <span className="text-[12px] font-semibold text-faint">
+      <ListenTitel className="mt-6">{t.app.benachrichtigungen}</ListenTitel>
+      <ul>
+        <li className={`${ZEILE} border-b border-line`}>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className={TITEL}>{t.app.pushTitel}</span>
+            <span className={UNTER}>
               {push === 'an' ? t.app.pushAn
                 : push === 'verweigert' ? t.app.pushVerweigert
                 : push === 'arbeitet' ? '…'
@@ -156,48 +164,48 @@ export default function AppSettings() {
             </span>
           </span>
           <button onClick={pushUmschalten} disabled={push === 'arbeitet'}
-                  className={`shrink-0 text-[13px] font-bold ${push === 'an' ? 'text-risk' : 'text-work'}`}>
+                  className={push === 'an' ? AUS : AN}>
             {push === 'an' ? t.allgemein.ausschalten : t.allgemein.einschalten}
           </button>
         </li>
       </ul>
 
-      <p className="label mb-2 mt-7 px-0.5">{t.app.app}</p>
-      <ul className="panel mt-2 !py-0.5 px-4">
+      <ListenTitel className="mt-6">{t.app.app}</ListenTitel>
+      <ul>
         <li className={`${ZEILE} border-b border-line`}>
-          <span className="text-[13.5px] font-bold">{t.app.version}</span>
-          <span className="tnum text-[13.5px] font-semibold text-dim">
+          <span className={TITEL}>{t.app.version}</span>
+          <span className={WERT}>
             {version ? `${version.version} (${version.build})` : '—'}
           </span>
         </li>
         <li className={`${ZEILE} border-b border-line`}>
-          <span className="text-[13.5px] font-bold">{t.app.updates}</span>
-          {update === 'sucht' ? <span className="text-[13px] font-semibold text-faint">{t.app.sucht}</span>
-            : update === 'keins' ? <span className="text-[13px] font-semibold text-proof">{t.app.aktuell}</span>
+          <span className={TITEL}>{t.app.updates}</span>
+          {update === 'sucht' ? <span className="text-[14px] text-dim">{t.app.sucht}</span>
+            : update === 'keins' ? <span className="inline-flex items-center gap-[7px] text-[14px] text-text"><span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-proof" />{t.app.aktuell}</span>
             : update && typeof update === 'object'
               ? <button onClick={async () => {
                     // Erst in der App laden; ohne Plugin oder bei Ablehnung der Browser.
                     const r = await updateLaden(update);
                     if (!r || r.status === 'erlaubnis') { if (!r) updateOeffnen(update.url); return; }
-                  }} className="text-[13px] font-bold text-work">
+                  }} className={`${TUN} text-lamp decoration-lamp/50`}>
                   {t.app.laden(update.version)}</button>
-              : <button onClick={suchen} className="text-[13px] font-bold text-work">{t.app.jetztPruefen}</button>}
+              : <button onClick={suchen} className={AN}>{t.app.jetztPruefen}</button>}
         </li>
-        <li className={ZEILE}>
-          <span className="text-[13.5px] font-bold">{t.app.diagnose}</span>
+        <li className={`${ZEILE} border-b border-line`}>
+          <span className={TITEL}>{t.app.diagnose}</span>
           <button onClick={async () => { setDiag('laeuft'); try { setDiag(await diagnose()); } catch (e) { fehlerMerken('diagnose', e); setDiag(await diagnose().catch(() => null)); } }}
-                  disabled={diag === 'laeuft'} className="text-[13px] font-bold text-work">
+                  disabled={diag === 'laeuft'} className={AN}>
             {diag === 'laeuft' ? t.app.prueft : t.app.ausfuehren}
           </button>
         </li>
       </ul>
       {update && typeof update === 'object' && update.notizen && (
-        <p className="mt-3 whitespace-pre-line text-[12.5px] font-medium leading-relaxed text-dim">
+        <p className="mt-3 whitespace-pre-line text-[13.5px] leading-[1.45] text-lese">
           {update.notizen.slice(0, 600)}
         </p>
       )}
       {diag && diag !== 'laeuft' && (
-        <pre className="mt-3 overflow-x-auto rounded-[14px] bg-raised p-3 font-mono text-[11px] leading-relaxed text-dim">
+        <pre className="terminal mt-3 overflow-x-auto font-mono text-[11.5px] leading-relaxed text-lese">
 {`Plattform:   ${diag.plattform}  (Brücke: ${diag.bruecke ? 'ja' : 'nein'})
 Plugins:     ${diag.plugins.join(', ') || '—'}
 App:         ${diag.appInfo}
