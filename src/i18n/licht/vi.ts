@@ -21,6 +21,12 @@ const vi: typeof licht = {
   einstiegTitel: 'Thắp sáng\nngọn đèn của bạn.',
   einstiegText: 'Điện thoại của bạn tham gia tính toán các khối thật và nhận YSR cho việc đó. Mỗi người tham gia là một ánh đèn sáng bên bờ.',
   schritt: (n: number, von: number) => `Bước ${n}/${von}`,
+  anWen: 'Gửi cho ai?',
+  leerTitel: (sym: string) => `${sym} vào ví của bạn như thế nào`,
+  leerMinenText: 'Mỗi khối mà pool của bạn tìm được sẽ tự động trả phần của bạn về đây.',
+  leerEmpfangenText: 'Cho ai đó xem địa chỉ hoặc mã QR của bạn.',
+  legendeMining: 'Đào',
+  legendeMenschen: 'Chuyển khoản',
 };
 
 export default vi;

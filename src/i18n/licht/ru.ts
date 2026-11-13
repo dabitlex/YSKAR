@@ -21,6 +21,12 @@ const ru: typeof licht = {
   einstiegTitel: 'Зажги свой\nогонёк.',
   einstiegText: 'Твой телефон участвует в расчёте настоящих блоков и получает за это YSR. За каждого участника на берегу горит огонёк.',
   schritt: (n: number, von: number) => `Шаг ${n} из ${von}`,
+  anWen: 'Кому?',
+  leerTitel: (sym: string) => `Как ${sym} попадает в твой кошелёк`,
+  leerMinenText: 'Каждый блок твоего пула автоматически перечисляет сюда твою долю.',
+  leerEmpfangenText: 'Покажи кому-нибудь свой адрес или QR-код.',
+  legendeMining: 'Майнинг',
+  legendeMenschen: 'Переводы',
 };
 
 export default ru;

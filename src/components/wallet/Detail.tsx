@@ -9,7 +9,7 @@ import { kurzAdresse } from '@/lib/wallet/adresse';
 import { notizAusHex } from '@/lib/wallet/notiz';
 import { useKontakte } from '@/lib/wallet/kontakte';
 import KontaktBlatt from '@/components/wallet/KontaktBlatt';
-import { AdresseVierer, Gegenkachel, MiningKachel, WKopf, WertZeile, Zeichen } from '@/components/wallet/Teile';
+import { AdresseVierer, Punkt, UMRISS, VERWEIS, WKopf, WertZeile, Zeichen } from '@/components/wallet/Teile';
 import type { HistoryEintrag } from '@/components/tabs/WalletTab';
 
 /**
@@ -65,98 +65,104 @@ export default function Detail({ eintrag, decimals, symbol, hoehe, onSchliessen 
           .format(new Date(Number(e.timestamp) * 1000))
       : '—';
 
+    const text = betragGenau(e.amount, locale, decimals);
+    const trenner = new Intl.NumberFormat(locale).formatToParts(1.1).find(p => p.type === 'decimal')?.value ?? ',';
+    const i = text.lastIndexOf(trenner);
+    const [ganz, bruch] = i < 0 ? [text, ''] : [text.slice(0, i), text.slice(i)];
+    const groesse = Math.max(34, Math.min(84, Math.floor(262 / ((ganz.length + 1) * 0.5 + bruch.length * 0.26))));
+    const verweis = `${VERWEIS} gap-2`;
+
     return (
       <>
         <WKopf
-          vor={ueberweisung ? <Gegenkachel adresse={gegen} size={48} /> : <MiningKachel size={48} />}
-          oben={e.kind === 'in' ? t.wallet.dEmpfangenVon : e.kind === 'out' ? t.wallet.dGesendetAn : t.wallet.dMining}
           titel={ueberweisung
-            ? (gegenName ?? <span className="font-mono text-[16px] font-medium tracking-normal">{kurzAdresse(gegen, t.allgemein.unbekannt)}</span>)
+            ? (e.kind === 'in' ? t.wallet.dEmpfangenVon : t.wallet.dGesendetAn)
             : e.kind === 'pool' ? t.wallet.dPoolAnteil : t.wallet.dBlockreward}
           onSchliessen={onSchliessen} />
 
-        <p className="tnum mt-[18px] flex flex-wrap items-baseline gap-x-2">
-          <span className={`font-extrabold leading-none tracking-[-0.04em] ${eingang ? 'text-proof' : 'text-text'}`}
-                style={{ fontSize: Math.max(26, Math.min(44, Math.floor(300 / ((betragGenau(e.amount, locale, decimals).length + 1) * 0.6)))) }}>
-            {eingang ? '+' : '−'}{betragGenau(e.amount, locale, decimals)}
+        {/* Woher der Eintrag kommt: kalt von der Kette, warm von einem Menschen. */}
+        <p className="mt-2 flex min-w-0 items-center gap-2 text-[13.5px] font-medium text-dim">
+          <Punkt art={ueberweisung ? 'mensch' : 'kette'} className="!ml-0" />
+          <span className="min-w-0 truncate">
+            {ueberweisung
+              ? (gegenName ?? <span className="font-mono text-[13px] font-normal">{kurzAdresse(gegen, t.allgemein.unbekannt)}</span>)
+              : t.wallet.dMining}
           </span>
-          <span className="text-[16px] font-extrabold text-dim">{symbol}</span>
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <span className="inline-flex h-[30px] items-center gap-1.5 rounded-full bg-proof/[.12] pl-2 pr-3 text-[12.5px] font-extrabold text-proof">
-            {Zeichen.Haken()}{t.wallet.bestaetigtKurz}
+        <p className="mt-3.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <span className={`betrag ${eingang ? 'text-text' : 'text-lese'}`} style={{ fontSize: groesse }}>
+            {eingang ? '+' : '−'}{ganz}<small>{bruch}</small>
           </span>
-          <span className="tnum text-[13px] font-semibold text-dim">
-            {t.wallet.blockNr(zahl(e.height))}{danach != null && ` · ${t.wallet.bloeckeDanach(danach)}`}
-          </span>
-        </div>
+          <span className="font-mono text-[15px] text-lese">{symbol}</span>
+        </p>
 
-        <section className="panel mt-4 flex flex-col !rounded-[24px] px-[18px] py-1">
+        <section className="mt-7 flex flex-col border-b border-line">
+          <WertZeile label={t.wallet.status}>
+            <span className="inline-flex items-center gap-2 text-text">
+              <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-proof" />{t.wallet.bestaetigtKurz}
+            </span>
+          </WertZeile>
+          <WertZeile label={t.wallet.blockNr(zahl(e.height))}>{danach != null ? t.wallet.bloeckeDanach(danach) : '—'}</WertZeile>
+          <WertZeile label={t.wallet.zeitpunkt}>{zeit}</WertZeile>
           {ueberweisung && (
-            <div className="pb-3.5 pt-3">
+            <div className="border-t border-line pb-2 pt-[14px]">
               <div className="flex items-center justify-between gap-2.5">
-                <span className="text-[12.5px] font-bold text-dim">{eingang ? t.wallet.dAbsender : t.wallet.dEmpfaenger}</span>
+                <span className="text-[14.5px] text-dim">{eingang ? t.wallet.dAbsender : t.wallet.dEmpfaenger}</span>
                 {gegen && (
                   <button type="button" onClick={() => kopiere('adresse', gegen)}
-                          className="-my-2 -mr-2 flex h-11 items-center gap-1.5 px-2 text-[13px] font-extrabold text-work">
+                          className={`${verweis} -my-3`}>
                     {Zeichen.Kopieren(16)}{kopiert === 'adresse' ? t.allgemein.Kopiert : t.allgemein.Kopieren}
                   </button>
                 )}
               </div>
               {gegen
-                ? <AdresseVierer adresse={gegen} className="mt-2" />
-                : <p className="mt-2 text-[13.5px] font-semibold text-dim">{t.allgemein.unbekannt}</p>}
+                ? <AdresseVierer adresse={gegen} className="mt-2.5" />
+                : <p className="mt-2 text-[14.5px] text-dim">{t.allgemein.unbekannt}</p>}
               {gegen && (
-                <button type="button" onClick={() => setKontakt(gegen)}
-                        className="-mb-1.5 mt-1.5 flex h-11 items-center gap-2 text-[13px] font-extrabold text-work">
+                <button type="button" onClick={() => setKontakt(gegen)} className={`${verweis} mt-1`}>
                   {gegenName ? Zeichen.Stift() : Zeichen.Person(17)}
                   {gegenName ? t.kontakt.bearbeiten : t.kontakt.alsKontakt}
                 </button>
               )}
             </div>
           )}
-          <WertZeile label={t.wallet.zeitpunkt} ohneLinie={!ueberweisung}>{zeit}</WertZeile>
           {notiz && <WertZeile label={t.wallet.notiz}>{t.wallet.zitat(notiz)}</WertZeile>}
           {e.kind === 'out' && gebuehr > 0n && (
-            <WertZeile label={t.wallet.netzgebuehr}>{betragGenau(gebuehr, locale, decimals, 4)} {symbol}</WertZeile>
+            <WertZeile label={t.wallet.netzgebuehr}>
+              <span className="font-mono text-[14px]">{betragGenau(gebuehr, locale, decimals, 4)} {symbol}</span>
+            </WertZeile>
           )}
           {e.kind === 'pool' && (e.shares ?? 0) > 0 && (
             <WertZeile label={t.wallet.dAufgeteilt}>{t.wallet.adressen(e.shares!)}</WertZeile>
           )}
           <button type="button" aria-expanded={technik} onClick={() => setTechnik(x => !x)}
-                  className="flex min-h-[56px] w-full items-center justify-between gap-3 border-t border-line py-1.5 text-left">
+                  className="flex min-h-[62px] w-full items-center justify-between gap-3 border-t border-line py-[11px] text-left">
             <span className="flex flex-col gap-0.5">
-              <span className="text-[13.5px] font-extrabold">{t.wallet.technik}</span>
-              <span className="text-[12.5px] font-semibold text-dim">{t.wallet.technikText}</span>
+              <span className="text-[16px] font-medium leading-[1.3]">{t.wallet.technik}</span>
+              <span className="text-[13.5px] leading-[1.4] text-dim">{t.wallet.technikText}</span>
             </span>
-            <span className={`shrink-0 text-dim transition-transform ${technik ? 'rotate-180' : ''}`}>{Zeichen.Unten()}</span>
+            <span className={`-mr-1 shrink-0 text-dim transition-transform ${technik ? 'rotate-180' : ''}`}>{Zeichen.Unten(18)}</span>
           </button>
           {technik && (
-            <div className="pb-3">
+            <div className="pb-4">
               <div className="flex items-center justify-between gap-2.5">
-                <span className="text-[12.5px] font-bold text-dim">{t.wallet.txid}</span>
-                <button type="button" onClick={() => kopiere('txid', e.txid)}
-                        className="-my-2 -mr-2 flex h-11 items-center gap-1.5 px-2 text-[13px] font-extrabold text-work">
+                <span className="text-[14.5px] text-dim">{t.wallet.txid}</span>
+                <button type="button" onClick={() => kopiere('txid', e.txid)} className={`${verweis} -my-3`}>
                   {Zeichen.Kopieren(16)}{kopiert === 'txid' ? t.allgemein.Kopiert : t.allgemein.Kopieren}
                 </button>
               </div>
-              <p className="mt-1 break-all font-mono text-[12.5px] leading-[1.5] text-dim">{e.txid}</p>
+              <p className="terminal mt-2.5 break-all font-mono text-[13px] leading-[1.55] text-lese">{e.txid}</p>
               {e.idx != null && (
-                <p className="tnum mt-2 text-[12.5px] font-semibold text-dim">{t.wallet.position(zahl(e.height), e.idx)}</p>
+                <p className="tnum mt-2.5 text-[13px] text-dim">{t.wallet.position(zahl(e.height), e.idx)}</p>
               )}
             </div>
           )}
         </section>
 
-        <div className="mt-4 space-y-2.5">
-          <ExternLink href={`${EXPLORER_URL}#block-${e.height}`}
-                      className="flex h-[54px] items-center justify-center gap-2 rounded-[18px] border border-line bg-surface text-[15px] font-extrabold text-text">
-            {t.wallet.imExplorer}{Zeichen.Extern(17)}
+        <div className="mt-5 flex flex-col gap-2.5">
+          <ExternLink href={`${EXPLORER_URL}#block-${e.height}`} className={UMRISS}>
+            <span className="truncate">{t.wallet.imExplorer}</span>{Zeichen.Extern(17)}
           </ExternLink>
-          <button type="button" onClick={onSchliessen}
-                  className="h-[54px] w-full rounded-[18px] bg-raised text-[15px] font-extrabold active:scale-[.985]">
-            {t.allgemein.schliessen}
-          </button>
         </div>
       </>
     );

@@ -21,6 +21,12 @@ const en: typeof licht = {
   einstiegTitel: 'Switch your\nlight on.',
   einstiegText: 'Your phone works on real blocks and earns YSR for it. For everyone who takes part, a light burns on the shore.',
   schritt: (n: number, von: number) => `Step ${n} of ${von}`,
+  anWen: 'Who to?',
+  leerTitel: (sym: string) => `How ${sym} gets into your wallet`,
+  leerMinenText: 'Every block your pool finds pays your share here automatically.',
+  leerEmpfangenText: 'Show someone your address or your QR code.',
+  legendeMining: 'Mining',
+  legendeMenschen: 'Transfers',
 };
 
 export default en;

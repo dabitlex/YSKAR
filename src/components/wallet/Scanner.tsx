@@ -160,22 +160,21 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
   // haengen bleiben -- er ist der ganze Bildschirm.
   return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col text-white"
-         style={{ background: 'radial-gradient(120% 80% at 50% 40%, #223452 0%, #0A0F1A 70%)' }}>
+         style={{ background: 'radial-gradient(120% 60% at 85% 0%, rgb(16 41 94 / .7), transparent 68%), #040A1A' }}>
       {zustand === 'kamera' && (
         <video ref={video} playsInline muted autoPlay
                className="absolute inset-0 h-full w-full object-cover" />
       )}
       {/* Abdunkeln ausserhalb des Rahmens, damit die Mitte fuehrt. */}
-      <div className="pointer-events-none absolute inset-0 bg-black/45" />
+      <div className="pointer-events-none absolute inset-0 bg-[rgb(4_10_26/.5)]" />
 
-      <div className="relative flex items-center justify-between px-5 pt-[calc(16px+var(--oben))]">
+      <div className="relative flex items-center gap-1.5 pl-[14px] pr-[22px] pt-[calc(8px+var(--oben))]">
         <button onClick={onAbbruch} aria-label={t.allgemein.abbrechen}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
-          <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
-               strokeWidth="2" strokeLinecap="round"><path d="M6 6l10 10M16 6 6 16" /></svg>
+                className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95">
+          <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor"
+               strokeWidth="1.8" strokeLinecap="round"><path d="M5 5l12 12M17 5 5 17" /></svg>
         </button>
-        <span className="text-[17px] font-extrabold">{t.scanner.titel}</span>
-        <span className="w-9" />
+        <span className="text-[16px] font-semibold tracking-[-.01em]">{t.scanner.titel}</span>
       </div>
 
       <div className="relative flex flex-1 flex-col items-center justify-center gap-7 px-6">
@@ -186,30 +185,30 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
           <Ecke style={{ bottom: 0, right: 0, borderLeft: 0, borderTop: 0, borderBottomRightRadius: 22 }} />
           {zustand === 'kamera' && !treffer && (
             <div className="scanline absolute left-3 right-3 h-0.5"
-                 style={{ background: 'linear-gradient(90deg, transparent, #4D8DFF, transparent)',
-                          boxShadow: '0 0 14px #4D8DFF' }} />
+                 style={{ background: 'linear-gradient(90deg, transparent, #63D8FF, transparent)',
+                          boxShadow: '0 0 14px rgb(99 216 255 / .8)' }} />
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-1.5 text-center">
+        <div className="flex max-w-[320px] flex-col items-center gap-2 text-center">
           {zustand === 'kamera' ? (
             <>
-              <span className="text-[15px] font-bold">{t.scanner.halten}</span>
-              <span className="text-[13px] font-semibold leading-relaxed text-white/60">
+              <span className="text-[18px] font-medium tracking-[-.012em]">{t.scanner.halten}</span>
+              <span className="text-[14.5px] leading-[1.45] text-white/70">
                 {t.scanner.haltenText}
               </span>
             </>
           ) : zustand === 'verweigert' ? (
             <>
-              <span className="text-[15px] font-bold">{t.scanner.verweigert}</span>
-              <span className="text-[13px] font-semibold leading-relaxed text-white/60">
+              <span className="text-[18px] font-medium tracking-[-.012em]">{t.scanner.verweigert}</span>
+              <span className="text-[14.5px] leading-[1.45] text-white/70">
                 {t.scanner.verweigertText}
               </span>
             </>
           ) : (
             <>
-              <span className="text-[15px] font-bold">{t.scanner.fehlt}</span>
-              <span className="text-[13px] font-semibold leading-relaxed text-white/60">
+              <span className="text-[18px] font-medium tracking-[-.012em]">{t.scanner.fehlt}</span>
+              <span className="text-[14.5px] leading-[1.45] text-white/70">
                 {t.scanner.fehltText}
               </span>
             </>
@@ -219,28 +218,26 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
 
       <div className="relative flex flex-col gap-2.5 px-5 pb-[calc(24px+var(--unten))]">
         {treffer ? (
-          <div className="flex items-center gap-3 rounded-[16px] border border-proof/40 bg-proof/20 px-4 py-3.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-proof">
-              <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="#fff"
-                   strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 11.5l4 4 8-9" /></svg>
-            </span>
+          <div className="flex items-center gap-3.5 border-y border-proof/40 py-3">
+            <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" className="shrink-0 text-proof"
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 11.5l4 4 8-9" /></svg>
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[13px] font-extrabold text-[#7EE2B8]">{t.scanner.erkannt}</span>
-              <span className="truncate font-mono text-[11.5px] text-white/85">{treffer}</span>
+              <span className="text-[14.5px] font-medium text-proof">{t.scanner.erkannt}</span>
+              <span className="truncate font-mono text-[13px] text-white/85">{treffer}</span>
             </span>
           </div>
         ) : fremd ? (
-          <div className="flex items-center gap-3 rounded-[16px] border border-risk/40 bg-risk/20 px-4 py-3.5">
-            <span className="text-risk">{Icon.Warnung}</span>
+          <div className="flex items-center gap-3.5 border-y border-risk/40 py-3">
+            <span className="shrink-0 text-risk">{Icon.Warnung}</span>
             <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[13px] font-extrabold text-[#FF9AA0]">{t.scanner.fremd}</span>
-              <span className="truncate font-mono text-[11.5px] text-white/70">{fremd}</span>
+              <span className="text-[14.5px] font-medium text-risk">{t.scanner.fremd}</span>
+              <span className="truncate font-mono text-[13px] text-white/70">{fremd}</span>
             </span>
           </div>
         ) : null}
         <button onClick={einfuegen}
-                className="flex h-[52px] items-center justify-center gap-2 rounded-[16px]
-                           bg-white/12 text-[15px] font-bold active:scale-[.985]">
+                className="flex h-14 items-center justify-center gap-2.5 rounded-full text-[16px] font-semibold
+                           shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)] active:scale-[.985]">
           {Icon.Kopieren} {t.scanner.einfuegen}
         </button>
       </div>
@@ -249,5 +246,5 @@ export default function Scanner({ onErgebnis, onAbbruch }: {
 }
 
 function Ecke({ style }: { style: React.CSSProperties }) {
-  return <div className="absolute h-[34px] w-[34px] border-4 border-white" style={style} />;
+  return <div className="absolute h-[34px] w-[34px] border-2 border-[#EEF4FF]" style={style} />;
 }

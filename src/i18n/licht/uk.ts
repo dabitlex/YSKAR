@@ -21,6 +21,12 @@ const uk: typeof licht = {
   einstiegTitel: 'Засвіти свій\nвогник.',
   einstiegText: 'Твій телефон бере участь у розрахунку справжніх блоків і отримує за це YSR. За кожного учасника на березі горить вогник.',
   schritt: (n: number, von: number) => `Крок ${n} з ${von}`,
+  anWen: 'Кому?',
+  leerTitel: (sym: string) => `Як ${sym} потрапляє у твій гаманець`,
+  leerMinenText: 'Кожен блок твого пулу автоматично перераховує сюди твою частку.',
+  leerEmpfangenText: 'Покажи комусь свою адресу або QR-код.',
+  legendeMining: 'Майнінг',
+  legendeMenschen: 'Перекази',
 };
 
 export default uk;

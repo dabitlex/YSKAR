@@ -21,6 +21,12 @@ const es: typeof licht = {
   einstiegTitel: 'Enciende\ntu luz.',
   einstiegText: 'Tu teléfono trabaja en bloques reales y gana YSR por ello. Por cada persona que participa arde una luz en la orilla.',
   schritt: (n: number, von: number) => `Paso ${n} de ${von}`,
+  anWen: '¿A quién?',
+  leerTitel: (sym: string) => `Así llega ${sym} a tu wallet`,
+  leerMinenText: 'Cada bloque de tu pool paga tu parte aquí automáticamente.',
+  leerEmpfangenText: 'Muéstrale a alguien tu dirección o tu código QR.',
+  legendeMining: 'Minería',
+  legendeMenschen: 'Transferencias',
 };
 
 export default es;

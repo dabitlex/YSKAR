@@ -390,3 +390,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .buehne-voll .ufer { height: 100dvh; z-index: 0; }
 .buehne-voll .ufer img { width: var(--ufer-w); left: 50%; translate: -50% 0; top: calc(var(--ufer-y) - var(--ufer-w) * .9858); }
 .buehne-voll .ufer::after { background: linear-gradient(180deg, rgb(2 5 15 / .58) 0%, rgb(2 5 15 / 0) 24%, rgb(4 10 26 / 0) 48%, rgb(4 10 26 / .82) 66%, rgb(var(--ink)) 84%); }
+
+/* Wallet: Punkte in der Farbe der Herkunft. Kalt kommt von der Kette, warm
+   von Menschen, der Ring wartet noch auf einen Block. */
+.punkt { width: 8px; height: 8px; border-radius: 50%; flex: none; margin: 0 3px; display: inline-block; }
+.punkt-kette { background: #9CCBFF; box-shadow: 0 0 8px 1px rgb(120 190 255 / .7); }
+.punkt-mensch { background: #FFD29A; box-shadow: 0 0 8px 1px rgb(255 186 110 / .8); }
+.punkt-wartet { box-shadow: inset 0 0 0 1.5px #FFD29A; }
+/* Eingabefeld der Wallet: nur ein Umriss, beim Tippen heller. */
+.feld { border-radius: 18px; box-shadow: inset 0 0 0 1px rgb(238 244 255 / .3); transition: box-shadow .15s; }
+.feld:focus-within { box-shadow: inset 0 0 0 1.5px rgb(238 244 255 / .72); }
+.feld:focus-visible, .feld :focus-visible { outline: none; }
+/* Grosser Betrag: leicht, die Nachkommastellen halb so gross und leiser. */
+.betrag { font-weight: 300; letter-spacing: -.05em; line-height: .92; font-variant-numeric: tabular-nums; }
+.betrag small { font-size: .5em; letter-spacing: -.035em; color: rgb(var(--lese)); }
+/* Mining-Einnahmen: der gewaehlte Tag traegt das Band der Kette. */
+.einnahme-an { background: linear-gradient(180deg, #63D8FF, #2F7BFF); }

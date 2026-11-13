@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Blatt } from '@/components/ui/Bausteine';
-import { Button } from '@/components/ui/Primitives';
 import { useT } from '@/i18n';
 import { NAME_MAX, kontaktSetzen, kontaktEntfernen, useKontakte } from '@/lib/wallet/kontakte';
-import { AdresseVierer, Gegenkachel, WKopf } from '@/components/wallet/Teile';
+import { AdresseVierer, KNOPF, Punkt, VERWEIS, WKopf } from '@/components/wallet/Teile';
 
 /**
  * Kontakt anlegen, umbenennen oder entfernen.
@@ -45,27 +44,25 @@ export default function KontaktBlatt({ adresse, onSchliessen }: {
   return (
     <Blatt offen={!!adresse} onSchliessen={onSchliessen} grund="ink">
       <WKopf titel={vorhanden ? t.kontakt.bearbeiten : t.kontakt.neu} onSchliessen={onSchliessen} />
-      <div className="panel !rounded-[20px] flex items-center gap-3 px-3.5 py-3">
-        <Gegenkachel adresse={a} size={40} />
-        <AdresseVierer adresse={a} className="min-w-0 flex-1 !text-[13px]" />
+      <div className="flex items-start gap-3.5 border-y border-line py-[14px]">
+        <Punkt art="mensch" className="mt-[6px]" />
+        <AdresseVierer adresse={a} className="min-w-0 flex-1" />
       </div>
       <form onSubmit={e => { e.preventDefault(); speichern(); }}>
-        <label htmlFor="kontaktname" className="mb-1.5 mt-4 block text-[13px] font-bold text-dim">{t.kontakt.name}</label>
+        <label htmlFor="kontaktname" className="mb-2 mt-5 block text-[13.5px] font-medium text-dim">{t.kontakt.name}</label>
         <input id="kontaktname" ref={feld} value={eingabe} maxLength={NAME_MAX}
                onChange={e => setEingabe(e.target.value)}
                autoComplete="off" autoCorrect="off" enterKeyHint="done"
                placeholder={t.kontakt.platzhalter}
-               className="sunk w-full !rounded-[16px] px-4 py-3.5 text-[15px] font-semibold outline-none transition-colors focus:border-work placeholder:font-medium placeholder:text-faint" />
-        <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-dim">{t.kontakt.hinweis}</p>
-        <div className="mt-5 space-y-2.5">
-          <Button type="submit" disabled={!eingabe.trim()} className="!rounded-[18px] !py-4 !font-extrabold">
-            {t.kontakt.speichern}
-          </Button>
+               className="feld h-[58px] w-full bg-transparent px-[18px] text-[16px] text-text outline-none placeholder:text-faint" />
+        <p className="mt-2.5 text-[13px] leading-[1.45] text-dim">{t.kontakt.hinweis}</p>
+        <div className="mt-6 flex flex-col">
+          <button type="submit" disabled={!eingabe.trim()} className={KNOPF}>{t.kontakt.speichern}</button>
           {vorhanden && (
-            <Button variant="risk" onClick={() => { kontaktEntfernen(a); onSchliessen(); }}
-                    className="!rounded-[18px] !py-4 !font-extrabold">
+            <button type="button" onClick={() => { kontaktEntfernen(a); onSchliessen(); }}
+                    className={`${VERWEIS} mt-1 justify-center !text-risk !decoration-risk/50`}>
               {t.kontakt.entfernen}
-            </Button>
+            </button>
           )}
         </div>
       </form>

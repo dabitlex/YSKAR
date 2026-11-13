@@ -5,6 +5,7 @@ import { Blatt } from '@/components/ui/Bausteine';
 import { useT } from '@/i18n';
 import type { Suche } from '@/lib/api/suche';
 import { type Zeitraum, IMMER, tage, tagText, tagAus } from '@/lib/wallet/zeitraum';
+import { KNOPF, VERWEIS } from '@/components/wallet/Teile';
 
 /*
   Suche und Zeitraum im Wallet-Verlauf.
@@ -19,7 +20,7 @@ import { type Zeitraum, IMMER, tage, tagText, tagAus } from '@/lib/wallet/zeitra
 */
 
 const Lupe = ({ g = 17 }: { g?: number }) => (
-  <svg viewBox="0 0 24 24" width={g} height={g} fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round">
+  <svg viewBox="0 0 24 24" width={g} height={g} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
     <circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" />
   </svg>
 );
@@ -40,10 +41,10 @@ export function SuchKnopf({ offen, aktiv, onClick }: { offen: boolean; aktiv: bo
   return (
     <button onClick={onClick} aria-label={t.wallet.suchen} aria-expanded={offen}
             className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
-              offen ? 'bg-work/10 text-work' : 'bg-raised text-text'}`}>
+              offen ? 'bg-text/[.14] text-text' : 'text-lese'}`}>
       <Lupe g={19} />
       {aktiv && !offen && (
-        <span className="absolute right-[9px] top-[9px] h-[8px] w-[8px] rounded-full bg-work ring-2 ring-surface" />
+        <span className="absolute right-[9px] top-[9px] h-[7px] w-[7px] rounded-full bg-lamp" />
       )}
     </button>
   );
@@ -80,8 +81,10 @@ function Chip({ an, aktiv, onClick, children, label }: {
 }) {
   return (
     <button onClick={onClick} aria-pressed={an} aria-label={label}
-            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-[11px] py-1.5 text-[12px] font-extrabold transition-colors ${
-              an ? 'bg-work text-white' : aktiv ? 'bg-work/10 text-work' : 'bg-raised text-dim'}`}>
+            className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13.5px] transition-colors ${
+              an ? 'bg-text/[.14] font-semibold text-text'
+                : aktiv ? 'font-medium text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)]'
+                : 'font-medium text-lese shadow-[inset_0_0_0_1px_rgb(var(--line))]'}`}>
       {children}
     </button>
   );
@@ -100,21 +103,21 @@ export function SuchLeiste({ eingabe, onEingabe, zeitraum, onZeitraum, onDatum }
   const eigen = zeitraum.art === 'heute' || zeitraum.art === 'monat' || zeitraum.art === 'eigen';
 
   return (
-    <div className="pb-1.5 pt-2">
-      <label className="flex items-center gap-2 rounded-[14px] border-[1.5px] border-work bg-sunk px-3 py-[9px] text-faint">
+    <div className="pb-1.5 pt-3">
+      <label className="feld flex h-12 items-center gap-2.5 !rounded-[16px] px-4 text-dim">
         <Lupe g={16} />
         <input ref={feld} value={eingabe} onChange={e => onEingabe(e.target.value)}
                placeholder={t.wallet.suchePlatzhalter} enterKeyHint="search"
                autoCapitalize="off" autoCorrect="off" spellCheck={false} maxLength={100}
-               className="min-w-0 flex-1 bg-transparent font-mono text-[13px] text-text outline-none focus-visible:outline-none placeholder:font-sans placeholder:text-[13px] placeholder:font-semibold placeholder:text-faint" />
+               className="min-w-0 flex-1 bg-transparent font-mono text-[14px] text-text outline-none focus-visible:outline-none placeholder:font-sans placeholder:text-[14.5px] placeholder:text-faint" />
         {eingabe && (
           <button onClick={() => { onEingabe(''); feld.current?.focus(); }} aria-label={t.wallet.sucheLeeren}
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-raised text-dim">
-            <Kreuz />
+                  className="-mr-2 flex h-11 w-9 shrink-0 items-center justify-center text-lese">
+            <Kreuz g={12} />
           </button>
         )}
       </label>
-      <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]">
+      <div className="-mx-1 mt-2.5 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]">
         <Chip an={zeitraum.art === 'immer'} onClick={() => onZeitraum(IMMER)}>{t.wallet.jederzeit}</Chip>
         <Chip an={zeitraum.art === 'tage7'} onClick={() => onZeitraum({ art: 'tage7' })}>{t.wallet.tage7}</Chip>
         <Chip an={zeitraum.art === 'tage30'} onClick={() => onZeitraum({ art: 'tage30' })}>{t.wallet.tage30}</Chip>
@@ -140,7 +143,7 @@ export function FilterChips({ eingabe, zeitraum, onSucheWeg, onZeitWeg, onOeffne
           className="-mr-1 ml-0.5 flex h-4 w-4 items-center justify-center rounded-full"><Kreuz g={9} /></span>
   );
   return (
-    <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 pt-2 [scrollbar-width:none]">
+    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-3 [scrollbar-width:none]">
       {zeitraum.art !== 'immer' && (
         <Chip aktiv onClick={onOeffnen}><Kalender />{text(zeitraum)}<Weg onClick={onZeitWeg} /></Chip>
       )}
@@ -183,15 +186,15 @@ export function ZeitraumBlatt({ offen, zeitraum, onSchliessen, onAnwenden }: {
   return (
     <Blatt offen={offen} onSchliessen={onSchliessen} titel={t.wallet.zeitraum}
            rechts={
-             <button onClick={() => { onAnwenden(IMMER); }} className="text-[13.5px] font-extrabold text-work">
+             <button onClick={() => { onAnwenden(IMMER); }} className={VERWEIS}>
                {t.wallet.zuruecksetzen}
              </button>
            }>
       <div className="mb-4 grid grid-cols-2 gap-2">
         {schnell.map(s => (
           <button key={s.z.art} onClick={() => setWahl(s.z)} aria-pressed={wahl.art === s.z.art}
-                  className={`rounded-[14px] px-2 py-3 text-[13.5px] font-extrabold transition-colors ${
-                    wahl.art === s.z.art ? 'bg-work/10 text-work ring-[1.5px] ring-inset ring-work' : 'bg-raised text-dim'}`}>
+                  className={`h-11 rounded-full px-2 text-[14.5px] transition-colors ${
+                    wahl.art === s.z.art ? 'bg-text/[.14] font-semibold text-text' : 'font-medium text-lese shadow-[inset_0_0_0_1px_rgb(var(--line))]'}`}>
             {s.text}
           </button>
         ))}
@@ -199,19 +202,18 @@ export function ZeitraumBlatt({ offen, zeitraum, onSchliessen, onAnwenden }: {
       <div className="grid grid-cols-2 gap-2.5">
         {(['von', 'bis'] as const).map(feld => (
           <label key={feld} className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-[.1em] text-faint">
+            <span className="text-[13.5px] font-medium text-dim">
               {feld === 'von' ? t.wallet.vonDatum : t.wallet.bisDatum}
             </span>
             <input type="date" max={heute}
                    value={feld === 'von' ? vonText : bisText}
                    onChange={e => setzeTag(feld, e.target.value)}
-                   className="sunk w-full min-w-0 px-3 py-[11px] text-[14px] font-bold text-text outline-none focus:border-work" />
+                   className="feld h-12 w-full min-w-0 !rounded-[16px] bg-transparent px-3.5 text-[15px] text-text outline-none [color-scheme:dark]" />
           </label>
         ))}
       </div>
-      <p className="mb-4 mt-2.5 text-[12px] font-semibold leading-relaxed text-faint">{t.wallet.zeitraumHinweis}</p>
-      <button onClick={() => onAnwenden(wahl)} disabled={!gueltig}
-              className="w-full rounded-[16px] bg-work py-3.5 text-[15px] font-extrabold text-white disabled:opacity-50">
+      <p className="mb-5 mt-3 text-[13px] leading-[1.45] text-dim">{t.wallet.zeitraumHinweis}</p>
+      <button onClick={() => onAnwenden(wahl)} disabled={!gueltig} className={KNOPF}>
         {t.wallet.anwenden}
       </button>
     </Blatt>
@@ -222,7 +224,7 @@ export function ZeitraumBlatt({ offen, zeitraum, onSchliessen, onAnwenden }: {
 function hervor(text: string, teil: string, vonAnfang: boolean): React.ReactNode {
   const i = text.toLowerCase().indexOf(teil.toLowerCase());
   if (i < 0 || (vonAnfang && i !== 0)) return text;
-  return <>{text.slice(0, i)}<mark className="rounded-[3px] bg-amber/30 px-px text-text">{text.slice(i, i + teil.length)}</mark>{text.slice(i + teil.length)}</>;
+  return <>{text.slice(0, i)}<mark className="rounded-[3px] bg-lamp/25 px-px text-text">{text.slice(i, i + teil.length)}</mark>{text.slice(i + teil.length)}</>;
 }
 
 const memoText = (hex: string | null | undefined) => {

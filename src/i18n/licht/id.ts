@@ -21,6 +21,12 @@ const id: typeof licht = {
   einstiegTitel: 'Nyalakan\ncahayamu.',
   einstiegText: 'Ponselmu ikut mengerjakan blok sungguhan dan mendapat YSR untuk itu. Untuk setiap orang yang ikut, satu cahaya menyala di tepi.',
   schritt: (n: number, von: number) => `Langkah ${n} dari ${von}`,
+  anWen: 'Kepada siapa?',
+  leerTitel: (sym: string) => `Begini ${sym} masuk ke wallet-mu`,
+  leerMinenText: 'Setiap blok pool-mu otomatis membayarkan bagianmu ke sini.',
+  leerEmpfangenText: 'Tunjukkan alamat atau kode QR-mu kepada seseorang.',
+  legendeMining: 'Mining',
+  legendeMenschen: 'Transfer',
 };
 
 export default id;

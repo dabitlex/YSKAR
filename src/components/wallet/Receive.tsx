@@ -8,7 +8,7 @@ import { NOTIZ_BYTES, notizBytes, notizKuerzen } from '@/lib/wallet/notiz';
 import { tippen, eingabeAnzeige, type Taste } from '@/lib/wallet/ziffern';
 import { zahlungsCode } from '@/lib/wallet/qr';
 import Ziffernfeld from '@/components/wallet/Ziffernfeld';
-import { AdresseVierer, Kappe, WKopf, Zeichen } from '@/components/wallet/Teile';
+import { AdresseVierer, KNOPF, Kappe, UMRISS, WKopf, Zeichen } from '@/components/wallet/Teile';
 
 /**
  * Empfangen.
@@ -92,40 +92,40 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
     return () => window.removeEventListener('keydown', hoere);
   }, [ansicht, taste]);
 
-  const knopf = 'flex h-[54px] items-center justify-center gap-2 rounded-[18px] text-[15px] font-extrabold transition-transform active:scale-[.985]';
   const rahmen = 'flex min-h-[min(700px,calc(92dvh_-_64px))] flex-col';
 
   // ----------------------------------------------------------- anfordern
   if (ansicht === 'anfordern') {
     const anzeige = eingabeAnzeige(eingabe, zeichen, locale);
-    const groesse = Math.max(28, Math.min(58, Math.floor(270 / (Math.max(anzeige.length, 1) * 0.6))));
+    const i = anzeige.lastIndexOf(zeichen);
+    const [ganz, bruch] = i < 0 ? [anzeige, ''] : [anzeige.slice(0, i), anzeige.slice(i)];
+    const groesse = Math.max(34, Math.min(84, Math.floor(268 / (Math.max(ganz.length, 1) * 0.5 + bruch.length * 0.26))));
     return (
       <div className={rahmen}>
         <WKopf titel={t.empfangen.anfordern} onZurueck={() => setAnsicht('adresse')} />
 
-        <div className="mt-6 flex flex-col items-center gap-1.5 text-center">
-          <p className="tnum flex items-baseline gap-2" aria-live="polite">
-            <span className={`font-extrabold leading-none tracking-[-0.04em] ${anzeige ? '' : 'text-faint'}`} style={{ fontSize: groesse }}>
-              {anzeige || '0'}
-            </span>
-            <span className="text-[18px] font-extrabold text-dim">{symbol}</span>
-          </p>
-        </div>
+        <Kappe className="mt-3 block">{t.senden.betrag}</Kappe>
+        <p className="mt-2.5 flex items-baseline gap-2.5" aria-live="polite">
+          <span className={`betrag ${anzeige ? '' : 'text-faint'}`} style={{ fontSize: groesse }}>
+            {ganz || '0'}<small>{bruch}</small>
+          </span>
+          <span className="font-mono text-[15px] text-lese">{symbol}</span>
+        </p>
 
-        <div className="panel mt-6 flex h-[50px] items-center gap-2.5 !rounded-[16px] px-3.5 focus-within:border-work">
-          <label htmlFor="anotiz" className="shrink-0 text-[13px] font-bold text-dim">{t.senden.notiz}</label>
+        <div className="mt-6 flex h-[52px] items-center gap-3 border-y border-line transition-colors focus-within:border-text/60">
+          <label htmlFor="anotiz" className="shrink-0 text-[14.5px] text-dim">{t.senden.notiz}</label>
           <input id="anotiz" value={notiz} onChange={e => setNotiz(notizKuerzen(e.target.value))}
                  autoComplete="off" enterKeyHint="done"
-                 className="h-11 min-w-0 flex-1 bg-transparent text-[14px] font-semibold outline-none focus-visible:outline-none" />
-          <span className="tnum shrink-0 text-[12px] font-semibold text-dim">{notizBytes(notiz)} / {NOTIZ_BYTES}</span>
+                 className="h-11 min-w-0 flex-1 bg-transparent text-[16px] outline-none focus-visible:outline-none" />
+          <span className="tnum shrink-0 text-[12.5px] text-dim">{notizBytes(notiz)} / {NOTIZ_BYTES}</span>
         </div>
-        <p className="mx-1 mt-2.5 text-[12.5px] font-semibold leading-[1.5] text-dim">{t.empfangen.anfordernHinweis}</p>
+        <p className="mt-3 text-[13px] leading-[1.45] text-dim">{t.empfangen.anfordernHinweis}</p>
 
         <div className="mt-auto pt-5">
           <Ziffernfeld onTaste={taste} zeichen={zeichen} />
           <button type="button" disabled={einheiten <= 0n}
                   onClick={() => { setAnforderung({ betrag: einheiten, notiz: notiz.trim() }); setAnsicht('adresse'); }}
-                  className={`${knopf} mt-3.5 !h-14 w-full bg-work text-white shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)] disabled:opacity-45 disabled:shadow-none`}>
+                  className={`${KNOPF} mt-3`}>
             {t.empfangen.codeErstellen}
           </button>
         </div>
@@ -138,65 +138,59 @@ export default function Receive({ address, symbol, decimals, onZurueck }: {
     <div className="flex flex-col">
       <WKopf titel={t.empfangen.titel} onSchliessen={onZurueck} />
 
-      <section className="panel rise flex flex-col items-center gap-4 !rounded-[28px] px-[18px] pb-[18px] pt-5">
-        <div className="relative h-[248px] w-[248px] rounded-[22px] bg-white p-3.5 ring-1 ring-line">
-          {bild
-            ? <img src={bild} alt={anforderung ? t.empfangen.qrAltBetrag : t.empfangen.qrAlt} width={220} height={220} className="block h-[220px] w-[220px]" />
-            : <div className="flex h-[220px] w-[220px] items-center justify-center text-xs font-semibold text-[#8E9AB0]">
-                {t.empfangen.erzeugt}
-              </div>}
-          {bild && (
-            <span aria-hidden="true" className="absolute left-1/2 top-1/2 flex h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[14px] bg-ink ring-4 ring-white">
-              <YZeichen g={32} />
-            </span>
-          )}
-        </div>
+      <h2 className="text-[24px] font-[350] leading-[1.14] tracking-[-.026em]">{t.empfangen.deineAdresse}</h2>
 
-        {anforderung && (
-          <div className="flex max-w-full items-center gap-1 rounded-full bg-work/10 py-1 pl-3.5 pr-1 text-work">
-            <span className="tnum min-w-0 truncate text-[13px] font-extrabold">
-              {t.empfangen.fordertAn(betragGenau(anforderung.betrag, locale, decimals), symbol)}
-              {anforderung.notiz && ` · ${t.wallet.zitat(anforderung.notiz)}`}
-            </span>
-            <button type="button" onClick={() => setAnforderung(null)} aria-label={t.empfangen.anforderungWeg}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-              {Zeichen.Kreuz(13)}
-            </button>
-          </div>
+      {/* Der Code steht auf hellem Grund: so liest ihn jede Kamera. */}
+      <div className="rise relative mt-[22px] flex h-[262px] w-[262px] items-center justify-center self-center rounded-[22px] bg-[#EDF1F7]">
+        {bild
+          ? <img src={bild} alt={anforderung ? t.empfangen.qrAltBetrag : t.empfangen.qrAlt} width={226} height={226} className="block h-[226px] w-[226px] mix-blend-multiply" />
+          : <div className="flex h-[226px] w-[226px] items-center justify-center text-[13px] text-[#5A6680]">
+              {t.empfangen.erzeugt}
+            </div>}
+        {bild && (
+          <span aria-hidden="true" className="absolute left-1/2 top-1/2 flex h-[50px] w-[50px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[14px] bg-ink ring-4 ring-[#EDF1F7]">
+            <YZeichen g={30} />
+          </span>
         )}
+      </div>
 
-        <div className="flex flex-col items-center gap-2">
-          <Kappe>{t.empfangen.deineAdresse}</Kappe>
-          <AdresseVierer adresse={address} mittig className="max-w-[300px]" />
+      {anforderung && (
+        <div className="mt-4 flex max-w-full items-center gap-1 self-center rounded-full py-0.5 pl-4 pr-0.5 text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)]">
+          <span className="tnum min-w-0 truncate text-[14px] font-medium">
+            {t.empfangen.fordertAn(betragGenau(anforderung.betrag, locale, decimals), symbol)}
+            {anforderung.notiz && ` · ${t.wallet.zitat(anforderung.notiz)}`}
+          </span>
+          <button type="button" onClick={() => setAnforderung(null)} aria-label={t.empfangen.anforderungWeg}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lese">
+            {Zeichen.Kreuz(14)}
+          </button>
         </div>
-      </section>
+      )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <button type="button" onClick={kopiere}
-                className={`${knopf} bg-work text-white shadow-[0_12px_24px_-14px_rgb(var(--work)/.8)]`}>
-          {kopiert === 'adresse' ? Zeichen.Haken(19, 2.2) : Zeichen.Kopieren(19)}
-          {kopiert === 'adresse' ? t.allgemein.Kopiert : t.allgemein.Kopieren}
+      <AdresseVierer adresse={address} mittig className="mx-auto mt-[18px] max-w-[300px]" />
+
+      <div className="mt-5 grid grid-cols-2 gap-2.5">
+        <button type="button" onClick={kopiere} className={`${KNOPF} !px-3`}>
+          {kopiert === 'adresse' ? Zeichen.Haken(18, 2.2) : Zeichen.Kopieren(18)}
+          <span className="truncate">{kopiert === 'adresse' ? t.allgemein.Kopiert : t.allgemein.Kopieren}</span>
         </button>
-        <button type="button" onClick={teilen} className={`${knopf} border border-line bg-surface`}>
-          {kopiert === 'teilen' ? Zeichen.Haken(19, 2.2) : Zeichen.Teilen()}
-          {kopiert === 'teilen' ? t.allgemein.Kopiert : t.allgemein.teilen}
+        <button type="button" onClick={teilen} className={`${UMRISS} !px-3`}>
+          {kopiert === 'teilen' ? Zeichen.Haken(18, 2.2) : Zeichen.Teilen(18)}
+          <span className="truncate">{kopiert === 'teilen' ? t.allgemein.Kopiert : t.allgemein.teilen}</span>
         </button>
       </div>
 
       <button type="button"
               onClick={() => { setEingabe(''); setNotiz(anforderung?.notiz ?? ''); setAnsicht('anfordern'); }}
-              className="panel mt-2.5 flex min-h-[62px] w-full items-center gap-3 !rounded-[18px] !shadow-none px-3.5 py-[9px] text-left active:opacity-80">
-        <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-work/10 text-work">
-          {Zeichen.Muenze()}
-        </span>
+              className="mt-[18px] flex min-h-[64px] w-full items-center gap-3.5 border-y border-line py-[11px] text-left active:opacity-70">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[14.5px] font-extrabold">{t.empfangen.anfordern}</span>
-          <span className="text-[12.5px] font-semibold text-dim">{t.empfangen.anfordernText}</span>
+          <span className="text-[16px] font-medium leading-[1.3]">{t.empfangen.anfordern}</span>
+          <span className="text-[13.5px] leading-[1.4] text-dim">{t.empfangen.anfordernText}</span>
         </span>
-        <span className="shrink-0 text-dim">{Zeichen.Rechts()}</span>
+        <span className="-mr-1 shrink-0 text-dim">{Zeichen.Rechts(18)}</span>
       </button>
 
-      <p className="mx-1 mt-3.5 text-[12.5px] font-semibold leading-[1.5] text-dim">{t.empfangen.hinweisKurz}</p>
+      <p className="mt-3.5 text-[13px] leading-[1.45] text-dim">{t.empfangen.hinweisKurz}</p>
     </div>
   );
 }

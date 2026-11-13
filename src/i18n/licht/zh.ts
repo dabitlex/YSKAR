@@ -21,6 +21,12 @@ const zh: typeof licht = {
   einstiegTitel: '点亮\n你的灯。',
   einstiegText: '你的手机参与真实区块的计算，并因此获得 YSR。每有一人参与，岸边就亮起一盏灯。',
   schritt: (n: number, von: number) => `第 ${n} 步，共 ${von} 步`,
+  anWen: '发给谁？',
+  leerTitel: (sym: string) => `${sym} 这样进入你的钱包`,
+  leerMinenText: '你的矿池每找到一个区块，你的份额都会自动转到这里。',
+  leerEmpfangenText: '把你的地址或二维码给别人看。',
+  legendeMining: '挖矿',
+  legendeMenschen: '转账',
 };
 
 export default zh;

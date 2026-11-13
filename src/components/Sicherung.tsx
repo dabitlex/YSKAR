@@ -354,25 +354,29 @@ export function SendenGesperrt({ offen, onSchliessen, onSichern }: {
   const { t } = useT();
   return (
     <Blatt offen={offen} onSchliessen={onSchliessen}>
-      <span className="mt-1 flex h-14 w-14 items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-amber">
-        <svg viewBox="0 0 22 22" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8"
-             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="4" y="9.5" width="14" height="10" rx="2.5" /><path d="M7.5 9.5V7a3.5 3.5 0 0 1 7 0v2.5" />
-        </svg>
-      </span>
-      <h2 className="mt-3.5 text-[22px] font-extrabold tracking-[-0.02em]">{t.sicherung.gesperrtTitel}</h2>
-      <p className="mt-2 text-[14px] font-semibold leading-[1.5] text-lese">{t.sicherung.gesperrtText}</p>
-      <ul className="mt-3.5 flex flex-col gap-2 rounded-[16px] bg-raised p-3.5 text-[13px] font-semibold">
-        <li className="flex gap-2"><span className="font-extrabold text-proof">✓</span>{t.sicherung.okMining}</li>
-        <li className="flex gap-2"><span className="font-extrabold text-proof">✓</span>{t.sicherung.okEmpfangen}</li>
-        <li className="flex gap-2 text-dim"><span className="font-semibold text-amber">○</span>{t.sicherung.offenSenden}</li>
+      <h2 className="mt-1 text-[24px] font-[350] leading-[1.14] tracking-[-.026em]">{t.sicherung.gesperrtTitel}</h2>
+      <p className="mt-2.5 text-[14.5px] leading-[1.45] text-lese">{t.sicherung.gesperrtText}</p>
+      <ul className="mt-[18px] border-t border-line">
+        {[t.sicherung.okMining, t.sicherung.okEmpfangen].map(zeile => (
+          <li key={zeile} className="flex min-h-[56px] items-center gap-3.5 border-b border-line py-2 text-[16px] font-medium">
+            <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9"
+                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-proof"><path d="M5 11.5l4 4 8-9" /></svg>
+            {zeile}
+          </li>
+        ))}
+        <li className="flex min-h-[56px] items-center gap-3.5 border-b border-line py-2 text-[16px] font-medium text-lamp">
+          <span aria-hidden="true" className="flex h-5 w-5 shrink-0 items-center justify-center">
+            <span className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_1.5px_rgb(var(--lamp))]" />
+          </span>
+          {t.sicherung.offenSenden}
+        </li>
       </ul>
       <button type="button" onClick={onSichern}
-              className="mt-4 flex h-[56px] w-full items-center justify-center rounded-full bg-lamp text-[17px] font-semibold tracking-[-.01em] text-lamp-ink">
+              className="mt-6 flex h-14 w-full items-center justify-center rounded-full bg-lamp px-6 text-[16px] font-semibold text-lamp-ink active:scale-[.985]">
         {t.sicherung.jetzt}
       </button>
       <button type="button" onClick={onSchliessen}
-              className="mt-2 w-full py-2 text-center text-[13.5px] font-bold text-dim">{t.sicherung.spaeter}</button>
+              className="mt-1 flex min-h-11 w-full items-center justify-center text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]">{t.sicherung.spaeter}</button>
     </Blatt>
   );
 }
@@ -382,20 +386,20 @@ export function SicherungsHinweis({ onClick, kurz = false }: { onClick: () => vo
   const { t } = useT();
   return (
     <button type="button" onClick={onClick}
-            className="flex w-full items-center gap-3 border-y border-amber/25 bg-amber/[.06] px-3 py-3 text-left active:bg-amber/10">
-      <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="rgb(var(--amber))" strokeWidth="1.8"
-           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
-        <path d="M11 2.5l7 2.8v5.2c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V5.3z" /><path d="M11 7.5v4M11 14.5h.01" />
-      </svg>
+            className="flex min-h-[56px] w-full items-center gap-3.5 border-y border-lamp/30 py-2.5 text-left active:opacity-70">
+      <span aria-hidden="true" className="flex h-5 w-[14px] shrink-0 items-center justify-center">
+        <span className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_1.5px_rgb(var(--lamp))]" />
+      </span>
       {kurz ? (
-        <span className="flex-1 text-[13px] font-medium text-text">{t.sicherung.walletBanner}</span>
+        <span className="flex-1 text-[14.5px] font-medium leading-[1.4] text-lamp">{t.sicherung.walletBanner}</span>
       ) : (
         <span className="flex flex-1 flex-col gap-0.5">
-          <span className="text-[13.5px] font-semibold text-text">{t.sicherung.bannerTitel}</span>
-          <span className="text-[12px] text-dim">{t.sicherung.bannerText}</span>
+          <span className="text-[14.5px] font-medium leading-[1.4] text-lamp">{t.sicherung.bannerTitel}</span>
+          <span className="text-[13.5px] leading-[1.4] text-dim">{t.sicherung.bannerText}</span>
         </span>
       )}
-      <span className="text-[18px] text-amber" aria-hidden="true">›</span>
+      <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="-mr-1 shrink-0 text-lamp"><path d="m8 5 6 6-6 6" /></svg>
     </button>
   );
 }

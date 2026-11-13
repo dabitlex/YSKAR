@@ -1,6 +1,6 @@
 /**
- * Texte des Designs "Erstes Licht" (November 2026): der Minen-Reiter mit dem
- * Ufer. Jede Sprache hat dieselben Schluessel; de.ts gibt die Form vor.
+ * Texte des Designs "Erstes Licht" (November 2026): Minen-Reiter mit dem
+ * Ufer, Einstieg, Wallet. Jede Sprache hat dieselben Schluessel; de.ts gibt die Form vor.
  */
 const licht = {
   deinLicht: 'Dein Licht',
@@ -23,6 +23,12 @@ const licht = {
   einstiegTitel: 'Mach dein\nLicht an.',
   einstiegText: 'Dein Handy rechnet an echten Blöcken mit und verdient dafür YSR. Für jeden, der mitmacht, brennt ein Licht am Ufer.',
   schritt: (n: number, von: number) => `Schritt ${n} von ${von}`,
+  anWen: 'An wen?',
+  leerTitel: (sym: string) => `So kommt ${sym} in deine Wallet`,
+  leerMinenText: 'Jeder Block deines Pools zahlt deinen Anteil automatisch hierher.',
+  leerEmpfangenText: 'Zeig jemandem deine Adresse oder deinen QR-Code.',
+  legendeMining: 'Mining',
+  legendeMenschen: 'Überweisungen',
 };
 
 export default licht;

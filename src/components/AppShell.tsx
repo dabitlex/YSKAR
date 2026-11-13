@@ -253,6 +253,7 @@ export default function AppShell({ platform }: { platform: string }) {
                      onSenden={() => senden('senden')}
                      onScannen={() => senden('scannen')}
                      onEmpfangen={() => setAnsicht('empfangen')}
+                     onMinen={() => setTab('mine')}
                      hoehe={m.summary?.height ?? null}
                      onEinstellungen={() => setAnsicht('einstellungen')}
                      onSichern={wallet.gesichert ? undefined : () => setAnsicht('sichern')}

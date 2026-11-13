@@ -20,7 +20,8 @@ import { useEigeneZahlungen } from '@/hooks/useEigeneZahlungen';
 import type { EigeneZahlung } from '@/lib/wallet/wartendeZahlungen';
 import Einnahmen from '@/components/wallet/Einnahmen';
 import Detail from '@/components/wallet/Detail';
-import { Gegenkachel, Kappe, MiningKachel, PUNKTE, Zeichen } from '@/components/wallet/Teile';
+import { KNOPF, Kappe, PUNKTE, Punkt, UMRISS, VERWEIS, Zeichen } from '@/components/wallet/Teile';
+import { Zeichen as YZeichen } from '@/components/ui/Marke';
 
 /**
  * Wallet.
@@ -71,7 +72,7 @@ function zusammen(...listen: HistoryEintrag[][]): HistoryEintrag[] {
 }
 
 export default function WalletTab({ account, symbol, decimals, address, hoehe,
-                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onSichern, onErhoehen }: {
+                                    onSenden, onScannen, onEmpfangen, onEinstellungen, onSichern, onErhoehen, onMinen }: {
   account: (Account & { history?: HistoryEintrag[]; historyWeiter?: string | null; pending?: Wartend[] }) | null;
   symbol: string; decimals: number; address: string | null;
   /** Aktuelle Hoehe der Kette -- fuer "n Bloecke danach" in den Einzelheiten. */
@@ -82,6 +83,8 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   onSichern?: () => void;
   /** Eine festhaengende eigene Zahlung mit hoeherer Gebuehr ersetzen. */
   onErhoehen?: (z: EigeneZahlung) => void;
+  /** Leere Wallet: zum Minen-Reiter wechseln. */
+  onMinen?: () => void;
 }) {
   // Ausgewaehlte Transaktion. Als Blatt und nicht als eigene Seite: Man
   // will danach wieder in derselben Liste stehen, an derselben Stelle.
@@ -303,8 +306,9 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
   const zeigen = (wert: bigint | string | number) => verborgen ? PUNKTE : betragText(wert, locale, decimals);
   // Abgeschnitten, nie gerundet: Die Karte verspricht nicht mehr, als da ist.
   const g = betrag(betragZahl(account?.balance ?? 0, decimals));
-  const zeichen = g.ganz.length + g.bruch.length + g.trenner.length;
-  const guthabenGroesse = Math.max(24, Math.min(46, Math.floor(270 / (zeichen * 0.58))));
+  // Die Nachkommastellen stehen halb so gross: Sie brauchen halb so viel Platz.
+  const guthabenGroesse = Math.max(34, Math.min(84,
+    Math.floor(262 / (g.ganz.length * 0.5 + (g.bruch.length + g.trenner.length) * 0.26))));
 
   const pending = account?.pending ?? [];
   // Eigene Zahlungen nachhalten: erneut einreichen, Festhaengendes melden.
@@ -345,27 +349,34 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     try { await navigator.clipboard.writeText(address); setKopiert(true); setTimeout(() => setKopiert(false), 1600); } catch { /* egal */ }
   };
 
+  // "An …" / "Von …" mit der Adresse in Mono: Der Satz kommt aus der Sprache,
+  // die Adresse wird an der Stelle des Platzhalters eingesetzt.
+  const mitAdresse = (satz: (a: string) => string, adresse: string | null) => {
+    const [vor, nach] = satz('\u0000').split('\u0000');
+    return <>{vor}<span className="font-mono text-[14.5px] tracking-normal">{kurzAdresse(adresse, unb)}</span>{nach}</>;
+  };
+  const reihe = 'flex min-h-[62px] w-full items-center gap-3.5 border-b border-line py-[11px] text-left active:opacity-70';
+  const oben = 'truncate text-[16px] font-medium leading-[1.3] tracking-[-.008em]';
+  const unten = 'truncate text-[13.5px] leading-[1.4] text-dim';
+  const zahlStil = 'tnum whitespace-nowrap font-mono text-[15px]';
+
   const zeile = (e: HistoryEintrag) => {
     const mining = istMining(e);
     const kontakt = mining ? null : name(e.counterparty);
     const notiz = mining ? '' : notizAusHex(e.memo);
     const grund = trefferGrund(e, q, suche, t);
+    const satz = e.kind === 'out' ? t.wallet.an : t.wallet.von;
     return (
       <li key={schluessel(e)}>
-        <button type="button" onClick={() => setOffen(e)}
-                className="flex min-h-[66px] w-full items-center gap-3 border-t border-line py-2.5 text-left active:opacity-70">
-          {mining ? <MiningKachel /> : <Gegenkachel adresse={e.counterparty} richtung={e.kind === 'out' ? 'aus' : 'ein'} />}
-          <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-            {mining ? (
-              <span className="truncate text-[14.5px] font-extrabold">
-                {e.kind === 'pool' ? t.wallet.poolBlock(zahl(e.height)) : t.wallet.rewardBlock(zahl(e.height))}
-              </span>
-            ) : kontakt ? (
-              <span className="truncate text-[14.5px] font-extrabold">{kontakt}</span>
-            ) : (
-              <span className="truncate font-mono text-[13.5px] font-medium">{kurzAdresse(e.counterparty, unb)}</span>
-            )}
-            <span className="truncate text-[12.5px] font-semibold text-dim">
+        <button type="button" onClick={() => setOffen(e)} className={reihe}>
+          <Punkt art={mining ? 'kette' : 'mensch'} />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className={oben}>
+              {mining
+                ? (e.kind === 'pool' ? t.wallet.poolBlock(zahl(e.height)) : t.wallet.rewardBlock(zahl(e.height)))
+                : kontakt ? satz(kontakt) : mitAdresse(satz, e.counterparty)}
+            </span>
+            <span className={unten}>
               {grund ?? <>
                 {wann(e)}
                 {notiz && ` · ${t.wallet.zitat(notiz)}`}
@@ -373,7 +384,7 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
               </>}
             </span>
           </span>
-          <span className={`tnum whitespace-nowrap text-[15px] font-extrabold ${e.kind === 'out' ? 'text-text' : 'text-proof'}`}>
+          <span className={`${zahlStil} ${e.kind === 'out' ? 'text-lese' : 'text-text'}`}>
             {e.kind === 'out' ? '−' : '+'}{zeigen(e.amount)}
           </span>
         </button>
@@ -391,43 +402,39 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     return (
       <li key={z.schluessel}>
         <button type="button" aria-expanded={auf}
-                onClick={() => setAufgeklappt(m => umschalten(m, z.schluessel))}
-                className="flex min-h-[66px] w-full items-center gap-3 border-t border-line py-2.5 text-left active:opacity-70">
-          <MiningKachel />
-          <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-            <span className="truncate text-[14.5px] font-extrabold">{t.wallet.miningErtraege}</span>
-            <span className="truncate text-[12.5px] font-semibold text-dim">
+                onClick={() => setAufgeklappt(m => umschalten(m, z.schluessel))} className={reihe}>
+          <Punkt art="kette" />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className={oben}>{t.wallet.miningErtraege}</span>
+            <span className={unten}>
               {teil ? t.wallet.miningLaedt(z.eintraege.length) : `${t.wallet.miningBloecke(z.eintraege.length)} · ${art}`}
             </span>
           </span>
-          <span className={`tnum whitespace-nowrap text-[15px] font-extrabold ${teil ? 'text-faint' : 'text-proof'}`}>
-            +{zeigen(z.summe)}
-          </span>
-          <span className="shrink-0 text-dim">{auf ? Zeichen.Unten() : Zeichen.Rechts()}</span>
+          <span className={`${zahlStil} ${teil ? 'text-faint' : 'text-text'}`}>+{zeigen(z.summe)}</span>
+          <span className="-mr-1 shrink-0 text-dim">{auf ? Zeichen.Unten() : Zeichen.Rechts()}</span>
         </button>
         {auf && (
-          <ul className="mb-2.5 ml-[22px] flex flex-col border-l-2 border-line py-0.5 pl-4">
+          <ul className="ml-[28px] flex flex-col">
             {sichtbar.map(e => (
               <li key={schluessel(e)}>
                 <button type="button" onClick={() => setOffen(e)}
-                        className="flex min-h-[48px] w-full items-center justify-between gap-3 py-1.5 text-left active:opacity-70">
+                        className="flex min-h-[52px] w-full items-center justify-between gap-3 border-b border-line py-2 text-left active:opacity-70">
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="truncate text-[13.5px] font-bold">
+                    <span className="truncate text-[14.5px] font-medium">
                       {e.kind === 'pool' ? t.wallet.poolBlock(zahl(e.height)) : t.wallet.rewardBlock(zahl(e.height))}
                     </span>
-                    <span className="truncate text-[12px] font-semibold text-dim">
+                    <span className="truncate text-[13px] text-dim">
                       {e.timestamp ? uhr.format(new Date(Number(e.timestamp) * 1000)) : ''}
                       {e.kind === 'pool' && (e.shares ?? 0) > 1 && ` · ${t.wallet.aufgeteilt(e.shares!)}`}
                     </span>
                   </span>
-                  <span className="tnum whitespace-nowrap text-[14px] font-extrabold text-proof">+{zeigen(e.amount)}</span>
+                  <span className="tnum whitespace-nowrap font-mono text-[14px] text-lese">+{zeigen(e.amount)}</span>
                 </button>
               </li>
             ))}
             {(uebrig > 0 || alle) && z.eintraege.length > BUENDEL_ERSTE && (
-              <li>
-                <button type="button" onClick={() => setGanz(m => umschalten(m, z.schluessel))}
-                        className="min-h-[44px] w-full text-left text-[13px] font-extrabold text-work">
+              <li className="border-b border-line">
+                <button type="button" onClick={() => setGanz(m => umschalten(m, z.schluessel))} className={VERWEIS}>
                   {alle ? t.wallet.weniger : t.wallet.weitere(uebrig)}
                 </button>
               </li>
@@ -438,129 +445,180 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
     );
   };
 
-  const chip = (an: boolean) => `h-9 shrink-0 rounded-full px-4 text-[13px] font-medium transition-colors ${
-    an ? 'bg-text/[.14] font-semibold text-text' : 'border border-line text-lese'}`;
+  const chip = (an: boolean) => `h-9 shrink-0 rounded-full px-3.5 text-[14px] transition-colors ${
+    an ? 'bg-text/[.14] font-semibold text-text' : 'font-medium text-lese shadow-[inset_0_0_0_1px_rgb(var(--line))]'}`;
+
+  // Noch nie etwas bekommen: statt eines leeren Verlaufs steht da, wie die
+  // ersten YSR in die Wallet kommen.
+  let nichtsDa = false;
+  try { nichtsDa = BigInt(account?.balance ?? 0) === 0n; } catch { /* dann wie gefuellt */ }
+  const leer = !!account && nichtsDa && pending.length === 0 && (account.history?.length ?? 0) === 0
+    && filter === 'alle' && !filterAktiv && !suchOffen;
 
   return (
     <>
-      <header className="relative mb-2 flex items-center justify-between">
-        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">{t.wallet.titel}</h1>
+      <header className="relative flex h-11 items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <YZeichen g={26} />
+          <span className="pt-px text-[14px] font-semibold tracking-[.2em]">YSKAR</span>
+        </div>
         <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-dim active:scale-95">{Icon.Zahnrad}</button>
+                className="flex h-11 w-11 items-center justify-center rounded-full text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.26)] active:scale-95">
+          {Icon.Zahnrad}
+        </button>
       </header>
+      <h1 className="sr-only">{t.wallet.titel}</h1>
 
-      {/* Guthaben: gross und mittig. Darunter wird bewusst nichts eingeblendet. */}
-      <section aria-label={t.wallet.guthaben} className="rise relative flex flex-col items-center pb-2 pt-6 text-center">
-        <div className="flex items-center gap-0.5">
-          <span className="label">{t.wallet.guthaben}</span>
+      {/* Guthaben: gross und linksbuendig. Darunter die Adresse, dann die Aktionen. */}
+      <section aria-label={t.wallet.guthaben} className="rise relative mt-5 flex flex-col items-start">
+        <div className="flex h-11 w-full items-center justify-between">
+          <span className="label">{t.wallet.gesamt}</span>
           <button type="button" onClick={verbergen} aria-pressed={verborgen}
                   aria-label={verborgen ? t.wallet.zeigen : t.wallet.verbergen}
-                  className="flex h-10 w-10 items-center justify-center text-faint active:scale-95">
-            {verborgen ? Zeichen.AugeZu() : Zeichen.Auge()}
+                  className="-mr-[11px] flex h-11 w-11 items-center justify-center text-lese active:scale-95">
+            {verborgen ? Zeichen.AugeZu(20) : Zeichen.Auge(20)}
           </button>
         </div>
-        <p className="tnum flex flex-wrap items-baseline justify-center gap-x-2">
-          <span className="font-light leading-none tracking-[-0.045em]" style={{ fontSize: verborgen ? 44 : guthabenGroesse + 6 }}>
-            {!account ? '—' : verborgen ? '••••••' : <>
-              {g.ganz}<span className="text-dim">{g.trenner}{g.bruch}</span>
-            </>}
-          </span>
-          <span className="font-mono text-[14px] text-dim">{symbol}</span>
+        <p className="flex max-w-full flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          {account && verborgen ? (
+            // Gezeichnete Punkte: Das Zeichen "•" fehlt in der Schrift und kaeme eckig.
+            <span aria-hidden="true" className="flex h-[77px] items-center gap-[11px]">
+              {Array.from({ length: 6 }, (_, i) => <span key={i} className="h-[13px] w-[13px] rounded-full bg-text/80" />)}
+            </span>
+          ) : (
+            <span className="betrag" style={{ fontSize: guthabenGroesse }}>
+              {!account ? '—' : <>{g.ganz}<small>{g.trenner}{g.bruch}</small></>}
+            </span>
+          )}
+          <span className="font-mono text-[15px] text-lese">{symbol}</span>
         </p>
         {address && (
           <button type="button" onClick={kopiere} aria-label={t.wallet.adresseKopieren}
-                  className="mt-4 flex h-9 items-center gap-2 rounded-full border border-line px-3.5 text-dim active:scale-[.98]">
-            <span className="font-mono text-[12px]">{kopiert ? t.allgemein.kopiert : kurzAdresse(address, unb)}</span>
-            {kopiert ? Zeichen.Haken(15, 2.2) : Zeichen.Kopieren()}
+                  className="mt-4 flex h-11 items-center gap-2.5 rounded-full pl-4 pr-3.5 text-lese shadow-[inset_0_0_0_1px_rgb(var(--line))] active:scale-[.98]">
+            <span className="font-mono text-[13.5px]">{kopiert ? t.allgemein.kopiert : kurzAdresse(address, unb)}</span>
+            {kopiert ? Zeichen.Haken(16, 2.2) : Zeichen.Kopieren(16)}
           </button>
         )}
       </section>
 
-      {/* Senden (blau), Empfangen, Scannen: runde Knoepfe wie in der YSKAR Wallet. */}
-      <div className="rise rise-1 mt-5 flex justify-center gap-7">
-        {[
-          { f: onSenden, i: Zeichen.Hoch(22, 2), l: t.wallet.senden, blau: true },
-          { f: onEmpfangen, i: Zeichen.Runter(22, 2), l: t.wallet.empfangen },
-          { f: onScannen, i: Zeichen.Scan(), l: t.rd.wallet.scannen },
-        ].map(k => (
-          <button key={k.l} type="button" onClick={k.f} className="flex w-[72px] flex-col items-center gap-2 active:scale-95">
-            <span className={`flex h-16 w-16 items-center justify-center rounded-full ${k.blau
-              ? 'bg-work text-white shadow-[0_14px_30px_-14px_rgb(var(--work)/.9)]' : 'border border-line bg-surface text-text'}`}>{k.i}</span>
-            <span className="max-w-full truncate text-[12.5px] text-dim">{k.l}</span>
-          </button>
-        ))}
+      {/* Senden ist die Handlung eines Menschen: warm. In der leeren Wallet
+          fuehrt stattdessen Empfangen. */}
+      <div className="rise rise-1 mt-[22px] flex gap-2.5">
+        <button type="button" onClick={leer ? onEmpfangen : onSenden} className={`${KNOPF} min-w-0 flex-1 !px-3`}>
+          <span className="truncate">{leer ? t.wallet.empfangen : t.wallet.senden}</span>
+        </button>
+        <button type="button" onClick={leer ? onSenden : onEmpfangen}
+                className={`${UMRISS} min-w-0 flex-1 !px-3 ${leer ? 'opacity-50' : ''}`}>
+          <span className="truncate">{leer ? t.wallet.senden : t.wallet.empfangen}</span>
+        </button>
+        <button type="button" onClick={onScannen} aria-label={t.rd.wallet.scannen}
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-text shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)] active:scale-95">
+          {Zeichen.Scan()}
+        </button>
       </div>
 
       {onSichern && <div className="rise rise-1 mt-6"><SicherungsHinweis kurz onClick={onSichern} /></div>}
+
+      {leer && (
+        <section className="rise rise-2 mt-[34px]">
+          <h2 className="text-[18px] font-medium leading-[1.25] tracking-[-.012em]">{t.licht.leerTitel(symbol)}</h2>
+          <div className="mt-3.5 border-t border-line">
+            {[
+              { nr: '01', titel: t.nav.mining, text: t.licht.leerMinenText, f: onMinen },
+              { nr: '02', titel: t.wallet.empfangen, text: t.licht.leerEmpfangenText, f: onEmpfangen },
+            ].map(z => (
+              <button key={z.nr} type="button" onClick={z.f}
+                      className="flex min-h-[78px] w-full items-center gap-3.5 border-b border-line py-[11px] text-left active:opacity-70">
+                <span aria-hidden="true" className="w-[26px] shrink-0 self-start pt-[3px] font-mono text-[13px] text-dim">{z.nr}</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[16px] font-medium leading-[1.3]">{z.titel}</span>
+                  <span className="text-[13.5px] leading-[1.4] text-dim">{z.text}</span>
+                </span>
+                <span className="-mr-1 shrink-0 text-dim">{Zeichen.Rechts(18)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {hatEinnahmen && einnahmen && (
         <Einnahmen tage={einnahmen} symbol={symbol} decimals={decimals} verborgen={verborgen} />
       )}
 
       {fest.length > 0 && onErhoehen && (
-        <section aria-label={t.wallet.festTitel}
-                 className="warte rise rise-2 mt-3.5 flex flex-col gap-2 rounded-[20px] px-4 py-[13px]">
-          <span className="text-[14px] font-extrabold">{t.wallet.festTitel}</span>
+        <section aria-label={t.wallet.festTitel} className="rise rise-2 mt-7">
+          <h2 className="flex items-center gap-2 text-[13.5px] font-medium text-lamp">
+            <Punkt art="wartet" className="!ml-0" />{t.wallet.festTitel}
+          </h2>
           {fest.some(z => !z.abgelehnt) && (
-            <span className="text-[12.5px] font-semibold leading-[1.4] text-text">{t.wallet.festText}</span>
+            <p className="mt-2 text-[14.5px] leading-[1.45] text-lese">{t.wallet.festText}</p>
           )}
           {fest.some(z => z.abgelehnt) && (
-            <span className="text-[12.5px] font-semibold leading-[1.4] text-text">{t.wallet.abgelehntText}</span>
+            <p className="mt-2 text-[14.5px] leading-[1.45] text-lese">{t.wallet.abgelehntText}</p>
           )}
-          {fest.slice(0, 3).map(z => (
-            <button key={z.txid} type="button" onClick={() => onErhoehen(z)}
-                    className="flex h-11 items-center justify-between gap-2 rounded-[14px] bg-surface px-3.5 text-[13.5px] font-extrabold active:scale-[.985]">
-              <span className="tnum truncate">{t.wallet.unterwegsAn(zeigen(z.betrag), symbol, wer(z.an))}</span>
-              <span className="shrink-0 text-work">{z.abgelehnt ? t.wallet.neuSenden : t.wallet.erhoehen}</span>
-            </button>
-          ))}
-        </section>
-      )}
-
-      {pending.length > 0 && (
-        <section aria-label={t.wallet.unterwegsTitel(pending.length)}
-                 className="rise rise-2 mt-5 flex items-center gap-3 border-y border-amber/25 bg-amber/[.05] px-3 py-3">
-          <span aria-hidden="true" className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-surface">
-            {Zeichen.Uhr(19, 2)}
-          </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-[13.5px] font-semibold text-amber">{t.wallet.unterwegsTitel(pending.length)}</span>
-            {pending.slice(0, 3).map(p => (
-              <span key={p.txid} className="tnum text-[12.5px] font-semibold leading-[1.4] text-text">
-                {p.kind === 'out'
-                  ? t.wallet.unterwegsAn(zeigen(p.amount), symbol, wer(p.to))
-                  : t.wallet.unterwegsVon(zeigen(p.amount), symbol, wer(p.from))}
-                {(pending.length === 1 || (p.block != null && p.block > 1)) && ` · ${wannText(p, 1)}`}
-              </span>
+          <div className="mt-3 border-t border-line">
+            {fest.slice(0, 3).map(z => (
+              <button key={z.txid} type="button" onClick={() => onErhoehen(z)}
+                      className="flex min-h-[56px] w-full items-center justify-between gap-3 border-b border-line py-2 text-left active:opacity-70">
+                <span className="tnum truncate text-[15px]">{t.wallet.unterwegsAn(zeigen(z.betrag), symbol, wer(z.an))}</span>
+                <span className="shrink-0 text-[14.5px] font-medium text-lamp">{z.abgelehnt ? t.wallet.neuSenden : t.wallet.erhoehen}</span>
+              </button>
             ))}
-            {pending.length > 1 && (
-              <span className="text-[12.5px] font-semibold leading-[1.4] text-text">
-                {pending.length > 3 && `${t.wallet.unterwegsMehr(pending.length - 3)} · `}{t.wallet.unterwegsBlock(pending.length)}
-              </span>
-            )}
           </div>
         </section>
       )}
 
-      <section aria-label={t.wallet.verlauf} className="rise rise-2 mt-7 border-t border-line pt-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="label">{t.wallet.verlauf}</h2>
-          <div className="flex items-center gap-1">
+      {pending.length > 0 && (
+        <section aria-label={t.wallet.unterwegsTitel(pending.length)} className="rise rise-2 mt-7">
+          <h2 className="border-b border-line pb-2 text-[13.5px] font-medium text-dim">{t.wallet.unterwegsTitel(pending.length)}</h2>
+          {pending.slice(0, 3).map(p => (
+            <div key={p.txid} className="flex min-h-[60px] items-center gap-3.5 border-b border-line py-[11px]">
+              <Punkt art="wartet" />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="tnum truncate text-[15px] font-medium">
+                  {p.kind === 'out'
+                    ? t.wallet.unterwegsAn(zeigen(p.amount), symbol, wer(p.to))
+                    : t.wallet.unterwegsVon(zeigen(p.amount), symbol, wer(p.from))}
+                </span>
+                {(pending.length === 1 || (p.block != null && p.block > 1)) && (
+                  <span className="text-[13.5px] leading-[1.4] text-dim">{wannText(p, 1)}</span>
+                )}
+              </span>
+            </div>
+          ))}
+          {pending.length > 1 && (
+            <p className="pt-2.5 text-[13px] leading-[1.45] text-dim">
+              {pending.length > 3 && `${t.wallet.unterwegsMehr(pending.length - 3)} · `}{t.wallet.unterwegsBlock(pending.length)}
+            </p>
+          )}
+        </section>
+      )}
+
+      {!leer && (
+      <section aria-label={t.wallet.verlauf} className="rise rise-2 mt-6">
+        <div className="flex h-11 items-center justify-between gap-2">
+          <h2 className="text-[18px] font-medium tracking-[-.012em]">{t.wallet.verlauf}</h2>
+          <div className="-mr-3 flex items-center">
             <ExternLink href={address ? `${EXPLORER_URL}#adr-${address}` : EXPLORER_URL}
-                        className="inline-flex h-11 items-center gap-1.5 px-2 text-[13px] font-medium text-cyan">
+                        className="inline-flex h-11 items-center gap-1.5 px-2 text-[13.5px] text-lese">
               {t.wallet.explorer}{Zeichen.Extern()}
             </ExternLink>
             <SuchKnopf offen={suchOffen} aktiv={filterAktiv} onClick={() => setSuchOffen(o => !o)} />
           </div>
         </div>
         <div role="group" aria-label={t.wallet.filter}
-             className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 [scrollbar-width:none]">
+             className="-mx-1 mt-1 flex gap-2 overflow-x-auto px-1 [scrollbar-width:none]">
           {([['alle', t.wallet.alle], ['in', t.wallet.eingaenge], ['out', t.wallet.ausgaenge]] as const).map(([v, text]) => (
             <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)} className={chip(filter === v)}>
               {text}
             </button>
           ))}
         </div>
+        {/* Legende: woher ein Eintrag kommt, sagt die Farbe seines Punkts. */}
+        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-dim">
+          <span className="flex items-center gap-1.5"><Punkt art="kette" className="!ml-0" />{t.licht.legendeMining}</span>
+          <span className="flex items-center gap-1.5"><Punkt art="mensch" className="!ml-0" />{t.licht.legendeMenschen}</span>
+        </p>
 
         {suchOffen ? (
           <SuchLeiste eingabe={eingabe} onEingabe={setEingabe}
@@ -573,36 +631,33 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
         )}
 
         {filterAktiv && trefferSeite && trefferSeite.eintraege.length > 0 && (
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-1">
             <Kappe>{t.wallet.treffer(trefferSeite.eintraege.length, !!trefferSeite.weiter)}</Kappe>
-            <button onClick={filterWeg} className="text-[12px] font-extrabold text-work">{t.wallet.zuruecksetzen}</button>
+            <button onClick={filterWeg} className={VERWEIS}>{t.wallet.zuruecksetzen}</button>
           </div>
         )}
 
         {filterAktiv && !trefferSeite ? (
-          <p className={`py-6 text-center text-[13px] font-semibold ${trefferFehler ? 'text-risk' : 'text-faint'}`}>
+          <p className={`py-7 text-[14.5px] ${trefferFehler ? 'text-risk' : 'text-dim'}`}>
             {trefferFehler ? t.wallet.ladenFehler : t.wallet.laedtMehr}
           </p>
         ) : filterAktiv && verlauf.length === 0 ? (
-          <div className="px-2 pb-5 pt-6 text-center">
-            <span className="mb-2.5 inline-flex h-[46px] w-[46px] items-center justify-center rounded-[15px] bg-raised text-faint">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
-            </span>
-            <p className="text-[14.5px] font-extrabold">{t.wallet.keineTreffer}</p>
-            <p className="mx-auto mb-3.5 mt-1 max-w-[280px] text-[12.5px] font-semibold leading-relaxed text-dim">{t.wallet.keineTrefferText}</p>
-            <button onClick={filterWeg} className="rounded-[12px] bg-raised px-4 py-2 text-[13px] font-extrabold text-text">
-              {t.wallet.filterZuruecksetzen}
-            </button>
+          <div className="pb-5 pt-7">
+            <p className="text-[18px] font-medium tracking-[-.012em]">{t.wallet.keineTreffer}</p>
+            <p className="mt-2 max-w-[320px] text-[14.5px] leading-[1.45] text-lese">{t.wallet.keineTrefferText}</p>
+            <button onClick={filterWeg} className={`${VERWEIS} mt-2`}>{t.wallet.filterZuruecksetzen}</button>
           </div>
         ) : verlauf.length === 0 ? (
-          <p className="py-6 text-center text-[13.5px] font-semibold leading-relaxed text-dim">{t.wallet.leer}</p>
+          <p className="py-7 text-[14.5px] leading-[1.45] text-lese">{t.wallet.leer}</p>
         ) : (
           <div>
             {tage.map((tag, i) => (
               // Blockzeiten laufen nicht streng aufwaerts: Um Mitternacht kann
               // ein Tag zweimal vorkommen. Die Position macht den Schluessel eindeutig.
               <section key={`${tag.schluessel}#${tage.length - i}`}>
-                <Kappe als="h3" className={`mb-0.5 block ${i === 0 ? 'mt-[18px]' : 'mt-3.5'}`}>{tagTitel(tag.schluessel)}</Kappe>
+                <h3 className={`border-b border-line pb-2 text-[13px] leading-[1.45] text-dim ${i === 0 ? 'mt-4' : 'mt-5'}`}>
+                  {tagTitel(tag.schluessel)}
+                </h3>
                 <ul>
                   {tag.zeilen.map(z => z.art === 'mining' ? buendel(z, tag.schluessel) : zeile(z.eintrag))}
                 </ul>
@@ -613,21 +668,21 @@ export default function WalletTab({ account, symbol, decimals, address, hoehe,
 
         {/* Weiterblaettern bis zum allerersten Eintrag. */}
         {cursor ? (
-          <div className="border-t border-line">
-            <button onClick={mehrLaden} disabled={laedt}
-                    className="h-[50px] w-full text-[13.5px] font-extrabold text-work disabled:opacity-60">
+          <div>
+            <button onClick={mehrLaden} disabled={laedt} className={`${VERWEIS} h-[54px] w-full justify-center disabled:opacity-60`}>
               {laedt ? t.wallet.laedtMehr : t.wallet.aeltereLaden}
             </button>
             {ladeFehler && (
-              <p className="pb-2 text-center text-[12px] font-semibold text-risk">{t.wallet.ladenFehler}</p>
+              <p className="pb-2 text-center text-[13px] text-risk">{t.wallet.ladenFehler}</p>
             )}
           </div>
         ) : verlauf.length > 0 && (
-          <p className="border-t border-line py-3.5 text-center text-[12px] font-semibold text-faint">
+          <p className="py-4 text-center text-[13px] text-faint">
             {vorlaeufig ? t.wallet.laedtMehr : filterAktiv ? t.wallet.alleTreffer : t.wallet.alleGeladen}
           </p>
         )}
       </section>
+      )}
 
       <ZeitraumBlatt offen={blattOffen} zeitraum={zeitraum}
                      onSchliessen={() => setBlattOffen(false)}

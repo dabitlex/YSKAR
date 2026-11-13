@@ -21,6 +21,12 @@ const tr: typeof licht = {
   einstiegTitel: 'Işığını\nyak.',
   einstiegText: 'Telefonun gerçek bloklar üzerinde çalışır ve karşılığında YSR kazanır. Katılan herkes için kıyıda bir ışık yanar.',
   schritt: (n: number, von: number) => `Adım ${n} / ${von}`,
+  anWen: 'Kime?',
+  leerTitel: (sym: string) => `${sym} cüzdanına böyle gelir`,
+  leerMinenText: 'Havuzunun bulduğu her blok, payını otomatik olarak buraya öder.',
+  leerEmpfangenText: 'Birine adresini veya QR kodunu göster.',
+  legendeMining: 'Madencilik',
+  legendeMenschen: 'Transferler',
 };
 
 export default tr;

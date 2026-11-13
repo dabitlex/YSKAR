@@ -18,14 +18,14 @@ export default function Ziffernfeld({ onTaste, zeichen }: {
 }) {
   const { t } = useT();
   return (
-    <div role="group" aria-label={t.senden.ziffern} className="grid grid-cols-3 gap-2">
+    <div role="group" aria-label={t.senden.ziffern} className="-mx-2 grid grid-cols-3">
       {REIHE.map(k => (
         <button key={k} type="button" onClick={() => onTaste(k)}
                 aria-label={k === 'komma' ? t.senden.komma : k === 'loeschen' ? t.senden.loeschen : undefined}
-                className="panel flex h-[50px] items-center justify-center !rounded-[16px] !shadow-none text-[22px] font-bold
-                           transition-transform active:scale-95 active:bg-raised"
-                style={{ height: 'clamp(42px, 6.2dvh, 50px)' }}>
-          {k === 'komma' ? zeichen : k === 'loeschen' ? Zeichen.Loeschen() : k}
+                className="flex items-center justify-center rounded-[16px] text-[29px] font-light text-text
+                           transition-[transform,background-color] active:scale-95 active:bg-text/10"
+                style={{ height: 'clamp(40px, 6.5dvh, 62px)' }}>
+          {k === 'komma' ? zeichen : k === 'loeschen' ? Zeichen.Loeschen(26) : k}
         </button>
       ))}
     </div>

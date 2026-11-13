@@ -62,19 +62,19 @@ export default function Einnahmen({ tage, symbol, decimals, verborgen }: {
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-col gap-1">
           <Kappe>{gewaehlt ? name(gewaehlt.tag) : t.wallet.einnahmen}</Kappe>
-          <span className="tnum text-[26px] font-light leading-tight tracking-[-0.03em]">
-            {zeigen(gewaehlt ? gewaehlt.wert : gesamt)}{' '}
-            <span className="font-mono text-[12px] text-dim">{symbol}</span>
+          <span className="tnum text-[30px] font-light leading-tight tracking-[-0.036em]">
+            {verborgen ? <span className="font-mono tracking-normal">{PUNKTE}</span> : zeigen(gewaehlt ? gewaehlt.wert : gesamt)}{' '}
+            <span className="font-mono text-[13px] tracking-normal text-lese">{symbol}</span>
           </span>
           {gewaehlt && (
-            <span className="text-[12.5px] font-semibold text-dim">{t.wallet.miningBloecke(gewaehlt.bloecke)}</span>
+            <span className="text-[13.5px] text-dim">{t.wallet.miningBloecke(gewaehlt.bloecke)}</span>
           )}
         </div>
-        <div role="group" aria-label={t.wallet.zeitraum} className="flex shrink-0 rounded-full border border-line p-[3px]">
+        <div role="group" aria-label={t.wallet.zeitraum} className="flex shrink-0 rounded-full p-[3px] shadow-[inset_0_0_0_1px_rgb(var(--line))]">
           {([7, 30] as const).map(n => (
             <button key={n} type="button" aria-pressed={spanne === n}
                     onClick={() => { setSpanne(n); setWahl(null); }}
-                    className={`h-[34px] min-w-[50px] rounded-full px-3 text-[12.5px] font-medium transition-colors ${
+                    className={`h-[38px] min-w-[54px] rounded-full px-3 text-[13.5px] font-medium transition-colors ${
                       spanne === n ? 'bg-text/[.14] font-semibold text-text' : 'text-lese'}`}>
               {n === 7 ? t.wallet.tage7 : t.wallet.tage30}
             </button>
@@ -93,29 +93,29 @@ export default function Einnahmen({ tage, symbol, decimals, verborgen }: {
                     onClick={() => setWahl(w => (w === x.tag ? null : x.tag))}
                     className="flex h-full items-end">
               <span className={`block w-full transition-[height,background-color] duration-300 ${
-                      x.wert <= 0n ? 'bg-raised' : an ? 'bg-work' : 'bg-work/[.14] [[data-thema=dunkel]_&]:bg-work/30'}`}
-                    style={{ height: hoehe(x.wert), borderRadius: spanne === 7 ? 7 : 3 }} />
+                      x.wert <= 0n ? 'bg-text/10' : an ? 'einnahme-an' : 'bg-work/35'}`}
+                    style={{ height: hoehe(x.wert), borderRadius: spanne === 7 ? 4 : 2 }} />
             </button>
           );
         })}
       </div>
 
       {spanne === 7 ? (
-        <div aria-hidden="true" className="mt-[7px] grid text-center text-[11px] font-bold text-dim"
+        <div aria-hidden="true" className="mt-2 grid text-center text-[12px] text-dim"
              style={{ gridTemplateColumns: `repeat(${sicht.length}, minmax(0, 1fr))`, columnGap: 9 }}>
           {sicht.map(x => (
             // Nicht abschneiden: "Сегодня" ist breiter als die Spalte und darf
             // ein paar Pixel in den Rand ragen -- daneben ist Platz.
-            <span key={x.tag} className={`flex justify-center whitespace-nowrap ${x.tag === heute ? 'font-extrabold text-work' : ''}`}>
+            <span key={x.tag} className={`flex justify-center whitespace-nowrap ${x.tag === heute ? 'font-semibold text-text' : ''}`}>
               {x.tag === heute ? t.wallet.heute : wochentag.format(alsDatum(x.tag))}
             </span>
           ))}
         </div>
       ) : (
-        <div aria-hidden="true" className="mt-[7px] flex justify-between text-[11px] font-bold text-dim">
+        <div aria-hidden="true" className="mt-2 flex justify-between text-[12px] text-dim">
           <span>{sicht[0] ? tagKurz.format(alsDatum(sicht[0].tag)) : ''}</span>
           {sicht.length > 1 && (sicht[sicht.length - 1].tag === heute
-            ? <span className="font-extrabold text-work">{t.wallet.heute}</span>
+            ? <span className="font-semibold text-text">{t.wallet.heute}</span>
             : <span>{tagKurz.format(alsDatum(sicht[sicht.length - 1].tag))}</span>)}
         </div>
       )}

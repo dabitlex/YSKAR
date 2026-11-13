@@ -1,12 +1,11 @@
 'use client';
 
 import { vierer } from '@/lib/wallet/adresse';
-import { Identicon } from '@/components/ui/Bausteine';
 import { useT } from '@/i18n';
 
 /**
  * Gemeinsame Teile der Wallet: Kopf eines Blatts, Adresse in Vierergruppen,
- * Schrittanzeige, Kachel einer Gegenseite. Senden, Empfangen, Verlauf und
+ * Schrittanzeige, Punkt fuer die Herkunft, Knoepfe. Senden, Empfangen, Verlauf und
  * die Einzelheiten einer Transaktion setzen sich daraus zusammen -- damit
  * dieselbe Sache ueberall gleich aussieht.
  */
@@ -42,38 +41,54 @@ export const Zeichen = {
   Teilen: (g = 19) => <svg {...strich} width={g} height={g} strokeWidth={1.9}><path d="M11 3v11M11 3 7 7M11 3l4 4M4 12v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></svg>,
 };
 
-/** Kleine Ueberschrift in Grossbuchstaben -- ueber Listen und Zahlen. */
+/** Ruhiges Etikett ueber Listen und Zahlen. */
 export function Kappe({ children, className = '', als: Als = 'span' }: {
   children: React.ReactNode; className?: string; als?: 'span' | 'h2' | 'h3';
 }) {
   return (
-    <Als className={`text-[11.5px] font-bold uppercase tracking-[.08em] text-dim ${className}`}>{children}</Als>
+    <Als className={`text-[13.5px] font-medium leading-[1.3] text-dim ${className}`}>{children}</Als>
   );
 }
 
-/** Runde Taste im Kopf eines Blatts: 44 px Trefferflaeche. */
+/**
+ * Punkt in der Farbe der Herkunft. Kalt: von der Kette (Mining). Warm: von
+ * Menschen (Ueberweisungen). Ring: wartet noch auf einen Block.
+ */
+export function Punkt({ art, className = '' }: { art: 'kette' | 'mensch' | 'wartet'; className?: string }) {
+  return <span aria-hidden="true" className={`punkt punkt-${art} ${className}`} />;
+}
+
+/** Taste im Kopf eines Blatts: freies Zeichen, 44 px Trefferflaeche. */
 export function RundTaste({ onClick, label, children }: {
   onClick: () => void; label: string; children: React.ReactNode;
 }) {
   return (
     <button type="button" onClick={onClick} aria-label={label}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-raised text-text active:scale-95">
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text active:scale-95">
       {children}
     </button>
   );
 }
 
-/** Schrittanzeige: drei Striche, die gefuellten sind erledigt oder dran. */
+/** Schrittanzeige: "Schritt 2 von 3", leise, rechts im Kopf. */
 export function Schritte({ schritt, von = 3 }: { schritt: number; von?: number }) {
   const { t } = useT();
-  return (
-    <div role="img" aria-label={t.senden.schritt(schritt, von)} className="flex gap-[5px]">
-      {Array.from({ length: von }, (_, i) => (
-        <span key={i} className={`h-1 w-5 rounded-full ${i < schritt ? 'bg-work' : 'bg-line'}`} />
-      ))}
-    </div>
-  );
+  return <span className="whitespace-nowrap text-[13px] text-dim">{t.senden.schritt(schritt, von)}</span>;
 }
+
+/** Hauptknopf der Wallet: warm, Pille. `umriss` ist der zweite Knopf daneben. */
+export const KNOPF = 'flex h-14 w-full shrink-0 items-center justify-center gap-2.5 rounded-full bg-lamp px-6 text-[16px] font-semibold text-lamp-ink ' +
+  'transition-[transform,opacity] active:scale-[.985] disabled:opacity-40 disabled:active:scale-100';
+export const UMRISS = 'flex h-14 w-full shrink-0 items-center justify-center gap-2.5 rounded-full px-6 text-[16px] font-semibold text-text ' +
+  'shadow-[inset_0_0_0_1px_rgb(238_244_255/.42)] transition-[transform,opacity] active:scale-[.985] disabled:opacity-40';
+/** Textverweis: hell, unterstrichen, 44 px hoch. */
+export const VERWEIS = 'inline-flex min-h-11 items-center text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]';
+
+/** Pfeil im Hauptknopf ("Weiter"). */
+export const Pfeil = () => (
+  <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11h13M12 6l5 5-5 5" /></svg>
+);
 
 /**
  * Kopf eines Wallet-Blatts. Links wahlweise "Zurueck", rechts die
@@ -89,20 +104,20 @@ export function WKopf({ titel, oben, vor, onZurueck, onSchliessen, rechts }: {
 }) {
   const { t } = useT();
   return (
-    <header className="mb-3 flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-2.5">
-        {onZurueck && <RundTaste onClick={onZurueck} label={t.allgemein.zurueck}>{Zeichen.Zurueck()}</RundTaste>}
+    <header className={`mb-3 flex min-h-11 items-center justify-between gap-2 ${onZurueck ? '-ml-3' : ''} ${onSchliessen ? '-mr-3' : ''}`}>
+      <div className="flex min-w-0 items-center gap-1">
+        {onZurueck && <RundTaste onClick={onZurueck} label={t.allgemein.zurueck}>{Zeichen.Zurueck(20)}</RundTaste>}
         {vor}
         <div className="flex min-w-0 flex-col gap-0.5">
-          {oben && <span className="truncate text-[12.5px] font-bold text-dim">{oben}</span>}
+          {oben && <span className="truncate text-[13px] text-dim">{oben}</span>}
           {/* Lange Titel (Russisch: "Проверить и отправить") brechen um, statt abzureissen. */}
-          <h1 className="line-clamp-2 break-words text-[20px] font-extrabold leading-[1.15] tracking-[-0.01em]">{titel}</h1>
+          <h1 className="line-clamp-2 break-words text-[16px] font-semibold leading-[1.2] tracking-[-0.01em]">{titel}</h1>
         </div>
       </div>
       {(rechts || onSchliessen) && (
-        <div className="flex shrink-0 items-center gap-3.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           {rechts}
-          {onSchliessen && <RundTaste onClick={onSchliessen} label={t.allgemein.schliessen}>{Zeichen.Kreuz()}</RundTaste>}
+          {onSchliessen && <RundTaste onClick={onSchliessen} label={t.allgemein.schliessen}>{Zeichen.Kreuz(18)}</RundTaste>}
         </div>
       )}
     </header>
@@ -120,42 +135,13 @@ export function AdresseVierer({ adresse, className = '', mittig = false, gross =
   const g = vierer(adresse);
   return (
     <div role="group" aria-label={adresse}
-         className={`flex flex-wrap font-mono leading-[1.35] ${gross ? 'gap-x-3 gap-y-1.5 text-[15px]' : 'gap-x-[11px] gap-y-1 text-[14.5px]'} ${
+         className={`flex flex-wrap font-mono leading-[1.35] ${gross ? 'gap-x-3 gap-y-1.5 text-[15px]' : 'gap-x-[11px] gap-y-1 text-[14px]'} ${
            mittig ? 'justify-center' : ''} ${className}`}>
       {g.map((teil, i) => (
         <span key={i} aria-hidden="true"
-              className={i < 2 || i >= g.length - 2 ? 'font-medium text-text' : 'text-dim'}>{teil}</span>
+              className={i < 2 || i >= g.length - 2 ? 'text-text' : 'text-lese'}>{teil}</span>
       ))}
     </div>
-  );
-}
-
-/**
- * Kachel einer Gegenseite: Farbkachel aus der Adresse, mit kleinem Pfeil
- * fuer die Richtung. Mining hat keine Gegenseite -- dort ein Wuerfel.
- */
-export function Gegenkachel({ adresse, richtung, size = 44 }: {
-  adresse: string | null; richtung?: 'ein' | 'aus' | 'wartet'; size?: number;
-}) {
-  return (
-    <span aria-hidden="true" className="relative shrink-0" style={{ width: size, height: size }}>
-      <Identicon adresse={adresse} size={size} />
-      {richtung && (
-        <span className={`absolute -bottom-[5px] -right-[5px] flex h-[21px] w-[21px] items-center justify-center rounded-full bg-surface ${
-          richtung === 'ein' ? 'text-proof' : richtung === 'wartet' ? 'warte-text' : 'text-text'}`}>
-          {richtung === 'ein' ? Zeichen.Runter(12, 2.8) : richtung === 'wartet' ? Zeichen.Uhr(12, 2.6) : Zeichen.Hoch(12, 2.8)}
-        </span>
-      )}
-    </span>
-  );
-}
-
-export function MiningKachel({ size = 44 }: { size?: number }) {
-  return (
-    <span aria-hidden="true" className="flex shrink-0 items-center justify-center bg-work/10 text-work"
-          style={{ width: size, height: size, borderRadius: Math.round(size * .32) }}>
-      {Zeichen.Wuerfel(Math.round(size * .48))}
-    </span>
   );
 }
 
@@ -164,9 +150,9 @@ export function WertZeile({ label, children, stark = false, ohneLinie = false }:
   label: string; children: React.ReactNode; stark?: boolean; ohneLinie?: boolean;
 }) {
   return (
-    <div className={`flex min-h-[44px] items-center justify-between gap-3 py-1.5 text-[13.5px] ${ohneLinie ? '' : 'border-t border-line'}`}>
-      <span className="shrink-0 font-semibold text-dim">{label}</span>
-      <span className={`tnum min-w-0 break-words text-right ${stark ? 'font-extrabold' : 'font-bold'}`}>{children}</span>
+    <div className={`flex min-h-[50px] items-baseline justify-between gap-5 py-[14px] ${ohneLinie ? '' : 'border-t border-line'}`}>
+      <span className="shrink-0 text-[14.5px] text-dim">{label}</span>
+      <span className={`tnum min-w-0 break-words text-right text-[15px] ${stark ? 'font-medium text-text' : 'text-lese'}`}>{children}</span>
     </div>
   );
 }
