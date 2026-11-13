@@ -27,6 +27,20 @@ const ru: typeof licht = {
   leerEmpfangenText: 'Покажи кому-нибудь свой адрес или QR-код.',
   legendeMining: 'Майнинг',
   legendeMenschen: 'Переводы',
+  netzBlock: (nr: string, vor: string) => `Блок ${nr} найден ${vor}.`,
+  netzMiner: (n: number) => `Над следующим работают майнеры: ${n}.`,
+  netzKnoten: (n: number) => `Узлов на связи: ${n}.`,
+  ketteAria: 'Последние блоки. Расстояние показывает время между ними.',
+  ketteBlock: 'Блок',
+  ketteMitTx: 'с переводами',
+  ketteNaechster: 'следующий',
+  belohnung: 'Награда',
+  poolHaelt: (p: string) => `Твой пул даёт ${p} % мощности сети`,
+  poolFindet: (name: string, n: string) => `${name} находит примерно 1 блок из ${n}`,
+  wachsenZeile: 'Оставь свет включённым: приложение, Node Core, узел',
+  wachsenTitel: 'Оставь свет включённым.',
+  communityTitel: 'Не компания.\nПросто люди.',
+  detailsText: 'Сложность, время блока, последние блоки',
 };
 
 export default ru;

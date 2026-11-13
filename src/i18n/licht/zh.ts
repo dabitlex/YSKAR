@@ -27,6 +27,20 @@ const zh: typeof licht = {
   leerEmpfangenText: '把你的地址或二维码给别人看。',
   legendeMining: '挖矿',
   legendeMenschen: '转账',
+  netzBlock: (nr: string, vor: string) => `区块 ${nr}，${vor}找到。`,
+  netzMiner: (n: number) => `${n} 位矿工正在挖下一个区块。`,
+  netzKnoten: (n: number) => `${n} 个节点在线。`,
+  ketteAria: '最近的区块。间距表示它们之间的时间。',
+  ketteBlock: '区块',
+  ketteMitTx: '含转账',
+  ketteNaechster: '下一个',
+  belohnung: '奖励',
+  poolHaelt: (p: string) => `你的矿池占全网算力的 ${p} %`,
+  poolFindet: (name: string, n: string) => `${name} 大约每 ${n} 个区块找到 1 个`,
+  wachsenZeile: '留一盏灯：应用、Node Core、节点',
+  wachsenTitel: '留一盏灯。',
+  communityTitel: '没有公司。\n只有人。',
+  detailsText: '难度、出块时间、最近的区块',
 };
 
 export default zh;

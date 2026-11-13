@@ -27,6 +27,20 @@ const it: typeof licht = {
   leerEmpfangenText: 'Mostra a qualcuno il tuo indirizzo o il tuo codice QR.',
   legendeMining: 'Mining',
   legendeMenschen: 'Trasferimenti',
+  netzBlock: (nr: string, vor: string) => `Blocco ${nr}, trovato ${vor}.`,
+  netzMiner: (n: number) => n === 1 ? '1 miner lavora al prossimo.' : `${n} miner lavorano al prossimo.`,
+  netzKnoten: (n: number) => n === 1 ? '1 nodo osserva.' : `${n} nodi osservano.`,
+  ketteAria: 'Gli ultimi blocchi. La distanza mostra il tempo tra l’uno e l’altro.',
+  ketteBlock: 'Blocco',
+  ketteMitTx: 'con trasferimenti',
+  ketteNaechster: 'il prossimo',
+  belohnung: 'Ricompensa',
+  poolHaelt: (p: string) => `Il tuo pool ha il ${p} % della potenza`,
+  poolFindet: (name: string, n: string) => `${name} trova circa 1 blocco su ${n}`,
+  wachsenZeile: 'Lascia una luce accesa: app, Node Core, nodo',
+  wachsenTitel: 'Lascia una luce accesa.',
+  communityTitel: 'Nessuna azienda.\nSolo persone.',
+  detailsText: 'Difficoltà, tempo di blocco, ultimi blocchi',
 };
 
 export default it;

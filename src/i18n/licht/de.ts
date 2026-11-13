@@ -1,6 +1,6 @@
 /**
  * Texte des Designs "Erstes Licht" (November 2026): Minen-Reiter mit dem
- * Ufer, Einstieg, Wallet. Jede Sprache hat dieselben Schluessel; de.ts gibt die Form vor.
+ * Ufer, Einstieg, Wallet, Netz und Community. Jede Sprache hat dieselben Schluessel; de.ts gibt die Form vor.
  */
 const licht = {
   deinLicht: 'Dein Licht',
@@ -29,6 +29,20 @@ const licht = {
   leerEmpfangenText: 'Zeig jemandem deine Adresse oder deinen QR-Code.',
   legendeMining: 'Mining',
   legendeMenschen: 'Überweisungen',
+  netzBlock: (nr: string, vor: string) => `Block ${nr}, ${vor} gefunden.`,
+  netzMiner: (n: number) => n === 1 ? '1 Miner arbeitet am nächsten.' : `${n} Miner arbeiten am nächsten.`,
+  netzKnoten: (n: number) => n === 1 ? '1 Knoten sieht zu.' : `${n} Knoten sehen zu.`,
+  ketteAria: 'Die letzten Blöcke. Der Abstand zeigt die Zeit dazwischen.',
+  ketteBlock: 'Block',
+  ketteMitTx: 'mit Überweisungen',
+  ketteNaechster: 'der nächste',
+  belohnung: 'Belohnung',
+  poolHaelt: (p: string) => `Dein Pool hält ${p} % der Leistung`,
+  poolFindet: (name: string, n: string) => `${name} findet etwa 1 von ${n} Blöcken`,
+  wachsenZeile: 'Lass ein Licht an: App, Node Core, Knoten',
+  wachsenTitel: 'Lass ein Licht an.',
+  communityTitel: 'Kein Unternehmen.\nNur Menschen.',
+  detailsText: 'Schwierigkeit, Blockzeit, letzte Blöcke',
 };
 
 export default licht;

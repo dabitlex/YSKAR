@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 /**
  * Der Explorer unter der Adresse der Website.
@@ -43,11 +43,11 @@ export function externOeffnen(url: string): void {
  * Ein Verweis nach draussen. Ohne Skript bleibt es ein gewoehnlicher Link
  * in einem neuen Tab; mit Skript geht er den Weg von externOeffnen().
  */
-export function ExternLink({ href, className, children }: {
-  href: string; className?: string; children: ReactNode;
+export function ExternLink({ href, className, children, stil }: {
+  href: string; className?: string; children: ReactNode; stil?: CSSProperties;
 }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={className}
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className} style={stil}
        onClick={e => { e.preventDefault(); externOeffnen(href); }}>
       {children}
     </a>

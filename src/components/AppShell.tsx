@@ -260,6 +260,9 @@ export default function AppShell({ platform }: { platform: string }) {
                      onErhoehen={z => senden('senden', z)} />
         ) : tab === 'entdecken' ? (
           <EntdeckenTab summary={m.summary} decimals={dec} symbol={sym} meineAdresse={wallet.address}
+                        poolName={pool.modus === 'pool' ? (pool.gewaehlt?.name ?? m.poolInfo?.name ?? null) : null}
+                        poolRate={pool.modus === 'pool' ? (pool.gewaehlt?.stand?.hashrate ?? m.poolInfo?.hashrate ?? null) : null}
+                        onMinen={() => setTab('mine')}
                         onEinstellungen={() => setAnsicht('einstellungen')} />
         ) : (
           <CommunityTab adresse={wallet.address} onAktion={aktion.bereit ? () => setAnsicht('aktion') : undefined} />

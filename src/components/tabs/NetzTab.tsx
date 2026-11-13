@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { hashrateText, grosseZahl } from '@/lib/format/hashrate';
-import { Panel, GroupTitle, Empty } from '@/components/ui/Primitives';
 import type { Summary } from '@/hooks/useMining';
 import { useT } from '@/i18n';
-import { Zahl, Etikett, Kachel, Pille, Ring } from '@/components/ui/Bausteine';
+import { Pille } from '@/components/ui/Bausteine';
+import { ListenTitel, PfeilHinaus } from '@/components/ui/Zeilen';
 import { ExternLink, EXPLORER_URL } from '@/components/ui/ExternLink';
 
 /**
@@ -61,68 +61,79 @@ export default function NetzTab({ summary, meineAdresse, decimals, symbol, ohneK
   const seitMin = seitLetztem == null ? null : Math.round(seitLetztem / 60);
   const fortschritt = seitLetztem == null ? 0 : Math.min(100, (seitLetztem / 600) * 100);
 
+  const zeile = 'flex min-h-[50px] items-baseline justify-between gap-5 border-b border-line py-[14px]';
+
   return (
     <>
       {!ohneKopf && (
-        <>
-          <div className="schein pointer-events-none absolute inset-x-0 top-0 h-72" />
-          <header className="relative mb-5 flex items-center justify-between">
-            <h1 className="text-[24px] font-extrabold tracking-[-0.02em]">{t.netz.titel}</h1>
-            <Pille tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? t.allgemein.live : t.allgemein.laedt}</Pille>
-          </header>
-        </>
+        <header className="relative mb-5 flex items-center justify-between">
+          <h1 className="text-[24px] font-[350] tracking-[-.026em]">{t.netz.titel}</h1>
+          <Pille tone={summary?.height ? 'proof' : 'off'}>{summary?.height ? t.allgemein.live : t.allgemein.laedt}</Pille>
+        </header>
       )}
 
-      <section className="relative rise flex items-center justify-between gap-3 px-0.5">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Etikett>{t.netz.hoehe}</Etikett>
-          <Zahl ganz={`#${summary?.height != null ? zahl(summary.height) : '—'}`} size={50} />
-          <span className="text-[13px] font-bold text-dim">
-            {rest == null ? t.netz.zielzeit : rest > 0 ? t.netz.naechster(rest) : t.netz.jederzeit}
-          </span>
+      <section className="rise relative">
+        <span className="label">{t.netz.hoehe}</span>
+        <p className="mt-3 flex items-baseline gap-2">
+          <span className="font-mono text-[17px] text-lese">#</span>
+          <span className="betrag text-[76px]">{summary?.height != null ? zahl(summary.height) : '—'}</span>
+        </p>
+        <p className="mt-4 text-[16px] leading-[1.5] text-lese">
+          {rest == null ? t.netz.zielzeit : rest > 0 ? t.netz.naechster(rest) : t.netz.jederzeit}
+        </p>
+        {/* Seit dem letzten Block vergangene Zeit, gemessen an der Zielzeit von zehn Minuten. */}
+        <div className="faden mt-[18px]" aria-hidden="true">
+          <i style={{ width: `${Math.max(1.5, fortschritt)}%` }} /><b style={{ left: `${Math.max(1.5, fortschritt)}%` }} />
         </div>
-        <Ring anteil={fortschritt / 100} oben={seitMin != null ? `${seitMin}′` : '—'} unten={t.netz.zielKurz} size={108} />
+        <p className="tnum mt-2.5 font-mono text-[12.5px] text-dim">
+          {seitMin != null ? `${seitMin}′` : '—'} · {t.netz.zielKurz}
+        </p>
       </section>
 
-      <div className="rise rise-1 mt-5 grid grid-cols-2 gap-2.5">
-        <Kachel label={t.netz.difficulty} wert={summary?.difficulty != null ? grosseZahl(summary.difficulty, locale) : '—'} />
-        <Kachel label={t.netz.hashrate} wert={rate(summary?.hashrate ?? null)} />
-        <Kachel label={t.netz.aktiveMiner} wert={String(summary?.activeMiners ?? 0)} />
-        <Kachel label={t.netz.umlauf}
-                wert={`${zahl(Number(summary?.totalSupply ?? 0) / 10 ** decimals, { maximumFractionDigits: 0 })} ${symbol}`} />
-      </div>
+      <dl className="rise rise-1 mt-6 border-t border-line">
+        {([
+          [t.netz.difficulty, summary?.difficulty != null ? grosseZahl(summary.difficulty, locale) : '—'],
+          [t.netz.hashrate, rate(summary?.hashrate ?? null)],
+          [t.netz.aktiveMiner, String(summary?.activeMiners ?? 0)],
+          [t.netz.umlauf, `${zahl(Number(summary?.totalSupply ?? 0) / 10 ** decimals, { maximumFractionDigits: 0 })} ${symbol}`],
+        ] as const).map(([name, wert]) => (
+          <div key={name} className={zeile}>
+            <dt className="shrink-0 text-[14.5px] text-dim">{name}</dt>
+            <dd className="tnum min-w-0 truncate text-right font-mono text-[15px]">{wert}</dd>
+          </div>
+        ))}
+      </dl>
 
-      <GroupTitle aside={<ExternLink href={EXPLORER_URL} className="font-bold text-work">{t.netz.explorer}</ExternLink>}>
-        {t.netz.letzte}
-      </GroupTitle>
+      <ListenTitel className="mt-7" rechts={
+        <ExternLink href={EXPLORER_URL} className="-my-3 inline-flex min-h-11 items-center gap-1.5 text-[13.5px] text-lese">
+          {t.netz.explorer}<PfeilHinaus />
+        </ExternLink>
+      }>{t.netz.letzte}</ListenTitel>
 
       {blocks.length === 0 ? (
-        <Empty>{t.netz.laedt}</Empty>
+        <p className="py-7 text-[14.5px] leading-[1.45] text-lese">{t.netz.laedt}</p>
       ) : (
-        <Panel className="rise rise-1 !p-0">
-          <ul className="divide-y divide-line">
-            {blocks.map(b => (
-              <li key={b.height} className="flex items-center gap-3 px-4 py-3.5">
-                <span className="tnum w-14 shrink-0 text-[13.5px] font-extrabold text-work">
-                  #{zahl(b.height)}
+        <ul className="rise rise-1">
+          {blocks.map(b => (
+            <li key={b.height} className="flex min-h-[62px] items-center gap-3.5 border-b border-line py-[11px]">
+              {/* Kalt: ein Block der Kette. Warm: mit Ueberweisungen (mehr als die Coinbase). */}
+              <span aria-hidden="true" className={`punkt ${b.txCount > 1 ? 'punkt-mensch' : 'punkt-kette'}`} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-2.5">
+                  <span className="tnum shrink-0 font-mono text-[15px]">#{zahl(b.height)}</span>
+                  <span className="min-w-0 truncate font-mono text-[12.5px] text-dim">{b.hash}</span>
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-[11px] text-dim">
-                    {b.hash}
-                  </span>
-                  <span className="mt-0.5 block text-[12px] font-semibold text-faint">
-                    {b.reward ? `${(Number(b.reward) / 10 ** decimals).toFixed(0)} ${symbol}` : '—'}
-                    {' · '}{b.txCount} {t.netz.tx} · {vorZeit(b.timestamp)}
-                  </span>
+                <span className="mt-0.5 block text-[13.5px] leading-[1.4] text-dim">
+                  {b.reward ? `${(Number(b.reward) / 10 ** decimals).toFixed(0)} ${symbol}` : '—'}
+                  {' · '}{b.txCount} {t.netz.tx} · {vorZeit(b.timestamp)}
                 </span>
-                {meinHex && b.minerAddress === meinHex && (
-                  <span className="shrink-0 rounded-full bg-proof/10 px-2 py-0.5
-                                   text-[11px] font-bold text-proof">{t.netz.du}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Panel>
+              </span>
+              {meinHex && b.minerAddress === meinHex && (
+                <span className="shrink-0 text-[13.5px] font-medium text-lamp">{t.netz.du}</span>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
 
     </>

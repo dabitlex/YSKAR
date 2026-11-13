@@ -27,6 +27,20 @@ const id: typeof licht = {
   leerEmpfangenText: 'Tunjukkan alamat atau kode QR-mu kepada seseorang.',
   legendeMining: 'Mining',
   legendeMenschen: 'Transfer',
+  netzBlock: (nr: string, vor: string) => `Blok ${nr}, ditemukan ${vor}.`,
+  netzMiner: (n: number) => `${n} penambang mengerjakan blok berikutnya.`,
+  netzKnoten: (n: number) => `${n} node ikut mengawasi.`,
+  ketteAria: 'Blok-blok terakhir. Jaraknya menunjukkan waktu di antaranya.',
+  ketteBlock: 'Blok',
+  ketteMitTx: 'dengan transfer',
+  ketteNaechster: 'berikutnya',
+  belohnung: 'Hadiah',
+  poolHaelt: (p: string) => `Pool-mu memegang ${p} % daya jaringan`,
+  poolFindet: (name: string, n: string) => `${name} menemukan kira-kira 1 dari ${n} blok`,
+  wachsenZeile: 'Biarkan satu lampu menyala: aplikasi, Node Core, node',
+  wachsenTitel: 'Biarkan satu lampu menyala.',
+  communityTitel: 'Bukan perusahaan.\nHanya manusia.',
+  detailsText: 'Kesulitan, waktu blok, blok terakhir',
 };
 
 export default id;

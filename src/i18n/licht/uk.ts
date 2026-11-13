@@ -27,6 +27,20 @@ const uk: typeof licht = {
   leerEmpfangenText: 'Покажи комусь свою адресу або QR-код.',
   legendeMining: 'Майнінг',
   legendeMenschen: 'Перекази',
+  netzBlock: (nr: string, vor: string) => `Блок ${nr} знайдено ${vor}.`,
+  netzMiner: (n: number) => `Над наступним працюють майнери: ${n}.`,
+  netzKnoten: (n: number) => `Вузлів на зв’язку: ${n}.`,
+  ketteAria: 'Останні блоки. Відстань показує час між ними.',
+  ketteBlock: 'Блок',
+  ketteMitTx: 'з переказами',
+  ketteNaechster: 'наступний',
+  belohnung: 'Нагорода',
+  poolHaelt: (p: string) => `Твій пул дає ${p} % потужності мережі`,
+  poolFindet: (name: string, n: string) => `${name} знаходить приблизно 1 блок із ${n}`,
+  wachsenZeile: 'Залиш світло ввімкненим: застосунок, Node Core, вузол',
+  wachsenTitel: 'Залиш світло ввімкненим.',
+  communityTitel: 'Не компанія.\nПросто люди.',
+  detailsText: 'Складність, час блоку, останні блоки',
 };
 
 export default uk;

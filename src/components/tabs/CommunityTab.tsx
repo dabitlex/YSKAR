@@ -1,9 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Muenze3D } from '@/components/ui/Marke';
-import { TopBar } from '@/components/ui/Chrome';
-import { ExternLink } from '@/components/ui/ExternLink';
+import { Foto, MarkenKopf, Zeile } from '@/components/ui/Zeilen';
 import { COMMUNITY, einladungsLink } from '@/lib/community';
 import { teilen } from '@/lib/telegram/webapp';
 import { useT } from '@/i18n';
@@ -21,23 +19,16 @@ export default function CommunityTab({ adresse, onAktion }: { adresse: string | 
   const { t } = useT();
   const [kopiert, setKopiert] = useState(false);
 
-  const eintraege: { href: string; titel: string; text: string; aktion?: string; icon: React.ReactNode; akzent?: boolean; neu?: boolean }[] = [
-    { href: COMMUNITY.kanal, titel: t.community.kanal, text: COMMUNITY.kanalName, aktion: t.community.oeffnen, akzent: true,
-      icon: <path d="M2.5 10 19.5 3.5l-3 15.5-5.5-4.5-3 3.5v-5.5l8.5-6.5" /> },
-    { href: COMMUNITY.gruppe, titel: t.community.gruppe, text: t.community.gruppeText, aktion: t.community.beitreten, akzent: true,
-      icon: <path d="M3.5 4.5h15v10h-10l-5 4zM7.5 8.5h7M7.5 11.5h4.5" /> },
+  const eintraege: { href: string; titel: string; text: string; aktion?: string; neu?: boolean }[] = [
+    { href: COMMUNITY.kanal, titel: t.community.kanal, text: COMMUNITY.kanalName, aktion: t.community.oeffnen },
+    { href: COMMUNITY.gruppe, titel: t.community.gruppe, text: t.community.gruppeText, aktion: t.community.beitreten },
     // YSKAR Lab: Ideen und Entwuerfe der Community. Hier nur ein Hinweis -- die
     // Plattform selbst gehoert nicht in die Mini App (Entscheidung 29.10.2026).
-    { href: COMMUNITY.lab, titel: t.community.lab, text: t.community.labText, aktion: t.community.oeffnen, akzent: true, neu: true,
-      icon: <path d="M8.5 3h5M9.5 3v5.2L4.6 16.4A1.6 1.6 0 0 0 6 18.8h10a1.6 1.6 0 0 0 1.4-2.4L12.5 8.2V3M6.8 13h8.4" /> },
-    { href: COMMUNITY.x, titel: t.community.x, text: COMMUNITY.xName,
-      icon: <path d="M4 4l14 14M18 4 4 18" /> },
-    { href: COMMUNITY.website, titel: t.community.website, text: t.community.websiteText,
-      icon: <><circle cx="11" cy="11" r="8.5" /><path d="M2.5 11h17M11 2.5c2.5 2.6 3.7 5.4 3.7 8.5s-1.2 5.9-3.7 8.5c-2.5-2.6-3.7-5.4-3.7-8.5S8.5 5.1 11 2.5z" /></> },
-    { href: COMMUNITY.explorer, titel: t.community.explorer, text: t.community.explorerText,
-      icon: <path d="M3.5 3.5h6v6h-6zM12.5 3.5h6v6h-6zM3.5 12.5h6v6h-6zM9.5 6.5h3M6.5 9.5v3" /> },
-    { href: COMMUNITY.github, titel: t.community.code, text: t.community.codeText,
-      icon: <path d="M7 7l-4 4 4 4M15 7l4 4-4 4M12.5 4.5l-3 13" /> },
+    { href: COMMUNITY.lab, titel: t.community.lab, text: t.community.labText, aktion: t.community.oeffnen, neu: true },
+    { href: COMMUNITY.x, titel: t.community.x, text: COMMUNITY.xName },
+    { href: COMMUNITY.website, titel: t.community.website, text: t.community.websiteText },
+    { href: COMMUNITY.explorer, titel: t.community.explorer, text: t.community.explorerText },
+    { href: COMMUNITY.github, titel: t.community.code, text: t.community.codeText },
   ];
 
   const einladen = async () => {
@@ -47,53 +38,40 @@ export default function CommunityTab({ adresse, onAktion }: { adresse: string | 
 
   return (
     <>
-      <TopBar titel={t.community.titel} />
+      {/* Menschen mit Laternen am Ufer: Das Netz sind die, die mitmachen. */}
+      <Foto src="/buehne/laternen.webp" alt="" />
+      <MarkenKopf />
+      <div className="foto-platz" />
 
-      {/* Die Muenze dreht sich -- wie im Einstieg. Keine Karte, nur Buehne und Satz. */}
-      <section className="rise relative flex flex-col items-center pb-2 pt-4 text-center">
-        <div className="buehne"><Muenze3D d={88} /></div>
-        <h2 className="mt-6 text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">
-          {t.rd.community.titelA}<br /><span className="grad">{t.rd.community.titelB}</span>
-        </h2>
-        <p className="mt-2.5 max-w-[300px] text-[14px] leading-[1.5] text-dim">{t.rd.community.text}</p>
+      <section className="rise relative">
+        <h1 className="aussage whitespace-pre-line text-[clamp(36px,11.4vw,46px)] [text-wrap:balance]">{t.licht.communityTitel}</h1>
+        <p className="mt-3 max-w-[340px] text-[15px] leading-[1.45] text-lese">{t.rd.community.text}</p>
       </section>
 
-      <ul className="rise rise-1 mt-6 border-t border-line">
+      <ul className="rise rise-1 mt-4 border-t border-line">
         {onAktion && <AktionZeile onOeffnen={onAktion} />}
         {eintraege.map(e => (
-          <li key={e.href} className="border-b border-line">
-            <ExternLink href={e.href} className="flex items-center gap-3.5 py-[14px] active:bg-surface">
-              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-                e.akzent ? 'border-work/40 text-cyan' : 'border-line text-text'}`}>
-                <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7"
-                     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{e.icon}</svg>
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[15px] font-medium">
-                  {e.titel}
-                  {e.neu && (
-                    <span className="ml-1.5 rounded-full border border-cyan/35 px-[7px] py-px align-[2px] text-[10.5px] font-semibold tracking-[0.06em] text-cyan">
-                      {t.community.neu}
-                    </span>
-                  )}
-                </span>
-                <span className="truncate text-[12.5px] text-dim">{e.text}</span>
-              </span>
-              {e.aktion
-                ? <span className="text-[13px] font-medium text-cyan">{e.aktion}</span>
-                : <span className="text-[16px] text-faint" aria-hidden="true">›</span>}
-            </ExternLink>
+          <li key={e.href}>
+            <Zeile href={e.href} hoch={60}
+                   titel={<>
+                     {e.titel}
+                     {e.neu && (
+                       <span className="ml-2 align-[1px] text-[12.5px] font-medium text-cyan">{t.community.neu}</span>
+                     )}
+                   </>}
+                   text={<span className="block truncate">{e.text}</span>}
+                   rechts={e.aktion ? <span className="text-text">{e.aktion}</span> : undefined} />
           </li>
         ))}
       </ul>
 
-      <section className="rise rise-2 mt-6 flex items-center gap-3">
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-medium">{t.community.einladenTitel}</span>
-          <span className="text-[12.5px] text-dim">{t.community.einladenText}</span>
-        </span>
+      <section className="rise rise-2 mt-7">
+        <h2 className="text-[18px] font-medium leading-[1.25] tracking-[-.012em]">{t.community.einladenTitel}</h2>
+        <p className="mt-1.5 text-[14.5px] leading-[1.45] text-lese">{t.community.einladenText}</p>
         <button type="button" onClick={einladen}
-                className="h-11 shrink-0 rounded-full bg-work px-5 text-[14px] font-semibold text-white active:scale-95">
+                className="mt-4 flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-lamp px-6 text-[16px] font-semibold text-lamp-ink active:scale-[.985]">
+          <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 3v11M11 3 7 7M11 3l4 4M4 12v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></svg>
           {kopiert ? t.allgemein.Kopiert : t.community.teilen}
         </button>
       </section>

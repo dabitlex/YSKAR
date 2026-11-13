@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Panel, GroupTitle, Notice, Icon, SubHeader } from '@/components/ui/Primitives';
-import { TopBar } from '@/components/ui/Chrome';
-import Artikel, { FARBE } from '@/components/Artikel';
+import { Notice, SubHeader } from '@/components/ui/Primitives';
+import { Licht, ListenTitel, MarkenKopf, Werte, Zeile } from '@/components/ui/Zeilen';
+import Kette, { type KettenBlock } from '@/components/netz/Kette';
+import Artikel from '@/components/Artikel';
 import { inhalte, type Neuigkeit } from '@/content/entdecken';
 import { useT } from '@/i18n';
 import { EPOCH_BLOCKS, SEASON_BLOCKS, INITIAL_REWARD } from '@/lib/core/params';
@@ -28,12 +29,19 @@ const V6_DOKU = 'https://github.com/dabitlex/YSKAR/blob/main/docs/CONSENSUS_V6.m
  * ersten Tag an etwas erzaehlt -- eine Nachrichtenliste waere leer.
  */
 
+/** Erst ab diesem Anteil an der Netzleistung steht die Zeile zum eigenen Pool da. */
+const POOL_AB = 0.001;
+
 type Ansicht = { art: 'liste' } | { art: 'artikel'; slug: string } | { art: 'faq'; i: number } | { art: 'netz' } | { art: 'staerken' };
 
-export default function EntdeckenTab({ summary, decimals, symbol, onEinstellungen, meineAdresse }: {
+export default function EntdeckenTab({ summary, decimals, symbol, onEinstellungen, meineAdresse, poolName, poolRate, onMinen }: {
   summary: Summary | null; decimals: number; symbol: string;
   onEinstellungen: () => void;
   meineAdresse: string | null;
+  /** Der gewaehlte Pool und seine Leistung -- fuer die Zeile "Dein Pool haelt ...". Solo: null. */
+  poolName?: string | null; poolRate?: number | null;
+  /** Zum Minen-Reiter wechseln. */
+  onMinen?: () => void;
 }) {
   const [ansicht, setAnsicht] = useState<Ansicht>({ art: 'liste' });
   useZurueckTaste(ansicht.art !== 'liste', () => setAnsicht({ art: 'liste' }));
@@ -50,6 +58,17 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
     return () => { lebt = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sprache]);
+  // Die letzten Bloecke fuer die Kette oben: neu lesen, sobald die Hoehe steigt.
+  const [bloecke, setBloecke] = useState<KettenBlock[]>([]);
+  const spitze = summary?.height ?? null;
+  useEffect(() => {
+    if (spitze == null) return;
+    let lebt = true;
+    fetch('/api/v2/blocks?limit=10').then(r => r.json())
+      .then(d => { if (lebt && Array.isArray(d.blocks)) setBloecke(d.blocks); })
+      .catch(() => {});
+    return () => { lebt = false; };
+  }, [spitze]);
   const datumKurz = (iso: string) => {
     const d = new Date(iso.slice(0, 10) + 'T00:00:00');
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -73,8 +92,8 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
     return (
       <>
         <SubHeader titel={t.entdecken.faq} onZurueck={() => setAnsicht({ art: 'liste' })} />
-        <h1 className="rise text-[24px] font-extrabold leading-[1.2] tracking-[-0.02em]">{f.frage}</h1>
-        <p className="rise rise-1 mt-4 text-[15px] font-medium leading-[1.65] text-lese">
+        <h1 className="rise text-[31px] font-light leading-[1.13] tracking-[-.034em] [text-wrap:pretty]">{f.frage}</h1>
+        <p className="rise rise-1 mt-5 text-[16px] leading-[1.6] text-lese">
           {f.antwort}
         </p>
       </>
@@ -86,91 +105,80 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
   const rest = EPOCH_BLOCKS - inEpoche;
   const anteil = (inEpoche / EPOCH_BLOCKS) * 100;
   const jetzt = Number(summary?.nextReward ?? INITIAL_REWARD) / 10 ** decimals;
+  // Was die Zahlen fuer den Nutzer heissen: der Anteil seines Pools an der Netzleistung.
+  const netzRate = summary?.hashrate ?? null;
+  const poolAnteil = poolName && poolRate && poolRate > 0 && netzRate && netzRate > 0 ? Math.min(1, poolRate / netzRate) : null;
 
   return (
     <>
-      <TopBar titel={t.rd.netz.titel} rechts={
-        <button onClick={onEinstellungen} aria-label={t.allgemein.einstellungen}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-dim active:scale-95">{Icon.Zahnrad}</button>
-      } />
+      <MarkenKopf onEinstellungen={onEinstellungen} />
+      <h1 className="sr-only">{t.rd.netz.titel}</h1>
 
-      <NetzLive summary={summary} decimals={decimals} />
+      <NetzLive summary={summary} decimals={decimals} symbol={symbol} bloecke={bloecke} />
 
-      {hoehe > 0 && hoehe < V6_HOEHE && (
-        <ExternLink href={V6_DOKU} className="rise rise-1 mt-6 flex items-center gap-3.5 rounded-[20px] border border-work/30 bg-work/[.06] px-4 py-3.5">
-          <span className="font-mono text-[13px] font-semibold text-cyan">V6</span>
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-[14px] font-medium">{t.rd.netz.v6(zahl(V6_HOEHE))}</span>
-            <span className="tnum text-[12.5px] text-dim">{t.rd.netz.v6Rest(zahl(V6_HOEHE - hoehe))}</span>
-          </span>
-          <span className="text-[16px] text-faint" aria-hidden="true">›</span>
-        </ExternLink>
-      )}
-
-      <ul className="rise rise-1 mt-6 border-t border-line">
-        <Zeile onClick={() => setAnsicht({ art: 'staerken' })} titel={t.rd.netz.wachsen} akzent
-               icon={<><circle cx="11" cy="11" r="8.5" /><path d="M2.5 11h17M11 2.5c2.5 2.6 3.7 5.4 3.7 8.5s-1.2 5.9-3.7 8.5c-2.5-2.6-3.7-5.4-3.7-8.5S8.5 5.1 11 2.5z" /></>} />
-        <Zeile onClick={() => setAnsicht({ art: 'netz' })} titel={t.entdeckenNeu.details}
-               icon={<path d="M3 15l4-5 4 3 4-6 4 4" />} />
-        <Zeile href={EXPLORER_URL} titel={t.rd.netz.explorer}
-               icon={<path d="M3.5 3.5h6v6h-6zM12.5 3.5h6v6h-6zM3.5 12.5h6v6h-6zM9.5 6.5h3M6.5 9.5v3" />} />
-        <Zeile href={COMMUNITY.whitepaper} titel={t.rd.netz.whitepaper}
-               icon={<path d="M5.5 2.5h8l3 3v14h-11zM8.5 9.5h5M8.5 12.5h5M8.5 15.5h3" />} />
-        <Zeile href={COMMUNITY.website} titel={t.rd.netz.website}
-               icon={<><circle cx="11" cy="11" r="8.5" /><path d="M2.5 11h17" /></>} />
-      </ul>
+      <div className="rise rise-1">
+        {hoehe > 0 && hoehe < V6_HOEHE && (
+          <Zeile href={V6_DOKU} hoch={66}
+                 vor={<span className="w-[26px] shrink-0 font-mono text-[13.5px] text-cyan">V6</span>}
+                 titel={t.rd.netz.v6(zahl(V6_HOEHE))} text={<span className="tnum">{t.rd.netz.v6Rest(zahl(V6_HOEHE - hoehe))}</span>} />
+        )}
+        {poolAnteil !== null && poolAnteil >= POOL_AB && poolName && (
+          <Zeile onClick={onMinen} hoch={66} vor={<Licht />}
+                 titel={t.licht.poolHaelt(zahl(poolAnteil * 100, { maximumFractionDigits: 1 }))}
+                 text={poolAnteil < 0.6 ? t.licht.poolFindet(poolName, zahl(Math.max(2, Math.round(1 / poolAnteil)))) : poolName} />
+        )}
+        <Zeile onClick={() => setAnsicht({ art: 'staerken' })} hoch={66} vor={<Licht />}
+               titel={t.rd.netz.wachsen} text={t.licht.wachsenZeile} />
+      </div>
 
       <button onClick={() => setAnsicht({ art: 'artikel', slug: 'tokenomics' })}
-              className="rise rise-2 mt-8 w-full text-left active:opacity-80">
-        <div className="flex items-baseline justify-between">
+              className="rise rise-2 mt-9 w-full text-left active:opacity-80">
+        <div className="flex items-baseline justify-between gap-3">
           <span className="label">{t.entdecken.halving}</span>
-          <span className="font-mono text-[11.5px] text-dim">
+          <span className="font-mono text-[12.5px] text-dim">
             {t.entdecken.season(Math.floor(hoehe / SEASON_BLOCKS) + 1)}
           </span>
         </div>
-        <p className="mt-2.5 text-[16px] leading-snug text-lese">
-          {t.entdecken.nochVor}<b className="tnum font-semibold text-text">{zahl(rest)}</b>{t.entdecken.nochNach(zahl(jetzt / 2), symbol)}
+        <p className="mt-2.5 text-[24px] font-[350] leading-[1.14] tracking-[-.026em] [text-wrap:pretty]">
+          {t.entdecken.nochVor}<span className="tnum">{zahl(rest)}</span>{t.entdecken.nochNach(zahl(jetzt / 2), symbol)}
         </p>
-        <div className="bar mt-3.5"><i style={{ width: `${Math.max(1.5, anteil)}%` }} /></div>
-        <p className="tnum mt-2 font-mono text-[11.5px] text-faint">
+        <div className="faden mt-[18px]" aria-hidden="true">
+          <i style={{ width: `${Math.max(1.5, anteil)}%` }} /><b style={{ left: `${Math.max(1.5, anteil)}%` }} />
+        </div>
+        <p className="tnum mt-2.5 font-mono text-[12.5px] text-dim">
           {t.entdecken.blockVon(zahl(inEpoche), zahl(EPOCH_BLOCKS))}{' · '}{anteil.toFixed(1)} %
         </p>
       </button>
 
-      <GroupTitle>{t.entdecken.verstehen}</GroupTitle>
+      <div className="rise rise-2 mt-[22px]">
+        <Zeile erste onClick={() => setAnsicht({ art: 'netz' })} hoch={60} titel={t.entdeckenNeu.details} text={t.licht.detailsText} />
+        <Zeile href={EXPLORER_URL} hoch={60} titel={t.rd.netz.explorer} text={t.community.explorerText} />
+        <Zeile href={COMMUNITY.whitepaper} hoch={52} titel={t.rd.netz.whitepaper} />
+        <Zeile href={COMMUNITY.website} hoch={60} titel={t.rd.netz.website} text={t.community.websiteText} />
+      </div>
+
+      <ListenTitel className="mt-7">{t.entdecken.verstehen}</ListenTitel>
       <ThemenRaster onOeffnen={slug => setAnsicht({ art: 'artikel', slug })} />
 
-      <GroupTitle>{t.entdecken.faq}</GroupTitle>
-      <Panel className="rise rise-2 !p-0">
-        <ul className="divide-y divide-line">
-          {FAQ.map((f, i) => (
-            <li key={i}>
-              <button onClick={() => setAnsicht({ art: 'faq', i })}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3.5
-                                 text-left text-[14px] font-bold active:bg-raised">
-                {f.frage} <span className="text-[18px] text-faint">›</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Panel>
+      <ListenTitel className="mt-7">{t.entdecken.faq}</ListenTitel>
+      <div className="rise rise-2">
+        {FAQ.map((f, i) => (
+          <Zeile key={i} onClick={() => setAnsicht({ art: 'faq', i })} hoch={56} titel={f.frage} />
+        ))}
+      </div>
 
-      <GroupTitle>{t.entdecken.neuigkeiten}</GroupTitle>
-      <Panel className="rise rise-3 !p-0">
-        <ul className="divide-y divide-line">
-          {news.map((n, k) => (
-            <li key={k} className="flex gap-3 px-4 py-3.5">
-              <span className="tnum w-16 shrink-0 pt-0.5 text-[11px] font-bold text-faint">{datumKurz(n.datum)}</span>
-              <span>
-                <span className="block text-[14px] font-extrabold">{n.titel}</span>
-                <p className="mt-1 text-[12.5px] font-medium leading-relaxed text-dim">{n.text}</p>
-                {n.link && <a href={n.link} target="_blank" rel="noreferrer"
-                              className="mt-1 inline-block text-[12.5px] font-bold text-work">{t.entdecken.mehrLink}</a>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Panel>
+      <ListenTitel className="mt-7">{t.entdecken.neuigkeiten}</ListenTitel>
+      <ul className="rise rise-3">
+        {news.map((n, k) => (
+          <li key={k} className="border-b border-line py-3.5">
+            <span className="tnum font-mono text-[12.5px] text-dim">{datumKurz(n.datum)}</span>
+            <span className="mt-1 block text-[16px] font-medium leading-[1.3]">{n.titel}</span>
+            <p className="mt-1 text-[14.5px] leading-[1.45] text-lese">{n.text}</p>
+            {n.link && <a href={n.link} target="_blank" rel="noreferrer"
+                          className="mt-0.5 inline-flex min-h-11 items-center text-[14.5px] font-medium text-text underline decoration-text/45 underline-offset-[.24em]">{t.entdecken.mehrLink}</a>}
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-5">
         <Notice>{t.entdecken.hinweis}</Notice>
@@ -179,86 +187,57 @@ export default function EntdeckenTab({ summary, decimals, symbol, onEinstellunge
   );
 }
 
-/** Die sechs Themen als Kacheln. Auch vor der Wallet-Erstellung nutzbar. */
+/** Die Themen als Zeilen: Titel und ein Satz dazu. Auch vor der Wallet-Erstellung nutzbar. */
 export function ThemenRaster({ onOeffnen }: { onOeffnen: (slug: string) => void }) {
   const { sprache, locale } = useT();
   const { ARTIKEL } = inhalte(sprache, locale);
   return (
-    <div className="rise rise-1 grid grid-cols-2 gap-2.5">
+    <div className="rise rise-1">
       {ARTIKEL.map(a => (
-        <button key={a.slug} onClick={() => onOeffnen(a.slug)}
-                className="flex flex-col gap-2.5 rounded-[18px] border border-line bg-surface
-                           p-4 text-left active:bg-raised">
-          <span className={`flex h-10 w-10 items-center justify-center rounded-[12px] ${FARBE[a.farbe]}`}>
-            {Icon[a.icon]}
-          </span>
-          <span className="text-[14px] font-extrabold leading-[1.3]">{a.titel}</span>
-          <span className="text-[12px] font-semibold leading-[1.45] text-dim">{a.teaser}</span>
-        </button>
+        <Zeile key={a.slug} onClick={() => onOeffnen(a.slug)} hoch={64} titel={a.titel} text={a.teaser} />
       ))}
     </div>
   );
 }
 
 /**
- * Das Netz oben im Reiter: Hashrate gross, darunter eine Zeile Kennzahlen
- * und der Anteil der bisher geschuerften Menge. Keine Karte, nur Haarlinien.
+ * Das Netz oben im Reiter, als Satz statt als Zahlentafel: welcher Block,
+ * wann gefunden, wie viele Miner und Knoten. Darunter die Kette der letzten
+ * Bloecke und drei Kennzahlen.
  */
-function NetzLive({ summary, decimals }: { summary: Summary | null; decimals: number }) {
-  const { t, zahl } = useT();
+function NetzLive({ summary, decimals, symbol, bloecke }: {
+  summary: Summary | null; decimals: number; symbol: string; bloecke: KettenBlock[];
+}) {
+  const { t, zahl, vorZeit } = useT();
   const gemint = Number(summary?.totalSupply ?? 0) / 10 ** decimals;
   const max = Number(MAX_SUPPLY) / 10 ** DECIMALS;
   const anteil = max > 0 ? gemint / max * 100 : 0;
   const live = summary?.height != null;
-  const [hr, ...einheit] = hashrateText(summary?.hashrate ?? null).split(' ');
+  const hoehe = summary?.height ?? null;
+  // Zeitpunkt des obersten Blocks -- nur, wenn die Liste ihn schon enthaelt.
+  const oberster = hoehe != null ? bloecke.find(b => b.height === hoehe) : undefined;
+  const belohnung = summary?.nextReward != null ? Number(summary.nextReward) / 10 ** decimals : null;
   return (
-    <section className="rise flex flex-col items-center pt-3 text-center">
-      <span className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-[.12em] text-dim">
-        <span className={`h-[7px] w-[7px] rounded-full ${live ? 'atmen bg-proof' : 'bg-faint'}`} />
-        {live ? t.rd.netz.live : t.home.verbinde}{live && ` · #${zahl(summary?.height ?? 0)}`}
-      </span>
-      <p className="tnum mt-4 flex items-baseline gap-2">
-        <span className="text-[56px] font-light leading-none tracking-[-0.045em]">{hr}</span>
-        <span className="font-mono text-[14px] text-dim">{einheit.join(' ')}</span>
+    <section className="rise mt-6">
+      <p className="flex items-center gap-[9px] text-[14px] font-medium text-lese">
+        <span aria-hidden="true" className={`h-[7px] w-[7px] rounded-full ${live ? 'atmen bg-cyan' : 'shadow-[inset_0_0_0_1.5px_rgb(var(--lese))]'}`} />
+        {t.rd.netz.titel} · {live ? t.rd.netz.live : t.home.verbinde}
       </p>
-      <span className="label mt-2">{t.rd.netz.hashrate}</span>
-
-      <div className="mt-7 grid w-full grid-cols-3 border-y border-line">
-        <Wert zahl={typeof summary?.knoten === 'number' ? zahl(summary.knoten) : '—'} name={t.entdeckenNeu.knoten} />
-        <Wert zahl={summary ? zahl(summary.activeMiners) : '—'} name={t.entdeckenNeu.miner} rand />
-        <Wert zahl={zahl(anteil, { maximumFractionDigits: 1 }) + ' %'} name={t.rd.netz.gemint} rand />
-      </div>
+      <p className="mt-3 text-[31px] font-light leading-[1.13] tracking-[-.034em] [text-wrap:pretty]">
+        {hoehe == null ? '—' : oberster ? t.licht.netzBlock(zahl(hoehe), vorZeit(oberster.timestamp)) : `${t.wallet.blockNr(zahl(hoehe))}.`}{' '}
+        {summary && (
+          <span className="text-lese">
+            {t.licht.netzMiner(summary.activeMiners)}
+            {typeof summary.knoten === 'number' && ` ${t.licht.netzKnoten(summary.knoten)}`}
+          </span>
+        )}
+      </p>
+      <div className="mt-[22px]"><Kette bloecke={bloecke} /></div>
+      <Werte className="mt-[18px]" werte={[
+        { name: t.rd.netz.hashrate, wert: hashrateText(summary?.hashrate ?? null) },
+        { name: t.rd.netz.gemint, wert: `${zahl(anteil, { maximumFractionDigits: 1 })} %` },
+        { name: t.licht.belohnung, wert: belohnung != null ? `${zahl(belohnung, { maximumFractionDigits: 2 })} ${symbol}` : '—' },
+      ]} />
     </section>
-  );
-}
-
-function Wert({ zahl, name, rand }: { zahl: string; name: string; rand?: boolean }) {
-  return (
-    <div className={`flex min-w-0 flex-col items-center gap-1 py-3.5 ${rand ? 'border-l border-line' : ''}`}>
-      <span className="tnum truncate font-mono text-[17px] text-text">{zahl}</span>
-      <span className="truncate text-[11.5px] text-dim">{name}</span>
-    </div>
-  );
-}
-
-function Zeile({ titel, icon, href, onClick, akzent }: {
-  titel: string; icon: React.ReactNode; href?: string; onClick?: () => void; akzent?: boolean;
-}) {
-  const inhalt = (
-    <>
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${akzent ? 'border-work/40 text-cyan' : 'border-line text-text'}`}>
-        <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7"
-             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
-      </span>
-      <span className="flex-1 text-[15px] font-medium">{titel}</span>
-      <span className="text-[16px] text-faint" aria-hidden="true">{href ? '↗' : '›'}</span>
-    </>
-  );
-  const cls = 'flex w-full items-center gap-3.5 py-[13px] text-left active:bg-surface';
-  return (
-    <li className="border-b border-line">
-      {href ? <ExternLink href={href} className={cls}>{inhalt}</ExternLink>
-            : <button type="button" onClick={onClick} className={cls}>{inhalt}</button>}
-    </li>
   );
 }

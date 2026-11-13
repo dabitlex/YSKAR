@@ -60,17 +60,18 @@ export function SubHeader({ titel, onZurueck, rechts }: {
   useZurueckTaste(true, onZurueck);
   const tg = imTelegram();
   return (
-    <div className="mb-5 flex min-h-11 items-center justify-between">
-      {tg ? <span className="text-[20px] font-semibold tracking-[-0.02em]">{titel}</span> : <>
-      <button onClick={onZurueck} aria-label={t.allgemein.zurueck}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-[rgb(140_170_255/.22)] text-text active:scale-95">
-        <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor"
-             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M13 5l-6 6 6 6" />
-        </svg>
-      </button>
-      <span className="text-[17px] font-semibold">{titel}</span></>}
-      <span className="flex min-w-9 justify-end">{rechts}</span>
+    <div className="mb-4 flex min-h-11 items-center gap-1.5">
+      {!tg && (
+        <button onClick={onZurueck} aria-label={t.allgemein.zurueck}
+                className="-ml-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-text active:scale-95">
+          <svg viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor"
+               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M13 5l-6 6 6 6" />
+          </svg>
+        </button>
+      )}
+      <span className="min-w-0 flex-1 truncate text-[16px] font-semibold tracking-[-.01em]">{titel}</span>
+      <span className="flex shrink-0 justify-end">{rechts}</span>
     </div>
   );
 }
@@ -192,14 +193,15 @@ export function Status({ tone, children }: {
 export function Notice({ tone = 'dim', children }: {
   tone?: 'dim' | 'risk' | 'proof' | 'work'; children: React.ReactNode;
 }) {
+  // Kein Kasten: ein Hinweis steht zwischen zwei Haarlinien in seiner Farbe.
   const look = {
-    dim: 'border border-line bg-surface text-lese',
-    risk: 'border border-risk/25 bg-risk/[.07] text-[#FFD9D4]',
-    proof: 'border border-proof/25 bg-proof/[.07] text-proof',
-    work: 'border border-amber/25 bg-amber/[.07] text-[#FFE3B8]',
+    dim: 'border-line text-dim',
+    risk: 'border-risk/40 text-[#FFD9D4]',
+    proof: 'border-proof/35 text-proof',
+    work: 'border-lamp/35 text-[#FFE3B8]',
   }[tone];
   return (
-    <p className={`rounded-[16px] px-4 py-3 text-[13.5px] leading-[1.55] ${look}`}>
+    <p className={`border-y py-3 text-[13.5px] leading-[1.5] ${look}`}>
       {children}
     </p>
   );

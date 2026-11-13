@@ -27,6 +27,20 @@ const tr: typeof licht = {
   leerEmpfangenText: 'Birine adresini veya QR kodunu göster.',
   legendeMining: 'Madencilik',
   legendeMenschen: 'Transferler',
+  netzBlock: (nr: string, vor: string) => `Blok ${nr}, ${vor} bulundu.`,
+  netzMiner: (n: number) => `${n} madenci sıradaki blok üzerinde çalışıyor.`,
+  netzKnoten: (n: number) => `${n} düğüm izliyor.`,
+  ketteAria: 'Son bloklar. Aralık, aradaki süreyi gösterir.',
+  ketteBlock: 'Blok',
+  ketteMitTx: 'transfer içeren',
+  ketteNaechster: 'sıradaki',
+  belohnung: 'Ödül',
+  poolHaelt: (p: string) => `Havuzunun ağ gücündeki payı: %${p}`,
+  poolFindet: (name: string, n: string) => `${name} yaklaşık her ${n} bloktan 1’ini buluyor`,
+  wachsenZeile: 'Bir ışık açık bırak: uygulama, Node Core, düğüm',
+  wachsenTitel: 'Bir ışık açık bırak.',
+  communityTitel: 'Şirket yok.\nSadece insanlar.',
+  detailsText: 'Zorluk, blok süresi, son bloklar',
 };
 
 export default tr;

@@ -323,20 +323,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .licht-auf { animation: licht-auf 1s .6s both; }
 
 /* ---------------------------------------------------- Aktion "Hilf YSKAR beim Wachsen" */
-.aktion-held { border-radius: 24px; border: 1px solid rgb(140 170 255 / .22); padding: 20px; position: relative; overflow: hidden;
-  background: linear-gradient(160deg, #0E1A3A 0%, #0A1122 55%, #070D1C 100%); display: flex; flex-direction: column; gap: 16px; }
-.aktion-held::after { content: ''; position: absolute; right: -60px; top: -80px; width: 220px; height: 220px; border-radius: 50%;
-  background: radial-gradient(circle, rgb(47 123 255 / .22), transparent 65%); pointer-events: none; }
-.aktion-held > * { position: relative; }
-.aktion-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
-.aktion-badge.ok { color: rgb(var(--proof)); background: rgb(var(--proof) / .10); }
-.aktion-badge.lauf { color: rgb(var(--cyan)); background: rgb(var(--cyan) / .06); box-shadow: inset 0 0 0 1px rgb(var(--cyan) / .22); }
-.aktion-badge.nein { color: rgb(var(--dim)); box-shadow: inset 0 0 0 1px rgb(140 170 255 / .22); }
-.aktion-tage { display: flex; gap: 4px; }
-.aktion-tage i { width: 24px; height: 3px; border-radius: 2px; background: rgb(140 170 255 / .22); }
-.aktion-tage i.an { background: rgb(var(--cyan)); }
-.aktion-schritte > div { display: grid; grid-template-columns: 24px 1fr; gap: 12px; padding-bottom: 16px; position: relative; }
-.aktion-schritte > div:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 26px; bottom: 2px; width: 1px; background: rgb(140 170 255 / .22); }
+.aktion-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; white-space: nowrap; flex: none; color: rgb(var(--lese)); }
+.aktion-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.aktion-badge.ok { color: rgb(var(--text)); }
+.aktion-badge.ok::before { background: rgb(var(--proof)); }
+.aktion-badge.lauf::before { box-shadow: inset 0 0 0 1.5px #FFD29A; }
+.aktion-badge.nein { color: rgb(var(--dim)); }
+.aktion-badge.nein::before { box-shadow: inset 0 0 0 1.5px rgb(var(--dim)); }
+.aktion-tage { display: flex; gap: 6px; }
+.aktion-tage i { width: 22px; height: 2px; border-radius: 2px; background: rgb(238 244 255 / .24); }
+.aktion-tage i.an { background: #FFD29A; }
+/* Hinweis, der ueber einem Foto liegt: Glas wie die Leiste unten. */
+.glas { background: rgb(4 10 26 / .62); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: inset 0 0 0 1px rgb(170 198 255 / .17); }
 
 /* ------------------------------------------------ Erstes Licht: das Ufer */
 /*
@@ -406,3 +405,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .betrag small { font-size: .5em; letter-spacing: -.035em; color: rgb(var(--lese)); }
 /* Mining-Einnahmen: der gewaehlte Tag traegt das Band der Kette. */
 .einnahme-an { background: linear-gradient(180deg, #63D8FF, #2F7BFF); }
+
+/* Foto als Buehne am Kopf einer Seite (Community, "Lass ein Licht an"):
+   Hochformat 4:5, etwas nach oben geschoben, unten laeuft es in die Nacht aus. */
+.foto { position: absolute; inset: 0 0 auto 0; height: calc(var(--oben) + var(--ufer-b) * .954); overflow: hidden; pointer-events: none; z-index: -1;
+  background: rgb(var(--sunk)); }
+.foto img { position: absolute; left: 0; top: calc(var(--oben) + var(--ufer-b) * -.267); width: 100%; height: auto; aspect-ratio: 4 / 5; max-width: none; }
+.foto::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgb(2 5 15 / .62) 0%, rgb(2 5 15 / 0) 28%, rgb(2 5 15 / 0) 58%, rgb(var(--ink)) 100%); }
+.foto-flach { height: calc(var(--oben) + var(--ufer-b) * .872); }
+.foto-flach img { top: calc(var(--oben) + var(--ufer-b) * -.303); }
+/* Platzhalter im Seitenfluss: schiebt die Ueberschrift in den Auslauf des Fotos. */
+.foto-platz { height: calc(var(--ufer-b) * .815 - 64px); }
+.foto-platz-flach { height: calc(var(--ufer-b) * .78 - 20px); }
+/* Fortschritt als Haarlinie mit dem Band der Kette und einem Licht an der Spitze. */
+.faden { position: relative; height: 2px; border-radius: 2px; background: rgb(238 244 255 / .18); }
+.faden > i { position: absolute; left: 0; top: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, #1B4FD1, #2F7BFF 55%, #63D8FF); }
+.faden > b { position: absolute; top: -3px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #DDF3FF; box-shadow: 0 0 10px 2px rgb(120 190 255 / .7); }

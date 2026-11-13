@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useT } from '@/i18n';
 import { SubHeader, Button } from '@/components/ui/Primitives';
+import { Licht, Werte, Zeile } from '@/components/ui/Zeilen';
 import { Blatt } from '@/components/ui/Bausteine';
 import { externOeffnen } from '@/components/ui/ExternLink';
 import { COMMUNITY } from '@/lib/community';
@@ -32,13 +33,7 @@ export function botLink(gewinnCode: string): string {
 }
 
 const IC = {
-  wachsen: <path d="M3 17l6-6 4 4 8-8M15 7h6v6" />,
-  leute: <><circle cx="9" cy="8.5" r="3" /><path d="M3.5 19c.8-3.2 2.9-5 5.5-5s4.7 1.8 5.5 5" /><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.5 14.4c1.6.6 2.7 2.2 3 4.6" /></>,
-  blatt: <><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M10 13h6M10 17h6" /></>,
-  link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>,
-  pokal: <><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7" /></>,
   x: <path d="M6 6l12 12M18 6 6 18" />,
-  pfeil: <path d="M9 6l6 6-6 6" />,
 };
 
 function Sym({ d, size = 18, w = 1.6 }: { d: React.ReactNode; size?: number; w?: number }) {
@@ -55,19 +50,19 @@ export function AktionHinweis({ gewinnUsd, onOeffnen, onSchliessen }: {
 }) {
   const { t } = useT();
   return (
-    <div className="relative mb-2 flex items-center gap-3 rounded-[16px] border border-line bg-surface py-2 pl-3.5 pr-1.5">
-      <button type="button" onClick={onOeffnen} className="flex min-h-10 min-w-0 flex-1 items-center gap-3 text-left">
-        <span className="text-cyan"><Sym d={gewinnUsd ? IC.pokal : IC.wachsen} /></span>
+    <div className="glas relative mb-2 flex items-center gap-1 rounded-[22px] py-1 pl-4 pr-1">
+      <button type="button" onClick={onOeffnen} className="flex min-h-11 min-w-0 flex-1 items-center gap-1 text-left">
+        <Licht />
         <span className="flex min-w-0 flex-col">
-          <span className="text-[14px] font-medium">{t.rd.aktion.titel}</span>
-          <span className="truncate text-[12.5px] text-dim">
+          <span className="truncate text-[14.5px] font-medium">{t.rd.aktion.titel}</span>
+          <span className={`truncate text-[13px] ${gewinnUsd ? 'text-lamp' : 'text-lese'}`}>
             {gewinnUsd ? t.rd.aktion.hinweisGewinn(gewinnUsd) : t.rd.aktion.hinweis}
           </span>
         </span>
       </button>
       <button type="button" onClick={() => { haptik('tipp'); onSchliessen(); }} aria-label={t.rd.aktion.schliessen}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-dim active:bg-raised">
-        <Sym d={IC.x} size={16} w={2} />
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lese active:scale-95">
+        <Sym d={IC.x} size={16} w={1.8} />
       </button>
     </div>
   );
@@ -78,17 +73,8 @@ export function AktionHinweis({ gewinnUsd, onOeffnen, onSchliessen }: {
 export function AktionZeile({ onOeffnen }: { onOeffnen: () => void }) {
   const { t } = useT();
   return (
-    <li className="border-b border-line">
-      <button type="button" onClick={onOeffnen} className="flex w-full items-center gap-3.5 py-[14px] text-left active:bg-surface">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-work/40 text-cyan">
-          <Sym d={IC.wachsen} />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[15px] font-medium">{t.rd.aktion.titel}</span>
-          <span className="truncate text-[12.5px] text-dim">{t.rd.aktion.hinweis}</span>
-        </span>
-        <span className="text-faint"><Sym d={IC.pfeil} size={16} w={2} /></span>
-      </button>
+    <li>
+      <Zeile onClick={onOeffnen} vor={<Licht />} titel={t.rd.aktion.titel} text={t.rd.aktion.hinweis} />
     </li>
   );
 }
@@ -105,9 +91,9 @@ export function useEingeladen(): boolean {
 export function AktionEingeladen() {
   const { t } = useT();
   return (
-    <div className="relative flex items-center gap-3 rounded-[16px] border border-line bg-surface px-3.5 py-3">
-      <span className="shrink-0 text-cyan"><Sym d={IC.wachsen} /></span>
-      <span className="text-[13px] leading-[1.45] text-dim">
+    <div className="glas relative flex items-start gap-1 rounded-[22px] px-4 py-3">
+      <span className="pt-[7px]"><Licht /></span>
+      <span className="text-[13.5px] leading-[1.45] text-lese">
         <b className="font-medium text-text">{t.rd.aktion.eingeladenT}</b> {t.rd.aktion.eingeladen}
       </span>
     </div>
@@ -162,7 +148,7 @@ export default function AktionSeite({ code, onZurueck, ergebnisZuerst }: {
 
 function Laden({ fehler }: { fehler: boolean }) {
   const { t } = useT();
-  return <p className="py-6 text-center text-[13.5px] text-dim">{fehler ? t.rd.aktion.fehler : t.rd.aktion.laden}</p>;
+  return <p className="py-6 text-[14.5px] text-dim">{fehler ? t.rd.aktion.fehler : t.rd.aktion.laden}</p>;
 }
 
 function Uebersicht({ stand, fehler, code, onTeilen, onEmpfehlungen, onRegeln, onErgebnis }: {
@@ -180,84 +166,61 @@ function Uebersicht({ stand, fehler, code, onTeilen, onEmpfehlungen, onRegeln, o
   return (
     <div className="flex flex-col gap-[18px]">
       {stand?.gewinn && (
-        <button type="button" onClick={onErgebnis}
-                className="flex items-center gap-3 rounded-[16px] border border-line bg-surface px-3.5 py-3 text-left">
-          <span className="text-cyan"><Sym d={IC.pokal} /></span>
-          <span className="flex-1 text-[14px] font-medium">{t.rd.aktion.hinweisGewinn(stand.gewinn.betrag_usd)}</span>
-          <span className="text-faint"><Sym d={IC.pfeil} size={16} w={2} /></span>
-        </button>
+        <Zeile erste onClick={onErgebnis} vor={<Licht />} ton="text-lamp" titel={t.rd.aktion.hinweisGewinn(stand.gewinn.betrag_usd)} />
       )}
 
-      <div className="aktion-held">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[12.5px] text-dim">{t.rd.aktion.topf}</span>
-          <span className={`aktion-badge ${aktiv ? 'lauf' : 'nein'}`}>{aktiv ? t.rd.aktion.aktiv : t.rd.aktion.beendet}</span>
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="label">{t.rd.aktion.topf}</span>
+          <span className="flex shrink-0 items-center gap-[7px] text-[13.5px]">
+            <span aria-hidden="true" className={`h-[7px] w-[7px] rounded-full ${aktiv ? 'bg-proof' : 'shadow-[inset_0_0_0_1.5px_rgb(var(--lese))]'}`} />
+            {aktiv ? t.rd.aktion.aktiv : t.rd.aktion.beendet}
+          </span>
         </div>
-        <span className="zahl-gross text-[52px]">
-          {zahl(TOPF_USD, { useGrouping: false })}<span className="ml-2 text-[18px] font-normal tracking-normal text-dim">USD</span>
-        </span>
-        <div className="flex flex-col gap-2">
-          <div className="h-1 overflow-hidden rounded-sm bg-[rgb(140_170_255/.22)]">
-            <i className="block h-full rounded-sm" style={{ width: `${(aktiv ? anteil : 1) * 100}%`,
-              background: 'linear-gradient(90deg,#2F7BFF,#63D8FF)' }} />
-          </div>
-          <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
-            <span className="text-dim">{t.rd.aktion.ende}</span>
-            {aktiv && <span className="text-lese">{t.rd.aktion.tageRest(rest)}</span>}
-          </div>
+        <p className="mt-3 flex items-baseline gap-3">
+          <span className="betrag text-[clamp(84px,27vw,104px)] !tracking-[-.06em]">{zahl(TOPF_USD, { useGrouping: false })}</span>
+          <span className="font-mono text-[16px] text-lese">USD</span>
+        </p>
+        <p className="mt-3.5 font-mono text-[12.5px] leading-[1.5] text-lese">
+          {t.rd.aktion.ende}{aktiv && ` · ${t.rd.aktion.tageRest(rest)}`}
+        </p>
+        <div className="faden mt-3.5" aria-hidden="true">
+          <i style={{ width: `${(aktiv ? anteil : 1) * 100}%` }} /><b style={{ left: `${(aktiv ? anteil : 1) * 100}%` }} />
         </div>
       </div>
 
-      <p className="text-[14.5px] leading-[1.55] text-dim">{t.rd.aktion.text}</p>
+      <p className="text-[14.5px] leading-[1.45] text-lese">{t.rd.aktion.text}</p>
 
-      <div className="flex flex-col gap-3">
-        <span className="text-[12.5px] text-dim">{t.rd.aktion.deinStand}</span>
+      <div>
+        <span className="label">{t.rd.aktion.deinStand}</span>
         {stand ? (
-          <div className="grid grid-cols-3">
-            {[[stand.lose, t.rd.aktion.lose], [bestaetigt, t.rd.aktion.bestaetigt], [offen, t.rd.aktion.pruefung]].map(([w, n], i) => (
-              <div key={String(n)} className={`flex flex-col gap-1 pr-2.5 ${i ? 'border-l border-line pl-3.5' : ''}`}>
-                <b className="tnum text-[22px] font-normal tracking-[-0.03em]">{zahl(Number(w))}</b>
-                <span className="text-[12.5px] text-dim">{n}</span>
-              </div>
-            ))}
-          </div>
+          <Werte className="mt-2" werte={[
+            { name: t.rd.aktion.lose, wert: zahl(stand.lose), ton: 'text-lamp' },
+            { name: t.rd.aktion.bestaetigt, wert: zahl(bestaetigt) },
+            { name: t.rd.aktion.pruefung, wert: zahl(offen) },
+          ]} />
         ) : <Laden fehler={fehler} />}
       </div>
 
       {aktiv && code && (
-        <div className="flex items-center gap-2.5 rounded-full border border-[rgb(140_170_255/.22)] py-1.5 pl-4 pr-1.5">
-          <span className="shrink-0 text-dim"><Sym d={IC.link} size={16} /></span>
-          <span className="min-w-0 flex-1 truncate text-[13.5px] text-lese">t.me/YSKAR_bot · ref_{code}</span>
+        <div>
           <button type="button" onClick={() => { haptik('tipp'); onTeilen(); }}
-                  className="h-10 shrink-0 rounded-full bg-lamp px-[18px] text-[14px] font-semibold text-lamp-ink active:scale-95">
-            {t.rd.aktion.teilen}
+                  className="flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-lamp px-6 text-[16px] font-semibold text-lamp-ink active:scale-[.985]">
+            <svg viewBox="0 0 22 22" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"
+                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 3v11M11 3 7 7M11 3l4 4M4 12v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></svg>
+            {t.rd.aktion.teilenTitel}
           </button>
+          <p className="mt-2.5 truncate text-center font-mono text-[12.5px] text-dim">t.me/YSKAR_bot · ref_{code}</p>
         </div>
       )}
 
-      <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
-        <Eintrag icon={IC.leute} titel={t.rd.aktion.empfehlungen}
-                 text={t.rd.aktion.empfehlungenUnter(bestaetigt, offen)} onClick={onEmpfehlungen} />
-        <Eintrag icon={IC.blatt} titel={t.rd.aktion.preise} text={t.rd.aktion.preiseUnter} onClick={onRegeln} />
-      </ul>
+      <div>
+        <Zeile erste onClick={onEmpfehlungen} hoch={60} titel={t.rd.aktion.empfehlungen}
+               text={t.rd.aktion.empfehlungenUnter(bestaetigt, offen)} />
+        <Zeile onClick={onRegeln} hoch={60} titel={t.rd.aktion.preise} text={t.rd.aktion.preiseUnter} />
+      </div>
+      <p className="text-[13px] leading-[1.45] text-dim">{t.rd.aktion.regelHinweis}</p>
     </div>
-  );
-}
-
-function Eintrag({ icon, titel, text, onClick }: {
-  icon: React.ReactNode; titel: string; text: string; onClick: () => void;
-}) {
-  return (
-    <li className="border-b border-line last:border-b-0">
-      <button type="button" onClick={onClick} className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left active:bg-raised">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-raised text-text"><Sym d={icon} /></span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[15px] font-medium">{titel}</span>
-          <span className="truncate text-[12.5px] text-dim">{text}</span>
-        </span>
-        <span className="text-faint"><Sym d={IC.pfeil} size={16} w={2} /></span>
-      </button>
-    </li>
   );
 }
 
@@ -270,18 +233,18 @@ function Empfehlungen({ stand, fehler }: { stand: AktionStand | null; fehler: bo
   const datum = (iso: string) => new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[14px] leading-[1.55] text-dim">{t.rd.aktion.empfText}</p>
+      <p className="text-[14.5px] leading-[1.45] text-lese">{t.rd.aktion.empfText}</p>
       {!stand ? <Laden fehler={fehler} /> : stand.empfehlungen.length === 0 ? (
-        <p className="rounded-[18px] border border-line bg-surface px-4 py-5 text-center text-[13.5px] text-dim">{t.rd.aktion.keine}</p>
+        <p className="border-y border-line py-6 text-[14.5px] leading-[1.45] text-lese">{t.rd.aktion.keine}</p>
       ) : (
-        <ul className="overflow-hidden rounded-[18px] border border-line bg-surface">
+        <ul className="border-t border-line">
           {stand.empfehlungen.map(e => {
             const rest = Math.max(0, Math.ceil((e.frist - Date.now()) / TAG));
             return (
-              <li key={e.adresse} className="flex items-start justify-between gap-3 border-b border-line px-4 py-3.5 last:border-b-0">
+              <li key={e.adresse} className="flex items-start justify-between gap-3 border-b border-line py-3.5">
                 <div className="flex min-w-0 flex-col gap-1">
-                  <span className="font-mono text-[13px]">{kurzAdresse(e.adresse)}</span>
-                  <span className="text-[12.5px] text-dim">
+                  <span className="font-mono text-[14.5px]">{kurzAdresse(e.adresse)}</span>
+                  <span className="text-[13.5px] leading-[1.4] text-dim">
                     {e.status === 'ungueltig'
                       ? (t.rd.aktion.grund[e.grund ?? ''] ?? t.rd.aktion.stUngueltig)
                       : e.status === 'offen' ? `${t.rd.aktion.angemeldet(datum(e.angemeldet))} · ${t.rd.aktion.tageUebrig(rest)}`
@@ -303,7 +266,7 @@ function Empfehlungen({ stand, fehler }: { stand: AktionStand | null; fehler: bo
           })}
         </ul>
       )}
-      <p className="text-[12.5px] leading-[1.5] text-dim">{t.rd.aktion.regelHinweis}</p>
+      <p className="text-[13px] leading-[1.45] text-dim">{t.rd.aktion.regelHinweis}</p>
     </div>
   );
 }
@@ -320,30 +283,30 @@ function Regeln() {
   return (
     <div className="flex flex-col gap-3.5">
       <div className="flex flex-col gap-1.5">
-        <span className="text-[12.5px] text-dim">{t.rd.aktion.preisStruktur}</span>
-        <table className="w-full border-collapse text-[14px]">
+        <span className="label">{t.rd.aktion.preisStruktur}</span>
+        <table className="mt-1 w-full border-collapse border-t border-line text-[15.5px]">
           <tbody>
             {zeilen.map(([n, w, haupt]) => (
               <tr key={n} className="border-b border-line">
-                <td className={`py-2 ${haupt ? 'text-text' : 'text-lese'}`}>{n}</td>
-                <td className="tnum py-2 text-right">{w}</td>
+                <td className={`py-3 ${haupt ? 'font-medium text-text' : 'text-lese'}`}>{n}</td>
+                <td className="tnum py-3 text-right font-mono text-[15px]">{w}</td>
               </tr>
             ))}
             <tr>
-              <td className="py-2 text-[13px] text-dim">{t.rd.aktion.summe}</td>
-              <td className="tnum py-2 text-right text-[13px] text-dim">{usd(TOPF_USD)}</td>
+              <td className="py-3 text-[13.5px] text-dim">{t.rd.aktion.summe}</td>
+              <td className="tnum py-3 text-right font-mono text-[13.5px] text-dim">{usd(TOPF_USD)}</td>
             </tr>
           </tbody>
         </table>
       </div>
       {([[t.rd.aktion.rTeilnahmeT, t.rd.aktion.rTeilnahme], [t.rd.aktion.rZeitT, t.rd.aktion.rZeit],
         [t.rd.aktion.rZiehungT, t.rd.aktion.rZiehung], [t.rd.aktion.rAuszahlungT, t.rd.aktion.rAuszahlung]] as const).map(([k, v]) => (
-        <div key={k} className="flex flex-col gap-[3px] border-b border-line py-2.5">
-          <b className="text-[14px] font-medium">{k}</b>
-          <p className="text-[13px] leading-[1.5] text-dim">{v}</p>
+        <div key={k} className="flex flex-col gap-1 border-b border-line pb-3.5">
+          <b className="text-[16px] font-medium leading-[1.3]">{k}</b>
+          <p className="text-[14.5px] leading-[1.45] text-lese">{v}</p>
         </div>
       ))}
-      <p className="text-[12.5px] leading-[1.5] text-dim">{t.rd.aktion.regelHinweis}</p>
+      <p className="text-[13px] leading-[1.45] text-dim">{t.rd.aktion.regelHinweis}</p>
     </div>
   );
 }
@@ -358,9 +321,9 @@ function Teilen({ code }: { code: string }) {
   };
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[14px] leading-[1.55] text-dim">{t.rd.aktion.teilenText}</p>
-      <div className="flex items-center justify-between gap-3 rounded-[16px] border border-line bg-surface px-4 py-3.5">
-        <span className="min-w-0 truncate font-mono text-[12.5px]">{link.replace('https://', '')}</span>
+      <p className="text-[14.5px] leading-[1.45] text-lese">{t.rd.aktion.teilenText}</p>
+      <div className="terminal">
+        <span className="block truncate font-mono text-[13px] text-lese">{link.replace('https://', '')}</span>
       </div>
       <div className="flex flex-col gap-2.5">
         <Button onClick={() => { haptik('tipp'); teilen(link, t.rd.aktion.teilenText); }}>{t.rd.aktion.teilen}</Button>
@@ -374,42 +337,42 @@ function Ergebnis({ stand, fehler }: { stand: AktionStand | null; fehler: boolea
   const { t, zahl } = useT();
   if (!stand) return <Laden fehler={fehler} />;
   const g = stand.gewinn;
-  if (!g) return <p className="py-6 text-center text-[13.5px] text-dim">{t.rd.aktion.fehler}</p>;
+  if (!g) return <p className="py-6 text-[14.5px] text-dim">{t.rd.aktion.fehler}</p>;
   const schritte: [string, string][] = [[t.rd.aktion.s1t, t.rd.aktion.s1], [t.rd.aktion.s2t, t.rd.aktion.s2], [t.rd.aktion.s3t, t.rd.aktion.s3]];
   return (
     <div className="flex flex-col gap-[18px]">
-      <div className="aktion-held">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[12.5px] text-dim">{t.rd.aktion.platz(g.platz)}</span>
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="label">{t.rd.aktion.platz(g.platz)}</span>
           <span className="aktion-badge ok">{t.rd.aktion.gewinner}</span>
         </div>
-        <span className="zahl-gross text-[46px]">
-          {zahl(g.betrag_usd, { useGrouping: false })}<span className="ml-2 text-[18px] font-normal tracking-normal text-dim">USD</span>
-        </span>
-        <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
+        <p className="mt-3 flex items-baseline gap-3">
+          <span className="betrag text-[clamp(72px,23vw,92px)] text-lamp">{zahl(g.betrag_usd, { useGrouping: false })}</span>
+          <span className="font-mono text-[16px] text-lese">USD</span>
+        </p>
+        <p className="mt-3.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[12.5px]">
           <span className="font-mono text-lese">{t.rd.aktion.code(g.code)}</span>
           <span className="text-dim">{t.rd.aktion.abholenBis}</span>
-        </div>
+        </p>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <span className="text-[12.5px] text-dim">{t.rd.aktion.wieAbholen}</span>
-        <div className="aktion-schritte flex flex-col">
+      <div>
+        <span className="label">{t.rd.aktion.wieAbholen}</span>
+        <ol className="mt-2 border-t border-line">
           {schritte.map(([k, v], i) => (
-            <div key={k}>
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-medium ${
-                i === 0 ? 'bg-text text-ink' : 'border border-[rgb(140_170_255/.22)] text-dim'}`}>{i + 1}</span>
-              <span>
-                <b className="block text-[14.5px] font-medium">{k}</b>
-                <small className="text-[13px] leading-[1.45] text-dim">{v}</small>
+            <li key={k} className="flex items-start gap-3.5 border-b border-line py-3.5">
+              <span className="tnum w-[26px] shrink-0 pt-[3px] font-mono text-[13px] text-cyan">{String(i + 1).padStart(2, '0')}</span>
+              <span className="flex flex-col gap-0.5">
+                <b className="text-[16px] font-medium leading-[1.3]">{k}</b>
+                <span className="text-[13.5px] leading-[1.4] text-dim">{v}</span>
               </span>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
 
       <Button onClick={() => { haptik('tipp'); externOeffnen(botLink(g.code)); }}>{t.rd.aktion.imBot}</Button>
-      <p className="text-[12.5px] leading-[1.5] text-dim">{t.rd.aktion.sicher}</p>
+      <p className="text-[13px] leading-[1.45] text-dim">{t.rd.aktion.sicher}</p>
     </div>
   );
 }

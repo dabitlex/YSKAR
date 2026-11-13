@@ -27,6 +27,20 @@ const vi: typeof licht = {
   leerEmpfangenText: 'Cho ai đó xem địa chỉ hoặc mã QR của bạn.',
   legendeMining: 'Đào',
   legendeMenschen: 'Chuyển khoản',
+  netzBlock: (nr: string, vor: string) => `Khối ${nr}, được tìm thấy ${vor}.`,
+  netzMiner: (n: number) => `${n} thợ đào đang làm khối tiếp theo.`,
+  netzKnoten: (n: number) => `${n} nút đang theo dõi.`,
+  ketteAria: 'Các khối gần nhất. Khoảng cách cho thấy thời gian giữa chúng.',
+  ketteBlock: 'Khối',
+  ketteMitTx: 'có giao dịch chuyển',
+  ketteNaechster: 'khối tiếp theo',
+  belohnung: 'Phần thưởng',
+  poolHaelt: (p: string) => `Pool của bạn chiếm ${p} % công suất mạng`,
+  poolFindet: (name: string, n: string) => `${name} tìm được khoảng 1 trong ${n} khối`,
+  wachsenZeile: 'Hãy để một ngọn đèn sáng: ứng dụng, Node Core, nút',
+  wachsenTitel: 'Hãy để một ngọn đèn sáng.',
+  communityTitel: 'Không phải công ty.\nChỉ có con người.',
+  detailsText: 'Độ khó, thời gian khối, các khối gần nhất',
 };
 
 export default vi;
