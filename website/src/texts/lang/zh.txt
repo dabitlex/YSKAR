@@ -2537,8 +2537,8 @@ wallet.dl
   en: Download the APK
   zh: 下载 APK
 wallet.meta
-  en: Version {{WALLET}}, for Android 7 or newer. Open source under the MIT License. English and German.
-  zh: 版本 {{WALLET}}，适用于 Android 7 或更高版本。以 MIT 许可证开源。界面语言为英语和德语。
+  en: Version {{WALLET}}, for Android 8 or newer. Open source under the MIT License. English and German.
+  zh: 版本 {{WALLET}}，适用于 Android 8 或更高版本。以 MIT 许可证开源。界面语言为英语和德语。
 wallet.feat.p
   en: No ads, no tracking and no account with anyone. The app talks to the YSKAR network and to nothing else.
   zh: 没有广告，没有追踪，也不需要在任何地方注册账户。这个应用只与 YSKAR 网络通信，不与其他任何对象通信。
@@ -2570,14 +2570,14 @@ wallet.f6.h
   en: Locked down
   zh: 层层防护
 wallet.f6.p
-  en: PIN and fingerprint, automatic lock after a time you choose, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
-  zh: PIN 码和指纹，在你选定的时间后自动锁定，显示 12 个助记词时禁止截屏，并使用应用自带的键盘，因此你的输入不会经过手机的键盘应用。
+  en: PIN and fingerprint, a lock as soon as you leave the app, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
+  zh: PIN 码和指纹，一离开应用即自动锁定，显示 12 个助记词时禁止截屏，并使用应用自带的键盘，因此你的输入不会经过手机的键盘应用。
 wallet.inst.h
   en: Install in four steps
   zh: 四步完成安装
 wallet.inst.p
-  en: The wallet is distributed as an APK through its GitHub releases. Updates install over the previous version and your wallet stays on the device.
-  zh: 钱包以 APK 的形式通过 GitHub 发布页分发。更新会覆盖安装在旧版本之上，你的钱包仍保留在设备上。
+  en: The wallet is distributed as an APK through its GitHub releases. Version 3 is a new app with a new signing key: it does not install over versions 1 and 2 but next to them. Bring your wallet over with its 12 words, and remove the old app only after that.
+  zh: 钱包以 APK 的形式通过 GitHub 发布页分发。版本 3 是一个使用新签名密钥的新应用：它不会覆盖安装在版本 1 和 2 之上，而是与它们并存。请用 12 个助记词把钱包迁移过来，之后再删除旧应用。
 wallet.inst.1
   en: Open the <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>latest release</a> on your Android phone and download the file <code>yskar-wallet-…apk</code>.
   zh: 在你的安卓手机上打开<a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>最新版本</a>，下载文件 <code>yskar-wallet-…apk</code>。
@@ -2585,8 +2585,8 @@ wallet.inst.2
   en: Open the file. Allow installing from this source when Android asks.
   zh: 打开文件。当 Android 询问时，允许从此来源安装。
 wallet.inst.3
-  en: Tap “Create wallet” and write the 12 words down on paper, in order.
-  zh: 点按“Create wallet”，并把 12 个助记词按顺序写在纸上。
+  en: Tap “Create new wallet” and write the 12 words down on paper, in order.
+  zh: 点按“Create new wallet”，并把 12 个助记词按顺序写在纸上。
 wallet.inst.4
   en: Choose a PIN. To move an existing wallet over, enter its 12 words instead.
   zh: 设置一个 PIN 码。如果要迁移已有的钱包，请改为输入它的 12 个助记词。
@@ -2594,8 +2594,8 @@ wallet.verify.h
   en: Check that the file is genuine
   zh: 核实文件是否为正版
 wallet.verify.p
-  en: Every release is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
-  zh: 每个版本都用同一个密钥签名。这是其证书的 SHA-256 指纹。如果你下载的文件指纹不同，请不要安装。
+  en: Every release since version 3 is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
+  zh: 从版本 3 起，每个版本都用同一个密钥签名。这是其证书的 SHA-256 指纹。如果你下载的文件指纹不同，请不要安装。
 wallet.oth.h
   en: Other places for your YSR
   zh: 存放 YSR 的其他地方
@@ -2639,8 +2639,8 @@ wallet.st.2.h
   en: Ready for revision 6
   zh: 已为修订版 6 做好准备
 wallet.st.2.p
-  en: Version 2.0.0 knows the new transfer format and switches to it at block 10,000. An older version still receives YSR but cannot send after that block.
-  zh: 版本 2.0.0 支持新的转账格式，并在区块 10,000 切换到该格式。更早的版本仍然可以接收 YSR，但在那个区块之后无法发送。
+  en: Version {{WALLET}} knows the new transfer format and switches to it at block 10,000, as version 2.0.0 does. Version 1 still receives YSR but cannot send after that block.
+  zh: 版本 {{WALLET}} 与版本 2.0.0 一样支持新的转账格式，并在区块 10,000 切换到该格式。版本 1 仍然可以接收 YSR，但在那个区块之后无法发送。
 wallet.st.3.h
   en: Planned: an app store
   zh: 计划：上架应用商店

@@ -2537,8 +2537,8 @@ wallet.dl
   en: Download the APK
   es: Descarga la APK
 wallet.meta
-  en: Version {{WALLET}}, for Android 7 or newer. Open source under the MIT License. English and German.
-  es: Versión {{WALLET}}, para Android 7 o posterior. Código abierto bajo la licencia MIT. En inglés y alemán.
+  en: Version {{WALLET}}, for Android 8 or newer. Open source under the MIT License. English and German.
+  es: Versión {{WALLET}}, para Android 8 o posterior. Código abierto bajo la licencia MIT. En inglés y alemán.
 wallet.feat.p
   en: No ads, no tracking and no account with anyone. The app talks to the YSKAR network and to nothing else.
   es: Sin anuncios, sin rastreo y sin cuenta con nadie. La app habla con la red YSKAR y con nada más.
@@ -2570,14 +2570,14 @@ wallet.f6.h
   en: Locked down
   es: Bien protegida
 wallet.f6.p
-  en: PIN and fingerprint, automatic lock after a time you choose, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
-  es: PIN y huella dactilar, bloqueo automático tras el tiempo que elijas, sin capturas de pantalla mientras se muestran las 12 palabras, y un teclado propio de la app, para que nada de lo que escribes pase por la app de teclado de tu teléfono.
+  en: PIN and fingerprint, a lock as soon as you leave the app, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
+  es: PIN y huella dactilar, bloqueo en cuanto sales de la app, sin capturas de pantalla mientras se muestran las 12 palabras, y un teclado propio de la app, para que nada de lo que escribes pase por la app de teclado de tu teléfono.
 wallet.inst.h
   en: Install in four steps
   es: Instalar en cuatro pasos
 wallet.inst.p
-  en: The wallet is distributed as an APK through its GitHub releases. Updates install over the previous version and your wallet stays on the device.
-  es: La wallet se distribuye como APK a través de sus versiones en GitHub. Las actualizaciones se instalan sobre la versión anterior y tu wallet permanece en el dispositivo.
+  en: The wallet is distributed as an APK through its GitHub releases. Version 3 is a new app with a new signing key: it does not install over versions 1 and 2 but next to them. Bring your wallet over with its 12 words, and remove the old app only after that.
+  es: La wallet se distribuye como APK a través de sus versiones en GitHub. La versión 3 es una app nueva con una clave de firma nueva: no se instala sobre las versiones 1 y 2, sino junto a ellas. Trae tu wallet con sus 12 palabras y elimina la app antigua solo después.
 wallet.inst.1
   en: Open the <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>latest release</a> on your Android phone and download the file <code>yskar-wallet-…apk</code>.
   es: Abre la <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>última versión</a> en tu teléfono Android y descarga el archivo <code>yskar-wallet-…apk</code>.
@@ -2585,8 +2585,8 @@ wallet.inst.2
   en: Open the file. Allow installing from this source when Android asks.
   es: Abre el archivo. Permite instalar desde este origen cuando Android lo pregunte.
 wallet.inst.3
-  en: Tap “Create wallet” and write the 12 words down on paper, in order.
-  es: Toca «Create wallet» y escribe las 12 palabras en papel, en orden.
+  en: Tap “Create new wallet” and write the 12 words down on paper, in order.
+  es: Toca «Create new wallet» y escribe las 12 palabras en papel, en orden.
 wallet.inst.4
   en: Choose a PIN. To move an existing wallet over, enter its 12 words instead.
   es: Elige un PIN. Para traer una wallet que ya tienes, introduce sus 12 palabras en su lugar.
@@ -2594,8 +2594,8 @@ wallet.verify.h
   en: Check that the file is genuine
   es: Comprueba que el archivo es auténtico
 wallet.verify.p
-  en: Every release is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
-  es: Cada versión está firmada con la misma clave. Esta es la huella SHA-256 de su certificado. Si la huella de tu descarga es distinta, no instales el archivo.
+  en: Every release since version 3 is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
+  es: Desde la versión 3, cada versión está firmada con la misma clave. Esta es la huella SHA-256 de su certificado. Si la huella de tu descarga es distinta, no instales el archivo.
 wallet.oth.h
   en: Other places for your YSR
   es: Otros lugares para tus YSR
@@ -2639,8 +2639,8 @@ wallet.st.2.h
   en: Ready for revision 6
   es: Lista para la revisión 6
 wallet.st.2.p
-  en: Version 2.0.0 knows the new transfer format and switches to it at block 10,000. An older version still receives YSR but cannot send after that block.
-  es: La versión 2.0.0 conoce el nuevo formato de transferencia y cambia a él en el bloque 10.000. Una versión anterior sigue recibiendo YSR, pero no puede enviar después de ese bloque.
+  en: Version {{WALLET}} knows the new transfer format and switches to it at block 10,000, as version 2.0.0 does. Version 1 still receives YSR but cannot send after that block.
+  es: La versión {{WALLET}} conoce el nuevo formato de transferencia y cambia a él en el bloque 10.000, igual que la versión 2.0.0. La versión 1 sigue recibiendo YSR, pero no puede enviar después de ese bloque.
 wallet.st.3.h
   en: Planned: an app store
   es: Previsto: una tienda de apps

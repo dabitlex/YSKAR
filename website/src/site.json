@@ -18,7 +18,7 @@
   "versions": {
     "NODE_CORE": "1.1.0",
     "APP": "1.1.1",
-    "WALLET": "2.0.0"
+    "WALLET": "3.0.0"
   },
   "pages": [
     {

@@ -2537,8 +2537,8 @@ wallet.dl
   en: Download the APK
   tr: APK’yı indir
 wallet.meta
-  en: Version {{WALLET}}, for Android 7 or newer. Open source under the MIT License. English and German.
-  tr: Sürüm {{WALLET}}, Android 7 ve üzeri için. MIT Lisansı altında açık kaynak. İngilizce ve Almanca.
+  en: Version {{WALLET}}, for Android 8 or newer. Open source under the MIT License. English and German.
+  tr: Sürüm {{WALLET}}, Android 8 ve üzeri için. MIT Lisansı altında açık kaynak. İngilizce ve Almanca.
 wallet.feat.p
   en: No ads, no tracking and no account with anyone. The app talks to the YSKAR network and to nothing else.
   tr: Reklam yok, izleme yok, kimsede hesap yok. Uygulama YSKAR ağıyla konuşur, başka hiçbir şeyle değil.
@@ -2570,14 +2570,14 @@ wallet.f6.h
   en: Locked down
   tr: Sıkı korunur
 wallet.f6.p
-  en: PIN and fingerprint, automatic lock after a time you choose, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
-  tr: PIN ve parmak izi, seçtiğin süre sonunda otomatik kilit, 12 kelime ekrandayken ekran görüntüsü alınamaması ve uygulamanın kendi klavyesi; böylece yazdığın hiçbir şey telefonunun klavye uygulamasından geçmez.
+  en: PIN and fingerprint, a lock as soon as you leave the app, no screenshots while the 12 words are on screen, and the app's own keyboard, so no input passes through your phone's keyboard app.
+  tr: PIN ve parmak izi, uygulamadan çıkar çıkmaz kilit, 12 kelime ekrandayken ekran görüntüsü alınamaması ve uygulamanın kendi klavyesi; böylece yazdığın hiçbir şey telefonunun klavye uygulamasından geçmez.
 wallet.inst.h
   en: Install in four steps
   tr: Dört adımda kur
 wallet.inst.p
-  en: The wallet is distributed as an APK through its GitHub releases. Updates install over the previous version and your wallet stays on the device.
-  tr: Cüzdan, GitHub sürümleri üzerinden bir APK olarak dağıtılır. Güncellemeler önceki sürümün üzerine kurulur ve cüzdanın cihazda kalır.
+  en: The wallet is distributed as an APK through its GitHub releases. Version 3 is a new app with a new signing key: it does not install over versions 1 and 2 but next to them. Bring your wallet over with its 12 words, and remove the old app only after that.
+  tr: Cüzdan, GitHub sürümleri üzerinden bir APK olarak dağıtılır. Sürüm 3, yeni bir imzalama anahtarına sahip yeni bir uygulamadır: 1 ve 2 numaralı sürümlerin üzerine değil, yanına kurulur. Cüzdanını 12 kelimesiyle taşı ve eski uygulamayı ancak ondan sonra kaldır.
 wallet.inst.1
   en: Open the <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>latest release</a> on your Android phone and download the file <code>yskar-wallet-…apk</code>.
   tr: Android telefonunda <a class='ext' href='https://github.com/dabitlex/YSKAR--WALLET/releases/latest' target='_blank' rel='noopener'>en son sürümü</a> aç ve <code>yskar-wallet-…apk</code> dosyasını indir.
@@ -2585,8 +2585,8 @@ wallet.inst.2
   en: Open the file. Allow installing from this source when Android asks.
   tr: Dosyayı aç. Android sorduğunda bu kaynaktan kuruluma izin ver.
 wallet.inst.3
-  en: Tap “Create wallet” and write the 12 words down on paper, in order.
-  tr: “Create wallet”a dokun ve 12 kelimeyi sırasıyla kâğıda yaz.
+  en: Tap “Create new wallet” and write the 12 words down on paper, in order.
+  tr: “Create new wallet”a dokun ve 12 kelimeyi sırasıyla kâğıda yaz.
 wallet.inst.4
   en: Choose a PIN. To move an existing wallet over, enter its 12 words instead.
   tr: Bir PIN seç. Mevcut bir cüzdanı taşımak için bunun yerine o cüzdanın 12 kelimesini gir.
@@ -2594,8 +2594,8 @@ wallet.verify.h
   en: Check that the file is genuine
   tr: Dosyanın gerçek olduğunu kontrol et
 wallet.verify.p
-  en: Every release is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
-  tr: Her sürüm aynı anahtarla imzalanır. Bu, sertifikasının SHA-256 parmak izidir. İndirdiğin dosyanın parmak izi farklıysa dosyayı kurma.
+  en: Every release since version 3 is signed with the same key. This is the SHA-256 fingerprint of its certificate. If the fingerprint of your download differs, do not install the file.
+  tr: Sürüm 3’ten itibaren her sürüm aynı anahtarla imzalanır. Bu, sertifikasının SHA-256 parmak izidir. İndirdiğin dosyanın parmak izi farklıysa dosyayı kurma.
 wallet.oth.h
   en: Other places for your YSR
   tr: YSR’lerin için başka yerler
@@ -2639,8 +2639,8 @@ wallet.st.2.h
   en: Ready for revision 6
   tr: Revizyon 6’ya hazır
 wallet.st.2.p
-  en: Version 2.0.0 knows the new transfer format and switches to it at block 10,000. An older version still receives YSR but cannot send after that block.
-  tr: Sürüm 2.0.0 yeni transfer biçimini tanır ve blok 10.000’de ona geçer. Daha eski bir sürüm YSR almaya devam eder, ancak o bloktan sonra gönderemez.
+  en: Version {{WALLET}} knows the new transfer format and switches to it at block 10,000, as version 2.0.0 does. Version 1 still receives YSR but cannot send after that block.
+  tr: Sürüm {{WALLET}} yeni transfer biçimini tanır ve tıpkı sürüm 2.0.0 gibi blok 10.000’de ona geçer. Sürüm 1 YSR almaya devam eder, ancak o bloktan sonra gönderemez.
 wallet.st.3.h
   en: Planned: an app store
   tr: Planlanan: bir uygulama mağazası
