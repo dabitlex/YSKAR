@@ -648,3 +648,30 @@ kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:5px;bor
 .wl-konto .mitte>span{display:none}
 .wl-konto .wert{grid-column:2;text-align:left;font-family:var(--sans);font-size:12.5px;color:var(--lese);font-variant-numeric:tabular-nums}
 .wl-haupt>.stapel>.held,.wl-haupt .held{margin:0}
+
+/* Sammelzahlung (Fenster in der Wallet) */
+.sz-liste{border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(140,170,255,.1);overflow:auto;max-height:338px;min-height:150px;flex:0 1 auto}
+.dialog-inhalt>.m-kz,.dialog-inhalt>.feldgruppe,.dialog-inhalt>.karte-kopf,.dialog-inhalt>.zeilen{flex:none}
+.sz-liste.kurz{max-height:258px}
+.sz-liste table.tab th{position:sticky;top:0;background:#0B1430;padding-top:10px;z-index:1}
+.sz-liste .tab td{padding-top:9px;padding-bottom:9px;vertical-align:top}
+.sz-liste .adr{font-family:var(--mono);font-size:11.5px;word-spacing:2px;color:var(--lese)}
+.sz-liste td.klick{cursor:text}
+.sz-liste td.klick:hover{color:var(--fg);box-shadow:inset 0 -1px 0 rgba(99,216,255,.45)}
+.sz-liste tr.schlecht td{background:rgba(255,107,107,.07)}
+.sz-liste tr.fraglich td{background:rgba(255,180,84,.06)}
+.sz-liste .tun{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12.5px}
+.sz-liste .feld{height:28px;padding:0 8px;font-size:12px}
+.sz-liste .feld.sz-adr{width:380px;max-width:100%}
+.sz-liste .feld.sz-betrag{width:140px;text-align:right}
+.sz-zone{border:1px dashed rgba(140,170,255,.32);border-radius:14px;background:rgba(0,0,0,.2);padding:34px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+.sz-zone .rund{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(47,123,255,.3),rgba(99,216,255,.06));box-shadow:inset 0 0 0 1px rgba(99,216,255,.24);color:var(--acc2);display:inline-flex;align-items:center;justify-content:center}
+.sz-zone h3{font-size:16px}
+.sz-zone p{margin:0;max-width:470px;font-size:13px;line-height:1.55;color:var(--mut)}
+.sz-fuss-links{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:8px;min-width:0}
+.sz-wahl{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto}
+.sz-wahl label{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.18);cursor:pointer}
+.sz-wahl label:hover{border-color:var(--line2)}
+.sz-wahl .mitte{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.sz-wahl b{font-size:13px;font-weight:500}
+.sz-wahl .mono{font-size:11.5px;color:var(--mut)}

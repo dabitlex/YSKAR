@@ -24,6 +24,9 @@ import type { ChainStore } from '../../src/lib/node/fullnode/ChainStore.ts';
 /** Mehr einzelne Ueberweisungen zeigt die Ansicht nicht. */
 export const UEBERWEISUNGEN_MAX = 200;
 
+/** So viele Empfaenger einer eigenen Sammelzahlung traegt ein Eintrag mit sich (zum Aufklappen). */
+export const SAMMEL_ZEIGEN = 50;
+
 export interface Ueberweisung {
   txid: string;
   hoehe: number;
@@ -33,6 +36,15 @@ export interface Ueberweisung {
   betrag: string;
   gebuehr: string;
   notiz: string;
+  /** Aus einer Sammelzahlung (Fassung 6). */
+  sammel?: boolean;
+  /**
+   * Eine eigene Sammelzahlung steht als EIN Eintrag da: `betrag` ist die
+   * Summe, `gegen` leer, `anzahl` die Zahl der Empfaenger und `empfaenger`
+   * die ersten SAMMEL_ZEIGEN davon.
+   */
+  anzahl?: number;
+  empfaenger?: { adresse: string; betrag: string }[];
 }
 
 /** Mehr einzelne Mining-Einnahmen je Tag liefert der Verlauf nicht (zum Aufklappen). */
@@ -121,16 +133,29 @@ export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
       /*
         Ab Fassung 6 kann ein Posten mehrere Empfaenger haben (Sammelzahlung)
         und der Absender ein Skriptkonto sein. Fuer die eigene Adresse
-        zaehlt je Ausgang ein Eintrag; eine Sammelzahlung von uns selbst
-        erscheint einmal je Empfaenger.
+        zaehlt je Ausgang ein Eintrag. Eine Sammelzahlung von uns selbst ist
+        EIN Eintrag mit der Summe -- bei tausend Empfaengern bestuende der
+        Verlauf sonst nur noch aus ihr.
       */
       const absender = senderRaw(t);
       const aus = toHex(absender) === adresseHex;
       const ausgaenge = spendOutputs(t);
       const meine = ausgaenge.filter(o => toHex(o.to) === adresseHex);
       if (!aus && meine.length === 0) continue;
-      const notiz = t.type === TX_BATCH ? '' : notizAusHex(toHex(t.memo));
+      const notiz = notizAusHex(toHex(t.memo));
       const id = toHex(txid(t));
+      const sammel = t.type === TX_BATCH;
+      if (aus && sammel) {
+        for (const o of ausgaenge) gesendetAn.add(encodeAddress(o.to));
+        if (ueberweisungen.length >= UEBERWEISUNGEN_MAX) continue;
+        ueberweisungen.push({
+          txid: id, hoehe: h, zeit, art: 'aus', gegen: '',
+          betrag: ausgaenge.reduce((summe, o) => summe + o.amount, 0n).toString(), gebuehr: t.fee.toString(),
+          notiz, sammel: true, anzahl: ausgaenge.length,
+          empfaenger: ausgaenge.slice(0, SAMMEL_ZEIGEN).map(o => ({ adresse: encodeAddress(o.to), betrag: o.amount.toString() })),
+        });
+        continue;
+      }
       for (const o of aus ? ausgaenge : meine) {
         if (aus) gesendetAn.add(encodeAddress(o.to));
         if (ueberweisungen.length >= UEBERWEISUNGEN_MAX) break;
@@ -139,7 +164,7 @@ export function leseVerlauf(store: ChainStore, kopf: number, adresseHex: string,
           art: aus ? 'aus' : 'ein',
           gegen: encodeAddress(aus ? o.to : absender),
           betrag: o.amount.toString(), gebuehr: t.fee.toString(),
-          notiz,
+          notiz, ...(sammel ? { sammel: true } : {}),
         });
       }
     }

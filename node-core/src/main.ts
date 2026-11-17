@@ -20,9 +20,9 @@ import { MiningCoordinator } from '../../src/lib/node/fullnode/MiningCoordinator
 import { MiningServer } from '../../src/lib/node/fullnode/MiningServer.ts';
 import { NetzStatistik, type LokaleStatistik } from '../../src/lib/node/fullnode/NetzStatistik.ts';
 import { ReadApi } from '../../src/lib/node/fullnode/ReadApi.ts';
-import { EPOCH_BLOCKS, rewardAt, DUST_LIMIT, FEE_V3_HEIGHT } from '../../src/lib/core/params.ts';
-import { txid, buildTransfer, transferBytesAt, transferVersionAt, sendepause, senderRaw, spendOutputs, spendAmount, TX_BATCH,
-  TX_TRANSFER, serializeTx, deserializeTx, txBytes, type Transfer, type Spend } from '../../src/lib/core/tx.ts';
+import { EPOCH_BLOCKS, rewardAt, DUST_LIMIT, FEE_V3_HEIGHT, MAX_BATCH_OUTPUTS } from '../../src/lib/core/params.ts';
+import { txid, buildTransfer, buildBatch, transferBytesAt, transferVersionAt, sendepause, senderRaw, spendOutputs, spendAmount, TX_BATCH,
+  TX_TRANSFER, serializeTx, deserializeTx, txBytes, type Transfer, type Spend, type Batch } from '../../src/lib/core/tx.ts';
 import { encodeAddress } from '../../src/lib/core/address.ts';
 import { getAccount } from '../../src/lib/core/state.ts';
 import { notizKuerzen, notizAusHex } from '../../src/lib/wallet/notiz.ts';
@@ -33,6 +33,7 @@ import qrKern from 'qrcode/lib/core/qrcode.js';
 import { WalletDienst, WalletFehler } from './Wallet.ts';
 import { Nachrichten } from './Nachrichten.ts';
 import { GemeinsameKonten } from './GemeinsameKonten.ts';
+import { leseListe, pruefeListe, zeilenAusRumpf, SAMMEL_ZEILEN_MAX, type RohZeile } from './Sammelzahlung.ts';
 import {
   mitzeichnungAnlegen, mitzeichnungLesen, mitzeichnen, zusammensetzen, mitzeichnungText, mitzeichnungAusText,
   kontoAusScript, type Mitzeichnung,
@@ -40,7 +41,7 @@ import {
 import { encodeWitness, encodeScript, multisig, decodeScript, leaves, type WitnessSlot, type ScriptNode } from '../../src/lib/core/script.ts';
 import { spendBytes } from '../../src/lib/core/builder.ts';
 import { RELAY_FEE_RATE } from '../../src/lib/core/params.ts';
-import { leseVerlauf, tagVon, NamenZaehler, type KettenVerlauf } from './WalletKette.ts';
+import { leseVerlauf, tagVon, NamenZaehler, SAMMEL_ZEIGEN, type KettenVerlauf } from './WalletKette.ts';
 import { PoolQuelle, PoolEndgueltig, fragePool, poolSchnittstelle } from './PoolQuelle.ts';
 import { POOLS, hostAusEingabe, waehlbar, aktuelleAdresse, type PoolEintrag, type PoolStand } from '../../src/lib/pool/verzeichnis.ts';
 import { PoolCoordinator } from '../../src/lib/pool/PoolCoordinator.ts';
@@ -313,13 +314,13 @@ function uiDatei(pfad: string): { typ: string; inhalt: Buffer } | null {
  * "text/plain"-Aufruf aus einer fremden Webseite kommt ohne Vorabfrage des
  * Browsers an -- genau diese Aufrufe sollen hier nicht als Befehl gelten.
  */
-function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+function readBody(req: IncomingMessage, max = 65536): Promise<Record<string, unknown>> {
   return new Promise((resolveBody, reject) => {
     const typ = String(req.headers['content-type'] ?? '').toLowerCase();
     let raw = '';
     req.on('data', c => {
       raw += c;
-      if (raw.length > 65536) {
+      if (raw.length > max) {
         req.destroy();
         reject(new Error('Anfrage zu groß'));
       }
@@ -475,6 +476,8 @@ const EIGENE_TAKT_MS = 10 * 60_000;
 const EIGENE_OFFEN_MAX_MS = 72 * 3600_000;
 /** So viele wartende Transaktionen zeigt die Oberflaeche einzeln. */
 const MEMPOOL_ANZEIGE = 200;
+/** Rumpf der Sammelzahlung: bis zu SAMMEL_ZEILEN_MAX Zeilen mit Adresse und Betrag. */
+const SAMMEL_RUMPF_MAX = 384 * 1024;
 
 export class NodeCoreApp {
   private params: ConsensusParams;
@@ -2135,10 +2138,16 @@ export class NodeCoreApp {
       txid: string; art: 'aus' | 'ein'; gegen: string; name: string | null;
       betrag: string; gebuehr: string; notiz: string; seit: number;
       nonce: string; block: number | null; minuten: number | null;
-      /** Teil einer Sammelzahlung: eine Zeile je Empfaenger, die Gebuehr gilt fuer alle zusammen. */
+      /** Aus einer Sammelzahlung; die Gebuehr gilt fuer alle Empfaenger zusammen. */
       sammel: boolean;
       /** Im Mempool (false: eigene, die gerade nicht aufgenommen wird -- nicht erhoehbar). */
       imPool: boolean;
+      /**
+       * Eine eigene Sammelzahlung steht als EINE Zeile da: `betrag` ist die
+       * Summe, `gegen` leer, hier haengen alle Empfaenger.
+       */
+      anzahl?: number;
+      empfaenger?: { adresse: string; name: string | null; betrag: string }[];
     }[] = [];
     // Nur, was dieses Konto betrifft -- nicht den ganzen Mempool durchsuchen.
     // Dazu eigene, die der Mempool gerade nicht nimmt (eigeneOffen): Sie
@@ -2154,8 +2163,23 @@ export class NodeCoreApp {
       if (!aus && meine.length === 0) continue;
       const id = toHex(txid(t));
       if (!this.txGesehen.has(id)) this.txGesehen.set(id, Date.now());
-      const notiz = t.type === TX_BATCH ? '' : notizAusHex(toHex(t.memo));
+      const notiz = notizAusHex(toHex(t.memo));
       const platz = this.lesen?.warteplatz(id) ?? { block: null, minuten: null };
+      if (aus && t.type === TX_BATCH) {
+        liste.push({
+          txid: id, art: 'aus', gegen: '', name: null,
+          betrag: spendAmount(t).toString(), gebuehr: t.fee.toString(),
+          notiz, seit: this.txGesehen.get(id) ?? Date.now(),
+          nonce: t.nonce.toString(), block: platz.block, minuten: platz.minuten,
+          sammel: true, imPool: ids.has(id),
+          anzahl: ausgaenge.length,
+          empfaenger: ausgaenge.map(o => {
+            const an = encodeAddress(o.to);
+            return { adresse: an, name: this.wallet.kontaktName(an), betrag: o.amount.toString() };
+          }),
+        });
+        continue;
+      }
       for (const o of aus ? ausgaenge : meine) {
         const gegen = encodeAddress(aus ? o.to : absender);
         liste.push({
@@ -2178,8 +2202,8 @@ export class NodeCoreApp {
       ? getAccount(this.chain.state(), decodeAddress(adresse))
       : { balance: 0n, nonce: 0n };
     const wartend = this.walletWartend(adresse);
-    // Je Transaktion: alle Betraege, die Gebuehr EINMAL -- eine Sammelzahlung
-    // steht mit einer Zeile je Empfaenger in der Liste.
+    // Je Transaktion: alle Betraege, die Gebuehr EINMAL. Eine eigene
+    // Sammelzahlung steht mit einer Zeile und ihrer Summe in der Liste.
     let gebunden = 0n;
     const gezaehlt = new Set<string>();
     for (const w of wartend) {
@@ -2220,13 +2244,18 @@ export class NodeCoreApp {
 
     return {
       knotenLaeuft: this.running,
+      sammelAktiv: this.sammelAktiv(),
       adresse,
       guthaben: konto.balance.toString(),
       verfuegbar: verfuegbar.toString(),
       unterwegs: gebunden.toString(),
       heute: heuteEin.toString(),
-      wartend,
-      ueberweisungen: v.ueberweisungen.map(u => ({ ...u, name: this.wallet.kontaktName(u.gegen) })),
+      // Die Ansicht fragt alle paar Sekunden: je Sammelzahlung nur die ersten Empfaenger.
+      wartend: wartend.map(w => (w.empfaenger ? { ...w, empfaenger: w.empfaenger.slice(0, SAMMEL_ZEIGEN) } : w)),
+      ueberweisungen: v.ueberweisungen.map(u => ({
+        ...u, name: u.gegen ? this.wallet.kontaktName(u.gegen) : null,
+        ...(u.empfaenger ? { empfaenger: u.empfaenger.map(e => ({ ...e, name: this.wallet.kontaktName(e.adresse) })) } : {}),
+      })),
       mining: v.mining,
       sieben,
       kontakte: this.wallet.kontakte(),
@@ -2301,7 +2330,7 @@ export class NodeCoreApp {
 
     const v = this.kettenVerlauf(adresse);
     const bekannt = this.wallet.kontaktName(an) !== null || v.gesendetAn.includes(an)
-      || wartend.some(w => w.art === 'aus' && w.gegen === an);
+      || wartend.some(w => w.art === 'aus' && (w.gegen === an || !!w.empfaenger?.some(e => e.adresse === an)));
 
     return {
       an, name: this.wallet.kontaktName(an), neu: !bekannt,
@@ -2319,6 +2348,186 @@ export class NodeCoreApp {
       betrag: r.betrag.toString(), gebuehr: r.gebuehr.toString(), gesamt: r.gesamt.toString(),
       verfuegbar: r.verfuegbar.toString(), danach: r.danach.toString(),
       zielBlock: r.zielBlock, andrang: r.andrang,
+    };
+  }
+
+  // ---------------------------------------------------------- Sammelzahlung
+  //
+  // Eine Ueberweisung an viele Empfaenger (CONSENSUS_V6.md 6.4): eine
+  // Transaktion, eine Gebuehr, ganz oder gar nicht. Einlesen und Pruefen der
+  // Liste steht in Sammelzahlung.ts; hier kommen Guthaben, Gebuehr und
+  // Schluessel dazu.
+
+  /** Ab dem naechsten Block der Fassung 6 kann die Wallet Sammelzahlungen senden. */
+  private sammelAktiv(): boolean {
+    return !!this.chain && this.running && this.chain.height() + 1 >= this.params.v6Height;
+  }
+
+  /** Zeilen, eingefuegter Text und "gleicher Betrag fuer alle" aus dem Rumpf. */
+  private sammelEingabe(body: Record<string, unknown>): { roh: RohZeile[]; gleich: RohZeile | null; abgeschnitten: boolean } {
+    const unlesbar = () => new WalletFehler('sammel_liste_falsch', 'Die Liste ist nicht lesbar.');
+    const roh = zeilenAusRumpf(body.zeilen);
+    if (roh === null) throw unlesbar();
+    let abgeschnitten = false;
+    if (typeof body.text === 'string' && body.text.trim() !== '') {
+      const gelesen = leseListe(body.text, Math.max(0, SAMMEL_ZEILEN_MAX - roh.length));
+      roh.push(...gelesen.zeilen);
+      abgeschnitten = gelesen.abgeschnitten;
+    }
+    let gleich: RohZeile | null = null;
+    if (body.gleich && typeof body.gleich === 'object') {
+      const eine = zeilenAusRumpf([{ ...(body.gleich as Record<string, unknown>), adresse: '' }]);
+      if (eine === null) throw unlesbar();
+      gleich = eine[0];
+    }
+    return { roh, gleich, abgeschnitten };
+  }
+
+  /** Ob an eine Adresse schon einmal gesendet wurde: Kontakt, Kette oder wartend. */
+  private sammelBekannt(adresse: string): (an: string) => boolean {
+    const gesendet = new Set<string>(this.running ? this.kettenVerlauf(adresse).gesendetAn : []);
+    for (const w of this.running ? this.walletWartend(adresse) : []) {
+      if (w.art !== 'aus') continue;
+      if (w.gegen) gesendet.add(w.gegen);
+      for (const e of w.empfaenger ?? []) gesendet.add(e.adresse);
+    }
+    return an => this.wallet.kontaktName(an) !== null || gesendet.has(an);
+  }
+
+  /**
+   * Schritt 1 des Fensters: die Liste einlesen und Zeile fuer Zeile pruefen.
+   * Sendet nichts und braucht kein Passwort.
+   */
+  private sammelListe(body: Record<string, unknown>) {
+    const adresse = this.wallet.verlangeOffen();
+    this.wallet.regung();
+    const { roh, gleich, abgeschnitten } = this.sammelEingabe(body);
+    const p = pruefeListe(roh, { eigene: adresse, gleich });
+    const bekannt = this.sammelBekannt(adresse);
+    const verfuegbar = this.running && this.chain ? this.walletKonto(adresse).verfuegbar : 0n;
+    return {
+      zeilen: p.zeilen.map(z => {
+        const fremd = z.stand !== 'adresse_falsch' && z.stand !== 'eigene';
+        return { ...z, name: fremd ? this.wallet.kontaktName(z.adresse) : null, neu: fremd && !bekannt(z.adresse) };
+      }),
+      bereit: p.bereit, offen: p.offen, summe: p.summe.toString(),
+      gleichStand: p.gleichStand, ...(p.gleichDeutungen ? { gleichDeutungen: p.gleichDeutungen } : {}),
+      verfuegbar: verfuegbar.toString(),
+      hoechstens: MAX_BATCH_OUTPUTS, zuViele: p.zeilen.length > MAX_BATCH_OUTPUTS,
+      abgeschnitten, aktiv: this.sammelAktiv(), abHoehe: this.params.v6Height,
+    };
+  }
+
+  /**
+   * Eine Sammelzahlung durchrechnen -- ohne Passwort, ohne etwas zu senden.
+   * Verlangt, dass JEDE Zeile bereit ist: Eine halbe Liste geht nicht hinaus.
+   *
+   * Die Gebuehr gilt je Byte wie bei einer Ueberweisung; gemessen wird die
+   * tatsaechliche Groesse dieser Sammelzahlung (147 Byte, 29 je Empfaenger
+   * der Version 0, 41 je Empfaenger der Version 1, dazu die Notiz).
+   */
+  private sammelRechne(body: Record<string, unknown>) {
+    const adresse = this.wallet.verlangeOffen();
+    if (!this.running || !this.chain || !this.pool || !this.lesen) {
+      throw new WalletFehler('senden_knoten_aus', 'Zum Senden muss der Knoten laufen.');
+    }
+    const hoehe = this.chain.height() + 1;
+    if (hoehe < this.params.v6Height) {
+      throw new WalletFehler('sammel_ab_v6', `Sammelzahlungen gibt es erst ab Block ${this.params.v6Height}.`, [this.params.v6Height]);
+    }
+    const { roh, gleich } = this.sammelEingabe(body);
+    const p = pruefeListe(roh, { eigene: adresse, gleich });
+    if (p.zeilen.length === 0) throw new WalletFehler('sammel_leer', 'Die Liste ist leer.');
+    if (p.offen > 0) throw new WalletFehler('sammel_offen', `${p.offen} Zeilen sind noch nicht bereit.`, [p.offen]);
+    if (p.zeilen.length > MAX_BATCH_OUTPUTS) {
+      throw new WalletFehler('sammel_zu_viele', `Höchstens ${MAX_BATCH_OUTPUTS} Empfänger je Sammelzahlung.`, [MAX_BATCH_OUTPUTS, p.zeilen.length]);
+    }
+
+    const notiz = notizKuerzen(String(body.notiz ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim());
+    const memo = new TextEncoder().encode(notiz);
+    const stufe = body.stufe === 'langsam' || body.stufe === 'schnell' ? body.stufe : 'normal';
+    const outputs = p.zeilen.map(z => ({ to: decodeAddress(z.adresse), amount: BigInt(z.einheiten!) }));
+    const { verfuegbar, naechsteNonce } = this.walletKonto(adresse);
+
+    // Die Groesse: dieselbe Sammelzahlung mit leerem Schluessel und leerer Unterschrift.
+    const muster: Batch = {
+      type: TX_BATCH, version: 1, flags: 0, from: decodeAddress(adresse), outputs,
+      fee: 0n, nonce: naechsteNonce, validFrom: 0, validUntil: 0, memo,
+      publicKey: new Uint8Array(32), signature: new Uint8Array(64),
+    };
+    const groesse = txBytes(muster);
+    const markt = this.lesen.fees(new URLSearchParams());
+    let gebuehr = BigInt(Math.ceil(Number(markt.stufen[stufe].jeByte) * groesse));
+    const jeByte = markt.mindestJeByte ? BigInt(markt.mindestJeByte) * BigInt(groesse) : 0n;
+    if (jeByte > gebuehr) gebuehr = jeByte;
+    const boden = this.pool.mindestGebuehrFuer(muster, hoehe);
+    if (boden > gebuehr) gebuehr = boden;
+
+    if (p.summe + gebuehr > verfuegbar) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+
+    const bekannt = this.sammelBekannt(adresse);
+    const empfaenger = p.zeilen.map(z => ({
+      adresse: z.adresse, name: this.wallet.kontaktName(z.adresse), neu: !bekannt(z.adresse), betrag: z.einheiten!,
+    }));
+    return {
+      adresse, outputs, empfaenger, summe: p.summe, gebuehr, groesse, notiz, memo, stufe, naechsteNonce, verfuegbar,
+      zielBlock: markt.stufen[stufe].block, andrang: markt.andrang,
+    };
+  }
+
+  /** Schritt 2 des Fensters: was hinausgehen wuerde, zum Vergleichen. */
+  private sammelVorschau(body: Record<string, unknown>) {
+    const r = this.sammelRechne(body);
+    this.wallet.regung();
+    return {
+      empfaenger: r.empfaenger, anzahl: r.empfaenger.length,
+      kontakte: r.empfaenger.filter(e => e.name !== null).length,
+      neue: r.empfaenger.filter(e => e.neu).length,
+      summe: r.summe.toString(), gebuehr: r.gebuehr.toString(), groesse: r.groesse,
+      gesamt: (r.summe + r.gebuehr).toString(),
+      verfuegbar: r.verfuegbar.toString(), danach: (r.verfuegbar - r.summe - r.gebuehr).toString(),
+      notiz: r.notiz, stufe: r.stufe, zielBlock: r.zielBlock, andrang: r.andrang,
+    };
+  }
+
+  /**
+   * Unterschreiben und ins Netz geben. Verlangt das Passwort und die im
+   * Pruefschritt GEZEIGTEN Werte: Zahl der Empfaenger, Summe und Gebuehr.
+   * Weicht eines ab, geht nichts hinaus -- gesendet wird nur, was zu sehen war.
+   */
+  private async sammelSenden(body: Record<string, unknown>) {
+    const r = this.sammelRechne(body);
+    const gesehen = typeof body.gebuehr === 'string' && /^\d{1,19}$/.test(body.gebuehr) ? BigInt(body.gebuehr) : null;
+    if (gesehen === null) throw new WalletFehler('gebuehr_fehlt', 'Die Gebühr wurde nicht bestätigt.');
+    if (body.summe !== r.summe.toString() || body.anzahl !== r.empfaenger.length) {
+      throw new WalletFehler('sammel_geaendert', 'Die Liste passt nicht mehr zu dem, was geprüft wurde. Bitte erneut prüfen.');
+    }
+    if (r.gebuehr > gesehen) {
+      throw new WalletFehler('gebuehr_gestiegen', `Die nötige Gebühr ist gestiegen: jetzt ${r.gebuehr}. Bitte erneut bestätigen.`,
+        [r.gebuehr.toString()]);
+    }
+    // Gleich oder niedriger: Es gilt die bestaetigte Gebuehr.
+    const gebuehr = gesehen;
+    if (r.summe + gebuehr > r.verfuegbar) throw new WalletFehler('guthaben_reicht_nicht', 'Dafür reicht das Guthaben nicht.');
+
+    const paar = await this.wallet.schluessel(body.passwort);
+    const tx = buildBatch({
+      chainId: this.params.chainId,
+      from: paar.addressRaw, outputs: r.outputs,
+      fee: gebuehr, nonce: r.naechsteNonce, memo: r.memo,
+      publicKey: paar.publicKey, privateKey: paar.privateKey,
+    });
+    paar.privateKey.fill(0);
+
+    const aufnahme = this.pool!.add(tx, this.chain!.state(), this.chain!.height() + 1, { lokal: true });
+    if (!aufnahme.ok) throw new WalletFehler('abgelehnt_' + aufnahme.reason, this.abgelehntText(aufnahme.reason));
+    const n = this.sync?.kuendigeAnTx(txid(tx)) ?? 0;
+    this.sichereEigene();
+    this.log(`Sammelzahlung ${aufnahme.txid.slice(0, 16)}… an ${r.empfaenger.length} Empfänger eingereicht, an ${n} Peer${n === 1 ? '' : 's'} gemeldet`);
+    return {
+      txid: aufnahme.txid, von: r.adresse, anzahl: r.empfaenger.length,
+      summe: r.summe.toString(), gebuehr: gebuehr.toString(), notiz: r.notiz,
+      zeit: Math.floor(Date.now() / 1000), peers: n,
     };
   }
 
@@ -2486,6 +2695,22 @@ export class NodeCoreApp {
     return { txid: aufnahme.txid, peers: n, ...vorher };
   }
 
+  /** Warum der eigene Mempool eine Zahlung nicht nimmt -- in Worten. */
+  private abgelehntText(grund: string): string {
+    const text: Record<string, string> = {
+      insufficient_funds: 'Dafür reicht das Guthaben nicht.',
+      fee_too_low: 'Die Gebühr ist dem Knoten zu niedrig.',
+      nonce_gap: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
+      nonce_too_low: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
+      unknown_account: 'Auf dieser Wallet liegt noch kein Guthaben.',
+      sender_limit: 'Von dieser Wallet warten schon zu viele Überweisungen.',
+      pool_min_fee: 'Gerade ist viel los im Netz, die nötige Gebühr ist gestiegen. Bitte noch einmal prüfen.',
+      fee_not_higher: 'Die neue Gebühr muss höher sein als die bisherige.',
+      duplicate: 'Diese Überweisung wurde schon eingereicht.',
+    };
+    return text[grund] ?? `Der Knoten hat die Überweisung abgelehnt (${grund}).`;
+  }
+
   private async walletSenden(body: Record<string, unknown>) {
     const r = this.walletRechne(body);
     /*
@@ -2525,21 +2750,7 @@ export class NodeCoreApp {
     // Lokal: Die eigene Ueberweisung weicht im eigenen Mempool nie und
     // verfaellt nicht. Gesichert wird sie auch -- ein Neustart verliert sie nicht.
     const aufnahme = this.pool!.add(tx, this.chain!.state(), this.chain!.height() + 1, { lokal: true });
-    if (!aufnahme.ok) {
-      const text: Record<string, string> = {
-        insufficient_funds: 'Dafür reicht das Guthaben nicht.',
-        fee_too_low: 'Die Gebühr ist dem Knoten zu niedrig.',
-        nonce_gap: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
-        nonce_too_low: 'Eine frühere Überweisung wartet noch. Bitte kurz warten und noch einmal versuchen.',
-        unknown_account: 'Auf dieser Wallet liegt noch kein Guthaben.',
-        sender_limit: 'Von dieser Wallet warten schon zu viele Überweisungen.',
-        pool_min_fee: 'Gerade ist viel los im Netz, die nötige Gebühr ist gestiegen. Bitte noch einmal prüfen.',
-        fee_not_higher: 'Die neue Gebühr muss höher sein als die bisherige.',
-        duplicate: 'Diese Überweisung wurde schon eingereicht.',
-      };
-      throw new WalletFehler('abgelehnt_' + aufnahme.reason,
-        text[aufnahme.reason] ?? `Der Knoten hat die Überweisung abgelehnt (${aufnahme.reason}).`);
-    }
+    if (!aufnahme.ok) throw new WalletFehler('abgelehnt_' + aufnahme.reason, this.abgelehntText(aufnahme.reason));
     const n = this.sync?.kuendigeAnTx(txid(tx)) ?? 0;
     this.sichereEigene();
     this.log(`Überweisung ${aufnahme.txid.slice(0, 16)}… eingereicht, an ${n} Peer${n === 1 ? '' : 's'} gemeldet`);
@@ -2879,7 +3090,8 @@ export class NodeCoreApp {
         if (GET && pfad === '/api/wallet/qr') return json(res, this.walletQr(url.searchParams));
         if (GET && pfad === '/api/wallet/link') return json(res, { link: this.nachrichten.link() });
         if (POST) {
-          const b = await readBody(req);
+          // Die Liste einer Sammelzahlung ist groesser als jeder andere Rumpf.
+          const b = await readBody(req, pfad.startsWith('/api/wallet/sammel/') ? SAMMEL_RUMPF_MAX : undefined);
           if (pfad === '/api/wallet/neu') return json(res, { woerter: w.neueWoerter() });
           if (pfad === '/api/wallet/anlegen') { const r = await w.anlegen(b.woerter, b.passwort); this.walletGeaendert(); return json(res, r); }
           if (pfad === '/api/wallet/entsperren') return json(res, await w.entsperren(b.passwort));
@@ -2888,6 +3100,9 @@ export class NodeCoreApp {
           if (pfad === '/api/wallet/regung') { w.regung(); return json(res, w.stand()); }
           if (pfad === '/api/wallet/pruefen') return json(res, this.walletVorschau(b));
           if (pfad === '/api/wallet/senden') return json(res, await this.walletNacheinander(() => this.walletSenden(b)));
+          if (pfad === '/api/wallet/sammel/liste') return json(res, this.sammelListe(b));
+          if (pfad === '/api/wallet/sammel/pruefen') return json(res, this.sammelVorschau(b));
+          if (pfad === '/api/wallet/sammel/senden') return json(res, await this.walletNacheinander(() => this.sammelSenden(b)));
           if (pfad === '/api/wallet/erhoehen/vorschau') return json(res, this.walletErhoehenVorschau(b));
           if (pfad === '/api/wallet/erhoehen') return json(res, await this.walletNacheinander(() => this.walletErhoehen(b)));
           if (pfad === '/api/wallet/woerter') return json(res, { woerter: await w.woerter(b.passwort) });

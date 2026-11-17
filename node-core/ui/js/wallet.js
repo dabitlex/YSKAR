@@ -15,6 +15,7 @@ import { t } from './i18n.js';
 import { signierenDialog } from './nachricht.js';
 import { baueEinrichten, passwortFelder } from './walletEinrichten.js';
 import { kontenEintraege, baueKonto, anlegenDialog } from './gemeinsam.js';
+import { sammelDialog } from './sammelzahlung.js';
 
 /** Wer ist gemeint: Kontaktname oder die Adresse in Kurzform. */
 const wer = (name, adresse) => name || kurzAdresse(adresse);
@@ -126,6 +127,9 @@ function baueHaupt(ctx, startReiter) {
   const werkzeug = el('div.reihe', { style: 'gap:8px' });
   const inhalt = el('div.stapel', { style: 'gap:12px' });
   const gemeinsam = el('div');
+  // Sammelzahlung: Der Knopf erscheint, sobald der Knoten sie senden kann (Fassung 6).
+  const sammelKnopf = knopf([zeichen('leute', 15), t('sam.titel')], () => sammelDialog(ctx, lade));
+  sammelKnopf.hidden = true;
   let reiter = startReiter, daten = null, takt = null, hoehe = -2;
   let gem = null, gewaehlt = null;   // gemeinsame Konten; gewaehlt = Adresse oder null (eigene Wallet)
   const eigenHaupt = el('div.stapel', { style: 'gap:16px' });
@@ -152,6 +156,7 @@ function baueHaupt(ctx, startReiter) {
         el('div.held-knoepfe',
           knopf([zeichen('aufwaerts', 15), t('wal.rSenden')], () => sendeDialog(ctx, '', lade), 'haupt'),
           knopf([zeichen('abwaerts', 15), t('wal.empfangen')], () => empfangenDialog(ctx)),
+          sammelKnopf,
           knopf([zeichen('etikett', 15), t('sig.knopf')], () => signierenDialog(ctx))),
       ], bild('boerse', 250), [kz.heute, kz.sieben, kz.dreissig, kz.gesamt]),
       el('section.karte.ruhig', { style: 'gap:12px' },
@@ -226,7 +231,9 @@ function baueHaupt(ctx, startReiter) {
       if (filter !== 'alle' && e.art !== filter) return false;
       if (!q) return true;
       if (e.art === 'mining') return 'mining pool solo'.includes(q);
-      return [e.name, e.gegen, e.notiz].some(x => x && x.toLowerCase().includes(q));
+      if ([e.name, e.gegen, e.notiz].some(x => x && x.toLowerCase().includes(q))) return true;
+      // Sammelzahlung: auch nach einem ihrer Empfänger suchen.
+      return (e.empfaenger ?? []).some(x => [x.name, x.adresse].some(y => y && y.toLowerCase().includes(q)));
     }).sort((a, b) => (a.tag === b.tag ? b.zeit - a.zeit : (a.tag < b.tag ? 1 : -1)));
   }
 
@@ -274,6 +281,34 @@ function baueHaupt(ctx, startReiter) {
           }
           if ((e.solo + e.pool) > einzeln.length) zeilen.push(el('tr.unter', el('td', { colspan: 5 }, el('span.hinweis', t('wal.mWeitere', e.solo + e.pool - einzeln.length)))));
         }
+      } else if (e.sammel && e.art === 'aus') {
+        // Eigene Sammelzahlung: EINE Zeile mit der Summe; aufgeklappt stehen die Empfänger darunter.
+        const schluessel = 'sz:' + e.txid, offen = aufgeklappt.has(schluessel);
+        const liste = e.empfaenger ?? [];
+        zeilen.push(el('tr.zeile-v.mining-sum' + (offen ? '.offen' : ''), {
+          onclick: () => { if (offen) aufgeklappt.delete(schluessel); else aufgeklappt.add(schluessel); zeigeVerlauf(); },
+          title: offen ? t('wal.zuklappen') : t('wal.aufklappen'),
+        },
+          el('td.blass', e.wartend ? t('wal.jetzt') : uhrzeit(e.zeit)),
+          el('td', art([t('sam.titel'), el('span.pfeil', zeichen('pfeil', 13))], 'leute', 'var(--warn)')),
+          el('td', t('sam.empfaengerZahl', e.anzahl), e.notiz ? el('span.blass', ' · „' + e.notiz + '“') : null, el('span.anz', offen ? t('wal.zuklappen') : t('wal.aufklappen'))),
+          el('td.r.mono', '− ' + ysr(e.betrag)),
+          el('td', e.wartend ? chip('gelb', t('wal.wartet')) : chip('gruen', t('wal.bestaetigt')))));
+        if (offen) {
+          const ziel = e.wartend ? null : () => ctx.gehe('blockchain/' + e.hoehe);
+          for (const x of liste) {
+            zeilen.push(el('tr.unter' + (ziel ? '.zeile-v' : ''), ziel ? { onclick: ziel, title: t('kette.block', zahl(e.hoehe)) } : {},
+              el('td'),
+              el('td.blass', t('sam.anEinen')),
+              el('td', x.name ? x.name : el('span.mono', { title: x.adresse }, kurzAdresse(x.adresse))),
+              el('td.r.mono', '− ' + ysr(x.betrag)),
+              el('td')));
+          }
+          const rest = e.anzahl - liste.length;
+          zeilen.push(el('tr.unter', el('td', { colspan: 5 }, el('span.hinweis',
+            (rest > 0 ? t('sam.weitereEmpfaenger', rest) + ' ' : '')
+            + (e.wartend ? t('sam.verlaufWartet') : t('sam.verlaufFuss', zahl(e.hoehe), ysr(e.gebuehr, 0)))))));
+        }
       } else if (e.wartend) {
         const wann = e.block == null ? t('wal.wartetBlock') : e.block === 1 ? t('wal.wartetNaechster') : t('wal.wartetVoraus', e.block, e.minuten);
         const erhoehbar = e.art === 'aus' && !e.sammel && e.imPool !== false;
@@ -304,11 +339,13 @@ function baueHaupt(ctx, startReiter) {
 
   // ----------------------------------------------------------------- Kontakte
   function letzteZahlung(adresse) {
-    const u = daten.ueberweisungen.find(x => x.gegen === adresse);
-    const w = daten.wartend.find(x => x.gegen === adresse);
-    if (w) return t('wal.kWartet', (w.art === 'aus' ? '− ' : '+ ') + ysr(w.betrag));
+    // Eine Sammelzahlung zählt für jeden ihrer Empfänger mit dessen Betrag.
+    const anteil = x => (x.gegen === adresse ? x.betrag : (x.empfaenger ?? []).find(e => e.adresse === adresse)?.betrag);
+    const u = daten.ueberweisungen.find(x => anteil(x) !== undefined);
+    const w = daten.wartend.find(x => anteil(x) !== undefined);
+    if (w) return t('wal.kWartet', (w.art === 'aus' ? '− ' : '+ ') + ysr(anteil(w)));
     if (!u) return t('wal.kNochKeine');
-    return tagName(tagSchluessel(u.zeit)) + ' · ' + (u.art === 'aus' ? '− ' : '+ ') + ysr(u.betrag);
+    return tagName(tagSchluessel(u.zeit)) + ' · ' + (u.art === 'aus' ? '− ' : '+ ') + ysr(anteil(u));
   }
 
   function zeigeKontakte() {
@@ -405,6 +442,7 @@ function baueHaupt(ctx, startReiter) {
   async function lade() {
     try {
       daten = await hole('/api/wallet/uebersicht');
+      sammelKnopf.hidden = !daten.sammelAktiv;
       fuelle(guthaben, ysrGross(daten.guthaben));
       text(kontoWert, ysr(daten.guthaben));
       // Einnahmen aus Mining: heute, 7 und 30 Tage, und was der Verlauf überblickt.
