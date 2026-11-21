@@ -107,6 +107,9 @@ export async function GET(
   return NextResponse.json({
     height: block.height,
     hash: unprefix(block.hash),
+    // Blockversion: ab Konsensfassung 6 ist sie 6. Ohne dieses Feld setzte
+    // der Explorer 1 ein und meldete "Serialisierung stimmt NICHT".
+    version: block.version,
     prevHash: unprefix(block.prev_hash),
     merkleRoot: unprefix(block.merkle_root),
     stateRoot: unprefix(block.state_root),

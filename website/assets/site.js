@@ -1983,6 +1983,11 @@ var Explorer = (function () {
     var v6 = Number(Live.S.fees && Live.S.fees.aktivierung) || U.V6;
     return v6 > 0 && h >= v6 ? MAX_TX_V6 : MAX_TX;
   }
+  /** Blockversion je Höhe, wie blockVersionAt in src/lib/core/params.ts. */
+  function versionAt(h) {
+    var v6 = Number(Live.S.fees && Live.S.fees.aktivierung) || U.V6;
+    return v6 > 0 && h >= v6 ? 6 : 1;
+  }
   function percent(p) { return U.num(p, p > 0 && p < 10 ? 2 : 0); }
   function span(sec) {
     sec = Math.max(0, Math.round(sec));
@@ -1995,7 +2000,9 @@ var Explorer = (function () {
     var v = BigInt(b.difficultyWert !== undefined && b.difficultyWert !== null ? b.difficultyWert : b.difficulty);
     if (b.height < DIFF_V4 || v < (one << BigInt(31))) field = Number(v);       // ab Fassung 4 über 2^31 als Gleitkomma
     else { e = BigInt(v.toString(2).length) - BigInt(24); m = v >> e; field = Number((one << BigInt(31)) | (e << BigInt(23)) | (m - (one << BigInt(23)))); }
-    dv.setUint32(0, b.version === undefined || b.version === null ? 1 : b.version, true);
+    // Fehlt die Version in der Antwort, gilt die Regel je Höhe (src/lib/core/params.ts blockVersionAt):
+    // 6 ab der Aktivierung von Fassung 6, darunter 1. Nicht aus dem Kopf lesen, sonst prüft sich der Kopf selbst.
+    dv.setUint32(0, b.version === undefined || b.version === null ? versionAt(b.height) : b.version, true);
     dv.setUint32(4, b.height, true);
     out.set(U.hexToBytes(b.prevHash), 8); out.set(U.hexToBytes(b.merkleRoot), 40); out.set(U.hexToBytes(b.stateRoot), 72);
     dv.setBigUint64(104, BigInt(b.timestamp), true);
