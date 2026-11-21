@@ -622,7 +622,8 @@ function serializeHeader(b){
   //  72 state_root | 104 u64 timestamp | 112 u32 difficulty
   // 116 u32 tx_count | 120 u64 extranonce | 128 u64 nonce
   const out=new Uint8Array(136),dv=new DataView(out.buffer);
-  dv.setUint32(0,b.version??1,true);
+  // Fehlt die Version, gilt die Regel je Hoehe: 6 ab Fassung 6, darunter 1.
+  dv.setUint32(0,b.version??((V6_AB>0?V6_AB:10000)<=b.height?6:1),true);
   dv.setUint32(4,b.height,true);
   out.set(fromHex(b.prevHash),8);
   out.set(fromHex(b.merkleRoot),40);
