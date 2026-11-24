@@ -41,6 +41,11 @@ EnvironmentFile=-/etc/yskar/node.env
 # the fee is paid to. Every other node is started with both seeds and
 # --no-upstream instead, and a pool of your own needs your own name and
 # your own payout address -- see deploy/README.md.
+#
+# The main node in production overrides this line with a drop-in that
+# also sets the seed and the P2P and mining limits:
+# deploy/hauptknoten.conf.example. Change settings there, never in
+# dist/yskar-node.cjs.
 ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --data ./knoten \
     --bind 127.0.0.1 \

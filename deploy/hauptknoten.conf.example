@@ -1,0 +1,68 @@
+# Production config of the MAIN NODE (YSKAR MAIN) as a systemd drop-in.
+#
+# Install as /etc/systemd/system/yskar-node.service.d/hauptknoten.conf,
+# then:   sudo systemctl daemon-reload && sudo systemctl restart yskar-node
+# Check:  systemctl cat yskar-node     (shows unit plus drop-in)
+#         curl -s http://127.0.0.1:8645/api/v2/status
+#
+# Everything the main node needs is set here, as start options. Since Full
+# Node 1.0.1 there is NO reason to edit dist/yskar-node.cjs by hand: a
+# hand-edited bundle cannot be told apart from a broken one, and the next
+# update silently undoes the edit. /status shows "build" -- the sha256 of
+# the running file -- so anyone can check that it is the released one.
+#
+# The empty "ExecStart=" first is required: it clears the ExecStart of the
+# unit file before the new one is set.
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
+    --data ./knoten \
+    --bind 127.0.0.1 \
+    --port 8645 \
+    --p2p-port 8646 \
+    --seed yskar-seed2.dynv6.net:8646 \
+    --max-inbound 125 \
+    --max-inbound-per-ip 8 \
+    --mining-limits on \
+    --pool "YSKAR MAIN" \
+    --pool-fee 100 \
+    --pool-payout ysr1lfn8dw6st25jxv653vypcp929xs9lzg44954zz
+
+# What each line does, and what changed against the config before 1.0.1:
+#
+#   --data/--bind/--port/--p2p-port/--pool*   unchanged.
+#
+#   --max-inbound 125       replaces the hand edit MAX_EIN = 125 in the
+#                           bundle. Same value, now visible in /status
+#                           (p2p.maxInbound).
+#
+#   --max-inbound-per-ip 8  NEW. At most 8 incoming P2P connections from one
+#                           IPv4 address or one IPv6 /64. Extra connections
+#                           are closed right away; nobody already connected
+#                           is pushed out. The firewall rule (connlimit 2 per
+#                           IPv4 on 8646) stays -- this also covers IPv6.
+#
+#   --seed yskar-seed2...   NEW. The main node dials the second seed itself,
+#                           so the two seeds stay connected even if nobody
+#                           else connects them.
+#
+#   --mining-limits on      the default, written out so it is visible. Per
+#                           session: /job 2/s (100 at once), /share 50/s
+#                           (2,000 at once). "off" restores the behaviour
+#                           before 1.0.1.
+#
+#   --sender-ip proxy       deliberately NOT set. It would add the per-IP
+#                           mining limits, but it also switches on an older
+#                           rule: at most 32 sessions WITHOUT a share per
+#                           sender. More miners than that starting at once
+#                           behind one address (a farm behind one router,
+#                           mobile users behind a carrier's shared address)
+#                           would push each other's new sessions out until
+#                           each has its first share. Switch it on only as a
+#                           separate step, after checking Caddy 2.5 or newer
+#                           (caddy version), and watch /status sessions.
+#
+# Rollback: put the previous drop-in back (or delete the lines marked NEW),
+# daemon-reload, restart. The store in ./knoten is not touched by any of
+# these options.

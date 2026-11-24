@@ -258,7 +258,10 @@ prints a warning, because the interface accepts work and builds blocks.
   waiting for a block).
 - Limits: a request body of at most 64 KB; at most 5,000 open sessions; a session ends after
   300 seconds without a request; a duplicate nonce is rejected; only the job fetched last in a
-  session is accepted.
+  session is accepted. Since 1.0.1 mining requests are limited per session (`/job` 2 per
+  second, `/share` 50 per second, each with a reserve for the start of a miner) and, with
+  `--sender-ip`, per IP; see [FULLNODE.md](FULLNODE.md#limits-and-errors). `--mining-limits off`
+  switches this off.
 - The node speaks plain HTTP and sends no CORS headers. A node that is offered to others, for
   example as a pool, needs an HTTPS reverse proxy in front of it; see
   [OPERATIONS.md](OPERATIONS.md) and [POOL.md](POOL.md).
@@ -328,7 +331,7 @@ on the PC itself.
 
 - **A small network.** The genesis block of the main network carries the timestamp
   2026-09-09T00:00:00Z. The network has two seed nodes, which a new node contacts first and which
-  are both run by the same operator, and the app's pool list has one entry
+  are both run by the same operator, and the app's pool list has three entries
   (`src/lib/pool/verzeichnis.ts`). Proof of work protects a chain only as far as no single
   party controls most of the hash power. Hash power that mines through one pool is, for the
   purpose of building blocks, directed by that pool's operator, who chooses the transactions
@@ -337,18 +340,25 @@ on the PC itself.
   accepted.
 - **No checkpoints and no limit on reorganization depth.** A node switches to any valid chain
   with more work, however far back it forks (`ChainManager.ts`). Nothing is pinned by height.
-  Treat a transfer as more final the more blocks are built on top of it.
-- **Peer connections.** There is no limit per source address. Whoever completes the handshake
-  32 times holds all inbound slots of a node; established connections are displaced only if
-  the host was flagged. A node whose connections are all controlled by one party sees only the
+  Treat a transfer as more final the more blocks are built on top of it. Since 1.0.1 the node
+  logs every real reorg with its depth and the height where the branches split, and counts
+  them in `/status` (`reorgs.count`, `reorgs.deepest`), so a deep reorg does not go unnoticed.
+  It does not prevent one.
+- **Peer connections.** By default there is no limit per source address; since 1.0.1 a node can
+  set one with `--max-inbound-per-ip` (the main node uses 8). Without it, whoever completes
+  the handshake 32 times holds all inbound slots of a node; established connections are
+  displaced only if the host was flagged. The per-address limit does not help against an
+  attacker with many addresses. A node whose connections are all controlled by one party sees only the
   chain that party shows it. It still cannot be given an invalid chain.
 - **Address gossip.** A node keeps at most 1,000 peer addresses and accepts addresses on a
   peer's word. The checks are a plausible host name, a timestamp not more than 10 minutes in
   the future and not older than 7 days. The address book does not record who reported an
   address. A peer that sends many fresh addresses can displace older entries.
-- **No rate limiting on the HTTP interface.** Apart from the size and count limits listed
-  above and the per-sender session limits of `--sender-ip`, port 8645 does not limit requests
-  per client. On a publicly offered node, limiting has to be done by the reverse proxy.
+- **Rate limiting on the HTTP interface covers mining only.** Since 1.0.1 the node limits
+  `/session`, `/job` and `/share` (see above). The read API and `POST /tx` are not limited per
+  client beyond the size limits and the mempool's own limits; on a publicly offered node,
+  limiting them has to be done by the reverse proxy. The per-IP part needs `--sender-ip`;
+  without it every request behind a proxy looks like the same sender.
 - **Pool seats can be occupied cheaply.** A pool has at most 64 seats (63 with a fee; 255 and 254 from consensus revision 6), counted
   by address. Opening a pool session needs only a valid address, with no proof that the caller
   owns it. A new session counts as a seat for 2 minutes without any accepted share, and keeps

@@ -17,6 +17,7 @@
  * yskar-spiegel auf dem Hauptknoten ruft "spiegel" auf.
  */
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { liesErgebnis, pruefe as pruefeNachricht } from '../../core/signedMessage.ts';
 import { stateRootAt, totalSupply } from '../../core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
@@ -41,8 +42,29 @@ import { nameToExtra, finderName, finderAnzeige } from '../../chain/finderName.t
 import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
+import { ordneEin, KettenBeobachter, type KettenEreignis } from './kettenEreignis.ts';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
+
+/**
+ * Pruefsumme der laufenden Programmdatei (SHA-256, hex).
+ *
+ * Damit ist jederzeit nachweisbar, welcher Code laeuft -- auch von aussen
+ * ueber /status. Ein Vergleich mit einem frischen Build aus einem Commit
+ * zeigt, ob die Datei unveraendert ist. Zuvor ging das nur von Hand auf
+ * dem Server.
+ *
+ * Laeuft der Knoten aus dem Quelltext (--experimental-strip-types), ist es
+ * die Pruefsumme von cli.ts -- fuer Tests ausreichend. Laesst sich die
+ * Datei nicht lesen, steht null da; der Knoten startet trotzdem.
+ */
+function eigenePruefsumme(): string | null {
+  try {
+    const datei = process.argv[1];
+    if (!datei) return null;
+    return createHash('sha256').update(readFileSync(datei)).digest('hex');
+  } catch { return null; }
+}
 /** Wie oft das Fenster des Pools gesichert wird (wie in Node Core). */
 const FENSTER_TAKT_MS = 120_000;
 /** Wie oft im Betrieb eine Uebersichtszeile ins Protokoll geht. */
@@ -76,6 +98,12 @@ interface Optionen {
   seeds: string[];
   /** P2P ganz aus. */
   keinP2P: boolean;
+  /**
+   * Verbindungsgrenzen (--max-inbound, --max-outbound, --max-inbound-per-ip).
+   * null = Vorgabe des PeerManagers (32 ein, 8 aus, keine Grenze je Absender).
+   * Rohtext, geprueft wird in mine() -- wie bei --mempool-mb.
+   */
+  maxEin: string | null; maxAus: string | null; maxEinJeIp: string | null;
   /** Name des Pools. Leer = kein Pool, nur Solo-Mining. */
   poolName: string;
   /** Gebuehr in Basispunkten, 0 bis 500. */
@@ -94,6 +122,8 @@ interface Optionen {
    * keine Grenzen je Absender.
    */
   absender: 'proxy' | 'socket' | null;
+  /** Begrenzung der Mining-Anfragen (--mining-limits on|off). Vorgabe: an. */
+  miningGrenzen: boolean;
   /**
    * Nur mit --regtest: Fassung 6 ab dieser Hoehe statt nie (--v6-height).
    * Fuer den Uebergangstest mit alten und neuen Knoten nebeneinander.
@@ -121,9 +151,9 @@ function argumente(argv: string[]): Optionen {
     befehl: BEFEHL_ALIAS[roh] ?? roh,
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
-    p2pPort: 8646, seeds: [], keinP2P: false,
+    p2pPort: 8646, seeds: [], keinP2P: false, maxEin: null, maxAus: null, maxEinJeIp: null,
     poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null, mempoolMb: null,
-    absender: null, schluessel: './testkonto.json',
+    absender: null, miningGrenzen: true, schluessel: './testkonto.json',
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -147,6 +177,9 @@ function argumente(argv: string[]): Optionen {
       case '--pool-payout': o.poolAuszahlung = nimm(); break;
       case '--pool-max': o.poolMax = Number(nimm()); break;
       case '--mempool-mb': o.mempoolMb = Number(nimm()); break;
+      case '--max-inbound': o.maxEin = nimm() ?? ''; break;
+      case '--max-outbound': o.maxAus = nimm() ?? ''; break;
+      case '--max-inbound-per-ip': o.maxEinJeIp = nimm() ?? ''; break;
       case '--sender-ip': {
         const w = nimm();
         if (w !== 'proxy' && w !== 'socket') {
@@ -154,6 +187,15 @@ function argumente(argv: string[]): Optionen {
           process.exit(1);
         }
         o.absender = w;
+        break;
+      }
+      case '--mining-limits': {
+        const w = nimm();
+        if (w !== 'on' && w !== 'off') {
+          console.error(`  --mining-limits takes "on" or "off", not "${w}".`);
+          process.exit(1);
+        }
+        o.miningGrenzen = w === 'on';
         break;
       }
       case '--v6-height': o.v6Hoehe = nimm(); break;
@@ -201,6 +243,37 @@ const blau = (s: string) => f('94', s);
 const uhr = () => new Date().toTimeString().slice(0, 8);
 /** Zahlen im englischen Format: 6,809. */
 const nf = (n: number | bigint) => Number(n).toLocaleString('en-US');
+
+/**
+ * Reorgs und Konkurrenzbloecke seit dem Start -- fuer /status.
+ * Ein Zaehler fuer alle Wege, auf denen Bloecke ankommen (P2P, HTTP-Abgleich).
+ */
+const beobachter = new KettenBeobachter();
+
+/**
+ * Eine Zeile fuer Ereignisse, die mehr sind als ein normaler Block.
+ * Gibt true zurueck, wenn eine Zeile geschrieben wurde.
+ */
+function meldeEreignis(e: KettenEreignis, von?: string): boolean {
+  beobachter.nimm(e);
+  const quelle = von ? `${P}from ${von}` : '';
+  if (e.art === 'reorg') {
+    log('reorg', gelb, gelb(`switched to the branch with more work${P}depth ${nf(e.tiefe)}${P}height ${nf(e.kopfHoehe)}${P}` +
+      `branches split after height ${nf(e.abzweigHoehe ?? 0)}`) +
+      grau(`${P}old tip ${(e.alterKopf ?? '').slice(0, 16)}…${P}new tip ${e.neuerKopf.slice(0, 16)}…${quelle}`));
+    return true;
+  }
+  if (e.art === 'nebenzweig') {
+    log('fork', gelb, `competing block at height ${nf(e.blockHoehe)} stored${P}active chain unchanged at height ${
+      nf(e.kopfHoehe)}${quelle}`);
+    return true;
+  }
+  if (e.art === 'aufgeholt') {
+    log('catch-up', blau, `${nf(e.neu)} blocks activated at once${P}no block displaced${P}height ${nf(e.kopfHoehe)}${quelle}`);
+    return true;
+  }
+  return false;
+}
 
 /**
  * Meldung ausgeben, ohne die laufende Statuszeile zu zerreissen.
@@ -601,10 +674,8 @@ async function sync(
       if (r.stored) {
         geprueft++;
         if (pool) mempoolNachziehen(r, pool, chain.state(), chain.height());
-        if (r.reorg) {
-          log('reorg', gelb, `switched to the branch with more work${P}height ${nf(r.height)}${P}` +
-            `new tip ${toHex(r.tip).slice(0, 16)}…`);
-        }
+        // Reorg nur, wenn wirklich Bloecke verdraengt wurden (kettenEreignis.ts).
+        meldeEreignis(ordneEin(r, b.height), opt.api);
       }
       von = b.height + 1;
     }
@@ -691,14 +762,43 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   if (mb !== null && !(Number.isFinite(mb) && mb >= 1 && mb <= 4096)) {
     abbruch('--mempool-mb needs a number from 1 to 4096');
   }
+  /*
+    Verbindungsgrenzen als Startoptionen. Vorher liess sich die Zahl der
+    eingehenden Verbindungen nur aendern, indem man das gebuendelte Programm
+    von Hand bearbeitete -- und jedes Update setzte sie still zurueck.
+  */
+  const grenze = (name: string, roh: string | null, min: number, max: number): number | undefined => {
+    if (roh === null) return undefined;
+    const n = /^\d+$/.test(roh) ? Number(roh) : NaN;
+    if (!(n >= min && n <= max)) abbruch(`${name} needs a whole number from ${min} to ${max}, not "${roh}"`);
+    return n;
+  };
+  const maxEin = grenze('--max-inbound', opt.maxEin, 1, 1000);
+  const maxAus = grenze('--max-outbound', opt.maxAus, 1, 64);
+  const maxEinJeIp = grenze('--max-inbound-per-ip', opt.maxEinJeIp, 0, 1000);
+  if (maxEin !== undefined && maxEinJeIp !== undefined && maxEinJeIp > maxEin) {
+    abbruch('--max-inbound-per-ip cannot be larger than --max-inbound',
+      `--max-inbound ${maxEin}, --max-inbound-per-ip ${maxEinJeIp}`);
+  }
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
-    host: opt.bind, port: opt.port, params, absender: opt.absender,
+    host: opt.bind, port: opt.port, params, absender: opt.absender, grenzen: opt.miningGrenzen,
   });
   // Weicht ein Job aus der Vorarbeit je vom vollen Blockbau ab, schaltet
   // sich die Vorarbeit ab -- und das gehoert ins Protokoll.
   koordinator.onFehler = (wo, e) => log('error', rot, rot(`${wo}: ${e.message}`));
+
+  // Version und Pruefsumme in /status: welcher Code laeuft, von aussen pruefbar.
+  const BUILD = eigenePruefsumme();
+  server.zusatzStatus = () => ({
+    version: VERSION, build: BUILD, ...beobachter.stand(),
+    ...(netz ? { p2p: {
+      inbound: netz.zahlEin(), outbound: netz.zahlAus(),
+      maxInbound: maxEin ?? 32, maxOutbound: maxAus ?? 8, maxInboundPerIp: maxEinJeIp ?? 0,
+      rejectedPerIp: netz.abgewiesenJeAdresse,
+    } } : {}),
+  });
 
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
@@ -799,6 +899,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       agent: `yskar-node/${VERSION} ${STATS_FAEHIG}`,
       listenPort: opt.p2pPort,
       seeds,
+      maxEin, maxAus, maxEinJeAdresse: maxEinJeIp,
       kette: () => {
         const t = chain.tip();
         return { height: t?.height ?? -1, chainWork: t?.chainWork ?? 0n };
@@ -831,9 +932,14 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     abgleich = new SyncManager({
       chain, store, peers: netz, params, pool,
-      onBlock: (h, hash, von) => {
+      onBlock: (h, hash, von, ereignis) => {
         koordinator.invalidate();
-        log('block', gruen, `#${nf(h)}${P}from peer ${von}${blockInfo(hash)}${grau(` · ${hash.slice(0, 16)}…`)}`);
+        // Reorg, Konkurrenzblock oder mehrere Bloecke auf einmal bekommen
+        // eine eigene Zeile; ein normaler Block die bisherige.
+        const besonders = ereignis ? meldeEreignis(ereignis, `peer ${von}`) : false;
+        if (!besonders) {
+          log('block', gruen, `#${nf(h)}${P}from peer ${von}${blockInfo(hash)}${grau(` · ${hash.slice(0, 16)}…`)}`);
+        }
 
         /*
           Auch Bloecke aus dem Netz in den Spiegel geben. Sobald der Knoten
@@ -948,7 +1054,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
   kopf('mine');
   abschnitt('NODE');
-  zeile('VERSION', `yskar-node ${VERSION}${P}node ${process.version.slice(1)}${P}${process.platform} ${process.arch}`);
+  zeile('VERSION', `yskar-node ${VERSION}${P}build ${BUILD ? BUILD.slice(0, 16) + '…' : grau('unknown')}${P}node ${
+    process.version.slice(1)}${P}${process.platform} ${process.arch}`);
   zeile('NETWORK', netzName(params));
   zeile('DATA', `${opt.daten}/chain.db${P}${nf(store.count())} blocks stored`);
   const tip0 = chain.tip();
@@ -962,7 +1069,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   abschnitt('SERVICES');
   zeile('MINING API', `http://${opt.bind}:${opt.port}${P}${opt.absender === 'proxy'
     ? 'sender limits from X-Forwarded-For (behind a proxy)'
-    : opt.absender === 'socket' ? 'sender limits from the connection' : grau('no limits per sender')}`);
+    : opt.absender === 'socket' ? 'sender limits from the connection' : grau('no limits per sender')}${P}${
+    opt.miningGrenzen ? 'request limits per session on' : gelb('request limits off')}`);
   if (opt.poolName) {
     const pk = server.poolKoordinator;
     const v6ab = naechsteAktivierung(params);
@@ -978,7 +1086,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   }
   zeile('PEERS', netz
     ? `${opt.p2pPort > 0 ? `listening on 0.0.0.0:${opt.p2pPort}` : 'outgoing only'}${
-        opt.seeds.length ? `${P}${opt.seeds.length} ${opt.seeds.length > 1 ? 'seeds' : 'seed'}` : ''}`
+        opt.seeds.length ? `${P}${opt.seeds.length} ${opt.seeds.length > 1 ? 'seeds' : 'seed'}` : ''}${P}up to ${
+        maxEin ?? 32} in, ${maxAus ?? 8} out${maxEinJeIp ? `, ${maxEinJeIp} per IP` : ''}`
     : grau('off'));
   zeile('FORWARDING', nachOben
     ? `found blocks go to the peers and to ${nachOben}${P}sync every 30 s from ${opt.api}`
@@ -1209,6 +1318,7 @@ const HILFE = () => `
    ${cyan('    --bind <addr>     ')} address to listen on ${grau('(default: 127.0.0.1)')}
    ${cyan('    --port <n>        ')} port ${grau('(default: 8645)')}
    ${cyan('    --sender-ip <how> ')} limit per sender: proxy (X-Forwarded-For) or socket ${grau('(default: no limits)')}
+   ${cyan('    --mining-limits <on|off>')} limit mining requests per session (and per IP with --sender-ip) ${grau('(default: on)')}
    ${cyan('    --upstream <url>  ')} where found blocks go ${grau('(default: --api)')}
    ${cyan('    --no-upstream     ')} keep found blocks on this node and its peers
    ${cyan('    --mempool-mb <n>  ')} mempool limit in MB ${grau('(default: 32, ≈ 190,000 transfers)')}
@@ -1223,6 +1333,9 @@ const HILFE = () => `
    ${cyan('    --p2p-port <n>    ')} port for other nodes ${grau('(default: 8646)')}
    ${cyan('    --seed host:port  ')} a known node, can be given several times
    ${cyan('    --no-p2p          ')} run without other nodes
+   ${cyan('    --max-inbound <n> ')} incoming connections, 1–1000 ${grau('(default: 32)')}
+   ${cyan('    --max-outbound <n>')} outgoing connections, 1–64 ${grau('(default: 8)')}
+   ${cyan('    --max-inbound-per-ip <n>')} incoming per IPv4 address or IPv6 /64, 0 = no limit ${grau('(default: 0)')}
 
  ${fett('TEST TRANSFERS')} ${grau('(--regtest only)')}
    ${cyan('    --key <file>      ')} test key ${grau('(default: ./testkonto.json)')}

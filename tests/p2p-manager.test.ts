@@ -11,6 +11,8 @@ import assert from 'node:assert/strict';
 import { PeerManager } from '../src/lib/node/p2p/PeerManager.ts';
 import { encodeAddr, decodeAddr, peerKey } from '../src/lib/node/p2p/messages.ts';
 import { REGTEST } from '../src/lib/core/networks.ts';
+import { createConnection } from 'node:net';
+import { adressSchluessel } from '../src/lib/node/fassung.ts';
 
 const warte = (ms: number) => new Promise(r => setTimeout(r, ms));
 let port = 19200;
@@ -328,4 +330,67 @@ test('Ein Seed mit Namen wird nicht immer wieder neu verbunden', async () => {
   assert.equal(a.zahlEin(), 1, 'A sieht mehr als eine Verbindung von B');
 
   await a.stop(); await b.stop();
+});
+
+// ------------------------------------------------- Grenze je Absender (Phase 0)
+
+
+test('Adressschluessel: IPv4 ganz, IPv4-in-IPv6 wie IPv4, IPv6 als /64', () => {
+  assert.equal(adressSchluessel('203.0.113.7'), '203.0.113.7');
+  assert.equal(adressSchluessel('::ffff:203.0.113.7'), '203.0.113.7');
+  assert.equal(adressSchluessel('2a12:edc0:4:2f01::1'), '2a12:edc0:4:2f01::/64');
+  assert.equal(adressSchluessel('2a12:edc0:4:2f01:aaaa:bbbb:cccc:dddd'), '2a12:edc0:4:2f01::/64');
+  assert.equal(adressSchluessel('2A12:EDC0:0004:2F01::9'), '2a12:edc0:4:2f01::/64', 'Schreibweise egal');
+  assert.equal(adressSchluessel('2a12:edc0::1'), '2a12:edc0:0:0::/64', '"::" wird aufgeloest');
+  assert.notEqual(adressSchluessel('2a12:edc0:4:2f01::1'), adressSchluessel('2a12:edc0:4:2f02::1'));
+  assert.equal(adressSchluessel('fe80::1%eth0'), 'fe80:0:0:0::/64', 'Zonenangabe wird ignoriert');
+});
+
+/** Eine rohe TCP-Verbindung von einer bestimmten Loopback-Adresse aus. */
+function roh(port: number, von: string) {
+  const s = createConnection({ host: '127.0.0.1', port, localAddress: von });
+  s.on('error', () => { /* abgewiesen */ });
+  return s;
+}
+
+test('Grenze je Absender: die dritte Verbindung derselben IP wird geschlossen, andere IPs kommen herein', async () => {
+  const pA = naechsterPort();
+  const a = new PeerManager({
+    params: REGTEST, agent: 'test/0.1', listenPort: pA, host: '127.0.0.1',
+    maxEin: 10, maxEinJeAdresse: 2,
+    kette: () => ({ height: 1, chainWork: 100n }),
+  });
+  await a.start();
+
+  const gleicheIp = [roh(pA, '127.0.0.5'), roh(pA, '127.0.0.5'), roh(pA, '127.0.0.5')];
+  await warte(300);
+  assert.equal(a.zahlEin(), 2, `von 127.0.0.5 sind ${a.zahlEin()} eingehende, erlaubt sind 2`);
+  assert.equal(a.abgewiesenJeAdresse, 1);
+
+  // Eine andere IP ist davon nicht betroffen -- auch nicht, wenn die erste an ihrer Grenze ist.
+  const andere = [roh(pA, '127.0.0.6'), roh(pA, '127.0.0.6')];
+  await warte(300);
+  assert.equal(a.zahlEin(), 4);
+  assert.equal(a.abgewiesenJeAdresse, 1);
+
+  // Niemand wurde vermerkt: Eine zusaetzliche Verbindung ist kein Fehlverhalten.
+  assert.equal(a.vermerkteAnzahl(), 0);
+
+  for (const s of [...gleicheIp, ...andere]) s.destroy();
+  await a.stop();
+});
+
+test('Ohne Grenze je Absender (Vorgabe) gilt nur die Gesamtgrenze -- wie bisher', async () => {
+  const pA = naechsterPort();
+  const a = new PeerManager({
+    params: REGTEST, agent: 'test/0.1', listenPort: pA, host: '127.0.0.1', maxEin: 10,
+    kette: () => ({ height: 1, chainWork: 100n }),
+  });
+  await a.start();
+  const s = [roh(pA, '127.0.0.7'), roh(pA, '127.0.0.7'), roh(pA, '127.0.0.7'), roh(pA, '127.0.0.7')];
+  await warte(300);
+  assert.equal(a.zahlEin(), 4);
+  assert.equal(a.abgewiesenJeAdresse, 0);
+  for (const x of s) x.destroy();
+  await a.stop();
 });

@@ -187,6 +187,9 @@ event it is, so the journal can be filtered with `grep`:
 | `block     #<n> · from peer <host> · <t> transfers · miner <name> · <hash>…` | A block from the network was validated and stored. `miner` is the name the finder wrote into the block, if any |
 | `rejected  block from <host> rejected: <reason>` | A peer sent a block that breaks the rules. The local chain is not affected |
 | `fork` / `reorg` | The HTTP source follows another branch / the node switched to the branch with more work |
+| `reorg     switched to the branch with more work · depth <d> · height <h> · branches split after height <a>` | A real reorganization since 1.0.1: `d` blocks of the old chain were displaced. Followed by the old and the new tip |
+| `fork      competing block at height <h> stored · active chain unchanged at height <n>` | A valid block on a side branch with less work. Nothing was displaced |
+| `sync      <n> blocks activated at once · no block displaced · height <h>` | A missing parent arrived and several waiting blocks became active together. Not a reorg |
 | `block     ★ BLOCK FOUND  #<n>` | A miner connected to this node found a block. In pool mode the reward is split in that block |
 | `consensus revision 6 activates in <n> blocks` | Reminder at 1,000, 500, 100 and 10 blocks before the activation |
 | `consensus ★ REVISION 6 ACTIVE  from block #10,000` | The node has passed the activation height while running |
@@ -301,6 +304,11 @@ ignored without a message.
 | `--pool-max <n>` | chain limit | `mine` | Highest number of addresses in the pool, 1 to 255. The chain limit is 64, or 63 when a fee is set (255 and 254 from consensus revision 6); a larger value never exceeds it |
 | `--mempool-mb <n>` | 32 | `mine` | Limit of the mempool in MB of serialized transactions, 1 to 4096. When it is full, a higher fee per byte evicts the cheapest (see [The mempool](#the-mempool)) |
 | `--sender-ip <proxy\|socket>` | none | `mine` | Recognize the sender of mining requests and apply the per-sender session limits. `proxy`: the last entry of `X-Forwarded-For`, for a node behind a reverse proxy that sets this header itself (Caddy does). `socket`: the address of the connection, only for a node without a proxy in front. Without this option there are no per-sender limits |
+| `--mining-limits <on\|off>` | `on` | `mine` | Limit mining requests (since 1.0.1). Per session: `/job` 2 per second with 100 at once, `/share` 50 per second with 2,000 at once. With `--sender-ip` also per IP: new sessions 5 per second with 500 at once, all mining requests 200 per second with 5,000 at once. `off` restores the behaviour before 1.0.1. See [Limits and errors](#limits-and-errors) |
+| `--max-inbound <n>` | `32` | `mine` | Most incoming P2P connections, 1 to 1000 (since 1.0.1) |
+| `--max-outbound <n>` | `8` | `mine` | Most outgoing P2P connections, 1 to 64 (since 1.0.1) |
+| `--max-inbound-per-ip <n>` | `0` (no limit) | `mine` | Most incoming P2P connections from one IPv4 address or one IPv6 /64, 0 to 1000, not larger than `--max-inbound` (since 1.0.1). A connection over the limit is closed right away; no connected peer is pushed out and nobody is marked as misbehaving |
+| `--version` | | | Print the version and exit |
 | `-h`, `--help` | | | Print the help text and exit |
 
 Notes:
@@ -309,6 +317,11 @@ Notes:
   machines. The node prints a warning, because this interface accepts work and builds blocks.
 - The P2P listener always binds to `0.0.0.0`. There is no option for a different address.
 - A `--seed` value that is not of the form `host:port` stops the node with an error.
+- An invalid value for `--max-inbound`, `--max-outbound`, `--max-inbound-per-ip` or
+  `--mining-limits` stops the node with an error before it opens anything.
+- Change these values with start options, never by editing `dist/yskar-node.cjs`. `/status`
+  reports `build`, the sha256 of the running program file; a hand-edited bundle no longer
+  matches the released one.
 - The pool name is written into the coinbase of every pool block. It must be 3 to 32 printable
   ASCII characters and contain at least one letter or digit.
 
@@ -432,7 +445,7 @@ The reasons are listed under [The mempool](#the-mempool).
 
 | Method and path | Purpose |
 |---|---|
-| `GET /status` | Node status: `network`, `height`, `bestBlock`, `chainWork`, `difficulty`, `difficultyWert`, `blocksStored`, `tips`, `mempool`, `sessions`, `openJobs` |
+| `GET /status` | Node status: `network`, `height`, `bestBlock`, `chainWork`, `difficulty`, `difficultyWert`, `blocksStored`, `tips`, `mempool`, `sessions`, `openJobs`. Since 1.0.1 also (on the `mine` command): `version`, `build` (sha256 of the running program file), `reorgs` (`count`, `deepest`, `last`, `since`), `forks` (`count`, `since`), `miningLimits` (`enabled`, `perSender`, `rejected`) and, with the node network, `p2p` (`inbound`, `outbound`, `maxInbound`, `maxOutbound`, `maxInboundPerIp`, `rejectedPerIp`). The counters start at zero with every start |
 | `GET /summary` | Key figures of the chain: height, difficulty, hashrate, tip hash, state root, supply, next block reward, mempool size, miners |
 | `GET /blocks?limit=<n>&before=<height>` | Recent blocks of the active chain, newest first. `limit` defaults to 25 and is at most 100 |
 | `GET /blocks/<height>` | One block of the active chain with header, chain work and all transactions |
@@ -468,6 +481,15 @@ hashrate from the chain are computed once per tip.
 | Job lifetime | 90,000 ms |
 | Credited nonces per session and job | 10,000 |
 | `platform` text in a session | 64 characters |
+| `/job` per session (`--mining-limits on`) | 2 per second, 100 at once |
+| `/share` per session (`--mining-limits on`) | 50 per second, 2,000 at once |
+| New sessions per IP (`--mining-limits on`, only with `--sender-ip`) | 5 per second, 500 at once |
+| Mining requests per IP (`--mining-limits on`, only with `--sender-ip`) | 200 per second, 5,000 at once |
+
+The mining limits were measured, not guessed: a miner with 50 GH/s that submits every hit sends
+at most 133 shares and 7 job requests in its first second, while the share target is still
+low, and about one share per second after that (`tests/mining-grenzen.test.ts`). Several miners
+behind one address are not limited together, because the narrow limits apply per session.
 
 | HTTP status | Body | When |
 |---|---|---|
@@ -476,10 +498,12 @@ hashrate from the chain are computed once per tip.
 | 404 | `not_found` | Unknown route, block or transaction |
 | 404 | `pool_unavailable` | `GET /pool` on a node without a pool |
 | 409 | `pool_full` | New address for a full pool |
+| 429 | `rate_limited` | Too many `/session` or `/job` requests (`--mining-limits on`). The `Retry-After` header and the `retryAfter` field give the seconds to wait (1 to 60) |
 | 500 | `internal` | An error inside the node. The answer names the request (`where`) but not the error text; the node prints the error in its own log |
 
 `POST /session`, `GET /job`, `POST /share` and `POST /tx` report refusals with HTTP status 200
-and an `error` or `reason` field in the body.
+and an `error` or `reason` field in the body. The exception is 429 above. Too many shares are
+refused like any other share: HTTP 200 with `accepted: false` and `reason: "rate_limited"`.
 
 ## Mining against your own node
 
@@ -492,8 +516,8 @@ node src/cli.mjs --address ysr1... --api http://127.0.0.1:8645
 ```
 
 Replace `ysr1...` with your address. The miner needs only the address, never a private key. Pass
-`--api` explicitly: the miner's built-in default, `https://yskar.vercel.app`, no longer issues
-mining jobs. The miner is described in [its README](../miner/README.md).
+`--api` explicitly: without it the miner uses its built-in default, `https://pool.yskar.app`,
+the main node, and does not mine against your own node. The miner is described in [its README](../miner/README.md).
 
 In this setup the miner works solo. The node builds every job itself and puts a coinbase to your
 address into it. When the miner finds a block, the node validates it, adds it to its chain and
@@ -618,8 +642,13 @@ gains more work. There is no depth limit for a reorg and there are no checkpoint
 When a block simply extends the active chain, nothing is displaced and nothing has to be
 rebuilt: the node marks the block as active and keeps the state it computed while validating
 the block, whose root it has just compared with the root in the block's header. On a snapshot
-height it saves that state as a snapshot. The node reports a reorg only when the new tip's
-parent is not the old tip.
+height it saves that state as a snapshot.
+
+Since 1.0.1 the node tells four cases apart by what the change did to the active chain, not by
+whether the new tip's parent was the old tip: a block that extends the chain, several waiting
+blocks activated at once (no block displaced), a competing block stored on a side branch
+(active chain unchanged), and a real reorg (blocks of the old chain displaced). Only the last
+is logged as `reorg`, with its depth, and counted in `reorgs` in `/status`.
 
 ## The mempool
 

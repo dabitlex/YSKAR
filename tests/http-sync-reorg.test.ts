@@ -81,6 +81,9 @@ test('Abzweigung unter dem eigenen Kopf: sync geht zurueck und wechselt auf den 
     assert.equal(r.code, 0, r.aus);
     assert.match(r.aus, /follows another branch/);
     assert.match(r.aus, /switched to the branch with more work/);
+    // Bloecke 7 bis 11 verlassen die aktive Kette: Tiefe 5, Abzweigung nach 6; der Wechsel geschieht bei Hoehe 12, sobald der Zweig mehr Arbeit hat.
+    assert.match(r.aus, /depth 5 · height 12 · branches split after height 6/);
+    assert.equal((r.aus.match(/switched to the branch with more work/g) ?? []).length, 1, 'genau eine Reorg-Meldung');
     const k = kopf(daten);
     assert.equal(k.height, 14);
     assert.equal(k.hash, toHex(b[b.length - 1].hash));

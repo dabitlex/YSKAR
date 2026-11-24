@@ -43,6 +43,7 @@ import type { MiningCoordinator, MiningJob } from './MiningCoordinator.ts';
 import { ReadApi } from './ReadApi.ts';
 import type { PoolCoordinator, MiningModus } from '../../pool/PoolCoordinator.ts';
 import { spiegelKopf } from './spiegelKopf.ts';
+import { Drossel, type Kontingent } from './Drossel.ts';
 
 /** Angestrebter Abstand zwischen zwei Shares, in Sekunden. */
 const SHARE_ZIEL_SEKUNDEN = 30;
@@ -150,6 +151,42 @@ const TREFFER_JE_JOB_MAX = 10_000;
 /** Die Angabe "platform" ist nur fuer die Anzeige; laenger wird sie nicht aufgehoben. */
 const PLATFORM_MAX = 64;
 
+/*
+  Begrenzung der Mining-Anfragen (Drossel.ts, --mining-limits).
+
+  Zwei Ebenen:
+
+  JE SITZUNG -- unabhaengig von der IP. Jeder Miner hat seine eigene
+  Sitzung und damit sein eigenes Kontingent. Zehn Miner hinter einem
+  Anschluss behindern sich also nicht gegenseitig.
+
+  JE ABSENDER-IP -- nur mit --sender-ip (wie die uebrigen Grenzen je
+  Absender). Begrenzt neue Sitzungen und die Summe aller Mining-Anfragen
+  einer IP, so grosszuegig, dass mehrere hundert Geraete hinter einem
+  Anschluss normal arbeiten. (Unabhaengig davon gilt mit --sender-ip die
+  aeltere Regel SITZUNGEN_OHNE_ARBEIT_JE_ABSENDER.)
+
+  DIE WERTE SIND GEMESSEN, nicht geraten (tests/mining-grenzen.test.ts):
+  Ein einzelner Miner mit 50 GH/s, der jeden Treffer sofort einreicht --
+  schlimmer als jeder echte Miner, die GPU-Programme melden hoechstens einen
+  Treffer je Stapel --, schickte beim Start ab Ziel 128 in 20 s insgesamt 9
+  Job-Abrufe (hoechstens 7 in einer Sekunde) und 140 Shares (hoechstens
+  133 in einer Sekunde), danach etwa 1 bis 2 Shares je Sekunde, bis das
+  Ziel bei rund 30 s je Share ankommt. Die Vorraete decken diesen Start
+  mehr als zehnfach, die Raten liegen weit ueber dem Dauerbetrieb eines
+  ehrlichen Miners (rund 2 Job-Abrufe und 2 Shares je Minute).
+*/
+/** /job je Sitzung: 2 je Sekunde, 100 auf einmal. */
+const GRENZE_JOB = { rate: 2, vorrat: 100 };
+/** /share je Sitzung: 50 je Sekunde, 2.000 auf einmal. */
+const GRENZE_SHARE = { rate: 50, vorrat: 2_000 };
+/** Neue Sitzungen je IP (nur mit --sender-ip): 5 je Sekunde, 500 auf einmal. */
+const GRENZE_SITZUNG_IP = { rate: 5, vorrat: 500 };
+/** Alle Mining-Anfragen je IP (nur mit --sender-ip): 200 je Sekunde, 5.000 auf einmal. */
+const GRENZE_GESAMT_IP = { rate: 200, vorrat: 5_000 };
+/** So viele Schluessel haelt jede Drossel hoechstens (aelteste fallen heraus). */
+const DROSSEL_SCHLUESSEL = 20_000;
+
 /** Eine Anfrage, die nicht stimmt -- der Fehler liegt beim Absender, nicht hier. */
 class AnfrageFehler extends Error {}
 /**
@@ -235,6 +272,13 @@ export interface ServerOptionen {
   params?: ConsensusParams;
   /** Woher der Absender einer Anfrage kommt -- siehe MiningServer.absenderQuelle. */
   absender?: AbsenderQuelle;
+  /**
+   * Begrenzung der Mining-Anfragen (siehe GRENZE_*). Vorgabe: an. false
+   * schaltet alle Drosseln ab -- das Verhalten ist dann wie vor 1.0.1.
+   * Ein Objekt ersetzt einzelne Werte (nur fuer Tests; die Kommandozeile
+   * kennt nur an und aus).
+   */
+  grenzen?: boolean | Partial<Record<'job' | 'share' | 'sitzungIp' | 'gesamtIp', Kontingent>>;
 }
 
 /**
@@ -272,6 +316,11 @@ export class MiningServer {
 
   /** Siehe AbsenderQuelle. */
   absenderQuelle: AbsenderQuelle = null;
+
+  /** Drosseln fuer Mining-Anfragen; null = abgeschaltet (--mining-limits off). */
+  private drosseln: {
+    job: Drossel; share: Drossel; sitzungIp: Drossel; gesamtIp: Drossel;
+  } | null = null;
 
   /**
    * Name, der in die Coinbase der Pool-Bloecke dieses Knotens kommt.
@@ -478,6 +527,13 @@ export class MiningServer {
    */
   zulassen?: (req: IncomingMessage) => boolean;
 
+  /**
+   * Zusaetzliche Felder fuer GET /status, zum Beispiel Version, Pruefsumme
+   * des Programms und Reorg-Zaehler. Der Aufrufer (cli.ts) setzt sie; ohne
+   * Angabe bleibt /status wie bisher. Die festen Felder unten haben Vorrang.
+   */
+  zusatzStatus?: () => Record<string, unknown>;
+
   /** Wird bei jedem angenommenen Block gerufen -- fuer die Anzeige. */
   onBlock?: (h: number, hash: string, adresse: string) => void;
 
@@ -518,6 +574,15 @@ export class MiningServer {
     this.mining = teile.mining;
     this.params = opt.params ?? MAINNET;
     this.absenderQuelle = opt.absender ?? null;
+    if (opt.grenzen !== false) {
+      const w = typeof opt.grenzen === 'object' ? opt.grenzen : {};
+      this.drosseln = {
+        job: new Drossel(w.job ?? GRENZE_JOB, DROSSEL_SCHLUESSEL),
+        share: new Drossel(w.share ?? GRENZE_SHARE, DROSSEL_SCHLUESSEL),
+        sitzungIp: new Drossel(w.sitzungIp ?? GRENZE_SITZUNG_IP, DROSSEL_SCHLUESSEL),
+        gesamtIp: new Drossel(w.gesamtIp ?? GRENZE_GESAMT_IP, DROSSEL_SCHLUESSEL),
+      };
+    }
 
     /*
       Die Leseschnittstelle.
@@ -639,6 +704,31 @@ export class MiningServer {
       return this.json(res, { error: 'forbidden' }, 403);
     }
 
+    /*
+      Begrenzung der Mining-Anfragen -- vor jeder Arbeit.
+
+      Nur die drei Mining-Routen. Leseschnittstelle und /tx bleiben
+      unberuehrt: Der Mempool hat eigene Grenzen, und Lesen baut keinen
+      Block.
+    */
+    const d = this.drosseln;
+    const mining = pfad === '/session' || pfad === '/job' || pfad === '/share';
+    if (d && mining) {
+      const ip = this.absenderVon(req);
+      if (ip !== null && !d.gesamtIp.erlaubt(ip)) {
+        return this.zuViele(res, d.gesamtIp.wartezeit(ip));
+      }
+      if (ip !== null && req.method === 'POST' && pfad === '/session' && !d.sitzungIp.erlaubt(ip)) {
+        return this.zuViele(res, d.sitzungIp.wartezeit(ip));
+      }
+      if (req.method === 'GET' && pfad === '/job') {
+        const id = url.searchParams.get('session');
+        if (id && this.sessions.has(id) && !d.job.erlaubt(id)) {
+          return this.zuViele(res, d.job.wartezeit(id));
+        }
+      }
+    }
+
     try {
       if (req.method === 'POST' && pfad === '/session') {
         const s = await this.session(req);
@@ -739,13 +829,31 @@ export class MiningServer {
     }
   }
 
-  private json(res: ServerResponse, daten: unknown, status = 200): void {
+  private json(res: ServerResponse, daten: unknown, status = 200, kopf: Record<string, string> = {}): void {
     const text = JSON.stringify(daten);
     res.writeHead(status, {
       'content-type': 'application/json',
       'content-length': Buffer.byteLength(text),
+      ...kopf,
     });
     res.end(text);
+  }
+
+  /**
+   * Zu viele Anfragen: HTTP 429 mit Retry-After.
+   *
+   * Alle Miner behandeln eine Antwort ab 400 bei /session und /job schon
+   * heute als voruebergehenden Fehler und versuchen es spaeter erneut
+   * (Android nach 5 bis 60 s, Kommandozeile ueber die Neuanmeldung, Node
+   * Core nach 10 s). Eine neue Behandlung braucht keiner.
+   */
+  private zuViele(res: ServerResponse, sekunden: number): void {
+    const warten = Math.min(60, Math.max(1, sekunden));
+    this.json(res, {
+      error: 'rate_limited',
+      detail: `Too many requests from this miner -- please wait ${warten} s.`,
+      retryAfter: warten,
+    }, 429, { 'retry-after': String(warten) });
   }
 
   /**
@@ -1017,6 +1125,14 @@ export class MiningServer {
     const s = this.sessions.get(String(b.sessionId));
     if (!s) return { accepted: false, reason: 'session_inactive' };
     s.zuletzt = Date.now();
+    /*
+      Zu viele Shares in dieser Sitzung: abgelehnt wie jeder andere Share,
+      mit HTTP 200 -- so versteht es jeder bestehende Miner. Gezaehlt wird
+      er nicht als Fehler des Miners.
+    */
+    if (this.drosseln && !this.drosseln.share.erlaubt(s.id)) {
+      return { accepted: false, reason: 'rate_limited', detail: 'Too many shares from this session -- please slow down.' };
+    }
 
     const jobId = String(b.jobId);
     if (s.jobId !== jobId) {
@@ -1363,7 +1479,11 @@ export class MiningServer {
 
   private status(): Record<string, unknown> {
     const tip = this.chain.tip();
+    let zusatz: Record<string, unknown> = {};
+    try { zusatz = this.zusatzStatus?.() ?? {}; }
+    catch (e) { this.onFehler?.('status extras', e as Error); }
     return {
+      ...zusatz,
       network: this.params.network,
       height: tip?.height ?? null,
       bestBlock: tip ? toHex(tip.hash) : null,
@@ -1375,6 +1495,14 @@ export class MiningServer {
       mempool: this.pool.size(),
       sessions: this.aktiveSessions(),
       openJobs: this.mining.offeneJobs(),
+      miningLimits: this.drosseln ? {
+        enabled: true,
+        perSender: this.absenderQuelle !== null,
+        rejected: {
+          job: this.drosseln.job.abgewiesen, share: this.drosseln.share.abgewiesen,
+          sessionsPerIp: this.drosseln.sitzungIp.abgewiesen, totalPerIp: this.drosseln.gesamtIp.abgewiesen,
+        },
+      } : { enabled: false },
     };
   }
 }

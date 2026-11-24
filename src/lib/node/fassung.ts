@@ -123,3 +123,49 @@ export function netzGruppe(host: string): string {
   }
   return h.toLowerCase();
 }
+
+/**
+ * Schluessel fuer die Grenze eingehender Verbindungen je Absender
+ * (--max-inbound-per-ip).
+ *
+ *   IPv4                 die ganze Adresse
+ *   IPv4 in IPv6         (::ffff:a.b.c.d) wie IPv4
+ *   IPv6                 die ersten 64 Bit
+ *
+ * Warum /64 bei IPv6: Ein Anschluss bekommt ueblicherweise ein ganzes /64.
+ * Darin kann der Inhaber beliebig viele Adressen benutzen -- eine Grenze je
+ * einzelner IPv6-Adresse liesse sich also beliebig umgehen.
+ *
+ * Alles andere (Namen, Unlesbares) zaehlt als eigener Schluessel.
+ */
+export function adressSchluessel(host: string): string {
+  const h = host.toLowerCase().replace(/^\[|\]$/g, '').replace(/%.*$/, '');
+  const v4 = h.startsWith('::ffff:') ? h.slice(7) : h;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(v4)) return v4;
+  if (!h.includes(':')) return h;
+  const gruppen = ipv6Gruppen(h);
+  if (!gruppen) return h;
+  return gruppen.slice(0, 4).map(g => g.toString(16)).join(':') + '::/64';
+}
+
+/** IPv6 in acht 16-Bit-Gruppen, mit aufgeloestem "::". null bei Unlesbarem. */
+function ipv6Gruppen(h: string): number[] | null {
+  const doppelt = h.split('::');
+  if (doppelt.length > 2) return null;
+  const teil = (s: string) => (s === '' ? [] : s.split(':'));
+  const links = teil(doppelt[0]);
+  const rechts = doppelt.length === 2 ? teil(doppelt[1]) : [];
+  // Eine eingebettete IPv4 am Ende zaehlt als zwei Gruppen.
+  const letzte = (rechts.length ? rechts : links);
+  const ende = letzte[letzte.length - 1];
+  if (ende && ende.includes('.')) {
+    const o = ende.split('.').map(Number);
+    if (o.length !== 4 || o.some(x => !(x >= 0 && x <= 255))) return null;
+    letzte.splice(letzte.length - 1, 1, ((o[0] << 8) | o[1]).toString(16), ((o[2] << 8) | o[3]).toString(16));
+  }
+  const fehlt = 8 - links.length - rechts.length;
+  if (doppelt.length === 1 ? fehlt !== 0 : fehlt < 1) return null;
+  const alle = [...links, ...Array(doppelt.length === 2 ? fehlt : 0).fill('0'), ...rechts];
+  const zahlen = alle.map(g => /^[0-9a-f]{1,4}$/.test(g) ? parseInt(g, 16) : NaN);
+  return zahlen.some(Number.isNaN) ? null : zahlen;
+}

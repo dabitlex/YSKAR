@@ -25,7 +25,7 @@ import {
 } from './messages.ts';
 import type { Command, Frame } from './wire.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
-import { IMPLEMENTIERTE_FASSUNG, imVerdraengungsfenster, netzGruppe } from '../fassung.ts';
+import { IMPLEMENTIERTE_FASSUNG, imVerdraengungsfenster, netzGruppe, adressSchluessel } from '../fassung.ts';
 
 /** Ausgehende Verbindungen -- selbst ausgesucht. */
 export const MAX_AUS = 8;
@@ -64,6 +64,12 @@ export interface NetzOptionen {
   seeds?: { host: string; port: number }[];
   maxAus?: number;
   maxEin?: number;
+  /**
+   * Hoechstens so viele eingehende Verbindungen je Absender (IPv4-Adresse
+   * bzw. IPv6-/64, siehe adressSchluessel). 0 oder ohne Angabe: keine
+   * Grenze -- wie bisher.
+   */
+  maxEinJeAdresse?: number;
   /** Aktuelle Kette -- bei jedem Handschlag frisch gelesen. */
   kette: () => { height: number; chainWork: bigint };
   onMessage?: (p: PeerConnection, f: Frame) => void;
@@ -179,6 +185,8 @@ export class PeerManager {
   bereite(): PeerConnection[] { return this.alle().filter(p => p.ready); }
   zahlAus(): number { return this.alle().filter(p => p.richtung === 'aus').length; }
   zahlEin(): number { return this.alle().filter(p => p.richtung === 'ein').length; }
+  /** Seit dem Start wegen der Grenze je Absender abgewiesene Verbindungen. */
+  abgewiesenJeAdresse = 0;
   buchGroesse(): number { return this.buch.size; }
 
   info(): PeerInfo[] { return this.bereite().map(p => p.info()); }
@@ -223,6 +231,29 @@ export class PeerManager {
 
   private nimmAn(sock: Socket): void {
     if (!this.laeuft) { sock.destroy(); return; }
+
+    /*
+      Grenze je Absender (--max-inbound-per-ip).
+
+      Hat dieser Absender schon so viele eingehende Verbindungen, wird die
+      neue geschlossen. Niemand wird dafuer verdraengt und nichts vermerkt:
+      Mehrere ehrliche Knoten hinter einem Anschluss sind normal, und eine
+      zusaetzliche Verbindung ist kein Fehlverhalten. Sie verhindert nur,
+      dass eine einzelne Quelle alle Eingangsplaetze belegt.
+    */
+    const jeAdresse = this.opt.maxEinJeAdresse ?? 0;
+    if (jeAdresse > 0) {
+      const schluessel = adressSchluessel(sock.remoteAddress ?? '');
+      let gleich = 0;
+      for (const p of this.alle()) {
+        if (p.richtung === 'ein' && adressSchluessel(p.host) === schluessel) gleich++;
+      }
+      if (gleich >= jeAdresse) {
+        this.abgewiesenJeAdresse++;
+        sock.destroy();
+        return;
+      }
+    }
 
     /*
       Sind die eingehenden Plaetze voll, wird EIN Platz freigemacht -- und
