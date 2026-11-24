@@ -1887,10 +1887,19 @@ export class NodeCoreApp {
       peers: this.peers,
       params,
       pool: this.pool,
-      onBlock: (height, hash, from) => {
+      onBlock: (height, hash, from, ereignis) => {
         this.fortschritt = Date.now();
         this.minerNeuAusrichten();
-        this.log(`Block #${height} von ${from} · ${hash.slice(0, 32)}…`);
+        // Reorg und Konkurrenzblock eigens melden (kettenEreignis.ts): nur
+        // ein Reorg verdraengt Bloecke aus der aktiven Kette.
+        if (ereignis?.art === 'reorg') {
+          this.log(`Reorg: Zweig gewechselt · Tiefe ${ereignis.tiefe} · Höhe ${ereignis.kopfHoehe} · `
+            + `Zweige trennen sich nach Höhe ${ereignis.abzweigHoehe} · von ${from}`);
+        } else if (ereignis?.art === 'nebenzweig') {
+          this.log(`Konkurrenzblock auf Höhe ${ereignis.blockHoehe} gespeichert · aktive Kette unverändert · von ${from}`);
+        } else {
+          this.log(`Block #${height} von ${from} · ${hash.slice(0, 32)}…`);
+        }
       },
       onLog: text => this.log(text),
     });

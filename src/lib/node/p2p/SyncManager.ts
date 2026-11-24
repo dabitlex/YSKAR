@@ -15,6 +15,7 @@
  * Koerper geholt -- sonst laedt man Bloecke herunter, die man gleich wieder
  * verwirft.
  */
+import { ordneEin, type KettenEreignis } from '../fullnode/kettenEreignis.ts';
 import { deserializeBlock, headerHash, deserializeHeader, HEADER_SIZE } from '../../core/block.ts';
 import { targetFromDifficulty } from '../../core/params.ts';
 import { liefertBloeckeAb, IMPLEMENTIERTE_FASSUNG } from '../fassung.ts';
@@ -156,8 +157,15 @@ export interface SyncOptionen {
    * sie dazu: Ohne sie bleibt der Mempool nach einem fremden Block stehen.
    */
   pool?: TxPool;
-  /** Wird bei jedem angenommenen fremden Block gerufen. */
-  onBlock?: (hoehe: number, hash: string, vonPeer: string) => void;
+  /**
+   * Wird bei jedem angenommenen fremden Block gerufen.
+   *
+   * `ereignis` sagt, was der Block mit der aktiven Kette gemacht hat
+   * (kettenEreignis.ts): normaler Block, mehrere auf einmal, Konkurrenzblock
+   * auf einem Nebenzweig oder echter Reorg mit Tiefe. Optional -- wer nur
+   * die ersten drei Angaben liest, merkt keinen Unterschied.
+   */
+  onBlock?: (hoehe: number, hash: string, vonPeer: string, ereignis?: KettenEreignis) => void;
   onLog?: (text: string) => void;
   /**
    * Wie viele Header eine Nachricht hoechstens traegt. Vorgabe MAX_HEADERS.
@@ -810,7 +818,7 @@ export class SyncManager {
         mempoolNachziehen(r, this.pool, this.chain.state(), this.chain.height());
       }
 
-      this.opt.onBlock?.(r.height, hash, p.host);
+      this.opt.onBlock?.(r.height, hash, p.host, ordneEin(r, kopf.height));
       // Weitersagen -- aber nicht dem, von dem er kam.
       this.kuendigeAn(headerHash(deserializeBlock(roh).header), p);
     }

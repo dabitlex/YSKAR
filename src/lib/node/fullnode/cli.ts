@@ -42,6 +42,7 @@ import { nameToExtra, finderName, finderAnzeige } from '../../chain/finderName.t
 import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
+import { ordneEin, KettenBeobachter, type KettenEreignis } from './kettenEreignis.ts';
 
 const VERSION = '1.0.1';
 
@@ -222,6 +223,37 @@ const blau = (s: string) => f('94', s);
 const uhr = () => new Date().toTimeString().slice(0, 8);
 /** Zahlen im englischen Format: 6,809. */
 const nf = (n: number | bigint) => Number(n).toLocaleString('en-US');
+
+/**
+ * Reorgs und Konkurrenzbloecke seit dem Start -- fuer /status.
+ * Ein Zaehler fuer alle Wege, auf denen Bloecke ankommen (P2P, HTTP-Abgleich).
+ */
+const beobachter = new KettenBeobachter();
+
+/**
+ * Eine Zeile fuer Ereignisse, die mehr sind als ein normaler Block.
+ * Gibt true zurueck, wenn eine Zeile geschrieben wurde.
+ */
+function meldeEreignis(e: KettenEreignis, von?: string): boolean {
+  beobachter.nimm(e);
+  const quelle = von ? `${P}from ${von}` : '';
+  if (e.art === 'reorg') {
+    log('reorg', gelb, gelb(`switched to the branch with more work${P}depth ${nf(e.tiefe)}${P}height ${nf(e.kopfHoehe)}${P}` +
+      `branches split after height ${nf(e.abzweigHoehe ?? 0)}`) +
+      grau(`${P}old tip ${(e.alterKopf ?? '').slice(0, 16)}…${P}new tip ${e.neuerKopf.slice(0, 16)}…${quelle}`));
+    return true;
+  }
+  if (e.art === 'nebenzweig') {
+    log('fork', gelb, `competing block at height ${nf(e.blockHoehe)} stored${P}active chain unchanged at height ${
+      nf(e.kopfHoehe)}${quelle}`);
+    return true;
+  }
+  if (e.art === 'aufgeholt') {
+    log('catch-up', blau, `${nf(e.neu)} blocks activated at once${P}no block displaced${P}height ${nf(e.kopfHoehe)}${quelle}`);
+    return true;
+  }
+  return false;
+}
 
 /**
  * Meldung ausgeben, ohne die laufende Statuszeile zu zerreissen.
@@ -622,10 +654,8 @@ async function sync(
       if (r.stored) {
         geprueft++;
         if (pool) mempoolNachziehen(r, pool, chain.state(), chain.height());
-        if (r.reorg) {
-          log('reorg', gelb, `switched to the branch with more work${P}height ${nf(r.height)}${P}` +
-            `new tip ${toHex(r.tip).slice(0, 16)}…`);
-        }
+        // Reorg nur, wenn wirklich Bloecke verdraengt wurden (kettenEreignis.ts).
+        meldeEreignis(ordneEin(r, b.height), opt.api);
       }
       von = b.height + 1;
     }
@@ -723,7 +753,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
   // Version und Pruefsumme in /status: welcher Code laeuft, von aussen pruefbar.
   const BUILD = eigenePruefsumme();
-  server.zusatzStatus = () => ({ version: VERSION, build: BUILD });
+  server.zusatzStatus = () => ({ version: VERSION, build: BUILD, ...beobachter.stand() });
 
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
@@ -856,9 +886,14 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     abgleich = new SyncManager({
       chain, store, peers: netz, params, pool,
-      onBlock: (h, hash, von) => {
+      onBlock: (h, hash, von, ereignis) => {
         koordinator.invalidate();
-        log('block', gruen, `#${nf(h)}${P}from peer ${von}${blockInfo(hash)}${grau(` · ${hash.slice(0, 16)}…`)}`);
+        // Reorg, Konkurrenzblock oder mehrere Bloecke auf einmal bekommen
+        // eine eigene Zeile; ein normaler Block die bisherige.
+        const besonders = ereignis ? meldeEreignis(ereignis, `peer ${von}`) : false;
+        if (!besonders) {
+          log('block', gruen, `#${nf(h)}${P}from peer ${von}${blockInfo(hash)}${grau(` · ${hash.slice(0, 16)}…`)}`);
+        }
 
         /*
           Auch Bloecke aus dem Netz in den Spiegel geben. Sobald der Knoten

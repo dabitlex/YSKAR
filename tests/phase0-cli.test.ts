@@ -68,6 +68,13 @@ test('/status nennt Version und die Pruefsumme der laufenden Programmdatei', asy
     const erwartet = createHash('sha256').update(readFileSync(CLI)).digest('hex');
     assert.equal(k.status.build, erwartet);
     assert.match(k.ausgabe(), new RegExp(`build ${erwartet.slice(0, 16)}`));
+    // Reorg- und Nebenzweig-Zaehler seit dem Start, beim Start bei null.
+    const reorgs = k.status.reorgs as { count: number; deepest: number; last: unknown };
+    const forks = k.status.forks as { count: number };
+    assert.equal(reorgs.count, 0);
+    assert.equal(reorgs.deepest, 0);
+    assert.equal(reorgs.last, null);
+    assert.equal(forks.count, 0);
     // Die bisherigen Felder bleiben unveraendert da.
     for (const feld of ['network', 'height', 'bestBlock', 'chainWork', 'tips', 'mempool', 'sessions', 'openJobs']) {
       assert.ok(feld in k.status, `Feld ${feld} fehlt`);
