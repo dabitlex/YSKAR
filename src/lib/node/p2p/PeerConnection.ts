@@ -29,7 +29,7 @@ import {
 } from './messages.ts';
 import type { ConsensusParams } from '../../core/networks.ts';
 import { toHex } from '../../core/codec.ts';
-import { gemeldeteFassung, naechsteAktivierung } from '../fassung.ts';
+import { gemeldeteFassung, naechsteAktivierung, normalisiereHost } from '../fassung.ts';
 
 /** Wie lange der Handschlag dauern darf. */
 export const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -170,7 +170,7 @@ export class PeerConnection {
     this.nonces = opt.nonces ?? null;
     this.nonces?.merke(this.eigeneNonce);
 
-    this.host = opt.socket.remoteAddress ?? '?';
+    this.host = normalisiereHost(opt.socket.remoteAddress ?? '?');
     this.port = opt.socket.remotePort ?? 0;
 
     this.sock.on('data', (b: Buffer) => this.aufDaten(b));

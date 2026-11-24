@@ -148,6 +148,23 @@ export function adressSchluessel(host: string): string {
   return gruppen.slice(0, 4).map(g => g.toString(16)).join(':') + '::/64';
 }
 
+/**
+ * Die Adresse eines Gegenuebers, wie sie im Knoten gefuehrt wird.
+ *
+ * Lauscht der Knoten auf "::" (IPv4 und IPv6 zugleich), meldet das
+ * Betriebssystem einen IPv4-Peer als "::ffff:1.2.3.4". Im Adressbuch, in
+ * der Grenze je Absender und in der Erkennung der eigenen Adresse muss
+ * derselbe Peer aber immer gleich heissen -- sonst stuende er doppelt im
+ * Buch. Deshalb wird die IPv4-Form daraus. Alles andere bleibt, nur klein
+ * geschrieben.
+ */
+export function normalisiereHost(host: string): string {
+  const h = host.toLowerCase();
+  const v4 = h.startsWith('::ffff:') ? h.slice(7) : null;
+  if (v4 && /^\d{1,3}(\.\d{1,3}){3}$/.test(v4)) return v4;
+  return h;
+}
+
 /** IPv6 in acht 16-Bit-Gruppen, mit aufgeloestem "::". null bei Unlesbarem. */
 function ipv6Gruppen(h: string): number[] | null {
   const doppelt = h.split('::');
