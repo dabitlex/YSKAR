@@ -478,6 +478,13 @@ export class MiningServer {
    */
   zulassen?: (req: IncomingMessage) => boolean;
 
+  /**
+   * Zusaetzliche Felder fuer GET /status, zum Beispiel Version, Pruefsumme
+   * des Programms und Reorg-Zaehler. Der Aufrufer (cli.ts) setzt sie; ohne
+   * Angabe bleibt /status wie bisher. Die festen Felder unten haben Vorrang.
+   */
+  zusatzStatus?: () => Record<string, unknown>;
+
   /** Wird bei jedem angenommenen Block gerufen -- fuer die Anzeige. */
   onBlock?: (h: number, hash: string, adresse: string) => void;
 
@@ -1363,7 +1370,11 @@ export class MiningServer {
 
   private status(): Record<string, unknown> {
     const tip = this.chain.tip();
+    let zusatz: Record<string, unknown> = {};
+    try { zusatz = this.zusatzStatus?.() ?? {}; }
+    catch (e) { this.onFehler?.('status extras', e as Error); }
     return {
+      ...zusatz,
       network: this.params.network,
       height: tip?.height ?? null,
       bestBlock: tip ? toHex(tip.hash) : null,

@@ -17,6 +17,7 @@
  * yskar-spiegel auf dem Hauptknoten ruft "spiegel" auf.
  */
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { liesErgebnis, pruefe as pruefeNachricht } from '../../core/signedMessage.ts';
 import { stateRootAt, totalSupply } from '../../core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../fassung.ts';
@@ -42,7 +43,27 @@ import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
+
+/**
+ * Pruefsumme der laufenden Programmdatei (SHA-256, hex).
+ *
+ * Damit ist jederzeit nachweisbar, welcher Code laeuft -- auch von aussen
+ * ueber /status. Ein Vergleich mit einem frischen Build aus einem Commit
+ * zeigt, ob die Datei unveraendert ist. Zuvor ging das nur von Hand auf
+ * dem Server.
+ *
+ * Laeuft der Knoten aus dem Quelltext (--experimental-strip-types), ist es
+ * die Pruefsumme von cli.ts -- fuer Tests ausreichend. Laesst sich die
+ * Datei nicht lesen, steht null da; der Knoten startet trotzdem.
+ */
+function eigenePruefsumme(): string | null {
+  try {
+    const datei = process.argv[1];
+    if (!datei) return null;
+    return createHash('sha256').update(readFileSync(datei)).digest('hex');
+  } catch { return null; }
+}
 /** Wie oft das Fenster des Pools gesichert wird (wie in Node Core). */
 const FENSTER_TAKT_MS = 120_000;
 /** Wie oft im Betrieb eine Uebersichtszeile ins Protokoll geht. */
@@ -700,6 +721,10 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   // sich die Vorarbeit ab -- und das gehoert ins Protokoll.
   koordinator.onFehler = (wo, e) => log('error', rot, rot(`${wo}: ${e.message}`));
 
+  // Version und Pruefsumme in /status: welcher Code laeuft, von aussen pruefbar.
+  const BUILD = eigenePruefsumme();
+  server.zusatzStatus = () => ({ version: VERSION, build: BUILD });
+
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
   // niemanden, dem man ihn geben koennte.
@@ -948,7 +973,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
   kopf('mine');
   abschnitt('NODE');
-  zeile('VERSION', `yskar-node ${VERSION}${P}node ${process.version.slice(1)}${P}${process.platform} ${process.arch}`);
+  zeile('VERSION', `yskar-node ${VERSION}${P}build ${BUILD ? BUILD.slice(0, 16) + '…' : grau('unknown')}${P}node ${
+    process.version.slice(1)}${P}${process.platform} ${process.arch}`);
   zeile('NETWORK', netzName(params));
   zeile('DATA', `${opt.daten}/chain.db${P}${nf(store.count())} blocks stored`);
   const tip0 = chain.tip();
