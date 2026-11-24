@@ -25,6 +25,11 @@ const HEADER_SIZE = 136;
 interface Job {
   jobId: string;
   height: number;
+  /**
+   * Blockversion, die der Knoten fuer diese Hoehe verlangt (ab Fassung 6:
+   * 6, darunter 1). Fehlt bei sehr alten Knoten -- dann gilt 1.
+   */
+  version?: number;
   prevHash: string;
   merkleRoot: string;
   stateRoot: string;
@@ -65,7 +70,14 @@ function unhex(s: string): Uint8Array {
 function buildHeader(j: Job, high: number): Uint8Array {
   const b = new Uint8Array(HEADER_SIZE);
   const dv = new DataView(b.buffer);
-  dv.setUint32(0, 1, true);                        // version
+  /*
+    Version AUS DEM JOB, nicht fest 1. Ab Block 10.000 (Fassung 6) verlangt
+    die Kette Version 6; mit fest eingetragener 1 rechnete der Knoten beim
+    Pruefen einen anderen Header, und jeder Share fiel als "low_difficulty"
+    durch (Diagnose 24.11.2026). Kommandozeilen-Miner, Android und Node
+    Core lesen die Version schon immer aus dem Job.
+  */
+  dv.setUint32(0, j.version ?? 1, true);           // version
   dv.setUint32(4, j.height, true);
   b.set(unhex(j.prevHash), 8);
   b.set(unhex(j.merkleRoot), 40);
