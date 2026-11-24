@@ -1,6 +1,6 @@
 {
   "name": "yskar-node",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "YSKAR full node — checks the whole chain locally.",
   "type": "module",
   "bin": {

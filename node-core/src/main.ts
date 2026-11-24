@@ -50,6 +50,7 @@ import {
   schreibeFenster, schreibeFensterSofort, kuerze, heimnetzAdressen, type BetriebEinstellung,
 } from './PoolBetrieb.ts';
 import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
+import { HAUPTNETZ_SEEDS } from '../../src/lib/node/p2p/seeds.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
 import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
@@ -138,7 +139,7 @@ const TOKEN_COOKIE = 'yskar_zugang';
 const TOKEN_PLATZ = '__YSKAR_ZUGANG__';
 const DEFAULT_NODE_PORT = 8645;
 const DEFAULT_P2P_PORT = 8646;
-const DEFAULT_SEED = 'pool.yskar.app:8646';
+const DEFAULT_SEED = HAUPTNETZ_SEEDS[0];
 /**
  * Seeds, die heute unter einer anderen Adresse erreichbar sind: alt -> neu.
  * Eine gespeicherte Einstellung mit der alten Adresse wird beim Laden
@@ -161,7 +162,7 @@ export const SEED_UMGEZOGEN: Readonly<Record<string, string>> = {
  * feste IP neben seinem Namen): Der Knoten kann ihn dann unter beiden
  * Adressen anwaehlen und belegt dort zwei Plaetze.
  */
-export const WEITERE_SEEDS: readonly string[] = ['yskar-seed2.dynv6.net:8646'];
+export const WEITERE_SEEDS: readonly string[] = HAUPTNETZ_SEEDS.slice(1);
 
 /**
  * Welche Seeds der Knoten beim Start kennt.
@@ -1853,6 +1854,9 @@ export class NodeCoreApp {
       params,
       agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG}`,
       listenPort: this.config.p2pPort,
+      // Node Core bleibt vorerst bei IPv4 -- IPv6 erst nach einem Test der
+      // Windows-Firewall (Plan Phase 1, Abschnitt 3).
+      host: '0.0.0.0',
       seeds: seedListe(this.config.seed, istMainnet(params)).map(s => this.parseSeed(s)),
       kette: () => {
         const tip = this.chain!.tip();

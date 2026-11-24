@@ -534,6 +534,13 @@ export class MiningServer {
    */
   zusatzStatus?: () => Record<string, unknown>;
 
+  /**
+   * Angaben fuer GET /health, die der Server selbst nicht kennt: Version,
+   * Pruefsumme und das Knotennetz. Setzt cli.ts; ohne Angabe beurteilt
+   * /health nur die Kette.
+   */
+  gesundheitsDaten?: () => GesundheitsDaten;
+
   /** Wird bei jedem angenommenen Block gerufen -- fuer die Anzeige. */
   onBlock?: (h: number, hash: string, adresse: string) => void;
 
@@ -786,6 +793,10 @@ export class MiningServer {
       if (gelesen) return this.json(res, gelesen.body, gelesen.status);
       if (req.method === 'GET' && pfad === '/status') {
         return this.json(res, this.status());
+      }
+      if (req.method === 'GET' && pfad === '/health') {
+        const g = this.gesundheit();
+        return this.json(res, g, g.status === 'down' ? 503 : 200);
       }
 
       /*
@@ -1477,6 +1488,61 @@ export class MiningServer {
     }
   }
 
+  /**
+   * GET /health: Ist dieser Knoten gesund? Ein Urteil mit Begruendung, fuer
+   * Ueberwachungsdienste und spaeter das Pool-Verzeichnis.
+   *
+   *   ok        alles im Rahmen
+   *   degraded  laeuft, aber etwas faellt auf (keine Peers, lange kein
+   *             Block, ein paar Bloecke hinter den Peers)
+   *   down      der Knoten vergibt keine sinnvolle Arbeit: weit hinter den
+   *             Peers oder seit Stunden kein Block -- HTTP 503
+   *
+   * Nur Zahlen, keine Adressen. Billig: Nichts davon fragt die Datenbank
+   * mehr als einmal.
+   */
+  gesundheit(jetztSek = Math.floor(Date.now() / 1000)): Gesundheit {
+    const tip = this.chain.tip();
+    let d: GesundheitsDaten = {};
+    try { d = this.gesundheitsDaten?.() ?? {}; }
+    catch (e) { this.onFehler?.('health data', e as Error); }
+
+    const hoehe = tip?.height ?? -1;
+    const alter = tip ? Math.max(0, jetztSek - Number(tip.blockTime)) : null;
+    const kette: Pruefung = alter === null
+      ? { status: 'down', lastBlockAgeSec: null, detail: 'no chain' }
+      : alter > GESUND_BLOCK_DOWN_S ? { status: 'down', lastBlockAgeSec: alter, detail: 'no block for hours' }
+        : alter > GESUND_BLOCK_WARN_S ? { status: 'degraded', lastBlockAgeSec: alter, detail: 'no block for over an hour' }
+          : { status: 'ok', lastBlockAgeSec: alter };
+
+    const besterPeer = d.besterPeerHoehe ?? null;
+    const zurueck = besterPeer !== null && besterPeer > hoehe ? besterPeer - hoehe : 0;
+    const sync: Pruefung = zurueck > GESUND_ZURUECK_DOWN
+      ? { status: 'down', height: hoehe, bestPeerHeight: besterPeer, behind: zurueck, detail: 'far behind the peers' }
+      : zurueck > GESUND_ZURUECK_WARN
+        ? { status: 'degraded', height: hoehe, bestPeerHeight: besterPeer, behind: zurueck, detail: 'behind the peers' }
+        : { status: 'ok', height: hoehe, bestPeerHeight: besterPeer, behind: zurueck };
+
+    const peers: Pruefung = d.p2p === false || d.peers === undefined
+      ? { status: 'ok', count: null, detail: 'node network off' }
+      : d.peers === 0 ? { status: 'degraded', count: 0, detail: 'no peers' }
+        : { status: 'ok', count: d.peers };
+
+    const mining: Pruefung = { status: 'ok', sessions: this.aktiveSessions(), pool: this.poolKoordinator !== null };
+
+    const checks = { chain: kette, sync, peers, mining };
+    const stufen = Object.values(checks).map(c => c.status);
+    const status = stufen.includes('down') ? 'down' : stufen.includes('degraded') ? 'degraded' : 'ok';
+    return {
+      status,
+      ...(d.version ? { version: d.version } : {}),
+      ...(d.build ? { build: d.build } : {}),
+      network: this.params.network,
+      time: jetztSek,
+      checks,
+    };
+  }
+
   private status(): Record<string, unknown> {
     const tip = this.chain.tip();
     let zusatz: Record<string, unknown> = {};
@@ -1520,4 +1586,40 @@ function zielBytes(ziel: bigint): Uint8Array {
   let x = ziel;
   for (let i = 31; i >= 0; i--) { out[i] = Number(x & 0xffn); x >>= 8n; }
   return out;
+}
+
+/*
+  Schwellen fuer GET /health. Zielzeit je Block: 10 Minuten.
+
+  Eine Stunde ohne Block ist selten, kommt aber vor (Zufall) -- deshalb nur
+  "degraded". Sechs Stunden ohne Block heisst: Der Knoten oder das Netz
+  steht. Bei den Peers zaehlen die Hoehen, die sie beim Handschlag gemeldet
+  haben; aeltere Verbindungen melden eher zu wenig als zu viel.
+*/
+export const GESUND_BLOCK_WARN_S = 60 * 60;
+export const GESUND_BLOCK_DOWN_S = 6 * 60 * 60;
+export const GESUND_ZURUECK_WARN = 2;
+export const GESUND_ZURUECK_DOWN = 6;
+
+/** Was cli.ts fuer /health beisteuert. */
+export interface GesundheitsDaten {
+  version?: string;
+  build?: string;
+  /** Laeuft das Knotennetz? false = --no-p2p. */
+  p2p?: boolean;
+  /** Bereite Peers. */
+  peers?: number;
+  /** Hoechste Hoehe, die ein bereiter Peer gemeldet hat; null = keiner. */
+  besterPeerHoehe?: number | null;
+}
+
+type Stufe = 'ok' | 'degraded' | 'down';
+interface Pruefung { status: Stufe; detail?: string; [k: string]: unknown }
+export interface Gesundheit {
+  status: Stufe;
+  version?: string;
+  build?: string;
+  network: string;
+  time: number;
+  checks: { chain: Pruefung; sync: Pruefung; peers: Pruefung; mining: Pruefung };
 }

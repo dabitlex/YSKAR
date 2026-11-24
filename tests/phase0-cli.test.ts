@@ -56,15 +56,15 @@ function abbruch(extra: string[]): { code: number | null; ausgabe: string } {
   } finally { rmSync(daten, { recursive: true, force: true }); }
 }
 
-test('--version meldet 1.0.1', () => {
+test('--version meldet 1.0.2', () => {
   const r = spawnSync(process.execPath, ['--experimental-strip-types', CLI, '--version'], { encoding: 'utf8' });
-  assert.equal(r.stdout.trim(), '1.0.1');
+  assert.equal(r.stdout.trim(), '1.0.2');
 });
 
 test('/status nennt Version und die Pruefsumme der laufenden Programmdatei', async () => {
   const k = await knoten([]);
   try {
-    assert.equal(k.status.version, '1.0.1');
+    assert.equal(k.status.version, '1.0.2');
     const erwartet = createHash('sha256').update(readFileSync(CLI)).digest('hex');
     assert.equal(k.status.build, erwartet);
     assert.match(k.ausgabe(), new RegExp(`build ${erwartet.slice(0, 16)}`));
@@ -98,7 +98,9 @@ test('Verbindungsgrenzen: Vorgaben wie bisher, sichtbar in /status', async () =>
       try { status = await (await fetch(`http://127.0.0.1:${p}/api/v2/status`)).json() as Record<string, any>; }
       catch { /* noch nicht bereit */ }
     }
-    assert.deepEqual(status!.p2p, { inbound: 0, outbound: 0, maxInbound: 32, maxOutbound: 8, maxInboundPerIp: 0, rejectedPerIp: 0 });
+    const { inbound, outbound, maxInbound, maxOutbound, maxInboundPerIp, rejectedPerIp } = status!.p2p;
+    assert.deepEqual({ inbound, outbound, maxInbound, maxOutbound, maxInboundPerIp, rejectedPerIp },
+      { inbound: 0, outbound: 0, maxInbound: 32, maxOutbound: 8, maxInboundPerIp: 0, rejectedPerIp: 0 });
   } finally { kind.kill('SIGTERM'); await ende; rmSync(daten, { recursive: true, force: true }); }
 });
 

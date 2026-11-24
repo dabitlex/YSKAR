@@ -17,6 +17,7 @@
  * yskar-spiegel auf dem Hauptknoten ruft "spiegel" auf.
  */
 import { readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { createHash } from 'node:crypto';
 import { liesErgebnis, pruefe as pruefeNachricht } from '../../core/signedMessage.ts';
 import { stateRootAt, totalSupply } from '../../core/state.ts';
@@ -32,6 +33,7 @@ import { MiningCoordinator } from './MiningCoordinator.ts';
 import { MiningServer } from './MiningServer.ts';
 import { MAINNET, REGTEST, regtestMitV6, type ConsensusParams } from '../../core/networks.ts';
 import { PeerManager } from '../p2p/PeerManager.ts';
+import { HAUPTNETZ_SEEDS } from '../p2p/seeds.ts';
 import type { PeerConnection } from '../p2p/PeerConnection.ts';
 import { encodeStats, decodeStats, STATS_FAEHIG } from '../p2p/messages.ts';
 import { NetzStatistik } from './NetzStatistik.ts';
@@ -44,7 +46,7 @@ import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 import { ordneEin, KettenBeobachter, type KettenEreignis } from './kettenEreignis.ts';
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 
 /**
  * Pruefsumme der laufenden Programmdatei (SHA-256, hex).
@@ -98,6 +100,10 @@ interface Optionen {
   seeds: string[];
   /** P2P ganz aus. */
   keinP2P: boolean;
+  /** Keine Seeds -- auch nicht die eingebauten (--no-seeds). */
+  keineSeeds: boolean;
+  /** Feste Lauschadresse fuer P2P (--p2p-bind). null = IPv4 und IPv6, Rueckfall auf IPv4. */
+  p2pBind: string | null;
   /**
    * Verbindungsgrenzen (--max-inbound, --max-outbound, --max-inbound-per-ip).
    * null = Vorgabe des PeerManagers (32 ein, 8 aus, keine Grenze je Absender).
@@ -151,7 +157,7 @@ function argumente(argv: string[]): Optionen {
     befehl: BEFEHL_ALIAS[roh] ?? roh,
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
-    p2pPort: 8646, seeds: [], keinP2P: false, maxEin: null, maxAus: null, maxEinJeIp: null,
+    p2pPort: 8646, seeds: [], keinP2P: false, keineSeeds: false, p2pBind: null, maxEin: null, maxAus: null, maxEinJeIp: null,
     poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null, mempoolMb: null,
     absender: null, miningGrenzen: true, schluessel: './testkonto.json',
   };
@@ -172,6 +178,8 @@ function argumente(argv: string[]): Optionen {
       case '--p2p-port': o.p2pPort = Number(nimm()); break;
       case '--seed': o.seeds.push(nimm()); break;
       case '--no-p2p': o.keinP2P = true; break;
+      case '--no-seeds': o.keineSeeds = true; break;
+      case '--p2p-bind': o.p2pBind = nimm(); break;
       case '--pool': o.poolName = nimm(); break;
       case '--pool-fee': o.poolFee = Number(nimm()); break;
       case '--pool-payout': o.poolAuszahlung = nimm(); break;
@@ -780,6 +788,21 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     abbruch('--max-inbound-per-ip cannot be larger than --max-inbound',
       `--max-inbound ${maxEin}, --max-inbound-per-ip ${maxEinJeIp}`);
   }
+  if (opt.p2pBind !== null && isIP(opt.p2pBind) === 0) {
+    abbruch(`--p2p-bind needs an IP address, not "${opt.p2pBind}"`,
+      'For example: --p2p-bind 0.0.0.0 (IPv4 only) or --p2p-bind :: (IPv4 and IPv6)');
+  }
+  if (opt.keineSeeds && opt.seeds.length > 0) {
+    abbruch('--no-seeds and --seed cannot be used together', 'Either name your seeds, or run without any.');
+  }
+  /*
+    Seeds: genannte (--seed) haben Vorrang. Ohne --seed im Hauptnetz die
+    eingebauten -- sonst haette ein frischer Knoten keinen Einstieg ins
+    Netz. Im Regtest nie: Ein Testknoten waehlt keine Adresse des
+    Hauptnetzes an. --no-seeds: gar keine.
+  */
+  const eingebauteSeeds = !opt.keineSeeds && opt.seeds.length === 0 && !opt.regtest;
+  const seedTexte = eingebauteSeeds ? [...HAUPTNETZ_SEEDS] : opt.seeds;
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
@@ -797,8 +820,17 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       inbound: netz.zahlEin(), outbound: netz.zahlAus(),
       maxInbound: maxEin ?? 32, maxOutbound: maxAus ?? 8, maxInboundPerIp: maxEinJeIp ?? 0,
       rejectedPerIp: netz.abgewiesenJeAdresse,
+      ...netz.netzStand(),
     } } : {}),
   });
+  server.gesundheitsDaten = () => {
+    const bereit = netz?.bereite() ?? [];
+    return {
+      version: VERSION, ...(BUILD ? { build: BUILD } : {}), p2p: netz !== null,
+      peers: bereit.length,
+      besterPeerHoehe: bereit.length ? Math.max(...bereit.map(p => p.fremdeHoehe())) : null,
+    };
+  };
 
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
@@ -888,7 +920,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   };
 
   if (!opt.keinP2P) {
-    const seeds = opt.seeds.map(s => {
+    const seeds = seedTexte.map(s => {
       const i = s.lastIndexOf(':');
       if (i < 1) abbruch(`--seed "${s}" must be host:port`, 'For example: --seed pool.yskar.app:8646');
       return { host: s.slice(0, i), port: Number(s.slice(i + 1)) };
@@ -898,6 +930,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       params,
       agent: `yskar-node/${VERSION} ${STATS_FAEHIG}`,
       listenPort: opt.p2pPort,
+      ...(opt.p2pBind !== null ? { host: opt.p2pBind } : {}),
+      buchDatei: `${opt.daten}/peers.json`,
       seeds,
       maxEin, maxAus, maxEinJeAdresse: maxEinJeIp,
       kette: () => {
@@ -907,7 +941,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       onReady: p => {
         const i = p.info();
         const agent = i.agent.replace(` ${STATS_FAEHIG}`, '').trim();
-        log('peer', gruen, `${p.host} connected${P}height ${nf(p.fremdeHoehe())}${P}revision ${
+        log('peer', gruen, `${p.host} connected ${p.richtung === 'aus' ? 'outbound' : 'inbound'}${P}height ${nf(p.fremdeHoehe())}${P}revision ${
           i.revision || '?'}${agent ? grau(` · ${agent}`) : ''}`);
         if (i.revision > 0 && i.revision < 6 && naechsteAktivierung(params) > 0) {
           log('peer', gelb, `${p.host} speaks revision ${i.revision}${grau(` · kept for transfers, not asked for blocks from ${
@@ -1085,8 +1119,10 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     zeile('POOL', grau('off (solo mining only)'));
   }
   zeile('PEERS', netz
-    ? `${opt.p2pPort > 0 ? `listening on 0.0.0.0:${opt.p2pPort}` : 'outgoing only'}${
-        opt.seeds.length ? `${P}${opt.seeds.length} ${opt.seeds.length > 1 ? 'seeds' : 'seed'}` : ''}${P}up to ${
+    ? `${opt.p2pPort > 0 ? `listening on ${netz.lauschAdresse === '::' ? `[::]:${opt.p2pPort} (IPv4 + IPv6)`
+        : `${netz.lauschAdresse ?? '?'}:${opt.p2pPort}`}` : 'outgoing only'}${
+        seedTexte.length ? `${P}${seedTexte.length} ${seedTexte.length > 1 ? 'seeds' : 'seed'}${eingebauteSeeds ? ' (built in)' : ''}`
+          : `${P}${grau('no seeds')}`}${P}${netz.buchGroesse()} known${P}up to ${
         maxEin ?? 32} in, ${maxAus ?? 8} out${maxEinJeIp ? `, ${maxEinJeIp} per IP` : ''}`
     : grau('off'));
   zeile('FORWARDING', nachOben
@@ -1331,7 +1367,9 @@ const HILFE = () => `
 
  ${fett('PEERS')}
    ${cyan('    --p2p-port <n>    ')} port for other nodes ${grau('(default: 8646)')}
-   ${cyan('    --seed host:port  ')} a known node, can be given several times
+   ${cyan('    --seed host:port  ')} a known node, can be given several times ${grau('(default on the main network: the built-in seeds)')}
+   ${cyan('    --no-seeds        ')} no seeds at all, not even the built-in ones
+   ${cyan('    --p2p-bind <ip>   ')} listen for other nodes only on this address ${grau('(default: IPv4 and IPv6, IPv4 if the system has no IPv6)')}
    ${cyan('    --no-p2p          ')} run without other nodes
    ${cyan('    --max-inbound <n> ')} incoming connections, 1–1000 ${grau('(default: 32)')}
    ${cyan('    --max-outbound <n>')} outgoing connections, 1–64 ${grau('(default: 8)')}
