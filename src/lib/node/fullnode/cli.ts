@@ -98,6 +98,12 @@ interface Optionen {
   seeds: string[];
   /** P2P ganz aus. */
   keinP2P: boolean;
+  /**
+   * Verbindungsgrenzen (--max-inbound, --max-outbound, --max-inbound-per-ip).
+   * null = Vorgabe des PeerManagers (32 ein, 8 aus, keine Grenze je Absender).
+   * Rohtext, geprueft wird in mine() -- wie bei --mempool-mb.
+   */
+  maxEin: string | null; maxAus: string | null; maxEinJeIp: string | null;
   /** Name des Pools. Leer = kein Pool, nur Solo-Mining. */
   poolName: string;
   /** Gebuehr in Basispunkten, 0 bis 500. */
@@ -143,7 +149,7 @@ function argumente(argv: string[]): Optionen {
     befehl: BEFEHL_ALIAS[roh] ?? roh,
     einmal: false, intervall: 60,
     bind: '127.0.0.1', port: 8645, regtest: false,
-    p2pPort: 8646, seeds: [], keinP2P: false,
+    p2pPort: 8646, seeds: [], keinP2P: false, maxEin: null, maxAus: null, maxEinJeIp: null,
     poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null, mempoolMb: null,
     absender: null, schluessel: './testkonto.json',
   };
@@ -169,6 +175,9 @@ function argumente(argv: string[]): Optionen {
       case '--pool-payout': o.poolAuszahlung = nimm(); break;
       case '--pool-max': o.poolMax = Number(nimm()); break;
       case '--mempool-mb': o.mempoolMb = Number(nimm()); break;
+      case '--max-inbound': o.maxEin = nimm() ?? ''; break;
+      case '--max-outbound': o.maxAus = nimm() ?? ''; break;
+      case '--max-inbound-per-ip': o.maxEinJeIp = nimm() ?? ''; break;
       case '--sender-ip': {
         const w = nimm();
         if (w !== 'proxy' && w !== 'socket') {
@@ -742,6 +751,24 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   if (mb !== null && !(Number.isFinite(mb) && mb >= 1 && mb <= 4096)) {
     abbruch('--mempool-mb needs a number from 1 to 4096');
   }
+  /*
+    Verbindungsgrenzen als Startoptionen. Vorher liess sich die Zahl der
+    eingehenden Verbindungen nur aendern, indem man das gebuendelte Programm
+    von Hand bearbeitete -- und jedes Update setzte sie still zurueck.
+  */
+  const grenze = (name: string, roh: string | null, min: number, max: number): number | undefined => {
+    if (roh === null) return undefined;
+    const n = /^\d+$/.test(roh) ? Number(roh) : NaN;
+    if (!(n >= min && n <= max)) abbruch(`${name} needs a whole number from ${min} to ${max}, not "${roh}"`);
+    return n;
+  };
+  const maxEin = grenze('--max-inbound', opt.maxEin, 1, 1000);
+  const maxAus = grenze('--max-outbound', opt.maxAus, 1, 64);
+  const maxEinJeIp = grenze('--max-inbound-per-ip', opt.maxEinJeIp, 0, 1000);
+  if (maxEin !== undefined && maxEinJeIp !== undefined && maxEinJeIp > maxEin) {
+    abbruch('--max-inbound-per-ip cannot be larger than --max-inbound',
+      `--max-inbound ${maxEin}, --max-inbound-per-ip ${maxEinJeIp}`);
+  }
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
@@ -753,7 +780,14 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
   // Version und Pruefsumme in /status: welcher Code laeuft, von aussen pruefbar.
   const BUILD = eigenePruefsumme();
-  server.zusatzStatus = () => ({ version: VERSION, build: BUILD, ...beobachter.stand() });
+  server.zusatzStatus = () => ({
+    version: VERSION, build: BUILD, ...beobachter.stand(),
+    ...(netz ? { p2p: {
+      inbound: netz.zahlEin(), outbound: netz.zahlAus(),
+      maxInbound: maxEin ?? 32, maxOutbound: maxAus ?? 8, maxInboundPerIp: maxEinJeIp ?? 0,
+      rejectedPerIp: netz.abgewiesenJeAdresse,
+    } } : {}),
+  });
 
   // Ohne Weitergabe laege ein gefundener Block nur hier und wuerde beim
   // naechsten Block der anderen Seite verdraengt. Im Testnetz gibt es
@@ -854,6 +888,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       agent: `yskar-node/${VERSION} ${STATS_FAEHIG}`,
       listenPort: opt.p2pPort,
       seeds,
+      maxEin, maxAus, maxEinJeAdresse: maxEinJeIp,
       kette: () => {
         const t = chain.tip();
         return { height: t?.height ?? -1, chainWork: t?.chainWork ?? 0n };
@@ -1039,7 +1074,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   }
   zeile('PEERS', netz
     ? `${opt.p2pPort > 0 ? `listening on 0.0.0.0:${opt.p2pPort}` : 'outgoing only'}${
-        opt.seeds.length ? `${P}${opt.seeds.length} ${opt.seeds.length > 1 ? 'seeds' : 'seed'}` : ''}`
+        opt.seeds.length ? `${P}${opt.seeds.length} ${opt.seeds.length > 1 ? 'seeds' : 'seed'}` : ''}${P}up to ${
+        maxEin ?? 32} in, ${maxAus ?? 8} out${maxEinJeIp ? `, ${maxEinJeIp} per IP` : ''}`
     : grau('off'));
   zeile('FORWARDING', nachOben
     ? `found blocks go to the peers and to ${nachOben}${P}sync every 30 s from ${opt.api}`
@@ -1284,6 +1320,9 @@ const HILFE = () => `
    ${cyan('    --p2p-port <n>    ')} port for other nodes ${grau('(default: 8646)')}
    ${cyan('    --seed host:port  ')} a known node, can be given several times
    ${cyan('    --no-p2p          ')} run without other nodes
+   ${cyan('    --max-inbound <n> ')} incoming connections, 1–1000 ${grau('(default: 32)')}
+   ${cyan('    --max-outbound <n>')} outgoing connections, 1–64 ${grau('(default: 8)')}
+   ${cyan('    --max-inbound-per-ip <n>')} incoming per IPv4 address or IPv6 /64, 0 = no limit ${grau('(default: 0)')}
 
  ${fett('TEST TRANSFERS')} ${grau('(--regtest only)')}
    ${cyan('    --key <file>      ')} test key ${grau('(default: ./testkonto.json)')}

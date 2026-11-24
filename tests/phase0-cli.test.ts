@@ -83,3 +83,59 @@ test('/status nennt Version und die Pruefsumme der laufenden Programmdatei', asy
 });
 
 
+
+test('Verbindungsgrenzen: Vorgaben wie bisher, sichtbar in /status', async () => {
+  const daten = mkdtempSync(join(tmpdir(), 'yskar-phase0-'));
+  const p = port++, p2p = port++;
+  const kind = spawn(process.execPath, ['--experimental-strip-types', CLI, 'mine', '--regtest',
+    '--data', daten, '--port', String(p), '--p2p-port', String(p2p), '--no-upstream'],
+  { stdio: ['ignore', 'pipe', 'pipe'] });
+  const ende = new Promise<number | null>(r => kind.on('exit', c => r(c)));
+  try {
+    let status: Record<string, any> | null = null;
+    for (let i = 0; i < 100 && !status; i++) {
+      await warte(150);
+      try { status = await (await fetch(`http://127.0.0.1:${p}/api/v2/status`)).json() as Record<string, any>; }
+      catch { /* noch nicht bereit */ }
+    }
+    assert.deepEqual(status!.p2p, { inbound: 0, outbound: 0, maxInbound: 32, maxOutbound: 8, maxInboundPerIp: 0, rejectedPerIp: 0 });
+  } finally { kind.kill('SIGTERM'); await ende; rmSync(daten, { recursive: true, force: true }); }
+});
+
+test('Verbindungsgrenzen: gesetzte Werte werden uebernommen', async () => {
+  const daten = mkdtempSync(join(tmpdir(), 'yskar-phase0-'));
+  const p = port++, p2p = port++;
+  const kind = spawn(process.execPath, ['--experimental-strip-types', CLI, 'mine', '--regtest',
+    '--data', daten, '--port', String(p), '--p2p-port', String(p2p), '--no-upstream',
+    '--max-inbound', '125', '--max-outbound', '10', '--max-inbound-per-ip=8'],
+  { stdio: ['ignore', 'pipe', 'pipe'] });
+  let ausgabe = '';
+  kind.stdout.on('data', d => { ausgabe += d; });
+  const ende = new Promise<number | null>(r => kind.on('exit', c => r(c)));
+  try {
+    let status: Record<string, any> | null = null;
+    for (let i = 0; i < 100 && !status; i++) {
+      await warte(150);
+      try { status = await (await fetch(`http://127.0.0.1:${p}/api/v2/status`)).json() as Record<string, any>; }
+      catch { /* noch nicht bereit */ }
+    }
+    assert.equal(status!.p2p.maxInbound, 125);
+    assert.equal(status!.p2p.maxOutbound, 10);
+    assert.equal(status!.p2p.maxInboundPerIp, 8);
+    assert.match(ausgabe, /up to 125 in, 10 out, 8 per IP/);
+  } finally { kind.kill('SIGTERM'); await ende; rmSync(daten, { recursive: true, force: true }); }
+});
+
+test('Verbindungsgrenzen: ungueltige Werte beenden den Start mit einer Meldung', () => {
+  for (const [args, text] of [
+    [['--max-inbound', '0'], /--max-inbound needs a whole number from 1 to 1000/],
+    [['--max-inbound', 'viele'], /--max-inbound needs a whole number/],
+    [['--max-outbound', '65'], /--max-outbound needs a whole number from 1 to 64/],
+    [['--max-inbound-per-ip', '-1'], /--max-inbound-per-ip needs a whole number from 0 to 1000/],
+    [['--max-inbound', '10', '--max-inbound-per-ip', '20'], /cannot be larger than --max-inbound/],
+  ] as [string[], RegExp][]) {
+    const r = abbruch(args);
+    assert.notEqual(r.code, 0, `${args.join(' ')} haette abbrechen muessen`);
+    assert.match(r.ausgabe, text);
+  }
+});
