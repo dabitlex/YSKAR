@@ -119,12 +119,17 @@ node dist/yskar-node.cjs mine --data ./knoten --seed pool.yskar.app:8646 --seed 
 | `--seed ...` | A known node to connect to first. The main network has two seed nodes; give both |
 | `--no-upstream` | Do not send blocks to the project's web server and do not fetch blocks from it. See [Upstream and the mirror](#upstream-and-the-mirror) |
 
-The command-line node has no seed built in. Without `--seed` it knows no other node.
+Since 1.0.2 the command-line node has the seeds of the main network built in
+(`src/lib/node/p2p/seeds.ts`): without `--seed` it uses them. With `--seed` it uses only the
+seeds given there; with `--no-seeds` none at all. On regtest there are never built-in seeds.
+After the first start the node also knows the peers it has met: it keeps them in
+`./knoten/peers.json` and tries them first after a restart, the seeds being the fallback.
 
 On the first start the node:
 
 1. creates `./knoten/chain.db` and records the network name and the chain ID in it,
-2. opens the P2P listener on `0.0.0.0:8646` and starts connecting to the seeds,
+2. opens the P2P listener on port 8646 for IPv4 and IPv6 (IPv4 only if the system has no
+   IPv6; see `--p2p-bind`) and starts connecting to the peers it knows and to the seeds,
 3. opens the HTTP interface on `127.0.0.1:8645`,
 4. prints its configuration,
 5. downloads the chain from the first peer that has more work, and validates and stores every
@@ -150,7 +155,7 @@ this:
  SERVICES
  * MINING API   http://127.0.0.1:8645 · no limits per sender
  * POOL         off (solo mining only)
- * PEERS        listening on 0.0.0.0:8646 · 2 seeds
+ * PEERS        listening on [::]:8646 (IPv4 + IPv6) · 2 seeds (built in) · 2 known
  * FORWARDING   found blocks go to the peers · no upstream server
  * MEMPOOL      up to 32 MB
  ────────────────────────────────────────────────────────────────────────────────────────
@@ -179,7 +184,10 @@ event it is, so the journal can be filtered with `grep`:
 
 | Line | Meaning |
 |---|---|
-| `peer      listening on 0.0.0.0:8646` | The P2P listener is open. This line is printed before the configuration |
+| `peer      listening on [::]:8646 (IPv4 and IPv6)` | The P2P listener is open. With `--p2p-bind` or without IPv6 it names the IPv4 address instead. This line is printed before the configuration |
+| `peer      IPv6 is not available here (…) -- listening on IPv4 only` | The system refused IPv6. The node listens on IPv4 and runs normally |
+| `peer      address book loaded: <n> addresses, <m> verified` | `peers.json` was read at start |
+| `peer      <host> connected inbound` / `outbound` | Since 1.0.2 the line says who opened the connection |
 | `peer      <host> connected · height <n> · revision <r> · yskar-node/<v>` | The handshake with a peer is complete |
 | `peer      <host> speaks revision 5 · …` | The peer runs an older program. It still receives transfers but is not asked for blocks from the activation height on |
 | `sync      <host> has more work (...)` | The peer's chain has more work; the node asks it for headers |
@@ -309,13 +317,16 @@ ignored without a message.
 | `--max-outbound <n>` | `8` | `mine` | Most outgoing P2P connections, 1 to 64 (since 1.0.1) |
 | `--max-inbound-per-ip <n>` | `0` (no limit) | `mine` | Most incoming P2P connections from one IPv4 address or one IPv6 /64, 0 to 1000, not larger than `--max-inbound` (since 1.0.1). A connection over the limit is closed right away; no connected peer is pushed out and nobody is marked as misbehaving |
 | `--version` | | | Print the version and exit |
+| `--no-seeds` | off | `mine` | No seeds at all, not even the built-in ones (since 1.0.2). Cannot be combined with `--seed` |
+| `--p2p-bind <ip>` | IPv4 and IPv6 | `mine` | Listen for other nodes only on this address, for example `0.0.0.0` for IPv4 only (since 1.0.2). Without it the node listens on `::` and falls back to `0.0.0.0` when the system has no IPv6 |
 | `-h`, `--help` | | | Print the help text and exit |
 
 Notes:
 
 - `--bind` with anything other than `127.0.0.1` makes the HTTP interface reachable from other
   machines. The node prints a warning, because this interface accepts work and builds blocks.
-- The P2P listener always binds to `0.0.0.0`. There is no option for a different address.
+- The P2P listener binds to `::` (IPv4 and IPv6 on one port) and falls back to `0.0.0.0` when
+  the system has no IPv6. `--p2p-bind` fixes the address, without a fallback.
 - A `--seed` value that is not of the form `host:port` stops the node with an error.
 - An invalid value for `--max-inbound`, `--max-outbound`, `--max-inbound-per-ip` or
   `--mining-limits` stops the node with an error before it opens anything.
@@ -445,7 +456,8 @@ The reasons are listed under [The mempool](#the-mempool).
 
 | Method and path | Purpose |
 |---|---|
-| `GET /status` | Node status: `network`, `height`, `bestBlock`, `chainWork`, `difficulty`, `difficultyWert`, `blocksStored`, `tips`, `mempool`, `sessions`, `openJobs`. Since 1.0.1 also (on the `mine` command): `version`, `build` (sha256 of the running program file), `reorgs` (`count`, `deepest`, `last`, `since`), `forks` (`count`, `since`), `miningLimits` (`enabled`, `perSender`, `rejected`) and, with the node network, `p2p` (`inbound`, `outbound`, `maxInbound`, `maxOutbound`, `maxInboundPerIp`, `rejectedPerIp`). The counters start at zero with every start |
+| `GET /health` | Since 1.0.2: a verdict for monitoring. `status` is `ok`, `degraded` or `down`, with `version`, `build`, `network`, `time` and `checks`: `chain` (age of the last block; over 1 hour `degraded`, over 6 hours `down`), `sync` (own height against the highest height a peer reported at its handshake; more than 2 behind `degraded`, more than 6 `down`), `peers` (0 ready peers `degraded`; not judged with `--no-p2p`) and `mining`. HTTP 200 for `ok` and `degraded`, **503 for `down`**, so a monitoring service can alarm on the status code alone. No addresses in the answer |
+| `GET /status` | Node status: `network`, `height`, `bestBlock`, `chainWork`, `difficulty`, `difficultyWert`, `blocksStored`, `tips`, `mempool`, `sessions`, `openJobs`. Since 1.0.1 also (on the `mine` command): `version`, `build` (sha256 of the running program file), `reorgs` (`count`, `deepest`, `last`, `since`), `forks` (`count`, `since`), `miningLimits` (`enabled`, `perSender`, `rejected`) and, with the node network, `p2p` (`inbound`, `outbound`, `maxInbound`, `maxOutbound`, `maxInboundPerIp`, `rejectedPerIp`; since 1.0.2 also `addressBook`, `verified`, `dialable`, `self`, `outboundGroups`, `listen` -- counts only, no addresses). The counters start at zero with every start |
 | `GET /summary` | Key figures of the chain: height, difficulty, hashrate, tip hash, state root, supply, next block reward, mempool size, miners |
 | `GET /blocks?limit=<n>&before=<height>` | Recent blocks of the active chain, newest first. `limit` defaults to 25 and is at most 100 |
 | `GET /blocks/<height>` | One block of the active chain with header, chain work and all transactions |
@@ -557,9 +569,15 @@ after `10`.
 store. A store created for `yskar-main-1` refuses to open for another network. Blocks of two
 chains can never end up in the same file.
 
-**Not stored.** The mempool, mining sessions, the pool's share log and the address book of known
-nodes live in memory. After a restart the mempool is empty, miners open new sessions, and the
-node starts again from its seeds.
+**Not stored.** The mempool, mining sessions and the pool's share log live in memory. After a
+restart the mempool is empty and miners open new sessions.
+
+**The address book** (since 1.0.2) is kept in `./knoten/peers.json`: at most 1,000 addresses,
+saved every two minutes when it changed and when the node stops, written to a side file first
+and then renamed. At start it is checked like an `addr` message from a stranger (plausible
+host, not older than 7 days, not from the future, same network). An unreadable file is renamed
+to `peers.json.unlesbar` and the node starts with its seeds. Deleting the file is harmless: the
+node then starts as before 1.0.2, from its seeds.
 
 ### State snapshots
 

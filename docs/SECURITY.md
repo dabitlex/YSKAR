@@ -353,7 +353,10 @@ on the PC itself.
 - **Address gossip.** A node keeps at most 1,000 peer addresses and accepts addresses on a
   peer's word. The checks are a plausible host name, a timestamp not more than 10 minutes in
   the future and not older than 7 days. The address book does not record who reported an
-  address. A peer that sends many fresh addresses can displace older entries.
+  address. A peer that sends many fresh addresses can displace older entries. Since 1.0.2 a node
+  passes on only addresses it has reached itself, and keeps its address book in `peers.json`.
+  The file is checked at start like an `addr` message; whoever can write to the data folder can
+  still choose which peers the node tries first, but the seeds always remain in the book.
 - **Rate limiting on the HTTP interface covers mining only.** Since 1.0.1 the node limits
   `/session`, `/job` and `/share` (see above). The read API and `POST /tx` are not limited per
   client beyond the size limits and the mempool's own limits; on a publicly offered node,

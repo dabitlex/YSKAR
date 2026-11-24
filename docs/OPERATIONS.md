@@ -405,6 +405,16 @@ sha256sum ~/YSKAR/node/dist/yskar-node.cjs
 If the two differ, the running process was started from another file than the one on disk
 (usually: built but not restarted).
 
+**Monitoring.** `GET /api/v2/health` (since 1.0.2) answers `ok`, `degraded` or `down` and
+returns HTTP 503 only for `down`: no block for 6 hours, or more than 6 blocks behind the peers. A
+monitoring service (for example Uptime Kuma) can watch `https://pool.yskar.app/api/v2/health`
+and alarm on the status code alone. The answer contains no addresses.
+
+**IPv6.** Since 1.0.2 the node listens on port 8646 for IPv4 and IPv6. ufw rules made with
+`ufw allow 8646/tcp` cover both. The `connlimit` rule in `/etc/ufw/before.rules` covers IPv4
+only; for IPv6 the node's own `--max-inbound-per-ip` applies (per /64). `--p2p-bind 0.0.0.0`
+returns to IPv4 only.
+
 `/status` also shows what to watch: `reorgs` (count and deepest since the start),
 `p2p.inbound` against `p2p.maxInbound`, `p2p.rejectedPerIp`, and `miningLimits.rejected`. A
 rising `miningLimits.rejected` with no complaints from miners means someone is flooding; with

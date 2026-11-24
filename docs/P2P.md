@@ -280,8 +280,24 @@ disconnected without a flag.
 ### Address book
 
 The address book holds up to 1,000 addresses (host, port, time last seen, number of failed
-connection attempts in a row). It lives in memory and is empty again after a restart, apart from
-the seeds.
+connection attempts in a row, and whether the address is **verified**). Since 1.0.2 the
+command-line node keeps it in `peers.json` in its data folder and loads it at start, before the
+seeds; see [FULLNODE.md](FULLNODE.md#storage). Node Core keeps it in memory only until its next
+release.
+
+**Heard and verified.** An address is *heard* when a peer passed it on or named it as its
+listening port. It is *verified* once this node has completed a handshake there itself. The node
+dials both, but passes on (`addr`) only verified addresses. Before 1.0.2 a home computer behind
+a router, which names its port but cannot be reached from outside, was passed on to the whole
+network, and every node spent its attempts on the same dead ends (observed at the main node on
+24 November 2026).
+
+**Reachability probe.** A peer that is only connected inbound is never dialed, so the node would
+never learn whether it can be reached. When such a peer names a listening port, the node makes
+one short connection to it with a full handshake and closes it again: one probe at a time, per
+address at most every 6 hours. A probe is not a peer: it takes no slot and exchanges no chain
+data. A newly verified address is passed on at once to two random peers, so others do not have
+to wait for their next `getaddr`.
 
 Addresses received from other nodes pass three filters:
 
@@ -301,14 +317,17 @@ Without this condition a peer could replace the whole book with a flood of old a
 
 This is everything the code does to find other nodes:
 
-- **Seeds.** The addresses given with `--seed` are put into the address book at start. The
-  command-line node has no built-in seed. The main network has two fixed seeds,
-  `pool.yskar.app:8646` and `yskar-seed2.dynv6.net:8646`, on two different machines;
-  Node Core has both built in.
-- **One `getaddr` per connection.** A node asks a peer for addresses once, at the moment the
-  connection becomes ready. It does not ask again while the connection stays open.
-- **Answers contain only recent addresses.** A `getaddr` is answered with at most 500 addresses
-  that were seen in the last three hours and have no failed connection attempt. Passing on old
+- **Seeds.** The main network has two fixed seeds, `pool.yskar.app:8646` and
+  `yskar-seed2.dynv6.net:8646`, on two different machines (`src/lib/node/p2p/seeds.ts`). Since
+  1.0.2 the command-line node uses them when no `--seed` is given; Node Core has always had
+  them built in. A seed that is not already in the stored address book is added as "never seen",
+  so stored peers are tried first and the seeds are the fallback.
+- **`getaddr` at the handshake and every 30 minutes.** A node asks a peer for addresses when the
+  connection becomes ready, and since 1.0.2 asks one random peer again every 30 minutes, so long
+  connections still bring new addresses.
+- **Answers contain only recent, verified addresses.** A `getaddr` is answered with at most 500
+  addresses that are verified, were seen in the last three hours and have no failed connection
+  attempt. Passing on old
   addresses would send others into the same dead end. If no address qualifies, there is no
   answer. A node sends `addr` only as an answer to `getaddr`.
 - **Peers that connect.** When a handshake completes, the node records the peer's address with
@@ -323,7 +342,10 @@ not refreshed while a connection stays open.
 connection attempt, as long as fewer than 8 outbound connections exist or are being opened. One
 attempt per interval is deliberate: a burst of simultaneous connections would strain the node
 and stand out as a pattern on the other side. Among the addresses it is not connected to, the
-node prefers those with the fewest failed attempts and, among those, the most recently seen. An
+node first prefers an address in a network range where it has no outbound connection yet (IPv4
+/16, IPv6 /32; since 1.0.2), then the fewest failed attempts and, among those, the most
+recently seen. If all outbound connections were in one network, whoever controls that network
+could show the node a chain of their choosing. An
 attempt may take 8 seconds. Before the node tries an address again, it waits
 `min(2^failures, 64) × 30` seconds, where `failures` is the number of failed attempts in a row.
 
@@ -546,8 +568,11 @@ miners is a complete participant, and a miner without peers keeps working. If th
 fails, the node still validates its chain.
 
 `--p2p-port` sets the listening port (default 8646). With `--p2p-port 0` the node only opens
-outbound connections. `--no-p2p` switches the node network off. The listener binds to all
-interfaces (`0.0.0.0`).
+outbound connections. `--no-p2p` switches the node network off. Since 1.0.2 the listener binds
+to `::`, which takes IPv4 and IPv6 on one port, and falls back to `0.0.0.0` when the system has
+no IPv6; `--p2p-bind` fixes the address. A peer that reaches an IPv6 listener over IPv4 appears as
+`::ffff:a.b.c.d`; the node turns this into `a.b.c.d` right away, so the same peer has the same
+name in the address book, in the per-address limit and in the detection of its own address.
 
 ## Miner statistics (`stats`)
 

@@ -46,6 +46,12 @@ ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
 #   --seed yskar-seed2...   NEW. The main node dials the second seed itself,
 #                           so the two seeds stay connected even if nobody
 #                           else connects them.
+#                           Since 1.0.2 an explicit --seed replaces the
+#                           built-in list -- right here, the main node does
+#                           not need itself as a seed.
+#
+#   (1.0.2) The node listens on IPv4 and IPv6 and keeps its address book in
+#   ./knoten/peers.json. --p2p-bind 0.0.0.0 would return to IPv4 only.
 #
 #   --mining-limits on      the default, written out so it is visible. Per
 #                           session: /job 2/s (100 at once), /share 50/s
