@@ -163,7 +163,8 @@ const PLATFORM_MAX = 64;
   JE ABSENDER-IP -- nur mit --sender-ip (wie die uebrigen Grenzen je
   Absender). Begrenzt neue Sitzungen und die Summe aller Mining-Anfragen
   einer IP, so grosszuegig, dass mehrere hundert Geraete hinter einem
-  Anschluss normal arbeiten.
+  Anschluss normal arbeiten. (Unabhaengig davon gilt mit --sender-ip die
+  aeltere Regel SITZUNGEN_OHNE_ARBEIT_JE_ABSENDER.)
 
   DIE WERTE SIND GEMESSEN, nicht geraten (tests/mining-grenzen.test.ts):
   Ein einzelner Miner mit 50 GH/s, der jeden Treffer sofort einreicht --
