@@ -17,6 +17,7 @@ database mirror.
 | `yskar-spiegel.service` | one run of the `spiegel` command, which pushes missing blocks to the mirror | the main node only |
 | `yskar-spiegel.timer` | starts that run every 5 minutes | the main node only |
 | `node.env.example` | template for the file that holds the mirror token | the main node only |
+| `hauptknoten.conf.example` | drop-in with the complete production start command of the main node (pool, seed, P2P and mining limits) | the main node only |
 
 The mirror (German "Spiegel") is the read-only database copy of the chain behind
 `https://yskar.vercel.app`. Only the main node writes to it; see

@@ -240,10 +240,14 @@ has to go when space runs out.
 
 ### Slots are the protection, not bans
 
-| Direction | Slots |
-|---|---|
-| Outbound | 8 |
-| Inbound | 32 |
+| Direction | Slots (default) | Start option (since 1.0.1) |
+|---|---|---|
+| Outbound | 8 | `--max-outbound`, 1 to 64 |
+| Inbound | 32 | `--max-inbound`, 1 to 1000 |
+| Inbound from one IPv4 address or one IPv6 /64 | no limit | `--max-inbound-per-ip`, 0 to 1000 |
+
+The main node runs with 125 inbound slots and 8 per address (`deploy/hauptknoten.conf.example`).
+`/status` shows the current counts and limits under `p2p`.
 
 The two are counted separately, and that is the point. A node with only inbound connections
 could be surrounded by an attacker completely: all slots occupied, no contact with the real
@@ -253,6 +257,14 @@ When all inbound slots are taken and a new connection arrives, **one** slot is f
 a flagged peer, otherwise from the inbound peer that has waited longest without completing the
 handshake. If there is neither, the new connection is refused. Without eviction an attacker could
 occupy all slots and then let nobody else in.
+
+The per-address limit is checked before that, when the connection arrives. A connection over
+the limit is closed at once and counted in `p2p.rejectedPerIp`; no connected peer is pushed out
+for it, and the address is not flagged. Many honest nodes behind one address (a home network,
+a data centre) therefore keep their connections; only additional ones are refused. IPv6
+addresses are grouped by /64, because one connection usually owns a whole /64 and could
+otherwise open a connection from every address in it. An IPv4 address mapped into IPv6
+(`::ffff:a.b.c.d`) counts as that IPv4 address.
 
 ### Flagging instead of banning
 

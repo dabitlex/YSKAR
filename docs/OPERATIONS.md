@@ -377,6 +377,34 @@ service. Its start command differs from that of every other node: it has no `--n
 because it is the node that writes to the mirror, and it runs the public pool. The unit file and
 the setup are described in [deploy/README.md](../deploy/README.md).
 
+### The production configuration
+
+The complete start command of the main node is kept in the repository as a systemd drop-in,
+[`deploy/hauptknoten.conf.example`](../deploy/hauptknoten.conf.example), installed as
+`/etc/systemd/system/yskar-node.service.d/hauptknoten.conf`. Every setting the main node needs
+is a start option there: pool name, fee and payout address, the second seed, the P2P limits
+(`--max-inbound 125`, `--max-inbound-per-ip 8`), `--sender-ip proxy` and `--mining-limits on`.
+
+**Never edit `dist/yskar-node.cjs`.** Until November 2026 the main node ran a bundle in which
+the number of inbound slots had been changed by hand. Such an edit cannot be told apart from a
+broken file, and the next `npm run build` silently undoes it. Since 1.0.1 the value is
+`--max-inbound`, and `/status` reports `version` and `build`, the sha256 of the running file.
+After a build, compare it with the file on disk:
+
+```bash
+curl -s http://127.0.0.1:8645/api/v2/status | grep -o '"build":"[0-9a-f]*"'
+sha256sum ~/YSKAR/node/dist/yskar-node.cjs
+```
+
+If the two differ, the running process was started from another file than the one on disk
+(usually: built but not restarted).
+
+`/status` also shows what to watch: `reorgs` (count and deepest since the start),
+`p2p.inbound` against `p2p.maxInbound`, `p2p.rejectedPerIp`, and `miningLimits.rejected`. A
+rising `miningLimits.rejected` with no complaints from miners means someone is flooding; with
+complaints it means a limit is too narrow, and `--mining-limits off` restores the old
+behaviour until it is fixed.
+
 ### Ports
 
 | Port | Protocol | Bound to | Reachable from outside |
@@ -495,6 +523,10 @@ Things to know before you restart:
   start. A clean restart (`systemctl restart`) keeps it. A node that ran a version before this
   change had nothing saved, so its first restart onto this version still starts with an empty
   window; see [POOL.md](POOL.md).
+- **Start options instead of edits.** From 1.0.1 on, settings that were once changed in the
+  bundle are start options (see [The production configuration](#the-production-configuration)).
+  Check the drop-in with `systemctl cat yskar-node` before the restart; an unknown or invalid
+  option stops the node at start with a message in the journal.
 - **Sessions.** Mining sessions are held in memory. Miners open new sessions after the restart:
   the command-line miner from the version of 4 October 2026 on, the Android app from 1.0.9,
   Node Core and the web app. An older command-line miner keeps running without a session and
