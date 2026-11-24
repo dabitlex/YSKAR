@@ -122,6 +122,8 @@ interface Optionen {
    * keine Grenzen je Absender.
    */
   absender: 'proxy' | 'socket' | null;
+  /** Begrenzung der Mining-Anfragen (--mining-limits on|off). Vorgabe: an. */
+  miningGrenzen: boolean;
   /**
    * Nur mit --regtest: Fassung 6 ab dieser Hoehe statt nie (--v6-height).
    * Fuer den Uebergangstest mit alten und neuen Knoten nebeneinander.
@@ -151,7 +153,7 @@ function argumente(argv: string[]): Optionen {
     bind: '127.0.0.1', port: 8645, regtest: false,
     p2pPort: 8646, seeds: [], keinP2P: false, maxEin: null, maxAus: null, maxEinJeIp: null,
     poolName: '', poolFee: 0, poolAuszahlung: '', poolMax: null, mempoolMb: null,
-    absender: null, schluessel: './testkonto.json',
+    absender: null, miningGrenzen: true, schluessel: './testkonto.json',
   };
   for (let i = 0; i < argv.length; i++) {
     const [k, direkt] = argv[i].split('=');
@@ -185,6 +187,15 @@ function argumente(argv: string[]): Optionen {
           process.exit(1);
         }
         o.absender = w;
+        break;
+      }
+      case '--mining-limits': {
+        const w = nimm();
+        if (w !== 'on' && w !== 'off') {
+          console.error(`  --mining-limits takes "on" or "off", not "${w}".`);
+          process.exit(1);
+        }
+        o.miningGrenzen = w === 'on';
         break;
       }
       case '--v6-height': o.v6Hoehe = nimm(); break;
@@ -772,7 +783,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
-    host: opt.bind, port: opt.port, params, absender: opt.absender,
+    host: opt.bind, port: opt.port, params, absender: opt.absender, grenzen: opt.miningGrenzen,
   });
   // Weicht ein Job aus der Vorarbeit je vom vollen Blockbau ab, schaltet
   // sich die Vorarbeit ab -- und das gehoert ins Protokoll.
@@ -1058,7 +1069,8 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
   abschnitt('SERVICES');
   zeile('MINING API', `http://${opt.bind}:${opt.port}${P}${opt.absender === 'proxy'
     ? 'sender limits from X-Forwarded-For (behind a proxy)'
-    : opt.absender === 'socket' ? 'sender limits from the connection' : grau('no limits per sender')}`);
+    : opt.absender === 'socket' ? 'sender limits from the connection' : grau('no limits per sender')}${P}${
+    opt.miningGrenzen ? 'request limits per session on' : gelb('request limits off')}`);
   if (opt.poolName) {
     const pk = server.poolKoordinator;
     const v6ab = naechsteAktivierung(params);
@@ -1306,6 +1318,7 @@ const HILFE = () => `
    ${cyan('    --bind <addr>     ')} address to listen on ${grau('(default: 127.0.0.1)')}
    ${cyan('    --port <n>        ')} port ${grau('(default: 8645)')}
    ${cyan('    --sender-ip <how> ')} limit per sender: proxy (X-Forwarded-For) or socket ${grau('(default: no limits)')}
+   ${cyan('    --mining-limits <on|off>')} limit mining requests per session (and per IP with --sender-ip) ${grau('(default: on)')}
    ${cyan('    --upstream <url>  ')} where found blocks go ${grau('(default: --api)')}
    ${cyan('    --no-upstream     ')} keep found blocks on this node and its peers
    ${cyan('    --mempool-mb <n>  ')} mempool limit in MB ${grau('(default: 32, ≈ 190,000 transfers)')}

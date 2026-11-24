@@ -139,3 +139,27 @@ test('Verbindungsgrenzen: ungueltige Werte beenden den Start mit einer Meldung',
     assert.match(r.ausgabe, text);
   }
 });
+
+test('Mining-Begrenzung: Vorgabe an, --mining-limits off schaltet sie ab', async () => {
+  const an = await knoten([]);
+  try {
+    assert.deepEqual(an.status.miningLimits, {
+      enabled: true, perSender: false, rejected: { job: 0, share: 0, sessionsPerIp: 0, totalPerIp: 0 } });
+    assert.match(an.ausgabe(), /request limits per session on/);
+  } finally { assert.equal(await an.stopp(), 0); }
+  const aus = await knoten(['--mining-limits', 'off']);
+  try {
+    assert.deepEqual(aus.status.miningLimits, { enabled: false });
+    assert.match(aus.ausgabe(), /request limits off/);
+  } finally { assert.equal(await aus.stopp(), 0); }
+  const proxy = await knoten(['--mining-limits=on', '--sender-ip', 'proxy']);
+  try {
+    assert.equal((proxy.status.miningLimits as { perSender: boolean }).perSender, true);
+  } finally { assert.equal(await proxy.stopp(), 0); }
+});
+
+test('Mining-Begrenzung: andere Werte als on und off beenden den Start', () => {
+  const r = abbruch(['--mining-limits', 'vielleicht']);
+  assert.notEqual(r.code, 0);
+  assert.match(r.ausgabe, /--mining-limits takes "on" or "off"/);
+});
