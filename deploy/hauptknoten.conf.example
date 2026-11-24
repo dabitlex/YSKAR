@@ -24,7 +24,6 @@ ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
     --seed yskar-seed2.dynv6.net:8646 \
     --max-inbound 125 \
     --max-inbound-per-ip 8 \
-    --sender-ip proxy \
     --mining-limits on \
     --pool "YSKAR MAIN" \
     --pool-fee 100 \
@@ -48,16 +47,21 @@ ExecStart=/usr/bin/node dist/yskar-node.cjs mine \
 #                           so the two seeds stay connected even if nobody
 #                           else connects them.
 #
-#   --sender-ip proxy       NEW. Caddy forwards every request from
-#                           127.0.0.1; with this option the node uses the
-#                           last X-Forwarded-For entry as the sender. Needs
-#                           Caddy 2.5 or newer (check: caddy version) -- older
-#                           versions pass a client-written value through.
-#
 #   --mining-limits on      the default, written out so it is visible. Per
 #                           session: /job 2/s (100 at once), /share 50/s
-#                           (2,000 at once); with --sender-ip also per IP.
-#                           "off" restores the behaviour before 1.0.1.
+#                           (2,000 at once). "off" restores the behaviour
+#                           before 1.0.1.
+#
+#   --sender-ip proxy       deliberately NOT set. It would add the per-IP
+#                           mining limits, but it also switches on an older
+#                           rule: at most 32 sessions WITHOUT a share per
+#                           sender. More miners than that starting at once
+#                           behind one address (a farm behind one router,
+#                           mobile users behind a carrier's shared address)
+#                           would push each other's new sessions out until
+#                           each has its first share. Switch it on only as a
+#                           separate step, after checking Caddy 2.5 or newer
+#                           (caddy version), and watch /status sessions.
 #
 # Rollback: put the previous drop-in back (or delete the lines marked NEW),
 # daemon-reload, restart. The store in ./knoten is not touched by any of

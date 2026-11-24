@@ -383,7 +383,13 @@ The complete start command of the main node is kept in the repository as a syste
 [`deploy/hauptknoten.conf.example`](../deploy/hauptknoten.conf.example), installed as
 `/etc/systemd/system/yskar-node.service.d/hauptknoten.conf`. Every setting the main node needs
 is a start option there: pool name, fee and payout address, the second seed, the P2P limits
-(`--max-inbound 125`, `--max-inbound-per-ip 8`), `--sender-ip proxy` and `--mining-limits on`.
+(`--max-inbound 125`, `--max-inbound-per-ip 8`) and `--mining-limits on`.
+
+`--sender-ip proxy` is deliberately not part of it. Besides the per-IP mining limits it
+switches on the older rule of at most 32 sessions without a share per sender (see
+[FULLNODE.md](FULLNODE.md#limits-and-errors)). Behind one shared address, more miners than that
+starting at the same moment push each other's new sessions out until each has delivered its
+first share. Turn it on as a separate step and watch `sessions` in `/status`.
 
 **Never edit `dist/yskar-node.cjs`.** Until November 2026 the main node ran a bundle in which
 the number of inbound slots had been changed by hand. Such an edit cannot be told apart from a
