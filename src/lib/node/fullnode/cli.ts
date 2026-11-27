@@ -49,7 +49,7 @@ import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 import { ordneEin, KettenBeobachter, type KettenEreignis } from './kettenEreignis.ts';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 
 /**
  * Pruefsumme der laufenden Programmdatei (SHA-256, hex).

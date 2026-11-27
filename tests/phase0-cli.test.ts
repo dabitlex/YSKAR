@@ -56,15 +56,15 @@ function abbruch(extra: string[]): { code: number | null; ausgabe: string } {
   } finally { rmSync(daten, { recursive: true, force: true }); }
 }
 
-test('--version meldet 1.0.1', () => {
+test('--version meldet 1.1.0', () => {
   const r = spawnSync(process.execPath, ['--experimental-strip-types', CLI, '--version'], { encoding: 'utf8' });
-  assert.equal(r.stdout.trim(), '1.0.1');
+  assert.equal(r.stdout.trim(), '1.1.0');
 });
 
 test('/status nennt Version und die Pruefsumme der laufenden Programmdatei', async () => {
   const k = await knoten([]);
   try {
-    assert.equal(k.status.version, '1.0.1');
+    assert.equal(k.status.version, '1.1.0');
     const erwartet = createHash('sha256').update(readFileSync(CLI)).digest('hex');
     assert.equal(k.status.build, erwartet);
     assert.match(k.ausgabe(), new RegExp(`build ${erwartet.slice(0, 16)}`));
