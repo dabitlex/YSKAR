@@ -95,7 +95,10 @@ export function mempoolNachziehen(
     ? pool.zurueck(transfers(wechsel.verdraengt), state, naechste)
     : 0;
 
-  const { entfernt, ungueltig } = pool.nachBlock(transfers(wechsel.neu), state, naechste);
+  // Ohne Reorg aendert ein Block nur die Konten seiner Absender -- nur die
+  // pruefen (TxPool.nachBlock, nurBetroffene).
+  const { entfernt, ungueltig } = pool.nachBlock(transfers(wechsel.neu), state, naechste,
+    { nurBetroffene: wechsel.verdraengt.length === 0 });
   const verfallen = pool.aufraeumen(MEMPOOL_MAX_ALTER);
 
   return { entfernt, ungueltig, zurueck, verfallen };

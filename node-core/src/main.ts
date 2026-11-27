@@ -53,6 +53,7 @@ import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
 import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
+import { KOMPAKT_FAEHIG } from '../../src/lib/node/p2p/kompakt.ts';
 import { MAINNET, istMainnet, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { stateRootAt, totalSupply } from '../../src/lib/core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
@@ -111,7 +112,7 @@ interface MiningEinstellung {
   lief: boolean;
 }
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 const GUI_PORT = 8650;
 /** So oft meldet der Knoten seinen Peers, wer bei ihm mint. */
 const STATS_TAKT_MS = 30_000;
@@ -1851,7 +1852,7 @@ export class NodeCoreApp {
 
     this.peers = new PeerManager({
       params,
-      agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG}`,
+      agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG} ${KOMPAKT_FAEHIG}`,
       listenPort: this.config.p2pPort,
       seeds: seedListe(this.config.seed, istMainnet(params)).map(s => this.parseSeed(s)),
       kette: () => {
@@ -2077,32 +2078,26 @@ export class NodeCoreApp {
     return { ok: true };
   }
 
-  /** Wartende Ueberweisungen mit dem Zeitpunkt, zu dem dieser Knoten sie zuerst sah. */
+  /**
+   * Wartende Ueberweisungen mit dem Zeitpunkt, zu dem dieser Knoten sie zuerst sah.
+   *
+   * Die Oberflaeche fragt alle 4 s. Vorher lief jede Abfrage ueber die ganze
+   * Warteschlange und fuehrte eine eigene Liste "zuerst gesehen" -- bei
+   * 190.000 wartenden 143 ms je Abfrage (Volllast-Konzept M5). Jetzt kommt
+   * die Ankunftszeit aus dem Mempool selbst, und gelesen werden nur die
+   * neuesten MEMPOOL_ANZEIGE. Die Zahl insgesamt steht in `anzahl`.
+   */
   private mempoolListe() {
-    const jetzt = Date.now();
-    const offen = this.pool?.alle() ?? [];
-    const ids = new Set<string>();
-    // Bei Andrang stehen hier zehntausende. Die Oberflaeche zeigt die
-    // neuesten MEMPOOL_ANZEIGE; die Zahl insgesamt steht in `anzahl`.
-    for (const tx of offen) {
-      const id = spendTxid(tx);
-      ids.add(id);
-      if (!this.txGesehen.has(id)) this.txGesehen.set(id, jetzt);
-    }
-    for (const id of this.txGesehen.keys()) if (!ids.has(id)) this.txGesehen.delete(id);
-    const liste = offen.slice(-MEMPOOL_ANZEIGE).map(tx => {
-      const id = spendTxid(tx);
-      ids.add(id);
-      if (!this.txGesehen.has(id)) this.txGesehen.set(id, jetzt);
-      return {
-        txid: id,
-        from: encodeAddress(senderRaw(tx)), to: encodeAddress(spendOutputs(tx)[0]?.to ?? senderRaw(tx)),
-        amount: spendAmount(tx).toString(), fee: tx.fee.toString(),
-        outputs: spendOutputs(tx).length,
-        seit: this.txGesehen.get(id)!,
-      };
-    });
-    return { wartend: liste.sort((x, y) => x.seit - y.seit), anzahl: offen.length };
+    const pool = this.pool;
+    if (!pool) return { wartend: [], anzahl: 0 };
+    const liste = pool.neueste(MEMPOOL_ANZEIGE).map(({ id, tx, seit }) => ({
+      txid: id,
+      from: encodeAddress(senderRaw(tx)), to: encodeAddress(spendOutputs(tx)[0]?.to ?? senderRaw(tx)),
+      amount: spendAmount(tx).toString(), fee: tx.fee.toString(),
+      outputs: spendOutputs(tx).length,
+      seit,
+    }));
+    return { wartend: liste.sort((x, y) => x.seit - y.seit), anzahl: pool.size() };
   }
 
   private setzeEinstellungen(body: Record<string, unknown>) {
@@ -2162,7 +2157,9 @@ export class NodeCoreApp {
       const meine = ausgaenge.filter(o => toHex(o.to) === hex);
       if (!aus && meine.length === 0) continue;
       const id = toHex(txid(t));
-      if (!this.txGesehen.has(id)) this.txGesehen.set(id, Date.now());
+      // Ankunftszeit aus dem Mempool; fuer eigene, die er gerade nicht nimmt, hier gemerkt.
+      const seitPool = this.pool?.seit(id);
+      if (seitPool === undefined && !this.txGesehen.has(id)) this.txGesehen.set(id, Date.now());
       const notiz = t.type === TX_BATCH ? '' : notizAusHex(toHex(t.memo));
       const platz = this.lesen?.warteplatz(id) ?? { block: null, minuten: null };
       for (const o of aus ? ausgaenge : meine) {
@@ -2171,13 +2168,17 @@ export class NodeCoreApp {
           txid: id, art: aus ? 'aus' : 'ein', gegen,
           name: this.wallet.kontaktName(gegen),
           betrag: o.amount.toString(), gebuehr: t.fee.toString(),
-          notiz, seit: this.txGesehen.get(id) ?? Date.now(),
+          notiz, seit: seitPool ?? this.txGesehen.get(id) ?? Date.now(),
           nonce: t.nonce.toString(), block: platz.block, minuten: platz.minuten,
           sammel: t.type === TX_BATCH,
           imPool: ids.has(id),
         });
       }
     }
+    // "Zuerst gesehen" fuehrt nur noch eigene, die der Mempool gerade nicht
+    // nimmt (alle anderen haben ihre Ankunftszeit im Mempool) -- der Rest faellt weg.
+    const nochOffen = new Set(this.eigeneOffen.map(x => toHex(txid(x))));
+    for (const k of this.txGesehen.keys()) if (!nochOffen.has(k)) this.txGesehen.delete(k);
     return liste;
   }
 

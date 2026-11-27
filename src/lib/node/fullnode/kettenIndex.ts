@@ -29,6 +29,7 @@
 import { deserializeBlock, type Block } from '../../core/block.ts';
 import { txid, TX_COINBASE, TX_BATCH, senderRaw } from '../../core/tx.ts';
 import { toHex, fromHex } from '../../core/codec.ts';
+import { MAX_TXS_PER_BLOCK_V6 } from '../../core/params.ts';
 
 import type { ChainManager } from './ChainManager.ts';
 import type { ChainStore } from './ChainStore.ts';
@@ -39,14 +40,24 @@ export const ART_POOL = 1;        // Coinbase mit mehreren Empfaengern: Pool-Ant
 export const ART_UEBERWEISUNG = 2;
 
 /*
-  Ein Eintrag ist eine Zahl: (Hoehe * 4096 + Stelle im Block) * 4 + Art.
-  Stelle < 4096 (MAX_TXS_PER_BLOCK ist 2000), Art < 4. Bis Hoehe 2^39 bleibt
-  das unter 2^53 und damit exakt. Zahlen statt Objekte: Ein Eintrag je
-  Empfaenger jeder Pool-Coinbase kommen schnell Hunderttausende zusammen.
+  Ein Eintrag ist eine Zahl: (Hoehe * STELLEN + Stelle im Block) * 4 + Art.
+  Stelle < STELLEN, Art < 4. Bis Hoehe 2^38 bleibt das unter 2^53 und damit
+  exakt. Zahlen statt Objekte: Ein Eintrag je Empfaenger jeder Pool-Coinbase
+  kommen schnell Hunderttausende zusammen.
+
+  Bis 1.0.2 war STELLEN 4096 -- gewaehlt, als ein Block hoechstens 2.000
+  Transaktionen fasste. Seit Fassung 6 sind es 5.000: Eine Transaktion ab
+  Stelle 4096 landete im Verzeichnis beim NAECHSTEN Block, an falscher
+  Stelle, und /account antwortete fuer ihre Adressen mit HTTP 500 (gesehen
+  beim Stresstest am 26.11.2026). Das Verzeichnis liegt nur im Speicher und
+  wird beim Start neu aufgebaut; eine Umstellung gespeicherter Daten gibt
+  es nicht.
 */
-const packe = (hoehe: number, stelle: number, art: number) => (hoehe * 4096 + stelle) * 4 + art;
-export const hoeheVon = (e: number) => Math.floor(e / 16384);
-export const stelleVon = (e: number) => Math.floor(e / 4) % 4096;
+const STELLEN = 8192;
+if (MAX_TXS_PER_BLOCK_V6 > STELLEN) throw new Error('kettenIndex: STELLEN zu klein fuer MAX_TXS_PER_BLOCK_V6');
+const packe = (hoehe: number, stelle: number, art: number) => (hoehe * STELLEN + stelle) * 4 + art;
+export const hoeheVon = (e: number) => Math.floor(e / (STELLEN * 4));
+export const stelleVon = (e: number) => Math.floor(e / 4) % STELLEN;
 export const artVon = (e: number) => e % 4;
 
 export class KettenIndex {

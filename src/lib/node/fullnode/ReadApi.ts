@@ -23,10 +23,13 @@ import { toHex, fromHex } from '../../core/codec.ts';
 import { stateRootAt, totalSupply, getAccount } from '../../core/state.ts';
 import { MAX_SUPPLY, rewardAt, TARGET_BLOCK_TIME, UNIT } from '../../core/params.ts';
 import { finderName, finderAnzeige } from '../../chain/finderName.ts';
-import { marktlage, position, blockFuerSatz, type Marktlage } from '../../core/feemarket.ts';
+import { marktlage, position, blockFuerSatz, vorschauInScheiben, type Marktlage } from '../../core/feemarket.ts';
 
 /** So weit rechnet die Vorschau voraus -- bei vollem Mempool rund 40 Bloecke. */
 export const VORSCHAU_TIEF = 64;
+
+/** Ab dieser Rechendauer wird die Marktlage im Hintergrund in Scheiben erneuert (siehe markt()). */
+export const MARKT_IN_SCHEIBEN_AB_MS = 50;
 /** So viele Bloecke nennt /fees einzeln. */
 export const VORSCHAU_ANZEIGE = 12;
 import { FEE_V3_HEIGHT, maxTxsAt } from '../../core/params.ts';
@@ -346,7 +349,7 @@ export class ReadApi {
    * sonst jede Abfrage einen vollen Durchlauf -- und die Abfragen kommen
    * gerade dann von ueberall.
    */
-  private marktSpeicher: { kopf: string; stand: number; um: number; dauer: number; m: Marktlage } | null = null;
+  private marktSpeicher: { kopf: string; stand: number; um: number; dauer: number; m: Marktlage; hoehe: number } | null = null;
 
   markt(): { m: Marktlage; hoehe: number; limit: number; basis: number } {
     const hoehe = this.t.chain.height() + 1;
@@ -363,6 +366,18 @@ export class ReadApi {
       && (sp.stand === stand || (sp.dauer >= 20 && jetzt - sp.um < Math.max(2_000, 10 * sp.dauer)));
     if (frisch) return { m: sp!.m, hoehe, limit, basis };
 
+    /*
+      Teure Rechnung (bei vollem Mempool rund eine Sekunde): nicht am Stueck
+      in dieser Anfrage, sondern im Hintergrund in Scheiben
+      (vorschauInScheiben). Bis sie fertig ist, gilt die letzte Marktlage --
+      sie ist Sekunden alt, eine Empfehlung, keine Regel. Gerechnet wird am
+      Stueck nur, wenn es noch gar keine gibt oder die letzte billig war.
+    */
+    if (sp && sp.dauer >= MARKT_IN_SCHEIBEN_AB_MS) {
+      if (!this.marktRechnet) void this.rechneMarktInScheiben();
+      return { m: sp.m, hoehe: sp.hoehe, limit, basis };
+    }
+
     const anfang = Date.now();
     // Untergrenze fuer eine Ueberweisung ohne Notiz -- bei Andrang die
     // gestiegene des Mempools.
@@ -371,8 +386,44 @@ export class ReadApi {
       params: this.params, basisBytes: basis, bloecke: VORSCHAU_TIEF, vorgeprueft: true,
     });
     const ende = Date.now();
-    this.marktSpeicher = { kopf, stand, um: ende, dauer: ende - anfang, m };
+    this.marktSpeicher = { kopf, stand, um: ende, dauer: ende - anfang, m, hoehe };
     return { m, hoehe, limit, basis };
+  }
+
+  private marktRechnet = false;
+
+  /** Die Marktlage im Hintergrund neu rechnen, mit Pausen (siehe markt()). */
+  private async rechneMarktInScheiben(): Promise<void> {
+    this.marktRechnet = true;
+    try {
+      const hoehe = this.t.chain.height() + 1;
+      const v6 = this.params.v6Height;
+      const limit = maxTxsAt(hoehe, v6) - 1;
+      const basis = transferBytesAt(hoehe, 0, v6);
+      const stand = this.t.pool.version();
+      const kopf = toHex(this.t.chain.tip()?.hash ?? new Uint8Array(0));
+      const anfang = Date.now();
+      const state = this.t.chain.state();
+      const mempool = this.t.pool.fuerBlock(hoehe);
+      const boden = this.t.pool.mindestGebuehr(hoehe, 0);
+      const opt = { params: this.params, basisBytes: basis, bloecke: VORSCHAU_TIEF, vorgeprueft: true } as const;
+      // Ein neuer Block mitten in der Rechnung entwertet sie: abbrechen, beim
+      // naechsten Abruf beginnt eine neue.
+      const kopfAlt = () => toHex(this.t.chain.tip()?.hash ?? new Uint8Array(0)) !== kopf;
+      // Als Dauer zaehlt die Rechenzeit, nicht die Wartezeit in den Pausen --
+      // sonst wuerde die Marktlage bei Andrang immer seltener erneuert.
+      let gewartet = 0;
+      const pause = () => { const t = Date.now(); return new Promise<void>(r => setImmediate(() => { gewartet += Date.now() - t; r(); })); };
+      const v = await vorschauInScheiben(state, mempool, hoehe, VORSCHAU_TIEF, limit, this.params,
+        { vorgeprueft: true }, { abbrechen: kopfAlt, pause });
+      if (!v || kopfAlt()) return;
+      const m = marktlage(state, mempool, hoehe, limit, boden, { ...opt, vorschau: v });
+      this.marktSpeicher = { kopf, stand, um: Date.now(), dauer: Date.now() - anfang - gewartet, m, hoehe };
+    } catch {
+      // Die naechste Abfrage versucht es neu; eine Empfehlung darf den Knoten nie stoeren.
+    } finally {
+      this.marktRechnet = false;
+    }
   }
 
   /**

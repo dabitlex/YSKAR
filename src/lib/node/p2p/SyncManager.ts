@@ -16,7 +16,7 @@
  * verwirft.
  */
 import { ordneEin, type KettenEreignis } from '../fullnode/kettenEreignis.ts';
-import { deserializeBlock, headerHash, deserializeHeader, HEADER_SIZE } from '../../core/block.ts';
+import { deserializeBlock, headerHash, deserializeHeader, meetsTarget, HEADER_SIZE, type BlockHeader } from '../../core/block.ts';
 import { targetFromDifficulty } from '../../core/params.ts';
 import { liefertBloeckeAb, IMPLEMENTIERTE_FASSUNG } from '../fassung.ts';
 import { sha256d } from '../../core/hash.ts';
@@ -34,10 +34,15 @@ import {
   encodeInv, decodeInv, encodeGetData, decodeGetData, encodeNotFound,
   INV_BLOCK, INV_TX, MAX_HEADERS, MAX_INV,
 } from './messages.ts';
-import { deserializeTx, serializeTx, txid, TX_COINBASE, type Spend }
+import { deserializeTx, serializeTx, txid, TX_COINBASE, type Spend, type Tx }
   from '../../core/tx.ts';
 import type { TxPool } from '../fullnode/TxPool.ts';
 import { mempoolNachziehen } from '../fullnode/mempoolPflege.ts';
+import { gebuehrJeByte } from '../../core/builder.ts';
+import {
+  KOMPAKT_FAEHIG, encodeKompakt, decodeKompakt, encodeFehlende, decodeFehlende,
+  encodeNachgereicht, decodeNachgereicht, ordneZu, setzeZusammen,
+} from './kompakt.ts';
 
 /** Wie viele Blockkoerper gleichzeitig angefragt werden. */
 export const BLOCK_FENSTER = 16;
@@ -105,6 +110,22 @@ export const GETHEADERS_FENSTER_MS = 10_000;
  * (Befund S4).
  */
 export const OFFENE_TX_MAX = 5_000;
+
+/** Hoechstens so viele kompakte Bloecke warten gleichzeitig auf nachgereichte Ueberweisungen. */
+export const KOMPAKT_OFFEN_MAX = 8;
+/** So lange wartet ein halb zusammengesetzter Block auf die fehlenden Ueberweisungen. */
+export const KOMPAKT_FRIST_MS = 30_000;
+
+/** Versteht der Peer kompakte Bloecke? */
+const versteheKompakt = (p: PeerConnection): boolean => {
+  try { return p.info().agent.includes(KOMPAKT_FAEHIG); } catch { return false; }
+};
+
+/** Hoechstens so viele empfangene Ueberweisungen in einem Pruefstapel. */
+export const TX_STAPEL_MAX = 256;
+
+/** So viele wartende Ueberweisungen bekommt ein frisch verbundener Peer angekuendigt. */
+export const MEMPOOL_ABGLEICH_MAX = OFFENE_TX_MAX;
 /**
  * Mindestarbeit fuer Bloecke, die nicht die eigene Spitze verlaengern
  * (Befund S7): Ein solcher Block wird nur geholt, geprueft und gespeichert,
@@ -355,6 +376,32 @@ export class SyncManager {
       this.log(`${p.host} has more work (${p.fremdeArbeit()} > ${eigene}), catching up`);
       this.frageHeader(p);
     }
+    this.gleicheWarteschlangeAb(p);
+  }
+
+  /**
+   * Die eigene Warteschlange einem frisch verbundenen Peer ankuendigen
+   * (Volllast-Konzept M3).
+   *
+   * Ohne das kennt ein Knoten nach einem Neustart nur Ueberweisungen, die
+   * danach neu angekuendigt werden; alles, was vorher wartete, fehlt ihm, bis
+   * es jemand erneut ankuendigt. Benutzt wird die vorhandene inv-Nachricht --
+   * kein neuer Befehl, aeltere Knoten holen sich die Ueberweisungen wie
+   * gewohnt mit getdata.
+   *
+   * Nur an einen Peer, der nicht hinter uns liegt: Ein Knoten, der noch
+   * aufholt, koennte die Ueberweisungen nicht pruefen, wuerde sie abweisen
+   * und sich das merken. Hoechstens MEMPOOL_ABGLEICH_MAX, die mit der
+   * hoechsten Gebuehr je Byte zuerst -- mehr fordert auch ein aelterer Knoten
+   * nicht gleichzeitig an (OFFENE_TX_MAX), und das ist ein voller Block.
+   */
+  private gleicheWarteschlangeAb(p: PeerConnection): void {
+    if (!this.pool || this.pool.size() === 0) return;
+    if (p.fremdeHoehe() < (this.chain.height() ?? -1)) return;
+    const auswahl = this.pool.alle()
+      .sort((a, b) => { const x = gebuehrJeByte(a), y = gebuehrJeByte(b); return x > y ? -1 : x < y ? 1 : 0; })
+      .slice(0, MEMPOOL_ABGLEICH_MAX);
+    this.peers.kuendigeAnTxEinem(p, auswahl.map(t => txid(t)));
   }
 
   /** Eine Nachricht von einem Peer. */
@@ -368,6 +415,9 @@ export class SyncManager {
         case 'inv':        return this.aufInv(p, f.payload);
         case 'tx':         return this.aufTx(p, f.payload);
         case 'notfound':   return this.aufNotFound(p, f.payload);
+        case 'cmpctblock': return this.aufKompakt(p, f.payload);
+        case 'getblocktxn': return this.aufFehlende(p, f.payload);
+        case 'blocktxn':   return this.aufNachgereicht(p, f.payload);
       }
     } catch (e) {
       // Eine unlesbare Nachricht ist Fehlverhalten. Getrennt wird, gesperrt
@@ -376,9 +426,110 @@ export class SyncManager {
     }
   }
 
-  /** Einen selbst gefundenen Block ankuendigen. */
+  /**
+   * Einen Block ankuendigen -- selbst gefunden oder weitergereicht.
+   *
+   * Peers, die kompakte Bloecke verstehen (KOMPAKT_FAEHIG), bekommen ihn
+   * gleich als kompakten Block: kein Hin und Her ueber inv/getdata, und statt
+   * rund 890 KB rund 40 KB. Alle anderen wie bisher eine inv-Nachricht.
+   */
   kuendigeAn(hash: Uint8Array, ausser?: PeerConnection): number {
-    return this.peers.kuendigeAn(INV_BLOCK, hash, ausser);
+    let kompakt: Uint8Array | null = null;
+    let inv: Uint8Array | null = null;
+    let n = 0;
+    for (const q of this.peers.bereite()) {
+      if (q === ausser) continue;
+      if (versteheKompakt(q)) {
+        if (!kompakt) {
+          /*
+            Ein Fehler beim Weiterreichen darf nie den Lieferanten treffen:
+            Diese Funktion laeuft innerhalb der Annahme eines Blocks, und eine
+            Ausnahme hier trennte den Peer, der ihn gebracht hat. Klappt das
+            Kodieren nicht, bekommt der Peer wie bisher eine inv-Nachricht.
+          */
+          try {
+            const b = this.store.get(hash);
+            kompakt = b ? encodeKompakt(deserializeBlock(b.body)) : new Uint8Array(0);
+          } catch { kompakt = new Uint8Array(0); }
+        }
+        if (kompakt.length > 0) { if (q.send('cmpctblock', kompakt)) n++; continue; }
+      }
+      inv ??= encodeInv([{ typ: INV_BLOCK, hash }]);
+      if (q.send('inv', inv)) n++;
+    }
+    return n;
+  }
+
+  // ------------------------------------------------ Kompakte Bloecke (M2)
+
+  /** Halb zusammengesetzte Bloecke, bis die fehlenden Ueberweisungen kommen. */
+  private kompaktOffen = new Map<string, { p: PeerConnection; header: BlockHeader; txs: (Tx | null)[]; fehlt: number[]; seit: number }>();
+
+  /** Zaehler fuer Diagnose und Tests. */
+  kompaktStand = { empfangen: 0, sofort: 0, nachgefragt: 0, vollGeholt: 0 };
+
+  private aufKompakt(p: PeerConnection, payload: Uint8Array): void {
+    const k = decodeKompakt(payload);
+    const hashB = headerHash(k.header);
+    const hash = toHex(hashB);
+    this.kompaktStand.empfangen++;
+    if (this.store.has(hashB) || this.offen.has(hash) || this.kompaktOffen.has(hash) || this.leicht.has(hash)) return;
+    // Ohne Arbeit kein Aufwand -- ein Header, der sein eigenes Ziel verfehlt, ist Fehlverhalten.
+    if (!meetsTarget(hashB, k.header.difficulty)) return void p.close('kompakt_ohne_arbeit');
+    // Vorgaenger unbekannt: wie eine Ankuendigung behandeln (aufholen, vollen Block holen).
+    if (!this.store.has(k.header.prevHash)) {
+      return this.aufInv(p, encodeInv([{ typ: INV_BLOCK, hash: hashB }]));
+    }
+    const wartend = this.pool ? this.pool.alleMitId() : [];
+    const { txs, fehlt } = ordneZu(k, wartend);
+    if (fehlt.length === 0) {
+      this.kompaktStand.sofort++;
+      return this.kompaktFertig(p, hash, hashB, k.header, txs);
+    }
+    // Aufraeumen und begrenzen: hoechstens KOMPAKT_OFFEN_MAX gleichzeitig.
+    const jetzt = Date.now();
+    for (const [h, o] of this.kompaktOffen) if (jetzt - o.seit > KOMPAKT_FRIST_MS) this.kompaktOffen.delete(h);
+    if (this.kompaktOffen.size >= KOMPAKT_OFFEN_MAX) return this.holeVoll(p, hash, hashB);
+    this.kompaktOffen.set(hash, { p, header: k.header, txs, fehlt, seit: jetzt });
+    this.kompaktStand.nachgefragt++;
+    p.send('getblocktxn', encodeFehlende(hashB, fehlt));
+  }
+
+  private aufFehlende(p: PeerConnection, payload: Uint8Array): void {
+    const { hash, stellen } = decodeFehlende(payload);
+    const b = this.store.get(hash);
+    if (!b) return void p.send('notfound', encodeInv([{ typ: INV_BLOCK, hash }]));
+    const block = deserializeBlock(b.body);
+    const txs: Tx[] = [];
+    for (const s of stellen) {
+      if (s < 1 || s >= block.txs.length) return void p.close('getblocktxn_stelle');
+      txs.push(block.txs[s]);
+    }
+    p.send('blocktxn', encodeNachgereicht(hash, txs));
+  }
+
+  private aufNachgereicht(p: PeerConnection, payload: Uint8Array): void {
+    const { hash: hashB, txs } = decodeNachgereicht(payload);
+    const hash = toHex(hashB);
+    const o = this.kompaktOffen.get(hash);
+    if (!o || o.p !== p) return;   // nicht bestellt -- ignorieren
+    this.kompaktOffen.delete(hash);
+    if (txs.length !== o.fehlt.length) return this.holeVoll(p, hash, hashB);
+    o.fehlt.forEach((s, i) => { o.txs[s] = txs[i]; });
+    this.kompaktFertig(p, hash, hashB, o.header, o.txs);
+  }
+
+  private kompaktFertig(p: PeerConnection, hash: string, hashB: Uint8Array, header: BlockHeader, txs: (Tx | null)[]): void {
+    const z = setzeZusammen(header, txs);
+    if (!z) return this.holeVoll(p, hash, hashB);
+    this.aufBlock(p, z.body);
+  }
+
+  /** Rueckfall: den vollen Block holen, wie nach einer Ankuendigung. */
+  private holeVoll(p: PeerConnection, hash: string, hashB: Uint8Array): void {
+    this.kompaktStand.vollGeholt++;
+    this.offen.set(hash, { peer: p, seit: Date.now() });
+    p.send('getdata', encodeGetData([{ typ: INV_BLOCK, hash: hashB }]));
   }
 
   // ------------------------------------------------------------ Anfragen
@@ -929,7 +1080,8 @@ export class SyncManager {
       ? eintraege.filter(e => {
           if (e.typ !== INV_TX) return false;
           const id = toHex(e.hash);
-          return !this.pool!.has(id) && !this.offeneTx.has(id) && !this.abgewiesen.has(id);
+          return !this.pool!.has(id) && !this.offeneTx.has(id) && !this.abgewiesen.has(id)
+            && !this.imEingang.has(id);
         }).slice(0, Math.max(0, Math.min(MAX_INV, OFFENE_TX_MAX - this.offeneTx.size)))
       : [];
 
@@ -968,27 +1120,59 @@ export class SyncManager {
       return void p.close('tx_unlesbar');
     }
 
-    const id = toHex(txid(tx));
-    this.offeneTx.delete(id);
+    this.offeneTx.delete(toHex(txid(tx)));
 
-    const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
-    if (!r.ok) {
-      /*
-        Kein Grund zum Trennen: Eine Ueberweisung kann voellig richtig
-        gebaut und trotzdem hier unbrauchbar sein -- etwa weil die Nonce
-        inzwischen verbraucht ist. Nur merken, damit wir sie nicht gleich
-        wieder anfordern.
-      */
-      this.merkeAbgewiesen(id);
-      return;
+    /*
+      Gesammelt aufnehmen (Volllast-Konzept M1): Was in einem Durchlauf der
+      Ereignisschleife eintrifft -- eine getdata-Antwort bringt Hunderte
+      tx-Nachrichten in wenigen TCP-Paketen --, wird zusammen geprueft, die
+      Signaturen in einem Stapel. Das Ergebnis je Ueberweisung ist dasselbe
+      wie einzeln (TxPool.addStapel).
+    */
+    this.txEingang.push({ tx, p });
+    this.imEingang.add(toHex(txid(tx)));
+    if (this.txEingang.length >= TX_STAPEL_MAX) return this.verarbeiteTxEingang();
+    if (!this.txEingangGeplant) {
+      this.txEingangGeplant = true;
+      setImmediate(() => this.verarbeiteTxEingang());
     }
-
-    this.kuendigeAnTx(txid(tx), p);
   }
 
-  /** Eine Ueberweisung den Peers ankuendigen -- nicht dem, von dem sie kam. */
+  private txEingang: { tx: Spend; p: PeerConnection }[] = [];
+  /** Empfangen, aber noch nicht geprueft -- nicht erneut anfordern. */
+  private imEingang = new Set<string>();
+  private txEingangGeplant = false;
+
+  private verarbeiteTxEingang(): void {
+    this.txEingangGeplant = false;
+    const eingang = this.txEingang;
+    this.txEingang = [];
+    this.imEingang.clear();
+    if (!this.pool || eingang.length === 0) return;
+    const ergebnisse = this.pool.addStapel(eingang.map(e => ({ tx: e.tx })), this.chain.state(), this.chain.height() + 1);
+    ergebnisse.forEach((r, i) => {
+      const { tx, p } = eingang[i];
+      if (!r.ok) {
+        /*
+          Kein Grund zum Trennen: Eine Ueberweisung kann voellig richtig
+          gebaut und trotzdem hier unbrauchbar sein -- etwa weil die Nonce
+          inzwischen verbraucht ist. Nur merken, damit wir sie nicht gleich
+          wieder anfordern.
+        */
+        this.merkeAbgewiesen(toHex(txid(tx)));
+        return;
+      }
+      this.kuendigeAnTx(txid(tx), p);
+    });
+  }
+
+  /**
+   * Eine Ueberweisung den Peers ankuendigen -- nicht dem, von dem sie kam.
+   * Gesammelt (PeerManager.kuendigeAnTx); die Zahl ist die der Peers, bei
+   * denen sie vorgemerkt wurde.
+   */
   kuendigeAnTx(hash: Uint8Array, ausser?: PeerConnection): number {
-    return this.peers.kuendigeAn(INV_TX, hash, ausser);
+    return this.peers.kuendigeAnTx(hash, ausser);
   }
 
   /**

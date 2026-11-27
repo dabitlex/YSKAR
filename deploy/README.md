@@ -145,9 +145,10 @@ sudo systemctl enable --now yskar-spiegel.timer
 systemctl list-timers yskar-spiegel.timer
 ```
 
-The timer starts the first run two minutes after boot and then one run every five minutes, each
-with a random delay of up to 60 seconds (`OnBootSec=2min`, `OnUnitActiveSec=5min`,
-`RandomizedDelaySec=60`). A run with nothing to push costs one HTTP request.
+The timer starts the first run two minutes after boot and then one run every minute, each
+with a random delay of up to 10 seconds (`OnBootSec=2min`, `OnUnitActiveSec=1min`,
+`RandomizedDelaySec=10`). A run with nothing to push costs one HTTP request. After a change to
+the timer file, run `sudo systemctl daemon-reload && sudo systemctl restart yskar-spiegel.timer`.
 
 To trigger a run at once instead of waiting:
 

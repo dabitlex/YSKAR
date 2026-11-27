@@ -34,17 +34,22 @@ import { MAINNET, REGTEST, regtestMitV6, type ConsensusParams } from '../../core
 import { PeerManager } from '../p2p/PeerManager.ts';
 import type { PeerConnection } from '../p2p/PeerConnection.ts';
 import { encodeStats, decodeStats, STATS_FAEHIG } from '../p2p/messages.ts';
+import { KOMPAKT_FAEHIG } from '../p2p/kompakt.ts';
 import { NetzStatistik } from './NetzStatistik.ts';
 import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { fensterGroesse } from '../../pool/pplns.ts';
 import { leseFenster, schreibeFenster, schreibeFensterSofort, kuerze } from '../../pool/fensterDatei.ts';
+import { leseMempool, schreibeMempool, schreibeMempoolSofort, nimmWiederAuf } from './mempoolDatei.ts';
+
+/** So oft sichert der Knoten seine Warteschlange zusaetzlich zum Beenden. */
+const MEMPOOL_SICHERN_MS = 10 * 60 * 1000;
 import { nameToExtra, finderName, finderAnzeige } from '../../chain/finderName.ts';
 import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
 import { mempoolNachziehen } from './mempoolPflege.ts';
 import { ordneEin, KettenBeobachter, type KettenEreignis } from './kettenEreignis.ts';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 
 /**
  * Pruefsumme der laufenden Programmdatei (SHA-256, hex).
@@ -403,6 +408,15 @@ const KEIN_AUSZAHLUNGSKONTO = 'Mining pays only to a normal wallet address (ysr1
  */
 const ANFRAGE_FRIST_MS = 30_000;
 
+/**
+ * Frist fuer das Einreichen EINES Blocks beim Spiegel (Volllast-Konzept M4).
+ * Ein voller Block mit 5.000 Ueberweisungen brauchte live bis zu 27,5 s in
+ * der Datenbank -- knapp unter ANFRAGE_FRIST_MS. Bricht der Weiterleiter
+ * ab, waehrend die Datenbank noch schreibt, haelt er einen angenommenen
+ * Block fuer abgelehnt. 120 s entsprechen der Zeitgrenze der Datenbank.
+ */
+const SPIEGEL_FRIST_MS = 120_000;
+
 async function hole(api: string, pfad: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${api}/api/v2${pfad}`, { signal: AbortSignal.timeout(ANFRAGE_FRIST_MS) });
   const body = await res.json().catch(() => ({}));
@@ -481,6 +495,7 @@ async function spiegel(
   console.log(grau(`\n ${nf(eigene - dort)} blocks to push.\n`));
 
   let geschafft = 0;
+  let rueckbauten = 0;
   for (let h = dort + 1; h <= eigene; h++) {
     const b = store.mainAt(h);
     if (!b) {
@@ -492,9 +507,24 @@ async function spiegel(
         method: 'POST',
         headers: spiegelKopf(),
         body: JSON.stringify({ raw: toHex(b.body) }),
-        signal: AbortSignal.timeout(ANFRAGE_FRIST_MS),
+        signal: AbortSignal.timeout(SPIEGEL_FRIST_MS),
       });
       const body = await res.json().catch(() => ({}));
+      /*
+        Der Spiegel lag auf einer verworfenen Abspaltung und hat sich selbst
+        auf die gemeinsame Hoehe zurueckgesetzt (Migration 00030). Ab dort
+        neu einreichen -- hoechstens dreimal je Lauf, damit ein Fehler nicht
+        endlos kreist.
+      */
+      if (!body.accepted && body.reason === 'reorg' && Number.isSafeInteger(body.rolledBackTo)
+          && body.rolledBackTo < h && rueckbauten < 3) {
+        rueckbauten++;
+        console.log(gelb(` ${body.detail ?? 'Mirror rolled back.'}`));
+        dort = body.rolledBackTo;  // ab hier neu zaehlen
+        geschafft = 0;
+        h = dort;                  // die Schleife zaehlt auf dort + 1
+        continue;
+      }
       if (!body.accepted) {
         console.error(rot(` Block ${nf(h)} rejected by the mirror: ${
           body.detail ?? body.reason ?? `HTTP ${res.status}`}`));
@@ -781,6 +811,35 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       `--max-inbound ${maxEin}, --max-inbound-per-ip ${maxEinJeIp}`);
   }
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
+
+  /*
+    Warteschlange ueber den Neustart retten (mempoolDatei.ts). Geladen wird
+    im Hintergrund und in Scheiben: Der Knoten nimmt sofort Verbindungen und
+    Anfragen an, die Ueberweisungen kommen nach und nach dazu -- jede voll
+    geprueft wie eine aus dem Netz.
+  */
+  const mempoolPfad = `${opt.daten}/mempool.dat`;
+  {
+    const gelesen = leseMempool(mempoolPfad, params.network);
+    if (gelesen.hinweis) log('pool', gelb, `mempool.dat ignored: ${gelesen.hinweis}`);
+    if (gelesen.eintraege.length > 0) {
+      void nimmWiederAuf(gelesen.eintraege, scheibe =>
+        pool.addStapel(scheibe.map(e => ({ tx: e.tx, opt: { lokal: e.lokal, seit: e.seit } })),
+          chain.state(), chain.height() + 1).map(r => r.ok),
+      ).then(r => log('pool', grau, `mempool restored: ${nf(r.aufgenommen)} of ${nf(gelesen.eintraege.length)} transactions`
+        + (r.abgewiesen ? ` (${nf(r.abgewiesen)} no longer valid)` : '')));
+    }
+  }
+  let mempoolSichertGerade = false;
+  const mempoolTakt = setInterval(() => {
+    if (mempoolSichertGerade) return;
+    mempoolSichertGerade = true;
+    void schreibeMempool(mempoolPfad, params.network, pool.sicherung())
+      .catch(e => log('pool', gelb, `mempool not saved: ${(e as Error).message}`))
+      .finally(() => { mempoolSichertGerade = false; });
+  }, MEMPOOL_SICHERN_MS);
+  mempoolTakt.unref?.();
+
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
     host: opt.bind, port: opt.port, params, absender: opt.absender, grenzen: opt.miningGrenzen,
@@ -896,7 +955,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     netz = new PeerManager({
       params,
-      agent: `yskar-node/${VERSION} ${STATS_FAEHIG}`,
+      agent: `yskar-node/${VERSION} ${STATS_FAEHIG} ${KOMPAKT_FAEHIG}`,
       listenPort: opt.p2pPort,
       seeds,
       maxEin, maxAus, maxEinJeAdresse: maxEinJeIp,
@@ -906,7 +965,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       },
       onReady: p => {
         const i = p.info();
-        const agent = i.agent.replace(` ${STATS_FAEHIG}`, '').trim();
+        const agent = i.agent.replace(` ${STATS_FAEHIG}`, '').replace(` ${KOMPAKT_FAEHIG}`, '').trim();
         log('peer', gruen, `${p.host} connected${P}height ${nf(p.fremdeHoehe())}${P}revision ${
           i.revision || '?'}${agent ? grau(` · ${agent}`) : ''}`);
         if (i.revision > 0 && i.revision < 6 && naechsteAktivierung(params) > 0) {
@@ -1157,8 +1216,14 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     clearInterval(uebersichtTakt);
     if (statsTakt) clearInterval(statsTakt);
     if (fensterTakt) clearInterval(fensterTakt);
+    clearInterval(mempoolTakt);
     melde('');
     log('stop', grau, 'stopping …');
+    try {
+      const gesichert = pool.sicherung();
+      schreibeMempoolSofort(mempoolPfad, params.network, gesichert);
+      log('pool', grau, `mempool saved: ${nf(gesichert.length)} transactions`);
+    } catch (e) { console.error(`  mempool not saved: ${(e as Error).message}`); }
     const pk = server.poolKoordinator;
     if (pk) {
       fensterFolge++;

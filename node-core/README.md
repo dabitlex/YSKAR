@@ -1,4 +1,4 @@
-# YSKAR Node Core 1.1.0
+# YSKAR Node Core 1.2.0
 
 A full YSKAR node for Windows and Linux with its own window: wallet, mining
 (solo, in a pool, or as the operator of a pool), block explorer and peer list. It runs
@@ -16,6 +16,17 @@ the same node classes as the command-line node in `src/lib/node`.
 | **Blockchain / Peers** | Blocks, transfers, accounts, search; connected peers, connect and disconnect by hand. |
 | **Shared accounts** | From block 10,000 (consensus revision 6): accounts with several keys, spending needs k of n signatures; co-signing by file (`src/GemeinsameKonten.ts`, `src/lib/wallet/mehrfach.ts`). |
 | **Program** | German and English, start when you log in, keep running in the notification area, resume mining after start, update notice. |
+
+## What changed in 1.2.0
+
+- **Load:** transfer announcements are bundled per peer (250 ms, up to 500 per
+  `inv`); a newly connected peer receives the waiting queue; incoming transfers
+  are taken in batches with batch signature checks; after a block only the
+  affected senders are re-checked; the fee overview is computed in slices.
+- **Compact blocks** (`src/lib/node/p2p/kompakt.ts`, agent suffix `+cmpct`):
+  `cmpctblock` / `getblocktxn` / `blocktxn` between capable nodes, `inv` for all
+  others. The Merkle root is checked before a compact block is used.
+- **Mempool page:** `TxPool.neueste()` instead of a full pass every 4 s.
 
 ## What changed in 1.1.0
 

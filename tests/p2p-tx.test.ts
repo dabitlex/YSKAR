@@ -215,6 +215,9 @@ test('Eine abgewiesene Überweisung landet im Gedächtnis und wird nicht neu ang
   } as unknown as PeerConnection;
 
   a.sync.aufNachricht(peer, { command: 'tx', payload: serializeTx(ungedeckt) });
+  // Empfangene Überweisungen werden gesammelt und einen Takt später zusammen
+  // geprüft (Stapel-Signaturen, Volllast-Konzept M1).
+  await new Promise(r => setImmediate(r));
 
   assert.equal(a.pool.has(id), false, 'ungedeckt gehört nicht in die Warteschlange');
   assert.equal(a.sync.istAbgewiesen(id), true, 'sie muss im Gedächtnis stehen');
