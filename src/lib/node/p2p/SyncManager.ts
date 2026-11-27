@@ -38,6 +38,7 @@ import { deserializeTx, serializeTx, txid, TX_COINBASE, type Spend }
   from '../../core/tx.ts';
 import type { TxPool } from '../fullnode/TxPool.ts';
 import { mempoolNachziehen } from '../fullnode/mempoolPflege.ts';
+import { gebuehrJeByte } from '../../core/builder.ts';
 
 /** Wie viele Blockkoerper gleichzeitig angefragt werden. */
 export const BLOCK_FENSTER = 16;
@@ -105,6 +106,9 @@ export const GETHEADERS_FENSTER_MS = 10_000;
  * (Befund S4).
  */
 export const OFFENE_TX_MAX = 5_000;
+
+/** So viele wartende Ueberweisungen bekommt ein frisch verbundener Peer angekuendigt. */
+export const MEMPOOL_ABGLEICH_MAX = OFFENE_TX_MAX;
 /**
  * Mindestarbeit fuer Bloecke, die nicht die eigene Spitze verlaengern
  * (Befund S7): Ein solcher Block wird nur geholt, geprueft und gespeichert,
@@ -355,6 +359,32 @@ export class SyncManager {
       this.log(`${p.host} has more work (${p.fremdeArbeit()} > ${eigene}), catching up`);
       this.frageHeader(p);
     }
+    this.gleicheWarteschlangeAb(p);
+  }
+
+  /**
+   * Die eigene Warteschlange einem frisch verbundenen Peer ankuendigen
+   * (Volllast-Konzept M3).
+   *
+   * Ohne das kennt ein Knoten nach einem Neustart nur Ueberweisungen, die
+   * danach neu angekuendigt werden; alles, was vorher wartete, fehlt ihm, bis
+   * es jemand erneut ankuendigt. Benutzt wird die vorhandene inv-Nachricht --
+   * kein neuer Befehl, aeltere Knoten holen sich die Ueberweisungen wie
+   * gewohnt mit getdata.
+   *
+   * Nur an einen Peer, der nicht hinter uns liegt: Ein Knoten, der noch
+   * aufholt, koennte die Ueberweisungen nicht pruefen, wuerde sie abweisen
+   * und sich das merken. Hoechstens MEMPOOL_ABGLEICH_MAX, die mit der
+   * hoechsten Gebuehr je Byte zuerst -- mehr fordert auch ein aelterer Knoten
+   * nicht gleichzeitig an (OFFENE_TX_MAX), und das ist ein voller Block.
+   */
+  private gleicheWarteschlangeAb(p: PeerConnection): void {
+    if (!this.pool || this.pool.size() === 0) return;
+    if (p.fremdeHoehe() < (this.chain.height() ?? -1)) return;
+    const auswahl = this.pool.alle()
+      .sort((a, b) => { const x = gebuehrJeByte(a), y = gebuehrJeByte(b); return x > y ? -1 : x < y ? 1 : 0; })
+      .slice(0, MEMPOOL_ABGLEICH_MAX);
+    this.peers.kuendigeAnTxEinem(p, auswahl.map(t => txid(t)));
   }
 
   /** Eine Nachricht von einem Peer. */
