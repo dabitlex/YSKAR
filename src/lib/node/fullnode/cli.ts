@@ -408,6 +408,14 @@ const KEIN_AUSZAHLUNGSKONTO = 'Mining pays only to a normal wallet address (ysr1
  */
 const ANFRAGE_FRIST_MS = 30_000;
 
+/**
+ * Frist fuer das Einreichen EINES Blocks beim Spiegel (Volllast-Konzept M4).
+ * Ein voller Block mit 5.000 Ueberweisungen brauchte live bis zu 27,5 s in
+ * der Datenbank -- knapp unter ANFRAGE_FRIST_MS. Bricht der Weiterleiter
+ * ab, waehrend die Datenbank noch schreibt, haelt er einen angenommenen
+ * Block fuer abgelehnt. 120 s entsprechen der Zeitgrenze der Datenbank.
+ */
+const SPIEGEL_FRIST_MS = 120_000;
 
 async function hole(api: string, pfad: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${api}/api/v2${pfad}`, { signal: AbortSignal.timeout(ANFRAGE_FRIST_MS) });
@@ -499,7 +507,7 @@ async function spiegel(
         method: 'POST',
         headers: spiegelKopf(),
         body: JSON.stringify({ raw: toHex(b.body) }),
-        signal: AbortSignal.timeout(ANFRAGE_FRIST_MS),
+        signal: AbortSignal.timeout(SPIEGEL_FRIST_MS),
       });
       const body = await res.json().catch(() => ({}));
       /*

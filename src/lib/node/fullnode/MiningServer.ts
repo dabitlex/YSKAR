@@ -549,8 +549,12 @@ export class MiningServer {
    */
   upstream?: string;
   onUpstream?: (ergebnis: { ok: boolean; grund?: string; hoehe?: number }) => void;
-  /** So lange darf die Weitergabe eines Blocks an den Spiegel dauern. */
-  weitergabeFristMs = 15_000;
+  /**
+   * So lange darf die Weitergabe eines Blocks an den Spiegel dauern. Ein
+   * voller Block brauchte live bis zu 27,5 s in der Datenbank (Volllast-
+   * Konzept M4); mit 15 s galt er als gescheitert, obwohl er ankam.
+   */
+  weitergabeFristMs = 60_000;
 
   /**
    * Eine ueber die Schnittstelle eingereichte Ueberweisung wurde aufgenommen.
