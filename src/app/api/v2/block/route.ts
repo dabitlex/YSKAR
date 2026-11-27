@@ -8,6 +8,7 @@ import { aktiviereZip215Wasm } from '@/lib/node/zip215';
 import { toHex, fromHex } from '@/lib/core/codec';
 import { LWMA_WINDOW, MAX_SUPPLY } from '@/lib/core/params';
 import { loadTip, loadState, loadTimings, commitBlock, loadKonten, kontenAnzahl, beruehrteKonten } from '@/lib/node/store';
+import { abspaltungZuruecknehmen } from '@/lib/node/spiegelAbspaltung';
 
 /**
  * Bis zu so vielen Konten liest der Spiegel den ganzen Zustand und rechnet
@@ -168,6 +169,18 @@ export async function POST(req: Request) {
   const erwarteteHoehe = (tip?.height ?? -1) + 1;
 
   if (block.header.height <= (tip?.height ?? -1)) {
+    /*
+      Ein anderer Block auf der Hoehe des Kopfes: Vielleicht hat der Spiegel
+      den Block uebernommen, den die Kette verworfen hat. Der Knoten
+      entscheidet (spiegelAbspaltung.ts); stimmt er zu, wird zurueckgebaut
+      und der Einreicher reicht ab der gemeinsamen Hoehe neu ein.
+    */
+    if (tip && block.header.height === tip.height && hash !== toHex(tip.hash)) {
+      const r = await abspaltungZuruecknehmen(
+        { height: tip.height, hash: toHex(tip.hash) },
+        { height: block.header.height, prevHash: toHex(block.header.prevHash) });
+      if (r.zurueckgenommen) return abspaltungAntwort(r.bis, r.entfernt);
+    }
     // Kein Fehler des Einreichers: Er war nur zu spaet. Das kommt bei zwei
     // Produzenten regelmaessig vor und ist kein Grund fuer eine Strafe.
     return NextResponse.json({
@@ -187,9 +200,15 @@ export async function POST(req: Request) {
   }
 
   if (tip && toHex(block.header.prevHash) !== toHex(tip.hash)) {
+    // Liegt der Spiegel auf einer verworfenen Abspaltung? Ohne Rueckbau
+    // stuende er hier fuer immer (27.11.2026, Hoehe 10991).
+    const r = await abspaltungZuruecknehmen(
+      { height: tip.height, hash: toHex(tip.hash) },
+      { height: block.header.height, prevHash: toHex(block.header.prevHash) });
+    if (r.zurueckgenommen) return abspaltungAntwort(r.bis, r.entfernt);
     return NextResponse.json({
       accepted: false, reason: 'wrong_parent',
-      detail: `zeigt auf ${toHex(block.header.prevHash).slice(0, 16)}…`,
+      detail: `zeigt auf ${toHex(block.header.prevHash).slice(0, 16)}… (${r.grund})`,
       tipHash: toHex(tip.hash),
     }, { headers: CORS });
   }
@@ -254,6 +273,19 @@ export async function POST(req: Request) {
       address: toHex(o.to), amount: o.amount.toString(),
     })),
   }, { headers: CORS });
+}
+
+/**
+ * Der Spiegel lag auf einer verworfenen Abspaltung und steht jetzt auf der
+ * gemeinsamen Hoehe. Kein Fehler des Einreichers: Er reicht ab bis+1 neu
+ * ein -- mirror liest dafuer die Hoehe des Spiegels neu.
+ */
+function abspaltungAntwort(bis: number, entfernt: number) {
+  return NextResponse.json({
+    accepted: false, reason: 'reorg',
+    detail: `Spiegel lag auf einer verworfenen Abspaltung: ${entfernt} Block/Blöcke zurückgenommen, steht jetzt auf ${bis}. Ab ${bis + 1} neu einreichen.`,
+    rolledBackTo: bis, tipHeight: bis,
+  }, { status: 409, headers: CORS });
 }
 
 function fail(reason: string, detail?: string) {

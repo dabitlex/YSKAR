@@ -481,6 +481,7 @@ async function spiegel(
   console.log(grau(`\n ${nf(eigene - dort)} blocks to push.\n`));
 
   let geschafft = 0;
+  let rueckbauten = 0;
   for (let h = dort + 1; h <= eigene; h++) {
     const b = store.mainAt(h);
     if (!b) {
@@ -495,6 +496,21 @@ async function spiegel(
         signal: AbortSignal.timeout(ANFRAGE_FRIST_MS),
       });
       const body = await res.json().catch(() => ({}));
+      /*
+        Der Spiegel lag auf einer verworfenen Abspaltung und hat sich selbst
+        auf die gemeinsame Hoehe zurueckgesetzt (Migration 00030). Ab dort
+        neu einreichen -- hoechstens dreimal je Lauf, damit ein Fehler nicht
+        endlos kreist.
+      */
+      if (!body.accepted && body.reason === 'reorg' && Number.isSafeInteger(body.rolledBackTo)
+          && body.rolledBackTo < h && rueckbauten < 3) {
+        rueckbauten++;
+        console.log(gelb(` ${body.detail ?? 'Mirror rolled back.'}`));
+        dort = body.rolledBackTo;  // ab hier neu zaehlen
+        geschafft = 0;
+        h = dort;                  // die Schleife zaehlt auf dort + 1
+        continue;
+      }
       if (!body.accepted) {
         console.error(rot(` Block ${nf(h)} rejected by the mirror: ${
           body.detail ?? body.reason ?? `HTTP ${res.status}`}`));
