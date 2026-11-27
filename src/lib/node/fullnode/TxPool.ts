@@ -91,6 +91,12 @@ export interface AddOptionen {
    * halten sie nicht auf (siehe zurueck()).
    */
   reorg?: boolean;
+  /**
+   * Ankunftszeit (ms), wenn sie nicht jetzt ist -- beim Wiederladen nach
+   * einem Neustart (mempoolDatei.ts). Sonst begaenne die 72-Stunden-Frist
+   * bei jedem Neustart von vorn. Nie in der Zukunft.
+   */
+  seit?: number;
 }
 
 export interface TxPoolOptionen {
@@ -189,6 +195,17 @@ export class TxPool {
   /** Alle wartenden Transaktionen, in der Reihenfolge der Aufnahme. */
   alle(): Spend[] {
     return [...this.nachId.values()].map(e => e.tx);
+  }
+
+  /**
+   * Alles, was fuer das Sichern ueber einen Neustart noetig ist: die
+   * Transaktion, ob sie eigene ist, und seit wann sie wartet. Je Absender
+   * nach Nonce, damit sie sich in dieser Reihenfolge wieder aufnehmen laesst.
+   */
+  sicherung(): { tx: Spend; lokal: boolean; seit: number }[] {
+    return [...this.nachId.values()]
+      .sort((a, b) => (a.from === b.from ? (a.nonce < b.nonce ? -1 : 1) : (a.from < b.from ? -1 : 1)))
+      .map(e => ({ tx: e.tx, lokal: e.lokal, seit: e.seit }));
   }
 
   /**
@@ -426,7 +443,8 @@ export class TxPool {
       tx, txid: id, from: absender,
       an: [...new Set(spendOutputs(tx).map(o => toHex(o.to)))],
       nonce: tx.nonce, fee: tx.fee, bytes, rate,
-      seit: this.jetzt(), nr: this.naechsteNr++, lokal, regel: this.regelstand(height),
+      seit: opt.seit !== undefined ? Math.min(opt.seit, this.jetzt()) : this.jetzt(),
+      nr: this.naechsteNr++, lokal, regel: this.regelstand(height),
     });
 
     return { ok: true, txid: id, ersetzt, verdraengt: opfer.length || undefined };

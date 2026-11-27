@@ -38,6 +38,10 @@ import { NetzStatistik } from './NetzStatistik.ts';
 import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { fensterGroesse } from '../../pool/pplns.ts';
 import { leseFenster, schreibeFenster, schreibeFensterSofort, kuerze } from '../../pool/fensterDatei.ts';
+import { leseMempool, schreibeMempool, schreibeMempoolSofort, nimmWiederAuf } from './mempoolDatei.ts';
+
+/** So oft sichert der Knoten seine Warteschlange zusaetzlich zum Beenden. */
+const MEMPOOL_SICHERN_MS = 10 * 60 * 1000;
 import { nameToExtra, finderName, finderAnzeige } from '../../chain/finderName.ts';
 import { decodeAddress, istAuszahlungsAdresse } from '../../core/address.ts';
 import { SyncManager } from '../p2p/SyncManager.ts';
@@ -797,6 +801,34 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       `--max-inbound ${maxEin}, --max-inbound-per-ip ${maxEinJeIp}`);
   }
   const pool = new TxPool(params, undefined, mb === null ? {} : { maxBytes: Math.floor(mb * 1024 * 1024) });
+
+  /*
+    Warteschlange ueber den Neustart retten (mempoolDatei.ts). Geladen wird
+    im Hintergrund und in Scheiben: Der Knoten nimmt sofort Verbindungen und
+    Anfragen an, die Ueberweisungen kommen nach und nach dazu -- jede voll
+    geprueft wie eine aus dem Netz.
+  */
+  const mempoolPfad = `${opt.daten}/mempool.dat`;
+  {
+    const gelesen = leseMempool(mempoolPfad, params.network);
+    if (gelesen.hinweis) log('pool', gelb, `mempool.dat ignored: ${gelesen.hinweis}`);
+    if (gelesen.eintraege.length > 0) {
+      void nimmWiederAuf(gelesen.eintraege, e =>
+        pool.add(e.tx, chain.state(), chain.height() + 1, { lokal: e.lokal, seit: e.seit }).ok,
+      ).then(r => log('pool', grau, `mempool restored: ${nf(r.aufgenommen)} of ${nf(gelesen.eintraege.length)} transactions`
+        + (r.abgewiesen ? ` (${nf(r.abgewiesen)} no longer valid)` : '')));
+    }
+  }
+  let mempoolSichertGerade = false;
+  const mempoolTakt = setInterval(() => {
+    if (mempoolSichertGerade) return;
+    mempoolSichertGerade = true;
+    void schreibeMempool(mempoolPfad, params.network, pool.sicherung())
+      .catch(e => log('pool', gelb, `mempool not saved: ${(e as Error).message}`))
+      .finally(() => { mempoolSichertGerade = false; });
+  }, MEMPOOL_SICHERN_MS);
+  mempoolTakt.unref?.();
+
   const koordinator = new MiningCoordinator(chain, store, pool, params);
   const server = new MiningServer({ chain, store, pool, mining: koordinator }, {
     host: opt.bind, port: opt.port, params, absender: opt.absender, grenzen: opt.miningGrenzen,
@@ -1173,8 +1205,14 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     clearInterval(uebersichtTakt);
     if (statsTakt) clearInterval(statsTakt);
     if (fensterTakt) clearInterval(fensterTakt);
+    clearInterval(mempoolTakt);
     melde('');
     log('stop', grau, 'stopping …');
+    try {
+      const gesichert = pool.sicherung();
+      schreibeMempoolSofort(mempoolPfad, params.network, gesichert);
+      log('pool', grau, `mempool saved: ${nf(gesichert.length)} transactions`);
+    } catch (e) { console.error(`  mempool not saved: ${(e as Error).message}`); }
     const pk = server.poolKoordinator;
     if (pk) {
       fensterFolge++;
