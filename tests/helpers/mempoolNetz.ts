@@ -23,7 +23,7 @@ const MINER = keypairFromMnemonic(WORTE, '', 0, 0);
 const ZIEL = new Uint8Array(20).fill(0xee);
 export const KONTEN = Array.from({ length: 40 }, (_, i) => keypairFromMnemonic(WORTE, '', 1, i));
 
-export function knoten(opt: { port?: number; seeds?: { host: string; port: number }[]; txBuendelMs?: number } = {}) {
+export function knoten(opt: { port?: number; seeds?: { host: string; port: number }[]; txBuendelMs?: number; agent?: string } = {}) {
   const store = new ChainStore(':memory:');
   store.setMeta('network', REGTEST.network);
   store.setMeta('chain_id', toHex(REGTEST.chainId));
@@ -31,7 +31,7 @@ export function knoten(opt: { port?: number; seeds?: { host: string; port: numbe
   const pool = new TxPool(REGTEST);
   let sync: SyncManager;
   const peers = new PeerManager({
-    params: REGTEST, agent: 'test/0.1', listenPort: opt.port ?? 0, host: '127.0.0.1', seeds: opt.seeds,
+    params: REGTEST, agent: opt.agent ?? 'test/0.1', listenPort: opt.port ?? 0, host: '127.0.0.1', seeds: opt.seeds,
     txBuendelMs: opt.txBuendelMs,
     kette: () => { const t = chain.tip(); return { height: t?.height ?? -1, chainWork: t?.chainWork ?? 0n }; },
     onReady: p => sync.aufPeer(p),

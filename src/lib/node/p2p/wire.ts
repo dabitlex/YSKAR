@@ -67,6 +67,7 @@ export const COMMANDS = [
   'tx',                         // Transaktionen
   'getaddr', 'addr',            // Peers austauschen
   'stats',                      // Miner-Statistik, nur an '+stats'-Peers
+  'cmpctblock', 'getblocktxn', 'blocktxn',   // kompakte Bloecke, nur an '+cmpct'-Peers
 ] as const;
 
 export type Command = typeof COMMANDS[number];

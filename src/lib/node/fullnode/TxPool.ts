@@ -200,6 +200,11 @@ export class TxPool {
     return [...this.nachId.values()].map(e => e.tx);
   }
 
+  /** Wartende mit ihrer txid (Hex), ohne sie neu zu rechnen -- fuer kompakte Bloecke. */
+  *alleMitId(): IterableIterator<{ id: string; tx: Spend }> {
+    for (const e of this.nachId.values()) yield { id: e.txid, tx: e.tx };
+  }
+
   /**
    * Alles, was fuer das Sichern ueber einen Neustart noetig ist: die
    * Transaktion, ob sie eigene ist, und seit wann sie wartet. Je Absender

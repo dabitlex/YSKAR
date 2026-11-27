@@ -34,6 +34,7 @@ import { MAINNET, REGTEST, regtestMitV6, type ConsensusParams } from '../../core
 import { PeerManager } from '../p2p/PeerManager.ts';
 import type { PeerConnection } from '../p2p/PeerConnection.ts';
 import { encodeStats, decodeStats, STATS_FAEHIG } from '../p2p/messages.ts';
+import { KOMPAKT_FAEHIG } from '../p2p/kompakt.ts';
 import { NetzStatistik } from './NetzStatistik.ts';
 import { PoolCoordinator } from '../../pool/PoolCoordinator.ts';
 import { fensterGroesse } from '../../pool/pplns.ts';
@@ -406,6 +407,7 @@ const KEIN_AUSZAHLUNGSKONTO = 'Mining pays only to a normal wallet address (ysr1
  * Verbindung annimmt und nie antwortet.
  */
 const ANFRAGE_FRIST_MS = 30_000;
+
 
 async function hole(api: string, pfad: string): Promise<Record<string, unknown>> {
   const res = await fetch(`${api}/api/v2${pfad}`, { signal: AbortSignal.timeout(ANFRAGE_FRIST_MS) });
@@ -945,7 +947,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
 
     netz = new PeerManager({
       params,
-      agent: `yskar-node/${VERSION} ${STATS_FAEHIG}`,
+      agent: `yskar-node/${VERSION} ${STATS_FAEHIG} ${KOMPAKT_FAEHIG}`,
       listenPort: opt.p2pPort,
       seeds,
       maxEin, maxAus, maxEinJeAdresse: maxEinJeIp,
@@ -955,7 +957,7 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
       },
       onReady: p => {
         const i = p.info();
-        const agent = i.agent.replace(` ${STATS_FAEHIG}`, '').trim();
+        const agent = i.agent.replace(` ${STATS_FAEHIG}`, '').replace(` ${KOMPAKT_FAEHIG}`, '').trim();
         log('peer', gruen, `${p.host} connected${P}height ${nf(p.fremdeHoehe())}${P}revision ${
           i.revision || '?'}${agent ? grau(` · ${agent}`) : ''}`);
         if (i.revision > 0 && i.revision < 6 && naechsteAktivierung(params) > 0) {

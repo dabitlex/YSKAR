@@ -53,6 +53,7 @@ import { PeerManager } from '../../src/lib/node/p2p/PeerManager.ts';
 import type { PeerConnection } from '../../src/lib/node/p2p/PeerConnection.ts';
 import { SyncManager } from '../../src/lib/node/p2p/SyncManager.ts';
 import { STATS_FAEHIG, encodeStats, decodeStats } from '../../src/lib/node/p2p/messages.ts';
+import { KOMPAKT_FAEHIG } from '../../src/lib/node/p2p/kompakt.ts';
 import { MAINNET, istMainnet, type ConsensusParams } from '../../src/lib/core/networks.ts';
 import { stateRootAt, totalSupply } from '../../src/lib/core/state.ts';
 import { gemeldeteFassung, naechsteAktivierung, fassungsStatus } from '../../src/lib/node/fassung.ts';
@@ -1851,7 +1852,7 @@ export class NodeCoreApp {
 
     this.peers = new PeerManager({
       params,
-      agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG}`,
+      agent: `yskar-node-core/${VERSION} ${STATS_FAEHIG} ${KOMPAKT_FAEHIG}`,
       listenPort: this.config.p2pPort,
       seeds: seedListe(this.config.seed, istMainnet(params)).map(s => this.parseSeed(s)),
       kette: () => {
