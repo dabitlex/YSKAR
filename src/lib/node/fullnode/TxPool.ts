@@ -200,6 +200,24 @@ export class TxPool {
     return [...this.nachId.values()].map(e => e.tx);
   }
 
+  /** Seit wann eine wartende Transaktion hier liegt (ms) -- fuer Anzeigen. */
+  seit(id: string): number | undefined { return this.nachId.get(id)?.seit; }
+
+  /**
+   * Die `n` zuletzt aufgenommenen, in Aufnahmereihenfolge -- ohne die ganze
+   * Warteschlange zu kopieren (Anzeige im Node Core, Volllast-Konzept M5).
+   */
+  neueste(n: number): { id: string; tx: Spend; seit: number }[] {
+    if (n <= 0) return [];
+    const ring: Eintrag[] = new Array(n);
+    let i = 0;
+    for (const e of this.nachId.values()) ring[i++ % n] = e;
+    const out: { id: string; tx: Spend; seit: number }[] = [];
+    const anzahl = Math.min(i, n);
+    for (let k = 0; k < anzahl; k++) { const e = ring[(i - anzahl + k) % n]; out.push({ id: e.txid, tx: e.tx, seit: e.seit }); }
+    return out;
+  }
+
   /** Wartende mit ihrer txid (Hex), ohne sie neu zu rechnen -- fuer kompakte Bloecke. */
   *alleMitId(): IterableIterator<{ id: string; tx: Spend }> {
     for (const e of this.nachId.values()) yield { id: e.txid, tx: e.tx };
