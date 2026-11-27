@@ -139,6 +139,46 @@ export function vorschau(
 }
 
 /** Nur die Zuordnung txid -> Block (fruehere Schnittstelle). */
+/**
+ * Wie vorschau(), aber mit einer Pause nach jedem Vorschaublock
+ * (Volllast-Konzept M1). Bei 190.000 wartenden Ueberweisungen rechnet die
+ * Vorschau ueber 64 Bloecke rund eine Sekunde -- am Stueck haette der Knoten
+ * so lange auf nichts anderes geantwortet. Das Ergebnis ist dasselbe; nur
+ * kommen zwischen den Bloecken andere Anfragen dran.
+ *
+ * `pause` ist austauschbar (Tests); Vorgabe ist setImmediate. Liefert null,
+ * wenn `abbrechen()` waehrenddessen true wird -- etwa weil ein neuer Block
+ * die Rechnung entwertet hat.
+ */
+export async function vorschauInScheiben(
+  state: State, mempool: Spend[], hoehe: number,
+  bloecke = VORSCHAU_BLOECKE,
+  limit = MAX_TXS_PER_BLOCK - 1,
+  params: ConsensusParams = MAINNET,
+  opt: AuswahlOptionen = {},
+  steuerung: { pause?: () => Promise<void>; abbrechen?: () => boolean } = {},
+): Promise<Vorschau | null> {
+  const pause = steuerung.pause ?? (() => new Promise<void>(r => setImmediate(r)));
+  const plaetze = new Map<string, number>();
+  const liste: Vorschau['bloecke'] = [];
+  const a = new Auswahl(state, mempool, hoehe, params, opt);
+  for (let b = 1; b <= bloecke && !a.leer(); b++) {
+    await pause();
+    if (steuerung.abbrechen?.()) return null;
+    const { included } = a.naechsterBlock(limit, hoehe + b - 1);
+    if (included.length === 0) break;
+    let minFee = included[0].fee, minJeByte = Infinity;
+    for (const t of included) {
+      plaetze.set(spendTxid(t), b);
+      if (t.fee < minFee) minFee = t.fee;
+      const r = gebuehrJeByte(t);
+      if (r < minJeByte) minJeByte = r;
+    }
+    liste.push({ block: b, anzahl: included.length, minFee, minJeByte });
+  }
+  return { plaetze, bloecke: liste };
+}
+
 export function projiziere(
   state: State, mempool: Spend[], hoehe: number,
   bloecke = VORSCHAU_BLOECKE,

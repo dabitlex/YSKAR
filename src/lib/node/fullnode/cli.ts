@@ -813,8 +813,9 @@ async function mine(opt: Optionen, store: ChainStore, chain: ChainManager): Prom
     const gelesen = leseMempool(mempoolPfad, params.network);
     if (gelesen.hinweis) log('pool', gelb, `mempool.dat ignored: ${gelesen.hinweis}`);
     if (gelesen.eintraege.length > 0) {
-      void nimmWiederAuf(gelesen.eintraege, e =>
-        pool.add(e.tx, chain.state(), chain.height() + 1, { lokal: e.lokal, seit: e.seit }).ok,
+      void nimmWiederAuf(gelesen.eintraege, scheibe =>
+        pool.addStapel(scheibe.map(e => ({ tx: e.tx, opt: { lokal: e.lokal, seit: e.seit } })),
+          chain.state(), chain.height() + 1).map(r => r.ok),
       ).then(r => log('pool', grau, `mempool restored: ${nf(r.aufgenommen)} of ${nf(gelesen.eintraege.length)} transactions`
         + (r.abgewiesen ? ` (${nf(r.abgewiesen)} no longer valid)` : '')));
     }

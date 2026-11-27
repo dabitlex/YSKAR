@@ -107,6 +107,9 @@ export const GETHEADERS_FENSTER_MS = 10_000;
  */
 export const OFFENE_TX_MAX = 5_000;
 
+/** Hoechstens so viele empfangene Ueberweisungen in einem Pruefstapel. */
+export const TX_STAPEL_MAX = 256;
+
 /** So viele wartende Ueberweisungen bekommt ein frisch verbundener Peer angekuendigt. */
 export const MEMPOOL_ABGLEICH_MAX = OFFENE_TX_MAX;
 /**
@@ -959,7 +962,8 @@ export class SyncManager {
       ? eintraege.filter(e => {
           if (e.typ !== INV_TX) return false;
           const id = toHex(e.hash);
-          return !this.pool!.has(id) && !this.offeneTx.has(id) && !this.abgewiesen.has(id);
+          return !this.pool!.has(id) && !this.offeneTx.has(id) && !this.abgewiesen.has(id)
+            && !this.imEingang.has(id);
         }).slice(0, Math.max(0, Math.min(MAX_INV, OFFENE_TX_MAX - this.offeneTx.size)))
       : [];
 
@@ -998,22 +1002,50 @@ export class SyncManager {
       return void p.close('tx_unlesbar');
     }
 
-    const id = toHex(txid(tx));
-    this.offeneTx.delete(id);
+    this.offeneTx.delete(toHex(txid(tx)));
 
-    const r = this.pool.add(tx, this.chain.state(), this.chain.height() + 1);
-    if (!r.ok) {
-      /*
-        Kein Grund zum Trennen: Eine Ueberweisung kann voellig richtig
-        gebaut und trotzdem hier unbrauchbar sein -- etwa weil die Nonce
-        inzwischen verbraucht ist. Nur merken, damit wir sie nicht gleich
-        wieder anfordern.
-      */
-      this.merkeAbgewiesen(id);
-      return;
+    /*
+      Gesammelt aufnehmen (Volllast-Konzept M1): Was in einem Durchlauf der
+      Ereignisschleife eintrifft -- eine getdata-Antwort bringt Hunderte
+      tx-Nachrichten in wenigen TCP-Paketen --, wird zusammen geprueft, die
+      Signaturen in einem Stapel. Das Ergebnis je Ueberweisung ist dasselbe
+      wie einzeln (TxPool.addStapel).
+    */
+    this.txEingang.push({ tx, p });
+    this.imEingang.add(toHex(txid(tx)));
+    if (this.txEingang.length >= TX_STAPEL_MAX) return this.verarbeiteTxEingang();
+    if (!this.txEingangGeplant) {
+      this.txEingangGeplant = true;
+      setImmediate(() => this.verarbeiteTxEingang());
     }
+  }
 
-    this.kuendigeAnTx(txid(tx), p);
+  private txEingang: { tx: Spend; p: PeerConnection }[] = [];
+  /** Empfangen, aber noch nicht geprueft -- nicht erneut anfordern. */
+  private imEingang = new Set<string>();
+  private txEingangGeplant = false;
+
+  private verarbeiteTxEingang(): void {
+    this.txEingangGeplant = false;
+    const eingang = this.txEingang;
+    this.txEingang = [];
+    this.imEingang.clear();
+    if (!this.pool || eingang.length === 0) return;
+    const ergebnisse = this.pool.addStapel(eingang.map(e => ({ tx: e.tx })), this.chain.state(), this.chain.height() + 1);
+    ergebnisse.forEach((r, i) => {
+      const { tx, p } = eingang[i];
+      if (!r.ok) {
+        /*
+          Kein Grund zum Trennen: Eine Ueberweisung kann voellig richtig
+          gebaut und trotzdem hier unbrauchbar sein -- etwa weil die Nonce
+          inzwischen verbraucht ist. Nur merken, damit wir sie nicht gleich
+          wieder anfordern.
+        */
+        this.merkeAbgewiesen(toHex(txid(tx)));
+        return;
+      }
+      this.kuendigeAnTx(txid(tx), p);
+    });
   }
 
   /**

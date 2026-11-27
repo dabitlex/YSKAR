@@ -89,6 +89,11 @@ interface OffenerJob {
   enthalten: Spend[];
 }
 
+/** Jede wievielte Vorlage voll nachgebaut und verglichen wird (siehe vorlageNr). */
+export const VORLAGE_STICHPROBE = 10;
+/** Ab dieser Baudauer einer Vorlage gilt Andrang -- erst dann nur Stichproben. */
+export const STICHPROBE_AB_MS = 50;
+
 export class MiningCoordinator {
   private chain: ChainManager;
   private store: ChainStore;
@@ -126,6 +131,18 @@ export class MiningCoordinator {
    * volle Bauten je Kettenkopf und Mempool-Stand.
    */
   private vorlageGeprueft = new Set<string>();
+  /**
+   * Stichprobe statt jedes Mal -- aber nur bei Andrang (Volllast-Konzept M1).
+   * Der volle Vergleichsbau kostete bei vollem Mempool rund 0,7 s, mehr als
+   * die Vorlage selbst, und lief bei Andrang alle 10 s. Dauert der Bau der
+   * Vorlage mindestens STICHPROBE_AB_MS, wird jeder Rechenweg beim ersten
+   * Auftreten seit dem Start geprueft und danach bei jeder
+   * VORLAGE_STICHPROBE-ten Vorlage erneut. Darunter -- im Normalbetrieb --
+   * bleibt es wie bisher: jede neue Vorlage, jeder Rechenweg. Weicht ein
+   * Vergleich ab, schaltet sich die Vorlage wie bisher ab.
+   */
+  private vorlageNr = 0;
+  private zuletztGeprueft = new Map<string, number>();
   /**
    * Ein: Jobs aus der Vorlage. Aus: jeder Job wie bisher mit buildBlock().
    *
@@ -284,12 +301,19 @@ export class MiningCoordinator {
       this.vorlageUm = Date.now();
       this.vorlageDauer = this.vorlageUm - anfang;
       this.vorlageGeprueft.clear();
+      this.vorlageNr++;
     }
     const { art, ...gebaut } = baueAusVorlage(this.vorlage!, {
       prevHash, minerAddress, timestamp: zeitstempel, difficulty, extranonce,
       coinbaseExtra: extra, anteile, params: this.params,
     });
     if (this.vorlageGeprueft.has(art)) return gebaut;
+    const zuletzt = this.zuletztGeprueft.get(art);
+    if (this.vorlageDauer >= this.stichprobeAbMs && zuletzt !== undefined
+        && this.vorlageNr - zuletzt < VORLAGE_STICHPROBE) {
+      this.vorlageGeprueft.add(art);
+      return gebaut;
+    }
 
     const voll = this.vollerBau(hoehe, prevHash, minerAddress, zeitstempel, difficulty, extranonce, extra, anteile,
       this.vorlageAus);
@@ -303,8 +327,15 @@ export class MiningCoordinator {
       return voll;
     }
     this.vorlageGeprueft.add(art);
+    this.zuletztGeprueft.set(art, this.vorlageNr);
+    this.vollGeprueft++;
     return gebaut;
   }
+
+  /** Wie viele Vorlagen-Jobs voll nachgebaut und verglichen wurden (Diagnose, Tests). */
+  vollGeprueft = 0;
+  /** Ab dieser Baudauer nur Stichproben (Vorgabe STICHPROBE_AB_MS; Tests stellen Andrang so nach). */
+  stichprobeAbMs = STICHPROBE_AB_MS;
 
   /**
    * Eine gefundene Nonce einreichen.

@@ -38,7 +38,7 @@ test('Rundweg: alles kommt zurück, mit Ankunftszeit und eigener Markierung', as
   assert.equal(gelesen.eintraege.length, UEBERWEISUNGEN.length);
 
   const neu = new TxPool(REGTEST, undefined, { jetzt: () => uhr });
-  const r = await nimmWiederAuf(gelesen.eintraege, e => neu.add(e.tx, state, HOEHE, { lokal: e.lokal, seit: e.seit }).ok);
+  const r = await nimmWiederAuf(gelesen.eintraege, sch => neu.addStapel(sch.map(e => ({ tx: e.tx, opt: { lokal: e.lokal, seit: e.seit } })), state, HOEHE).map(x => x.ok));
   assert.deepEqual(r, { aufgenommen: UEBERWEISUNGEN.length, abgewiesen: 0 });
   assert.equal(neu.size(), pool.size());
   assert.equal(neu.lokale().length, 32);
@@ -58,7 +58,7 @@ test('Die 72-Stunden-Frist läuft über den Neustart weiter', async () => {
   // 71 Stunden später neu gestartet ...
   uhr += 71 * 3600 * 1000;
   const neu = new TxPool(REGTEST, undefined, { jetzt: () => uhr });
-  await nimmWiederAuf(leseMempool(pfad, REGTEST.network).eintraege, e => neu.add(e.tx, state, HOEHE, { seit: e.seit }).ok);
+  await nimmWiederAuf(leseMempool(pfad, REGTEST.network).eintraege, sch => sch.map(e => neu.add(e.tx, state, HOEHE, { seit: e.seit }).ok));
   assert.equal(neu.size(), 32);
   // ... und nach zwei weiteren Stunden sind sie abgelaufen, nicht erst nach 74.
   uhr += 2 * 3600 * 1000;

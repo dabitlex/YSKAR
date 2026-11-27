@@ -100,17 +100,18 @@ export function leseMempool(pfad: string, netz: string): { eintraege: Gesicherte
 }
 
 /**
- * Gelesene Eintraege wieder aufnehmen, in Scheiben. `aufnehmen` ist
- * pool.add mit dem aktuellen Zustand -- die volle Pruefung.
+ * Gelesene Eintraege wieder aufnehmen, in Scheiben. `aufnehmen` bekommt eine
+ * Scheibe und liefert je Eintrag, ob er aufgenommen wurde -- pool.addStapel
+ * mit dem aktuellen Zustand, also die volle Pruefung mit Stapel-Signaturen.
  */
 export async function nimmWiederAuf(
   eintraege: GesicherteTx[],
-  aufnehmen: (e: GesicherteTx) => boolean,
+  aufnehmen: (scheibe: GesicherteTx[]) => boolean[],
 ): Promise<{ aufgenommen: number; abgewiesen: number }> {
   let aufgenommen = 0, abgewiesen = 0;
-  for (let i = 0; i < eintraege.length; i++) {
-    if (aufnehmen(eintraege[i])) aufgenommen++; else abgewiesen++;
-    if (i % SCHEIBE === SCHEIBE - 1) await pause();
+  for (let i = 0; i < eintraege.length; i += SCHEIBE) {
+    for (const ok of aufnehmen(eintraege.slice(i, i + SCHEIBE))) { if (ok) aufgenommen++; else abgewiesen++; }
+    await pause();
   }
   return { aufgenommen, abgewiesen };
 }
