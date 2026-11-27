@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="/assets/site.css?v=d7df03c0">
 <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
 <script>(function (d, w) {
-var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"7bb3936d","de":"1cd9b925","es":"41fd1e10","pt":"54b308cf","fr":"1253a7a4","it":"9fd30c14","pl":"0fbdb91f","ru":"71dea397","tr":"19291a7c","zh":"bb714147"}, OLD = null, lang = null, list, i, s;
+var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"b1c38d8a","de":"19418362","es":"e09bc4ea","pt":"c5901c3a","fr":"cc8fcfd9","it":"459eab2e","pl":"092517df","ru":"0f7f7343","tr":"48e93658","zh":"d6317320"}, OLD = null, lang = null, list, i, s;
 function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
 w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
 var to = OLD && OLD[(location.hash || '').slice(1)];
@@ -53,7 +53,7 @@ w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(fun
 }
 })(document, window);</script>
 <script src="/assets/data/kette.js" defer></script>
-<script src="/assets/site.js?v=1a3268ca" defer></script>
+<script src="/assets/site.js?v=878f7466" defer></script>
 <script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
 </head>
 <body>
@@ -222,8 +222,8 @@ w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(fun
 <p data-t="lv.an.apk.pruefenText">Every release also contains a file ending in <code>.sha256</code>. It holds the checksum of the APK. If the checksum of your download matches, the file is exactly the one we published.</p>
 <h2 id="nodecore" data-t="lv.an.nc.titel">Node Core for Windows and Linux</h2>
 <p data-t="lv.an.nc.text">Node Core is the YSKAR program for Windows and Linux: your own node with wallet and mining in one window. It downloads the blockchain to your PC and checks every block itself.</p>
-<p><a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-Setup-1.1.0.exe" data-t="lv.nc.knopfWin" target="_blank" rel="noopener">Download for Windows</a> <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-amd64.deb" data-t="lv.nc.knopfLinux" target="_blank" rel="noopener">Download for Linux (.deb)</a></p>
-<p class="lv-klein-meta">v1.1.0 · <span data-t="lv.nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="lv.nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-x86_64.AppImage" data-t="lv.nc.appimage" target="_blank" rel="noopener">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.1.0" data-t="lv.nc.mehr" target="_blank" rel="noopener">Checksum and release notes</a></p>
+<p><a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/YSKAR-Node-Core-Setup-1.2.0.exe" data-t="lv.nc.knopfWin" target="_blank" rel="noopener">Download for Windows</a> <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/YSKAR-Node-Core-1.2.0-amd64.deb" data-t="lv.nc.knopfLinux" target="_blank" rel="noopener">Download for Linux (.deb)</a></p>
+<p class="lv-klein-meta">v1.2.0 · <span data-t="lv.nc.system">Windows 10 or 11 (64-bit)</span> · 95 MB · <span data-t="lv.nc.systemLinux">Linux 64-bit · Ubuntu, Debian, Mint</span> · 93 MB · <a href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/YSKAR-Node-Core-1.2.0-x86_64.AppImage" data-t="lv.nc.appimage" target="_blank" rel="noopener">AppImage for other Linux distributions</a> · <a href="https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.2.0" data-t="lv.nc.mehr" target="_blank" rel="noopener">Checksum and release notes</a></p>
 <figure class="lv-nc-bild"><img data-img="laptop" data-lazy="" alt="A laptop on a wooden desk at night, running YSKAR Node Core; behind it a window onto a dark fjord." data-ta="alt:way.mine.alt"><figcaption data-t="lv.nc.bildNotiz">Example view – the numbers are examples.</figcaption></figure>
 <h3 data-t="lv.an.nc.vor">What you need</h3>
 <ul>
@@ -238,16 +238,16 @@ w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(fun
 <li data-t="lv.an.nc.i3">Follow the installer. Node Core starts afterwards.</li>
 </ol>
 <p data-t="lv.an.nc.pruefen">To be sure the file is the one we published, compare its checksum with the <code>.sha256</code> file of the release. In PowerShell:</p>
-<div class="term term--pad"><pre id="lv-code-guides-1"><span class="ln">Get-FileHash .\YSKAR-Node-Core-Setup-1.1.0.exe -Algorithm SHA256</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-1" data-t="ui.copy">Copy</button></div>
+<div class="term term--pad"><pre id="lv-code-guides-1"><span class="ln">Get-FileHash .\YSKAR-Node-Core-Setup-1.2.0.exe -Algorithm SHA256</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-1" data-t="ui.copy">Copy</button></div>
 <h3 data-t="lv.an.nc.linux">Installing on Linux</h3>
 <p data-t="lv.an.nc.l1"><strong>Ubuntu, Debian, Linux Mint:</strong> download the <code>.deb</code> file and install it in a terminal. Then start “YSKAR Node Core” from the application menu.</p>
-<div class="term term--pad"><pre id="lv-code-guides-2"><span class="ln">sudo apt install ./YSKAR-Node-Core-1.1.0-amd64.deb</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-2" data-t="ui.copy">Copy</button></div>
+<div class="term term--pad"><pre id="lv-code-guides-2"><span class="ln">sudo apt install ./YSKAR-Node-Core-1.2.0-amd64.deb</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-2" data-t="ui.copy">Copy</button></div>
 <p data-t="lv.an.nc.l2"><strong>Other distributions:</strong> download the AppImage, make it executable and start it. AppImages need FUSE 2 (on Ubuntu the package <code>libfuse2</code>).</p>
-<div class="term term--pad"><pre id="lv-code-guides-3"><span class="ln">chmod +x YSKAR-Node-Core-1.1.0-x86_64.AppImage
-</span><span class="ln">./YSKAR-Node-Core-1.1.0-x86_64.AppImage</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-3" data-t="ui.copy">Copy</button></div>
+<div class="term term--pad"><pre id="lv-code-guides-3"><span class="ln">chmod +x YSKAR-Node-Core-1.2.0-x86_64.AppImage
+</span><span class="ln">./YSKAR-Node-Core-1.2.0-x86_64.AppImage</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-3" data-t="ui.copy">Copy</button></div>
 <p data-t="lv.an.nc.l3">Node Core for Linux runs on 64-bit PCs (x86-64) with a desktop. ARM computers such as the Raspberry Pi are not supported.</p>
 <p data-t="lv.an.nc.pruefenLinux">On Linux:</p>
-<div class="term term--pad"><pre id="lv-code-guides-4"><span class="ln">sha256sum -c YSKAR-Node-Core-1.1.0-amd64.deb.sha256</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-4" data-t="ui.copy">Copy</button></div>
+<div class="term term--pad"><pre id="lv-code-guides-4"><span class="ln">sha256sum -c YSKAR-Node-Core-1.2.0-amd64.deb.sha256</span></pre><button type="button" class="term__copy" data-copy="#lv-code-guides-4" data-t="ui.copy">Copy</button></div>
 <h3 data-t="lv.an.nc.erst">First start</h3>
 <ol>
 <li data-t="lv.an.nc.e1"><strong>Node:</strong> data folder, ports and seed are filled in. The defaults suit most people – just click “Continue”.</li>

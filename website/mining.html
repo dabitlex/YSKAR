@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="/assets/site.css?v=d7df03c0">
 <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/hanken-grotesk-latin.woff2?v=38c3847f" crossorigin>
 <script>(function (d, w) {
-var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"7bb3936d","de":"1cd9b925","es":"41fd1e10","pt":"54b308cf","fr":"1253a7a4","it":"9fd30c14","pl":"0fbdb91f","ru":"71dea397","tr":"19291a7c","zh":"bb714147"}, OLD = {"wege":"/mining#setup","nodecore":"/mining#setup","rechner-block":"/mining#calculator","rechner":"/mining#calculator"}, lang = null, list, i, s;
+var c = d.documentElement.classList, LANGS = ["en","de","es","pt","fr","it","pl","ru","tr","zh"], TEXTS = {"en":"b1c38d8a","de":"19418362","es":"e09bc4ea","pt":"c5901c3a","fr":"cc8fcfd9","it":"459eab2e","pl":"092517df","ru":"0f7f7343","tr":"48e93658","zh":"d6317320"}, OLD = {"wege":"/mining#setup","nodecore":"/mining#setup","rechner-block":"/mining#calculator","rechner":"/mining#calculator"}, lang = null, list, i, s;
 function calm(e) { var v = e.viewTransition; if (v) { v.ready.catch(function () {}); v.finished.catch(function () {}); } }
 w.addEventListener('pagereveal', calm); w.addEventListener('pageswap', calm);
 var to = OLD && OLD[(location.hash || '').slice(1)];
@@ -53,7 +53,7 @@ w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(fun
 }
 })(document, window);</script>
 <script src="/assets/data/kette.js" defer></script>
-<script src="/assets/site.js?v=1a3268ca" defer></script>
+<script src="/assets/site.js?v=878f7466" defer></script>
 <script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/api/*"}},{"not":{"href_matches":"/assets/*"}}]},"eagerness":"moderate"}]}</script>
 </head>
 <body>
@@ -204,13 +204,13 @@ w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(fun
       <div class="setup__panel" data-panel="pc" role="tabpanel">
         <div class="setup__txt">
           <h3 data-t="mining.pc.h">Node Core for Windows and Linux</h3>
-          <p data-t="mining.pc.p">A full node, a wallet and a miner in one program. Node Core checks every block itself and mines with your processor and with graphics cards from NVIDIA, AMD and Intel. Version 1.1.0, for Windows 10 and 11 and for 64-bit Linux.</p>
+          <p data-t="mining.pc.p">A full node, a wallet and a miner in one program. Node Core checks every block itself and mines with your processor and with graphics cards from NVIDIA, AMD and Intel. Version 1.2.0, for Windows 10 and 11 and for 64-bit Linux.</p>
           <ol class="nlist"><li data-t="mining.pc.s1">Download the installer and run it.</li><li data-t="mining.pc.s2">Create a wallet and write down the 12 words, or bring your wallet over with them.</li><li data-t="mining.pc.s3">Under Mining, choose solo or a pool, pick processor or graphics card, and start.</li></ol>
           <div class="row">
-            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-Setup-1.1.0.exe" target="_blank" rel="noopener"><span data-t="mining.pc.win">Download for Windows</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
-            <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-amd64.deb" target="_blank" rel="noopener"><span data-t="mining.pc.deb">Download for Linux (.deb)</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/YSKAR-Node-Core-Setup-1.2.0.exe" target="_blank" rel="noopener"><span data-t="mining.pc.win">Download for Windows</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+            <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/YSKAR-Node-Core-1.2.0-amd64.deb" target="_blank" rel="noopener"><span data-t="mining.pc.deb">Download for Linux (.deb)</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
           </div>
-          <p class="small dim" data-t="mining.pc.more">Also available: an <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/YSKAR-Node-Core-1.1.0-x86_64.AppImage' target='_blank' rel='noopener'>AppImage</a> for other Linux distributions, and the <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.1.0' target='_blank' rel='noopener'>release notes with checksums</a>.</p>
+          <p class="small dim" data-t="mining.pc.more">Also available: an <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/YSKAR-Node-Core-1.2.0-x86_64.AppImage' target='_blank' rel='noopener'>AppImage</a> for other Linux distributions, and the <a class='ext' href='https://github.com/dabitlex/YSKAR/releases/tag/node-core-v1.2.0' target='_blank' rel='noopener'>release notes with checksums</a>.</p>
           <p class="heed" data-t="mining.pc.note"><strong>The Windows installer is not signed.</strong> Windows therefore asks once: choose “More info”, then “Run anyway”. Compare the checksum with the release notes if you want to be sure the file is the published one.</p>
         </div>
         <figure class="shot">
@@ -268,7 +268,7 @@ w.YSKAR_EARLY = Promise.all([get('/summary'), get('/blocks?limit=50')]).then(fun
           <h3 data-t="mining.rig.h">Mining rigs with HiveOS</h3>
           <p data-t="mining.rig.p">A ready package for HiveOS: the command-line miner with the GPU programs, one miner per graphics card.</p>
           <div class="row">
-            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.1.0/yskar-hiveos-1.1.0.tar.gz" target="_blank" rel="noopener"><span data-t="mining.rig.dl">Download the package 1.1.0</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
+            <a class="btn" href="https://github.com/dabitlex/YSKAR/releases/download/node-core-v1.2.0/yskar-hiveos-1.2.0.tar.gz" target="_blank" rel="noopener"><span data-t="mining.rig.dl">Download the package 1.2.0</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
             <a class="btn btn--ghost" href="https://github.com/dabitlex/YSKAR/blob/main/hiveos/README.md" target="_blank" rel="noopener"><span data-t="mining.rig.doc">Flight sheet and setup</span><svg class="i-out" aria-hidden="true"><use href="#i-out"/></svg></a>
           </div>
         </div>
