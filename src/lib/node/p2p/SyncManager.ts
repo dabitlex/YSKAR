@@ -986,9 +986,13 @@ export class SyncManager {
     this.kuendigeAnTx(txid(tx), p);
   }
 
-  /** Eine Ueberweisung den Peers ankuendigen -- nicht dem, von dem sie kam. */
+  /**
+   * Eine Ueberweisung den Peers ankuendigen -- nicht dem, von dem sie kam.
+   * Gesammelt (PeerManager.kuendigeAnTx); die Zahl ist die der Peers, bei
+   * denen sie vorgemerkt wurde.
+   */
   kuendigeAnTx(hash: Uint8Array, ausser?: PeerConnection): number {
-    return this.peers.kuendigeAn(INV_TX, hash, ausser);
+    return this.peers.kuendigeAnTx(hash, ausser);
   }
 
   /**

@@ -20,7 +20,7 @@ import { createServer, connect, type Server, type Socket } from 'node:net';
 
 import { PeerConnection, type PeerInfo, type NonceBuch } from './PeerConnection.ts';
 import {
-  encodeAddr, decodeAddr, encodeInv, peerKey, MAX_ADDR,
+  encodeAddr, decodeAddr, encodeInv, peerKey, MAX_ADDR, MAX_INV, INV_TX,
   type PeerAdresse,
 } from './messages.ts';
 import type { Command, Frame } from './wire.ts';
@@ -76,7 +76,28 @@ export interface NetzOptionen {
   onReady?: (p: PeerConnection) => void;
   onClose?: (p: PeerConnection, grund: string) => void;
   onLog?: (text: string) => void;
+  /**
+   * So lange werden Tx-Ankuendigungen je Peer gesammelt, bevor sie als eine
+   * inv-Nachricht rausgehen (Standard TX_BUENDEL_MS). 0: sofort einzeln, wie
+   * vor 1.0.2.
+   */
+  txBuendelMs?: number;
 }
+
+/**
+ * Tx-Ankuendigungen sammeln statt einzeln senden (Volllast-Konzept M2).
+ *
+ * Vorher ging je Ueberweisung eine eigene inv-Nachricht an jeden Peer:
+ * 20.000 Ueberweisungen an 37 Peers waren 740.000 Nachrichten, und das
+ * Ankuendigen kostete mehr Rechenzeit als das Pruefen der Ueberweisung
+ * selbst (gemessen 319-383 us gegen 188 us je Tx). Gesammelt sind es
+ * wenige tausend. Die inv-Nachricht fasste schon immer bis zu MAX_INV
+ * Eintraege -- aeltere Knoten verstehen das unveraendert.
+ *
+ * 250 ms Verzoegerung je Weiterreichung sind gegen 10 Minuten Blockzeit
+ * nicht spuerbar.
+ */
+export const TX_BUENDEL_MS = 250;
 
 export class PeerManager {
   private opt: NetzOptionen;
@@ -120,6 +141,9 @@ export class PeerManager {
    */
   private selbst = new Set<string>();
   private takt: NodeJS.Timeout | null = null;
+  /** Gesammelte Tx-Ankuendigungen je Peer (siehe TX_BUENDEL_MS). */
+  private txBuendel = new Map<PeerConnection, Uint8Array[]>();
+  private txBuendelTakt: NodeJS.Timeout | null = null;
   private laeuft = false;
 
   /**
@@ -170,6 +194,8 @@ export class PeerManager {
   async stop(): Promise<void> {
     this.laeuft = false;
     if (this.takt) { clearInterval(this.takt); this.takt = null; }
+    if (this.txBuendelTakt) { clearTimeout(this.txBuendelTakt); this.txBuendelTakt = null; }
+    this.txBuendel.clear();
     for (const p of [...this.peers.values()]) p.close('herunterfahren');
     this.peers.clear();
     this.ausgehendZiele.clear();
@@ -210,9 +236,62 @@ export class PeerManager {
     return n;
   }
 
-  /** Einen Block oder eine Transaktion ankuendigen. */
+  /** Einen Block oder eine Transaktion ankuendigen -- sofort, einzeln. */
   kuendigeAn(typ: number, hash: Uint8Array, ausser?: PeerConnection): number {
     return this.sendeAllen('inv', encodeInv([{ typ, hash }]), ausser);
+  }
+
+  /**
+   * Eine Ueberweisung ankuendigen -- gesammelt (TX_BUENDEL_MS).
+   * Liefert die Zahl der Peers, bei denen sie vorgemerkt wurde.
+   */
+  kuendigeAnTx(hash: Uint8Array, ausser?: PeerConnection): number {
+    const ms = this.opt.txBuendelMs ?? TX_BUENDEL_MS;
+    if (ms <= 0) return this.kuendigeAn(INV_TX, hash, ausser);
+    return this.vormerken([hash], ausser, ms);
+  }
+
+  /**
+   * Mehrere Ueberweisungen einem einzelnen Peer ankuendigen, gesammelt --
+   * etwa die ganze Warteschlange nach dem Handschlag (Konzept M3).
+   */
+  kuendigeAnTxEinem(p: PeerConnection, hashes: Uint8Array[]): void {
+    if (hashes.length === 0 || !p.ready) return;
+    const q = this.txBuendel.get(p) ?? [];
+    for (const h of hashes) q.push(h);
+    this.txBuendel.set(p, q);
+    this.planeBuendel(this.opt.txBuendelMs ?? TX_BUENDEL_MS);
+  }
+
+  private vormerken(hashes: Uint8Array[], ausser: PeerConnection | undefined, ms: number): number {
+    let n = 0;
+    for (const p of this.bereite()) {
+      if (p === ausser) continue;
+      const q = this.txBuendel.get(p) ?? [];
+      for (const h of hashes) q.push(h);
+      this.txBuendel.set(p, q);
+      n++;
+    }
+    if (n > 0) this.planeBuendel(ms);
+    return n;
+  }
+
+  private planeBuendel(ms: number): void {
+    if (this.txBuendelTakt) return;
+    this.txBuendelTakt = setTimeout(() => { this.txBuendelTakt = null; this.gibBuendelAb(); }, Math.max(0, ms));
+    this.txBuendelTakt.unref?.();
+  }
+
+  /** Alles Gesammelte senden, je Peer in Paketen zu hoechstens MAX_INV. */
+  gibBuendelAb(): void {
+    const buendel = this.txBuendel;
+    this.txBuendel = new Map();
+    for (const [p, q] of buendel) {
+      if (!p.ready) continue;
+      for (let i = 0; i < q.length; i += MAX_INV) {
+        p.send('inv', encodeInv(q.slice(i, i + MAX_INV).map(hash => ({ typ: INV_TX, hash }))));
+      }
+    }
   }
 
   // ------------------------------------------------------------ Eingehend
